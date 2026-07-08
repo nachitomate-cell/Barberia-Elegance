@@ -281,19 +281,19 @@ export default function Canjes() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* ── Header + intro ───────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 shrink-0">
             <ScanLine size={18} className="text-amber-400" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white leading-tight">Validar Canje</h1>
-            <p className="text-xs text-slate-500">Aprueba y entrega premios del club de fidelidad</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">Validar Canje</h1>
+            <p className="text-[11px] sm:text-xs text-slate-500 leading-snug">Aprueba y entrega premios del club de fidelidad</p>
           </div>
         </div>
-        <p className="text-sm text-slate-400 leading-relaxed mt-3 max-w-3xl">
+        <p className="text-[13px] sm:text-sm text-slate-400 leading-relaxed mt-3 max-w-3xl">
           Un miembro del club quiere reclamar su premio. Pídele el <strong className="text-white">PIN de 4 dígitos</strong> que
           generó en su app y confírmalo acá: se descuentan sellos automáticamente,
           se actualiza el stock (si aplica) y queda registro en el historial del cliente.
@@ -307,14 +307,15 @@ export default function Canjes() {
           { n: 2, Icon: KeyRound,     title: 'Ingresa los 4 dígitos',      desc: 'Se valida solo al llegar al 4to número. Aparece la instrucción de entrega.' },
           { n: 3, Icon: CheckCircle2, title: 'Confirma la entrega',        desc: 'Descuenta sellos, ajusta stock y registra el canje en el historial.' },
         ].map(({ n, Icon, title, desc }, i, arr) => (
-          <div key={n} className="relative bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-400 text-xs font-black flex items-center justify-center border border-amber-500/25">
+          <div key={n} className="relative bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+              <span className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-400 text-xs font-black flex items-center justify-center border border-amber-500/25 shrink-0">
                 {n}
               </span>
-              <Icon size={14} className="text-slate-400" />
+              <Icon size={14} className="text-slate-400 shrink-0" />
+              <p className="text-sm font-bold text-white leading-tight sm:hidden">{title}</p>
             </div>
-            <p className="text-sm font-bold text-white leading-tight">{title}</p>
+            <p className="text-sm font-bold text-white leading-tight hidden sm:block">{title}</p>
             <p className="text-[11px] text-slate-500 mt-1 leading-snug">{desc}</p>
             {i < arr.length - 1 && (
               <ArrowRight size={14} className="hidden sm:block absolute top-1/2 -right-3 -translate-y-1/2 text-slate-700 z-10 bg-slate-950 rounded-full" />
@@ -323,13 +324,13 @@ export default function Canjes() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
         {/* Columna PIN + tarjeta candidato */}
         <div className="lg:col-span-3 space-y-4">
 
           {/* Input PIN */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <KeyRound size={12} className="text-amber-400" /> PIN del cliente
               </label>
@@ -337,7 +338,7 @@ export default function Canjes() {
                 <Timer size={10} /> Válido 5 min
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 ref={pinRef}
                 inputMode="numeric"
@@ -352,12 +353,12 @@ export default function Canjes() {
                 }}
                 onKeyDown={e => e.key === 'Enter' && buscarPorPin(pin)}
                 placeholder="0000"
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-4 text-3xl font-black text-center text-white tracking-[0.6em] focus:border-amber-400 focus:outline-none"
+                className="w-full sm:flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 sm:px-4 py-3 sm:py-4 text-2xl sm:text-3xl font-black text-center text-white tracking-[0.4em] sm:tracking-[0.6em] focus:border-amber-400 focus:outline-none"
               />
               <button
                 onClick={() => buscarPorPin(pin)}
                 disabled={searching || pin.length !== 4}
-                className="px-5 rounded-lg bg-amber-400 text-black font-bold text-sm disabled:opacity-40 hover:bg-amber-300 transition-colors flex items-center gap-1.5"
+                className="w-full sm:w-auto px-5 py-3 sm:py-0 rounded-lg bg-amber-400 text-black font-bold text-sm disabled:opacity-40 hover:bg-amber-300 transition-colors flex items-center justify-center gap-1.5"
               >
                 {searching
                   ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -370,20 +371,20 @@ export default function Canjes() {
               Se valida solo al ingresar los 4 dígitos.
             </p>
             {errorMsg && (
-              <p className="text-xs text-rose-400 font-semibold mt-2 flex items-center gap-1">
-                <XCircle size={12} /> {errorMsg}
+              <p className="text-xs text-rose-400 font-semibold mt-2 flex items-start gap-1">
+                <XCircle size={12} className="shrink-0 mt-0.5" /> <span>{errorMsg}</span>
               </p>
             )}
           </div>
 
           {/* Estado vacío antes de que aparezca la tarjeta */}
           {!candidato && !errorMsg && (
-            <div className="bg-slate-950/40 border border-dashed border-slate-800 rounded-xl p-6 text-center">
-              <div className="w-12 h-12 mx-auto rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-3">
+            <div className="bg-slate-950/40 border border-dashed border-slate-800 rounded-xl p-4 sm:p-6 text-center">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-3">
                 <ScanLine size={20} className="text-slate-600" />
               </div>
               <p className="text-sm font-semibold text-slate-400">Esperando el PIN del cliente</p>
-              <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
+              <p className="text-[11px] sm:text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
                 Cuando ingreses los 4 dígitos correctos, verás acá el detalle del premio,
                 la instrucción de entrega y el botón para confirmar.
               </p>
@@ -394,32 +395,44 @@ export default function Canjes() {
           {candidato && catMeta && (
             <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
               {/* Header con foto/nombre del cliente */}
-              <div className="p-4 flex items-center gap-3 border-b border-slate-800">
-                <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
-                  {cliente?.photoURL
-                    ? <img src={cliente.photoURL} className="w-full h-full object-cover" alt="" />
-                    : <User size={22} className="text-slate-500" />}
+              <div className="p-4 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                    {cliente?.photoURL
+                      ? <img src={cliente.photoURL} className="w-full h-full object-cover" alt="" />
+                      : <User size={22} className="text-slate-500" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">
+                      {cliente?.nombre || candidato.userName || 'Cliente'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {cliente?.email || candidato.userId}
+                    </p>
+                  </div>
+                  {/* Meta compacta en desktop */}
+                  <div className="hidden sm:block text-right shrink-0">
+                    <div className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${catColorMap[catMeta.color]}`}>
+                      <catMeta.Icon size={10} /> {catMeta.label}
+                    </div>
+                    <p className="text-[10.5px] mt-1 text-slate-500 flex items-center justify-end gap-1">
+                      <Clock size={10} /> Expira en {countdown.text}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">
-                    {cliente?.nombre || candidato.userName || 'Cliente'}
-                  </p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {cliente?.email || candidato.userId}
-                  </p>
-                </div>
-                <div className="text-right">
+                {/* Meta full-width en mobile — evita colisión con nombre largo */}
+                <div className="sm:hidden mt-3 flex items-center justify-between gap-2">
                   <div className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${catColorMap[catMeta.color]}`}>
                     <catMeta.Icon size={10} /> {catMeta.label}
                   </div>
-                  <p className="text-[10.5px] mt-1 text-slate-500 flex items-center justify-end gap-1">
+                  <p className="text-[10.5px] text-slate-500 flex items-center gap-1">
                     <Clock size={10} /> Expira en {countdown.text}
                   </p>
                 </div>
               </div>
 
               {/* Cuerpo con premio + instrucción */}
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4">
                 <div>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Premio a entregar</span>
                   <h2 className="text-lg font-black text-white leading-tight mt-0.5">
@@ -462,10 +475,10 @@ export default function Canjes() {
               </div>
 
               {/* Botones */}
-              <div className="p-4 bg-slate-950/40 border-t border-slate-800 flex gap-3">
+              <div className="p-3 sm:p-4 bg-slate-950/40 border-t border-slate-800 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={resetear}
-                  className="px-4 py-2.5 text-sm text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
+                  className="px-4 py-3 sm:py-2.5 text-sm text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -544,16 +557,16 @@ export default function Canjes() {
       </div>
 
       {/* ── Legenda de tipos de premio ──────────────────────────── */}
-      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Info size={14} className="text-slate-400" />
+          <Info size={14} className="text-slate-400 shrink-0" />
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Tipos de premio que verás</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {Object.entries(CATEGORIAS).map(([key, cat]) => (
             <div key={key} className={`rounded-lg border p-3 ${catColorMap[cat.color]}`}>
               <div className="flex items-center gap-2 mb-1.5">
-                <cat.Icon size={14} />
+                <cat.Icon size={14} className="shrink-0" />
                 <p className="text-xs font-bold uppercase tracking-wider">{cat.label}</p>
               </div>
               <p className="text-[11px] leading-snug opacity-90">
@@ -567,9 +580,9 @@ export default function Canjes() {
       </div>
 
       {/* ── Tips / casos raros ──────────────────────────────────── */}
-      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
-          <HelpCircle size={14} className="text-slate-400" />
+          <HelpCircle size={14} className="text-slate-400 shrink-0" />
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Casos que podrías ver</h3>
         </div>
         <ul className="space-y-2 text-xs text-slate-400">
