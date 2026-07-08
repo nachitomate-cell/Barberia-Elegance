@@ -3,12 +3,15 @@ import { useSearchParams } from 'react-router-dom';
 import {
   addDoc, onSnapshot, query, where, orderBy, limit as qLimit, Timestamp,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   Star, MessageSquare, Send, Clock, CheckCircle2, AlertCircle,
   Info, X, ExternalLink, Copy, Check, TrendingUp, Users, Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
+import { useAuth } from '../contexts/AuthContext';
 
 /* ── G oficial en 4 colores para el hero (más grande que en el sidebar) ── */
 function GoogleG({ size = 40 }) {
@@ -61,10 +64,38 @@ function openWhatsAppNative(phone, text) {
 /* ── Tab Resumen ────────────────────────────────────────────────
    Muestra rating actual, total de reseñas, las 5 más recientes
    (todo pulled por la CF googleReviewsSync que corre diariamente). */
+const SUPERADMINS = new Set(['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']);
+
 function TabResumen() {
   const tenant = useTenant();
+  const { user } = useAuth();
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+  const isSuperadmin = SUPERADMINS.has((user?.email || '').toLowerCase());
+
+  async function handleForceSync() {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncMsg('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'googleReviewsSyncManual');
+      const res = await fn({ tenantId: tenant.id });
+      const skipped = res.data?.skipped;
+      if (skipped) {
+        setSyncMsg(`Sin placeId configurado para ${tenant.id}. Contáctate con soporte.`);
+      } else {
+        setSyncMsg(`✓ Sincronizado — ${res.data?.reviews ?? 0} reseñas actualizadas`);
+      }
+    } catch (e) {
+      console.error('[Google] forceSync:', e);
+      setSyncMsg(e?.message || 'No se pudo sincronizar');
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(''), 5000);
+    }
+  }
 
   useEffect(() => {
     const unsub = onSnapshot(tenantDoc('settings', 'googleReviews'), snap => {
@@ -140,6 +171,17 @@ function TabResumen() {
               : '—'}
           </p>
           <p className="text-xs text-slate-500 mt-1">Sync automático diario a las 06:00</p>
+          {isSuperadmin && (
+            <button
+              onClick={handleForceSync}
+              disabled={syncing}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Sincronizando…' : 'Actualizar ahora'}
+            </button>
+          )}
+          {syncMsg && <p className="text-[10.5px] text-slate-400 mt-2 leading-snug">{syncMsg}</p>}
         </div>
       </div>
 

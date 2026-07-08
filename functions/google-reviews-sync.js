@@ -106,8 +106,11 @@ exports.googleReviewsSyncScheduled = onSchedule(
 
 // ── Callable: sync manual (solo superadmin) ────────────────────────
 //  Sin tenantId → sincroniza todos los que tengan placeId.
+// cors:true → permite llamadas desde custom domains de tenants (yugen.synaptechspa.cl,
+// aura.synaptechspa.cl, etc.). Sin esto, el default de v2 solo acepta *.web.app
+// y bloquea el preflight con "No Access-Control-Allow-Origin".
 exports.googleReviewsSyncManual = onCall(
-  { region: 'us-central1', secrets: [GOOGLE_PLACES_API_KEY] },
+  { region: 'us-central1', cors: true, secrets: [GOOGLE_PLACES_API_KEY] },
   async (request) => {
     const email = (request.auth?.token?.email || '').toLowerCase();
     if (!BOOTSTRAP_ADMINS.includes(email)) {
