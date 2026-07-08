@@ -6,7 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap,
+  Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
 } from 'lucide-react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -206,6 +206,19 @@ const STATUS_STYLE = {
   Confirmada: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
   Cancelada:  'bg-red-500/10   border-red-500/30     text-red-400',
   Completada: 'bg-blue-500/10  border-blue-500/30    text-blue-400',
+  // No asistió: el cliente no llegó y no aviso. Rose para distinguirlo de
+  // Cancelada (rojo) — es un no-show pasivo, mas grave para el negocio.
+  NoAsistio:  'bg-rose-500/10  border-rose-500/40    text-rose-300',
+};
+
+// Label human-readable para el valor 'NoAsistio' (Firestore guarda sin acento
+// ni espacio, la UI muestra "No asistió" con acento).
+const STATUS_LABEL = {
+  Confirmada: 'Confirmada',
+  Completada: 'Completada',
+  Cancelada:  'Cancelada',
+  Pendiente:  'Pendiente',
+  NoAsistio:  'No asistió',
 };
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -795,7 +808,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         // Calcular el lockId que correspondería al estado nuevo. Un sobrecupo
         // NO toma lock: aunque cambie de hora/barbero, sigue apoyado sobre el
         // lock de la cita "dueña" del slot.
-        const needsLock = form.estado !== 'Cancelada' && !!form.barberoId && !sobrecupoActivo;
+        // NoAsistio libera el slot igual que Cancelada — el cliente no vino, otro
+        // puede tomar ese horario si aún no pasó (o queda libre en el histórico).
+        const needsLock = form.estado !== 'Cancelada' && form.estado !== 'NoAsistio' && !!form.barberoId && !sobrecupoActivo;
         let nextLockId = null;
         if (needsLock) {
           const safeHora = (form.hora || '').replace(':', '');
@@ -1142,9 +1157,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             <div>
               <label className={lbl}>Estado</label>
               <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
-                <option>Confirmada</option>
-                <option>Completada</option>
-                <option>Cancelada</option>
+                <option value="Confirmada">Confirmada</option>
+                <option value="Completada">Completada</option>
+                <option value="Cancelada">Cancelada</option>
+                <option value="NoAsistio">No asistió</option>
               </select>
             </div>
           )}
@@ -1662,7 +1678,8 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
-  const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada';
+  // NoAsistio es también un estado final: no se arrastra (como Completada/Cancelada).
+  const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada' && cita.estado !== 'NoAsistio';
   const [over, setOver] = useState(false);
 
   // ── Soporte táctil (long-press + arrastrar) ─────────────────
@@ -1901,7 +1918,7 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
 }
 
 /* ── CitaContextMenu — menú al hacer clic derecho sobre una cita ── */
-function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, onWhatsApp, onCancelar, onEliminar, onClose }) {
+function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, onWhatsApp, onCancelar, onNoAsistio, onEliminar, onClose }) {
   const ref = useRef(null);
   // Reposiciona para que no se salga de la ventana.
   const [pos, setPos] = useState({ left: x, top: y });
@@ -1963,7 +1980,16 @@ function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, on
             Confirmar por WhatsApp
           </button>
         )}
-        {cita.estado !== 'Cancelada' && (
+        {cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio' && cita.estado !== 'Completada' && onNoAsistio && (
+          <button
+            onClick={onNoAsistio}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <UserX size={15} className="text-rose-400 shrink-0" />
+            Marcar no asistió
+          </button>
+        )}
+        {cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio' && (
           <button
             onClick={onCancelar}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
@@ -2052,6 +2078,7 @@ const ESTADO_BADGE_HN = {
   Completada: 'bg-blue-500/20   text-blue-300   border-blue-500/40',
   Cancelada:  'bg-red-500/20    text-red-300    border-red-500/40',
   Pendiente:  'bg-amber-500/20  text-amber-300  border-amber-500/40',
+  NoAsistio:  'bg-rose-500/20   text-rose-300   border-rose-500/40',
 };
 
 function fmtFechaCorta(iso) {
@@ -2246,6 +2273,7 @@ const ESTADO_BADGE = {
   Completada: 'bg-blue-500/20   text-blue-300   border-blue-500/40',
   Cancelada:  'bg-red-500/20    text-red-300    border-red-500/40',
   Pendiente:  'bg-amber-500/20  text-amber-300  border-amber-500/40',
+  NoAsistio:  'bg-rose-500/20   text-rose-300   border-rose-500/40',
 };
 
 function fmtTimestamp(val) {
@@ -2410,7 +2438,7 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
 }
 
 /* ── HistorialModal ──────────────────────────────────────────── */
-const ESTADOS_FILTRO = ['Confirmada', 'Completada', 'Cancelada', 'Pendiente'];
+const ESTADOS_FILTRO = ['Confirmada', 'Completada', 'Cancelada', 'Pendiente', 'NoAsistio'];
 
 function HistorialModal({ onClose }) {
   const [search,  setSearch]  = useState('');
@@ -2473,7 +2501,7 @@ function HistorialModal({ onClose }) {
               className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500 transition-colors appearance-none"
             >
               <option value="">Todos</option>
-              {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{e}</option>)}
+              {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{STATUS_LABEL[e] || e}</option>)}
             </select>
           </div>
         </div>
@@ -2506,6 +2534,7 @@ function HistorialModal({ onClose }) {
                   c.estado === 'Completada' ? 'bg-blue-400' :
                   c.estado === 'Cancelada'  ? 'bg-red-400'  :
                   c.estado === 'Pendiente'  ? 'bg-amber-400':
+                  c.estado === 'NoAsistio'  ? 'bg-rose-400' :
                   'bg-emerald-400'
                 }`} />
 
@@ -2637,7 +2666,9 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
   const occupied = useMemo(() => {
     const map = {};
     (citas || []).forEach(c => {
-      if (c.estado !== 'Cancelada') {
+      // NoAsistio: no bloquea el slot en el mapa (como Cancelada) — el horario
+      // queda visualmente libre en la vista de "occupied" del día.
+      if (c.estado !== 'Cancelada' && c.estado !== 'NoAsistio') {
         const dur  = Number(c.duracion || c.duracionServicio || 30);
         const base = c.hora;
         const baseMin = parseInt(base.split(':')[0]) * 60 + parseInt(base.split(':')[1]);
@@ -3252,7 +3283,8 @@ export default function Agenda() {
       c.barberoId === barberoId &&
       c.hora === hora &&
       (c.fecha || dateStr) === fecha &&
-      c.estado !== 'Cancelada',
+      c.estado !== 'Cancelada' &&
+      c.estado !== 'NoAsistio',
     );
 
     setReagendarModal({ cita: draggedCita, barberoId, barberoNombre, hora, fecha, ocupada });
@@ -3334,6 +3366,23 @@ export default function Agenda() {
         await updateDoc(citaRef, { estado: 'Cancelada', updatedAt: serverTimestamp() });
       }
     } catch (err) { console.error('Error al cancelar cita:', err); }
+  };
+
+  // Marca no-show: estado → NoAsistio y libera el lock (misma mecánica que
+  // Cancelada, pero preserva el registro para el historial del cliente y
+  // stats de churn). Distinto de Cancelada: el cliente NO avisó.
+  const marcarNoAsistio = async (cita) => {
+    try {
+      const citaRef = doc(db, `${tenantCol('citas').path}/${cita.id}`);
+      if (cita.slotLockId) {
+        const batch = writeBatch(db);
+        batch.update(citaRef, { estado: 'NoAsistio', slotLockId: null, updatedAt: serverTimestamp() });
+        batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+        await batch.commit();
+      } else {
+        await updateDoc(citaRef, { estado: 'NoAsistio', updatedAt: serverTimestamp() });
+      }
+    } catch (err) { console.error('Error al marcar no asistió:', err); }
   };
 
   // Elimina la cita por completo + su lock.
@@ -3944,6 +3993,15 @@ export default function Agenda() {
           onCancelar={async () => {
             const c = ctxMenu.cita; setCtxMenu(null);
             if (await confirmDialog(`¿Cancelar la cita de ${c.clienteNombre || 'este cliente'}?`)) cancelarCita(c);
+          }}
+          onNoAsistio={async () => {
+            const c = ctxMenu.cita; setCtxMenu(null);
+            if (await confirmDialog({
+              title: 'Marcar como No asistió',
+              message: `¿${c.clienteNombre || 'Este cliente'} no llegó a su cita?\n\nEl horario queda libre y se registra el no-show en su historial.`,
+              confirmText: 'Sí, marcar',
+              cancelText: 'Cancelar',
+            })) marcarNoAsistio(c);
           }}
           onEliminar={async () => {
             const c = ctxMenu.cita; setCtxMenu(null);
