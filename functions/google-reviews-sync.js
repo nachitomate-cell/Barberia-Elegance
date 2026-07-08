@@ -48,6 +48,74 @@ function reviewsDocRef(tenantId) {
     : db.collection('tenants').doc(tenantId).collection('settings').doc('googleReviews');
 }
 
+// Traduce el string de "hace X" al español desde el formato en ingles que
+// devuelve Places API (New) cuando el header X-Goog-Language-Code no fuerza
+// la localizacion (que es la mayoria del tiempo — Google es inconsistente).
+function localizeTimeString(str) {
+  if (!str) return '';
+  const s = str.toLowerCase().trim();
+  // "N days ago" | "a day ago" | "yesterday"
+  if (s === 'yesterday') return 'ayer';
+  const patterns = [
+    { re: /^a day ago$/i,          out: 'hace 1 día' },
+    { re: /^(\d+) days? ago$/i,    fn: n => `hace ${n} día${n === '1' ? '' : 's'}` },
+    { re: /^a week ago$/i,         out: 'hace 1 semana' },
+    { re: /^(\d+) weeks? ago$/i,   fn: n => `hace ${n} semana${n === '1' ? '' : 's'}` },
+    { re: /^a month ago$/i,        out: 'hace 1 mes' },
+    { re: /^(\d+) months? ago$/i,  fn: n => `hace ${n} mes${n === '1' ? '' : 'es'}` },
+    { re: /^a year ago$/i,         out: 'hace 1 año' },
+    { re: /^(\d+) years? ago$/i,   fn: n => `hace ${n} año${n === '1' ? '' : 's'}` },
+    { re: /^an? hour ago$/i,       out: 'hace 1 hora' },
+    { re: /^(\d+) hours? ago$/i,   fn: n => `hace ${n} hora${n === '1' ? '' : 's'}` },
+  ];
+  for (const p of patterns) {
+    const m = s.match(p.re);
+    if (m) return p.out || p.fn(m[1]);
+  }
+  return str; // fallback: dejar como estaba si no matchea ningun patron
+}
+
+// Traduce texto al español via MyMemory (API gratuita, 5000 chars/dia por IP).
+// Bajo volumen para nuestro caso (5 reseñas * ~50 tenants = 250 llamadas/dia
+// en el peor caso, cada una <500 chars). Si falla, devuelve el texto original.
+async function translateToSpanish(text, sourceLang = 'en') {
+  const t = (text || '').trim();
+  if (!t) return '';
+  // Cap a 500 chars para no pasarnos del limite ni gastar cuota
+  const q = t.slice(0, 500);
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${sourceLang}|es`;
+    const r   = await fetch(url);
+    if (!r.ok) return text;
+    const j = await r.json();
+    const translated = j?.responseData?.translatedText;
+    if (!translated || typeof translated !== 'string') return text;
+    // Si MyMemory devolvio un mensaje de error tipo "MYMEMORY WARNING", lo detecta
+    if (translated.toUpperCase().includes('MYMEMORY WARNING')) return text;
+    // Si la traduccion es igual al original y hay chars ASCII, algo fallo
+    return translated;
+  } catch (_) {
+    return text;
+  }
+}
+
+// Devuelve el texto de la reseña en español. Prefiere text.text si Google ya
+// lo devolvio en es-*; si no, traduce el originalText via MyMemory.
+async function pickSpanishText(review) {
+  const textLang     = (review.text?.languageCode         || '').toLowerCase();
+  const originalLang = (review.originalText?.languageCode || '').toLowerCase();
+  const textStr     = review.text?.text         || '';
+  const originalStr = review.originalText?.text || textStr;
+
+  // Si Google ya nos dio el texto en español (text.text traducido o originalText en es), usarlo.
+  if (textLang === 'es' || textLang.startsWith('es-'))     return textStr;
+  if (originalLang === 'es' || originalLang.startsWith('es-')) return originalStr;
+
+  // No hay version en español → traducir el original.
+  const src = originalLang.split('-')[0] || 'en';
+  return translateToSpanish(originalStr, src);
+}
+
 // Consulta Google Places (New) y mergea el resultado en el doc del tenant.
 // Devuelve un resumen; si el local no tiene placeId, lo omite sin error.
 async function syncTenant(tenantId, apiKey) {
@@ -56,10 +124,9 @@ async function syncTenant(tenantId, apiKey) {
   const placeId = snap.exists ? (snap.data().placeId || '') : '';
   if (!placeId) return { tenantId, skipped: 'sin placeId' };
 
-  // X-Goog-Language-Code: 'es' pide a Google Places que traduzca automaticamente
-  // las reseñas y el relativePublishTimeDescription al español. Google usa su
-  // propio sistema de traducción (mismo que Maps) — es gratis y de buena calidad.
-  // Si la reseña original ya está en español, la devuelve tal cual sin tocarla.
+  // X-Goog-Language-Code: 'es' es una pista para Places API pero NO garantiza
+  // traduccion — Google es inconsistente. Lo dejamos por si algun placeId lo
+  // respeta, pero fallbackeamos a MyMemory abajo para los que no.
   const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
     headers: {
       'X-Goog-Api-Key':       apiKey,
@@ -73,12 +140,13 @@ async function syncTenant(tenantId, apiKey) {
   }
   const data = await res.json();
 
-  const reviews = Array.isArray(data.reviews) ? data.reviews.map(r => ({
+  const rawReviews = Array.isArray(data.reviews) ? data.reviews : [];
+  const reviews = await Promise.all(rawReviews.map(async (r) => ({
     author: r.authorAttribution?.displayName || 'Cliente',
     rating: r.rating || 5,
-    text:   r.text?.text || r.originalText?.text || '',
-    time:   r.relativePublishTimeDescription || '',
-  })) : [];
+    text:   await pickSpanishText(r),
+    time:   localizeTimeString(r.relativePublishTimeDescription || ''),
+  })));
 
   await ref.set({
     rating:       typeof data.rating === 'number' ? data.rating : null,
