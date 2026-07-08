@@ -5,6 +5,7 @@ import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
   Users, TrendingUp, Clock, CheckCircle2, Gem, UserX,
   Send, X, MessageCircle, ChevronRight, ArrowUpRight, ArrowDownRight, Plus,
+  Smartphone, ExternalLink, RefreshCw,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
@@ -22,10 +23,20 @@ import Membresias  from './Membresias';
 const HAS_MEMBRESIAS = new Set(['chameleon', 'deluxeperfumes']);
 
 const TABS_BASE = [
-  { key: 'resumen', label: 'Resumen',       Icon: Sparkles },
-  { key: 'premios', label: 'Premios',       Icon: Trophy   },
-  { key: 'canjes',  label: 'Validar Canje', Icon: ScanLine },
-  { key: 'rangos',  label: 'Rangos',        Icon: Crown    },
+  { key: 'resumen', label: 'Resumen',       Icon: Sparkles   },
+  { key: 'premios', label: 'Premios',       Icon: Trophy     },
+  { key: 'canjes',  label: 'Validar Canje', Icon: ScanLine   },
+  { key: 'rangos',  label: 'Rangos',        Icon: Crown      },
+  { key: 'preview', label: 'Vista previa',  Icon: Smartphone },
+];
+
+// Escenarios que puede seleccionar el admin en el tab "Vista previa".
+// Cada key mapea a un scenario del dashboard.html (?preview=1&scenario=<key>).
+const PREVIEW_SCENARIOS = [
+  { key: 'nuevo',        label: 'Cliente nuevo',        desc: '0 sellos · recién registrado'      },
+  { key: 'con_sellos',   label: 'Con sellos activos',   desc: '5 sellos · historial con visitas'  },
+  { key: 'cerca_premio', label: 'A un paso del premio', desc: '8 sellos · casi canjea el próximo' },
+  { key: 'platinum',     label: 'Miembro Platinum',     desc: '28 históricos · rango top'         },
 ];
 
 // Umbrales de rango — espejo de Clientes.jsx:43. Si el tenant customizó
@@ -912,6 +923,144 @@ function BroadcastModal({ open, onClose, type, clients, tenant, menorCosto }) {
   );
 }
 
+/* ── Tab: Vista previa del dashboard del cliente ──────────────────
+   Renderiza dashboard.html en un iframe dentro de un frame de iPhone
+   con selector de escenarios. dashboard.html detecta ?preview=1 y salta
+   el gate de auth, inyectando datos mock según ?scenario=<key>.
+   El tenant config (rangos, premios, tema, logo) se carga real desde
+   Firestore — la preview muestra CÓMO SE VE, no data ficticia. */
+function PreviewDashboard() {
+  const tenant = useTenant();
+  const [scenario, setScenario] = useState('con_sellos');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // URL del iframe con ?local=<tid> + ?preview=1 + ?scenario=<key>.
+  // El local= lo respeta el config.js de la home para resolver el tenant
+  // correcto (necesario cuando el admin previsualiza un tenant desde otro
+  // dominio, ej. panel.synaptechspa.cl previsualiza aura.synaptechspa.cl).
+  const iframeSrc = useMemo(() => {
+    const params = new URLSearchParams({
+      local:    tenant.id,
+      preview:  '1',
+      scenario,
+      _:        String(refreshKey), // fuerza re-mount si cambia
+    });
+    return `/dashboard.html?${params.toString()}`;
+  }, [tenant.id, scenario, refreshKey]);
+
+  const openExternal = () => {
+    const params = new URLSearchParams({ local: tenant.id, preview: '1', scenario });
+    window.open(`/dashboard.html?${params.toString()}`, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Explicación */}
+      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 shrink-0">
+            <Smartphone size={16} className="text-amber-400" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-white">Así ve tu cliente el dashboard</h3>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              Vista previa real del <strong className="text-white">/dashboard.html</strong> que abre cada cliente cuando entra al club.
+              Los <strong className="text-white">rangos, premios, colores y logo son los tuyos</strong>; solo los sellos e historial son datos de prueba
+              para que puedas ver cómo se ve en cada estado.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Selector de escenarios */}
+      <div>
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Escenario del cliente</span>
+          <div className="flex-1 h-px bg-slate-800" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {PREVIEW_SCENARIOS.map(s => {
+            const active = scenario === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setScenario(s.key)}
+                className={`text-left px-3 py-2.5 rounded-xl border transition-all ${
+                  active
+                    ? 'border-amber-500/40 bg-amber-500/10 shadow-[0_0_20px_-8px_rgba(251,191,36,0.4)]'
+                    : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
+                }`}
+              >
+                <p className={`text-sm font-bold leading-tight ${active ? 'text-amber-300' : 'text-white'}`}>
+                  {s.label}
+                </p>
+                <p className={`text-[11px] mt-0.5 leading-snug ${active ? 'text-amber-400/70' : 'text-slate-500'}`}>
+                  {s.desc}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Frame de teléfono con iframe */}
+      <div className="flex flex-col items-center gap-4">
+        {/* Toolbar del preview */}
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            title="Recargar la vista previa"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+          >
+            <RefreshCw size={12} />
+            Recargar
+          </button>
+          <button
+            onClick={openExternal}
+            title="Abrir en pestaña nueva"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+          >
+            <ExternalLink size={12} />
+            Abrir en pestaña
+          </button>
+        </div>
+
+        {/* iPhone-style frame — portrait, mobile-only */}
+        <div
+          className="relative bg-slate-950 rounded-[48px] shadow-2xl border-[10px] border-slate-950 shadow-black/40"
+          style={{ width: 380, maxWidth: '100%' }}
+        >
+          {/* Dynamic Island (iPhone) */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 top-2 bg-black rounded-full z-10 pointer-events-none"
+            style={{ width: 100, height: 26 }}
+            aria-hidden
+          />
+          {/* Screen */}
+          <div
+            className="overflow-hidden bg-black rounded-[38px] relative"
+            style={{ aspectRatio: '9/19.5' }}
+          >
+            <iframe
+              key={refreshKey}
+              src={iframeSrc}
+              title="Vista previa del dashboard del cliente"
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-forms"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-600 text-center max-w-md">
+          Los datos que ves son ficticios (nombre "María González", historial de prueba). Cambia el escenario arriba
+          para ver cómo se comporta el dashboard en cada estado del cliente.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ── Vista principal ─────────────────────────────────────────────── */
 export default function Fidelizacion() {
   const tenant = useTenant();
@@ -983,6 +1132,7 @@ export default function Fidelizacion() {
         {activeTab === 'premios'    && <Premios />}
         {activeTab === 'canjes'     && <Canjes />}
         {activeTab === 'rangos'     && <Rangos />}
+        {activeTab === 'preview'    && <PreviewDashboard />}
         {activeTab === 'membresias' && HAS_MEMBRESIAS.has(tenant.id) && <Membresias />}
       </div>
     </div>
