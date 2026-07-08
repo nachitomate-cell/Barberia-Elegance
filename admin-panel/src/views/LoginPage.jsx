@@ -196,26 +196,30 @@ export default function LoginPage() {
       </div>
 
       {/* ── PANEL DERECHO — formulario (full bleed en mobile) ───────
-          En mobile: fondo negro sólido, sin bordes ni redondeos,
-          altura 100dvh (dinámica, respeta la barra del navegador).
-          En desktop: mantiene la mitad derecha del split-screen. */}
-      <div className="min-h-[100dvh] w-full flex flex-col justify-center relative bg-[#050505] lg:bg-[#09090b] px-6 sm:px-10 lg:px-24">
+          En mobile: fondo negro sólido, sin bordes ni redondeos.
+          En desktop: mantiene la mitad derecha del split-screen.
+          Estructura flex-col con h-[100dvh]: el wrapper del formulario
+          usa flex-1 + justify-center (centra el form matemáticamente en
+          el espacio disponible), y el footer se ancla naturalmente al
+          borde inferior por ser el último hijo con shrink-0. */}
+      <div className="flex flex-col h-[100dvh] relative bg-[#050505] lg:bg-[#09090b]">
 
-        {/* Ambient glow — resplandor sutil detrás del formulario para romper
-            el negro absoluto sin sobrecargar. Solo decorativo. */}
+        {/* Ambient glow — resplandor sutil detrás del formulario */}
         <div
           aria-hidden
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md aspect-square bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none z-0"
         />
 
-        {/* Formulario — z-10 para quedar sobre el glow */}
-        <div className="w-full max-w-sm mx-auto relative z-10">
+        {/* Wrapper centrado del formulario — flex-1 hace que ocupe todo el
+            espacio disponible entre el borde superior y el footer, y
+            justify-center centra el contenido verticalmente adentro. */}
+        <div className="flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 relative z-10">
 
           {tenant.logo && (
             <img
               src={tenant.logo}
               alt={tenant.name}
-              className="h-14 w-auto object-contain mb-8"
+              className="h-14 w-14 object-contain rounded-lg mb-8"
             />
           )}
 
@@ -275,8 +279,9 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer anclado al pie por mt-auto (flex-col en el contenedor) */}
-        <p className="text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap mt-auto pb-6 pt-10 relative z-10">
+        {/* Footer anclado al pie: shrink-0 asegura que no colapse;
+            el flex-1 del wrapper superior lo empuja naturalmente hacia abajo. */}
+        <p className="shrink-0 pb-8 text-center text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap relative z-10">
           <img
             src="/synaptech/ig.png"
             alt="SynapTech Icon"
