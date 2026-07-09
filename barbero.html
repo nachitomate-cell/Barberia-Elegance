@@ -28,6 +28,8 @@
   <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script defer src="/firebase-config.js?v=1.3"></script>
   <script defer src="/js/utils/error-logger.js?v=1.1"></script>
+  <!-- AURA · Modal exclusivo "¿Cómo llegaste a nosotros?" (autoinstala solo si tenant===aura) -->
+  <script defer src="/aura-origen-pregunta.js?v=1"></script>
   <script defer src="/firebaseUtils.js?v=3.1"></script>
   <script defer src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script defer src="/js/guards/version-manager.js?v=1.1"></script>
@@ -1791,6 +1793,14 @@
       return; // no creamos la cita si el pago no se inició
     }
 
+    // ── AURA · Pregunta "¿Cómo llegaste a nosotros?" ─────────────
+    // No-op si el tenant no es aura o el modulo esta desactivado.
+    // Si es obligatorio y el cliente cierra sin elegir, la promise
+    // no resuelve y el flujo queda bloqueado hasta que responda.
+    const _auraOrigen = window.askAuraOrigenSiCorresponde
+      ? await window.askAuraOrigenSiCorresponde()
+      : undefined;
+
     try {
       await FDB.addCita({
         fecha:            _selectedDate,
@@ -1806,6 +1816,7 @@
         precio:           _precioEfectivo(),
         estado:           'Confirmada',
         origen:           'barbero-page',
+        ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
       });
 
       // Track for spam guard
