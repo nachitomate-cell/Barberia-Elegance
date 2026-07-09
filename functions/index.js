@@ -1130,3 +1130,16 @@ exports.biooAiGenerate = biooAiBuilder.biooAiGenerate;
 const provisionTenant = require('./provision-tenant');
 exports.verificarSlugLibre     = provisionTenant.verificarSlugLibre;
 exports.provisionarTenantSelf  = provisionTenant.provisionarTenantSelf;
+
+// ─────────────────────────────────────────────────────────────────
+//  WHATSAPP NOTIFICACIONES — confirmaciones de cita vía Cloud API
+//  oficial de Meta. Nivel gratis (aviso al dueño, solo mensajes de
+//  sesión = costo $0 garantizado) + nivel pagado (plantilla utility
+//  al cliente, triple candado apagado por defecto).
+//  Ver functions/whatsapp-notif.js.
+// ─────────────────────────────────────────────────────────────────
+const whatsappNotif = require('./whatsapp-notif');
+exports.whatsappWebhook              = whatsappNotif.whatsappWebhook;
+exports.notificarCitaWhatsAppElegance = whatsappNotif.notificarCitaWhatsAppElegance;
+exports.notificarCitaWhatsAppTenant  = whatsappNotif.notificarCitaWhatsAppTenant;
+exports.waNotifEstado                = whatsappNotif.waNotifEstado;

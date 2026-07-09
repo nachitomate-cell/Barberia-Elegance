@@ -132,6 +132,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'google',        label: 'Google',        Icon: GoogleIcon,        adminOnly: true, variant: 'google' },
       { to: 'instagram',     label: 'Instagram',     Icon: Instagram,         adminOnly: false, variant: 'instagram' },
       { to: 'whatsapp-bot',  label: 'WhatsApp Bot',  Icon: WhatsAppIcon,      adminOnly: true, variant: 'whatsapp' },
+      { to: 'whatsapp-notif', label: 'Avisos WhatsApp', Icon: WhatsAppIcon,   adminOnly: true, variant: 'whatsapp' },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,    adminOnly: true, variant: 'tv' },
       { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon,  adminOnly: true, variant: 'pagos' },
     ],
