@@ -1903,73 +1903,74 @@
      * hairline oro + fondo transparente, se elevan sutil en hover.
      * ═══════════════════════════════════════════════════════════════════ */
 
-    /* Header "¿Qué servicio buscas?" — italica editorial */
+    /* Header "¿Qué servicio buscas?" — solo el titulo mantiene serif ligero */
     .tenant-kronnos_penablanca #step1 h2:has(+ *),
     .tenant-kronnos_limache    #step1 h2:has(+ *),
     .tenant-kronnos_penablanca #step1 > div > h2,
     .tenant-kronnos_limache    #step1 > div > h2 {
-      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
-      font-weight: 600 !important;
-      font-style: italic !important;
-      letter-spacing: -0.01em !important;
+      font-family: 'Playfair Display', serif !important;
+      font-weight: 500 !important;
+      font-style: normal !important;
+      letter-spacing: -0.012em !important;
     }
 
-    /* Category pills — outline refinado, small caps con tracking amplio */
+    /* Category pills — Inter clean, tracking medio, sin neon */
     .tenant-kronnos_penablanca .category-pill,
     .tenant-kronnos_limache    .category-pill {
       background: transparent !important;
-      border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.28) !important;
+      border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.22) !important;
       border-radius: 999px !important;
-      padding: 0.5rem 1.15rem !important;
-      font-family: 'Cormorant Garamond', 'Playfair Display', serif !important;
+      padding: 0.5rem 1.1rem !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 500 !important;
-      font-size: 0.88rem !important;
+      font-size: 0.82rem !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.16em !important;
-      color: rgba(245, 235, 220, 0.72) !important;
+      letter-spacing: 0.10em !important;
+      color: rgba(245, 235, 220, 0.75) !important;
       transition: all 0.2s ease !important;
       box-shadow: none !important;
     }
     .tenant-kronnos_penablanca .category-pill:hover,
     .tenant-kronnos_limache    .category-pill:hover {
       color: #faf3e8 !important;
-      border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.55) !important;
-      background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.05) !important;
+      border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.42) !important;
+      background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.04) !important;
     }
     .tenant-kronnos_penablanca .category-pill.border-neon,
     .tenant-kronnos_limache    .category-pill.border-neon {
-      background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.12) !important;
+      background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.10) !important;
       border-color: var(--accent) !important;
       color: #faf3e8 !important;
-      box-shadow: 0 0 28px -8px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.5) !important;
+      box-shadow: none !important;   /* fuera el glow */
     }
 
-    /* Header de categoría (PACKS KRONNOS, SERVICIOS MASCULINOS...) — versalitas serif */
+    /* Header de categoría (PACKS KRONNOS, SERVICIOS MASCULINOS...) —
+     * Inter en versalitas. Sin serif = mas legible en 0.85rem. */
     .tenant-kronnos_penablanca .cat-title,
     .tenant-kronnos_limache    .cat-title {
-      font-family: 'Cormorant Garamond', 'Playfair Display', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 0.95rem !important;
-      letter-spacing: 0.24em !important;
+      font-size: 0.72rem !important;
+      letter-spacing: 0.20em !important;
       text-transform: uppercase !important;
       border-left: 0 !important;
       padding-left: 0 !important;
-      color: rgba(245, 235, 220, 0.85) !important;
+      color: rgba(245, 235, 220, 0.65) !important;
       margin-bottom: 1rem !important;
       position: relative !important;
-      padding-bottom: 0.6rem !important;
+      padding-bottom: 0.55rem !important;
     }
-    /* Meandro griego bajo cada header — SVG data-URI (patrón repetible) */
+    /* Meandro griego mucho mas discreto (opacidad baja, sin acento) */
     .tenant-kronnos_penablanca .cat-title::after,
     .tenant-kronnos_limache    .cat-title::after {
       content: '';
       position: absolute;
       left: 0; right: 0; bottom: 0;
-      height: 6px;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 6'><path fill='none' stroke='%23c9a84c' stroke-width='0.9' opacity='0.55' d='M0,5 L0,2 L3,2 L3,4 L6,4 L6,1 L9,1 L9,5 L12,5 L12,2 L15,2 L15,4 L18,4 L18,1 L21,1 L21,5 L24,5'/></svg>");
+      height: 5px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 5'><path fill='none' stroke='%23c9a84c' stroke-width='0.7' d='M0,4 L0,2 L3,2 L3,3 L6,3 L6,1 L9,1 L9,4 L12,4 L12,2 L15,2 L15,3 L18,3 L18,1 L21,1 L21,4 L24,4'/></svg>");
       background-repeat: repeat-x;
-      background-size: 24px 6px;
-      opacity: 0.75;
+      background-size: 24px 5px;
+      opacity: 0.32;
     }
     /* Oculta el separador ornamental viejo (✦ ✦ ✦) que agrega el JS */
     .tenant-kronnos_penablanca .sep-ornamental,
@@ -1977,70 +1978,69 @@
       display: none !important;
     }
 
-    /* Cards de servicio — hairline oro sobre fondo transparente */
+    /* Cards de servicio — hairline sutil, sin glow, sombras casi imperceptibles */
     .tenant-kronnos_penablanca .service-option,
     .tenant-kronnos_limache    .service-option {
-      background: rgba(18, 14, 10, 0.5) !important;
-      border: 1px solid rgba(201, 168, 76, 0.14) !important;
-      border-radius: 6px !important;
+      background: rgba(15, 12, 9, 0.55) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 10px !important;
       padding: 1.1rem 1.25rem !important;
-      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease !important;
-      box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 6px 20px -12px rgba(0, 0, 0, 0.5) !important;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
       min-height: 78px !important;
     }
     .tenant-kronnos_penablanca .service-option:hover,
     .tenant-kronnos_limache    .service-option:hover {
-      border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.4) !important;
-      background: rgba(28, 20, 14, 0.65) !important;
+      border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.30) !important;
+      background: rgba(22, 16, 12, 0.65) !important;
       transform: translateY(-1px);
-      box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.35),
-        0 10px 28px -10px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.25) !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.30) !important;   /* sin glow */
     }
 
-    /* Nombre del servicio — Playfair Display, elegante */
+    /* Nombre del servicio — Inter, alto contraste, legible */
     .tenant-kronnos_penablanca .service-option .svc-name,
     .tenant-kronnos_limache    .service-option .svc-name,
     .tenant-kronnos_penablanca .service-option span[class*="svc-name"],
     .tenant-kronnos_limache    .service-option span[class*="svc-name"] {
-      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 1.12rem !important;
-      letter-spacing: -0.006em !important;
-      line-height: 1.2 !important;
-      color: #faf3e8 !important;
+      font-size: 1.02rem !important;
+      letter-spacing: -0.011em !important;
+      line-height: 1.28 !important;
+      color: #fafaf8 !important;
     }
 
-    /* Precio — Cormorant, dorado sobrio, tracking apenas positivo */
+    /* Precio — Inter tabular-nums, sin text-shadow, contraste solido */
     .tenant-kronnos_penablanca .service-option .price-tag,
     .tenant-kronnos_limache    .service-option .price-tag {
-      font-family: 'Cormorant Garamond', 'Playfair Display', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 1.18rem !important;
-      letter-spacing: 0.015em !important;
+      font-size: 1.05rem !important;
+      letter-spacing: -0.005em !important;
       color: var(--accent) !important;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+      text-shadow: none !important;
+      font-variant-numeric: tabular-nums !important;
     }
 
-    /* Duración — small caps sutiles */
+    /* Duración — sans limpio, tracking discreto */
     .tenant-kronnos_penablanca .service-option .duration-tag,
     .tenant-kronnos_limache    .service-option .duration-tag {
+      font-family: 'Inter', system-ui, sans-serif !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.14em !important;
-      font-size: 0.66rem !important;
-      color: rgba(245, 235, 220, 0.42) !important;
+      letter-spacing: 0.08em !important;
+      font-size: 0.68rem !important;
+      color: rgba(245, 235, 220, 0.5) !important;
       font-weight: 500 !important;
     }
 
-    /* "Ver más" toggle — degradado a chevron sutil */
+    /* "Ver más" toggle — sans, mas legible */
     .tenant-kronnos_penablanca .svc-desc-toggle,
     .tenant-kronnos_limache    .svc-desc-toggle {
+      font-family: 'Inter', system-ui, sans-serif !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.16em !important;
-      font-size: 0.62rem !important;
-      color: rgba(245, 235, 220, 0.4) !important;
+      letter-spacing: 0.10em !important;
+      font-size: 0.66rem !important;
+      color: rgba(245, 235, 220, 0.5) !important;
       font-weight: 500 !important;
       border: none !important;
       text-decoration: none !important;
@@ -2075,93 +2075,97 @@
      * la personalidad femenina (menos "griego", más "boutique moderno").
      * ══════════════════════════════════════════════════════════════════ */
     .tenant-kronnos_woman #step1 > div > h2 {
-      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
-      font-weight: 600 !important;
-      font-style: italic !important;
-      letter-spacing: -0.01em !important;
+      font-family: 'Playfair Display', serif !important;
+      font-weight: 500 !important;
+      font-style: normal !important;
+      letter-spacing: -0.012em !important;
     }
     .tenant-kronnos_woman .category-pill {
       background: transparent !important;
-      border: 1px solid rgba(236, 72, 153, 0.28) !important;
+      border: 1px solid rgba(236, 72, 153, 0.22) !important;
       border-radius: 999px !important;
-      padding: 0.5rem 1.15rem !important;
-      font-family: 'Cormorant Garamond', 'Playfair Display', serif !important;
+      padding: 0.5rem 1.1rem !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 500 !important;
-      font-size: 0.9rem !important;
+      font-size: 0.82rem !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.14em !important;
-      color: rgba(255, 240, 245, 0.75) !important;
+      letter-spacing: 0.10em !important;
+      color: rgba(255, 240, 245, 0.78) !important;
       transition: all 0.2s ease !important;
+      box-shadow: none !important;
     }
     .tenant-kronnos_woman .category-pill:hover {
       color: #fff !important;
-      border-color: rgba(236, 72, 153, 0.55) !important;
-      background: rgba(236, 72, 153, 0.06) !important;
+      border-color: rgba(236, 72, 153, 0.42) !important;
+      background: rgba(236, 72, 153, 0.05) !important;
     }
     .tenant-kronnos_woman .category-pill.border-neon {
-      background: rgba(236, 72, 153, 0.14) !important;
+      background: rgba(236, 72, 153, 0.10) !important;
       border-color: #ec4899 !important;
       color: #fff !important;
-      box-shadow: 0 0 28px -8px rgba(236, 72, 153, 0.5) !important;
+      box-shadow: none !important;   /* fuera el glow */
     }
     .tenant-kronnos_woman .cat-title {
-      font-family: 'Cormorant Garamond', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 0.95rem !important;
-      letter-spacing: 0.22em !important;
+      font-size: 0.72rem !important;
+      letter-spacing: 0.20em !important;
       text-transform: uppercase !important;
       border-left: 0 !important;
       padding-left: 0 !important;
-      padding-bottom: 0.5rem !important;
-      color: rgba(255, 240, 245, 0.9) !important;
+      padding-bottom: 0.55rem !important;
+      color: rgba(255, 240, 245, 0.7) !important;
       margin-bottom: 1rem !important;
-      border-bottom: 1px solid rgba(236, 72, 153, 0.18) !important;
+      border-bottom: 1px solid rgba(236, 72, 153, 0.15) !important;
     }
     .tenant-kronnos_woman .sep-ornamental { display: none !important; }
     .tenant-kronnos_woman .service-option {
-      background: rgba(28, 18, 22, 0.5) !important;
-      border: 1px solid rgba(236, 72, 153, 0.14) !important;
-      border-radius: 8px !important;
+      background: rgba(20, 14, 18, 0.55) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 10px !important;
       padding: 1.1rem 1.25rem !important;
-      transition: all 0.25s ease !important;
-      box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 6px 20px -12px rgba(0, 0, 0, 0.5) !important;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
       min-height: 78px !important;
     }
     .tenant-kronnos_woman .service-option:hover {
-      border-color: rgba(236, 72, 153, 0.4) !important;
-      background: rgba(38, 22, 30, 0.65) !important;
+      border-color: rgba(236, 72, 153, 0.30) !important;
+      background: rgba(32, 20, 26, 0.65) !important;
       transform: translateY(-1px);
-      box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.35),
-        0 10px 28px -10px rgba(236, 72, 153, 0.28) !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.30) !important;
     }
     .tenant-kronnos_woman .service-option .svc-name {
-      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 1.12rem !important;
-      letter-spacing: -0.006em !important;
+      font-size: 1.02rem !important;
+      letter-spacing: -0.011em !important;
+      line-height: 1.28 !important;
       color: #fff5f8 !important;
     }
     .tenant-kronnos_woman .service-option .price-tag {
-      font-family: 'Cormorant Garamond', serif !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
       font-weight: 600 !important;
-      font-size: 1.18rem !important;
+      font-size: 1.05rem !important;
+      letter-spacing: -0.005em !important;
       color: #ec4899 !important;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+      text-shadow: none !important;
+      font-variant-numeric: tabular-nums !important;
     }
     .tenant-kronnos_woman .service-option .duration-tag {
+      font-family: 'Inter', system-ui, sans-serif !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.14em !important;
-      font-size: 0.66rem !important;
-      color: rgba(255, 240, 245, 0.45) !important;
+      letter-spacing: 0.08em !important;
+      font-size: 0.68rem !important;
+      color: rgba(255, 240, 245, 0.5) !important;
+      font-weight: 500 !important;
     }
     .tenant-kronnos_woman .svc-desc-toggle {
+      font-family: 'Inter', system-ui, sans-serif !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.16em !important;
-      font-size: 0.62rem !important;
-      color: rgba(255, 240, 245, 0.45) !important;
+      letter-spacing: 0.10em !important;
+      font-size: 0.66rem !important;
+      color: rgba(255, 240, 245, 0.5) !important;
+      font-weight: 500 !important;
       border: none !important;
       text-decoration: none !important;
     }
