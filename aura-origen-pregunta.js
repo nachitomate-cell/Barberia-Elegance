@@ -275,9 +275,29 @@
 
   // API pública
   window.askAuraOrigenSiCorresponde = async function () {
-    if ((window.CURRENT_TENANT_ID || '') !== 'aura') return undefined;
+    const tid = window.CURRENT_TENANT_ID || '';
+    console.log('[aura-origen] llamado. tenant =', tid);
+    if (tid !== 'aura') { console.log('[aura-origen] no es aura, skip'); return undefined; }
     const cfg = await loadCfg();
-    if (!cfg?.activo) return undefined;
+    console.log('[aura-origen] config cargada:', cfg);
+    if (!cfg?.activo) { console.log('[aura-origen] modulo desactivado, skip'); return undefined; }
+    // Fallback: si el modal no esta en el DOM (posible race con DOMContentLoaded),
+    // lo inyectamos ahora antes de intentar abrirlo. Sin esto, en ciertos
+    // browsers/timings puede pasar que askAuraOrigenSiCorresponde se llame
+    // antes de que inyectar() haya corrido.
+    if (!document.getElementById('auraOrigenModal')) {
+      console.log('[aura-origen] modal no en DOM, inyectando ahora');
+      inyectar();
+    }
     return await abrir();
   };
+
+  // Diagnostico: expone el estado interno para debug desde DevTools
+  window._auraOrigenDebug = () => ({
+    loaded:  !!window._auraOrigenLoaded,
+    tid:     window.CURRENT_TENANT_ID || null,
+    modal:   !!document.getElementById('auraOrigenModal'),
+    cfg:     _cfg,
+    hasFn:   typeof window.askAuraOrigenSiCorresponde,
+  });
 })();

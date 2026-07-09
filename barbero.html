@@ -1797,9 +1797,11 @@
     // No-op si el tenant no es aura o el modulo esta desactivado.
     // Si es obligatorio y el cliente cierra sin elegir, la promise
     // no resuelve y el flujo queda bloqueado hasta que responda.
+    console.log('[barbero.html] pre-addCita. askAuraOrigenSiCorresponde =', typeof window.askAuraOrigenSiCorresponde, '· tenant =', window.CURRENT_TENANT_ID);
     const _auraOrigen = window.askAuraOrigenSiCorresponde
       ? await window.askAuraOrigenSiCorresponde()
       : undefined;
+    console.log('[barbero.html] _auraOrigen resultado:', _auraOrigen);
 
     try {
       await FDB.addCita({
