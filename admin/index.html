@@ -2,8 +2,15 @@
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080d17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin SynapTech">
   <title>Portal Admin | SynapTech</title>
+  <link rel="manifest" href="/manifest-admin.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" href="/icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -575,6 +582,127 @@
       text-transform: uppercase; letter-spacing: 0.1em;
       color: #475569; margin: 0 0 0.625rem;
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MOBILE OVERRIDES (≤ 640px)
+       Todo apunta a que /admin sea 100% usable desde un teléfono.
+       ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      body {
+        padding: calc(env(safe-area-inset-top, 0px) + 3.5rem) 0.875rem calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+      }
+
+      /* Los 4 botones ghost superiores (logs / soporte / notif / anuncio)
+         se convierten en íconos compactos alineados arriba a la izquierda.
+         El de logout queda arriba a la derecha. Se ocultan los labels de texto. */
+      .ghost-btn {
+        top: calc(env(safe-area-inset-top, 0px) + 0.6rem);
+        padding: 0; width: 40px; height: 40px;
+        border-radius: 50%;
+        justify-content: center; gap: 0;
+        font-size: 0; /* oculta el texto label sin tocar el HTML */
+      }
+      .ghost-btn > i { font-size: 1.1rem; }
+      .ghost-btn > span {
+        /* Convierte el badge en un dot chico posicionado en la esquina */
+        position: absolute; top: -2px; right: -2px;
+        padding: 0 !important; min-width: 14px !important; height: 14px;
+        line-height: 14px !important; font-size: 0.55rem !important;
+        border-radius: 999px;
+      }
+      .ghost-btn-logs    { left: 0.5rem; }
+      .ghost-btn-soporte { left: calc(0.5rem + 48px); }
+      .ghost-btn-notif   { left: calc(0.5rem + 96px); }
+      .ghost-btn-anuncio { left: calc(0.5rem + 144px); }
+      .ghost-btn-logout  { right: 0.5rem; }
+
+      /* Todos los wrappers principales quitan el max-width y ocupan todo el ancho */
+      #income-projection,
+      #platform-stats,
+      #optional-toggles,
+      #fechas-wrapper,
+      #alertas-wrapper,
+      #ranking-wrapper,
+      #referrals-wrapper,
+      .tenant-grid,
+      .sa-section-title {
+        max-width: 100% !important;
+      }
+
+      /* Stats platform: 4 cols → 2 cols en mobile */
+      #platform-stats > div[style*="grid-template-columns:repeat(4,1fr)"],
+      #platform-stats > div[style*="grid-template-columns: repeat(4, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      /* Cards de stats con letras más compactas */
+      .ps-value { font-size: 1.35rem; }
+      .ps-label { font-size: 0.6rem; letter-spacing: 0.08em; }
+      .ps-card  { padding: 0.875rem 0.9rem; }
+
+      /* Toggles opcionales: apilar en columna con anchura completa */
+      #optional-toggles > * {
+        min-width: 0 !important;
+        flex-basis: 100% !important;
+      }
+
+      /* Grid del ranking: solo medal + nombre + score.
+         Ocultamos citas / completion / retention / cancel para no comprimir. */
+      .rk-row,
+      #ranking-wrapper > div[style*="grid-template-columns:28px 1fr 52px 62px 62px 62px 48px"] {
+        grid-template-columns: 24px 1fr 46px !important;
+        gap: 0.4rem !important;
+        padding: 0.55rem 0.6rem !important;
+      }
+      .rk-row > *:nth-child(3),  /* citas totales */
+      .rk-row > *:nth-child(4),  /* completion */
+      .rk-row > *:nth-child(5),  /* retention */
+      .rk-row > *:nth-child(6),  /* cancel */
+      #ranking-wrapper > div[style*="grid-template-columns"] > *:nth-child(3),
+      #ranking-wrapper > div[style*="grid-template-columns"] > *:nth-child(4),
+      #ranking-wrapper > div[style*="grid-template-columns"] > *:nth-child(5),
+      #ranking-wrapper > div[style*="grid-template-columns"] > *:nth-child(6) {
+        display: none !important;
+      }
+      .rk-row > *:nth-child(7) { text-align: center; }
+
+      /* Modals full-screen (errors, notif, anuncio, soporte) — padding interno más justo */
+      #errors-modal > div,
+      #notif-modal > div,
+      #anuncio-modal > div,
+      #soporte-modal > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+
+      /* Filtros del log de notificaciones: apilar */
+      .notif-field { min-width: 100% !important; }
+
+      /* Referrals summary: 3 col → 1 col */
+      #referrals-summary { grid-template-columns: repeat(2, 1fr) !important; }
+
+      /* Cualquier grid inline con 4 columnas dentro de modales — 2 cols */
+      [style*="grid-template-columns:repeat(4,1fr)"],
+      [style*="grid-template-columns: repeat(4, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      [style*="grid-template-columns:repeat(3,1fr)"],
+      [style*="grid-template-columns: repeat(3, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+
+      /* Botones de CTA — más padding vertical touch-friendly */
+      .cta-btn { padding: 1rem 1.25rem; font-size: 0.9rem; }
+      .quick-link { padding: 0.85rem 1rem; }
+
+      /* Login card queda cómoda con el body con más padding-top */
+      #unauthorized-screen { padding: 1rem; }
+    }
+
+    /* iOS notch para modales fullscreen (safe-area en top y bottom) */
+    #errors-modal, #notif-modal, #anuncio-modal, #soporte-modal {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
   </style>
 </head>
 <body>
@@ -723,10 +851,13 @@
     </div>
   </div>
 
-  <!-- Log de Notificaciones -->
-  <button onclick="openNotifModal()" class="ghost-btn ghost-btn-notif" aria-label="Ver log de notificaciones">
+  <!-- Log de Notificaciones + Estado Push (doble-click / o click si permission='default' = activar) -->
+  <button onclick="abrirNotifOActivar(event)" class="ghost-btn ghost-btn-notif" aria-label="Notificaciones y push"
+          title="Click: abrir log · Doble-click: activar/renovar push">
     <i class="ph ph-bell"></i>
     Notif.
+    <span id="adminPushStateDot" class="hidden"
+          style="position:absolute; top:-3px; right:-3px; width:10px; height:10px; border-radius:50%; background:#fbbf24; border:1.5px solid #080d17; box-shadow:0 0 6px rgba(0,0,0,0.5);"></span>
   </button>
 
   <!-- Modal del Log de Notificaciones -->
@@ -1777,6 +1908,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
   <script src="/config.js"></script>
   <script src="/firebase-config.js?v=1.3"></script>
   <script src="/firebaseUtils.js?v=3.1"></script>
@@ -5130,6 +5262,208 @@
       // onAuthStateChanged mostrará el login.
     };
 
+    // ══════════════════════════════════════════════════════════════
+    //  PWA + Notificaciones Push (FCM)
+    //  Se registra el SW compartido, se pide permiso y se guarda el
+    //  token FCM en /admin_fcm_tokens/{token} para que el backend
+    //  (Cloud Functions) pueda hacer dispatch a todos los admins.
+    // ══════════════════════════════════════════════════════════════
+    const ADMIN_FCM_VAPID_KEY = 'BMi1HRp3bdiOqBNqXRrtFc1jlB7qPhYXtZDOLLncbUjxP_pcWSbfrz2ZfACtiJu3fo5riJibq9AGmnBd--kY5jU';
+    const _adminIsIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const _adminIsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const _adminPushSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    let _adminSWRegistration = null;
+    let _adminMessaging = null;
+    let _adminFcmForegroundInit = false;
+
+    async function _registerAdminSW() {
+      if (!('serviceWorker' in navigator)) return null;
+      try {
+        // El sw.js del root ya soporta FCM background + click handling.
+        _adminSWRegistration = await navigator.serviceWorker.register('/sw.js');
+        return _adminSWRegistration;
+      } catch (e) {
+        console.warn('[Admin PWA] SW no se pudo registrar:', e);
+        return null;
+      }
+    }
+
+    async function _guardarTokenAdmin(token) {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      try {
+        await firebase.firestore().collection('admin_fcm_tokens').doc(token).set({
+          token,
+          uid: user.uid,
+          email: user.email || null,
+          dispositivo: navigator.userAgent.substring(0, 140),
+          esPWA: _adminIsStandalone,
+          creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+          ultimaVezVisto: firebase.firestore.FieldValue.serverTimestamp(),
+          activo: true,
+        }, { merge: true });
+        console.log('[Admin PWA] Token FCM guardado');
+      } catch (e) {
+        console.error('[Admin PWA] Error guardando token:', e);
+      }
+    }
+
+    async function activarNotificacionesAdmin({ silent = false } = {}) {
+      if (_adminIsIOS && !_adminIsStandalone) {
+        if (!silent) alert('En iPhone primero instala este portal como app:\n1. Toca "Compartir" ⬆️\n2. Selecciona "Añadir a la pantalla de inicio"\n3. Abre desde el ícono instalado y vuelve a activar');
+        _actualizarBotonPush('ios_hint');
+        return;
+      }
+      if (!_adminPushSupported) {
+        if (!silent) alert('Este dispositivo no soporta notificaciones push.');
+        _actualizarBotonPush('nosupport');
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        if (!silent) alert('Notificaciones bloqueadas. Reactívalas desde la configuración del navegador (candado 🔒 en la barra de URL).');
+        _actualizarBotonPush('denied');
+        return;
+      }
+
+      _actualizarBotonPush('loading');
+      try {
+        if (Notification.permission === 'default') {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') { _actualizarBotonPush('denied'); return; }
+        }
+        const registration = _adminSWRegistration || await navigator.serviceWorker.ready;
+        _adminSWRegistration = registration;
+        _adminMessaging = _adminMessaging || firebase.messaging();
+
+        const token = await _adminMessaging.getToken({
+          vapidKey: ADMIN_FCM_VAPID_KEY,
+          serviceWorkerRegistration: registration,
+        });
+        if (token) {
+          await _guardarTokenAdmin(token);
+          _actualizarBotonPush('granted');
+
+          // Notificaciones en primer plano (app abierta)
+          if (!_adminFcmForegroundInit) {
+            _adminFcmForegroundInit = true;
+            _adminMessaging.onMessage(payload => {
+              const title = payload.notification?.title || payload.data?.title || 'SynapTech Admin';
+              const body = payload.notification?.body || payload.data?.body || 'Nueva notificación';
+              registration.showNotification(title, {
+                body,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png',
+                tag: payload.data?.tag || 'admin-notif',
+                renotify: true,
+                data: { url: payload.data?.url || '/admin/' },
+              });
+            });
+          }
+        } else {
+          _actualizarBotonPush('default');
+        }
+      } catch (e) {
+        console.error('[Admin PWA] Error activando notificaciones:', e);
+        _actualizarBotonPush(Notification.permission === 'granted' ? 'granted' : 'default');
+      }
+    }
+
+    function _actualizarBotonPush(estado) {
+      // El botón .ghost-btn-notif ya se usa para abrir el LOG de notificaciones enviadas
+      // (openNotifModal). Añadimos un dot al lado del ícono cuando el estado es 'default'
+      // para invitar a activar. Al hacer click con el permiso ya concedido, el botón
+      // sigue abriendo el log. Long-press abre el diálogo de activación.
+      const dot = document.getElementById('adminPushStateDot');
+      if (!dot) return;
+      dot.classList.remove('hidden');
+      if (estado === 'granted') {
+        dot.style.background = '#34d399';
+        dot.title = 'Notificaciones activas';
+      } else if (estado === 'denied' || estado === 'nosupport') {
+        dot.style.background = '#f87171';
+        dot.title = 'Notificaciones bloqueadas';
+      } else if (estado === 'loading') {
+        dot.style.background = '#fbbf24';
+        dot.title = 'Configurando…';
+      } else {
+        dot.style.background = '#fbbf24';
+        dot.title = 'Toca para activar notificaciones';
+      }
+    }
+
+    async function _inicializarAdminPWA() {
+      await _registerAdminSW();
+      if (!_adminPushSupported) return;
+
+      // Ya autorizado antes → re-registra el token (puede haber rotado).
+      if (Notification.permission === 'granted') {
+        activarNotificacionesAdmin({ silent: true });
+        return;
+      }
+      // Primer uso: invita silenciosamente (dot amarillo). Si además está en PWA
+      // instalada, muestra un diálogo suave preguntando si quiere activarlas.
+      _actualizarBotonPush('default');
+      if (_adminIsStandalone && !localStorage.getItem('adminPushAsked')) {
+        localStorage.setItem('adminPushAsked', '1');
+        setTimeout(() => {
+          const ok = confirm('¿Quieres recibir notificaciones push en este dispositivo?\n\nTe alertaremos de mensajes de soporte y eventos importantes.');
+          if (ok) activarNotificacionesAdmin();
+        }, 1500);
+      }
+    }
+
+    // Handler que expone el botón de la topbar: click abre el log, doble-click
+    // ofrece activar/renovar notificaciones. Se usa desde el HTML.
+    window.abrirNotifOActivar = function(ev) {
+      const now = Date.now();
+      const last = Number(window._lastNotifClick || 0);
+      window._lastNotifClick = now;
+      if (now - last < 400) {
+        // doble click → activar
+        activarNotificacionesAdmin();
+        return;
+      }
+      if (Notification.permission === 'default') {
+        activarNotificacionesAdmin();
+        return;
+      }
+      if (typeof openNotifModal === 'function') openNotifModal();
+    };
+
+    // Test manual: invoca la CF enviarPushAdmin para verificar el flow completo
+    // desde la consola (window.enviarPushAdminTest()) o desde algún botón futuro.
+    window.enviarPushAdminTest = async function(title, body) {
+      try {
+        const fn = firebase.functions().httpsCallable('enviarPushAdmin');
+        const res = await fn({
+          title: title || '🔔 Prueba admin',
+          body:  body  || 'Notificaciones push del panel funcionando.',
+          url:   '/admin/',
+        });
+        console.log('[Admin PWA] Push test:', res.data);
+        return res.data;
+      } catch (e) {
+        console.error('[Admin PWA] Push test error:', e);
+        alert('Error enviando push: ' + (e.message || e.code || 'desconocido'));
+      }
+    };
+
+    // Preview del digest diario: por defecto solo calcula (no envía).
+    // Con enviar=true dispara la push a todos los tokens admin activos.
+    //   window.previewDigest()           → calcula y muestra en consola
+    //   window.previewDigest(true)       → calcula y ENVÍA la push
+    window.previewDigest = async function(enviar = false) {
+      try {
+        const fn = firebase.functions().httpsCallable('adminDigestPreview');
+        const res = await fn({ enviar: !!enviar });
+        console.log('[Admin PWA] Digest:', res.data);
+        return res.data;
+      } catch (e) {
+        console.error('[Admin PWA] Digest error:', e);
+        alert('Error digest: ' + (e.message || e.code || 'desconocido'));
+      }
+    };
+
     // ── Auth check ────────────────────────────────────────────────
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
@@ -5148,6 +5482,7 @@
         _adminShowState('none');
         _setAdminLoginLoading(false);
         console.log('[Admin] Acceso concedido:', user.email);
+        _inicializarAdminPWA().catch(e => console.warn('[Admin PWA] init error:', e));
         loadIncomeProjection().catch(e => {
           console.warn('[Admin] loadIncomeProjection error:', e);
         });

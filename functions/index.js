@@ -787,6 +787,22 @@ const enviarPushPrueba = require('./enviar-push-prueba');
 exports.enviarPushPrueba = enviarPushPrueba.enviarPushPrueba;
 
 // ─────────────────────────────────────────────────────────────────
+//  PUSH A ADMINS DEL PORTAL /admin (PWA)
+//  Callable que dispara FCM a todos los tokens de /admin_fcm_tokens
+//  ver admin-push.js
+// ─────────────────────────────────────────────────────────────────
+const adminPush = require('./admin-push');
+exports.enviarPushAdmin = adminPush.enviarPushAdmin;
+
+// ─────────────────────────────────────────────────────────────────
+//  DAILY DIGEST — Push diaria 09:00 (Santiago) al portal /admin
+//  con stats agregados de toda la red. Ver admin-daily-digest.js
+// ─────────────────────────────────────────────────────────────────
+const adminDailyDigest = require('./admin-daily-digest');
+exports.adminDailyDigest   = adminDailyDigest.adminDailyDigest;
+exports.adminDigestPreview = adminDailyDigest.adminDigestPreview;
+
+// ─────────────────────────────────────────────────────────────────
 //  BROADCAST DE ANUNCIO — ver broadcast-anuncio.js
 //  Callable (solo superadmin) para mandar una push a todos los
 //  admins + barberos del panel. Crea broadcast_campaigns/{id} con
