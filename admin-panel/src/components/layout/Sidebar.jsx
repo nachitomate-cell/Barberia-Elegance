@@ -620,6 +620,21 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
       });
     }
 
+    // AURA · Módulo exclusivo. Aparece como primer item de Administración
+    // para máxima visibilidad. Solo este tenant lo ve.
+    if (tenant.id === 'aura') {
+      base = base.map(group => {
+        if (group.id !== 'administracion') return group;
+        return {
+          ...group,
+          items: [
+            { to: 'aura', label: 'AURA · Exclusivo', Icon: Sparkles, adminOnly: true },
+            ...group.items,
+          ],
+        };
+      });
+    }
+
     return base;
   })();
 

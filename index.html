@@ -11559,6 +11559,15 @@
           const _esSobrecupoAdd = !!(_selectedSlotInfo && _selectedSlotInfo.esSobrecupo);
           const _recargoVipAdd = _esSobrecupoAdd ? _computeVipRecargoCLP(_selectedSlotInfo.recargo) : 0;
           const _totalAdd = _basePrecioAdd + _recargoVipAdd;
+
+          // ── AURA · Pregunta "¿Cómo llegaste a nosotros?" ──────────
+          // No-op si el tenant no es aura o el modulo esta desactivado.
+          // Si es obligatorio y el cliente cierra el modal sin elegir,
+          // askAuraOrigenSiCorresponde() no resuelve (queda esperando) —
+          // esto detiene el flujo sin permitir avanzar, exactamente el
+          // comportamiento pedido: no puede reservar sin responder.
+          const _auraOrigen = await window.askAuraOrigenSiCorresponde();
+
           await FDB.addCita({
             fecha:            currentDateStr,
             hora:             selectedTimeStr,
@@ -11566,6 +11575,7 @@
             clienteTelefono:  tel,
             clienteTelefonoSuf9: telSuf9,
             clienteEmail:     email,
+            ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
             precio:           _totalAdd,   // total (== precioTotal) — compat con Caja/Comisiones/Métricas
@@ -12905,6 +12915,176 @@
         if (attach() || tries >= 30) clearInterval(iv);
       }, 200);
     })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  AURA · Modal exclusivo "¿Cómo llegaste a nosotros?"            -->
+  <!--  Solo se muestra si CURRENT_TENANT_ID === 'aura' y la config     -->
+  <!--  tenants/aura/configuracion/origen_pregunta.activo === true.     -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="auraOrigenModal" class="fixed inset-0 z-[300] hidden items-end sm:items-center justify-center p-0 sm:p-6 bg-black/70 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl"
+         style="padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);">
+      <div class="sm:hidden h-1 w-10 rounded-full bg-slate-700 mx-auto mb-4"></div>
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/25 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-3">
+          ✨ AURA
+        </div>
+        <h3 class="text-lg font-bold text-white">¿Cómo llegaste a nosotros?</h3>
+        <p id="auraOrigenSubtitle" class="text-xs text-slate-400 mt-1">Elige la opción que mejor te describa</p>
+      </div>
+      <div id="auraOrigenOpciones" class="space-y-2 mb-4"></div>
+      <div id="auraOrigenTextoLibreWrap" class="hidden mb-4">
+        <label class="block text-[11px] font-semibold text-slate-400 mb-1.5">Cuéntanos brevemente</label>
+        <input id="auraOrigenTextoLibre" type="text" maxlength="80" autocomplete="off"
+               placeholder="Ej: por un amigo del gym"
+               class="w-full bg-slate-800/70 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500" />
+      </div>
+      <div class="flex gap-2">
+        <button id="auraOrigenSkip" onclick="_auraOrigenResolve(null)"
+                class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-lg text-sm font-semibold">
+          Prefiero no decir
+        </button>
+        <button id="auraOrigenConfirmar" onclick="_auraOrigenConfirmar()"
+                class="flex-[2] bg-gradient-to-r from-amber-500 to-orange-500 disabled:opacity-40 text-slate-950 py-2.5 rounded-lg text-sm font-bold"
+                disabled>
+          Confirmar y reservar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ─── AURA · Configuración cacheada de la pregunta ─────────────── */
+    let _auraOrigenCfg = null;
+    let _auraOrigenSel = null;             // { id, label, emoji, permitirTextoLibre }
+    let _auraOrigenResolverPromise = null; // pending resolve(payload | null)
+
+    async function _auraOrigenLoadCfg() {
+      if ((window.CURRENT_TENANT_ID || '') !== 'aura') return null;
+      if (_auraOrigenCfg !== null) return _auraOrigenCfg; // cache
+      try {
+        const ref = firebase.firestore().collection('tenants').doc('aura').collection('configuracion').doc('origen_pregunta');
+        const snap = await ref.get();
+        _auraOrigenCfg = snap.exists ? snap.data() : { activo: false, obligatorio: false, opciones: [] };
+      } catch (e) {
+        console.warn('[aura] no se pudo cargar origen_pregunta:', e.message);
+        _auraOrigenCfg = { activo: false, obligatorio: false, opciones: [] };
+      }
+      return _auraOrigenCfg;
+    }
+
+    function _auraOrigenRenderOpciones() {
+      const cont = document.getElementById('auraOrigenOpciones');
+      if (!cont || !_auraOrigenCfg) return;
+      const activas = (_auraOrigenCfg.opciones || [])
+        .filter(o => o.activo !== false)
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+      // Escapar labels (defensivo: la config la escribe el admin, pero los
+      // labels custom podrían tener HTML si algún día se abre un flujo distinto).
+      const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+      cont.innerHTML = activas.map(o => `
+        <button type="button" data-opcion-id="${esc(o.id)}"
+          class="aura-origen-opt w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 bg-slate-800/40 hover:bg-slate-800/70 hover:border-amber-500/50 transition-colors text-left">
+          <span class="text-xl select-none">${esc(o.emoji || '✨')}</span>
+          <span class="flex-1 text-sm font-medium text-white">${esc(o.label)}</span>
+          <span class="aura-check w-5 h-5 rounded-full border-2 border-slate-600 flex items-center justify-center opacity-0">
+            <svg viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-slate-950"><path d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z"/></svg>
+          </span>
+        </button>
+      `).join('');
+      // Wire clicks
+      cont.querySelectorAll('.aura-origen-opt').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.opcionId;
+          _auraOrigenSel = activas.find(o => o.id === id) || null;
+          // Repintar selección
+          cont.querySelectorAll('.aura-origen-opt').forEach(b => {
+            const isSel = b.dataset.opcionId === id;
+            b.classList.toggle('border-amber-500', isSel);
+            b.classList.toggle('bg-amber-500/10', isSel);
+            const chk = b.querySelector('.aura-check');
+            if (chk) {
+              chk.style.opacity = isSel ? '1' : '0';
+              chk.style.background = isSel ? '#f59e0b' : '';
+              chk.style.borderColor = isSel ? '#f59e0b' : '';
+            }
+          });
+          // Texto libre si aplica
+          const wrap = document.getElementById('auraOrigenTextoLibreWrap');
+          if (wrap) wrap.classList.toggle('hidden', !_auraOrigenSel?.permitirTextoLibre);
+          document.getElementById('auraOrigenConfirmar').disabled = false;
+        };
+      });
+    }
+
+    function _auraOrigenAbrir() {
+      _auraOrigenSel = null;
+      const modal = document.getElementById('auraOrigenModal');
+      if (!modal) return Promise.resolve(null);
+      _auraOrigenRenderOpciones();
+      // Ajustar UI según obligatorio
+      const skipBtn = document.getElementById('auraOrigenSkip');
+      const subtitle = document.getElementById('auraOrigenSubtitle');
+      if (_auraOrigenCfg?.obligatorio) {
+        skipBtn?.classList.add('hidden');
+        if (subtitle) subtitle.textContent = 'Elige una opción para continuar';
+      } else {
+        skipBtn?.classList.remove('hidden');
+        if (subtitle) subtitle.textContent = 'Elige la opción que mejor te describa (opcional)';
+      }
+      document.getElementById('auraOrigenConfirmar').disabled = true;
+      document.getElementById('auraOrigenTextoLibreWrap').classList.add('hidden');
+      const inp = document.getElementById('auraOrigenTextoLibre');
+      if (inp) inp.value = '';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      return new Promise(resolve => { _auraOrigenResolverPromise = resolve; });
+    }
+
+    function _auraOrigenCerrar() {
+      const modal = document.getElementById('auraOrigenModal');
+      modal?.classList.remove('flex');
+      modal?.classList.add('hidden');
+    }
+
+    window._auraOrigenResolve = function (payload) {
+      _auraOrigenCerrar();
+      if (_auraOrigenResolverPromise) {
+        _auraOrigenResolverPromise(payload);
+        _auraOrigenResolverPromise = null;
+      }
+    };
+
+    window._auraOrigenConfirmar = function () {
+      if (!_auraOrigenSel) return;
+      const payload = {
+        id:    _auraOrigenSel.id,
+        label: _auraOrigenSel.label,
+        emoji: _auraOrigenSel.emoji || null,
+        respondidoAt: new Date().toISOString(),
+      };
+      if (_auraOrigenSel.permitirTextoLibre) {
+        const t = (document.getElementById('auraOrigenTextoLibre')?.value || '').trim();
+        if (t) payload.textoLibre = t.slice(0, 80);
+      }
+      window._auraOrigenResolve(payload);
+    };
+
+    /**
+     * API pública: llamar antes de guardar la cita.
+     * Devuelve:
+     *   - Objeto origenAdquisicion → agregarlo al doc cita.
+     *   - null → cliente eligió "Prefiero no decir" (permitido si no obligatorio).
+     *   - undefined → módulo no aplica al tenant o desactivado (no bloquea).
+     * Nunca lanza. Nunca bloquea si aura no está activo o el tenant es otro.
+     */
+    window.askAuraOrigenSiCorresponde = async function () {
+      if ((window.CURRENT_TENANT_ID || '') !== 'aura') return undefined;
+      const cfg = await _auraOrigenLoadCfg();
+      if (!cfg?.activo) return undefined;
+      return await _auraOrigenAbrir();
+    };
   </script>
 
 </body>
