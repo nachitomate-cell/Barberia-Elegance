@@ -427,15 +427,95 @@
     }
     .quick-link:hover { background: rgba(255,255,255,0.07); color: #fff; }
 
-    /* ── Unauthorized ── */
+    /* ── Unauthorized / Login ── */
     #unauthorized-screen {
-      position: fixed; inset: 0; background: #000; z-index: 9999;
+      position: fixed; inset: 0; z-index: 9999;
       display: none; align-items: center; justify-content: center;
+      padding: 1.25rem;
+      background:
+        radial-gradient(ellipse at 20% 15%, rgba(52,211,153,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 85%, rgba(236,72,153,0.08) 0%, transparent 55%),
+        #050a14;
     }
     @keyframes pulse-img {
       0%,100% { transform:scale(1); opacity:.85; }
       50% { transform:scale(1.04); opacity:1; }
     }
+    @keyframes adminFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .admin-login-card {
+      width: 100%; max-width: 24rem;
+      border-radius: 1.5rem;
+      padding: 2rem 1.75rem 1.5rem;
+      background: rgba(15,23,42,0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.7);
+      animation: adminFadeIn .45s ease both;
+    }
+    .admin-login-title {
+      font-size: 1.35rem; font-weight: 800; color: #fff;
+      margin: 0.75rem 0 0.25rem; text-align: center; letter-spacing: -0.01em;
+    }
+    .admin-login-sub {
+      font-size: 0.75rem; color: #94a3b8;
+      text-align: center; margin: 0 0 1.5rem;
+    }
+    .admin-input-label {
+      display:block; font-size: 0.6875rem; font-weight: 700;
+      color: rgba(255,255,255,0.5); text-transform: uppercase;
+      letter-spacing: 0.14em; margin-bottom: 0.4rem;
+    }
+    .admin-input-wrap { position: relative; margin-bottom: 1rem; }
+    .admin-input-wrap i {
+      position:absolute; left:14px; top:50%; transform:translateY(-50%);
+      font-size:1rem; color:rgba(255,255,255,0.4); pointer-events:none;
+    }
+    .admin-input {
+      width:100%; border-radius: 0.85rem;
+      padding: 0.75rem 0.95rem 0.75rem 2.6rem;
+      font-size: 0.875rem; color: #fff; font-family: inherit;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .admin-input:focus {
+      border-color: rgba(52,211,153,0.5);
+      box-shadow: 0 0 0 3px rgba(52,211,153,0.15);
+    }
+    .admin-login-btn {
+      width:100%; margin-top: 0.75rem;
+      padding: 0.85rem;
+      border-radius: 0.85rem;
+      font-size: 0.875rem; font-weight: 700; letter-spacing: 0.01em;
+      color: #052e1a; background: #34d399; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: transform .1s, background .2s, opacity .2s;
+    }
+    .admin-login-btn:hover:not(:disabled) { background: #6ee7b7; }
+    .admin-login-btn:active:not(:disabled) { transform: scale(0.97); }
+    .admin-login-btn:disabled { opacity: 0.65; cursor: wait; }
+    .admin-login-error {
+      font-size: 0.75rem; color: #fca5a5;
+      margin: 0.25rem 0 0.5rem; min-height: 1rem;
+    }
+    .admin-login-foot {
+      text-align: center; margin-top: 1.25rem;
+      font-size: 0.6875rem; color: rgba(255,255,255,0.35);
+      letter-spacing: 0.04em;
+    }
+    .admin-secondary-btn {
+      background: transparent; color: rgba(255,255,255,0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 0.7rem 1rem; border-radius: 0.75rem;
+      font-size: 0.8125rem; font-weight: 600; cursor: pointer;
+      transition: background .2s, color .2s, border-color .2s;
+    }
+    .admin-secondary-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
 
     .hidden { display: none !important; }
 
@@ -499,10 +579,65 @@
 </head>
 <body>
 
-  <!-- Pantalla de bloqueo -->
+  <!-- Pantalla de bloqueo / Login -->
   <div id="unauthorized-screen">
-    <img src="/perro.webp" alt="Acceso Denegado"
-      style="max-width:88%; max-height:88%; object-fit:contain; animation:pulse-img 2s infinite;">
+    <!-- Estado A: Login staff -->
+    <div id="adminLoginBox" class="admin-login-card">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="position:relative;">
+          <div style="position:absolute;inset:-8px;border-radius:9999px;background:radial-gradient(circle, rgba(52,211,153,0.28), transparent 70%);filter:blur(8px);"></div>
+          <div style="position:relative;width:64px;height:64px;border-radius:9999px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);display:flex;align-items:center;justify-content:center;">
+            <i class="ph-bold ph-shield-check" style="font-size:1.75rem;color:#34d399;"></i>
+          </div>
+        </div>
+        <p style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;letter-spacing:0.3em;margin:1rem 0 0;">Portal Admin</p>
+        <h1 class="admin-login-title">SynapTech</h1>
+        <p class="admin-login-sub">Acceso exclusivo del equipo</p>
+      </div>
+
+      <label class="admin-input-label">Correo</label>
+      <div class="admin-input-wrap">
+        <i class="ph-bold ph-envelope-simple"></i>
+        <input id="adminEmail" class="admin-input" type="email" placeholder="tu@correo.com" autocomplete="email"
+               onkeydown="if(event.key==='Enter')loginAdmin()">
+      </div>
+
+      <label class="admin-input-label">Contraseña</label>
+      <div class="admin-input-wrap">
+        <i class="ph-bold ph-lock-simple"></i>
+        <input id="adminPassword" class="admin-input" type="password" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')loginAdmin()"
+               style="padding-right:2.6rem;">
+        <button type="button" onclick="toggleAdminPwd(this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña"
+                style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;">
+          <i class="ph-bold ph-eye" style="font-size:1rem;"></i>
+        </button>
+      </div>
+
+      <p id="adminLoginError" class="admin-login-error hidden"></p>
+
+      <button id="adminLoginBtn" class="admin-login-btn" onclick="loginAdmin()">
+        <i class="ph-bold ph-sign-in" id="adminLoginBtnIcon" style="font-size:1rem;"></i>
+        <span id="adminLoginBtnLabel">Ingresar</span>
+      </button>
+
+      <p class="admin-login-foot">🔒 Solo administradores autorizados</p>
+    </div>
+
+    <!-- Estado B: usuario logueado sin permisos -->
+    <div id="adminDeniedBox" class="admin-login-card hidden" style="text-align:center;">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:9999px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);margin-bottom:1rem;">
+        <i class="ph-bold ph-prohibit" style="font-size:1.75rem;color:#f87171;"></i>
+      </div>
+      <h1 class="admin-login-title" style="margin-top:0;">Sin acceso</h1>
+      <p class="admin-login-sub">Tu cuenta no tiene permisos de administrador para este portal.</p>
+      <p id="adminDeniedEmail" style="font-size:0.75rem;color:#94a3b8;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:0.5rem;padding:0.55rem 0.75rem;margin-bottom:1.25rem;"></p>
+      <button class="admin-secondary-btn" onclick="logoutAdmin()" style="width:100%;">
+        <i class="ph-bold ph-sign-out" style="font-size:1rem;margin-right:0.35rem;"></i>
+        Cerrar sesión
+      </button>
+      <p class="admin-login-foot">Si crees que es un error, contacta al equipo SynapTech.</p>
+    </div>
   </div>
 
   <!-- Soporte -->
@@ -858,6 +993,20 @@
     </div>
 
     <div id="ip-chips" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+
+    <!-- Ingreso real cobrado (cuotas.pagada === true del mes en curso) -->
+    <div id="ip-cobrado-real" style="margin-top:0.875rem; padding:0.75rem 0.875rem; border-radius:0.75rem; background:rgba(52,211,153,0.05); border:1px solid rgba(52,211,153,0.18); display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:0.625rem; min-width:0;">
+        <div style="width:32px; height:32px; border-radius:0.5rem; background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i class="ph-fill ph-check-circle" style="color:#34d399; font-size:1.05rem;"></i>
+        </div>
+        <div style="min-width:0;">
+          <p style="margin:0; font-size:0.6875rem; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; font-weight:700;">Ingreso real cobrado</p>
+          <p id="ip-cobrado-real-sub" style="margin:0.125rem 0 0; font-size:0.75rem; color:#94a3b8;">— cuotas pagadas hoy</p>
+        </div>
+      </div>
+      <span id="ip-cobrado-real-monto" style="font-size:1.375rem; font-weight:800; color:#34d399; letter-spacing:-0.02em; line-height:1;">—</span>
+    </div>
   </div>
 
   <!-- ── Platform Stats ── -->
@@ -1141,6 +1290,20 @@
       </span>
       <i class="ph ph-caret-down" id="toggle-ranking-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
     </button>
+    <button type="button" onclick="toggleOptionalSection('referrals')" id="toggle-referrals" style="
+      flex:1; min-width:200px; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      padding:0.625rem 0.875rem; border-radius:0.75rem; cursor:pointer;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+      color:#94a3b8; font-size:0.8125rem; font-weight:600; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i class="ph-fill ph-users-three" style="color:#22d3ee;"></i>
+        Programa de referidos
+        <span id="toggle-referrals-badge" style="display:none; padding:0.0625rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700; background:rgba(34,211,238,0.15); color:#67e8f9; border:1px solid rgba(34,211,238,0.3);"></span>
+      </span>
+      <i class="ph ph-caret-down" id="toggle-referrals-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
+    </button>
   </div>
 
   <!-- ── Fechas de pago (colapsable) ── -->
@@ -1219,6 +1382,44 @@
     </div>
   </div>
 
+  <!-- ── Programa de referidos (colapsable) ── -->
+  <div id="referrals-wrapper" hidden style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; gap:0.5rem; flex-wrap:wrap;">
+      <div>
+        <p class="analytics-eyebrow">Growth loop</p>
+        <h2 class="analytics-title">
+          Programa de referidos · <span style="color:#64748b; font-weight:500;">champions y meses gratis</span>
+        </h2>
+      </div>
+      <div style="display:flex; gap:0.375rem;">
+        <button onclick="openReferralForm()" style="
+          display:flex; align-items:center; gap:0.375rem;
+          padding:0.4375rem 0.75rem; border-radius:0.5rem;
+          background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3);
+          color:#67e8f9; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.2s;"
+          onmouseover="this.style.background='rgba(34,211,238,0.18)'"
+          onmouseout="this.style.background='rgba(34,211,238,0.1)'">
+          <i class="ph-bold ph-plus"></i> Agregar
+        </button>
+        <button onclick="loadReferralsProgram()" style="
+          display:flex; align-items:center; gap:0.375rem;
+          padding:0.4375rem 0.75rem; border-radius:0.5rem;
+          background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+          color:#64748b; font-size:0.75rem; cursor:pointer; transition:all 0.2s;"
+          onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+          <i class="ph ph-arrows-clockwise"></i>
+        </button>
+      </div>
+    </div>
+    <div id="referrals-summary" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem; margin-bottom:1rem;"></div>
+    <div id="referrals-content">
+      <div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">
+        <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
+        Cargando programa…
+      </div>
+    </div>
+  </div>
+
     <!-- Footer meta -->
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
@@ -1247,9 +1448,11 @@
       </button>
     </div>
 
-  <!-- Menú contextual: funcionando / no funcionando -->
+  <!-- Menú contextual: funcionando / no funcionando + cobro -->
   <div class="sa-ctx" id="saCtx">
     <div class="ttl" id="saCtxName">Local</div>
+    <button class="ok" id="saCtxPago"><i class="ph-fill ph-currency-circle-dollar"></i> <span id="saCtxPagoLabel">Marcar cuota del mes como pagada</span></button>
+    <div class="sep"></div>
     <button class="ok"  id="saCtxOk"><i class="ph-fill ph-check-circle"></i> Marcar como funcionando</button>
     <div class="sep"></div>
     <button class="off" id="saCtxOff"><i class="ph-fill ph-pause-circle"></i> Marcar como NO funcionando</button>
@@ -3815,8 +4018,9 @@
     }
 
     // ── Toggles de secciones opcionales (lazy-load) ──────────────
-    let _analyticsLoaded = false;
-    let _fechasLoaded    = false;
+    let _analyticsLoaded  = false;
+    let _fechasLoaded     = false;
+    let _referralsLoaded  = false;
     function toggleOptionalSection(key) {
       const wrapper = document.getElementById(key + '-wrapper');
       const caret   = document.getElementById('toggle-' + key + '-caret');
@@ -3835,6 +4039,10 @@
           _fechasLoaded = true;
           loadFechasPago().catch(e => console.warn('[Admin] loadFechasPago error:', e));
         }
+        if (key === 'referrals' && !_referralsLoaded) {
+          _referralsLoaded = true;
+          loadReferralsProgram().catch(e => console.warn('[Admin] loadReferralsProgram error:', e));
+        }
         // Scroll suave hasta la sección
         setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
       } else {
@@ -3844,6 +4052,365 @@
       }
     }
     window.toggleOptionalSection = toggleOptionalSection;
+
+    // ── Programa de referidos ─────────────────────────────────────
+    // Modelo: _referrals/{referrerTid}/referidos/{referredTid} = {
+    //   referredNombre, fechaReferido, mesesGratisOtorgados, mesesGratisPendientesAplicar,
+    //   status ('firmado'|'activado'|'pagando'|'churn'), activadoEn, paganDesde,
+    //   notas, createdAt, updatedAt
+    // }
+    //
+    // Semántica clave:
+    //   mesesGratisOtorgados          — histórico, cuántos meses gratis se acordaron
+    //   mesesGratisPendientesAplicar  — cuántos AÚN NO están reflejados en _billing.cuotas
+    //                                    (idealmente 0: significa que ya cargaste las
+    //                                    cuotas mes=YYYY-MM con monto=0 correspondientes)
+    // Este campo NO es "meses vigentes que faltan por consumir". La fuente de verdad de
+    // qué mes cobrar/regalar sigue siendo _billing.cuotas.
+    async function loadReferralsProgram() {
+      const container  = document.getElementById('referrals-content');
+      const summary    = document.getElementById('referrals-summary');
+      if (!container) return;
+      container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#475569;font-size:.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;display:inline-block;margin-right:.25rem;"></i>Cargando programa…</div>';
+
+      try {
+        // Firestore v8 no soporta collectionGroup queries en get() sin index;
+        // recorremos _referrals/* y sus subcolecciones /referidos por champion.
+        const refsSnap = await db.collection('_referrals').get();
+        const champions = [];
+        for (const docSnap of refsSnap.docs) {
+          const tid = docSnap.id;
+          const referidosSnap = await docSnap.ref.collection('referidos').get();
+          if (referidosSnap.empty) continue;
+          const referidos = referidosSnap.docs.map(r => ({ id: r.id, ...r.data() }));
+          champions.push({ tid, cfg: TENANTS[tid] || {}, referidos });
+        }
+
+        // Métricas globales
+        let totalReferidos = 0;
+        let totalPagando   = 0;
+        let totalMesesGratisPendientes = 0;
+        champions.forEach(c => {
+          c.referidos.forEach(r => {
+            totalReferidos++;
+            if (r.status === 'pagando') totalPagando++;
+            totalMesesGratisPendientes += Number(r.mesesGratisPendientesAplicar || 0);
+          });
+        });
+
+        // Badge del toggle: N referidos totales
+        const badge = document.getElementById('toggle-referrals-badge');
+        if (badge) {
+          if (totalReferidos > 0) {
+            badge.textContent   = totalReferidos + ' referidos';
+            badge.style.display = 'inline';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+
+        // Summary tarjetas
+        const kpi = (label, value, color, rgb) => `
+          <div style="padding:0.75rem 0.875rem; border-radius:0.75rem; background:rgba(${rgb},0.06); border:1px solid rgba(${rgb},0.2);">
+            <div style="font-size:1.375rem; font-weight:800; color:${color}; letter-spacing:-0.02em; line-height:1;">${value}</div>
+            <div style="font-size:0.6875rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; font-weight:600; margin-top:0.25rem;">${label}</div>
+          </div>`;
+        summary.innerHTML =
+          kpi('Champions',                  champions.length,           '#67e8f9', '34,211,238') +
+          kpi('Referidos totales',          totalReferidos,             '#a3e635', '132,204,22') +
+          kpi('Meses por aplicar en cuotas',totalMesesGratisPendientes, '#f59e0b', '245,158,11');
+
+        if (champions.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:1.5rem; border-radius:0.75rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.1);">
+              <p style="color:#94a3b8; font-size:0.875rem; margin:0 0 0.75rem;">Aún no hay referidos registrados.</p>
+              <button onclick="seedKnownReferrals()" style="padding:0.5rem 0.875rem; border-radius:0.625rem; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:#67e8f9; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                <i class="ph-bold ph-magic-wand" style="margin-right:0.375rem;"></i>
+                Sembrar Chameleon + Aura
+              </button>
+            </div>`;
+          return;
+        }
+
+        const statusBadge = s => {
+          const map = {
+            firmado:  { l: 'Firmado',  c: '#94a3b8', rgb: '148,163,184' },
+            activado: { l: 'Activado', c: '#a3e635', rgb: '163,230,53'  },
+            pagando:  { l: 'Pagando',  c: '#34d399', rgb: '52,211,153'  },
+            churn:    { l: 'Churn',    c: '#f87171', rgb: '248,113,113' },
+          };
+          const v = map[s] || map.firmado;
+          return `<span style="padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700; background:rgba(${v.rgb},0.12); border:1px solid rgba(${v.rgb},0.3); color:${v.c};">${v.l}</span>`;
+        };
+
+        const html = champions.map(c => {
+          const champColor    = c.cfg.color    || '#94a3b8';
+          const champColorRgb = c.cfg.colorRgb || '148,163,184';
+          const champNombre   = c.cfg.nombre   || c.tid;
+          const mesesTotales  = c.referidos.reduce((s, r) => s + Number(r.mesesGratisPendientesAplicar || 0), 0);
+
+          const filas = c.referidos.map(r => {
+            const nombre = r.referredNombre || (TENANTS[r.id]?.nombre) || r.id;
+            return `
+              <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:0.5rem; align-items:center; padding:0.5rem 0.625rem; border-radius:0.5rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
+                <div style="min-width:0;">
+                  <p style="margin:0; font-size:0.8125rem; font-weight:600; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${nombre}</p>
+                  <p style="margin:0.125rem 0 0; font-size:0.6875rem; color:#64748b;">
+                    ${r.fechaReferido ? 'Ref. ' + r.fechaReferido : ''}${r.paganDesde ? ' · paga desde ' + r.paganDesde : ''}
+                  </p>
+                </div>
+                <span style="font-size:0.6875rem; font-weight:700; color:${Number(r.mesesGratisPendientesAplicar || 0) > 0 ? '#f59e0b' : '#34d399'};" title="${Number(r.mesesGratisPendientesAplicar || 0) > 0 ? 'Faltan meses gratis por reflejar como cuotas $0 en _billing' : 'Todos los meses gratis otorgados ya están en las cuotas'}">
+                  ${Number(r.mesesGratisPendientesAplicar || 0) > 0
+                    ? `⚠ ${Number(r.mesesGratisPendientesAplicar)}/${Number(r.mesesGratisOtorgados || 0)} m`
+                    : `✓ ${Number(r.mesesGratisOtorgados || 0)} m aplicados`}
+                </span>
+                ${statusBadge(r.status || 'firmado')}
+                <button onclick="openReferralForm('${c.tid}','${r.id}')" style="padding:0.25rem 0.4375rem; border-radius:0.375rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#94a3b8; font-size:0.6875rem; cursor:pointer;" title="Editar">
+                  <i class="ph ph-pencil-simple"></i>
+                </button>
+              </div>`;
+          }).join('');
+
+          return `
+            <div style="margin-bottom:0.875rem; padding:0.875rem; border-radius:0.875rem; background:rgba(${champColorRgb},0.03); border:1px solid rgba(${champColorRgb},0.15);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.625rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span style="width:10px; height:10px; border-radius:50%; background:${champColor};"></span>
+                  <p style="margin:0; font-size:0.875rem; font-weight:700; color:#f1f5f9;">${champNombre}</p>
+                  <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.08em; color:${champColor}; font-weight:700;">Champion</span>
+                </div>
+                <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;">
+                  ${c.referidos.length} referido${c.referidos.length > 1 ? 's' : ''} · ${mesesTotales} meses libres pendientes
+                </span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:0.375rem;">${filas}</div>
+            </div>`;
+        }).join('');
+
+        container.innerHTML = html;
+      } catch (e) {
+        console.warn('[Admin] loadReferralsProgram error:', e);
+        container.innerHTML = `<div style="color:#f87171; padding:1rem; font-size:0.8125rem;">Error: ${e?.message || 'no se pudo cargar'}</div>`;
+      }
+    }
+    window.loadReferralsProgram = loadReferralsProgram;
+
+    // ── Formulario para agregar/editar un referido ────────────────
+    function openReferralForm(champTid = '', referredTid = '') {
+      const ex = document.getElementById('referral-modal'); if (ex) ex.remove();
+
+      const tenantOptions = Object.keys(TENANTS)
+        .sort((a, b) => (TENANTS[a].nombre || a).localeCompare(TENANTS[b].nombre || b))
+        .map(id => `<option value="${id}">${TENANTS[id].nombre || id} (${id})</option>`)
+        .join('');
+
+      const isEdit = !!(champTid && referredTid);
+
+      const IS  = 'width:100%;box-sizing:border-box;padding:0.5rem 0.625rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:0.5rem;color:#e2e8f0;font-size:0.8125rem;outline:none;';
+      const LBL = 'display:block;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;margin-bottom:0.25rem;';
+
+      const m = document.createElement('div');
+      m.id = 'referral-modal';
+      m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+      m.onclick = e => { if (e.target === m) m.remove(); };
+      m.innerHTML = `
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;padding:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0; color:#fff; font-size:1rem; font-weight:800;">${isEdit ? 'Editar referido' : 'Agregar referido'}</h3>
+            <button onclick="document.getElementById('referral-modal').remove()" style="background:none;border:none;color:#64748b;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+            <div>
+              <label style="${LBL}">Champion (quien refirió)</label>
+              <select id="rf-champion" style="${IS}" ${isEdit ? 'disabled' : ''}>
+                <option value="">— Selecciona —</option>
+                ${tenantOptions}
+              </select>
+            </div>
+            <div>
+              <label style="${LBL}">Referido (tenant que trajo)</label>
+              <select id="rf-referred" style="${IS}" ${isEdit ? 'disabled' : ''}>
+                <option value="">— Selecciona —</option>
+                ${tenantOptions}
+              </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+              <div>
+                <label style="${LBL}">Fecha referido</label>
+                <input id="rf-fecha" type="date" style="${IS}" />
+              </div>
+              <div>
+                <label style="${LBL}">Meses gratis otorgados</label>
+                <input id="rf-meses" type="number" min="0" step="1" value="1" style="${IS}" />
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+              <div>
+                <label style="${LBL}" title="Meses gratis acordados que AÚN no están cargados como cuotas $0 en _billing. Si ya cargaste las cuotas, dejar en 0.">Pendientes de aplicar en cuotas</label>
+                <input id="rf-meses-rest" type="number" min="0" step="1" value="0" style="${IS}" />
+              </div>
+              <div>
+                <label style="${LBL}">Estado del referido</label>
+                <select id="rf-status" style="${IS}">
+                  <option value="firmado">Firmado</option>
+                  <option value="activado">Activado (≥10 citas)</option>
+                  <option value="pagando">Pagando</option>
+                  <option value="churn">Churn</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style="${LBL}">Notas</label>
+              <textarea id="rf-notas" rows="2" style="${IS}resize:vertical;"></textarea>
+            </div>
+            <div id="rf-feedback" style="font-size:0.75rem; min-height:1rem;"></div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
+              <button onclick="saveReferralEntry()" style="flex:1;padding:0.625rem;border-radius:0.625rem;background:rgba(34,211,238,0.15);border:1px solid rgba(34,211,238,0.4);color:#67e8f9;font-size:0.8125rem;font-weight:700;cursor:pointer;">
+                <i class="ph-bold ph-floppy-disk" style="margin-right:0.375rem;"></i> Guardar
+              </button>
+              ${isEdit ? `<button onclick="deleteReferralEntry('${champTid}','${referredTid}')" style="padding:0.625rem 0.875rem;border-radius:0.625rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;font-size:0.8125rem;cursor:pointer;" title="Eliminar">
+                <i class="ph-bold ph-trash"></i>
+              </button>` : ''}
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(m);
+
+      if (isEdit) {
+        // Pre-cargar valores
+        db.collection('_referrals').doc(champTid).collection('referidos').doc(referredTid).get().then(snap => {
+          if (!snap.exists) return;
+          const d = snap.data();
+          document.getElementById('rf-champion').innerHTML  = `<option value="${champTid}" selected>${TENANTS[champTid]?.nombre || champTid}</option>`;
+          document.getElementById('rf-referred').innerHTML  = `<option value="${referredTid}" selected>${d.referredNombre || TENANTS[referredTid]?.nombre || referredTid}</option>`;
+          document.getElementById('rf-fecha').value         = d.fechaReferido || '';
+          document.getElementById('rf-meses').value         = d.mesesGratisOtorgados || 0;
+          document.getElementById('rf-meses-rest').value    = d.mesesGratisPendientesAplicar || 0;
+          document.getElementById('rf-status').value        = d.status || 'firmado';
+          document.getElementById('rf-notas').value         = d.notas || '';
+        });
+      }
+    }
+    window.openReferralForm = openReferralForm;
+
+    async function saveReferralEntry() {
+      const champTid    = document.getElementById('rf-champion').value;
+      const referredTid = document.getElementById('rf-referred').value;
+      const fecha       = document.getElementById('rf-fecha').value;
+      const meses       = parseInt(document.getElementById('rf-meses').value, 10) || 0;
+      const mesesRest   = parseInt(document.getElementById('rf-meses-rest').value, 10) || 0;
+      const status      = document.getElementById('rf-status').value;
+      const notas       = document.getElementById('rf-notas').value.trim();
+      const fb          = document.getElementById('rf-feedback');
+      if (!champTid || !referredTid) {
+        fb.style.color = '#f87171'; fb.textContent = 'Selecciona champion y referido.'; return;
+      }
+      if (champTid === referredTid) {
+        fb.style.color = '#f87171'; fb.textContent = 'Un tenant no puede referirse a sí mismo.'; return;
+      }
+      fb.style.color = '#94a3b8'; fb.textContent = 'Guardando…';
+      try {
+        const payload = {
+          referredTid,
+          referredNombre: TENANTS[referredTid]?.nombre || referredTid,
+          fechaReferido: fecha || null,
+          mesesGratisOtorgados: meses,
+          mesesGratisPendientesAplicar: mesesRest,
+          status,
+          notas,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        const ref = db.collection('_referrals').doc(champTid).collection('referidos').doc(referredTid);
+        const existing = await ref.get();
+        if (!existing.exists) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await ref.set(payload, { merge: true });
+        fb.style.color = '#34d399'; fb.textContent = '✓ Guardado.';
+        setTimeout(() => {
+          document.getElementById('referral-modal')?.remove();
+          loadReferralsProgram();
+        }, 700);
+      } catch (e) {
+        fb.style.color = '#f87171'; fb.textContent = 'Error: ' + (e?.message || e);
+      }
+    }
+    window.saveReferralEntry = saveReferralEntry;
+
+    async function deleteReferralEntry(champTid, referredTid) {
+      if (!confirm('¿Eliminar este referido?')) return;
+      try {
+        await db.collection('_referrals').doc(champTid).collection('referidos').doc(referredTid).delete();
+        document.getElementById('referral-modal')?.remove();
+        loadReferralsProgram();
+      } catch (e) {
+        alert('Error al eliminar: ' + (e?.message || e));
+      }
+    }
+    window.deleteReferralEntry = deleteReferralEntry;
+
+    // Siembra los datos conocidos: Chameleon → Kronnos (3 meses)
+    //                              Aura      → Studio Dieciséis + Yügen (1 mes c/u)
+    async function seedKnownReferrals() {
+      const today = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const fecha = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      // Nota: mesesGratisPendientesAplicar = 0 porque los meses gratis
+      // ya están reflejados en _billing.cuotas de cada champion. El campo
+      // "otorgados" queda como histórico (cuánto se le prometió).
+      const seeds = [
+        {
+          champ: 'chameleon',
+          referred: 'kronnos',
+          data: {
+            referredTid:                  'kronnos',
+            referredNombre:               TENANTS.kronnos?.nombre || 'Kronnos',
+            fechaReferido:                fecha,
+            mesesGratisOtorgados:         3,
+            mesesGratisPendientesAplicar: 0,
+            status:                       'firmado',
+            notas:                        'Cadena 3 sedes. Chameleon pagó 1 mes antes de referir. Los 3 meses gratis ya están en sus cuotas.',
+          },
+        },
+        {
+          champ: 'aura',
+          referred: 'sionbarberia',
+          data: {
+            referredTid:                  'sionbarberia',
+            referredNombre:               TENANTS.sionbarberia?.nombre || 'Studio Dieciséis',
+            fechaReferido:                fecha,
+            mesesGratisOtorgados:         1,
+            mesesGratisPendientesAplicar: 0,
+            status:                       'firmado',
+            notas:                        'Studio Dieciséis (clave interna: sionbarberia). 1 mes gratis ya reflejado en cuotas de Aura.',
+          },
+        },
+        {
+          champ: 'aura',
+          referred: 'yugen',
+          data: {
+            referredTid:                  'yugen',
+            referredNombre:               TENANTS.yugen?.nombre || 'Yügen',
+            fechaReferido:                fecha,
+            mesesGratisOtorgados:         1,
+            mesesGratisPendientesAplicar: 0,
+            status:                       'firmado',
+            notas:                        '1 mes gratis ya reflejado en cuotas de Aura.',
+          },
+        },
+      ];
+      try {
+        const batch = db.batch();
+        seeds.forEach(s => {
+          const ref = db.collection('_referrals').doc(s.champ).collection('referidos').doc(s.referred);
+          batch.set(ref, { ...s.data, createdAt: now, updatedAt: now }, { merge: true });
+        });
+        await batch.commit();
+        loadReferralsProgram();
+      } catch (e) {
+        alert('Error al sembrar: ' + (e?.message || e));
+      }
+    }
+    window.seedKnownReferrals = seedKnownReferrals;
 
     // ── Fechas de pago por local ──────────────────────────────────
     // Tabla con la próxima cuota impaga de cada tenant, ordenada por mes.
@@ -4074,6 +4641,17 @@
           chip('245,158,11','#f59e0b', 'pendientes',           nPendientes)  +
           chip('100,116,139','#94a3b8','sin cuota este mes',   nSinCuotaMes) +
           chip('239,68,68', '#ef4444', 'suspendidos',          nSuspend);
+
+        // Bloque destacado: ingreso real cobrado (cuotas.pagada === true)
+        const cobradoMonto = document.getElementById('ip-cobrado-real-monto');
+        const cobradoSub   = document.getElementById('ip-cobrado-real-sub');
+        if (cobradoMonto) cobradoMonto.textContent = '$' + cobrado.toLocaleString('es-CL');
+        if (cobradoSub) {
+          const totalCuotas = nPagadas + nPendientes;
+          cobradoSub.textContent = totalCuotas > 0
+            ? `${nPagadas} de ${totalCuotas} cuotas pagadas · click derecho en un local para marcar`
+            : 'sin cuotas configuradas para este mes';
+        }
 
         window._incomeProjection = { total, cobrado, pendiente, nPagadas, nPendientes, nSinCuotaMes, nSuspend, monthKey };
 
@@ -4477,21 +5055,98 @@
         || '<p style="color:#475569;text-align:center;padding:1rem;">Sin datos disponibles</p>';
     }
 
+    // ── Login staff propio ────────────────────────────────────────
+    function _adminShowState(state) {
+      // 'login' | 'denied' | 'none'
+      const screen = document.getElementById('unauthorized-screen');
+      const login = document.getElementById('adminLoginBox');
+      const denied = document.getElementById('adminDeniedBox');
+      if (state === 'none') {
+        screen.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+      }
+      screen.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      login.classList.toggle('hidden', state !== 'login');
+      denied.classList.toggle('hidden', state !== 'denied');
+    }
+
+    function _setAdminLoginLoading(loading) {
+      const btn = document.getElementById('adminLoginBtn');
+      const icon = document.getElementById('adminLoginBtnIcon');
+      const label = document.getElementById('adminLoginBtnLabel');
+      if (!btn) return;
+      btn.disabled = loading;
+      if (loading) {
+        icon.className = 'ph ph-circle-notch animate-spin';
+        label.textContent = 'Verificando…';
+      } else {
+        icon.className = 'ph-bold ph-sign-in';
+        label.textContent = 'Ingresar';
+      }
+    }
+
+    window.toggleAdminPwd = function(btn) {
+      const inp = document.getElementById('adminPassword');
+      const icon = btn.querySelector('i');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'ph-bold ph-eye-slash';
+      } else {
+        inp.type = 'password';
+        icon.className = 'ph-bold ph-eye';
+      }
+    };
+
+    window.loginAdmin = async function() {
+      const email = document.getElementById('adminEmail').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      const errEl = document.getElementById('adminLoginError');
+      errEl.classList.add('hidden');
+      if (!email || !password) {
+        errEl.textContent = 'Ingresa correo y contraseña.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      _setAdminLoginLoading(true);
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+        // onAuthStateChanged decide el siguiente estado (dashboard o denegado).
+      } catch (e) {
+        let msg = 'No se pudo iniciar sesión.';
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
+        else if (e.code === 'auth/invalid-email') msg = 'Formato de correo inválido.';
+        else if (e.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Intenta más tarde.';
+        else if (e.code === 'auth/network-request-failed') msg = 'Sin conexión. Revisa tu internet.';
+        errEl.textContent = msg;
+        errEl.classList.remove('hidden');
+        _setAdminLoginLoading(false);
+      }
+    };
+
+    window.logoutAdmin = async function() {
+      try { await firebase.auth().signOut(); } catch (_) {}
+      // onAuthStateChanged mostrará el login.
+    };
+
     // ── Auth check ────────────────────────────────────────────────
     firebase.auth().onAuthStateChanged(async (user) => {
-      const screen = document.getElementById('unauthorized-screen');
       if (!user) {
-        screen.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        _adminShowState('login');
+        _setAdminLoginLoading(false);
         return;
       }
       const role = await FDB.getRol(user.email, user.uid);
       if (role !== 'admin') {
         console.warn('[Admin] Acceso denegado:', user.email);
-        screen.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        const emailBox = document.getElementById('adminDeniedEmail');
+        if (emailBox) emailBox.textContent = user.email || '(sin correo)';
+        _adminShowState('denied');
+        _setAdminLoginLoading(false);
       } else {
-        screen.style.display = 'none';
+        _adminShowState('none');
+        _setAdminLoginLoading(false);
         console.log('[Admin] Acceso concedido:', user.email);
         loadIncomeProjection().catch(e => {
           console.warn('[Admin] loadIncomeProjection error:', e);
@@ -4510,6 +5165,10 @@
         _fechasLoaded = true;
         loadFechasPago().catch(e => {
           console.warn('[Admin] loadFechasPago error:', e);
+        });
+        _referralsLoaded = true;
+        loadReferralsProgram().catch(e => {
+          console.warn('[Admin] loadReferralsProgram error:', e);
         });
       }
     });
@@ -4540,6 +5199,43 @@
       }
       window.saUpdateCounts();
     };
+
+    // Marca la cuota del mes en curso como pagada (o revierte si ya lo estaba).
+    // Fuente de verdad: _billing/{tid}.cuotas[i].pagada.
+    // Solo actúa si existe cuota con mes === YYYY-MM y monto > 0.
+    window.saMarkCuotaPagada = async function(tid){
+      var menu = document.getElementById('saCtx'); if (menu) menu.style.display = 'none';
+      if (!tid) return;
+      var now = new Date();
+      var pad = function(n){ return String(n).padStart(2, '0'); };
+      var monthKey = now.getFullYear() + '-' + pad(now.getMonth() + 1);
+      try {
+        var ref = firebase.firestore().collection('_billing').doc(tid);
+        var snap = await ref.get();
+        var data = snap.exists ? snap.data() : {};
+        var cuotas = Array.isArray(data.cuotas) ? data.cuotas.map(function(c){ return Object.assign({}, c); }) : [];
+        var idx = cuotas.findIndex(function(c){ return c && c.mes === monthKey && Number(c.monto) > 0; });
+        if (idx === -1) {
+          alert('No hay cuota configurada para ' + monthKey + ' en este local.\n\nAgrégala primero en su drawer de facturación.');
+          return;
+        }
+        var yaPagada = !!cuotas[idx].pagada;
+        if (yaPagada) {
+          if (!confirm('La cuota de ' + monthKey + ' ya está marcada como pagada.\n\n¿Revertir a pendiente?')) return;
+          cuotas[idx].pagada = false;
+          delete cuotas[idx].pagadaEn;
+        } else {
+          cuotas[idx].pagada = true;
+          cuotas[idx].pagadaEn = new Date().toISOString();
+        }
+        await ref.set({ cuotas: cuotas, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        // Refresh widgets afectados
+        if (typeof loadIncomeProjection === 'function') loadIncomeProjection().catch(function(e){ console.warn(e); });
+        if (typeof loadFechasPago       === 'function') loadFechasPago().catch(function(e){ console.warn(e); });
+      } catch (e) {
+        alert('No se pudo actualizar la cuota: ' + ((e && e.message) || e));
+      }
+    };
     var menu = document.getElementById('saCtx');
     var curTid = null;
     document.addEventListener('contextmenu', function(e){
@@ -4552,8 +5248,15 @@
       var nameEl = document.getElementById('saCtxName');
       var span = card.querySelector('span');
       if (nameEl) nameEl.textContent = (span && span.textContent) || curTid;
+      // Label dinámico del mes en curso para la opción de "pagó"
+      var pagoLabel = document.getElementById('saCtxPagoLabel');
+      if (pagoLabel) {
+        var now = new Date();
+        var mesNames = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        pagoLabel.textContent = 'Pagó cuota de ' + mesNames[now.getMonth()] + ' ' + now.getFullYear();
+      }
       menu.style.display = 'block';
-      var mw = 230, mh = menu.offsetHeight || 130;
+      var mw = 240, mh = menu.offsetHeight || 180;
       var maxX = window.scrollX + document.documentElement.clientWidth - mw;
       var maxY = window.scrollY + document.documentElement.clientHeight - mh;
       menu.style.left = Math.max(8, Math.min(e.pageX, maxX)) + 'px';
@@ -4561,7 +5264,9 @@
     });
     document.addEventListener('click', function(){ if (menu) menu.style.display = 'none'; });
     window.addEventListener('scroll', function(){ if (menu) menu.style.display = 'none'; }, true);
+    var b0 = document.getElementById('saCtxPago');
     var b1 = document.getElementById('saCtxOk'), b2 = document.getElementById('saCtxOff');
+    if (b0) b0.addEventListener('click', function(e){ e.stopPropagation(); window.saMarkCuotaPagada(curTid); });
     if (b1) b1.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, true); });
     if (b2) b2.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, false); });
     setTimeout(window.saUpdateCounts, 3500);

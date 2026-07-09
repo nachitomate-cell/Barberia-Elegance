@@ -1118,13 +1118,17 @@
                     <span class="text-[9px] text-white/50 uppercase tracking-widest font-bold mt-0.5">Pendientes</span>
                 </div>
             </div>
-            <div class="flex items-center gap-2 px-3 shrink-0">
+            <button type="button" onclick="abrirModalProyeccion()"
+                    class="flex items-center gap-2 px-3 shrink-0 rounded-lg hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+                    aria-label="Ver proyección diaria, semanal y mensual">
                 <i class="ph-fill ph-wallet text-brand-accent text-lg"></i>
-                <div class="flex flex-col">
+                <div class="flex flex-col items-start">
                     <span id="statProyeccion" class="text-sm font-black text-brand-accent leading-none">$0</span>
-                    <span class="text-[9px] text-brand-accent/50 uppercase tracking-widest font-bold mt-0.5">Proyección</span>
+                    <span class="text-[9px] text-brand-accent/50 uppercase tracking-widest font-bold mt-0.5 flex items-center gap-1">
+                        Proyección <i class="ph-bold ph-caret-right text-[8px]"></i>
+                    </span>
                 </div>
-            </div>
+            </button>
         </div>
 
         <!-- Day Selector / Calendar Header -->
@@ -1950,6 +1954,88 @@
                 btn.disabled = false;
                 icon.classList.remove('animate-spin');
             }, 1500);
+        }
+
+        // ── MODAL PROYECCIÓN (día / semana / mes) ──
+        // Consulta las citas del mes calendario (más la semana si cruza el borde)
+        // y calcula los tres totales excluyendo canceladas.
+        async function abrirModalProyeccion() {
+            const modal = document.getElementById('proyeccionModal');
+            const content = document.getElementById('proyeccionContent');
+            const loading = document.getElementById('proyeccionLoading');
+            const errBox = document.getElementById('proyeccionError');
+            modal.classList.remove('hidden');
+            content.classList.add('hidden');
+            errBox.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                if (!barberId) throw new Error('barberId no disponible');
+                const hoy = new Date();
+                const hoyStr = _fmtDate(hoy);
+                const weekStart = _getWeekStart(hoy);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                const monthStart = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                const monthEnd = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+
+                // Rango a consultar: engloba mes y semana (por si la semana cruza el borde)
+                const rangeStart = weekStart < monthStart ? weekStart : monthStart;
+                const rangeEnd = weekEnd > monthEnd ? weekEnd : monthEnd;
+                const startStr = _fmtDate(rangeStart);
+                const endStr = _fmtDate(rangeEnd);
+                const weekStartStr = _fmtDate(weekStart);
+                const weekEndStr = _fmtDate(weekEnd);
+                const monthStartStr = _fmtDate(monthStart);
+                const monthEndStr = _fmtDate(monthEnd);
+
+                // Consulta con rango solo en `fecha` (single-field, no requiere
+                // índice compuesto). Filtramos por barberoId en memoria.
+                const snap = await tenantCol('citas')
+                    .where('fecha', '>=', startStr)
+                    .where('fecha', '<=', endStr)
+                    .get();
+
+                let diaTot = 0, diaCnt = 0;
+                let semTot = 0, semCnt = 0;
+                let mesTot = 0, mesCnt = 0;
+                snap.docs.forEach(doc => {
+                    const c = doc.data();
+                    if (c.barberoId !== barberId) return;
+                    if (c.estado === 'Cancelada') return;
+                    const monto = Number(c.precio) || 15000;
+                    const f = c.fecha;
+                    if (f === hoyStr) { diaTot += monto; diaCnt++; }
+                    if (f >= weekStartStr && f <= weekEndStr) { semTot += monto; semCnt++; }
+                    if (f >= monthStartStr && f <= monthEndStr) { mesTot += monto; mesCnt++; }
+                });
+
+                const fmt = n => '$' + n.toLocaleString('es-CL');
+                document.getElementById('proyMontoDia').textContent = fmt(diaTot);
+                document.getElementById('proyMontoSemana').textContent = fmt(semTot);
+                document.getElementById('proyMontoMes').textContent = fmt(mesTot);
+                document.getElementById('proyCountDia').textContent = `${diaCnt} ${diaCnt === 1 ? 'cita' : 'citas'}`;
+                document.getElementById('proyCountSemana').textContent = `${semCnt} ${semCnt === 1 ? 'cita' : 'citas'}`;
+                document.getElementById('proyCountMes').textContent = `${mesCnt} ${mesCnt === 1 ? 'cita' : 'citas'}`;
+
+                const dCorto = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+                const mCorto = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                document.getElementById('proyRangoSemana').textContent =
+                    `${dCorto[weekStart.getDay()]} ${weekStart.getDate()} — ${dCorto[weekEnd.getDay()]} ${weekEnd.getDate()} ${mCorto[weekEnd.getMonth()]}`;
+                document.getElementById('proyRangoMes').textContent =
+                    `${mCorto[monthStart.getMonth()]} ${monthStart.getFullYear()}`;
+
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            } catch (err) {
+                console.error('[Agenda] Error al calcular proyección:', err);
+                loading.classList.add('hidden');
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function cerrarModalProyeccion() {
+            document.getElementById('proyeccionModal').classList.add('hidden');
         }
 
         // ── CARGA Y RENDERIZADO DE AGENDA ──
@@ -3733,6 +3819,70 @@
       <button onclick="cerrarOpcionesSlotLibre()" class="w-full mt-5 py-3 rounded-xl text-sm font-medium text-white/40 hover:text-white transition-colors">
         Cancelar
       </button>
+    </div>
+  </div>
+
+  <!-- Modal Proyección — desglose de ganancias diaria/semanal/mensual (no cancelada). -->
+  <div id="proyeccionModal" class="hidden fixed inset-0 z-[5001] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarModalProyeccion()">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2">
+          <i class="ph-fill ph-wallet text-brand-accent text-xl"></i>
+          <h3 class="text-lg font-bold text-white">Proyección</h3>
+        </div>
+        <button onclick="cerrarModalProyeccion()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+          <i class="ph-bold ph-x text-white/50"></i>
+        </button>
+      </div>
+      <p class="text-[11px] text-white/40 leading-relaxed mb-5">Estimación de ingresos considerando citas confirmadas, pendientes y completadas (excluye canceladas).</p>
+
+      <div id="proyeccionContent" class="space-y-3">
+        <!-- Día -->
+        <div class="rounded-2xl p-4" style="background:linear-gradient(135deg, rgba(212,175,55,0.10), rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.25);">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <i class="ph-fill ph-sun text-brand-accent"></i>
+              <span class="text-[11px] uppercase tracking-widest font-bold text-brand-accent/80">Hoy</span>
+            </div>
+            <span id="proyCountDia" class="text-[10px] text-white/40 font-medium">0 citas</span>
+          </div>
+          <div id="proyMontoDia" class="text-2xl font-black text-white leading-tight">$0</div>
+        </div>
+
+        <!-- Semana -->
+        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <i class="ph-fill ph-calendar-check text-white/70"></i>
+              <span class="text-[11px] uppercase tracking-widest font-bold text-white/60">Semana</span>
+            </div>
+            <span id="proyCountSemana" class="text-[10px] text-white/40 font-medium">0 citas</span>
+          </div>
+          <div id="proyMontoSemana" class="text-2xl font-black text-white leading-tight">$0</div>
+          <div id="proyRangoSemana" class="text-[10px] text-white/40 mt-1"></div>
+        </div>
+
+        <!-- Mes -->
+        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <i class="ph-fill ph-calendar-star text-white/70"></i>
+              <span class="text-[11px] uppercase tracking-widest font-bold text-white/60">Mes</span>
+            </div>
+            <span id="proyCountMes" class="text-[10px] text-white/40 font-medium">0 citas</span>
+          </div>
+          <div id="proyMontoMes" class="text-2xl font-black text-white leading-tight">$0</div>
+          <div id="proyRangoMes" class="text-[10px] text-white/40 mt-1"></div>
+        </div>
+      </div>
+
+      <div id="proyeccionLoading" class="hidden text-center py-6">
+        <i class="ph ph-circle-notch animate-spin text-2xl text-white/40"></i>
+        <p class="text-xs text-white/40 mt-2">Cargando…</p>
+      </div>
+      <div id="proyeccionError" class="hidden text-center py-4">
+        <p class="text-xs text-red-400/80">No se pudo cargar la proyección.</p>
+      </div>
     </div>
   </div>
 

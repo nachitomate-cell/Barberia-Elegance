@@ -11566,9 +11566,7 @@
           // askAuraOrigenSiCorresponde() no resuelve (queda esperando) —
           // esto detiene el flujo sin permitir avanzar, exactamente el
           // comportamiento pedido: no puede reservar sin responder.
-          console.log('[index.html] pre-addCita. askAuraOrigenSiCorresponde =', typeof window.askAuraOrigenSiCorresponde, '· tenant =', window.CURRENT_TENANT_ID);
           const _auraOrigen = window.askAuraOrigenSiCorresponde ? await window.askAuraOrigenSiCorresponde() : undefined;
-          console.log('[index.html] _auraOrigen resultado:', _auraOrigen);
 
           await FDB.addCita({
             fecha:            currentDateStr,
