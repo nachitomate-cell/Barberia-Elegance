@@ -958,123 +958,209 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
-    /* ── Kronnos Studio (3 sedes) — Modern Dark, acento por sede ──
-       Peñablanca = rojo · Limache = naranja · Woman = magenta.
-       Mismo lenguaje visual que el lobby /kronnos.html.            */
-    .tenant-kronnos_penablanca { --gold: #e11d2a; --gold-dim: rgba(225,29,42,0.16); }
-    .tenant-kronnos_limache    { --gold: #f97316; --gold-dim: rgba(249,115,22,0.16); }
-    .tenant-kronnos_woman      { --gold: #ec4899; --gold-dim: rgba(236,72,153,0.16); }
+    /* ══════════════════════════════════════════════════════════════════
+     * KRONNOS Studio · REGISTRO/LOGIN — editorial refinado (3 sedes)
+     * ──────────────────────────────────────────────────────────────────
+     * Peñablanca = rojo · Limache = naranja · Woman = magenta.
+     * Tipografia limpia (Inter en todo lo funcional + Playfair solo en el
+     * titulo "Club Kronnos"). Sin neones ni glows visibles: paleta
+     * atmosferica muy tenue, hairlines blancos, botones planos.
+     * ══════════════════════════════════════════════════════════════════ */
+    .tenant-kronnos_penablanca { --gold: #e11d2a; --gold-dim: rgba(225,29,42,0.10); --gold-soft: rgba(225,29,42,0.06); }
+    .tenant-kronnos_limache    { --gold: #f97316; --gold-dim: rgba(249,115,22,0.10); --gold-soft: rgba(249,115,22,0.06); }
+    .tenant-kronnos_woman      { --gold: #ec4899; --gold-dim: rgba(236,72,153,0.10); --gold-soft: rgba(236,72,153,0.06); }
 
-    /* Fondo con doble glow radial del color de la sede */
+    /* Fondo con atmosfera muy tenue del color de la sede — el 10%/6% es
+     * suficiente para dar identidad sin ensuciar el layout. */
     .tenant-kronnos_penablanca body {
-      background-color: #0a0a0a;
+      background-color: #0a0908;
       background-image:
-        radial-gradient(circle at 18% -2%, rgba(225,29,42,0.16), transparent 46%),
-        radial-gradient(circle at 92% 102%, rgba(225,29,42,0.08), transparent 48%);
+        radial-gradient(ellipse 90% 60% at 50% -10%, rgba(225,29,42,0.09), transparent 60%),
+        radial-gradient(ellipse 80% 50% at 50% 110%, rgba(225,29,42,0.045), transparent 65%);
     }
     .tenant-kronnos_limache body {
-      background-color: #0a0a0a;
+      background-color: #0a0908;
       background-image:
-        radial-gradient(circle at 18% -2%, rgba(249,115,22,0.16), transparent 46%),
-        radial-gradient(circle at 92% 102%, rgba(249,115,22,0.08), transparent 48%);
+        radial-gradient(ellipse 90% 60% at 50% -10%, rgba(249,115,22,0.09), transparent 60%),
+        radial-gradient(ellipse 80% 50% at 50% 110%, rgba(249,115,22,0.045), transparent 65%);
     }
     .tenant-kronnos_woman body {
-      background-color: #0a0a0a;
+      background-color: #0a0908;
       background-image:
-        radial-gradient(circle at 18% -2%, rgba(236,72,153,0.16), transparent 46%),
-        radial-gradient(circle at 92% 102%, rgba(236,72,153,0.10), transparent 48%);
+        radial-gradient(ellipse 90% 60% at 50% -10%, rgba(236,72,153,0.09), transparent 60%),
+        radial-gradient(ellipse 80% 50% at 50% 110%, rgba(236,72,153,0.05), transparent 65%);
     }
 
-    /* ── Estructura compartida por las 3 sedes ── */
+    /* Ambient glow global — reducido para no competir con el layout */
     [class*="tenant-kronnos_"] .ambient-glow {
-      background: radial-gradient(circle, var(--gold-dim) 0%, transparent 60%);
-      opacity: 0.55;
+      background: radial-gradient(circle, var(--gold-dim) 0%, transparent 55%);
+      opacity: 0.4;
     }
-    /* Logo en cuadrado redondeado, como la marca en el lobby */
+
+    /* Logo con marco cuadrado hairline, sin glow neon */
     [class*="tenant-kronnos_"] .logo-ring {
-      border: 2px solid var(--gold);
-      border-radius: 20px;
+      border: 1.5px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
       box-shadow:
-        0 0 0 1px rgba(255,255,255,0.04),
-        0 0 26px var(--gold-dim),
-        0 10px 34px rgba(0,0,0,0.55);
+        0 1px 2px rgba(0, 0, 0, 0.4),
+        0 8px 32px -8px rgba(0, 0, 0, 0.5);
+      background: rgba(15, 12, 10, 0.6);
+      backdrop-filter: blur(8px);
     }
+
+    /* Titulo "Club Kronnos" — Playfair Display 500, editorial */
     [class*="tenant-kronnos_"] #heroClubTitle {
-      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      font-style: normal;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #f5f5f5;
+      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-weight: 500 !important;
+      font-style: normal !important;
+      letter-spacing: -0.015em !important;
+      font-size: 1.7rem !important;
+      color: #faf8f4 !important;
+      line-height: 1.1 !important;
     }
-    [class*="tenant-kronnos_"] #heroClubSub { color: var(--gold); opacity: 0.9; }
+    /* Subtitulo "ACUMULA SELLOS · GANA PREMIOS" — Inter versalitas */
+    [class*="tenant-kronnos_"] #heroClubSub {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.68rem !important;
+      letter-spacing: 0.20em !important;
+      color: var(--gold) !important;
+      opacity: 0.85 !important;
+      text-transform: uppercase !important;
+    }
+    /* Divisor dorado bajo el titulo */
     [class*="tenant-kronnos_"] .gold-divider {
-      width: 44px; height: 2px;
+      width: 36px; height: 1px;
       background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0.6;
     }
-    /* Tabs */
-    [class*="tenant-kronnos_"] .tab-btn { color: #6b7280; }
-    [class*="tenant-kronnos_"] .tab-btn.active { color: var(--gold); border-color: var(--gold); }
-    [class*="tenant-kronnos_"] .border-b { border-color: rgba(255,255,255,0.08); }
-    /* Inputs */
+
+    /* Tabs INGRESAR / CREAR CUENTA — Inter tracking amplio */
+    [class*="tenant-kronnos_"] .tab-btn {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.75rem !important;
+      letter-spacing: 0.16em !important;
+      color: rgba(255, 255, 255, 0.4) !important;
+      padding: 0.85rem 0.5rem !important;
+      border-bottom: 1.5px solid transparent !important;
+      transition: color 0.2s ease, border-color 0.2s ease !important;
+    }
+    [class*="tenant-kronnos_"] .tab-btn:hover:not(.active) { color: rgba(255, 255, 255, 0.65) !important; }
+    [class*="tenant-kronnos_"] .tab-btn.active {
+      color: #ffffff !important;
+      border-color: var(--gold) !important;
+    }
+    [class*="tenant-kronnos_"] .border-b { border-color: rgba(255,255,255,0.06); }
+
+    /* Inputs — hairline sobre negro casi puro, focus limpio */
     [class*="tenant-kronnos_"] .field {
-      background: #141414;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
+      background: rgba(10, 8, 6, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 12px !important;
+      padding: 0.95rem 1.1rem !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-size: 0.95rem !important;
+      color: #faf8f4 !important;
+      transition: border-color 0.18s ease, background 0.18s ease !important;
     }
-    [class*="tenant-kronnos_"] .field::placeholder { color: #6b7280; }
+    [class*="tenant-kronnos_"] .field::placeholder {
+      color: rgba(255, 255, 255, 0.28) !important;
+      font-weight: 400 !important;
+    }
     [class*="tenant-kronnos_"] .field:focus {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px var(--gold-dim);
+      border-color: rgba(var(--gold-r, 249), var(--gold-g, 115), var(--gold-b, 22), 0.5) !important;
+      border-color: var(--gold) !important;
+      background: rgba(15, 12, 10, 0.9) !important;
+      box-shadow: none !important;   /* fuera el ring */
+      outline: none !important;
     }
     [class*="tenant-kronnos_"] input:-webkit-autofill,
     [class*="tenant-kronnos_"] input:-webkit-autofill:hover,
     [class*="tenant-kronnos_"] input:-webkit-autofill:focus {
-      -webkit-box-shadow: 0 0 0 100px #141414 inset !important;
-      -webkit-text-fill-color: #f5f5f5 !important;
-      caret-color: #f5f5f5;
+      -webkit-box-shadow: 0 0 0 100px rgba(10,8,6,0.9) inset !important;
+      -webkit-text-fill-color: #faf8f4 !important;
+      caret-color: #faf8f4;
     }
-    /* Botón primario — sólido del color de la sede (como los botones del lobby) */
+
+    /* Boton primario INGRESAR — solido, plano, sin glow visible.
+     * Solo una sombra negra sutil para elevacion. */
     [class*="tenant-kronnos_"] .btn-primary {
-      background: var(--gold);
-      border: 1.5px solid var(--gold);
-      color: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 10px 26px -10px var(--gold);
+      background: var(--gold) !important;
+      border: 0 !important;
+      color: #ffffff !important;
+      border-radius: 12px !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.85rem !important;
+      letter-spacing: 0.12em !important;
+      text-transform: uppercase !important;
+      padding: 1rem 1.5rem !important;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.25),
+        0 4px 16px -4px rgba(0, 0, 0, 0.35) !important;
+      transition: filter 0.15s ease, transform 0.15s ease !important;
     }
-    [class*="tenant-kronnos_"] .btn-primary:hover {
-      background: var(--gold);
-      border-color: var(--gold);
-      filter: brightness(1.1);
+    [class*="tenant-kronnos_"] .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.06) !important;
+      transform: translateY(-1px);
     }
-    /* Botón Google */
+    [class*="tenant-kronnos_"] .btn-primary:active { transform: translateY(0); }
+
+    /* Boton Google — pareja del hairline general */
     [class*="tenant-kronnos_"] .btn-google {
-      background: #141414;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      color: #ffffff;
+      background: rgba(20, 16, 13, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 12px !important;
+      color: #faf8f4 !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.9rem !important;
+      padding: 0.9rem 1.5rem !important;
+      transition: background 0.15s ease, border-color 0.15s ease !important;
     }
     [class*="tenant-kronnos_"] .btn-google:hover {
-      background: #1c1c1c;
-      border-color: rgba(255,255,255,0.16);
+      background: rgba(28, 22, 18, 0.85) !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
     }
-    /* Divisor "o" */
-    [class*="tenant-kronnos_"] .flex-grow.border-t { border-color: rgba(255,255,255,0.08) !important; }
-    [class*="tenant-kronnos_"] span.mx-4.text-gray-500 { color: #6b7280 !important; }
-    /* CTA reserva / links / spinner / overlay */
+
+    /* Divisor "o" — hairline mas discreto */
+    [class*="tenant-kronnos_"] .flex-grow.border-t { border-color: rgba(255,255,255,0.07) !important; }
+    [class*="tenant-kronnos_"] span.mx-4.text-gray-500 {
+      color: rgba(255, 255, 255, 0.35) !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-size: 0.7rem !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+    }
+
+    /* Boton CTA reserva — outline sobrio, hover con acento tenue */
     [class*="tenant-kronnos_"] .btn-cta-reserva {
-      border-color: var(--gold) !important;
+      border: 1px solid var(--gold) !important;
+      background: transparent !important;
       color: var(--gold) !important;
+      border-radius: 12px !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.8rem !important;
+      letter-spacing: 0.12em !important;
+      text-transform: uppercase !important;
+      padding: 0.95rem 1.5rem !important;
+      transition: background 0.18s ease !important;
     }
-    [class*="tenant-kronnos_"] .btn-cta-reserva:hover { background: var(--gold-dim) !important; }
+    [class*="tenant-kronnos_"] .btn-cta-reserva:hover {
+      background: var(--gold-soft) !important;
+    }
+
     [class*="tenant-kronnos_"] .spinner {
-      border-color: var(--gold-dim);
+      border-color: rgba(255, 255, 255, 0.08);
       border-top-color: var(--gold);
     }
-    [class*="tenant-kronnos_"] #loadingOverlay { background: rgba(10,10,10,0.9) !important; }
+    [class*="tenant-kronnos_"] #loadingOverlay { background: rgba(10,9,8,0.92) !important; }
     [class*="tenant-kronnos_"] a.text-gray-600,
-    [class*="tenant-kronnos_"] button.text-gray-600 { color: #6b7280 !important; }
+    [class*="tenant-kronnos_"] button.text-gray-600 { color: rgba(255,255,255,0.38) !important; }
     [class*="tenant-kronnos_"] a.text-gray-600:hover,
-    [class*="tenant-kronnos_"] button.text-gray-600:hover { color: #9ca3af !important; }
+    [class*="tenant-kronnos_"] button.text-gray-600:hover { color: rgba(255,255,255,0.65) !important; }
     /* ────────────────────────────────────────────────────────── */
 
     @keyframes fadeSlideUp {
