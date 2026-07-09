@@ -712,6 +712,19 @@ exports.referidosRecompensaElegance = referidosRecompensa.referidosRecompensaEle
 exports.referidosRecompensaTenant   = referidosRecompensa.referidosRecompensaTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  FACTURACIÓN — ARRIENDO DE SILLÓN — ver facturacion-arriendo.js
+//  Al completarse una cita emite la boleta AFECTA del local (arriendo
+//  + productos) vía OpenFactura. BHE del barbero llega en Fase 3.
+// ─────────────────────────────────────────────────────────────────
+const facturacionArriendo = require('./facturacion-arriendo');
+exports.facturacionArriendoElegance = facturacionArriendo.facturacionArriendoElegance;
+exports.facturacionArriendoTenant   = facturacionArriendo.facturacionArriendoTenant;
+exports.facturacionGuardarApiKey    = facturacionArriendo.facturacionGuardarApiKey;
+exports.facturacionTestAfecta       = facturacionArriendo.facturacionTestAfecta;
+exports.facturacionReemitir         = facturacionArriendo.facturacionReemitir;
+exports.facturacionObtenerPDF       = facturacionArriendo.facturacionObtenerPDF;
+
+// ─────────────────────────────────────────────────────────────────
 //  CANJES ATÓMICOS — ver canjes.js
 //  crearCanje descuenta sellos + crea redemption en una transacción.
 //  cancelarCanje (o expiración automática) devuelve los sellos.

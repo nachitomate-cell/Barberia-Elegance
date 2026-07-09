@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -159,6 +159,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
       { to: 'comisiones',  label: 'Comisiones',      Icon: Banknote,     adminOnly: true  },
+      { to: 'facturacion', label: 'Facturación',     Icon: Receipt,      adminOnly: true  },
       { to: 'inventario',  label: 'Inventario',      Icon: Package,      adminOnly: true  },
       { to: 'gastos',      label: 'Gastos',          Icon: TrendingDown, adminOnly: true  },
       { to: 'caja',        label: 'Control de Caja', Icon: Wallet,       adminOnly: true  },

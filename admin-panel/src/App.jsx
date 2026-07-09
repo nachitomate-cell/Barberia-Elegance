@@ -57,6 +57,7 @@ import WhatsAppBot      from './views/WhatsAppBot';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import RecibirPagos     from './views/RecibirPagos';
+import Facturacion      from './views/Facturacion';
 import Referidos        from './views/Referidos';
 import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
@@ -123,6 +124,7 @@ function ProtectedApp() {
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="recibir-pagos"   element={<RecibirPagos />} />
+            <Route path="facturacion"     element={<Facturacion />} />
             <Route path="referidos"       element={<Referidos />} />
             <Route path="mensajes"        element={<Chat />} />
             <Route path="chatbot"         element={<ChatbotConfig />} />

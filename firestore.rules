@@ -140,6 +140,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  admin_fcm_tokens — tokens FCM del portal /admin como PWA.
+    //  Cada bootstrap admin registra su token en su dispositivo para
+    //  recibir push. Cloud Functions (admin SDK) hace el dispatch y
+    //  bypasa reglas. Lectura restringida a bootstrap para que el
+    //  panel pueda mostrar/administrar los dispositivos suscritos.
+    // ═══════════════════════════════════════════════════════════════
+    match /admin_fcm_tokens/{token} {
+      allow read, write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  _referrals — programa de referidos B2B (SaaS growth loop)
     //
     //  Modelo:
@@ -608,6 +619,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── /facturacion_secrets — apikey OpenFactura por tenant (arriendo) ──
+    // CERRADO: solo el Admin SDK (Cloud Functions) lee/escribe la key. El
+    // panel sabe si está configurada por el flag no sensible
+    // configuracion/facturacion.openfacturaConfigurada.
+    match /facturacion_secrets/{tid} {
+      allow read, write: if false;
+    }
+
+    // ── /facturacion_log — auditoría de DTE emitidos (arriendo sillón) ──
+    // Lo escribe la CF facturacionArriendo (Admin SDK). Solo lo lee el admin
+    // desde el panel de Facturación.
+    match /facturacion_log/{docId} {
+      allow read: if esAdmin('elegance');
+      allow write: if false;
+    }
+
     // ── /bio_handles — alias bioo.cl/<handle> → tenant (bio de locales) ──
     // Mapea un handle público a un tenant para servir su Link in Bio en
     // bioo.cl sin redirect. Lectura pública (la usa el edge middleware sin
@@ -1036,6 +1063,14 @@ service cloud.firestore {
       // Audit log del programa de referidos B2C (espejo del path root).
       // Escritura solo vía CF referidosRecompensaTenant (Admin SDK).
       match /referral_awards/{docId} {
+        allow read: if esAdmin(tid);
+        allow write: if false;
+      }
+
+      // ── facturacion_log ──────────────────────────────────────────
+      // Auditoría de DTE emitidos (arriendo sillón). Escritura solo vía CF
+      // facturacionArriendoTenant (Admin SDK).
+      match /facturacion_log/{docId} {
         allow read: if esAdmin(tid);
         allow write: if false;
       }
