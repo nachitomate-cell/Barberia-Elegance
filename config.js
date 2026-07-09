@@ -889,6 +889,22 @@
     if (!tenantId) tenantId = new URL(window.location.href).searchParams.get('local') || '';
   } catch (_) {}
 
+  // ── Kronnos: traducir ?local=kronnos&sede=X al tenant legacy correspondiente ──
+  // El tenant marca 'kronnos' NO tiene servicios/staff/tema propios (Camino 1.5).
+  // Los datos operacionales viven en tenants/kronnos_<sede>/*. Convertimos en
+  // memoria para que TODO el sitio publico use el legacy (heredando servicios,
+  // barberos, CSS themes, Firestore paths, etc.). El pool marca se sigue
+  // usando para fidelizacion via marca-aware redirect en firebaseUtils.js.
+  if (tenantId === 'kronnos') {
+    try {
+      const sedeQ = new URL(window.location.href).searchParams.get('sede');
+      const _validSedes = new Set(['penablanca', 'limache', 'woman']);
+      if (sedeQ && _validSedes.has(sedeQ) && _tenants['kronnos_' + sedeQ]) {
+        tenantId = 'kronnos_' + sedeQ;
+      }
+    } catch (_) {}
+  }
+
   // Si llega por URL, persistir en sessionStorage para esta pestaña
   if (tenantId && _tenants[tenantId]) {
     try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
