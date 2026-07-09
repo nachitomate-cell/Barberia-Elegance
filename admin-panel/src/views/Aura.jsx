@@ -3,6 +3,7 @@ import { getDoc, setDoc, collection, query, where, onSnapshot } from 'firebase/f
 import {
   Sparkles, Instagram, Users, Search, MessageCircle,
   Plus, X, Check, ArrowUp, ArrowDown, Loader2, TrendingUp,
+  ChevronDown, ChevronRight, MessageSquareQuote,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -285,8 +286,10 @@ function ToggleRow({ title, desc, value, onToggle, disabled }) {
 function MetricasCard() {
   const [periodo, setPeriodo] = useState('30d');
   const [conteos, setConteos] = useState({});
+  const [textos, setTextos] = useState({}); // { [origenId]: [{ texto, cliente, fecha }, …] }
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [expandido, setExpandido] = useState(null); // id del origen expandido
 
   useEffect(() => {
     const dias = periodo === '7d' ? 7 : periodo === '30d' ? 30 : 90;
@@ -297,6 +300,7 @@ function MetricasCard() {
     const q = query(ref, where('fecha', '>=', desde));
     const unsub = onSnapshot(q, snap => {
       const c = {};
+      const tx = {};
       let t = 0;
       for (const d of snap.docs) {
         const cita = d.data();
@@ -304,8 +308,22 @@ function MetricasCard() {
         if (!oa || !oa.id) continue;
         c[oa.id] = (c[oa.id] || 0) + 1;
         t += 1;
+        // Guardar textos libres para opciones que lo permiten (típicamente "otra").
+        if (oa.textoLibre && String(oa.textoLibre).trim()) {
+          if (!tx[oa.id]) tx[oa.id] = [];
+          tx[oa.id].push({
+            texto:   String(oa.textoLibre).trim(),
+            cliente: cita.clienteNombre || 'Cliente',
+            fecha:   cita.fecha,
+            ts:      cita.creadoEn?.toDate?.().getTime?.() ||
+                     (oa.respondidoAt ? new Date(oa.respondidoAt).getTime() : 0),
+          });
+        }
       }
+      // Orden desc por fecha (más recientes primero)
+      Object.keys(tx).forEach(k => tx[k].sort((a, b) => b.ts - a.ts));
       setConteos(c);
+      setTextos(tx);
       setTotal(t);
       setLoading(false);
     }, err => {
@@ -357,6 +375,9 @@ function MetricasCard() {
               const pct = Math.round((count / total) * 100);
               const label = OPCIONES_DEFAULT.find(o => o.id === id)?.label || id;
               const emoji = OPCIONES_DEFAULT.find(o => o.id === id)?.emoji || '✨';
+              const libres = textos[id] || [];
+              const tieneLibres = libres.length > 0;
+              const isOpen = expandido === id;
               return (
                 <div key={id} className="bg-slate-800/40 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1.5">
@@ -373,6 +394,37 @@ function MetricasCard() {
                       style={{ width: pct + '%' }}
                     />
                   </div>
+                  {tieneLibres && (
+                    <>
+                      <button
+                        onClick={() => setExpandido(isOpen ? null : id)}
+                        className="mt-2.5 w-full flex items-center justify-between text-[11px] font-semibold text-amber-300/90 hover:text-amber-300 transition-colors group"
+                        aria-expanded={isOpen}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquareQuote size={11} />
+                          {isOpen ? 'Ocultar' : 'Ver'} {libres.length} respuesta{libres.length !== 1 ? 's' : ''} escrita{libres.length !== 1 ? 's' : ''}
+                        </span>
+                        {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      </button>
+                      {isOpen && (
+                        <ul className="mt-2 space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                          {libres.map((l, i) => (
+                            <li
+                              key={i}
+                              className="bg-slate-900/70 border border-slate-800 rounded-md px-3 py-2 text-[12.5px] text-slate-200 leading-snug"
+                            >
+                              <p className="italic">"{l.texto}"</p>
+                              <p className="mt-1 text-[10px] text-slate-500 flex items-center gap-1.5">
+                                <span className="truncate max-w-[60%]">{l.cliente}</span>
+                                {l.fecha && <span>· {l.fecha}</span>}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
                 </div>
               );
             })}
