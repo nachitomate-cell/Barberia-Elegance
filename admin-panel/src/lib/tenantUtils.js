@@ -134,6 +134,10 @@ export const KRONNOS_MARCA_COLLECTIONS = new Set([
   'clientes',
   // anuncios_optout: opt-out aplica a las 3 sedes Kronnos (pool marca).
   'anuncios_optout',
+  // packConsumos: auditoría del motor de packs. El saldo vive en users
+  // (marca), así que el log también — permite consultar historial cross-sede
+  // ("¿en qué sede Kronnos descontó esta sesión?").
+  'packConsumos',
 ]);
 
 function _marcaAwareTenant(tid, colName) {

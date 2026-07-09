@@ -51,7 +51,7 @@ import AIWatermark from '../components/ui/AIWatermark';
 
    Errores no bloquean el guardado de la cita: se loguean.
    ════════════════════════════════════════════════════════════════════════ */
-async function procesarPackDeCita({ servicio, cita }) {
+async function procesarPackDeCita({ servicio, cita, tenantId, barberos }) {
   const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
   if (!userId) return { skip: 'sin-userId' };
 
@@ -60,6 +60,30 @@ async function procesarPackDeCita({ servicio, cita }) {
   if (!esActivacion && !esConsumo) return { skip: 'ni-activacion-ni-consumo' };
 
   const userRef = doc(tenantCol('users'), userId);
+  // Log ref con ID auto en packConsumos (marca-aware — redirige a
+  // tenants/kronnos/packConsumos cuando el tenant es una sede Kronnos).
+  const logRef  = doc(tenantCol('packConsumos'));
+
+  const barbNombre = (() => {
+    if (!Array.isArray(barberos) || !cita?.barberoId) return cita?.barberoNombre || '';
+    const b = barberos.find(x => x.id === cita.barberoId);
+    return b?.nombre || cita?.barberoNombre || '';
+  })();
+
+  const logBase = {
+    userId,
+    clienteNombre:      cita?.clienteNombre || '',
+    clienteTelefonoSuf9: cita?.clienteTelefonoSuf9 || cita?.telefonoSuf9 || '',
+    citaId:             cita?.id || '',
+    citaFecha:          cita?.fecha || '',
+    citaHora:           cita?.hora || '',
+    barberoId:          cita?.barberoId || '',
+    barberoNombre:      barbNombre,
+    servicioId:         cita?.servicioId || servicio?.id || '',
+    servicioNombre:     cita?.servicioNombre || servicio?.nombre || '',
+    sedeId:             tenantId || '',   // tenant operacional (útil en Kronnos multi-sede)
+    createdAt:          serverTimestamp(),
+  };
 
   await runTransaction(db, async (tx) => {
     const uSnap = await tx.get(userRef);
@@ -67,6 +91,8 @@ async function procesarPackDeCita({ servicio, cita }) {
     const uData = uSnap.data() || {};
     const packs = Array.isArray(uData.packsActivos) ? [...uData.packsActivos] : [];
     const now = Date.now();
+
+    let logPayload = null;
 
     if (esActivacion) {
       // Idempotencia: si la cita ya activó un pack previamente (por doble Save),
@@ -76,7 +102,7 @@ async function procesarPackDeCita({ servicio, cita }) {
 
       const totalSes = Math.max(1, Number(servicio.sesionesTotales) || 1);
       const dias     = Math.max(1, Number(servicio.diasValidez)     || 30);
-      packs.push({
+      const nuevoPack = {
         packId:            servicio.id,
         nombrePack:        servicio.nombre,
         sesionesTotales:   totalSes,
@@ -84,7 +110,19 @@ async function procesarPackDeCita({ servicio, cita }) {
         fechaCompra:       Timestamp.fromMillis(now),
         fechaVencimiento:  Timestamp.fromMillis(now + dias * 24 * 60 * 60 * 1000),
         citaActivacion:    cita.id,
-      });
+      };
+      packs.push(nuevoPack);
+
+      logPayload = {
+        ...logBase,
+        tipo:               'activacion',
+        packId:             nuevoPack.packId,
+        packNombre:         nuevoPack.nombrePack,
+        sesionesTotales:    totalSes,
+        sesionesAntes:      totalSes,
+        sesionesDespues:    nuevoPack.sesionesRestantes,
+        fechaVencimiento:   nuevoPack.fechaVencimiento,
+      };
     }
 
     if (esConsumo) {
@@ -99,15 +137,29 @@ async function procesarPackDeCita({ servicio, cita }) {
       if (idx === -1) return; // pack no encontrado / sin saldo / expirado
       const yaConsumida = Array.isArray(packs[idx].citasConsumo) && packs[idx].citasConsumo.includes(cita.id);
       if (yaConsumida) return;
+      const antes = packs[idx].sesionesRestantes || 0;
+      const despues = Math.max(0, antes - 1);
       packs[idx] = {
         ...packs[idx],
-        sesionesRestantes: Math.max(0, (packs[idx].sesionesRestantes || 0) - 1),
+        sesionesRestantes: despues,
         citasConsumo: [...(packs[idx].citasConsumo || []), cita.id],
         ultimoConsumo: Timestamp.fromMillis(now),
+      };
+
+      logPayload = {
+        ...logBase,
+        tipo:            'consumo',
+        packId:          packs[idx].packId,
+        packNombre:      packs[idx].nombrePack,
+        sesionesTotales: packs[idx].sesionesTotales || 0,
+        sesionesAntes:   antes,
+        sesionesDespues: despues,
+        fechaVencimiento: packs[idx].fechaVencimiento || null,
       };
     }
 
     tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
+    if (logPayload) tx.set(logRef, logPayload);
   });
   return { ok: true };
 }
@@ -712,6 +764,70 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
+
+    // ── Confirmación explícita si la cita involucra un pack ─────────
+    // Se dispara SOLO al pasar de "pendiente" a "Completada" — es el momento
+    // en que el motor descuenta/activa. Muestra al barbero exactamente qué
+    // va a pasar (activación de N sesiones, o consumo con saldo antes/después)
+    // para que no marque Completada por accidente ni olvide marcarla.
+    // El modal queda ANTES de setSaving() para no bloquear el botón mientras
+    // el barbero decide.
+    if (!isNew && form.estado === 'Completada' && cita?.estado !== 'Completada') {
+      const svc = servicios.find(s => s.id === form.servicioId)
+               || servicios.find(s => (s.nombre || '') === form.servicioNombre);
+      const esActivacion = !!(svc && svc.isPack);
+      const esConsumo    = !!cita?.consumeSesionPack && !!cita?.packRefId;
+
+      if (esActivacion) {
+        const totalSes = Math.max(1, Number(svc.sesionesTotales) || 1);
+        const dias     = Math.max(1, Number(svc.diasValidez)     || 30);
+        const ok = await confirmDialog({
+          title: '📦 Activar pack',
+          message:
+            `Se activará el pack "${svc.nombre}" para ${cita?.clienteNombre || 'este cliente'}.\n\n` +
+            `• ${totalSes} sesiones en total\n` +
+            `• Esta cita cuenta como la primera → quedarán ${totalSes - 1} sesiones\n` +
+            `• Vence en ${dias} días\n\n` +
+            `¿Confirmar activación?`,
+          confirmText: 'Activar pack',
+          cancelText:  'Volver',
+        });
+        if (!ok) return;
+      } else if (esConsumo) {
+        const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
+        let antes = null, despues = null, nombrePack = cita?.packNombre || 'Pack';
+        if (userId) {
+          try {
+            const uSnap = await withTimeout(
+              getDoc(doc(tenantCol('users'), userId)),
+              8000,
+              'agenda/pack-check'
+            );
+            const packs = Array.isArray(uSnap.data()?.packsActivos) ? uSnap.data().packsActivos : [];
+            const p = packs.find(pk => pk.packId === cita.packRefId && (pk.sesionesRestantes || 0) > 0);
+            if (p) {
+              antes      = p.sesionesRestantes;
+              despues    = Math.max(0, antes - 1);
+              nombrePack = p.nombrePack || nombrePack;
+            }
+          } catch { /* si falla el fetch, seguimos sin saldo — la tx del motor valida igual */ }
+        }
+        const saldoMsg = antes !== null
+          ? `• Antes: ${antes} ${antes === 1 ? 'sesión' : 'sesiones'}\n• Después: ${despues} ${despues === 1 ? 'sesión' : 'sesiones'}\n\n`
+          : '';
+        const ok = await confirmDialog({
+          title: '📦 Consumir sesión',
+          message:
+            `Se descontará 1 sesión del pack "${nombrePack}" de ${cita?.clienteNombre || 'este cliente'}.\n\n` +
+            saldoMsg +
+            `¿Confirmar consumo?`,
+          confirmText: 'Descontar sesión',
+          cancelText:  'Volver',
+        });
+        if (!ok) return;
+      }
+    }
+
     setSaving(true);
     try {
       // Fecha efectiva de la cita: la del formulario (editable) cae al día visible si quedara vacía.
@@ -923,6 +1039,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             await procesarPackDeCita({
               servicio: svc,
               cita:     { ...cita, ...payload, id: cita.id },
+              tenantId,
+              barberos,
             });
           } catch (err) {
             console.error('[pack] procesarPackDeCita:', err);

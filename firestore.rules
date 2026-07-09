@@ -56,13 +56,17 @@ service cloud.firestore {
       return autenticado() && tenantClaim() == tid;
     }
 
-    // ── Superadmin marca Kronnos (Claudio) ──────────────────────────
-    // Camino 1.5: Claudio administra los 4 tenants Kronnos (marca + 3 legacy)
-    // pero un JWT solo puede tener un tenantId en claims. Este helper le da
+    // ── Superadmins marca Kronnos ───────────────────────────────────
+    // Camino 1.5: administran los 4 tenants Kronnos (marca + 3 legacy)
+    // pero un JWT solo puede tener un tenantId en claims. Este helper les da
     // acceso admin en los 4 sin comprometer aislamiento de otros tenants.
     function esKronnosBrandAdmin(tid) {
       return autenticado()
-          && request.auth.token.email == 'administracionkronnos@gmail.com'
+          && request.auth.token.email in [
+               'administracionkronnos@gmail.com',
+               'claudio.burgos91@gmail.com',
+               'grupo.kratos.spa@gmail.com'
+             ]
           && tid in ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
     }
 
@@ -814,6 +818,17 @@ service cloud.firestore {
       allow read, write: if esStaff('elegance');
     }
 
+    // ── /packConsumos ──────────────────────────────────────────────
+    // Log de auditoría del motor de packs (activación / consumo / reversión).
+    // El cliente puede leer solo sus propios eventos (para historial en su
+    // dashboard); staff lee/escribe todo. Nadie borra (auditoría).
+    match /packConsumos/{docId} {
+      allow read:   if esStaff('elegance')
+                    || (autenticado() && resource.data.userId == uid());
+      allow create: if esStaff('elegance');
+      allow update, delete: if false;
+    }
+
     // ── /fcm_tokens ────────────────────────────────────────────────
     // Cualquier usuario autenticado puede registrar su token push.
     match /fcm_tokens/{tokenId} {
@@ -1200,6 +1215,17 @@ service cloud.firestore {
         allow create: if autenticado() && uid() == userId;
         allow update: if autenticado() && uid() == userId;
         allow delete: if autenticado() && uid() == userId;
+      }
+
+      // ── /tenants/{tid}/packConsumos ─────────────────────────────
+      // Log de auditoría del motor de packs multi-tenant. Kronnos:
+      // por MARCA_COLLECTIONS, todas las sedes escriben a tenants/kronnos/
+      // packConsumos (pool marca).
+      match /packConsumos/{docId} {
+        allow read:   if esStaff(tid)
+                      || (autenticado() && resource.data.userId == uid());
+        allow create: if esStaff(tid);
+        allow update, delete: if false;
       }
 
       // ── servicioFavorito ──────────────────────────────────────────

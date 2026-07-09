@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Tag } from 'lucide-react';
+import { Plus, Tag, Sparkles } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch,
   serverTimestamp, orderBy, getDocs, query, limit,
@@ -58,6 +58,12 @@ const EMPTY = {
   sesionesTotales: '',
   diasValidez: '',
   serviciosIncluidos: [],
+  // Recomendaciones al reservar: IDs de servicios que la web pública ofrece
+  // como complemento cuando el cliente elige este servicio (ej: corte →
+  // perfilado de cejas). Solo aplican si el módulo global está encendido
+  // (configuracion/main.recomendacionesActivas, switch en el panel lateral).
+  recomendar: false,
+  recomendados: [],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -134,6 +140,13 @@ export default function Servicios() {
   const { data: servicios, loading } = useCollection('servicios', [orderBy('orden')]);
   const { config, updateConfig }     = useConfig();
   const categorias = config.categoriasServicio ?? ['Otro'];
+  // Módulo Recomendaciones: flag global en configuracion/main. La reserva
+  // pública (index.html) solo muestra el modal de sugerencias si está true.
+  const recsOn = !!config.recomendacionesActivas;
+  const serviciosConRecs = useMemo(
+    () => servicios.filter(s => Array.isArray(s.recomendados) && s.recomendados.length > 0).length,
+    [servicios],
+  );
 
   const [citasUsage, setCitasUsage] = useState({});
   useEffect(() => {
@@ -204,6 +217,8 @@ export default function Servicios() {
       sesionesTotales:    s.sesionesTotales != null ? String(s.sesionesTotales) : '',
       diasValidez:        s.diasValidez     != null ? String(s.diasValidez)     : '',
       serviciosIncluidos: Array.isArray(s.serviciosIncluidos) ? [...s.serviciosIncluidos] : [],
+      recomendar:         Array.isArray(s.recomendados) && s.recomendados.length > 0,
+      recomendados:       Array.isArray(s.recomendados) ? [...s.recomendados] : [],
     });
     resetImageState();
     setSlide(true);
@@ -255,6 +270,14 @@ export default function Servicios() {
       const diasValidez = isPack
         ? Math.max(1, Math.round(Number(form.diasValidez) || 0))
         : 0;
+      // Recomendaciones: solo IDs válidos, sin duplicados y sin el propio
+      // servicio (un servicio no puede recomendarse a sí mismo).
+      const recomendados = form.recomendar
+        ? Array.from(new Set(
+            (form.recomendados || []).filter(id =>
+              typeof id === 'string' && id.length > 0 && id !== editing)
+          ))
+        : [];
 
       const base = {
         nombre: form.nombre, categoria: form.categoria,
@@ -295,12 +318,14 @@ export default function Servicios() {
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
           diasValidez:        isPack ? diasValidez        : deleteField(),
           serviciosIncluidos: isPack ? (base.serviciosIncluidos || []) : deleteField(),
+          recomendados:       recomendados.length ? recomendados : deleteField(),
         });
       } else {
         const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
         const newDoc = { ...base, orden: nextOrden, createdAt: serverTimestamp() };
         if (descripcion) newDoc.descripcion = descripcion;
         if (form.varPrecios) newDoc.preciosPorDia = preciosPorDia;
+        if (recomendados.length) newDoc.recomendados = recomendados;
         // Create doc first to get ID, then upload image
         const docRef = await addDoc(tenantCol('servicios'), newDoc);
         if (imageFile) {
@@ -477,6 +502,39 @@ export default function Servicios() {
               <Plus size={16} strokeWidth={2.5} />
             </button>
           </div>
+        </div>
+
+        {/* ── Módulo: Recomendaciones al reservar ── */}
+        <div className={`border rounded-2xl p-5 mt-4 transition-colors ${
+          recsOn ? 'bg-sky-500/5 border-sky-500/30' : 'bg-slate-800/30 border-slate-700/50'
+        }`}>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Sparkles size={14} className={recsOn ? 'text-sky-400' : 'text-slate-400'} />
+              Recomendaciones
+            </h2>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={recsOn}
+              aria-label="Activar recomendaciones al reservar"
+              onClick={() => updateConfig({ recomendacionesActivas: !recsOn })}
+              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${recsOn ? 'bg-sky-500' : 'bg-slate-600'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${recsOn ? 'left-[22px]' : 'left-0.5'}`} />
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Al reservar online, sugiere servicios complementarios según lo elegido
+            (ej: corte → perfilado de cejas). Configura las sugerencias dentro de cada servicio.
+          </p>
+          {recsOn && (
+            <p className="text-[11px] mt-3 font-medium text-sky-400">
+              {serviciosConRecs === 0
+                ? 'Ningún servicio tiene recomendaciones aún — edita un servicio para agregarlas.'
+                : `${serviciosConRecs} servicio${serviciosConRecs === 1 ? '' : 's'} con recomendaciones configuradas.`}
+            </p>
+          )}
         </div>
       </div>
 
@@ -771,6 +829,89 @@ export default function Servicios() {
             )}
           </div>
 
+          {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Recomendaciones al reservar
+              Mismo patrón que precios variables / pack. Al elegir este
+              servicio en la reserva online, se ofrecen los marcados aquí.
+              Requiere el módulo global encendido (switch del panel lateral).
+              ══════════════════════════════════════════════════════════ */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, recomendar: !f.recomendar }))}
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                form.recomendar
+                  ? 'bg-slate-800/50 border-sky-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <span aria-hidden="true">✨</span> Recomendar servicios al reservar
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Sugiere complementos cuando el cliente elige este servicio.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.recomendar ? 'bg-sky-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.recomendar ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+            {form.recomendar && (
+              <div className="bg-slate-900/50 border-x border-b border-sky-500/40 rounded-b-xl p-4 space-y-4">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Al elegir <span className="text-white font-semibold">{form.nombre || 'este servicio'}</span> en la reserva online, se le ofrecerán estos complementos (ej: corte → perfilado de cejas). El precio y la duración se suman a la cita.
+                </p>
+
+                <div>
+                  <label className={lbl}>¿Qué servicios recomendar?</label>
+                  <div className="mt-1 bg-slate-950/40 border border-slate-700 rounded-lg max-h-56 overflow-y-auto p-1.5 space-y-0.5">
+                    {servicios.filter(s => s.id !== editing && !s.isPack).length === 0 ? (
+                      <p className="text-xs text-slate-500 py-6 text-center italic px-4">
+                        Crea primero otros servicios para poder recomendarlos.
+                      </p>
+                    ) : (
+                      servicios
+                        .filter(s => s.id !== editing && !s.isPack)
+                        .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
+                        .map(s => {
+                          const checked = (form.recomendados || []).includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
+                                checked ? 'bg-sky-500/10' : 'hover:bg-slate-800/50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={e => {
+                                  const next = new Set(form.recomendados || []);
+                                  if (e.target.checked) next.add(s.id);
+                                  else next.delete(s.id);
+                                  setForm(f => ({ ...f, recomendados: [...next] }));
+                                }}
+                                className="w-4 h-4 bg-slate-900 border-slate-600 rounded accent-sky-500 cursor-pointer shrink-0"
+                              />
+                              <i className={`ph ${s.icono || 'ph-scissors'} text-base ${checked ? 'text-sky-300' : 'text-slate-500'}`} />
+                              <span className={`text-sm truncate flex-1 ${checked ? 'text-white font-medium' : 'text-slate-300'}`}>
+                                {s.nombre}
+                              </span>
+                              <span className="text-[10px] text-slate-500 shrink-0">
+                                ${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}
+                              </span>
+                            </label>
+                          );
+                        })
+                    )}
+                  </div>
+                  <p className={help}>
+                    Las sugerencias solo aparecen si el módulo <span className="text-sky-400">Recomendaciones</span> está encendido (panel derecho). Asegúrate de que todo tu equipo pueda realizar los servicios recomendados.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </SlideOver>
 
@@ -782,6 +923,7 @@ export default function Servicios() {
             <li><span className="text-white">Mantén presionado el ícono de puntos</span> y arrastra para reordenar (en móvil requiere long-press de ~¼ seg).</li>
             <li>Agrega <span className="text-white">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
             <li>Sube una <span className="text-white">imagen</span> a cada servicio para que aparezca en el portal VIP del cliente.</li>
+            <li>Con el módulo <span className="text-white">Recomendaciones</span> encendido (panel derecho), puedes marcar en cada servicio qué complementos sugerir al cliente cuando reserva (ej: corte → perfilado de cejas). El precio y la duración del complemento se suman a la cita.</li>
           </ul>
         </HelpModal>
       )}
@@ -832,6 +974,11 @@ function ServicioCardBody({ s, topServicio }) {
           {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
             <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
               precio variable
+            </span>
+          )}
+          {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (
+            <span className="bg-sky-400/10 text-sky-400 border border-sky-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              ✨ recomienda {s.recomendados.length}
             </span>
           )}
         </div>

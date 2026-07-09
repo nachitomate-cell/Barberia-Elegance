@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check, Trash2, AlertTriangle, Package } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, deleteDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
-  increment, arrayUnion, serverTimestamp,
+  increment, arrayUnion, serverTimestamp, runTransaction, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
@@ -89,10 +90,12 @@ function StampGrid({ stamps, premios }) {
 
 /* ── Panel de cliente (slide-over) ── */
 function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
+  const { id: tenantId } = useTenant();
   const [data,        setData]        = useState(init);
   const [citas,       setCitas]       = useState([]);
   const [selPremio,   setSelPremio]   = useState(null);
   const [opLoad,      setOpLoad]      = useState(false);
+  const [packRevertLoad, setPackRevertLoad] = useState(null); // idx del pack en reversión
   const [canjeMsg,    setCanjeMsg]    = useState('');
   const [resetOn,     setResetOn]     = useState(false);
   const [fechaCumple, setFechaCumple] = useState(init.fechaNacimiento || '');
@@ -289,6 +292,92 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         }),
       });
     } finally { setOpLoad(false); setResetOn(false); }
+  };
+
+  /* ── Reversión manual de sesión de pack ─────────────────────────
+     Cuando el cliente no llega (no-show) o se cobró por error, el barbero
+     devuelve la sesión desde acá. Transacción atómica: suma +1 al saldo del
+     pack y escribe un doc `tipo: 'reversion'` en packConsumos con la cita
+     que se está revirtiendo (última consumida). Auditoría inmutable → si
+     hay disputa, queda el trail. */
+  const revertirSesionPack = async (idx) => {
+    const p = data.packsActivos?.[idx];
+    if (!p) return;
+    const total = Math.max(1, Number(p.sesionesTotales) || 1);
+    const antes = Number(p.sesionesRestantes || 0);
+    const despues = Math.min(total, antes + 1);
+    if (despues === antes) return; // ya está al máximo
+
+    const ok = await confirmDialog({
+      title: '📦 Devolver sesión',
+      message:
+        `Se devolverá 1 sesión al pack "${p.nombrePack || 'Pack'}" de ${data.nombre || 'este cliente'}.\n\n` +
+        `• Antes:   ${antes} de ${total}\n` +
+        `• Después: ${despues} de ${total}\n\n` +
+        `Queda registrado en el log (auditoría).\n\n¿Confirmar?`,
+      confirmText: 'Devolver sesión',
+      cancelText:  'Cancelar',
+    });
+    if (!ok) return;
+
+    setPackRevertLoad(idx);
+    try {
+      const userRef = doc(tenantCol('users'), data.uid);
+      const logRef  = doc(tenantCol('packConsumos'));
+      await runTransaction(db, async (tx) => {
+        const uSnap = await tx.get(userRef);
+        if (!uSnap.exists()) throw new Error('El cliente ya no existe');
+        const uData = uSnap.data() || {};
+        const packs = Array.isArray(uData.packsActivos) ? [...uData.packsActivos] : [];
+        if (!packs[idx]) throw new Error('El pack ya no existe');
+
+        const totalTx = Math.max(1, Number(packs[idx].sesionesTotales) || 1);
+        const antesTx = Number(packs[idx].sesionesRestantes || 0);
+        const despuesTx = Math.min(totalTx, antesTx + 1);
+        if (despuesTx === antesTx) return; // race — otro proceso ya devolvió
+
+        // Quitamos la última cita consumida para permitir volver a consumirla
+        // eventualmente (o quedar como "revertida"). Es el ID de cita que
+        // guardamos en el log de reversión para trazar cuál se devolvió.
+        const cc = Array.isArray(packs[idx].citasConsumo) ? [...packs[idx].citasConsumo] : [];
+        const citaRevertida = cc.length ? cc.pop() : null;
+
+        packs[idx] = {
+          ...packs[idx],
+          sesionesRestantes: despuesTx,
+          citasConsumo:      cc,
+          ultimaReversion:   Timestamp.fromMillis(Date.now()),
+        };
+
+        tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
+        tx.set(logRef, {
+          tipo:              'reversion',
+          userId:            data.uid,
+          clienteNombre:     data.nombre || '',
+          clienteTelefonoSuf9: (data.telefono ? String(data.telefono).replace(/\D/g, '').slice(-9) : ''),
+          packId:            packs[idx].packId || '',
+          packNombre:        packs[idx].nombrePack || '',
+          sesionesTotales:   totalTx,
+          sesionesAntes:     antesTx,
+          sesionesDespues:   despuesTx,
+          fechaVencimiento:  packs[idx].fechaVencimiento || null,
+          citaId:            citaRevertida || '',
+          sedeId:            tenantId || '',
+          motivo:            'reversion-manual-desde-ficha-cliente',
+          createdAt:         serverTimestamp(),
+        });
+      });
+    } catch (e) {
+      // Sin toast global en esta vista — mostramos con confirmDialog como aviso.
+      await confirmDialog({
+        title:       'No se pudo devolver la sesión',
+        message:     e.message || 'Intenta nuevamente.',
+        confirmText: 'OK',
+        cancelText:  '',
+      });
+    } finally {
+      setPackRevertLoad(null);
+    }
   };
 
   const eliminarCliente = async () => {
@@ -536,6 +625,92 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
             className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 disabled:opacity-40 border border-yellow-500/30 text-yellow-400 text-sm font-semibold rounded-lg transition-all">
             <Gift size={15} /> Canjear premio
           </button>
+        </div>
+      )}
+
+      {/* ── Packs activos ────────────────────────────────────────────
+          Muestra los packs vigentes del cliente con saldo, vencimiento y
+          botón para devolver una sesión (no-show, cobro por error, etc.).
+          Se pinta en color según estado:
+            · violet    — vigente y saludable
+            · amber     — vence pronto (≤5 días)
+            · red       — vencido
+            · slate     — sin saldo (informativo, sin acciones) */}
+      {Array.isArray(data.packsActivos) && data.packsActivos.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <Package size={11} /> Packs activos
+          </p>
+          <div className="space-y-2">
+            {data.packsActivos.map((p, idx) => {
+              const total   = Math.max(1, Number(p.sesionesTotales) || 1);
+              const rest    = Number(p.sesionesRestantes || 0);
+              const venc    = p.fechaVencimiento?.toDate?.() || null;
+              const now     = Date.now();
+              const vencido = venc && venc.getTime() < now;
+              const dias    = venc ? Math.ceil((venc.getTime() - now) / (1000 * 60 * 60 * 24)) : null;
+              const consumidos = (Array.isArray(p.citasConsumo) ? p.citasConsumo.length : 0);
+              const puedeRevertir = consumidos > 0 && rest < total;
+              const pct = Math.round((rest / total) * 100);
+              const compra = p.fechaCompra?.toDate?.() || null;
+
+              // Colores por estado (styles inline porque son dinámicos).
+              const paleta = vencido
+                ? { text: '#f87171', ring: 'rgba(248,113,113,0.35)', bg: 'rgba(248,113,113,0.06)', bar: '#f87171' }
+                : rest === 0
+                ? { text: '#94a3b8', ring: 'rgba(148,163,184,0.25)', bg: 'rgba(148,163,184,0.05)', bar: '#94a3b8' }
+                : dias !== null && dias <= 5
+                ? { text: '#fbbf24', ring: 'rgba(251,191,36,0.35)', bg: 'rgba(251,191,36,0.06)', bar: '#fbbf24' }
+                : { text: '#c4b5fd', ring: 'rgba(167,139,250,0.35)', bg: 'rgba(167,139,250,0.06)', bar: '#a78bfa' };
+
+              return (
+                <div key={`pack-${idx}`}
+                     className="rounded-xl p-3 space-y-2"
+                     style={{ background: paleta.bg, border: `1px solid ${paleta.ring}` }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-white truncate">{p.nombrePack || 'Pack'}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {compra && `Comprado: ${compra.toLocaleDateString('es-CL')}`}
+                        {venc && ` · Vence: ${venc.toLocaleDateString('es-CL')}`}
+                      </p>
+                    </div>
+                    <span className="text-sm font-black shrink-0" style={{ color: paleta.text }}>
+                      {rest}<span className="text-xs opacity-70">/{total}</span>
+                    </span>
+                  </div>
+                  {/* Barra de progreso */}
+                  <div className="h-1.5 bg-slate-900/60 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all"
+                         style={{ width: `${pct}%`, background: paleta.bar }} />
+                  </div>
+                  {/* Estado / avisos */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold" style={{ color: paleta.text }}>
+                      {vencido
+                        ? '⚠ Vencido'
+                        : rest === 0
+                        ? 'Sin saldo'
+                        : dias !== null && dias <= 5 && dias > 0
+                        ? `⚠ Vence en ${dias} día${dias !== 1 ? 's' : ''}`
+                        : dias !== null && dias <= 0
+                        ? 'Vence hoy'
+                        : ' '}
+                    </p>
+                    {puedeRevertir && (
+                      <button
+                        onClick={() => revertirSesionPack(idx)}
+                        disabled={packRevertLoad === idx}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white disabled:opacity-40 transition-colors">
+                        <RotateCcw size={10} />
+                        {packRevertLoad === idx ? 'Devolviendo…' : 'Devolver 1 sesión'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
