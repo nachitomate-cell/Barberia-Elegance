@@ -797,7 +797,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 960 },
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
       name: 'Panel Admin · Kronnos', short_name: 'Kronnos', description: 'Panel de administración — Kronnos Studio',
@@ -836,7 +836,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
-    local: { telephone: '', streetAddress: 'Av. Vicepresidente Bernardo Leighton 20, local 13', addressLocality: 'Villa Alemana', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 960 },
+    local: { telephone: '', streetAddress: 'Av. Vicepresidente Bernardo Leighton 20, local 13', addressLocality: 'Villa Alemana', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio Peñablanca', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
       name: 'Panel Admin · Kronnos Peñablanca', short_name: 'Kronnos', description: 'Panel de administración — Kronnos Studio Peñablanca',
@@ -872,7 +872,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
-    local: { telephone: '', streetAddress: 'Paseo Las Araucarias 405, local 5', addressLocality: 'Limache', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 960 },
+    local: { telephone: '', streetAddress: 'Paseo Las Araucarias 405, local 5', addressLocality: 'Limache', schemaType: 'HairSalon', ratingGeneral: 0, totalReviews: 0 },
     manifest: { name: 'Kronnos Studio Limache', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
       name: 'Panel Admin · Kronnos Limache', short_name: 'Kronnos', description: 'Panel de administración — Kronnos Studio Limache',
@@ -908,7 +908,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos Woman',
     icon:        '/kronnos/woman.jpg',
-    local: { telephone: '', streetAddress: 'Palmira Romano Sur 405, local 3', addressLocality: 'Limache', schemaType: 'BeautySalon', ratingGeneral: 5.0, totalReviews: 960 },
+    local: { telephone: '', streetAddress: 'Palmira Romano Sur 405, local 3', addressLocality: 'Limache', schemaType: 'BeautySalon', ratingGeneral: 0, totalReviews: 0 },
     manifest: { name: 'Kronnos Woman', short_name: 'Kronnos Woman', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
       name: 'Panel Admin · Kronnos Woman', short_name: 'Kronnos Woman', description: 'Panel de administración — Kronnos Woman',
@@ -944,7 +944,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 960 },
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
       name: 'Panel Admin · Kronnos', short_name: 'Kronnos', description: 'Panel de administración — Kronnos Studio',

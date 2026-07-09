@@ -105,9 +105,9 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: '',
-      ratingGeneral:   5.0,
-      totalReviews:    960,
+      googleReviewUrl: 'https://g.page/r/CalD8G9cDQ8FEAI/review', // Peñablanca (unica sede con Google Business review)
+      ratingGeneral:   4.3,     // real (Peñablanca) — Limache y Woman aun sin reseñas
+      totalReviews:    7,       // real (Peñablanca)
       reviews:         [],
       barberos:        [], // resuelto por sede — SedeContext filtra en D2/D3
       partners:        [],
@@ -217,9 +217,9 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: '',
-      ratingGeneral:   5.0,
-      totalReviews:    960,
+      googleReviewUrl: 'https://g.page/r/CalD8G9cDQ8FEAI/review',
+      ratingGeneral:   4.3,     // real Google (7 opiniones al 2026-07-09)
+      totalReviews:    7,
       reviews:         [],
       barberos: [
         { nombre: 'Martin',           foto: null, disponible: true },
@@ -250,8 +250,8 @@
       instagramHandle: '',
       waEmoji:         '✂️',
       googleReviewUrl: '',
-      ratingGeneral:   5.0,
-      totalReviews:    960,
+      ratingGeneral:   0,       // sin reseñas Google (aun no aparece en Google Business)
+      totalReviews:    0,
       reviews:         [],
       barberos: [
         { nombre: 'Evelyn Contreras', foto: null, disponible: true },
@@ -284,8 +284,8 @@
       instagramHandle: '',
       waEmoji:         '💅',
       googleReviewUrl: '',
-      ratingGeneral:   5.0,
-      totalReviews:    960,
+      ratingGeneral:   0,       // sin reseñas Google (aun no en Google Business)
+      totalReviews:    0,
       reviews:         [],
       barberos: [
         { nombre: 'Kelly',  foto: null, disponible: true },
