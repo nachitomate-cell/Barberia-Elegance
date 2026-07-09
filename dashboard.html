@@ -1064,12 +1064,195 @@
     }
 
     /* ══ KRONNOS — Club de Fidelidad por sede (banner + acento) ══ */
-    .tenant-kronnos_penablanca { --gold:#e11d2a; --gold-dim:rgba(225,29,42,0.35); --gold-glow:rgba(225,29,42,0.18); }
+    .tenant-kronnos_penablanca { --gold:#e11d2a; --gold-dim:rgba(225,29,42,0.25); --gold-glow:rgba(225,29,42,0.10); }
     .tenant-kronnos_penablanca .hero-bg { background-image:url('/kronnos/kronospena.png'); background-position:center 30%; }
-    .tenant-kronnos_limache    { --gold:#f97316; --gold-dim:rgba(249,115,22,0.35); --gold-glow:rgba(249,115,22,0.18); }
+    .tenant-kronnos_limache    { --gold:#f97316; --gold-dim:rgba(249,115,22,0.25); --gold-glow:rgba(249,115,22,0.10); }
     .tenant-kronnos_limache .hero-bg { background-image:url('/kronnos/kronoslima.png'); background-position:center 30%; }
-    .tenant-kronnos_woman      { --gold:#ec4899; --gold-dim:rgba(236,72,153,0.35); --gold-glow:rgba(236,72,153,0.18); }
+    .tenant-kronnos_woman      { --gold:#ec4899; --gold-dim:rgba(236,72,153,0.25); --gold-glow:rgba(236,72,153,0.10); }
     .tenant-kronnos_woman .hero-bg { background-image:url('/kronnos/kronoswoman.png'); background-position:center 30%; }
+
+    /* ══════════════════════════════════════════════════════════════════
+     * KRONNOS · DASHBOARD CLIENTE — editorial refinado, sin neones
+     * ──────────────────────────────────────────────────────────────────
+     * Mismo lenguaje que /registro y /step-servicios: Inter en TODO lo
+     * funcional (nombres, numeros, textos), Playfair solo en el saludo
+     * del hero (grande, decorativo). Cards con hairline blanco @6%.
+     * Radios 12-14px. Glows del acento eliminados de botones y cards.
+     * ══════════════════════════════════════════════════════════════════ */
+
+    /* Hero overlay más denso para separar el nombre de la foto del local */
+    [class*="tenant-kronnos_"] .hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.45) 0%,
+        rgba(0,0,0,0.32) 40%,
+        rgba(0,0,0,0.48) 65%,
+        rgba(10,9,8,0.98) 100%) !important;
+    }
+    /* Hero glow spot mucho mas sutil */
+    [class*="tenant-kronnos_"] .hero-glow-spot {
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 60%) !important;
+      opacity: 0.5;
+    }
+
+    /* Hero saludo — Line 1 (eyebrow) + Line 2 (nombre grande) */
+    [class*="tenant-kronnos_"] #heroLine1 {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.7rem !important;
+      letter-spacing: 0.22em !important;
+      text-transform: uppercase !important;
+      color: rgba(255, 255, 255, 0.55) !important;
+    }
+    [class*="tenant-kronnos_"] #heroLine2 {
+      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-weight: 500 !important;
+      font-style: normal !important;
+      letter-spacing: -0.018em !important;
+      color: #faf8f4 !important;
+      text-shadow:
+        0 1px 2px rgba(0,0,0,0.9),
+        0 3px 12px rgba(0,0,0,0.5) !important;
+      line-height: 1.05 !important;
+    }
+
+    /* Hero CTA — solido plano, sin glow del color */
+    [class*="tenant-kronnos_"] .hero-cta {
+      background: var(--gold) !important;
+      border-color: var(--gold) !important;
+      color: #ffffff !important;
+      border-radius: 12px !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.10em !important;
+      text-transform: uppercase !important;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.3),
+        0 4px 14px -4px rgba(0,0,0,0.4) !important;
+      transition: filter 0.15s ease, transform 0.15s ease !important;
+    }
+    [class*="tenant-kronnos_"] .hero-cta:hover {
+      filter: brightness(1.08) !important;
+      transform: translateY(-1px);
+    }
+    [class*="tenant-kronnos_"] .hero-cta i,
+    [class*="tenant-kronnos_"] .hero-cta span { color: #ffffff !important; }
+
+    /* Perfil: nombre + email */
+    [class*="tenant-kronnos_"] #profileName {
+      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-weight: 500 !important;
+      letter-spacing: -0.014em !important;
+      color: #faf8f4 !important;
+    }
+    [class*="tenant-kronnos_"] #profileEmail {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      color: rgba(255, 255, 255, 0.45) !important;
+      letter-spacing: 0 !important;
+    }
+
+    /* Stats del perfil: rango · visitas · sellos */
+    [class*="tenant-kronnos_"] #profileTierBadge {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.78rem !important;
+      letter-spacing: 0.14em !important;
+      color: var(--gold) !important;
+      text-shadow: none !important;
+    }
+    [class*="tenant-kronnos_"] #profileVisitsCount,
+    [class*="tenant-kronnos_"] #profileStamps {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 700 !important;
+      font-variant-numeric: tabular-nums !important;
+      letter-spacing: -0.02em !important;
+      color: #ffffff !important;
+    }
+
+    /* Cards del perfil (rango, visitas, sellos) — hairline neutro */
+    [class*="tenant-kronnos_"] #profileTierBadge + span,
+    [class*="tenant-kronnos_"] #profileVisitsCount + span,
+    [class*="tenant-kronnos_"] #profileStamps + span {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      letter-spacing: 0.16em !important;
+      color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    /* Cards de premios (lista) — refinadas */
+    [class*="tenant-kronnos_"] #premiosList > div,
+    [class*="tenant-kronnos_"] #premiosList button {
+      background: rgba(18, 14, 10, 0.55) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 14px !important;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+    }
+    [class*="tenant-kronnos_"] #premiosList > div:hover,
+    [class*="tenant-kronnos_"] #premiosList button:hover {
+      border-color: rgba(var(--gold-r, 249), var(--gold-g, 115), var(--gold-b, 22), 0.28) !important;
+      background: rgba(24, 18, 14, 0.7) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Tipografia en cards de premios — Playfair para el nombre */
+    [class*="tenant-kronnos_"] #premiosList p.text-sm {
+      font-family: 'Playfair Display', 'Cormorant Garamond', serif !important;
+      font-weight: 500 !important;
+      letter-spacing: -0.008em !important;
+      color: #faf8f4 !important;
+    }
+    [class*="tenant-kronnos_"] #premiosList .text-\[10px\],
+    [class*="tenant-kronnos_"] #premiosList .text-\[11px\] {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      letter-spacing: 0.12em !important;
+    }
+
+    /* Numeros grandes en premios (costoSellos) — Inter tabular */
+    [class*="tenant-kronnos_"] #premiosList .text-xl {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 800 !important;
+      font-variant-numeric: tabular-nums !important;
+      letter-spacing: -0.02em !important;
+      color: var(--gold) !important;
+    }
+
+    /* Nav labels del bottom bar (Perfil, Premios, Reservas...) */
+    [class*="tenant-kronnos_"] .nav-label {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+    }
+
+    /* Botones secundarios (Editar perfil, Cerrar sesion, etc.) */
+    [class*="tenant-kronnos_"] button.btn-secondary,
+    [class*="tenant-kronnos_"] .btn-outline {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.08em !important;
+    }
+
+    /* Section headers ("Premios", "Reservas", etc.) — versalitas Inter */
+    [class*="tenant-kronnos_"] h2.text-\[10px\],
+    [class*="tenant-kronnos_"] h3.text-\[10px\] {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      letter-spacing: 0.20em !important;
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    /* Toggle "Recibir novedades y promos" — refinado */
+    [class*="tenant-kronnos_"] #anuncioOptOutRow {
+      background: rgba(15, 12, 9, 0.5) !important;
+      border-color: rgba(255, 255, 255, 0.06) !important;
+      border-radius: 14px !important;
+    }
+    [class*="tenant-kronnos_"] #anuncioOptOutRow p:first-child {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.005em !important;
+      color: #faf8f4 !important;
+    }
+    [class*="tenant-kronnos_"] #anuncioOptOutRow p:nth-child(2) {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      color: rgba(255, 255, 255, 0.4) !important;
+    }
 
     /* ══════════ YŪGEN STUDIO — Dark zen · marfil monocromático ══════════ */
     .tenant-yugen {
