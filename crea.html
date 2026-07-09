@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Crea tu agenda online gratis · SynapTech</title>
-<meta name="theme-color" content="#0a0a10" />
+<meta name="theme-color" content="#06060b" />
 <link rel="icon" href="/syn-192.png" />
 <meta name="description" content="Crea la agenda online de tu barbería, peluquería o salón en 2 minutos. Gratis, con tu propia dirección web, reservas 24/7 y club de fidelidad. Sin tarjeta." />
 
@@ -15,281 +15,704 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
 
 <style>
   :root{
-    --acc:#8b7cf6; --acc-soft:#a99cf8; --acc-deep:#4c3fd4; --ink:#12102a;
-    --bg-1:#0a0a10; --bg-2:#111118; --soft:#8a8798; --err:#ffb5a3; --ok:#7ee2a8;
+    --acc:#8b7cf6; --acc-soft:#b4a9fa; --acc-deep:#5d4ce8; --ink:#0d0b22;
+    --mint:#6ee7a8;
+    --bg:#06060b; --surface:rgba(255,255,255,.032); --line:rgba(255,255,255,.08);
+    --txt:#f4f3f9; --muted:#a29fb5; --dim:#6b6880; --err:#ffb5a3;
+    --disp:'Space Grotesk',sans-serif;
+    --body:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fff;min-height:100dvh;}
-  body{
-    background:
-      radial-gradient(70% 60% at 50% -10%, rgba(139,124,246,.20), transparent 65%),
-      radial-gradient(60% 50% at 90% 30%, rgba(139,124,246,.08), transparent 70%),
-      radial-gradient(80% 60% at 10% 95%, rgba(76,63,212,.30), transparent 70%),
-      var(--bg-1);
-    min-height:100dvh;display:flex;flex-direction:column;
-    background-attachment:fixed;
+  html{scroll-behavior:smooth;}
+  html,body{font-family:var(--body);color:var(--txt);background:var(--bg);}
+  html,body{overflow-x:clip;}
+  body{min-height:100dvh;}
+  ::selection{background:rgba(139,124,246,.4);}
+
+  /* ── Fondo: malla de gradientes + grilla punteada ─────────────── */
+  .mesh{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;}
+  .mesh::before{
+    content:'';position:absolute;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:radial-gradient(60% 45% at 50% 0%, #000 20%, transparent 100%);
+    -webkit-mask-image:radial-gradient(60% 45% at 50% 0%, #000 20%, transparent 100%);
   }
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:drift 22s ease-in-out infinite alternate;}
+  .blob.b1{width:560px;height:560px;left:50%;top:-260px;transform:translateX(-50%);background:radial-gradient(circle,rgba(139,124,246,.5),transparent 65%);}
+  .blob.b2{width:420px;height:420px;right:-160px;top:32%;background:radial-gradient(circle,rgba(93,76,232,.35),transparent 65%);animation-delay:-8s;}
+  .blob.b3{width:460px;height:460px;left:-200px;top:66%;background:radial-gradient(circle,rgba(110,231,168,.14),transparent 65%);animation-delay:-14s;}
+  @keyframes drift{from{transform:translate(0,0) scale(1);}to{transform:translate(40px,50px) scale(1.08);}}
+  .mesh::before, .blob{will-change:transform;}
 
-  header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
-  .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:16px;letter-spacing:-.3px;}
-  .brand img{width:34px;height:34px;border-radius:10px;box-shadow:0 4px 18px rgba(139,124,246,.35);}
-  .badge{
-    display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;
-    text-transform:uppercase;letter-spacing:.12em;color:var(--ink);
-    background:linear-gradient(180deg,#c9c0fb,#8b7cf6);
-    border-radius:999px;padding:7px 14px;
+  .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 22px;}
+
+  /* ── Nav ──────────────────────────────────────────────────────── */
+  nav{position:fixed;top:0;left:0;right:0;z-index:60;transition:background .25s,border-color .25s,backdrop-filter .25s;border-bottom:1px solid transparent;}
+  nav.scrolled{background:rgba(6,6,11,.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom-color:var(--line);}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.3px;}
+  .brand img{width:32px;height:32px;border-radius:9px;box-shadow:0 4px 18px rgba(139,124,246,.4);}
+  .nav-cta{
+    display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+    font-size:13.5px;font-weight:800;color:var(--ink);
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6 60%,#6d5df0);
+    padding:10px 18px;border-radius:12px;
+    box-shadow:0 8px 24px -8px rgba(139,124,246,.7);
+    transition:transform .15s,box-shadow .15s;
   }
+  .nav-cta:hover{transform:translateY(-1px);box-shadow:0 12px 30px -8px rgba(139,124,246,.8);}
 
-  main{flex:1;padding:4px 20px 40px;}
-  .wrap{width:100%;max-width:520px;margin:0 auto;}
+  /* ── Hero ─────────────────────────────────────────────────────── */
+  .hero{padding:120px 0 40px;position:relative;}
+  .hero-grid{display:grid;grid-template-columns:1fr;gap:56px;align-items:center;}
+  @media(min-width:980px){.hero-grid{grid-template-columns:1.04fr .96fr;gap:30px;} .hero{padding:150px 0 70px;}}
 
-  .hero{padding:10px 4px 20px;}
   .kicker{
-    display:inline-flex;align-items:center;gap:8px;
-    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;
-    color:var(--acc-soft);margin-bottom:14px;
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.2em;
+    color:var(--acc-soft);margin-bottom:20px;
+    border:1px solid rgba(139,124,246,.35);border-radius:999px;padding:8px 15px;
+    background:rgba(139,124,246,.08);
   }
-  .kicker .line{width:24px;height:2px;background:var(--acc);border-radius:99px;}
-  h1{font-size:32px;line-height:1.06;font-weight:900;letter-spacing:-1.1px;}
-  h1 .accent{
-    background:linear-gradient(135deg,#c9c0fb 0%,#8b7cf6 55%,#c9c0fb 100%);
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  h1{font-family:var(--disp);font-size:clamp(31px,8.2vw,60px);line-height:1.05;font-weight:700;letter-spacing:-1.6px;}
+  h1 .grad{
+    background:linear-gradient(120deg,#cfc7fc 0%,#8b7cf6 45%,#b7ecd2 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
-  .sub{margin-top:12px;font-size:14.5px;line-height:1.55;color:#b9b6c9;}
-  .sub b{color:#fff;}
+  .hero-sub{margin-top:20px;font-size:16.5px;line-height:1.65;color:var(--muted);max-width:520px;}
+  .hero-sub b{color:#fff;font-weight:700;}
 
+  .hero-ctas{display:flex;align-items:center;gap:14px;margin-top:30px;flex-wrap:wrap;}
+  .btn-hero{
+    display:inline-flex;align-items:center;gap:10px;text-decoration:none;
+    font-size:15.5px;font-weight:800;color:var(--ink);
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6 60%,#6d5df0);
+    padding:17px 28px;border-radius:16px;
+    box-shadow:0 18px 44px -12px rgba(139,124,246,.75);
+    transition:transform .15s,box-shadow .2s;
+  }
+  .btn-hero:hover{transform:translateY(-2px);box-shadow:0 24px 54px -12px rgba(139,124,246,.85);}
+  .btn-hero svg{transition:transform .2s;}
+  .btn-hero:hover svg{transform:translateX(4px);}
+  .btn-ghost{
+    display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+    font-size:14px;font-weight:700;color:var(--muted);
+    padding:16px 20px;border-radius:16px;border:1px solid var(--line);
+    transition:color .15s,border-color .15s;
+  }
+  .btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,.25);}
+
+  .trust{display:flex;gap:20px;flex-wrap:wrap;margin-top:26px;}
+  .trust span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--dim);}
+  .trust svg{color:var(--mint);flex:none;}
+
+  /* ── Teléfono mockup ─────────────────────────────────────────── */
+  .stage{position:relative;display:flex;justify-content:center;padding:30px 0;}
+  .stage::before{
+    content:'';position:absolute;width:440px;height:440px;top:50%;left:50%;
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle,rgba(139,124,246,.28),transparent 65%);
+    filter:blur(30px);pointer-events:none;
+  }
+  .phone{
+    position:relative;width:290px;border-radius:44px;padding:12px;
+    background:linear-gradient(160deg,#26243a,#100f1c 40%);
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 40px 90px -20px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.12);
+    animation:float 7s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0) rotate(-.6deg);}50%{transform:translateY(-13px) rotate(.6deg);}}
+  .screen{background:#0a0a12;border-radius:34px;overflow:hidden;border:1px solid rgba(255,255,255,.06);}
+  .notch{display:flex;justify-content:center;padding:10px 0 4px;}
+  .notch i{width:86px;height:5px;border-radius:99px;background:rgba(255,255,255,.14);}
+  .app{padding:14px 15px 18px;}
+  .app-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .app-logo{
+    width:38px;height:38px;border-radius:12px;flex:none;
+    background:linear-gradient(135deg,#8b7cf6,#5d4ce8);
+    display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:16px;color:#fff;
+  }
+  .app-head .t{flex:1;min-width:0;}
+  .app-head .n{font-size:13.5px;font-weight:800;letter-spacing:-.2px;}
+  .app-head .s{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mint);font-weight:700;margin-top:2px;}
+  .app-head .s i{width:5px;height:5px;border-radius:50%;background:var(--mint);}
+  .app-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.18em;color:#6f6c83;margin:12px 0 7px;}
+  .svc{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.07);
+    background:rgba(255,255,255,.02);margin-bottom:7px;
+  }
+  .svc .nm{font-size:11.5px;font-weight:700;color:#dddbe8;}
+  .svc .du{font-size:9px;color:#63607a;margin-top:2px;}
+  .svc .pr{font-size:11.5px;font-weight:800;color:#b1a8f5;}
+  .svc.sel{border-color:rgba(139,124,246,.65);background:rgba(139,124,246,.1);position:relative;}
+  .svc.sel::after{
+    content:'✓';position:absolute;top:-7px;right:-5px;width:18px;height:18px;border-radius:50%;
+    background:var(--acc);color:var(--ink);font-size:10px;font-weight:900;display:grid;place-items:center;
+    box-shadow:0 3px 10px rgba(139,124,246,.6);
+  }
+  .hours{display:flex;gap:6px;}
+  .hr{
+    flex:1;text-align:center;font-size:10.5px;font-weight:700;color:#8d8aa0;
+    border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 0;
+  }
+  .hr.sel{background:#fff;color:#0a0a12;border-color:#fff;font-weight:800;}
+  .app-cta{
+    margin-top:14px;text-align:center;font-size:12px;font-weight:800;color:var(--ink);
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6);border-radius:13px;padding:12px;
+    box-shadow:0 8px 22px -6px rgba(139,124,246,.55);
+  }
+
+  .chip-float{
+    position:absolute;z-index:2;display:flex;align-items:center;gap:9px;
+    background:rgba(16,15,28,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.12);border-radius:15px;padding:11px 14px;
+    box-shadow:0 20px 50px -12px rgba(0,0,0,.7);
+    animation:float 8s ease-in-out infinite;
+  }
+  .chip-float .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:14px;}
+  .chip-float .tt{font-size:11px;font-weight:800;white-space:nowrap;}
+  .chip-float .ss{font-size:9.5px;color:var(--dim);white-space:nowrap;margin-top:1px;}
+  .chip-res{top:9%;right:max(0px, calc(50% - 265px));animation-delay:-2.5s;}
+  .chip-res .ic{background:rgba(110,231,168,.15);color:var(--mint);}
+  .chip-sello{bottom:4%;left:max(0px, calc(50% - 285px));animation-delay:-5s;}
+  .chip-sello .ic{background:rgba(139,124,246,.18);}
+  .chip-247{top:38%;left:max(-10px, calc(50% - 285px));animation-delay:-1s;padding:9px 13px;}
+  .chip-247 .tt{color:var(--acc-soft);}
+  @media(max-width:520px){.chip-247{display:none;}}
+
+  /* ── Secciones ───────────────────────────────────────────────── */
+  section{padding:64px 0;position:relative;}
+  .sec-kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;color:var(--acc-soft);margin-bottom:12px;}
+  h2{font-family:var(--disp);font-size:clamp(27px,4vw,38px);font-weight:700;letter-spacing:-1.2px;line-height:1.1;}
+  .sec-sub{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.65;max-width:560px;}
+
+  /* Stats bar */
+  .stats{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;overflow:hidden;
+    background:var(--line);border:1px solid var(--line);border-radius:20px;
+  }
+  .stat{background:#0a0a12;padding:26px 18px;text-align:center;}
+  .stat .v{font-family:var(--disp);font-size:clamp(22px,3.4vw,32px);font-weight:700;letter-spacing:-1px;
+    background:linear-gradient(120deg,#fff,#b4a9fa);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .stat .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);margin-top:6px;}
+
+  /* Features */
+  .grid-feat{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;}
+  @media(min-width:640px){.grid-feat{grid-template-columns:1fr 1fr;}}
+  @media(min-width:980px){.grid-feat{grid-template-columns:repeat(3,1fr);}}
+  .feat{
+    background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;
+    transition:transform .2s,border-color .2s,background .2s;
+  }
+  .feat:hover{transform:translateY(-4px);border-color:rgba(139,124,246,.4);background:rgba(139,124,246,.05);}
+  .feat .ic{
+    width:44px;height:44px;border-radius:13px;display:grid;place-items:center;margin-bottom:16px;
+    background:rgba(139,124,246,.12);border:1px solid rgba(139,124,246,.25);color:var(--acc-soft);
+  }
+  .feat h3{font-family:var(--disp);font-size:16.5px;font-weight:700;letter-spacing:-.3px;margin-bottom:8px;}
+  .feat p{font-size:13.5px;line-height:1.6;color:var(--muted);}
+
+  /* Pasos */
+  .steps{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;counter-reset:paso;}
+  @media(min-width:820px){.steps{grid-template-columns:repeat(3,1fr);}}
+  .step{
+    position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px 24px;
+  }
+  .step .num{
+    font-family:var(--disp);font-weight:700;font-size:13px;color:var(--ink);
+    width:30px;height:30px;border-radius:10px;display:grid;place-items:center;margin-bottom:16px;
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6);box-shadow:0 6px 18px -4px rgba(139,124,246,.6);
+  }
+  .step h3{font-family:var(--disp);font-size:16.5px;font-weight:700;letter-spacing:-.3px;margin-bottom:8px;}
+  .step p{font-size:13.5px;line-height:1.6;color:var(--muted);}
+  .step .mini{margin-top:14px;font-size:12px;font-weight:700;color:var(--acc-soft);}
+
+  /* ── Formulario ───────────────────────────────────────────────── */
+  #crear{scroll-margin-top:70px;}
+  .form-shell{max-width:600px;margin:38px auto 0;}
   .card{
-    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
-    border-radius:22px;padding:22px 20px;margin-top:18px;backdrop-filter:blur(12px);
+    position:relative;background:rgba(13,12,22,.75);border:1px solid var(--line);
+    border-radius:26px;padding:30px 26px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.8);overflow:hidden;
   }
-  .sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.18em;color:var(--acc-soft);
-    display:flex;align-items:center;gap:8px;margin-bottom:14px;}
-  .sec .n{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
-    background:var(--acc);color:var(--ink);font-size:11px;font-weight:900;letter-spacing:0;}
-  .field{margin-bottom:14px;}
-  label{font-size:11.5px;font-weight:700;color:#9c99ad;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:7px;}
-  label .opt{font-weight:500;color:#5f5c70;text-transform:none;letter-spacing:0;font-size:11px;}
+  .card::before{
+    content:'';position:absolute;inset:0;pointer-events:none;border-radius:26px;
+    background:radial-gradient(75% 45% at 50% -5%, rgba(139,124,246,.14), transparent 70%);
+  }
+  .card > *{position:relative;}
+  @media(min-width:640px){.card{padding:38px 40px;}}
+
+  .fsec{display:flex;align-items:center;gap:10px;margin:26px 0 16px;
+    font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--acc-soft);}
+  .fsec:first-child{margin-top:0;}
+  .fsec .n{
+    width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6);color:var(--ink);font-size:12px;font-weight:800;
+  }
+  .fsec::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  .field{margin-bottom:15px;}
+  .frow{display:grid;grid-template-columns:1fr;gap:15px;}
+  @media(min-width:560px){.frow{grid-template-columns:1fr 1fr;} .frow .field{margin-bottom:0;} .frow{margin-bottom:15px;}}
+  label{font-size:11px;font-weight:700;color:#8f8ca1;text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:8px;}
+  label .opt{font-weight:500;color:var(--dim);text-transform:none;letter-spacing:0;font-size:11px;}
   input,select{
-    width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
-    border-radius:13px;padding:13px 14px;font-size:15px;color:#fff;outline:none;
-    font-family:inherit;transition:border-color .15s;
+    width:100%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);
+    border-radius:14px;padding:14px 15px;font-size:15px;color:#fff;outline:none;
+    font-family:inherit;transition:border-color .15s, box-shadow .15s, background .15s;
   }
-  input:focus,select:focus{border-color:var(--acc);}
-  input::placeholder{color:#565368;}
-  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8798' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
-  select option{background:#15131f;color:#fff;}
+  input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,124,246,.18);background:rgba(139,124,246,.05);}
+  input::placeholder{color:#54516a;}
+  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8798' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center;}
+  select option{background:#14121f;color:#fff;}
 
-  /* slug */
-  .slugbox{display:flex;align-items:center;background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.12);border-radius:13px;overflow:hidden;transition:border-color .15s;}
-  .slugbox:focus-within{border-color:var(--acc);}
-  .slugbox input{border:none;background:transparent;border-radius:0;flex:1;min-width:0;}
-  .slugbox .dom{padding:0 14px 0 4px;font-size:13px;color:#7a7790;font-weight:600;white-space:nowrap;}
-  .slughint{font-size:12px;margin-top:7px;min-height:16px;font-weight:600;}
-  .slughint.ok{color:var(--ok);}
+  .slugbox{display:flex;align-items:center;background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.11);border-radius:14px;overflow:hidden;transition:border-color .15s, box-shadow .15s;}
+  .slugbox:focus-within{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,124,246,.18);}
+  .slugbox input{border:none;background:transparent;border-radius:0;flex:1;min-width:0;box-shadow:none!important;}
+  .slugbox .dom{padding:0 15px 0 4px;font-size:13px;color:#7a7790;font-weight:700;white-space:nowrap;}
+  .slughint{font-size:12.5px;margin-top:8px;min-height:17px;font-weight:600;}
+  .slughint.ok{color:var(--mint);}
   .slughint.bad{color:var(--err);}
-  .slughint.checking{color:#8a8798;}
+  .slughint.checking{color:var(--dim);}
 
-  /* colores */
-  .swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-  .sw{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;}
-  .sw:hover{transform:scale(1.1);}
-  .sw.active{border-color:#fff;transform:scale(1.12);box-shadow:0 0 0 3px rgba(255,255,255,.15);}
-  .sw-custom{position:relative;width:38px;height:38px;border-radius:50%;overflow:hidden;
+  .swatches{display:flex;gap:11px;flex-wrap:wrap;align-items:center;}
+  .sw{width:40px;height:40px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s;}
+  .sw:hover{transform:scale(1.12);}
+  .sw.active{border-color:#fff;transform:scale(1.14);box-shadow:0 0 0 4px rgba(255,255,255,.14);}
+  .sw-custom{position:relative;width:40px;height:40px;border-radius:50%;overflow:hidden;
     border:2px dashed rgba(255,255,255,.3);display:grid;place-items:center;font-size:16px;}
   .sw-custom input{position:absolute;inset:-8px;opacity:0;cursor:pointer;padding:0;}
 
   .submit{
-    width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;
-    background:linear-gradient(135deg,#a99cf8,#8b7cf6 55%,#6d5df0);color:var(--ink);
-    font-family:inherit;font-size:15.5px;font-weight:900;letter-spacing:-.2px;
-    border:none;border-radius:16px;padding:17px 20px;cursor:pointer;
-    box-shadow:0 14px 34px -10px rgba(139,124,246,.55);
-    transition:transform .12s, box-shadow .15s, opacity .15s;
+    width:100%;margin-top:22px;display:flex;align-items:center;justify-content:center;gap:10px;
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6 55%,#6d5df0);color:var(--ink);
+    font-family:inherit;font-size:16px;font-weight:800;letter-spacing:-.2px;
+    border:none;border-radius:17px;padding:19px 20px;cursor:pointer;
+    box-shadow:0 18px 44px -12px rgba(139,124,246,.7);
+    transition:transform .12s, box-shadow .2s, opacity .15s;
   }
+  .submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 24px 54px -12px rgba(139,124,246,.85);}
   .submit:active{transform:scale(.98);}
   .submit:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
-  .msg{min-height:18px;margin-top:12px;font-size:13px;font-weight:600;text-align:center;}
+  .msg{min-height:18px;margin-top:13px;font-size:13px;font-weight:600;text-align:center;}
   .msg.err{color:var(--err);}
-  .legal{margin-top:14px;font-size:11.5px;color:#6b6880;text-align:center;line-height:1.6;}
-  .legal a{color:#9c93d8;text-decoration:none;font-weight:700;}
+  .legal{margin-top:15px;font-size:11.5px;color:var(--dim);text-align:center;line-height:1.7;}
+  .legal a{color:var(--acc-soft);text-decoration:none;font-weight:700;}
 
-  .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(18,16,42,.35);border-top-color:var(--ink);animation:sp .7s linear infinite;display:inline-block;}
+  .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(13,11,34,.35);border-top-color:var(--ink);animation:sp .7s linear infinite;display:inline-block;}
   @keyframes sp{to{transform:rotate(360deg);}}
 
-  /* success */
-  .done{display:none;text-align:center;padding:34px 8px 10px;animation:fadeIn .4s ease;}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-  .ok-circle{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;
-    background:linear-gradient(135deg,#a99cf8,#6d5df0);color:var(--ink);font-size:30px;font-weight:900;
-    box-shadow:0 16px 40px -8px rgba(139,124,246,.6);animation:pop .5s cubic-bezier(.34,1.56,.64,1);}
-  @keyframes pop{0%{transform:scale(0);}80%{transform:scale(1.1);}100%{transform:scale(1);}}
-  .done h2{font-size:24px;font-weight:900;letter-spacing:-.6px;}
-  .done .url-card{
-    margin-top:18px;background:rgba(255,255,255,.04);border:1px solid rgba(139,124,246,.35);
-    border-radius:16px;padding:16px;text-align:left;
+  /* Success */
+  .done{display:none;text-align:center;animation:fadeIn .45s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .ok-circle{width:70px;height:70px;border-radius:50%;margin:6px auto 20px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#8ef0bb,#3ecf8e);color:#062b1a;font-size:32px;font-weight:900;
+    box-shadow:0 18px 48px -8px rgba(110,231,168,.55);animation:pop .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes pop{0%{transform:scale(0);}80%{transform:scale(1.12);}100%{transform:scale(1);}}
+  .done h2{font-size:clamp(24px,4vw,30px);}
+  .done .dsub{margin-top:10px;color:var(--muted);font-size:14px;line-height:1.6;}
+  .url-card{
+    margin-top:16px;background:rgba(255,255,255,.035);border:1px solid rgba(139,124,246,.35);
+    border-radius:17px;padding:17px 18px;text-align:left;
   }
-  .done .url-card .lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--acc-soft);margin-bottom:5px;}
-  .done .url-card a{color:#fff;font-weight:800;font-size:15px;text-decoration:none;word-break:break-all;}
+  .url-card .lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--acc-soft);margin-bottom:6px;}
+  .url-card a{color:#fff;font-weight:800;font-size:15px;text-decoration:none;word-break:break-all;}
   .done .cta{
-    display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;width:100%;
-    background:linear-gradient(135deg,#a99cf8,#6d5df0);color:var(--ink);font-weight:900;font-size:14.5px;
-    border-radius:14px;padding:15px;text-decoration:none;transition:transform .12s;
+    display:flex;align-items:center;justify-content:center;gap:9px;margin-top:15px;width:100%;
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6 55%,#6d5df0);color:var(--ink);font-weight:800;font-size:15px;
+    border-radius:15px;padding:16px;text-decoration:none;transition:transform .12s;
   }
   .done .cta:active{transform:scale(.98);}
-  .done .cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.15);color:#cfcce0;font-weight:700;}
-  .done .note{margin-top:16px;font-size:12.5px;color:#8a8798;line-height:1.6;}
+  .done .cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.16);color:#cfcce0;font-weight:700;}
+  .done .note{margin-top:18px;font-size:12.5px;color:var(--dim);line-height:1.7;}
+  .done .note b{color:var(--muted);}
 
-  footer{padding:18px 22px 26px;font-size:12px;color:#6b6880;text-align:center;}
-  footer a{color:#9c93d8;text-decoration:none;font-weight:700;}
-  footer .sep{margin:0 8px;opacity:.4;}
+  /* FAQ */
+  .faq{max-width:680px;margin:38px auto 0;display:flex;flex-direction:column;gap:10px;}
+  details{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    transition:border-color .2s;overflow:hidden;
+  }
+  details[open]{border-color:rgba(139,124,246,.35);}
+  summary{
+    list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:18px 20px;font-size:14.5px;font-weight:700;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary .plus{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+    background:rgba(139,124,246,.14);color:var(--acc-soft);font-weight:800;font-size:14px;transition:transform .25s;}
+  details[open] summary .plus{transform:rotate(45deg);}
+  details .a{padding:0 20px 18px;font-size:13.5px;line-height:1.7;color:var(--muted);}
+  details .a b{color:#fff;}
+
+  /* Footer */
+  footer{border-top:1px solid var(--line);padding:30px 0 40px;margin-top:30px;}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);}
+  .foot a{color:var(--acc-soft);text-decoration:none;font-weight:700;}
+  .foot .l{display:flex;align-items:center;gap:8px;}
+  .foot .l img{width:22px;height:22px;border-radius:6px;opacity:.85;}
+
+  /* Reveal on scroll */
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease;}
+  .rv.in{opacity:1;transform:none;}
+  @media(prefers-reduced-motion:reduce){
+    .rv{opacity:1;transform:none;transition:none;}
+    .phone,.chip-float,.blob,.kicker .dot{animation:none;}
+    html{scroll-behavior:auto;}
+  }
 </style>
 </head>
 <body>
 
-  <header>
-    <a class="brand" href="https://synaptechspa.cl">
-      <img src="/syn-192.png" alt="SynapTech" />
-      SynapTech
-    </a>
-    <span class="badge">100% Gratis</span>
+  <div class="mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+  <nav id="nav">
+    <div class="wrap nav-in">
+      <a class="brand" href="https://synaptechspa.cl">
+        <img src="/syn-192.png" alt="SynapTech" />
+        SynapTech
+      </a>
+      <a class="nav-cta" href="#crear">Crear mi agenda
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ══ HERO ══ -->
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="kicker"><span class="dot"></span> Agenda online · Club de fidelidad · Gratis</span>
+        <h1>Tu agenda online, <span class="grad">lista en 2 minutos.</span></h1>
+        <p class="hero-sub">
+          Recibe reservas <b>24/7</b> desde Instagram y WhatsApp, con tu propia dirección web,
+          tu logo y tu color. Incluye <b>club de fidelidad con sellos</b> y un panel completo
+          para manejar tu local desde el celular.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn-hero" href="#crear">Crear mi agenda gratis
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          <a class="btn-ghost" href="#como">¿Cómo funciona?</a>
+        </div>
+        <div class="trust">
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sin tarjeta</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sin permanencia</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Hecho en Chile</span>
+        </div>
+      </div>
+
+      <!-- Mockup -->
+      <div class="stage" aria-hidden="true">
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"><i></i></div>
+            <div class="app">
+              <div class="app-head">
+                <div class="app-logo">B</div>
+                <div class="t">
+                  <p class="n">Barbería Don Pedro</p>
+                  <p class="s"><i></i> Reservas abiertas</p>
+                </div>
+              </div>
+              <p class="app-lbl">1 · Elige tu servicio</p>
+              <div class="svc sel">
+                <div><p class="nm">Corte de cabello</p><p class="du">45 min</p></div>
+                <p class="pr">$12.000</p>
+              </div>
+              <div class="svc">
+                <div><p class="nm">Corte + Barba</p><p class="du">60 min</p></div>
+                <p class="pr">$18.000</p>
+              </div>
+              <p class="app-lbl">2 · Horarios de hoy</p>
+              <div class="hours">
+                <span class="hr">10:00</span>
+                <span class="hr sel">11:30</span>
+                <span class="hr">15:00</span>
+                <span class="hr">16:30</span>
+              </div>
+              <div class="app-cta">Confirmar reserva</div>
+            </div>
+          </div>
+        </div>
+        <div class="chip-float chip-res">
+          <span class="ic">🔔</span>
+          <span><span class="tt">Nueva reserva</span><br /><span class="ss">Matías · hoy 16:30</span></span>
+        </div>
+        <div class="chip-float chip-sello">
+          <span class="ic">✦</span>
+          <span><span class="tt">+1 sello de fidelidad</span><br /><span class="ss">Club Don Pedro · 7/10</span></span>
+        </div>
+        <div class="chip-float chip-247">
+          <span class="tt">24/7</span>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <div class="wrap">
-
-      <div class="hero" id="hero">
-        <span class="kicker"><span class="line"></span> Agenda online para tu local</span>
-        <h1>Tu agenda lista <span class="accent">en 2 minutos</span>, sin pagar nada.</h1>
-        <p class="sub">
-          Reservas <b>24/7</b>, tu propia dirección web y <b>club de fidelidad</b> para tus clientes.
-          Sin tarjeta, sin permanencia. Creas tu cuenta y queda funcionando al tiro.
-        </p>
+  <!-- ══ STATS ══ -->
+  <section style="padding-top:20px;">
+    <div class="wrap rv">
+      <div class="stats">
+        <div class="stat"><p class="v">2 min</p><p class="k">Para crear tu agenda</p></div>
+        <div class="stat"><p class="v">24/7</p><p class="k">Reservas automáticas</p></div>
+        <div class="stat"><p class="v">$0</p><p class="k">Gratis para siempre</p></div>
       </div>
-
-      <!-- ── Formulario ── -->
-      <form class="card" id="f" autocomplete="on">
-
-        <div class="sec"><span class="n">1</span> Tu local</div>
-
-        <div class="field">
-          <label for="nombre">Nombre del local</label>
-          <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" required />
-        </div>
-
-        <div class="field">
-          <label for="tipo">Tipo de negocio</label>
-          <select id="tipo">
-            <option value="barberia">Barbería</option>
-            <option value="peluqueria">Peluquería / Salón</option>
-            <option value="mixto">Mixto (hombre + mujer)</option>
-            <option value="nails">Estudio de uñas</option>
-            <option value="spa">Spa / Estética</option>
-            <option value="otro">Otro</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="telefono">WhatsApp del local</label>
-          <input id="telefono" type="tel" inputmode="tel" maxlength="16" placeholder="+56 9 1234 5678" required />
-        </div>
-
-        <div class="field">
-          <label for="instagram">Instagram <span class="opt">(opcional)</span></label>
-          <input id="instagram" type="text" maxlength="40" placeholder="@tulocal" autocomplete="off" />
-        </div>
-
-        <div class="field">
-          <label>Color de tu marca</label>
-          <div class="swatches" id="swatches">
-            <button type="button" class="sw active" data-c="#d4af37" style="background:#d4af37"></button>
-            <button type="button" class="sw" data-c="#8b7cf6" style="background:#8b7cf6"></button>
-            <button type="button" class="sw" data-c="#39d98a" style="background:#39d98a"></button>
-            <button type="button" class="sw" data-c="#4cc3ff" style="background:#4cc3ff"></button>
-            <button type="button" class="sw" data-c="#f35ba6" style="background:#f35ba6"></button>
-            <button type="button" class="sw" data-c="#f97316" style="background:#f97316"></button>
-            <button type="button" class="sw" data-c="#e5e5e5" style="background:#e5e5e5"></button>
-            <span class="sw-custom" title="Color personalizado">🎨<input type="color" id="colorCustom" value="#d4af37" /></span>
-          </div>
-          <input type="hidden" id="color" value="#d4af37" />
-        </div>
-
-        <div class="sec" style="margin-top:22px;"><span class="n">2</span> Tu dirección web</div>
-
-        <div class="field">
-          <label for="slug">Elige tu dirección</label>
-          <div class="slugbox">
-            <input id="slug" type="text" maxlength="30" placeholder="donpedro" autocomplete="off" autocapitalize="off" spellcheck="false" />
-            <span class="dom">.synaptechspa.cl</span>
-          </div>
-          <p class="slughint" id="slugHint"></p>
-        </div>
-
-        <div class="sec" style="margin-top:22px;"><span class="n">3</span> Tu cuenta</div>
-
-        <div class="field">
-          <label for="dueno">Tu nombre</label>
-          <input id="dueno" type="text" maxlength="60" placeholder="Ej: Pedro Soto" required />
-        </div>
-
-        <div class="field">
-          <label for="email">Correo</label>
-          <input id="email" type="email" maxlength="120" placeholder="tucorreo@gmail.com" autocomplete="email" required />
-        </div>
-
-        <div class="field">
-          <label for="password">Contraseña</label>
-          <input id="password" type="password" minlength="6" maxlength="60" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required />
-        </div>
-
-        <button class="submit" id="sb" type="submit">
-          Crear mi agenda gratis
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-        <p class="msg" id="msg"></p>
-        <p class="legal">
-          Con tu cuenta administras la agenda, tus servicios y tu equipo.
-          <br /><a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Necesitas un diseño 100% a tu medida? Escríbenos</a>
-        </p>
-      </form>
-
-      <!-- ── Success ── -->
-      <div class="done" id="done">
-        <div class="ok-circle">✓</div>
-        <h2>¡Tu agenda está lista!</h2>
-
-        <div class="url-card">
-          <p class="lbl">La agenda de tus clientes</p>
-          <a id="urlAgenda" href="#" target="_blank" rel="noopener"></a>
-        </div>
-        <div class="url-card">
-          <p class="lbl">Tu panel de administración</p>
-          <a id="urlPanel" href="#" target="_blank" rel="noopener"></a>
-        </div>
-
-        <a class="cta" id="ctaPanel" href="#" target="_blank" rel="noopener">Entrar a mi panel →</a>
-        <a class="cta ghost" id="ctaAgenda" href="#" target="_blank" rel="noopener">Ver mi agenda como cliente</a>
-
-        <p class="note">
-          Te dejamos servicios de ejemplo según tu rubro — edítalos en
-          <b>Panel → Servicios</b>. Comparte el link de tu agenda en
-          Instagram y WhatsApp para recibir reservas.
-        </p>
-      </div>
-
     </div>
-  </main>
+  </section>
+
+  <!-- ══ FEATURES ══ -->
+  <section>
+    <div class="wrap">
+      <div class="rv">
+        <p class="sec-kicker">Todo incluido</p>
+        <h2>Más que una agenda:<br />un sistema completo para tu local.</h2>
+        <p class="sec-sub">La misma tecnología que usan barberías y salones reales en Chile, ahora disponible para ti en un clic.</p>
+      </div>
+      <div class="grid-feat">
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 15l2 2 4-4"/></svg></div>
+          <h3>Reservas 24/7</h3>
+          <p>Tus clientes agendan solos desde el link en tu bio, a cualquier hora. Tú solo te dedicas a atender.</p>
+        </div>
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+          <h3>Tu propia dirección web</h3>
+          <p>tulocal.synaptechspa.cl con tu nombre, tu logo y tu color de marca. Profesional desde el día uno.</p>
+        </div>
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <h3>Club de fidelidad</h3>
+          <p>Sellos por visita y premios canjeables. Tus clientes vuelven más seguido y traen amigos.</p>
+        </div>
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+          <h3>Panel de gestión</h3>
+          <p>Agenda del día, servicios, precios, clientes y equipo — todo desde tu celular, donde estés.</p>
+        </div>
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <h3>Para todo tu equipo</h3>
+          <p>Cada profesional con su propia agenda, horarios y días libres. Agrega o quita gente cuando quieras.</p>
+        </div>
+        <div class="feat rv">
+          <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <h3>Sin dobles reservas</h3>
+          <p>Los horarios se bloquean en tiempo real: dos clientes jamás toman la misma hora.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CÓMO FUNCIONA ══ -->
+  <section id="como">
+    <div class="wrap">
+      <div class="rv">
+        <p class="sec-kicker">Cómo funciona</p>
+        <h2>De cero a recibir reservas,<br />hoy mismo.</h2>
+      </div>
+      <div class="steps">
+        <div class="step rv">
+          <div class="num">1</div>
+          <h3>Completa el formulario</h3>
+          <p>Nombre de tu local, rubro, WhatsApp y tu color de marca. Nada técnico, nada de configuraciones raras.</p>
+          <p class="mini">⏱ 2 minutos</p>
+        </div>
+        <div class="step rv">
+          <div class="num">2</div>
+          <h3>Tu agenda se arma sola</h3>
+          <p>Obtienes tu dirección web al instante, con servicios y precios precargados según tu rubro, listos para editar.</p>
+          <p class="mini">⚡ Al instante</p>
+        </div>
+        <div class="step rv">
+          <div class="num">3</div>
+          <h3>Comparte tu link</h3>
+          <p>Ponlo en tu bio de Instagram y en tu WhatsApp. Tus clientes reservan solos y tú recibes cada cita en tu panel.</p>
+          <p class="mini">📲 Reservas desde el día 1</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FORM ══ -->
+  <section id="crear">
+    <div class="wrap">
+      <div class="rv" style="text-align:center;">
+        <p class="sec-kicker">Crea tu agenda</p>
+        <h2>Tu local merece esto.</h2>
+        <p class="sec-sub" style="margin-left:auto;margin-right:auto;">Completa tus datos y en menos de lo que dura un corte tendrás tu agenda funcionando.</p>
+      </div>
+
+      <div class="form-shell">
+        <!-- Formulario -->
+        <form class="card rv" id="f" autocomplete="on">
+
+          <div class="fsec"><span class="n">1</span> Tu local</div>
+
+          <div class="field">
+            <label for="nombre">Nombre del local</label>
+            <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" required />
+          </div>
+
+          <div class="frow">
+            <div class="field">
+              <label for="tipo">Tipo de negocio</label>
+              <select id="tipo">
+                <option value="barberia">Barbería</option>
+                <option value="peluqueria">Peluquería / Salón</option>
+                <option value="mixto">Mixto (hombre + mujer)</option>
+                <option value="nails">Estudio de uñas</option>
+                <option value="spa">Spa / Estética</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="telefono">WhatsApp del local</label>
+              <input id="telefono" type="tel" inputmode="tel" maxlength="16" placeholder="+56 9 1234 5678" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="instagram">Instagram <span class="opt">(opcional)</span></label>
+            <input id="instagram" type="text" maxlength="40" placeholder="@tulocal" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label>Color de tu marca</label>
+            <div class="swatches" id="swatches">
+              <button type="button" class="sw active" data-c="#d4af37" style="background:#d4af37" aria-label="Dorado"></button>
+              <button type="button" class="sw" data-c="#8b7cf6" style="background:#8b7cf6" aria-label="Violeta"></button>
+              <button type="button" class="sw" data-c="#39d98a" style="background:#39d98a" aria-label="Verde"></button>
+              <button type="button" class="sw" data-c="#4cc3ff" style="background:#4cc3ff" aria-label="Celeste"></button>
+              <button type="button" class="sw" data-c="#f35ba6" style="background:#f35ba6" aria-label="Rosa"></button>
+              <button type="button" class="sw" data-c="#f97316" style="background:#f97316" aria-label="Naranjo"></button>
+              <button type="button" class="sw" data-c="#e5e5e5" style="background:#e5e5e5" aria-label="Plata"></button>
+              <span class="sw-custom" title="Color personalizado">🎨<input type="color" id="colorCustom" value="#d4af37" /></span>
+            </div>
+            <input type="hidden" id="color" value="#d4af37" />
+          </div>
+
+          <div class="fsec"><span class="n">2</span> Tu dirección web</div>
+
+          <div class="field">
+            <label for="slug">Elige tu dirección</label>
+            <div class="slugbox">
+              <input id="slug" type="text" maxlength="30" placeholder="donpedro" autocomplete="off" autocapitalize="off" spellcheck="false" />
+              <span class="dom">.synaptechspa.cl</span>
+            </div>
+            <p class="slughint" id="slugHint"></p>
+          </div>
+
+          <div class="fsec"><span class="n">3</span> Tu cuenta</div>
+
+          <div class="field">
+            <label for="dueno">Tu nombre</label>
+            <input id="dueno" type="text" maxlength="60" placeholder="Ej: Pedro Soto" required />
+          </div>
+
+          <div class="frow">
+            <div class="field">
+              <label for="email">Correo</label>
+              <input id="email" type="email" maxlength="120" placeholder="tucorreo@gmail.com" autocomplete="email" required />
+            </div>
+            <div class="field">
+              <label for="password">Contraseña</label>
+              <input id="password" type="password" minlength="6" maxlength="60" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required />
+            </div>
+          </div>
+
+          <button class="submit" id="sb" type="submit">
+            Crear mi agenda gratis
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <p class="msg" id="msg"></p>
+          <p class="legal">
+            Con tu cuenta administras la agenda, tus servicios y tu equipo.
+            <br /><a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Necesitas un diseño 100% a tu medida? Escríbenos</a>
+          </p>
+        </form>
+
+        <!-- Success -->
+        <div class="card done" id="done">
+          <div class="ok-circle">✓</div>
+          <h2>¡Tu agenda está lista!</h2>
+          <p class="dsub">Ya está funcionando y puede recibir reservas ahora mismo.</p>
+
+          <div class="url-card">
+            <p class="lbl">La agenda de tus clientes — compártela</p>
+            <a id="urlAgenda" href="#" target="_blank" rel="noopener"></a>
+          </div>
+          <div class="url-card">
+            <p class="lbl">Tu panel de administración</p>
+            <a id="urlPanel" href="#" target="_blank" rel="noopener"></a>
+          </div>
+
+          <a class="cta" id="ctaPanel" href="#" target="_blank" rel="noopener">Entrar a mi panel →</a>
+          <a class="cta ghost" id="ctaAgenda" href="#" target="_blank" rel="noopener">Ver mi agenda como cliente</a>
+
+          <p class="note">
+            Te dejamos servicios de ejemplo según tu rubro — edítalos en <b>Panel → Servicios</b>.
+            Luego pon el link de tu agenda en tu bio de Instagram y en tu WhatsApp para empezar
+            a recibir reservas.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FAQ ══ -->
+  <section style="padding-top:20px;">
+    <div class="wrap">
+      <div class="rv" style="text-align:center;">
+        <p class="sec-kicker">Preguntas frecuentes</p>
+        <h2>Lo que todos preguntan.</h2>
+      </div>
+      <div class="faq rv">
+        <details>
+          <summary>¿De verdad es gratis? ¿Dónde está la trampa? <span class="plus">+</span></summary>
+          <p class="a">Sí, es gratis y no hay trampa: la agenda, las reservas ilimitadas, el club de fidelidad y el panel no cuestan nada. Si algún día quieres un <b>diseño 100% personalizado</b> con dominio propio, ese es nuestro servicio premium — pero es totalmente opcional.</p>
+        </details>
+        <details>
+          <summary>¿Necesito tarjeta de crédito o instalar algo? <span class="plus">+</span></summary>
+          <p class="a">No y no. Solo necesitas un correo. Todo funciona desde el navegador de tu celular — tu agenda y tu panel son páginas web que puedes agregar a tu pantalla de inicio como una app.</p>
+        </details>
+        <details>
+          <summary>¿Puedo cambiar los servicios y precios? <span class="plus">+</span></summary>
+          <p class="a">Sí, todo. Te dejamos servicios precargados según tu rubro para que partas al tiro, pero desde el panel puedes editarlos, crear nuevos, cambiar precios, duración, fotos y categorías cuando quieras.</p>
+        </details>
+        <details>
+          <summary>¿Sirve para peluquerías, uñas o spa? <span class="plus">+</span></summary>
+          <p class="a">Sí. Al crear tu agenda eliges tu rubro (barbería, peluquería, uñas, spa, mixto) y te precargamos servicios típicos de ese rubro. El sistema es el mismo que usan locales reales de todos estos tipos.</p>
+        </details>
+        <details>
+          <summary>¿Qué pasa si tengo varios profesionales? <span class="plus">+</span></summary>
+          <p class="a">Cada profesional tiene su propia agenda, horarios y días libres. Los agregas desde <b>Panel → Equipo</b> y tus clientes eligen con quién atenderse al reservar.</p>
+        </details>
+      </div>
+    </div>
+  </section>
 
   <footer>
-    Hecho con ♥ en Chile
-    <span class="sep">·</span>
-    <a href="https://synaptechspa.cl">synaptechspa.cl</a>
-    <span class="sep">·</span>
-    <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
+    <div class="wrap foot">
+      <span class="l"><img src="/syn-192.png" alt="" /> Hecho con ♥ en Chile</span>
+      <span>
+        <a href="https://synaptechspa.cl">synaptechspa.cl</a>
+        &nbsp;·&nbsp;
+        <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
+        &nbsp;·&nbsp;
+        <a href="https://instagram.com/synaptechspa" target="_blank" rel="noopener">@synaptechspa</a>
+      </span>
+    </div>
   </footer>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -305,7 +728,6 @@
 
     var ui = {
       form:     document.getElementById('f'),
-      hero:     document.getElementById('hero'),
       sb:       document.getElementById('sb'),
       msg:      document.getElementById('msg'),
       done:     document.getElementById('done'),
@@ -327,6 +749,24 @@
     function busy(on, label){
       ui.sb.disabled = on;
       ui.sb.innerHTML = on ? '<span class="spin"></span> ' + (label || 'Creando…') : SB_HTML;
+    }
+
+    // ── Nav: fondo al scrollear ──────────────────────────────────
+    var nav = document.getElementById('nav');
+    function onScroll(){ nav.classList.toggle('scrolled', window.scrollY > 24); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // ── Reveal on scroll ─────────────────────────────────────────
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+    } else {
+      document.querySelectorAll('.rv').forEach(function(el){ el.classList.add('in'); });
     }
 
     // ── Color picker ─────────────────────────────────────────────
@@ -352,7 +792,6 @@
     }
 
     var slugTocado = false;   // si el user editó el slug a mano, no lo pisamos
-    var slugLibre  = false;
     var slugTimer  = null;
 
     ui.nombre.addEventListener('input', function(){
@@ -367,7 +806,6 @@
     });
 
     function programarCheck(){
-      slugLibre = false;
       var v = ui.slug.value;
       if (slugTimer) clearTimeout(slugTimer);
       if (!v || v.length < 3) {
@@ -383,7 +821,6 @@
           .then(function(res){
             if (ui.slug.value !== consulta) return;  // ya escribió otra cosa
             var d = res.data || {};
-            slugLibre = !!d.libre;
             ui.slugHint.className = 'slughint ' + (d.libre ? 'ok' : 'bad');
             ui.slugHint.textContent = d.libre
               ? '✓ ' + consulta + '.synaptechspa.cl está disponible'
@@ -393,7 +830,6 @@
             if (ui.slug.value !== consulta) return;
             ui.slugHint.className = 'slughint';
             ui.slugHint.textContent = 'No pudimos verificar — se validará al crear.';
-            slugLibre = true; // la CF de creación re-valida server-side
           });
       }, 450);
     }
@@ -461,9 +897,8 @@
       document.getElementById('ctaPanel').href  = d.urlPanel;
       document.getElementById('ctaAgenda').href = d.urlAgenda;
       ui.form.style.display = 'none';
-      ui.hero.style.display = 'none';
       ui.done.style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      ui.done.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   })();
   </script>

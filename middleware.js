@@ -1412,12 +1412,26 @@ export default async function middleware(request) {
     return;
   }
 
-  // /crea (registro self-service): página propia con su propio <head>; no
-  // inyectar el SEO de ningún tenant (mismo trato que los seeders). En el
-  // subdominio dedicado el pathname es "/" (vercel.json lo rewritea), así
-  // que el host también corta aquí.
-  if (hostname === 'crea.synaptechspa.cl'
-      || url.pathname === '/crea' || url.pathname === '/crea.html') {
+  // /crea (registro self-service) y /empieza (landing leads): páginas propias
+  // con su propio <head>; no inyectar el SEO de ningún tenant. En sus
+  // subdominios dedicados la raíz NO puede resolverse por rewrite de
+  // vercel.json — index.html en la raíz del repo tapa los rewrites afterFiles
+  // (mismo caso documentado de bioo.cl) — así que las servimos desde el edge.
+  const LANDING_HOSTS = {
+    'crea.synaptechspa.cl':    '/crea.html',
+    'empieza.synaptechspa.cl': '/empieza.html',
+  };
+  if (LANDING_HOSTS[hostname]) {
+    // Assets (rutas con extensión) pasan directo al filesystem.
+    if (url.pathname.indexOf('.') >= 0 && !url.pathname.endsWith('.html')) return;
+    const rw  = new URL(LANDING_HOSTS[hostname], request.url);
+    const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+    const headers = new Headers(res.headers);
+    headers.set('Content-Type', 'text/html; charset=utf-8');
+    headers.set('Cache-Control', 'no-cache, must-revalidate');
+    return new Response(res.body, { status: res.status, headers });
+  }
+  if (url.pathname === '/crea' || url.pathname === '/crea.html') {
     return;
   }
 
