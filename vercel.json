@@ -36,6 +36,19 @@
       ]
     },
     {
+      "_comment": "Tailwind compilado. Sin esto el navegador lo cachea por heuristica (no mandaba Cache-Control) y un rebuild del CSS nunca llegaba a los usuarios: quedaban con clases faltantes (p.ej. z-[351] -> z-index:auto, modales tapados por la agenda).",
+      "source": "/output.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/output-lookbook.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
       "source": "/config.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }

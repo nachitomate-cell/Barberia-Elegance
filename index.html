@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;0,6..96,800;1,6..96,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link href="/output.css" rel="stylesheet">
+  <link href="/output.css?v=5" rel="stylesheet">
 
   <script src="config.js?v=2.1"></script>
   <script src="db.js"></script>
@@ -8918,37 +8918,72 @@
     let _isProductsEnabled = false;
     let _selectedProducts = [];
 
-    // Up-selling complementary services
-    const AURA_ADDONS = [
-      { id: 'addon_mask', nombre: 'Exfoliante Facial Carbón Activo', precio: 4000, duracion: 15, desc: 'Elimina impurezas y renueva el brillo natural de tu rostro.' },
-      { id: 'addon_massage', nombre: 'Masaje Capilar Purificante', precio: 3000, duracion: 10, desc: 'Masaje relajante con champú purificante y estimulación capilar.' },
-      { id: 'addon_hot_towel', nombre: 'Toalla Caliente & Aceites', precio: 3000, duracion: 10, desc: 'Tratamiento relajante de toalla caliente con vaporización de mentol.' },
-      { id: 'addon_cejas', nombre: 'Perfilado de Cejas con Navaja', precio: 3000, duracion: 10, desc: 'Diseño y afeitado de cejas de acuerdo a tu fisonomía facial.' }
-    ];
+    // ── Recomendaciones de servicios (upsell configurable) ──────────
+    // El admin define en /gestion-interna/servicios qué servicios se
+    // recomiendan al elegir cada servicio (campo `recomendados: [ids]` en
+    // el doc del servicio) y enciende el módulo con
+    // configuracion/main.recomendacionesActivas. Lo que el cliente agrega
+    // entra a `selectedAddons`: el plumbing existente ya suma precio y
+    // duración y concatena los nombres en la cita.
     let selectedAddons = [];
+    let _upsellPool = [];
     // Multi-selección de servicios (feature flag hasMultiServiceSelect). Cuando
     // está activa, _multiSel guarda TODOS los servicios elegidos; el primero
     // pasa a selectedServiceObj y el resto a selectedAddons (mismo plumbing
-    // que el upsell de AURA: la cita ya concatena nombres y suma precio/duración).
+    // que el upsell: la cita ya concatena nombres y suma precio/duración).
     let _multiSel = [];
     window._upsellShowed = false;
 
-    function openAuraUpsell() {
-      const m = document.getElementById('aura-upsell-modal');
-      const sheet = document.getElementById('aura-upsell-sheet');
+    // Pool de recomendados para la selección actual: unión de `recomendados`
+    // de todos los servicios elegidos, sin duplicados, sin los ya elegidos,
+    // sin packs y solo servicios que todavía existen en el catálogo.
+    function _getUpsellPool() {
+      if (!_fsConfig || !_fsConfig.recomendacionesActivas) return [];
+      const seleccion = [selectedServiceObj, ...(selectedAddons || [])].filter(Boolean);
+      if (!seleccion.length) return [];
+      const elegidos = new Set(seleccion.map(s => String(s.id)));
+      const ids = [];
+      seleccion.forEach(s => {
+        (Array.isArray(s.recomendados) ? s.recomendados : []).forEach(id => {
+          const key = String(id);
+          if (!elegidos.has(key) && !ids.includes(key)) ids.push(key);
+        });
+      });
+      const todos = window._fsServices || _fsServices || [];
+      return ids
+        .map(id => todos.find(s => String(s.id) === id))
+        .filter(s => s && !s.isPack);
+    }
+
+    // Llamado desde nextStep() al salir del paso 1. Devuelve true si abrió
+    // el modal (y por tanto hay que pausar el avance); los botones del
+    // modal re-llaman nextStep() con _upsellShowed ya en true.
+    function _maybeShowUpsell() {
+      if (window._upsellShowed) return false;
+      const pool = _getUpsellPool();
+      if (!pool.length) return false;
+      _upsellPool = pool;
+      window._upsellShowed = true;
+      openUpsellModal();
+      return true;
+    }
+
+    function openUpsellModal() {
+      const m = document.getElementById('upsell-modal');
+      const sheet = document.getElementById('upsell-sheet');
       if (!m || !sheet) return;
       m.classList.remove('hidden');
       m.classList.add('flex');
-      _renderAuraAddons();
+      _renderUpsellList();
       setTimeout(() => {
         m.classList.add('opacity-100');
         sheet.classList.remove('translate-y-8');
       }, 20);
     }
 
-    function closeAuraUpsell() {
-      const m = document.getElementById('aura-upsell-modal');
-      const sheet = document.getElementById('aura-upsell-sheet');
+    function closeUpsellModal() {
+      const m = document.getElementById('upsell-modal');
+      const sheet = document.getElementById('upsell-sheet');
       if (!m || !sheet) return;
       m.classList.remove('opacity-100');
       sheet.classList.add('translate-y-8');
@@ -8958,38 +8993,42 @@
       }, 300);
     }
 
-    window.confirmAuraUpsell = () => {
-      closeAuraUpsell();
+    window.confirmUpsell = () => {
+      closeUpsellModal();
       nextStep();
     };
 
-    window.cancelAuraUpsell = () => {
-      selectedAddons = [];
-      closeAuraUpsell();
+    window.cancelUpsell = () => {
+      // Quitar del carrito solo lo agregado desde este modal; los servicios
+      // extra del modo multi-selección se respetan.
+      const poolIds = new Set(_upsellPool.map(s => String(s.id)));
+      selectedAddons = (selectedAddons || []).filter(a => !poolIds.has(String(a.id)));
+      closeUpsellModal();
       nextStep();
     };
 
-    function _renderAuraAddons() {
-      const listEl = document.getElementById('auraUpsellList');
+    function _renderUpsellList() {
+      const listEl = document.getElementById('upsellList');
       if (!listEl) return;
-      listEl.innerHTML = AURA_ADDONS.map(a => {
-        const isSel = selectedAddons.some(x => x.id === a.id);
+      listEl.innerHTML = _upsellPool.map(a => {
+        const isSel = (selectedAddons || []).some(x => String(x.id) === String(a.id));
+        const desc = a.descripcion || '';
         return `
-          <div 
-            onclick="toggleAuraAddon('${a.id}')"
+          <div
+            onclick="toggleUpsellAddon('${a.id}')"
             class="p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none"
-            style="background: ${isSel ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.01)'}; border-color: ${isSel ? '#D4AF37' : 'rgba(255,255,255,0.06)'};"
+            style="background: ${isSel ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.01)'}; border-color: ${isSel ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.08)'};"
           >
             <div class="min-w-0 flex-1">
               <p class="text-xs font-bold text-white leading-tight">${a.nombre}</p>
-              <p class="text-[10px] text-white/40 mt-1 line-clamp-1 leading-snug">${a.desc}</p>
-              <p class="text-[10px] text-white/30 mt-0.5 font-medium">🕒 +${a.duracion} min</p>
+              ${desc ? `<p class="text-[10px] text-white/40 mt-1 line-clamp-1 leading-snug">${desc}</p>` : ''}
+              <p class="text-[10px] text-white/30 mt-0.5 font-medium">🕒 +${a.duracion || 0} min</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <span class="text-xs font-black" style="color: #D4AF37;">$${a.precio.toLocaleString('es-CL')}</span>
-              <div 
+              <span class="text-xs font-black text-white">$${Math.round(Number(a.precio) || 0).toLocaleString('es-CL')}</span>
+              <div
                 class="w-4 h-4 rounded-full border flex items-center justify-center transition-all"
-                style="border-color: ${isSel ? '#D4AF37' : 'rgba(255,255,255,0.2)'}; background: ${isSel ? '#D4AF37' : 'transparent'};"
+                style="border-color: ${isSel ? '#ffffff' : 'rgba(255,255,255,0.2)'}; background: ${isSel ? '#ffffff' : 'transparent'};"
               >
                 ${isSel ? '<span class="text-[8px] font-black text-black">✓</span>' : ''}
               </div>
@@ -8999,15 +9038,17 @@
       }).join('');
     }
 
-    window.toggleAuraAddon = (id) => {
-      const addon = AURA_ADDONS.find(a => a.id === id);
-      const idx = selectedAddons.findIndex(a => a.id === id);
+    window.toggleUpsellAddon = (id) => {
+      const addon = _upsellPool.find(a => String(a.id) === String(id));
+      if (!addon) return;
+      const idx = (selectedAddons || []).findIndex(a => String(a.id) === String(id));
       if (idx === -1) {
         selectedAddons.push(addon);
       } else {
         selectedAddons.splice(idx, 1);
       }
-      _renderAuraAddons();
+      _renderUpsellList();
+      updateContinueBtn();
     };
 
     function _renderSmartSlots(hours) {
@@ -11177,6 +11218,10 @@
       } else if (currentStep === 1) {
         if (!selectedServiceObj) return showToast('Selecciona un servicio para continuar.');
 
+        // Recomendaciones configuradas en el panel: pausar el avance una vez
+        // para ofrecer complementos. Los botones del modal re-llaman nextStep().
+        if (_maybeShowUpsell()) return;
+
         if (window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
           // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
           const primerBarbero = (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
@@ -13199,23 +13244,23 @@
     </div>
   </div>
 
-  <!-- Up-selling & Cross-selling de Servicios (Aura only) -->
-  <div id="aura-upsell-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0" onclick="if(event.target===this)cancelAuraUpsell()">
-    <div class="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0A0A0C] p-6 shadow-2xl overflow-hidden translate-y-8 transition-transform duration-300" id="aura-upsell-sheet" style="border-color: rgba(212,175,55,0.25);">
-      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(212,175,55,0.06) 0%, transparent 80%);"></div>
+  <!-- Recomendaciones de servicios (módulo activable en gestión-interna/servicios) -->
+  <div id="upsell-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0" onclick="if(event.target===this)cancelUpsell()">
+    <div class="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0A0A0C] p-6 shadow-2xl overflow-hidden translate-y-8 transition-transform duration-300" id="upsell-sheet">
+      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(255,255,255,0.05) 0%, transparent 80%);"></div>
       <div class="relative z-10">
-        <h3 class="text-lg font-black text-center uppercase tracking-widest mb-1.5" style="color: #D4AF37;">
-          ✦ Completa tu Experiencia Aura ✦
+        <h3 class="text-lg font-black text-center uppercase tracking-widest mb-1.5 text-white">
+          ✦ Completa tu experiencia ✦
         </h3>
         <p class="text-xs text-white/50 text-center mb-6">
-          Añade uno de nuestros tratamientos complementarios signature a tu reserva:
+          Agrega un servicio complementario a tu reserva:
         </p>
-        <div class="flex flex-col gap-3 mb-6" id="auraUpsellList"></div>
+        <div class="flex flex-col gap-3 mb-6" id="upsellList"></div>
         <div class="flex flex-col gap-2.5">
-          <button onclick="confirmAuraUpsell()" class="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider text-center transition-all bg-[#D4AF37] text-black hover:bg-[#FDE047] active:scale-95 shadow-[0_0_20px_rgba(212,175,55,0.18)]">
+          <button onclick="confirmUpsell()" class="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider text-center transition-all bg-white text-black hover:bg-white/90 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.12)]">
             Continuar con mi reserva
           </button>
-          <button onclick="cancelAuraUpsell()" class="w-full py-3 rounded-2xl text-xs font-bold text-center border border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5 transition-all">
+          <button onclick="cancelUpsell()" class="w-full py-3 rounded-2xl text-xs font-bold text-center border border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5 transition-all">
             No, gracias
           </button>
         </div>

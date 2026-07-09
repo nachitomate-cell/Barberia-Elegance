@@ -3,7 +3,10 @@ module.exports = {
   darkMode: 'class',
   content: [
     './*.html',
-    './instancia-2/*.html'
+    './instancia-2/*.html',
+    // admin/index.html también carga /output.css: sin este glob, un rebuild
+    // le borraría las clases que solo usa esa página.
+    './admin/*.html'
   ],
   theme: {
     extend: {

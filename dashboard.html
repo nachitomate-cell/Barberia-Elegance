@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link href="/output.css" rel="stylesheet">
+  <link href="/output.css?v=5" rel="stylesheet">
 
   <!-- Firebase SDKs (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -52,8 +52,19 @@
   <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <!-- QR generator para el canje seguro (Fidelización → Premios).
-       Path corregido: qrcode@1.5.3 sirve el build browser en /lib/, no /build/. -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/lib/browser.min.js"></script>
+       qrcode@1.5.3 NO publica bundle de navegador: todo su /lib es CommonJS
+       (`require(...)`), así que el <script src=".../lib/browser.min.js"> tiraba
+       "require is not defined" y window.QRCode quedaba undefined → el QR de
+       canje nunca se dibujaba. Cargamos el build ESM y lo exponemos global. -->
+  <script type="module">
+    try {
+      const m = await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm');
+      window.QRCode = m.default || m;
+      window.dispatchEvent(new Event('qrcode:ready'));
+    } catch (e) {
+      console.warn('[QR] no se pudo cargar la librería:', e);
+    }
+  </script>
 
   <style>
     :root {
@@ -7508,14 +7519,19 @@ function _mostrarPinYQR(red) {
     token: red.token,
   });
   const canvas = document.getElementById('canjeQrCanvas');
-  if (window.QRCode?.toCanvas) {
-    window.QRCode.toCanvas(canvas, payload, {
+  if (canvas) {
+    const pintarQR = () => window.QRCode.toCanvas(canvas, payload, {
       width: 200,
       margin: 1,
       color: { dark: '#0a0a0a', light: '#ffffff' },
     }, err => {
       if (err) console.error('[QR] render error', err);
     });
+    // El módulo del QR es diferido: si el cliente abre el canje antes de que
+    // cargue, pintamos en cuanto avise. Antes el guard lo saltaba en silencio
+    // y el QR simplemente no aparecía.
+    if (window.QRCode?.toCanvas) pintarQR();
+    else window.addEventListener('qrcode:ready', pintarQR, { once: true });
   }
 
   // Countdown

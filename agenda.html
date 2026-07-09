@@ -25,8 +25,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web" async></script>
 
+    <!-- QR del link público del barbero (Mi perfil).
+         OJO: qrcode@1.5.3 NO publica bundle de navegador — todo su /lib es
+         CommonJS (`require(...)`), así que <script src=".../lib/browser.min.js">
+         revienta y nunca define window.QRCode. Usamos el build ESM de jsDelivr
+         y lo exponemos global para los scripts clásicos de esta página. -->
+    <script type="module">
+      try {
+        const m = await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm');
+        window.QRCode = m.default || m;
+        window.dispatchEvent(new Event('qrcode:ready'));
+      } catch (e) {
+        console.warn('[QR] no se pudo cargar la librería:', e);
+        document.getElementById('perfilQRWrap')?.classList.add('hidden');
+      }
+    </script>
+
     <!-- Tailwind CSS (linking existing output.css) -->
-    <link href="/output.css" rel="stylesheet">
+    <link href="/output.css?v=5" rel="stylesheet">
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -116,6 +132,82 @@
         /* ── Fundido suave al mostrar una vista (sin salto vertical) ── */
         @keyframes viewIn { from { opacity: 0; } to { opacity: 1; } }
         .view-in { animation: viewIn .18s ease; }
+
+        /* ── SKELETONS: shimmer sutil hasta que llegue Firestore ── */
+        @keyframes skelShimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skel-card {
+            background: linear-gradient(90deg,
+                rgba(255,255,255,0.03) 25%,
+                rgba(255,255,255,0.07) 50%,
+                rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: skelShimmer 1.6s linear infinite;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-left: 4px solid rgba(255,255,255,0.12);
+        }
+        .skel-line {
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+        }
+        html.light-mode .skel-card {
+            background: linear-gradient(90deg,
+                rgba(15,23,42,0.04) 25%,
+                rgba(15,23,42,0.09) 50%,
+                rgba(15,23,42,0.04) 75%);
+            background-size: 200% 100%;
+            border-color: rgba(15,23,42,0.08);
+            border-left-color: rgba(15,23,42,0.16);
+        }
+        html.light-mode .skel-line { background: rgba(15,23,42,0.1); }
+
+        /* ── PERFIL modal: esquinas + border responsivos ── */
+        /* Mobile default: bottom sheet, esquinas SUPERIORES redondeadas,
+           borde inferior fuera de vista (pegado al viewport). */
+        /* Desktop: card centrada, 4 esquinas redondeadas. */
+        @media (min-width: 640px) {
+            #perfilModal {
+                border-radius: 24px !important;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+            }
+        }
+        /* Safari/WebKit dibuja su propio triángulo en <summary> pese a
+           list-style:none. Lo ocultamos: usamos nuestro caret. */
+        #perfilDatos > summary::-webkit-details-marker { display: none; }
+
+        /* Resalte breve al saltar desde el chip "Sigue" hacia la cita. */
+        @keyframes citaFlash {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+            30%      { box-shadow: 0 0 0 3px rgba(201,168,76,0.55); }
+        }
+        .cita-flash { animation: citaFlash 1.7s cubic-bezier(0.22,1,0.36,1); }
+
+        /* Header compacto al scrollear: recupera alto sin saltos bruscos.
+           Ojo: más abajo hay `@media(max-width:639px){header.sticky{padding:.85rem !important}}`,
+           así que necesitamos misma arma (!important) y más especificidad
+           (header.sticky.header-compact) para ganarle. */
+        header { transition: padding .18s ease; }
+        header.sticky.header-compact {
+            padding-top: .5rem !important;
+            padding-bottom: .5rem !important;
+        }
+        @media (min-width: 640px) {
+            header.sticky.header-compact {
+                padding-top: .75rem !important;
+                padding-bottom: .75rem !important;
+            }
+        }
+
+        /* Barra de densidad de la tira de días: cuán lleno está cada día. */
+        .dens-bar {
+            width: 20px; height: 3px; border-radius: 999px;
+            background: rgba(255,255,255,0.12); overflow: hidden;
+        }
+        .dens-fill { height: 100%; border-radius: 999px; transition: width .25s ease; }
+        /* En el chip seleccionado (fondo claro) el track debe verse. */
+        .dens-bar.on-light { background: rgba(0,0,0,0.15); }
 
         /* ── Transición direccional al cambiar de día ── */
         @keyframes dayInNext { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
@@ -979,7 +1071,7 @@
     </div>
 
     <!-- Header Navigation -->
-    <header class="sticky top-0 z-50 w-full px-6 py-5 flex items-center justify-between bg-brand-bg/90 backdrop-blur-md border-b border-white/5">
+    <header class="sticky top-0 z-50 w-full px-4 sm:px-6 py-3 sm:py-5 flex items-center justify-between bg-brand-bg/90 backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-3 min-w-0" id="barberHeaderBlock">
             <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 shrink-0">
                 <i class="ph-bold ph-calendar text-xl text-white"></i>
@@ -990,30 +1082,41 @@
                     <div class="live-dot" title="Sincronizado en tiempo real"></div>
                     <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">En Vivo</p>
                 </div>
+                <!-- Al scrollear, "EN VIVO" (que nunca cambia) cede su lugar a lo
+                     que sí cambia: el día y quién sigue. El header deja de ser
+                     decorativo justo cuando la fecha se fue de pantalla. -->
+                <div class="hidden items-center gap-2 mt-0.5" id="headerNext">
+                    <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:#34d399;"></span>
+                    <p id="headerNextText" class="text-[11px] text-white/60 truncate">—</p>
+                </div>
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
             <!-- Toggle Modo Claro / Oscuro — persiste en localStorage.agenda_theme.
                  Ícono sol = estamos en oscuro y al tocar se aclara. Ícono luna = viceversa. -->
-            <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Alternar modo claro/oscuro" aria-label="Alternar modo claro/oscuro">
+            <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 rounded-full border border-white/10 hidden sm:flex items-center justify-center hover:bg-white/5 transition-colors" title="Alternar modo claro/oscuro" aria-label="Alternar modo claro/oscuro">
                 <i id="themeIcon" class="ph-bold ph-sun text-lg text-white/60"></i>
             </button>
-            <button id="reloadBtn" onclick="recargarAgenda()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar agenda">
+            <button id="reloadBtn" onclick="recargarAgenda()" class="w-10 h-10 rounded-full border border-white/10 hidden sm:flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar agenda">
                 <i id="reloadIcon" class="ph-bold ph-arrows-clockwise text-lg text-white/60"></i>
             </button>
             <!-- Notificaciones y WhatsApp: críticos, siempre visibles -->
-            <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()" class="relative w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Activar notificaciones">
+            <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()" class="relative w-11 h-11 sm:w-10 sm:h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Activar notificaciones">
                 <i id="notifIcon" class="ph-bold ph-bell text-lg text-white/60"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 flex h-3 w-3 hidden">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
             </button>
-            <a href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" class="w-10 h-10 rounded-full border border-[#25D366]/30 bg-[#25D366]/10 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-105 transition-all" title="Contactar soporte por WhatsApp">
+            <!-- Mi perfil (desktop): read-only con foto, datos y link a agenda pública -->
+            <button id="btnPerfil" onclick="abrirPerfil()" class="w-10 h-10 rounded-full border border-white/10 hidden sm:flex items-center justify-center hover:bg-white/5 transition-colors" title="Mi perfil" aria-label="Ver mi perfil">
+                <i class="ph-bold ph-user-circle text-lg text-white/60"></i>
+            </button>
+            <a href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" class="w-10 h-10 rounded-full border border-[#25D366]/30 bg-[#25D366]/10 hidden sm:flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-105 transition-all" title="Contactar soporte por WhatsApp">
                 <i class="ph-fill ph-whatsapp-logo text-lg text-[#25D366]"></i>
             </a>
             <!-- Botones secundarios: en mobile viven dentro del kebab -->
-            <button id="btnSignOut" onclick="firebase.auth().signOut()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Cerrar sesión">
+            <button id="btnSignOut" onclick="firebase.auth().signOut()" class="w-10 h-10 rounded-full border border-white/10 hidden sm:flex items-center justify-center hover:bg-white/5 transition-colors" title="Cerrar sesión">
                 <i class="ph-bold ph-sign-out text-lg text-white/60"></i>
             </button>
             <button id="btnHome" onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors hidden sm:flex" title="Ir al inicio">
@@ -1021,8 +1124,8 @@
             </button>
 
             <!-- Kebab (mobile only) — abre el dropdown con acciones secundarias -->
-            <div class="relative">
-                <button id="kebabMenuBtn" onclick="toggleKebabMenu(event)" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Más opciones" aria-label="Abrir menú de opciones" aria-haspopup="true" aria-expanded="false">
+            <div class="relative sm:hidden">
+                <button id="kebabMenuBtn" onclick="toggleKebabMenu(event)" class="w-11 h-11 sm:w-10 sm:h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Más opciones" aria-label="Abrir menú de opciones" aria-haspopup="true" aria-expanded="false">
                     <i class="ph-bold ph-dots-three-vertical text-lg text-white/70"></i>
                 </button>
                 <!-- Panel del dropdown. Renderizado siempre (hidden class controla display).
@@ -1031,6 +1134,11 @@
                      style="background:#0f0f12;border:1px solid rgba(255,255,255,0.08);"
                      role="menu">
                     <div class="p-1.5 space-y-0.5">
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); abrirPerfil();" role="menuitem">
+                            <i class="ph-bold ph-user-circle text-base"></i>
+                            <span>Mi perfil</span>
+                        </button>
+                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
                         <button type="button" data-menu-item onclick="closeKebabMenu(); toggleTheme();" role="menuitem">
                             <i id="kebabThemeIcon" class="ph-bold ph-sun text-base"></i>
                             <span id="kebabThemeLabel">Modo claro</span>
@@ -1043,6 +1151,10 @@
                             <i class="ph-bold ph-house text-base"></i>
                             <span>Ir al inicio</span>
                         </button>
+                        <a data-menu-item href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" onclick="closeKebabMenu()" role="menuitem">
+                            <i class="ph-fill ph-whatsapp-logo text-base" style="color:#25D366;"></i>
+                            <span>Soporte WhatsApp</span>
+                        </a>
                         <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
                         <button type="button" data-menu-item onclick="closeKebabMenu(); firebase.auth().signOut();" role="menuitem">
                             <i class="ph-bold ph-sign-out text-base"></i>
@@ -1061,26 +1173,29 @@
         <!-- ── TOGGLE DE VISTA Día / Semana ── -->
         <div class="flex items-center mb-6 animate-fade-in">
             <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                <button id="viewBtnDia" onclick="setAgendaView('dia')" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
+                <button id="viewBtnDia" onclick="setAgendaView('dia')" class="flex items-center gap-1.5 px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition-all">
                     <i class="ph-bold ph-calendar-dot"></i> Día
                 </button>
-                <button id="viewBtnSemana" onclick="setAgendaView('semana')" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
+                <button id="viewBtnSemana" onclick="setAgendaView('semana')" class="flex items-center gap-1.5 px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition-all">
                     <i class="ph-bold ph-calendar"></i> Semana
                 </button>
             </div>
         </div>
         <!-- ── INSTALAR APP BANNER (Big) ── -->
-        <div id="pwaBigInstallCard" class="hidden mb-8 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
+        <div id="pwaBigInstallCard" class="hidden mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
             <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
-            <div class="flex items-center gap-4 relative z-10">
-                <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
-                    <i class="ph-fill ph-device-mobile text-2xl" style="color:#c9a84c;"></i>
+            <div class="flex items-center gap-3 sm:gap-4 relative z-10">
+                <div class="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
+                    <i class="ph-fill ph-device-mobile text-xl sm:text-2xl" style="color:#c9a84c;"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-[15px] font-black text-white leading-tight mb-1">Instalar como Aplicación</h3>
-                    <p class="text-xs text-white/60 leading-snug truncate">Acceso rápido y notificaciones push.</p>
+                    <h3 class="text-[14px] sm:text-[15px] font-black text-white leading-tight mb-0.5 sm:mb-1">Instalar como Aplicación</h3>
+                    <p class="text-[11px] sm:text-xs text-white/60 leading-snug truncate">Acceso rápido y notificaciones push.</p>
                 </div>
-                <i class="ph-bold ph-caret-right text-lg shrink-0" style="color:#c9a84c;"></i>
+                <!-- Botón cerrar (X): usa el mismo dismiss persistente que ya existía en el banner pequeño. -->
+                <button type="button" aria-label="Descartar" onclick="event.stopPropagation(); cerrarBannerPWA();" class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 hover:bg-white/10 active:scale-95 transition-all" style="color:rgba(201,168,76,0.7);">
+                    <i class="ph-bold ph-x text-sm"></i>
+                </button>
             </div>
         </div>
 
@@ -1088,78 +1203,102 @@
              Aparece SOLO cuando hay gastos con tipo=liquidacion + barberoId
              = mi uid + aceptacionBarbero='pendiente'. El listener se monta
              en iniciarBannerLiquidaciones() después de fijar barberId. -->
-        <div id="liquidacionesBanner" class="hidden mb-6 rounded-3xl p-5 relative overflow-hidden animate-fade-in"
+        <div id="liquidacionesBanner" class="hidden mb-4 sm:mb-6 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 relative overflow-hidden animate-fade-in"
              style="background:linear-gradient(to right, rgba(16,185,129,0.12), rgba(16,185,129,0.04)); border: 1px solid rgba(16,185,129,0.3);">
-            <div class="flex items-start gap-3 mb-3">
-                <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style="background:rgba(16,185,129,0.18);">
-                    <i class="ph-fill ph-money text-xl" style="color:#34d399;"></i>
+            <div class="flex items-start gap-3 mb-2.5 sm:mb-3">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style="background:rgba(16,185,129,0.18);">
+                    <i class="ph-fill ph-money text-lg sm:text-xl" style="color:#34d399;"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h3 id="liqBannerTitulo" class="text-[15px] font-black text-white leading-tight">Tienes una liquidación por confirmar</h3>
-                    <p class="text-xs text-white/60 leading-snug mt-0.5">Confirma el recibo del pago para dejarlo registrado en tu historial.</p>
+                    <h3 id="liqBannerTitulo" class="text-[14px] sm:text-[15px] font-black text-white leading-tight">Tienes una liquidación por confirmar</h3>
+                    <p class="text-[11px] sm:text-xs text-white/60 leading-snug mt-0.5">Confirma el recibo del pago para dejarlo registrado en tu historial.</p>
                 </div>
             </div>
             <div id="liqBannerLista" class="space-y-2"></div>
         </div>
 
-        <!-- Mini-Dashboard Diarias -->
-        <div id="dailyStatsDashboard" class="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 rounded-2xl p-4 overflow-x-auto no-scrollbar view-in">
-            <div class="flex items-center gap-2 px-3 border-r border-white/10 shrink-0">
-                <i class="ph-fill ph-check-circle text-emerald-400 text-lg"></i>
-                <div class="flex flex-col">
+        <!-- Mini-Dashboard Diarias
+             En móvil: single-line pill (ícono + número, labels ocultos).
+             En ≥sm: layout chunky original con labels debajo de cada número. -->
+        <div id="dailyStatsDashboard" class="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 overflow-x-auto no-scrollbar view-in">
+            <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 border-r border-white/10 shrink-0">
+                <i class="ph-fill ph-check-circle text-emerald-400 text-base sm:text-lg"></i>
+                <div class="flex flex-row sm:flex-col items-baseline sm:items-start gap-1 sm:gap-0">
                     <span id="statCompletadas" class="text-sm font-black text-white leading-none">0</span>
-                    <span class="text-[9px] text-white/50 uppercase tracking-widest font-bold mt-0.5">Completadas</span>
+                    <span class="hidden sm:inline text-[9px] text-white/50 uppercase tracking-widest font-bold mt-0.5">Completadas</span>
                 </div>
             </div>
-            <div class="flex items-center gap-2 px-3 border-r border-white/10 shrink-0">
-                <i class="ph-fill ph-clock text-yellow-400 text-lg"></i>
-                <div class="flex flex-col">
+            <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 border-r border-white/10 shrink-0">
+                <i class="ph-fill ph-clock text-yellow-400 text-base sm:text-lg"></i>
+                <div class="flex flex-row sm:flex-col items-baseline sm:items-start gap-1 sm:gap-0">
                     <span id="statPendientes" class="text-sm font-black text-white leading-none">0</span>
-                    <span class="text-[9px] text-white/50 uppercase tracking-widest font-bold mt-0.5">Pendientes</span>
+                    <span class="hidden sm:inline text-[9px] text-white/50 uppercase tracking-widest font-bold mt-0.5">Pendientes</span>
                 </div>
             </div>
             <button type="button" onclick="abrirModalProyeccion()"
-                    class="flex items-center gap-2 px-3 shrink-0 rounded-lg hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+                    class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 shrink-0 rounded-lg hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
                     aria-label="Ver proyección diaria, semanal y mensual">
-                <i class="ph-fill ph-wallet text-brand-accent text-lg"></i>
-                <div class="flex flex-col items-start">
+                <i class="ph-fill ph-wallet text-brand-accent text-base sm:text-lg"></i>
+                <div class="flex flex-row sm:flex-col items-baseline sm:items-start gap-1 sm:gap-0">
                     <span id="statProyeccion" class="text-sm font-black text-brand-accent leading-none">$0</span>
-                    <span class="text-[9px] text-brand-accent/50 uppercase tracking-widest font-bold mt-0.5 flex items-center gap-1">
+                    <span class="hidden sm:flex text-[9px] text-brand-accent/50 uppercase tracking-widest font-bold mt-0.5 items-center gap-1">
                         Proyección <i class="ph-bold ph-caret-right text-[8px]"></i>
                     </span>
+                    <i class="ph-bold ph-caret-right text-[10px] text-brand-accent/60 sm:hidden"></i>
                 </div>
             </button>
         </div>
 
         <!-- Day Selector / Calendar Header -->
         <div id="dayViewHeader" class="mb-10 view-in">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-white tracking-tight cursor-pointer hover:text-brand-accent transition-colors flex items-center gap-2" id="currentDateDisplay" onclick="abrirMiniCalendario()">
-                    <span id="currentDateText">Cargando...</span>
-                    <i class="ph-bold ph-caret-down text-lg text-white/40"></i>
+            <div class="flex items-center justify-between mb-4 gap-2">
+                <h2 class="text-2xl font-bold text-white tracking-tight cursor-pointer hover:text-brand-accent transition-colors flex items-center gap-2 min-w-0" id="currentDateDisplay" onclick="abrirMiniCalendario()">
+                    <span id="currentDateText" class="truncate">Cargando...</span>
+                    <i class="ph-bold ph-caret-down text-lg text-white/40 shrink-0"></i>
                 </h2>
-                <div class="flex gap-2">
-                    <button onclick="cambiarDia(-1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                <div class="flex items-center gap-2 shrink-0">
+                    <!-- Intervalo: es CONFIGURACIÓN (se toca una vez al mes), no
+                         operación. Antes ocupaba una banda propia full-width a la
+                         altura de los ojos; ahora es un chip con popover. -->
+                    <div class="relative" id="intervalSelectorWrap">
+                        <button type="button" id="intervalChip" onclick="toggleIntervalPopover(event)"
+                                class="h-11 px-2.5 flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all"
+                                aria-haspopup="true" aria-expanded="false" title="Intervalo de la grilla">
+                            <i class="ph-bold ph-clock text-white/50 text-sm"></i>
+                            <span id="intervalChipLabel" class="text-[11px] font-mono font-bold text-white leading-none">30'</span>
+                            <i class="ph-bold ph-caret-down text-[9px] text-white/40"></i>
+                        </button>
+                        <div id="intervalPopover" class="hidden absolute right-0 mt-2 z-50 rounded-xl p-2 shadow-2xl"
+                             style="background:#0f0f12;border:1px solid rgba(255,255,255,0.1);">
+                            <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 px-1 pb-1.5 whitespace-nowrap">Intervalo</p>
+                            <div class="flex items-center gap-0.5 rounded-lg p-0.5" style="background:rgba(255,255,255,0.05);">
+                                <button onclick="setSlotInterval(15)" data-int="15" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">15'</button>
+                                <button onclick="setSlotInterval(30)" data-int="30" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">30'</button>
+                                <button onclick="setSlotInterval(45)" data-int="45" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">45'</button>
+                                <button onclick="setSlotInterval(60)" data-int="60" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">1h</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="cambiarDia(-1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all" aria-label="Día anterior">
                         <i class="ph-bold ph-caret-left text-white/60"></i>
                     </button>
-                    <button onclick="cambiarDia(1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                    <button onclick="cambiarDia(1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all" aria-label="Día siguiente">
                         <i class="ph-bold ph-caret-right text-white/60"></i>
                     </button>
                 </div>
             </div>
-            
-            <!-- Selector de intervalo de la grilla del día -->
-            <div class="flex items-center gap-2 mb-5" id="intervalSelectorWrap">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-white/30 flex items-center gap-1.5"><i class="ph-bold ph-clock"></i>Intervalo</span>
-                <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                    <button onclick="setSlotInterval(15)" data-int="15" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">15'</button>
-                    <button onclick="setSlotInterval(30)" data-int="30" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">30'</button>
-                    <button onclick="setSlotInterval(45)" data-int="45" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">45'</button>
-                    <button onclick="setSlotInterval(60)" data-int="60" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">1h</button>
-                </div>
-            </div>
 
-            <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6" id="daySelectorContainer">
+            <!-- El dato por el que el barbero abre la app: ¿quién sigue?
+                 Ocupa el espacio que liberó la banda de "Intervalo". -->
+            <button type="button" id="nextCitaChip" onclick="irASiguienteCita()"
+                    class="hidden w-full mb-5 px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 text-left active:scale-[0.99] transition-all"
+                    style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                <span id="nextCitaDot" class="w-2 h-2 rounded-full shrink-0" style="background:#34d399;"></span>
+                <span id="nextCitaText" class="flex-1 min-w-0 truncate text-[13px] text-white/85">—</span>
+                <i id="nextCitaCaret" class="ph-bold ph-caret-right text-[11px] text-white/30 shrink-0"></i>
+            </button>
+
+            <div class="flex gap-1.5 sm:gap-3 overflow-x-auto pb-4 no-scrollbar -mx-4 sm:-mx-6 px-4 sm:px-6" id="daySelectorContainer">
                 <!-- Se llena dinámicamente -->
             </div>
         </div>
@@ -1167,12 +1306,22 @@
         <!-- Schedule Grid -->
         <div id="dayViewGrid" class="space-y-2 view-in">
 
+            <!-- Skeleton loader (mientras Firestore trae el primer snapshot).
+                 Se oculta en el primer renderSlots() y se re-muestra al cambiar de día. -->
+            <div id="agendaSkeleton" class="space-y-2 -mx-6 sm:mx-0">
+                <div class="skel-card rounded-none sm:rounded-2xl p-4"><div class="grid grid-cols-[auto_1fr_auto] gap-3 items-start"><div class="space-y-1.5 pt-0.5 min-w-[54px]"><div class="skel-line h-5"></div><div class="skel-line h-2 w-8"></div></div><div class="space-y-2 pt-1"><div class="skel-line h-4 w-3/5"></div><div class="skel-line h-3 w-2/5"></div></div><div class="space-y-2 shrink-0 items-end flex flex-col"><div class="skel-line h-3 w-14"></div><div class="skel-line h-9 w-20 rounded-lg"></div></div></div></div>
+                <div class="skel-card rounded-none sm:rounded-2xl p-4"><div class="grid grid-cols-[auto_1fr_auto] gap-3 items-start"><div class="space-y-1.5 pt-0.5 min-w-[54px]"><div class="skel-line h-5"></div><div class="skel-line h-2 w-8"></div></div><div class="space-y-2 pt-1"><div class="skel-line h-4 w-2/5"></div><div class="skel-line h-3 w-1/3"></div></div><div class="space-y-2 shrink-0 items-end flex flex-col"><div class="skel-line h-3 w-12"></div><div class="skel-line h-9 w-20 rounded-lg"></div></div></div></div>
+                <div class="skel-card rounded-none sm:rounded-2xl p-4"><div class="grid grid-cols-[auto_1fr_auto] gap-3 items-start"><div class="space-y-1.5 pt-0.5 min-w-[54px]"><div class="skel-line h-5"></div><div class="skel-line h-2 w-8"></div></div><div class="space-y-2 pt-1"><div class="skel-line h-4 w-1/2"></div><div class="skel-line h-3 w-2/5"></div></div><div class="space-y-2 shrink-0 items-end flex flex-col"><div class="skel-line h-3 w-14"></div><div class="skel-line h-9 w-20 rounded-lg"></div></div></div></div>
+                <div class="skel-card rounded-none sm:rounded-2xl p-4"><div class="grid grid-cols-[auto_1fr_auto] gap-3 items-start"><div class="space-y-1.5 pt-0.5 min-w-[54px]"><div class="skel-line h-5"></div><div class="skel-line h-2 w-8"></div></div><div class="space-y-2 pt-1"><div class="skel-line h-4 w-3/5"></div><div class="skel-line h-3 w-1/2"></div></div><div class="space-y-2 shrink-0 items-end flex flex-col"><div class="skel-line h-3 w-14"></div><div class="skel-line h-9 w-20 rounded-lg"></div></div></div></div>
+            </div>
+
             <!-- Morning Section -->
             <div id="morningSection" class="hidden">
                 <h3 id="morningLabel" class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <i class="ph-bold ph-sun-horizon"></i> Mañana
                 </h3>
-                <div class="space-y-2" id="morningSlots"></div>
+                <!-- -mx-6 sm:mx-0: en móvil el listado de citas va full-bleed (compensa el px-6 del <main>). -->
+                <div class="space-y-2 -mx-6 sm:mx-0" id="morningSlots"></div>
             </div>
 
             <!-- Afternoon Section -->
@@ -1180,7 +1329,7 @@
                 <h3 id="afternoonLabel" class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <i class="ph-bold ph-sun"></i> Tarde
                 </h3>
-                <div class="space-y-2" id="afternoonSlots"></div>
+                <div class="space-y-2 -mx-6 sm:mx-0" id="afternoonSlots"></div>
             </div>
 
             <div id="emptyAgenda" class="hidden py-12 text-center">
@@ -1197,11 +1346,11 @@
              el usuario vea "Últimas reservas" debajo. -->
         <div id="weekViewSection" class="hidden view-in mb-8">
             <div class="flex items-center justify-between mb-5">
-                <button onclick="cambiarSemana(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
+                <button onclick="cambiarSemana(-1)" class="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
                     <i class="ph-bold ph-caret-left text-white/60"></i>
                 </button>
                 <h2 id="weekRangeLabel" class="text-sm font-bold text-white/70 tracking-tight select-none"></h2>
-                <button onclick="cambiarSemana(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
+                <button onclick="cambiarSemana(1)" class="w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
                     <i class="ph-bold ph-caret-right text-white/60"></i>
                 </button>
             </div>
@@ -1741,6 +1890,11 @@
                     try {
                         await loadBarberData(info.nombre);
                         setAgendaView(_agendaView);
+                        // Precarga pool de clientes en background: cuando
+                        // termina, dispara un renderSlots() y aparecen los
+                        // chips de tier (Primera visita / Habitual / VIP…)
+                        // sin necesidad de abrir el modal "Nueva cita".
+                        _loadClientes();
                         loadLatestReservations();
                     } catch (err) {
                         console.error('Error al cargar datos de la agenda:', err);
@@ -1901,10 +2055,14 @@
                           currentDate.getFullYear() === hoy.getFullYear();
             
             const txt = esHoy ? 'Hoy' : `${diasCorto[currentDate.getDay()]} ${currentDate.getDate()}`;
-            document.getElementById('currentDateText').textContent = `${meses[currentDate.getMonth()]} ${currentDate.getFullYear()} · ${txt}`;
+            // Lo importante primero. En móvil el chip de intervalo se comió ancho,
+            // así que el año (lo menos útil) se oculta ahí y vuelve en ≥sm.
+            document.getElementById('currentDateText').innerHTML =
+                `${txt} · ${meses[currentDate.getMonth()]}<span class="hidden sm:inline"> ${currentDate.getFullYear()}</span>`;
 
             const container = document.getElementById('daySelectorContainer');
             container.innerHTML = '';
+            const _diasDeLaTira = [];
 
             // Renderizar desde 3 días antes hasta 3 días después
             for (let i = -3; i <= 3; i++) {
@@ -1919,25 +2077,87 @@
                 const btn = document.createElement('button');
                 btn.onclick = () => seleccionarDia(y, m, d);
 
+                // Barra de densidad: los chips solo decían el número. Ahora se
+                // lee de un vistazo qué día está lleno y dónde hay huecos que
+                // ofrecer (se enchufa con "Ofrecer esta hora").
+                const fStr = _fmtDate(tempDate);
+                _diasDeLaTira.push(fStr);
+
+                // En móvil: card compacta (48×64) + letra única "L M X J V S D".
+                // En ≥sm: se recupera el tamaño chunky original (64×80) con abreviatura.
+                const dayInitial = dayName.charAt(0);
                 if (isSelected) {
-                    btn.className = "flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-zinc-100 shadow-md scale-105";
+                    btn.className = "flex-shrink-0 w-12 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-zinc-100 shadow-md scale-105";
                     btn.innerHTML = `
-                        <span class="text-[10px] font-bold text-zinc-500 uppercase mb-1">${dayName}</span>
-                        <span class="text-xl font-bold text-black">${dateNum}</span>
-                        <div class="w-1.5 h-1.5 rounded-full bg-zinc-700 mt-1"></div>
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase mb-0.5 sm:mb-1"><span class="sm:hidden">${dayInitial}</span><span class="hidden sm:inline">${dayName}</span></span>
+                        <span class="text-lg sm:text-xl font-bold text-black">${dateNum}</span>
+                        <div class="dens-bar on-light mt-1" data-dens-fecha="${fStr}"><div class="dens-fill" style="width:0%"></div></div>
                     `;
                 } else {
                     const todayObj = new Date();
                     const isToday = y === todayObj.getFullYear() && m === todayObj.getMonth() && d === dateNum;
-                    btn.className = `flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white/5 hover:border-white/30 cursor-pointer border ${isToday ? 'border-white/25' : 'border-white/10'}`;
+                    btn.className = `flex-shrink-0 w-12 sm:w-16 h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white/5 hover:border-white/30 cursor-pointer border ${isToday ? 'border-white/25' : 'border-white/10'}`;
                     btn.innerHTML = `
-                        <span class="text-[10px] font-bold text-white/40 uppercase mb-1">${dayName}</span>
-                        <span class="text-xl font-bold text-white">${dateNum}</span>
-                        ${isToday ? '<div class="w-1.5 h-1.5 rounded-full bg-white/30 mt-1"></div>' : ''}
+                        <span class="text-[10px] font-bold text-white/40 uppercase mb-0.5 sm:mb-1"><span class="sm:hidden">${dayInitial}</span><span class="hidden sm:inline">${dayName}</span></span>
+                        <span class="text-lg sm:text-xl font-bold text-white">${dateNum}</span>
+                        <div class="dens-bar mt-1" data-dens-fecha="${fStr}"><div class="dens-fill" style="width:0%"></div></div>
                     `;
                 }
                 container.appendChild(btn);
             }
+
+            // Pinta lo que ya está cacheado y pide solo los días que faltan.
+            _paintStripDensity();
+            _diasDeLaTira.forEach(_ensureStripCount);
+        }
+
+        /* ── DENSIDAD DE LA TIRA DE DÍAS (#4) ───────────────────────────
+           Los chips solo mostraban el número: no decían si el día estaba
+           lleno o vacío. La barra deja leer la semana de un vistazo — y ver
+           dónde hay huecos para "Ofrecer esta hora".
+
+           Coste: 1 lectura por día NUEVO que aparece en la tira. Al deslizar
+           un día solo entra uno; el resto sale del caché. El día visible se
+           calcula de todayCitas (siempre fresco, sin lectura extra). */
+        const _STRIP_LLENO = 6;          // citas para considerar el día "lleno"
+        let _stripCounts = {};           // fechaStr → nº de citas activas
+        const _stripInFlight = new Set();
+
+        function _countActivas(arr) {
+            return (arr || []).filter(c => c.estado !== 'Cancelada').length;
+        }
+
+        async function _ensureStripCount(fechaStr) {
+            if (!barberId) return;
+            if (fechaStr === _fmtDate(currentDate)) return;   // sale de todayCitas
+            if (_stripCounts[fechaStr] !== undefined || _stripInFlight.has(fechaStr)) return;
+            _stripInFlight.add(fechaStr);
+            try {
+                const snap = await tenantCol('citas')
+                    .where('fecha', '==', fechaStr)
+                    .where('barberoId', '==', barberId)
+                    .get();
+                _stripCounts[fechaStr] = _countActivas(snap.docs.map(d => d.data()));
+                _paintStripDensity();
+            } catch (e) {
+                _stripCounts[fechaStr] = 0;   // no reintentar en bucle
+            } finally {
+                _stripInFlight.delete(fechaStr);
+            }
+        }
+
+        function _paintStripDensity() {
+            const visible = _fmtDate(currentDate);
+            document.querySelectorAll('[data-dens-fecha]').forEach(bar => {
+                const f = bar.dataset.densFecha;
+                const n = (f === visible) ? _countActivas(todayCitas) : _stripCounts[f];
+                const fill = bar.querySelector('.dens-fill');
+                if (!fill) return;
+                if (n === undefined) { fill.style.width = '0%'; return; }  // aún cargando
+                fill.style.width = Math.min(100, Math.round((n / _STRIP_LLENO) * 100)) + '%';
+                fill.style.background = bar.classList.contains('on-light') ? '#18181b' : '#34d399';
+                bar.title = n === 0 ? 'Sin citas' : `${n} cita${n > 1 ? 's' : ''}`;
+            });
         }
 
         // ── RECARGA MANUAL DE AGENDA ──
@@ -2122,6 +2342,11 @@
         }
 
         function renderSlots() {
+            // Ocultar skeleton en cuanto renderamos data real (primera vez que
+            // pasa la función y también al cambiar de día si se re-muestra).
+            const _skel = document.getElementById('agendaSkeleton');
+            if (_skel) _skel.classList.add('hidden');
+
             // Animación direccional al cambiar de día (no en updates en vivo)
             if (_dayAnimDir) {
                 const grid = document.getElementById('dayViewGrid');
@@ -2147,6 +2372,12 @@
             document.getElementById('statCompletadas').textContent = statC;
             document.getElementById('statPendientes').textContent = statP;
             document.getElementById('statProyeccion').textContent = '$' + totalGanancia.toLocaleString('es-CL');
+
+            // "Sigue: …" se recalcula con cada render (cambio de día, cita nueva,
+            // cambio de estado). El setInterval solo cubre el paso del tiempo.
+            try { _updateNextCitaChip(); } catch (_) { /* noop */ }
+            try { if (_headerScrolled) _refreshHeaderNext(); } catch (_) { /* noop */ }
+            try { _paintStripDensity(); } catch (_) { /* noop */ }
 
             const mSlots = document.getElementById('morningSlots');
             const aSlots = document.getElementById('afternoonSlots');
@@ -2253,7 +2484,7 @@
                 if (isViewingToday && !nowInserted && cur > nowMins) {
                     const hh = Math.floor(nowMins / 60).toString().padStart(2, '0');
                     const mn = (nowMins % 60).toString().padStart(2, '0');
-                    const nowEl = parseHTML(`<div id="nowIndicator" class="flex items-center gap-3 py-1 my-0.5" aria-hidden="true">
+                    const nowEl = parseHTML(`<div id="nowIndicator" class="flex items-center gap-3 px-4 sm:px-0 py-1 my-0.5" aria-hidden="true">
                         <span class="text-[10px] font-bold text-red-400 w-[50px] text-right shrink-0">${hh}:${mn}</span>
                         <div class="flex-1 h-px bg-red-400/50 relative">
                             <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-red-400"></div>
@@ -2337,6 +2568,103 @@
             try { window.syncBtnAhoraVisibility && window.syncBtnAhoraVisibility(); } catch (_) { /* noop */ }
         }
 
+        // ── CHIPS DEL CLIENTE EN LA CARD DE CITA ──
+        // Info condensada que se lee de un vistazo antes de tocar la cita:
+        // sin confirmar, nota, tier (Silver/Gold/Platinum por sellosHistoricos)
+        // y primera visita. NUNCA se agrega ninguna señal del canal de contacto
+        // (WhatsApp/email/tel): política de negocio para no facilitar el robo
+        // de clientes por parte de los barberos. Ver `_ocultaTelefono()`.
+        let _clienteById = null;
+        function _getClienteFromCita(cita) {
+            if (!Array.isArray(_clientes) || !cita || !cita.clienteId) return null;
+            if (!_clienteById) {
+                _clienteById = new Map();
+                for (const c of _clientes) _clienteById.set(c.id, c);
+            }
+            return _clienteById.get(cita.clienteId) || null;
+        }
+        function _citaChip(iconHtml, label, colorCss) {
+            return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${colorCss}">${iconHtml}${label}</span>`;
+        }
+        // Formatea un Firestore Timestamp / Date / ms a "HH:MM". Null-safe.
+        function _fmtHoraCorta(ts) {
+            try {
+                const d = (ts && typeof ts.toDate === 'function') ? ts.toDate()
+                        : (ts instanceof Date) ? ts
+                        : (typeof ts === 'number' ? new Date(ts) : null);
+                if (!d || isNaN(d.getTime())) return '';
+                return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            } catch (_) { return ''; }
+        }
+        function _buildCitaChips(cita, isPending, isConfirmed, isCompleted, isCancelled) {
+            const chips = [];
+            if (isPending && !isCancelled) {
+                chips.push(_citaChip('<i class="ph-bold ph-clock text-[10px]"></i>', 'Sin confirmar', 'bg-yellow-500/10 text-yellow-300'));
+            }
+            // Check-in del cliente. Field ortogonal a estado: la máquina
+            // Pendiente→Confirmada→Completada no cambia; checkedInAt captura
+            // "el cliente entró por la puerta" para métricas de puntualidad.
+            //  - Confirmada sin checkedInAt → chip CTA "Llegó" (verde tenue).
+            //  - Cualquier estado != Completada/Cancelada con checkedInAt →
+            //    chip pasivo "En sala HH:MM" (verde firme). Tap = deshacer.
+            if (!isCancelled) {
+                const checkedInAt = cita.checkedInAt;
+                if (checkedInAt && !isCompleted) {
+                    const hora = _fmtHoraCorta(checkedInAt);
+                    const label = hora ? `En sala ${hora}` : 'En sala';
+                    // data-no-swipe evita que el swipe global hijackee el tap del chip.
+                    chips.push(`<button type="button" data-no-swipe onclick="event.stopPropagation(); deshacerLlegadaCita('${cita.id}')" title="Deshacer llegada" class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 active:scale-95 transition-all"><i class="ph-fill ph-user-check text-[11px]"></i>${label}</button>`);
+                } else if (isConfirmed && !checkedInAt) {
+                    chips.push(`<button type="button" data-no-swipe onclick="event.stopPropagation(); marcarLlegadaCita('${cita.id}')" title="Marcar que el cliente llegó" class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/20 active:scale-95 transition-all"><i class="ph-bold ph-hand-tap text-[11px]"></i>Llegó</button>`);
+                }
+            }
+            if (cita.nota) {
+                chips.push(_citaChip('<i class="ph ph-note-pencil text-[10px]"></i>', 'Nota', 'bg-white/5 text-white/70'));
+            }
+            if (!isCancelled) {
+                const c = _getClienteFromCita(cita);
+                if (c) {
+                    const sh = Number(c.sellosHistoricos) || 0;
+                    if (sh >= 25) {
+                        chips.push(_citaChip('<i class="ph-fill ph-diamond text-[10px]"></i>', 'VIP Platinum', 'bg-purple-500/15 text-purple-200'));
+                    } else if (sh >= 10) {
+                        chips.push(_citaChip('<i class="ph-fill ph-star text-[10px]"></i>', 'VIP', 'bg-amber-500/15 text-amber-300'));
+                    } else if (sh >= 3) {
+                        chips.push(_citaChip('<i class="ph ph-arrow-clockwise text-[10px]"></i>', 'Habitual', 'bg-blue-500/10 text-blue-300'));
+                    } else if (sh === 0) {
+                        chips.push(_citaChip('<i class="ph ph-hand-waving text-[10px]"></i>', 'Primera visita', 'bg-emerald-500/10 text-emerald-300'));
+                    }
+                }
+            }
+            return chips.length ? `<div class="flex flex-wrap items-center gap-1 mt-1.5">${chips.join('')}</div>` : '';
+        }
+
+        // ── ACCIONES CHECK-IN ─────────────────────────────────────
+        // Set/clear checkedInAt en la cita. Sin diálogo bloqueante al
+        // marcar (acción común, siempre reversible). Deshacer sí pide
+        // confirm porque suele ser corrección de un mistap.
+        async function marcarLlegadaCita(id) {
+            try {
+                await tenantCol('citas').doc(id).update({
+                    checkedInAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (err) {
+                console.error('Error marcando llegada:', err);
+                alert('No se pudo registrar la llegada. Reintenta.');
+            }
+        }
+        async function deshacerLlegadaCita(id) {
+            if (!window.confirm('¿Deshacer la llegada de este cliente?')) return;
+            try {
+                await tenantCol('citas').doc(id).update({
+                    checkedInAt: firebase.firestore.FieldValue.delete()
+                });
+            } catch (err) {
+                console.error('Error deshaciendo llegada:', err);
+                alert('No se pudo deshacer la llegada. Reintenta.');
+            }
+        }
+
         function buildCitaSlot(time, cita) {
             const isConfirmed = cita.estado === 'Confirmada';
             const isCompleted = cita.estado === 'Completada';
@@ -2351,57 +2679,103 @@
 
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
             const waLink = telLimpio && !_ocultaTelefono() ? `https://wa.me/${telLimpio}` : null;
-            const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1.5 px-2 py-0.5 rounded-full bg-white/5"><i class="ph ph-note-pencil text-[10px]"></i>Nota adjunta</span>` : '';
-            const initials = getInitials(cita.clienteNombre || 'Cliente');
+            const chipsHtml = _buildCitaChips(cita, isPending, isConfirmed, isCompleted, isCancelled);
+            const precioNum = Number(cita.precio) || 0;
+            const montoStr  = (precioNum > 0 && !isCancelled) ? fmtCLPagenda(precioNum) : '';
 
+            // Layout jerárquico:
+            //   [HORA 22px tabular / dur min]  [CLIENTE 16px bold + servicio 13px muted]  [$monto + acciones]
+            // Fuera: avatar iniciales (poco valor por px consumidos), divider vertical, caret final.
             return `
-            <div class="cita-card bg-[#1c1c24] rounded-2xl p-4 cursor-pointer hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : ''} ${extraClass}"
+            <div class="cita-card bg-[#1c1c24] rounded-none sm:rounded-2xl p-4 cursor-pointer hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : ''} ${extraClass}"
+                 data-cita-id="${cita.id}"
                  style="border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid ${leftBorderColor};"
                  onclick="abrirDetalleCita('${cita.id}')">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="text-center min-w-[56px] shrink-0">
-                            <p class="text-xl font-black ${isCancelled ? 'text-white/40' : 'text-white'} tracking-tight">${time}</p>
-                            <p class="text-[10px] font-bold text-white/30 uppercase mt-0.5">${cita.duracionServicio || 30} min</p>
-                        </div>
-                        <div class="h-10 w-[1px] bg-white/10 shrink-0"></div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h4 class="font-bold ${isCancelled ? 'text-white/50' : 'text-white'} text-[15px] leading-tight truncate">${cita.servicioNombre || 'Servicio'}</h4>
-                                ${isNew ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-400 uppercase tracking-widest animate-pulse">NUEVA</span>' : ''}
-                            </div>
-                            <div class="flex items-center gap-2 mt-1.5">
-                                <div class="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-400 shrink-0 border border-white/5 shadow-inner">${initials}</div>
-                                <p class="text-xs font-medium text-white/60 truncate">${cita.clienteNombre || 'Cliente'}</p>
-                            </div>
-                            ${notaIndicator}
-                        </div>
+                <div class="grid grid-cols-[auto_1fr_auto] gap-3 sm:gap-4 items-start">
+                    <div class="text-center min-w-[54px] shrink-0 pt-0.5">
+                        <p class="text-[22px] font-black tracking-tight tabular-nums leading-none ${isCancelled ? 'text-white/40' : 'text-white'}">${time}</p>
+                        <p class="text-[10px] font-bold text-white/30 uppercase mt-1 tracking-widest">${cita.duracionServicio || 30} min</p>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation()">
-                        ${waLink && !isCancelled ? `<a href="${waLink}" target="_blank" title="WhatsApp cliente" class="w-10 h-10 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-[#25D366]/20 active:scale-95"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-xl drop-shadow-[0_0_8px_rgba(37,211,102,0.4)]"></i></a>` : ''}
-                        ${!isCompleted && !isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Completada')" title="Marcar completada" class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-emerald-500/20 active:scale-95"><i class="ph-bold ph-check text-emerald-400 text-lg"></i></button>` : ''}
-                        ${!isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Cancelada')" title="Cancelar cita" class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-red-500/20 active:scale-95"><i class="ph-bold ph-x text-red-400 text-lg"></i></button>` : ''}
-                        <i class="ph-bold ph-caret-right text-white/10 text-lg ml-1"></i>
+                    <div class="min-w-0 pt-0.5">
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <h4 class="font-bold ${isCancelled ? 'text-white/50' : 'text-white'} text-[16px] leading-tight truncate">${cita.clienteNombre || 'Cliente'}</h4>
+                            ${isNew ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-400 uppercase tracking-widest animate-pulse shrink-0">NUEVA</span>' : ''}
+                        </div>
+                        <p class="text-[13px] text-white/55 truncate leading-snug">${cita.servicioNombre || 'Servicio'}</p>
+                        ${chipsHtml}
+                    </div>
+                    <div class="flex flex-col items-end gap-2 shrink-0" onclick="event.stopPropagation()">
+                        ${montoStr ? `<p class="text-[14px] font-black tabular-nums leading-none pt-0.5 ${isCancelled ? 'text-white/40' : 'text-white/85'}">${montoStr}</p>` : ''}
+                        <div class="flex items-center gap-1.5">
+                            ${waLink && !isCancelled ? `<a href="${waLink}" target="_blank" title="WhatsApp cliente" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-[#25D366]/20 active:scale-95"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-xl drop-shadow-[0_0_8px_rgba(37,211,102,0.4)]"></i></a>` : ''}
+                            ${!isCompleted && !isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Completada')" title="Marcar completada" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-emerald-500/20 active:scale-95"><i class="ph-bold ph-check text-emerald-400 text-lg"></i></button>` : ''}
+                            ${!isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Cancelada')" title="Cancelar cita" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-red-500/20 active:scale-95"><i class="ph-bold ph-x text-red-400 text-lg"></i></button>` : ''}
+                        </div>
                     </div>
                 </div>
             </div>`;
         }
 
+        // ── TOAST DE UNDO ──────────────────────────────────────────
+        // Pill flotante abajo con "Deshacer" 4s. Reemplaza los confirm()
+        // bloqueantes: la acción ejecuta y el toast da la ventana de
+        // reversión (~4s). LIFO — un nuevo toast reemplaza al anterior.
+        let _undoToastEl = null;
+        let _undoToastTimer = null;
+        function showUndoToast(mensaje, onUndo) {
+            if (_undoToastEl) { try { _undoToastEl.remove(); } catch (_) {} _undoToastEl = null; }
+            if (_undoToastTimer) { clearTimeout(_undoToastTimer); _undoToastTimer = null; }
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom, 0px) + 18px);left:50%;transform:translateX(-50%) translateY(160%);z-index:9500;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 18px;border-radius:9999px;background:rgba(20,20,24,0.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 12px 32px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);transition:transform .32s cubic-bezier(0.16,1,0.3,1), opacity .28s ease;';
+            t.innerHTML = `
+                <span style="font-size:13px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${mensaje}</span>
+                <button type="button" style="font-size:11px;color:#c9a84c;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:8px 14px;border-radius:9999px;background:rgba(201,168,76,0.14);border:1px solid rgba(201,168,76,0.3);cursor:pointer;">Deshacer</button>
+            `;
+            document.body.appendChild(t);
+            _undoToastEl = t;
+            let done = false;
+            const dismiss = () => {
+                if (done) return; done = true;
+                t.style.transform = 'translateX(-50%) translateY(160%)';
+                t.style.opacity = '0';
+                setTimeout(() => { try { t.remove(); } catch (_) {} }, 340);
+                if (_undoToastEl === t) _undoToastEl = null;
+                if (_undoToastTimer) { clearTimeout(_undoToastTimer); _undoToastTimer = null; }
+            };
+            t.querySelector('button').onclick = () => {
+                try { onUndo && onUndo(); } catch (e) { console.error('undo error', e); }
+                dismiss();
+            };
+            requestAnimationFrame(() => { t.style.transform = 'translateX(-50%) translateY(0)'; });
+            _undoToastTimer = setTimeout(dismiss, 4200);
+        }
+
         async function cambiarEstadoCita(id, nuevoEstado) {
-            const labels = { 'Completada': 'marcar como completada', 'Cancelada': 'cancelar' };
-            if (!confirm(`¿${labels[nuevoEstado] || nuevoEstado} esta cita?`)) return;
+            // Sin confirm() — el toast "Deshacer" 4s reemplaza el diálogo
+            // bloqueante. Fricción cero para el 90% de casos + red de
+            // seguridad para mistaps.
             try {
                 const cita = todayCitas.find(c => c.id === id);
-                const yaCompletada = cita?.estado === 'Completada';
+                if (!cita) return;
+                const prevEstado = cita.estado;
+                if (prevEstado === nuevoEstado) return;      // idempotente
+                const yaCompletada = prevEstado === 'Completada';
+                const yaCancelada  = prevEstado === 'Cancelada';
                 const payload = { estado: nuevoEstado };
-                // Al completar, marcar pendingGoogleReview para que el cliente vea el
-                // modal de calificación al abrir su dashboard. La Cloud Function
-                // sello-automatico ya lo setea también, pero esto garantiza el flag
-                // aunque la CF tarde o falle (defensa en profundidad).
+                // Al completar, marcar pendingGoogleReview para que el cliente
+                // vea el modal de calificación al abrir su dashboard. La CF
+                // sello-automatico ya lo setea, esto es defensa en profundidad.
                 if (nuevoEstado === 'Completada' && !yaCompletada) {
                     payload.pendingGoogleReview = true;
                 }
-                if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
+                // Al cancelar snapshottea el slotLock antes de borrar para
+                // poder recrearlo exactamente en el undo (misma id + data).
+                let slotLockSnapshot = null;
+                if (nuevoEstado === 'Cancelada' && cita.slotLockId && !yaCancelada) {
+                    try {
+                        const s = await tenantCol('slotLocks').doc(cita.slotLockId).get();
+                        if (s.exists) slotLockSnapshot = { id: s.id, data: s.data() };
+                    } catch (_) { /* si no lo pudimos leer, el CF asegurarSlot lo recreará */ }
                     const batch = db.batch();
                     batch.update(tenantCol('citas').doc(id), payload);
                     batch.delete(tenantCol('slotLocks').doc(cita.slotLockId));
@@ -2409,10 +2783,327 @@
                 } else {
                     await tenantCol('citas').doc(id).update(payload);
                 }
+                const msg = nuevoEstado === 'Completada' ? 'Cita marcada como completada'
+                          : nuevoEstado === 'Cancelada'  ? 'Cita cancelada'
+                          : 'Cita actualizada';
+                showUndoToast(msg, async () => {
+                    const revert = { estado: prevEstado || 'Pendiente' };
+                    if (payload.pendingGoogleReview === true) {
+                        revert.pendingGoogleReview = firebase.firestore.FieldValue.delete();
+                    }
+                    try {
+                        if (slotLockSnapshot) {
+                            const batch = db.batch();
+                            batch.update(tenantCol('citas').doc(id), revert);
+                            batch.set(tenantCol('slotLocks').doc(slotLockSnapshot.id), slotLockSnapshot.data);
+                            await batch.commit();
+                        } else {
+                            await tenantCol('citas').doc(id).update(revert);
+                        }
+                    } catch (e) {
+                        alert('No se pudo deshacer: ' + e.message);
+                    }
+                });
             } catch(e) {
                 alert('Error al actualizar la cita: ' + e.message);
             }
         }
+
+        // ── MI PERFIL (vista read-only del barbero) ──────────────
+        // Modal que muestra foto + datos + link a la agenda pública personal.
+        // No edita nada (esa gestión vive en gestion-interna); es sólo lectura
+        // + compartir. La URL pública se deriva del slug del nombre y del
+        // origin actual (el barbero está logueado en su tenant).
+        function _slugifyPerfil(str) {
+            return String(str || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        }
+        async function abrirPerfil() {
+            const overlay = document.getElementById('perfilOverlay');
+            const modal = document.getElementById('perfilModal');
+            if (!overlay || !modal) return;
+            overlay.classList.remove('hidden');
+            modal.classList.remove('hidden');
+            try {
+                const snap = await tenantCol('barberos').doc(barberId).get();
+                const b = snap.exists ? (snap.data() || {}) : {};
+                // Foto (busca en varios nombres de campo por compatibilidad).
+                const fotoUrl = b.foto || b.imagen || b.fotoUrl || b.avatar || '';
+                const img = document.getElementById('perfilFoto');
+                const fallback = document.getElementById('perfilFotoFallback');
+                if (fotoUrl) {
+                    img.src = fotoUrl;
+                    img.classList.remove('hidden');
+                    fallback.classList.add('hidden');
+                    img.onerror = () => { img.classList.add('hidden'); fallback.classList.remove('hidden'); };
+                } else {
+                    img.classList.add('hidden');
+                    fallback.classList.remove('hidden');
+                }
+                document.getElementById('perfilNombre').textContent = b.nombre || 'Sin nombre';
+                document.getElementById('perfilEspecialidad').textContent = b.especialidad || 'Barbero';
+                // Filas condicionales — solo aparecen si el campo tiene valor.
+                const showRow = (rowId, valId, val, formatter) => {
+                    const row = document.getElementById(rowId);
+                    if (val) {
+                        row.classList.remove('hidden');
+                        row.classList.add('flex');
+                        document.getElementById(valId).textContent = formatter ? formatter(val) : val;
+                    } else {
+                        row.classList.add('hidden');
+                        row.classList.remove('flex');
+                    }
+                };
+                showRow('perfilRowEmail',     'perfilEmail',     b.email);
+                showRow('perfilRowTelefono',  'perfilTelefono',  b.telefono);
+                showRow('perfilRowInstagram', 'perfilInstagram', b.instagram, v => '@' + String(v).replace(/^@/, ''));
+                // URL pública: origin actual + slug del nombre.
+                const slug = _slugifyPerfil(b.nombre || '');
+                const url  = slug ? window.location.origin + '/' + slug : '';
+                const urlEl = document.getElementById('perfilPublicUrl');
+                const openBtn = document.getElementById('perfilPublicOpen');
+                const qrWrap = document.getElementById('perfilQRWrap');
+                const shareBtn = document.getElementById('perfilBtnCompartir');
+                if (url) {
+                    urlEl.textContent = url;
+                    openBtn.href = url;
+                    openBtn.style.pointerEvents = '';
+                    openBtn.style.opacity = '';
+                    qrWrap?.classList.remove('hidden');
+                    if (shareBtn) { shareBtn.disabled = false; shareBtn.style.opacity = ''; }
+                    _renderQRPerfil(url);
+                } else {
+                    urlEl.textContent = 'Falta configurar tu nombre para generar el link.';
+                    openBtn.removeAttribute('href');
+                    openBtn.style.pointerEvents = 'none';
+                    openBtn.style.opacity = '0.4';
+                    // Sin link no hay QR ni nada que compartir.
+                    qrWrap?.classList.add('hidden');
+                    if (shareBtn) { shareBtn.disabled = true; shareBtn.style.opacity = '0.4'; }
+                }
+                window._perfilUrl = url;
+            } catch (e) {
+                console.error('abrirPerfil error:', e);
+            }
+        }
+        function cerrarPerfil() {
+            document.getElementById('perfilOverlay')?.classList.add('hidden');
+            document.getElementById('perfilModal')?.classList.add('hidden');
+        }
+
+        /* ── QR de la agenda pública ────────────────────────────────────
+           Los barberos lo imprimen y lo pegan en el espejo / la vitrina:
+           el cliente escanea y reserva solo. Se dibuja en un <canvas> con
+           qrcode@1.5.3 (mismo CDN que dashboard.html). */
+        function _renderQRPerfil(url) {
+            const canvas = document.getElementById('perfilQR');
+            if (!canvas) return;
+            // El módulo ESM del QR es diferido: si el barbero abre el perfil
+            // antes de que cargue, reintentamos cuando avise que está lista.
+            if (!window.QRCode) {
+                window.addEventListener('qrcode:ready', () => _renderQRPerfil(url), { once: true });
+                return;
+            }
+            window.QRCode.toCanvas(canvas, url, {
+                width: 180,
+                margin: 1,
+                // Alto contraste: el QR se escanea desde lejos y con poca luz.
+                color: { dark: '#0a0a0a', light: '#ffffff' },
+            }, err => { if (err) console.error('[QR perfil]', err); });
+        }
+
+        // Descarga el QR como PNG, listo para imprimir.
+        function descargarQRPerfil() {
+            const canvas = document.getElementById('perfilQR');
+            if (!canvas) return;
+            const slug = _slugifyPerfil(barberNombre || 'agenda') || 'agenda';
+            try {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = `agenda-${slug}.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) { console.error('descargarQRPerfil:', e); }
+        }
+
+        /* Compartir nativo: un toque y elige WhatsApp / estado / Instagram.
+           Antes el único camino era copiar → abrir WhatsApp → pegar. */
+        async function compartirLinkPerfil() {
+            const url = window._perfilUrl;
+            if (!url) return;
+            // Copy en español neutro: lo lee el cliente final, no el barbero.
+            const texto = barberNombre
+                ? `Agenda tu hora conmigo (${barberNombre}) directo aquí:`
+                : 'Agenda tu hora directo aquí:';
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Mi agenda', text: texto, url });
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return; // canceló
+                }
+            }
+            window.open(`https://wa.me/?text=${encodeURIComponent(`${texto}\n${url}`)}`, '_blank', 'noopener,noreferrer');
+        }
+
+        async function copiarLinkPerfil() {
+            const url = window._perfilUrl;
+            if (!url) return;
+            const btn = document.getElementById('perfilBtnCopiar');
+            const originalHtml = btn ? btn.innerHTML : '';
+            const flash = (ok) => {
+                if (!btn) return;
+                btn.innerHTML = ok
+                    ? '<i class="ph-fill ph-check-circle" style="color:#34d399"></i> Copiado'
+                    : '<i class="ph-bold ph-warning" style="color:#f87171"></i> Falló';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 1600);
+            };
+            try {
+                await navigator.clipboard.writeText(url);
+                flash(true);
+            } catch (_) {
+                // Fallback antiguo (ej. Firefox sin permisos)
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = url;
+                    ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    flash(true);
+                } catch (_) { flash(false); }
+            }
+        }
+
+        // ── SWIPE + LONG-PRESS EN LA CARD (solo móvil) ────────────
+        // Swipe → Completada / ← Cancelada.
+        // Long-press (~550ms sin mover) → abre editor (hora, precio, servicio…),
+        // que es la vía más rápida para reagendar la cita a otro slot.
+        // Preserva scroll vertical y no hijackea taps sobre botones internos.
+        (function initCitaSwipe() {
+            if (window._citaSwipeReady) return;
+            window._citaSwipeReady = true;
+            let card = null;
+            let startX = 0, startY = 0, curX = 0, curY = 0;
+            let dragging = false, hSwipe = false;
+            let lpTimer = null, lpFired = false;
+            const HEAD = 6;    // px min para decidir dirección
+            const HDOM = 1.4;  // horizontal debe superar 1.4× vertical
+            const THRESH = 90; // px para disparar la acción
+            const LP_MS = 550; // ms de long-press
+
+            const isPhone = () => window.innerWidth < 640;
+            const cancelLongPress = () => {
+                if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+            };
+
+            document.addEventListener('touchstart', (e) => {
+                if (!isPhone()) return;
+                const target = e.target;
+                if (!target || !target.closest) return;
+                if (target.closest('a, button, input, textarea, select, [data-no-swipe]')) return;
+                const c = target.closest('.cita-card');
+                if (!c || !c.dataset.citaId) return;
+                card = c;
+                startX = curX = e.touches[0].clientX;
+                startY = curY = e.touches[0].clientY;
+                dragging = true;
+                hSwipe = false;
+                lpFired = false;
+                card.style.transition = 'none';
+                // Arma el timer de long-press. Se dispara si no hubo swipe/tap end.
+                lpTimer = setTimeout(() => {
+                    lpTimer = null;
+                    lpFired = true;
+                    // Cancela swipe visual y suelta el card.
+                    dragging = false;
+                    if (card) {
+                        card.style.transition = 'transform .18s ease, background .18s ease';
+                        card.style.transform = '';
+                        card.style.background = '';
+                    }
+                    // Haptic si el device soporta.
+                    try { if (navigator.vibrate) navigator.vibrate(18); } catch (_) {}
+                    const id = c.dataset.citaId;
+                    // Abrir directo el editor para reagendar (skip detail sheet).
+                    try { abrirEditarCita(id); } catch (_) {}
+                    card = null;
+                    // Bloquea el click sintético post long-press.
+                    const stopClick = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+                    document.addEventListener('click', stopClick, { capture: true, once: true });
+                    setTimeout(() => { try { document.removeEventListener('click', stopClick, { capture: true }); } catch (_) {} }, 400);
+                }, LP_MS);
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!dragging || !card) return;
+                curX = e.touches[0].clientX;
+                curY = e.touches[0].clientY;
+                const dx = curX - startX;
+                const dy = curY - startY;
+                // Movimiento significativo cancela el long-press.
+                if (lpTimer && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) cancelLongPress();
+                if (!hSwipe) {
+                    if (Math.abs(dx) < HEAD && Math.abs(dy) < HEAD) return;
+                    if (Math.abs(dx) < Math.abs(dy) * HDOM) {
+                        dragging = false;
+                        card.style.transform = '';
+                        card = null;
+                        return;
+                    }
+                    hSwipe = true;
+                }
+                if (e.cancelable) e.preventDefault();
+                card.style.transform = `translateX(${dx}px)`;
+                const norm = Math.min(1, Math.abs(dx) / 140);
+                card.style.background = dx > 0
+                    ? `rgba(16,185,129,${0.08 + 0.16 * norm})`
+                    : `rgba(239,68,68,${0.08 + 0.16 * norm})`;
+            }, { passive: false });
+
+            const endSwipe = () => {
+                cancelLongPress();
+                if (lpFired) { lpFired = false; return; }  // ya lo manejó el timer
+                if (!dragging || !card) { dragging = false; card = null; return; }
+                dragging = false;
+                const dx = curX - startX;
+                const c = card;
+                card = null;
+                c.style.transition = 'transform .25s ease, background .25s ease';
+                c.style.background = '';
+                if (hSwipe && Math.abs(dx) > THRESH) {
+                    const citaId = c.dataset.citaId;
+                    const cita = todayCitas.find(cc => cc.id === citaId);
+                    if (!cita) { c.style.transform = ''; return; }
+                    if (dx > 0) {
+                        if (cita.estado === 'Completada' || cita.estado === 'Cancelada') {
+                            c.style.transform = '';
+                        } else {
+                            c.style.transform = 'translateX(100%)';
+                            cambiarEstadoCita(citaId, 'Completada');
+                        }
+                    } else {
+                        if (cita.estado === 'Cancelada') {
+                            c.style.transform = '';
+                        } else {
+                            c.style.transform = 'translateX(-100%)';
+                            cambiarEstadoCita(citaId, 'Cancelada');
+                        }
+                    }
+                } else {
+                    c.style.transform = '';
+                }
+                if (hSwipe) {
+                    const stopClick = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+                    document.addEventListener('click', stopClick, { capture: true, once: true });
+                    setTimeout(() => { try { document.removeEventListener('click', stopClick, { capture: true }); } catch (_) {} }, 350);
+                }
+            };
+            document.addEventListener('touchend', endSwipe);
+            document.addEventListener('touchcancel', endSwipe);
+        })();
 
         // ── DETALLE DE CITA (bottom sheet) ──────────────────────────
         let _citaActiva = null;
@@ -2432,7 +3123,7 @@
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
             document.querySelectorAll('.cd-wa-btn').forEach(el => {
                 el.innerHTML = telLimpio && !_isChameleon
-                    ? `<a href="https://wa.me/${telLimpio}" target="_blank" class="w-10 h-10 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center hover:scale-105 transition-transform"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-xl"></i></a>`
+                    ? `<a href="https://wa.me/${telLimpio}" target="_blank" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center hover:scale-105 transition-transform"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-xl"></i></a>`
                     : '';
             });
 
@@ -2496,15 +3187,44 @@
                 deskContent.classList.add('flex');
             }
 
-            // Mostrar en mobile
+            // Mostrar en mobile — siempre reset a compact al abrir.
             _initSheetSwipe();
+            _setSheetState('compact');
             document.getElementById('citaDetailOverlay').classList.remove('hidden');
             requestAnimationFrame(() => {
                 document.getElementById('citaDetailSheet').style.transform = 'translateY(0)';
             });
         }
 
-        // Swipe hacia abajo para cerrar el bottom sheet (solo móvil)
+        // ── SHEET STATE MACHINE: compact ↔ expanded ───────────────
+        // "compact" = 55dvh (default al abrir), muestra el header + cliente
+        // + acciones sin cubrir toda la pantalla. "expanded" = 90dvh, revela
+        // la nota + email + resto. El overlay también se aclara en compact
+        // (rgba 0.35) para que el barbero perciba la lista atrás.
+        function _setSheetState(state) {
+            const sheet = document.getElementById('citaDetailSheet');
+            const inner = sheet ? sheet.querySelector('[data-cd-inner]') : null;
+            const overlay = document.getElementById('citaDetailOverlay');
+            const icon = document.getElementById('cdSheetToggleIcon');
+            if (!sheet || !inner) return;
+            const expanded = state === 'expanded';
+            sheet.dataset.state = expanded ? 'expanded' : 'compact';
+            sheet.style.maxHeight = expanded ? '90dvh' : '55dvh';
+            inner.style.maxHeight = expanded ? 'calc(90dvh - 24px)' : 'calc(55dvh - 24px)';
+            if (overlay) overlay.style.background = expanded ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.35)';
+            if (icon) icon.className = expanded ? 'ph-bold ph-caret-down text-white/50' : 'ph-bold ph-caret-up text-white/50';
+        }
+        function _toggleSheetSize() {
+            const sheet = document.getElementById('citaDetailSheet');
+            if (!sheet) return;
+            _setSheetState(sheet.dataset.state === 'expanded' ? 'compact' : 'expanded');
+        }
+
+        // Swipe en el handle:
+        //   · compact + drag ↓ >90px = cerrar
+        //   · compact + drag ↑ >40px = expand
+        //   · expanded + drag ↓ >90px = compact (no cierra)
+        //   · tap corto (|dy|<6) = toggle expand/compact (menos hostil que cerrar)
         let _sheetSwipeReady = false;
         function _initSheetSwipe() {
             if (_sheetSwipeReady) return;
@@ -2524,21 +3244,40 @@
             handle.addEventListener('touchmove', (e) => {
                 if (!dragging) return;
                 curY = e.touches[0].clientY;
-                const dy = Math.max(0, curY - startY);       // solo hacia abajo
-                sheet.style.transform = `translateY(${dy}px)`;
-                if (dy > 0) e.preventDefault();
+                const dy = curY - startY;
+                // Solo trackeamos arrastre "hacia abajo" en el transform.
+                // Un drag ↑ desde compact NO mueve el sheet visualmente
+                // (la altura es fija); el snap a expanded ocurre al soltar.
+                if (dy > 0) {
+                    sheet.style.transform = `translateY(${dy}px)`;
+                    e.preventDefault();
+                }
             }, { passive: false });
 
             const onEnd = () => {
                 if (!dragging) return;
                 dragging = false;
-                sheet.style.transition = '';                  // restaura el easing de la clase
+                sheet.style.transition = '';
                 const dy = curY - startY;
-                if (Math.abs(dy) < 6) {                        // tap = cerrar
-                    cerrarDetalleCita();
-                } else if (dy > 90) {                          // arrastre suficiente = cerrar
-                    cerrarDetalleCita();
-                } else {                                       // vuelve a su sitio
+                const state = sheet.dataset.state || 'compact';
+                if (Math.abs(dy) < 6) {
+                    // Tap corto: toggle en vez de cerrar (evita mistap-close).
+                    _toggleSheetSize();
+                    sheet.style.transform = 'translateY(0)';
+                } else if (dy > 90) {
+                    // Drag suficientemente hacia abajo
+                    if (state === 'expanded') {
+                        _setSheetState('compact');
+                        sheet.style.transform = 'translateY(0)';
+                    } else {
+                        cerrarDetalleCita();
+                    }
+                } else if (dy < -40 && state === 'compact') {
+                    // Drag arriba desde compact → expandir
+                    _setSheetState('expanded');
+                    sheet.style.transform = 'translateY(0)';
+                } else {
+                    // Vuelve a su sitio
                     sheet.style.transform = 'translateY(0)';
                 }
             };
@@ -2683,9 +3422,9 @@
             // siempre (sin hover). En hover:pointer se conserva el efecto
             // "candado → +" tipo desktop.
             return `
-            <div class="flex items-center gap-4 py-2.5 min-h-[44px] border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer select-none active:bg-white/[0.04]" onclick="abrirOpcionesSlotLibre('${time}')">
+            <div class="flex items-center gap-4 px-4 sm:px-0 py-2.5 min-h-[44px] border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer select-none active:bg-white/[0.04]" onclick="abrirOpcionesSlotLibre('${time}')">
                 <div class="text-center min-w-[50px] shrink-0">
-                    <p class="text-sm font-bold text-white/25 select-none">${time}</p>
+                    <p class="text-sm font-bold text-white/25 select-none tabular-nums">${time}</p>
                 </div>
                 <div class="h-6 w-[1px] bg-white/5 shrink-0"></div>
                 <p class="flex-1 text-xs font-medium text-white/20 group-hover:text-white/40 transition-colors select-none">Espacio disponible</p>
@@ -2698,9 +3437,9 @@
 
         function buildBlockedSlot(time, bloqueo) {
             return `
-            <div class="flex items-center gap-4 py-2.5 border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer" onclick="removerBloqueoRapido('${bloqueo.id}', '${bloqueo.slotLockId || ''}', '${time}')">
+            <div class="flex items-center gap-4 px-4 sm:px-0 py-2.5 border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer" onclick="removerBloqueoRapido('${bloqueo.id}', '${bloqueo.slotLockId || ''}', '${time}')">
                 <div class="text-center min-w-[50px] shrink-0">
-                    <p class="text-sm font-bold text-red-400/50">${time}</p>
+                    <p class="text-sm font-bold text-red-400/50 tabular-nums">${time}</p>
                 </div>
                 <div class="h-6 w-[1px] bg-white/5 shrink-0"></div>
                 <p class="flex-1 text-xs font-medium text-red-400/40 group-hover:text-red-400/60 transition-colors flex items-center gap-1.5">
@@ -2977,8 +3716,13 @@
             if (totalMins <= 0) return;
 
             // Anchos
+            // Móvil (<640px): columnas más anchas (150px) para que cada día
+            // se lea sin apretar, combinado con scroll-snap para que la
+            // navegación X sea "un día a la vez" en vez de perderse en scroll libre.
+            // Desktop: 128px (chunky pero cabe la semana completa en pantalla).
+            const isPhone  = window.innerWidth < 640;
             const timeColW = 56;
-            const dayColW  = 128;
+            const dayColW  = isPhone ? 150 : 128;
             const gapW     = 2;
             const totalW   = timeColW + 7 * dayColW + 6 * gapW;
 
@@ -3021,6 +3765,14 @@
                 containerBaseCss.push(`min-height:${mobileMinH}`);
             } else {
                 containerBaseCss.push('max-height:65vh');
+            }
+            // En móvil: snap-x proximity + scroll-padding para que las columnas
+            // "anclen" justo después de la columna sticky de horas (56px). Así
+            // el usuario desliza y cae limpio en un día. En desktop no lo
+            // aplicamos porque la semana se ve completa sin scroll.
+            if (isPhone) {
+                containerBaseCss.push('scroll-snap-type:x proximity');
+                containerBaseCss.push(`scroll-padding-left:${timeColW}px`);
             }
             container.style.cssText = containerBaseCss.join(';');
 
@@ -3066,7 +3818,7 @@
                 const citas    = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
 
                 const hdr = document.createElement('div');
-                hdr.style.cssText = [
+                const hdrCss = [
                     `grid-column:${i+2}`,
                     'grid-row:1',
                     'position:sticky',
@@ -3077,7 +3829,10 @@
                     'padding:6px 2px 8px',
                     `height:${headerH}px`,
                     `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid '+pal.bordeHeader}`,
-                ].join(';');
+                ];
+                // Snap-align en móvil: el header y su columna caen "juntos" al mismo snap point.
+                if (isPhone) hdrCss.push('scroll-snap-align:start');
+                hdr.style.cssText = hdrCss.join(';');
                 hdr.innerHTML = `
                     <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : pal.diaCortoNormal};">${diasCorto[d.getDay()]}</p>
                     <p style="font-size:17px;font-weight:900;line-height:1.1;color:${isToday ? GOLD : pal.numeroDia}">${d.getDate()}</p>
@@ -3379,6 +4134,23 @@
 
             wrapper.appendChild(grid);
             container.appendChild(wrapper);
+
+            // Auto-scroll horizontal a la columna de HOY (si cae dentro de la
+            // semana renderizada). En móvil hace que al abrir "semana" caigas
+            // directo en tu día, en vez de arrancar en el domingo/lunes.
+            try {
+                let todayIdx = -1;
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(_currentWeekStart);
+                    d.setDate(d.getDate() + i);
+                    if (_fmtDate(d) === todayStr) { todayIdx = i; break; }
+                }
+                if (todayIdx >= 0) {
+                    const targetLeft = timeColW + todayIdx * (dayColW + gapW) - 24; // 24 = padding wrapper
+                    // Usar rAF para asegurar que el layout ya calculó el ancho real del wrapper.
+                    requestAnimationFrame(() => { container.scrollLeft = Math.max(0, targetLeft); });
+                }
+            } catch (_) { /* noop */ }
         }
 
         function _initWeekView() {
@@ -3446,21 +4218,177 @@
         }
 
         // ── INTERVALO DE LA GRILLA DEL DÍA (15/30/45/60) ────────────
-        function _updateIntervalUI() {
+        // Vive en un popover del chip de la fila de la fecha: es configuración
+        // esporádica, no merece una banda permanente.
+        function _intervaloEfectivo() {
             const cfg = barberConfig || globalConfig || {};
-            const eff = _slotInterval || cfg.intervaloMinutos || 30;
+            return _slotInterval || cfg.intervaloMinutos || 30;
+        }
+        function _labelIntervalo(min) {
+            return min === 60 ? '1h' : `${min}'`;
+        }
+        function _updateIntervalUI() {
+            const eff = _intervaloEfectivo();
             const { on, off } = _pillPalette();
             document.querySelectorAll('.int-btn').forEach(b => {
                 const v = parseInt(b.dataset.int);
                 b.style.cssText = (v === eff) ? on : off;
             });
+            const lbl = document.getElementById('intervalChipLabel');
+            if (lbl) lbl.textContent = _labelIntervalo(eff);
         }
+
+        function toggleIntervalPopover(ev) {
+            if (ev) ev.stopPropagation();
+            const pop = document.getElementById('intervalPopover');
+            const chip = document.getElementById('intervalChip');
+            if (!pop) return;
+            const abierto = !pop.classList.toggle('hidden');
+            chip?.setAttribute('aria-expanded', String(abierto));
+        }
+        function cerrarIntervalPopover() {
+            document.getElementById('intervalPopover')?.classList.add('hidden');
+            document.getElementById('intervalChip')?.setAttribute('aria-expanded', 'false');
+        }
+        // Clic fuera cierra el popover (mismo patrón que el kebab).
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('intervalSelectorWrap');
+            if (wrap && !wrap.contains(e.target)) cerrarIntervalPopover();
+        });
 
         function setSlotInterval(min) {
             AgendaState.set('slotInterval', min);
             _updateIntervalUI();
+            cerrarIntervalPopover();
             renderSlots();
         }
+
+        /* ── CHIP "SIGUE" ───────────────────────────────────────────────
+           El barbero abre la agenda para responder una sola pregunta:
+           ¿quién sigue y a qué hora? Antes tenía que scrollear a buscarlo. */
+        function _escHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => (
+                { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+            ));
+        }
+        function _esHoyElDiaVisible() {
+            const d = new Date(currentDate), h = new Date();
+            return d.getFullYear() === h.getFullYear()
+                && d.getMonth()    === h.getMonth()
+                && d.getDate()     === h.getDate();
+        }
+        function _updateNextCitaChip() {
+            const chip = document.getElementById('nextCitaChip');
+            const txt  = document.getElementById('nextCitaText');
+            const dot  = document.getElementById('nextCitaDot');
+            const car  = document.getElementById('nextCitaCaret');
+            if (!chip || !txt) return;
+
+            // "¿Quién sigue?" solo tiene sentido mirando el día de hoy.
+            if (!_esHoyElDiaVisible()) { chip.classList.add('hidden'); return; }
+            chip.classList.remove('hidden');
+
+            const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+            const pendientes = todayCitas
+                .filter(c => c.estado === 'Confirmada' || c.estado === 'Pendiente')
+                .filter(c => typeof c.hora === 'string' && /^\d{1,2}:\d{2}/.test(c.hora))
+                .map(c => {
+                    const [h, m] = c.hora.split(':').map(Number);
+                    return { ...c, _min: h * 60 + m };
+                })
+                .filter(c => c._min >= ahoraMin)
+                .sort((a, b) => a._min - b._min);
+
+            if (!pendientes.length) {
+                const huboCitas = todayCitas.some(c => c.estado === 'Completada');
+                chip.dataset.citaId = '';
+                if (dot) dot.style.background = huboCitas ? '#34d399' : 'rgba(255,255,255,0.25)';
+                if (car) car.style.display = 'none';
+                chip.style.cursor = 'default';
+                txt.innerHTML = huboCitas
+                    ? '<span class="text-white/70">Terminaste por hoy</span>'
+                    : '<span class="text-white/40">Sin citas pendientes hoy</span>';
+                return;
+            }
+
+            const n = pendientes[0];
+            chip.dataset.citaId = n.id || '';
+            if (dot) dot.style.background = '#34d399';
+            if (car) car.style.display = '';
+            chip.style.cursor = 'pointer';
+            const servicio = n.servicioNombre ? ` · ${_escHtml(n.servicioNombre)}` : '';
+            txt.innerHTML = `<span class="text-white/40">Sigue</span> `
+                + `<b class="text-white font-bold">${_escHtml(n.hora)}</b> `
+                + `<span class="text-white/80">· ${_escHtml(n.nombre || 'Cliente')}</span>`
+                + `<span class="text-white/40">${servicio}</span>`;
+        }
+
+        /* ── HEADER COMPACTO AL SCROLLEAR (#3) ──────────────────────────
+           Los 123px del header mostraban el nombre del barbero: lo único
+           que nunca cambia. Al scrollear pasa a mostrar el día y quién
+           sigue, justo cuando la fila de la fecha salió de pantalla. */
+        const _DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+
+        // Texto del header: siempre el día visible; si es hoy, además quién sigue.
+        function _textoHeaderCompacto() {
+            const d = new Date(currentDate);
+            const hoy = _esHoyElDiaVisible();
+            const fecha = hoy ? 'Hoy' : `${_DIAS_CORTO[d.getDay()]} ${d.getDate()}`;
+            if (!hoy) return _escHtml(fecha);
+
+            const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+            const prox = todayCitas
+                .filter(c => c.estado === 'Confirmada' || c.estado === 'Pendiente')
+                .filter(c => typeof c.hora === 'string' && /^\d{1,2}:\d{2}/.test(c.hora))
+                .map(c => { const [h, m] = c.hora.split(':').map(Number); return { ...c, _min: h * 60 + m }; })
+                .filter(c => c._min >= ahoraMin)
+                .sort((a, b) => a._min - b._min)[0];
+
+            if (!prox) {
+                const hubo = todayCitas.some(c => c.estado === 'Completada');
+                return `${_escHtml(fecha)} · ${hubo ? 'terminaste' : 'sin citas'}`;
+            }
+            return `${_escHtml(fecha)} · Sigue <b class="text-white/85">${_escHtml(prox.hora)}</b> ${_escHtml(prox.nombre || '')}`;
+        }
+
+        function _refreshHeaderNext() {
+            const el = document.getElementById('headerNextText');
+            if (el) el.innerHTML = _textoHeaderCompacto();
+        }
+
+        let _headerScrolled = null;
+        function _syncHeaderCompacto() {
+            const scrolled = window.scrollY > 48;
+            if (scrolled === _headerScrolled) return; // evita trabajo por frame
+            _headerScrolled = scrolled;
+
+            document.getElementById('barberLiveWrap')?.classList.toggle('hidden', scrolled);
+            const hn = document.getElementById('headerNext');
+            if (hn) {
+                hn.classList.toggle('hidden', !scrolled);
+                hn.classList.toggle('flex', scrolled);
+            }
+            document.querySelector('header')?.classList.toggle('header-compact', scrolled);
+            if (scrolled) _refreshHeaderNext();
+        }
+        window.addEventListener('scroll', () => requestAnimationFrame(_syncHeaderCompacto), { passive: true });
+
+        // Salta a la tarjeta de la siguiente cita y la resalta un momento.
+        function irASiguienteCita() {
+            const id = document.getElementById('nextCitaChip')?.dataset.citaId;
+            if (!id) return;
+            const card = document.querySelector(`[data-cita-id="${id}"]`);
+            if (!card) return;
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('cita-flash');
+            setTimeout(() => card.classList.remove('cita-flash'), 1700);
+        }
+
+        // El chip envejece solo: a las 15:31 ya no debe decir "Sigue 15:30".
+        setInterval(() => {
+            try { _updateNextCitaChip(); } catch (_) {}
+            try { if (_headerScrolled) _refreshHeaderNext(); } catch (_) {}
+        }, 60000);
 
         // ── ÚLTIMAS RESERVAS ──
         function loadLatestReservations() {
@@ -3738,20 +4666,26 @@
        DETALLE DE CITA — bottom sheet
        ═══════════════════════════════════════════════════════════ -->
   <div id="citaDetailOverlay" class="hidden fixed inset-0 z-[300] lg:hidden" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);" onclick="cerrarDetalleCita()"></div>
-  <div id="citaDetailSheet" class="fixed bottom-0 left-0 right-0 z-[301] transition-transform duration-300 ease-out lg:hidden" style="transform:translateY(100%);max-height:90dvh;background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;">
-    <!-- Handle (arrastrable: deslizar hacia abajo cierra) -->
+  <!-- Sheet con dos snap positions: 55dvh (compact, default) y 90dvh (expanded).
+       El toggle en el header + drag-up desde el handle intercambia entre ambas. -->
+  <div id="citaDetailSheet" data-state="compact" class="fixed bottom-0 left-0 right-0 z-[301] lg:hidden" style="transform:translateY(100%);max-height:55dvh;background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;transition:transform .3s ease-out, max-height .3s ease-out;">
+    <!-- Handle (arrastrable: down cierra o colapsa; up expande) -->
     <div id="citaSheetHandle" class="flex justify-center pt-3.5 pb-2.5 cursor-grab active:cursor-grabbing">
       <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
     </div>
     <!-- Contenido scrolleable -->
-    <div class="overflow-y-auto px-5 pb-10" style="max-height:calc(90dvh - 24px)">
+    <div data-cd-inner class="overflow-y-auto px-5 pb-10" style="max-height:calc(55dvh - 24px);transition:max-height .3s ease-out;">
       <!-- Header -->
-      <div class="flex items-start justify-between mb-5 pt-2">
-        <div>
+      <div class="flex items-start justify-between mb-5 pt-2 gap-2">
+        <div class="min-w-0 flex-1">
           <h3 class="cd-servicio text-lg font-bold text-white"></h3>
           <p class="cd-horario text-xs text-white/40 mt-0.5"></p>
         </div>
-        <button onclick="cerrarDetalleCita()" class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);">
+        <button id="cdSheetToggle" onclick="_toggleSheetSize()" title="Expandir / Compactar" aria-label="Expandir o compactar el detalle" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);">
+          <!-- Ícono lo setea _setSheetState: caret-up cuando compacto, caret-down cuando expandido -->
+          <i id="cdSheetToggleIcon" class="ph-bold ph-caret-up text-white/50"></i>
+        </button>
+        <button onclick="cerrarDetalleCita()" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);">
           <i class="ph-bold ph-x text-white/50"></i>
         </button>
       </div>
@@ -3798,6 +4732,93 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
+       MI PERFIL — vista read-only del barbero
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="perfilOverlay" class="hidden fixed inset-0 z-[350]" style="background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);" onclick="cerrarPerfil()"></div>
+  <!-- Mobile: bottom sheet full-width con esquinas superiores redondeadas.
+       Desktop (sm+): modal centrado con las 4 esquinas redondeadas. Se
+       reposiciona via top-1/2 + translate para no depender de m-auto. -->
+  <div id="perfilModal" class="hidden fixed inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[351]" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;max-height:92dvh;overflow:hidden;">
+    <div class="sm:hidden flex justify-center pt-3.5 pb-2.5" onclick="cerrarPerfil()">
+      <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
+    </div>
+    <div class="overflow-y-auto p-6 sm:p-7" style="max-height:calc(92dvh - 24px); padding-bottom:max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem));">
+      <div class="flex items-start justify-between mb-5 gap-2">
+        <div>
+          <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest">Mi perfil</p>
+          <p class="text-[11px] text-white/40 mt-1">Vista de solo lectura</p>
+        </div>
+        <button onclick="cerrarPerfil()" aria-label="Cerrar" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);">
+          <i class="ph-bold ph-x text-white/50"></i>
+        </button>
+      </div>
+      <!-- Identidad compacta: el barbero ya sabe quién es. Ocupa poco y
+           deja el protagonismo a lo accionable (su link + QR). -->
+      <div class="flex items-center gap-3.5 mb-5">
+        <div class="w-14 h-14 shrink-0 rounded-full overflow-hidden flex items-center justify-center" style="background:rgba(255,255,255,0.06); border:2px solid rgba(201,168,76,0.35);">
+          <i id="perfilFotoFallback" class="ph-fill ph-user text-2xl text-white/40"></i>
+          <img id="perfilFoto" class="w-full h-full object-cover hidden" alt="">
+        </div>
+        <div class="min-w-0">
+          <h3 id="perfilNombre" class="text-lg font-bold text-white truncate">—</h3>
+          <p id="perfilEspecialidad" class="text-xs text-white/50 mt-0.5 truncate">—</p>
+        </div>
+      </div>
+
+      <!-- ACCIÓN PRINCIPAL: su agenda pública. QR para pegar en el espejo o
+           la vitrina, y compartir nativo para mandarla por WhatsApp/IG. -->
+      <div class="p-4 rounded-2xl" style="background:linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border:1px solid rgba(201,168,76,0.3);">
+        <p class="text-[10px] font-bold uppercase tracking-widest mb-3 text-center" style="color:#c9a84c;">Tu agenda pública personal</p>
+
+        <div id="perfilQRWrap" class="flex flex-col items-center mb-3">
+          <div class="p-2.5 rounded-2xl bg-white">
+            <canvas id="perfilQR" class="block" width="180" height="180" aria-label="Código QR de tu agenda"></canvas>
+          </div>
+          <button id="perfilBtnQR" type="button" onclick="descargarQRPerfil()" class="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-80 active:scale-95" style="color:#c9a84c;">
+            <i class="ph-bold ph-download-simple"></i> Descargar QR
+          </button>
+        </div>
+
+        <p id="perfilPublicUrl" class="text-[13px] text-white/90 break-all font-mono mb-3 text-center">—</p>
+
+        <button id="perfilBtnCompartir" onclick="compartirLinkPerfil()" class="w-full py-3 rounded-xl text-sm font-black transition-all active:scale-95 flex items-center justify-center gap-2 mb-2" style="background:#c9a84c; color:#0d0d10;">
+          <i class="ph-bold ph-share-network text-base"></i> Compartir
+        </button>
+        <div class="flex gap-2">
+          <a id="perfilPublicOpen" href="#" target="_blank" rel="noopener" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-center transition-all active:scale-95" style="background:rgba(201,168,76,0.18); border:1px solid rgba(201,168,76,0.35); color:#e8c96b;">
+            <i class="ph-bold ph-arrow-square-out"></i> Abrir
+          </a>
+          <button id="perfilBtnCopiar" onclick="copiarLinkPerfil()" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);">
+            <i class="ph-bold ph-copy"></i> Copiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Datos de contacto: referencia, no acción. Colapsados por defecto. -->
+      <details id="perfilDatos" class="mt-4 group">
+        <summary class="flex items-center justify-between cursor-pointer list-none py-2.5 px-1 select-none">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-white/40">Mis datos</span>
+          <i class="ph-bold ph-caret-down text-white/40 transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="space-y-2 pt-1">
+          <div id="perfilRowEmail" class="hidden items-center gap-3 p-3 rounded-xl" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);">
+            <i class="ph ph-envelope-simple text-white/50 shrink-0"></i>
+            <span id="perfilEmail" class="text-sm text-white/80 truncate"></span>
+          </div>
+          <div id="perfilRowTelefono" class="hidden items-center gap-3 p-3 rounded-xl" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);">
+            <i class="ph ph-phone text-white/50 shrink-0"></i>
+            <span id="perfilTelefono" class="text-sm text-white/80 tabular-nums"></span>
+          </div>
+          <div id="perfilRowInstagram" class="hidden items-center gap-3 p-3 rounded-xl" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);">
+            <i class="ph ph-instagram-logo text-white/50 shrink-0"></i>
+            <span id="perfilInstagram" class="text-sm text-white/80 truncate"></span>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
        MODALES PREMIUM: Calendario, Opciones Slot Libre, Agendar
        ═══════════════════════════════════════════════════════════ -->
 
@@ -3808,6 +4829,11 @@
       <div class="space-y-3">
         <button onclick="accionAgendarCliente()" class="w-full py-3.5 rounded-xl text-sm font-bold text-black bg-white hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2">
           <i class="ph-bold ph-plus-circle text-lg"></i> Agendar Cliente Manual
+        </button>
+        <!-- Llenar el hueco, no solo taparlo: comparte la hora libre por el
+             share nativo del teléfono (WhatsApp, estado, IG). Sin backend. -->
+        <button id="btnOfrecerHora" onclick="accionOfrecerHora()" class="w-full py-3.5 rounded-xl text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-2" style="background:rgba(201,168,76,0.18); border:1px solid rgba(201,168,76,0.35); color:#e8c96b;">
+          <i class="ph-bold ph-share-network text-lg"></i> Ofrecer esta hora
         </button>
         <button onclick="accionBloquearSlot()" class="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
           <i class="ph-bold ph-lock-key text-lg"></i> Bloquear Espacio Rápido
@@ -4189,6 +5215,57 @@
         agregarBloqueoRapido(_timeSlotSeleccionado);
     }
 
+    /* ── OFRECER ESTA HORA ──────────────────────────────────────────────
+       Un hueco vacío es plata que no entró. Las otras acciones del modal
+       solo permiten TAPARLO (bloquear) o llenarlo a mano; esta lo publica:
+       arma el mensaje y abre el share nativo del teléfono para que el
+       barbero lo mande a su estado de WhatsApp, a un cliente o a IG.
+       Sin backend: reusa el link público personal del barbero. */
+
+    // "hoy" / "mañana" / "el jueves 9 de julio" — lenguaje natural.
+    function _cuandoTexto(d) {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const t   = new Date(d); t.setHours(0, 0, 0, 0);
+        const dias = Math.round((t - hoy) / 86400000);
+        if (dias === 0) return 'hoy';
+        if (dias === 1) return 'mañana';
+        const wd = t.toLocaleDateString('es-CL', { weekday: 'long' });
+        const dm = t.toLocaleDateString('es-CL', { day: 'numeric', month: 'long' });
+        return `el ${wd} ${dm}`;
+    }
+
+    // Link público del barbero (mismo criterio que abrirPerfil). Si aún no
+    // cargó su nombre, cae al origin (página de reservas del local).
+    function _linkPublicoBarbero() {
+        const slug = typeof _slugifyPerfil === 'function' ? _slugifyPerfil(barberNombre || '') : '';
+        return slug ? `${window.location.origin}/${slug}` : window.location.origin;
+    }
+
+    async function accionOfrecerHora() {
+        const hora = _timeSlotSeleccionado;
+        if (!hora) return;
+        cerrarOpcionesSlotLibre();
+
+        const cuando = _cuandoTexto(currentDate);
+        const url    = _linkPublicoBarbero();
+        // Copy en español neutro (va a clientes finales): "tú", sin voseo.
+        const texto  = `¡Hola! Tengo una hora disponible ${cuando} a las ${hora}. ¿La tomas?`;
+
+        // Share nativo: un toque y elige WhatsApp / estado / IG.
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: 'Hora disponible', text: texto, url });
+                return;
+            } catch (err) {
+                // El usuario canceló la hoja de compartir → no hacemos nada.
+                if (err && err.name === 'AbortError') return;
+                // Cualquier otro fallo cae al link de WhatsApp.
+            }
+        }
+        // Fallback (escritorio o share no soportado): WhatsApp web/app.
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${texto}\n${url}`)}`, '_blank', 'noopener,noreferrer');
+    }
+
     /* ── Bloqueo por RANGO de horas ─────────────────────────────────────
        A diferencia de accionBloquearSlot (1 solo slot), esto abre un modal
        con inputs de "desde/hasta" para bloquear un rango arbitrario. Se
@@ -4341,6 +5418,16 @@
         try {
             const snap = await tenantCol('clientes').get();
             _clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Invalidar el lookup por id para que _getClienteFromCita
+            // lo reconstruya con los datos frescos, y re-renderizar la
+            // vista día para que aparezcan los chips de tier ahora que
+            // tenemos el pool cargado.
+            _clienteById = null;
+            try {
+                if (typeof _agendaView !== 'undefined' && _agendaView === 'dia' && typeof renderSlots === 'function') {
+                    renderSlots();
+                }
+            } catch (_) { /* noop */ }
         } catch(_e) { _clientes = []; }
     }
 
