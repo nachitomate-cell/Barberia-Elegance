@@ -25,3 +25,11 @@ dist/
 # Logs de import batch (scripts/import-*-<timestamp>.jsonl/.stats.json)
 scripts/import-*.jsonl
 scripts/import-*.stats.json
+
+# Salidas de los scripts de auditoría (scripts/audit-<tenant>-<timestamp>.json).
+# Son artefactos de una corrida, no fuente.
+scripts/audit-*.json
+
+# Scripts de un solo uso: rutas absolutas hardcodeadas y se despliegan con
+# las functions sin que nadie los importe.
+functions/_temp-*.js

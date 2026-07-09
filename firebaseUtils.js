@@ -47,6 +47,8 @@ const FDB = (() => {
     'clientes',
     // anuncios_optout: opt-out aplica a las 3 sedes Kronnos (pool marca).
     'anuncios_optout',
+    // packConsumos: log del motor de packs. Vive con users (pool marca).
+    'packConsumos',
   ]);
   function _marcaAwareTenant(tid, colName) {
     if (KRONNOS_LEGACY_TO_MARCA[tid] && KRONNOS_MARCA_COLLECTIONS.has(colName)) {
@@ -618,6 +620,16 @@ const FDB = (() => {
     if (cita.servicioId)             citaData.servicioId             = cita.servicioId;
     if (cita.clienteUid)             citaData.clienteUid             = cita.clienteUid;
     if (cita.clienteTelefonoSuf9)    citaData.clienteTelefonoSuf9    = cita.clienteTelefonoSuf9;
+    // Motor de packs: la reserva pública marca la cita como consumo de sesión
+    // cuando el cliente tiene un pack activo que cubre este servicio. Sin
+    // estos campos, el motor procesarPackDeCita() en el panel no descuenta
+    // saldo. Mismo bug que teníamos con origenAdquisicion (allowlist explícito
+    // dropeaba el campo). Ver index.html: _autoDetectPackParaServicio().
+    if (cita.consumeSesionPack)      citaData.consumeSesionPack      = true;
+    if (cita.packRefId)              citaData.packRefId              = cita.packRefId;
+    if (cita.packNombre)             citaData.packNombre             = cita.packNombre;
+    if (cita.packSesionIndex != null) citaData.packSesionIndex       = Number(cita.packSesionIndex) || 0;
+    if (cita.packSesionTotal != null) citaData.packSesionTotal       = Number(cita.packSesionTotal) || 0;
     // Productos reservados en el cross-sell del paso final (entrega/pago presencial).
     if (Array.isArray(cita.productosReservados) && cita.productosReservados.length) {
       citaData.productosReservados = cita.productosReservados.map(p => ({

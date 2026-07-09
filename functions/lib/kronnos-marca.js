@@ -47,6 +47,9 @@ const MARCA_COLLECTIONS = new Set([
   // anuncios_optout: si un cliente Kronnos dice "no más pushes", opt-out
   // aplica a las 3 sedes. Vive en pool marca.
   'anuncios_optout',
+  // packConsumos: log del motor de packs (activación/consumo/reversión).
+  // El saldo vive en users (marca), el log también, para historial cross-sede.
+  'packConsumos',
 ]);
 
 // Sedes válidas — para validar sedeCanje del payload cliente.
