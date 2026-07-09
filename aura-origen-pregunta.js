@@ -18,9 +18,16 @@
 (function () {
   'use strict';
 
+  console.log('[aura-origen] script cargado. v=2');
   // Guard: si ya se cargó por otra vía (double-include defensivo).
-  if (window._auraOrigenLoaded) return;
+  if (window._auraOrigenLoaded) { console.log('[aura-origen] ya cargado antes, skip'); return; }
   window._auraOrigenLoaded = true;
+
+  // Tag visible para diagnostico manual: si esto no aparece en el body,
+  // el script no cargo en el browser (probable HTML/JS cacheado).
+  function marcarReady() {
+    if (document.body) document.body.setAttribute('data-aura-modal-ready', '1');
+  }
 
   const MODAL_HTML = `
     <div id="auraOrigenModal" class="fixed inset-0 z-[300] hidden items-end sm:items-center justify-center p-0 sm:p-6"
@@ -156,8 +163,9 @@
 
   // Espera al DOM si aún no está listo
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inyectar);
+    document.addEventListener('DOMContentLoaded', () => { marcarReady(); inyectar(); });
   } else {
+    marcarReady();
     inyectar();
   }
 
