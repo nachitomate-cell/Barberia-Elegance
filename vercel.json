@@ -153,6 +153,10 @@
     { "source": "/:path*",      "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/empieza.html" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/logo.jpg" },
 
+    { "source": "/",            "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/crea.html" },
+    { "source": "/:path*",      "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/crea.html" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/syn-192.png" },
+
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
     { "source": "/refiere",                "destination": "/refiere.html" },
@@ -160,6 +164,7 @@
     { "source": "/empieza",                "destination": "/empieza.html" },
     { "source": "/demo",                   "destination": "/empieza.html" },
     { "source": "/contacto",               "destination": "/empieza.html" },
+    { "source": "/crea",                   "destination": "/crea.html" },
     { "source": "/agenda",                 "destination": "/agenda.html" },
     { "source": "/agenda/:path*",          "destination": "/agenda.html" },
     { "source": "/servicios",              "destination": "/index.html" },

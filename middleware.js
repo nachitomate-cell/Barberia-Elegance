@@ -1227,6 +1227,120 @@ function injectAdminMeta(html, meta, hostname) {
   return html;
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  TENANTS SELF-SERVICE — resolución dinámica de subdominios
+//
+//  Producto masivo (/crea + CF provisionarTenantSelf): cada local creado
+//  self-service vive en {slug}.synaptechspa.cl SIN entrada en DOMAIN_MAP ni
+//  TENANT_META. La fuente de verdad es el doc raíz público tenants/{slug}
+//  en Firestore (branding + plan, sin datos sensibles). Aquí:
+//    1. fetchSelfTenant     — lee ese doc por REST (mismo patrón que bio_handles)
+//    2. buildSelfTenantMeta — arma un TENANT_META genérico desde sus campos
+//    3. selfTenantScript    — inyecta __FORCE_TENANT__ + __TENANT_CONFIG__
+//       para que config.js registre el tenant sin tocar código.
+//  Los tenants a medida NO pasan por aquí: DOMAIN_MAP resuelve primero.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// Subdominios que jamás son un tenant self-service (evita un fetch inútil).
+const SELF_SUBDOMINIOS_EXCLUIDOS = new Set([
+  'www', 'empieza', 'links', 'admin', 'crea', 'demo', 'api', 'app', 'bioo',
+]);
+
+async function fetchSelfTenant(slug) {
+  try {
+    const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+    const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${encodeURIComponent(slug)}`;
+    const res = await fetch(docUrl);
+    if (!res.ok) return null;
+    const f = ((await res.json()).fields) || {};
+    const s = (k) => (f[k] && f[k].stringValue) || null;
+    if (s('origen') !== 'self-service') return null; // a medida se resuelve por DOMAIN_MAP
+    if (s('estado') === 'suspendido') return null;   // kill switch a nivel edge
+    return {
+      slug,
+      nombre:      s('nombre') || slug,
+      nombreCorto: s('nombreCorto') || (s('nombre') || slug).split(' ')[0],
+      tipo:        s('tipo'),
+      telefono:    s('telefono'),
+      color:       s('color'),
+      instagram:   s('instagram'),
+      slogan:      s('slogan'),
+      direccion:   s('direccion'),
+      logoUrl:     s('logoUrl'),
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildSelfTenantMeta(slug, t) {
+  const nombre = t.nombre;
+  const corto  = t.nombreCorto;
+  const desc   = `Reserva tu hora en ${nombre}. Elige servicio, profesional y horario en segundos.`;
+  const schemaPorTipo = {
+    barberia: 'HairSalon', peluqueria: 'HairSalon', mixto: 'HairSalon',
+    nails: 'NailSalon', spa: 'DaySpa', otro: 'LocalBusiness',
+  };
+  const icon = t.logoUrl || '/syn-192.png';
+  return {
+    booking: {
+      title:       `Agendar Hora | ${nombre}`,
+      description: desc,
+      ogTitle:     `Agendar Hora | ${nombre}`,
+      ogDesc:      desc,
+    },
+    dashboard: {
+      title:       `Mi Club | ${nombre}`,
+      description: `Tu panel personal en ${nombre}. Revisa tus sellos, canjea premios y actualiza tu perfil.`,
+      ogTitle:     `Mi Club | ${nombre}`,
+      ogDesc:      `Club de fidelidad de ${nombre}. Acumula sellos y canjea premios.`,
+    },
+    registro: {
+      title:       `Únete al Club | ${nombre}`,
+      description: `Crea tu cuenta en ${nombre}. Acumula sellos y canjea premios.`,
+      ogTitle:     `Únete al Club | ${nombre}`,
+      ogDesc:      `Regístrate en ${nombre} y disfruta de beneficios exclusivos.`,
+    },
+    siteName:   nombre,
+    ogImage:    t.logoUrl || '/syn-512.png',
+    themeColor: '#0a0a0a',
+    appTitle:   corto,
+    icon,
+    local: {
+      schemaType: schemaPorTipo[t.tipo] || 'HairSalon',
+      ...(t.telefono  ? { telephone: `+${String(t.telefono).replace(/^\+/, '')}` } : {}),
+      ...(t.direccion ? { streetAddress: t.direccion } : {}),
+      ...(t.instagram ? { instagram: `https://instagram.com/${t.instagram}` } : {}),
+    },
+    manifest: {
+      name:             nombre,
+      short_name:       corto.slice(0, 12),
+      theme_color:      '#0a0a0a',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             `Panel Admin · ${corto}`,
+      short_name:       corto.slice(0, 12),
+      description:      `Panel de administración — ${nombre}`,
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        `/gestion-interna/?local=${slug}`,
+      icons: [
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  };
+}
+
+function selfTenantScript(slug, t) {
+  const cfg = { id: slug, ...t };
+  // < evita cerrar el <script> si algún campo trajera "</script>".
+  return '<script>window.__FORCE_TENANT__=' + JSON.stringify(slug)
+    + ';window.__TENANT_CONFIG__=' + JSON.stringify(cfg).replace(/</g, '\\u003c')
+    + ';</script>';
+}
+
 export const config = {
   matcher: [
     '/((?!api|_next|favicon\\.ico|.*\\.).*)',
@@ -1298,7 +1412,28 @@ export default async function middleware(request) {
     return;
   }
 
-  const tenantId = DOMAIN_MAP[hostname] || 'elegance';
+  // /crea (registro self-service): página propia con su propio <head>; no
+  // inyectar el SEO de ningún tenant (mismo trato que los seeders). En el
+  // subdominio dedicado el pathname es "/" (vercel.json lo rewritea), así
+  // que el host también corta aquí.
+  if (hostname === 'crea.synaptechspa.cl'
+      || url.pathname === '/crea' || url.pathname === '/crea.html') {
+    return;
+  }
+
+  let tenantId = DOMAIN_MAP[hostname];
+
+  // ── Tenants self-service: {slug}.synaptechspa.cl sin entrada en DOMAIN_MAP ──
+  let selfTenant = null;
+  if (!tenantId && hostname.endsWith('.synaptechspa.cl')) {
+    const sub = hostname.slice(0, -'.synaptechspa.cl'.length);
+    if (sub && sub.indexOf('.') < 0 && !SELF_SUBDOMINIOS_EXCLUIDOS.has(sub)) {
+      selfTenant = await fetchSelfTenant(sub);
+      if (selfTenant) tenantId = sub;
+    }
+  }
+
+  if (!tenantId) tenantId = 'elegance';
 
   // ── Sitemap XML: debe interceptarse antes de cualquier otro handler ───────────
   if (url.pathname === '/sitemap.xml') {
@@ -1367,7 +1502,10 @@ export default async function middleware(request) {
   }
 
   // Deep copy para no contaminar el estado global (importante en Edge environments)
-  const meta = JSON.parse(JSON.stringify(TENANT_META[tenantId] ?? TENANT_META.elegance));
+  // Self-service: el meta se construye desde el doc raíz del tenant, no del map.
+  const meta = selfTenant
+    ? buildSelfTenantMeta(tenantId, selfTenant)
+    : JSON.parse(JSON.stringify(TENANT_META[tenantId] ?? TENANT_META.elegance));
 
   // ── Manifest cliente: devolver versión dinámica por tenant ───────────────────
   if (url.pathname === '/manifest.json') {
@@ -1445,6 +1583,13 @@ export default async function middleware(request) {
   // ── Admin HTML: inyectar meta tags del tenant (icon, theme-color, title) ─────
   // Cubre /gestion-interna/, /gestion-interna/index.html y cualquier ruta SPA como /gestion-interna/equipo
   if (url.pathname === '/gestion-interna' || url.pathname.startsWith('/gestion-interna/')) {
+    // Self-service: el panel resuelve el tenant vía ?local= (tenantUtils no
+    // conoce estos subdominios). Si falta, redirigimos agregándolo — queda
+    // persistido en sessionStorage del panel para el resto de la sesión.
+    if (selfTenant && !url.searchParams.get('local')) {
+      url.searchParams.set('local', tenantId);
+      return Response.redirect(url, 302);
+    }
     const response = await fetch(new Request(request, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) return response;
@@ -1526,6 +1671,12 @@ export default async function middleware(request) {
 
   let html = await response.text();
   html = injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantId);
+
+  // Self-service: registrar el tenant en config.js sin tocar código —
+  // __TENANT_CONFIG__ arma window.SHOP y __FORCE_TENANT__ lo selecciona.
+  if (selfTenant) {
+    html = html.replace('<head>', '<head>' + selfTenantScript(tenantId, selfTenant));
+  }
 
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');

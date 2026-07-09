@@ -881,6 +881,42 @@
     },
   };
 
+  // ── Tenants self-service ({slug}.synaptechspa.cl, producto masivo) ──
+  // El edge middleware resuelve el subdominio contra el doc raíz público
+  // tenants/{slug} e inyecta window.__TENANT_CONFIG__ (branding) junto a
+  // window.__FORCE_TENANT__. Aquí lo registramos en _tenants para que TODO
+  // el pipeline de abajo (SHOP, clases CSS, favicon) funcione sin tocar
+  // código por tenant. Usan la plantilla visual neutra (sin CSS tenant-X)
+  // + color de acento vía CSS vars (ver más abajo).
+  try {
+    var _selfCfg = window.__TENANT_CONFIG__;
+    if (_selfCfg && _selfCfg.id && !_tenants[_selfCfg.id]) {
+      var _selfNombre = _selfCfg.nombre || 'Mi Local';
+      var _selfCorto  = _selfCfg.nombreCorto || _selfNombre.split(' ')[0];
+      var _selfIgUrl  = _selfCfg.instagram ? ('https://instagram.com/' + _selfCfg.instagram) : '';
+      _tenants[_selfCfg.id] = {
+        categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+        nombre:          _selfNombre,
+        nombreCorto:     _selfCorto,
+        slogan:          _selfCfg.slogan || 'Reserva tu hora online en segundos',
+        logo:            _selfCfg.logoUrl || '/syn-192.png',
+        direccion:       _selfCfg.direccion ? ('📍 ' + _selfCfg.direccion) : '',
+        horario:         '¡Reserva tu hora online!',
+        telefono:        _selfCfg.telefono || '',
+        club:            'Club ' + _selfCorto,
+        instagram:       _selfIgUrl,
+        instagramHandle: _selfCfg.instagram ? ('@' + _selfCfg.instagram) : '',
+        waEmoji:         '✂️',
+        googleReviewUrl: '',
+        ratingGeneral:   0,
+        totalReviews:    0,
+        reviews:         [],
+        accentColor:     _selfCfg.color || null,
+        barberos:        [],
+      };
+    }
+  } catch (_) {}
+
   // Resolver tenant: query param > dominio > sessionStorage > default
   let tenantId = '';
   // Tenant forzado por el edge middleware (bioo.cl/<handle> sirve la bio de un local).
@@ -926,6 +962,24 @@
   window.SHOP = _tenants[tenantId];
   // Lista completa de tenants (la usa el panel de superadmin para no mantener cards a mano).
   try { window.ALL_TENANTS = _tenants; } catch (_) {}
+
+  // ── Color de acento self-service ──────────────────────────────────
+  // Los tenants a medida traen su tema en CSS (clases tenant-X). Los
+  // self-service no tienen CSS propio: pisamos las vars --neon-* del
+  // tema base con el color que eligió el dueño al crear su agenda.
+  try {
+    var _accSelf = _tenants[tenantId] && _tenants[tenantId].accentColor;
+    if (_accSelf && /^#[0-9a-fA-F]{6}$/.test(_accSelf)) {
+      var _accR = parseInt(_accSelf.slice(1, 3), 16);
+      var _accG = parseInt(_accSelf.slice(3, 5), 16);
+      var _accB = parseInt(_accSelf.slice(5, 7), 16);
+      var _rootSt = document.documentElement.style;
+      _rootSt.setProperty('--neon-clr', _accSelf);
+      _rootSt.setProperty('--neon-r', String(_accR));
+      _rootSt.setProperty('--neon-g', String(_accG));
+      _rootSt.setProperty('--neon-b', String(_accB));
+    }
+  } catch (_) {}
 
   // ── Kronnos multi-sede (Camino 1, D2): resuelve sedeId en el sitio público ──
   // Espejo del map en middleware.js y admin-panel/tenantUtils.js.

@@ -1121,3 +1121,12 @@ exports.biooTrackClick = biooTrack.biooTrackClick;
 // ─────────────────────────────────────────────────────────────────
 const biooAiBuilder = require('./bioo-ai-builder');
 exports.biooAiGenerate = biooAiBuilder.biooAiGenerate;
+
+// ─────────────────────────────────────────────────────────────────
+//  SYNAPTECH SELF-SERVICE — aprovisionamiento automático de tenants
+//  (producto masivo gratis en {slug}.synaptechspa.cl; el servicio a
+//  medida sigue por el canal de leads). Ver functions/provision-tenant.js.
+// ─────────────────────────────────────────────────────────────────
+const provisionTenant = require('./provision-tenant');
+exports.verificarSlugLibre     = provisionTenant.verificarSlugLibre;
+exports.provisionarTenantSelf  = provisionTenant.provisionarTenantSelf;

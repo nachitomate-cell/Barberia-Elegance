@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Crea tu agenda online gratis · SynapTech</title>
+<meta name="theme-color" content="#0a0a10" />
+<link rel="icon" href="/syn-192.png" />
+<meta name="description" content="Crea la agenda online de tu barbería, peluquería o salón en 2 minutos. Gratis, con tu propia dirección web, reservas 24/7 y club de fidelidad. Sin tarjeta." />
+
+<meta property="og:title" content="Crea tu agenda online gratis — SynapTech" />
+<meta property="og:description" content="Tu agenda con reservas 24/7 y club de fidelidad, lista en 2 minutos. Gratis y con tu propia dirección web." />
+<meta property="og:image" content="https://crea.synaptechspa.cl/syn-512.png" />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" />
+
+<style>
+  :root{
+    --acc:#8b7cf6; --acc-soft:#a99cf8; --acc-deep:#4c3fd4; --ink:#12102a;
+    --bg-1:#0a0a10; --bg-2:#111118; --soft:#8a8798; --err:#ffb5a3; --ok:#7ee2a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fff;min-height:100dvh;}
+  body{
+    background:
+      radial-gradient(70% 60% at 50% -10%, rgba(139,124,246,.20), transparent 65%),
+      radial-gradient(60% 50% at 90% 30%, rgba(139,124,246,.08), transparent 70%),
+      radial-gradient(80% 60% at 10% 95%, rgba(76,63,212,.30), transparent 70%),
+      var(--bg-1);
+    min-height:100dvh;display:flex;flex-direction:column;
+    background-attachment:fixed;
+  }
+
+  header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:16px;letter-spacing:-.3px;}
+  .brand img{width:34px;height:34px;border-radius:10px;box-shadow:0 4px 18px rgba(139,124,246,.35);}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.12em;color:var(--ink);
+    background:linear-gradient(180deg,#c9c0fb,#8b7cf6);
+    border-radius:999px;padding:7px 14px;
+  }
+
+  main{flex:1;padding:4px 20px 40px;}
+  .wrap{width:100%;max-width:520px;margin:0 auto;}
+
+  .hero{padding:10px 4px 20px;}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;
+    color:var(--acc-soft);margin-bottom:14px;
+  }
+  .kicker .line{width:24px;height:2px;background:var(--acc);border-radius:99px;}
+  h1{font-size:32px;line-height:1.06;font-weight:900;letter-spacing:-1.1px;}
+  h1 .accent{
+    background:linear-gradient(135deg,#c9c0fb 0%,#8b7cf6 55%,#c9c0fb 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{margin-top:12px;font-size:14.5px;line-height:1.55;color:#b9b6c9;}
+  .sub b{color:#fff;}
+
+  .card{
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);
+    border-radius:22px;padding:22px 20px;margin-top:18px;backdrop-filter:blur(12px);
+  }
+  .sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.18em;color:var(--acc-soft);
+    display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .sec .n{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+    background:var(--acc);color:var(--ink);font-size:11px;font-weight:900;letter-spacing:0;}
+  .field{margin-bottom:14px;}
+  label{font-size:11.5px;font-weight:700;color:#9c99ad;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:7px;}
+  label .opt{font-weight:500;color:#5f5c70;text-transform:none;letter-spacing:0;font-size:11px;}
+  input,select{
+    width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+    border-radius:13px;padding:13px 14px;font-size:15px;color:#fff;outline:none;
+    font-family:inherit;transition:border-color .15s;
+  }
+  input:focus,select:focus{border-color:var(--acc);}
+  input::placeholder{color:#565368;}
+  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8798' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+  select option{background:#15131f;color:#fff;}
+
+  /* slug */
+  .slugbox{display:flex;align-items:center;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.12);border-radius:13px;overflow:hidden;transition:border-color .15s;}
+  .slugbox:focus-within{border-color:var(--acc);}
+  .slugbox input{border:none;background:transparent;border-radius:0;flex:1;min-width:0;}
+  .slugbox .dom{padding:0 14px 0 4px;font-size:13px;color:#7a7790;font-weight:600;white-space:nowrap;}
+  .slughint{font-size:12px;margin-top:7px;min-height:16px;font-weight:600;}
+  .slughint.ok{color:var(--ok);}
+  .slughint.bad{color:var(--err);}
+  .slughint.checking{color:#8a8798;}
+
+  /* colores */
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .sw{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;}
+  .sw:hover{transform:scale(1.1);}
+  .sw.active{border-color:#fff;transform:scale(1.12);box-shadow:0 0 0 3px rgba(255,255,255,.15);}
+  .sw-custom{position:relative;width:38px;height:38px;border-radius:50%;overflow:hidden;
+    border:2px dashed rgba(255,255,255,.3);display:grid;place-items:center;font-size:16px;}
+  .sw-custom input{position:absolute;inset:-8px;opacity:0;cursor:pointer;padding:0;}
+
+  .submit{
+    width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;
+    background:linear-gradient(135deg,#a99cf8,#8b7cf6 55%,#6d5df0);color:var(--ink);
+    font-family:inherit;font-size:15.5px;font-weight:900;letter-spacing:-.2px;
+    border:none;border-radius:16px;padding:17px 20px;cursor:pointer;
+    box-shadow:0 14px 34px -10px rgba(139,124,246,.55);
+    transition:transform .12s, box-shadow .15s, opacity .15s;
+  }
+  .submit:active{transform:scale(.98);}
+  .submit:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  .msg{min-height:18px;margin-top:12px;font-size:13px;font-weight:600;text-align:center;}
+  .msg.err{color:var(--err);}
+  .legal{margin-top:14px;font-size:11.5px;color:#6b6880;text-align:center;line-height:1.6;}
+  .legal a{color:#9c93d8;text-decoration:none;font-weight:700;}
+
+  .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(18,16,42,.35);border-top-color:var(--ink);animation:sp .7s linear infinite;display:inline-block;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* success */
+  .done{display:none;text-align:center;padding:34px 8px 10px;animation:fadeIn .4s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .ok-circle{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#a99cf8,#6d5df0);color:var(--ink);font-size:30px;font-weight:900;
+    box-shadow:0 16px 40px -8px rgba(139,124,246,.6);animation:pop .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes pop{0%{transform:scale(0);}80%{transform:scale(1.1);}100%{transform:scale(1);}}
+  .done h2{font-size:24px;font-weight:900;letter-spacing:-.6px;}
+  .done .url-card{
+    margin-top:18px;background:rgba(255,255,255,.04);border:1px solid rgba(139,124,246,.35);
+    border-radius:16px;padding:16px;text-align:left;
+  }
+  .done .url-card .lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.16em;color:var(--acc-soft);margin-bottom:5px;}
+  .done .url-card a{color:#fff;font-weight:800;font-size:15px;text-decoration:none;word-break:break-all;}
+  .done .cta{
+    display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;width:100%;
+    background:linear-gradient(135deg,#a99cf8,#6d5df0);color:var(--ink);font-weight:900;font-size:14.5px;
+    border-radius:14px;padding:15px;text-decoration:none;transition:transform .12s;
+  }
+  .done .cta:active{transform:scale(.98);}
+  .done .cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.15);color:#cfcce0;font-weight:700;}
+  .done .note{margin-top:16px;font-size:12.5px;color:#8a8798;line-height:1.6;}
+
+  footer{padding:18px 22px 26px;font-size:12px;color:#6b6880;text-align:center;}
+  footer a{color:#9c93d8;text-decoration:none;font-weight:700;}
+  footer .sep{margin:0 8px;opacity:.4;}
+</style>
+</head>
+<body>
+
+  <header>
+    <a class="brand" href="https://synaptechspa.cl">
+      <img src="/syn-192.png" alt="SynapTech" />
+      SynapTech
+    </a>
+    <span class="badge">100% Gratis</span>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <div class="hero" id="hero">
+        <span class="kicker"><span class="line"></span> Agenda online para tu local</span>
+        <h1>Tu agenda lista <span class="accent">en 2 minutos</span>, sin pagar nada.</h1>
+        <p class="sub">
+          Reservas <b>24/7</b>, tu propia dirección web y <b>club de fidelidad</b> para tus clientes.
+          Sin tarjeta, sin permanencia. Creas tu cuenta y queda funcionando al tiro.
+        </p>
+      </div>
+
+      <!-- ── Formulario ── -->
+      <form class="card" id="f" autocomplete="on">
+
+        <div class="sec"><span class="n">1</span> Tu local</div>
+
+        <div class="field">
+          <label for="nombre">Nombre del local</label>
+          <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" required />
+        </div>
+
+        <div class="field">
+          <label for="tipo">Tipo de negocio</label>
+          <select id="tipo">
+            <option value="barberia">Barbería</option>
+            <option value="peluqueria">Peluquería / Salón</option>
+            <option value="mixto">Mixto (hombre + mujer)</option>
+            <option value="nails">Estudio de uñas</option>
+            <option value="spa">Spa / Estética</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="telefono">WhatsApp del local</label>
+          <input id="telefono" type="tel" inputmode="tel" maxlength="16" placeholder="+56 9 1234 5678" required />
+        </div>
+
+        <div class="field">
+          <label for="instagram">Instagram <span class="opt">(opcional)</span></label>
+          <input id="instagram" type="text" maxlength="40" placeholder="@tulocal" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label>Color de tu marca</label>
+          <div class="swatches" id="swatches">
+            <button type="button" class="sw active" data-c="#d4af37" style="background:#d4af37"></button>
+            <button type="button" class="sw" data-c="#8b7cf6" style="background:#8b7cf6"></button>
+            <button type="button" class="sw" data-c="#39d98a" style="background:#39d98a"></button>
+            <button type="button" class="sw" data-c="#4cc3ff" style="background:#4cc3ff"></button>
+            <button type="button" class="sw" data-c="#f35ba6" style="background:#f35ba6"></button>
+            <button type="button" class="sw" data-c="#f97316" style="background:#f97316"></button>
+            <button type="button" class="sw" data-c="#e5e5e5" style="background:#e5e5e5"></button>
+            <span class="sw-custom" title="Color personalizado">🎨<input type="color" id="colorCustom" value="#d4af37" /></span>
+          </div>
+          <input type="hidden" id="color" value="#d4af37" />
+        </div>
+
+        <div class="sec" style="margin-top:22px;"><span class="n">2</span> Tu dirección web</div>
+
+        <div class="field">
+          <label for="slug">Elige tu dirección</label>
+          <div class="slugbox">
+            <input id="slug" type="text" maxlength="30" placeholder="donpedro" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <span class="dom">.synaptechspa.cl</span>
+          </div>
+          <p class="slughint" id="slugHint"></p>
+        </div>
+
+        <div class="sec" style="margin-top:22px;"><span class="n">3</span> Tu cuenta</div>
+
+        <div class="field">
+          <label for="dueno">Tu nombre</label>
+          <input id="dueno" type="text" maxlength="60" placeholder="Ej: Pedro Soto" required />
+        </div>
+
+        <div class="field">
+          <label for="email">Correo</label>
+          <input id="email" type="email" maxlength="120" placeholder="tucorreo@gmail.com" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input id="password" type="password" minlength="6" maxlength="60" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required />
+        </div>
+
+        <button class="submit" id="sb" type="submit">
+          Crear mi agenda gratis
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <p class="msg" id="msg"></p>
+        <p class="legal">
+          Con tu cuenta administras la agenda, tus servicios y tu equipo.
+          <br /><a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Necesitas un diseño 100% a tu medida? Escríbenos</a>
+        </p>
+      </form>
+
+      <!-- ── Success ── -->
+      <div class="done" id="done">
+        <div class="ok-circle">✓</div>
+        <h2>¡Tu agenda está lista!</h2>
+
+        <div class="url-card">
+          <p class="lbl">La agenda de tus clientes</p>
+          <a id="urlAgenda" href="#" target="_blank" rel="noopener"></a>
+        </div>
+        <div class="url-card">
+          <p class="lbl">Tu panel de administración</p>
+          <a id="urlPanel" href="#" target="_blank" rel="noopener"></a>
+        </div>
+
+        <a class="cta" id="ctaPanel" href="#" target="_blank" rel="noopener">Entrar a mi panel →</a>
+        <a class="cta ghost" id="ctaAgenda" href="#" target="_blank" rel="noopener">Ver mi agenda como cliente</a>
+
+        <p class="note">
+          Te dejamos servicios de ejemplo según tu rubro — edítalos en
+          <b>Panel → Servicios</b>. Comparte el link de tu agenda en
+          Instagram y WhatsApp para recibir reservas.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    Hecho con ♥ en Chile
+    <span class="sep">·</span>
+    <a href="https://synaptechspa.cl">synaptechspa.cl</a>
+    <span class="sep">·</span>
+    <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  (function(){
+    'use strict';
+
+    var fns  = firebase.functions();
+    var auth = firebase.auth();
+
+    var ui = {
+      form:     document.getElementById('f'),
+      hero:     document.getElementById('hero'),
+      sb:       document.getElementById('sb'),
+      msg:      document.getElementById('msg'),
+      done:     document.getElementById('done'),
+      nombre:   document.getElementById('nombre'),
+      tipo:     document.getElementById('tipo'),
+      telefono: document.getElementById('telefono'),
+      instagram:document.getElementById('instagram'),
+      color:    document.getElementById('color'),
+      slug:     document.getElementById('slug'),
+      slugHint: document.getElementById('slugHint'),
+      dueno:    document.getElementById('dueno'),
+      email:    document.getElementById('email'),
+      password: document.getElementById('password'),
+    };
+    var SB_HTML = ui.sb.innerHTML;
+
+    function err(t){ ui.msg.className = 'msg err'; ui.msg.textContent = t; }
+    function clearMsg(){ ui.msg.textContent = ''; ui.msg.className = 'msg'; }
+    function busy(on, label){
+      ui.sb.disabled = on;
+      ui.sb.innerHTML = on ? '<span class="spin"></span> ' + (label || 'Creando…') : SB_HTML;
+    }
+
+    // ── Color picker ─────────────────────────────────────────────
+    var swatches = document.querySelectorAll('.sw');
+    swatches.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        swatches.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        ui.color.value = btn.getAttribute('data-c');
+      });
+    });
+    document.getElementById('colorCustom').addEventListener('input', function(e){
+      swatches.forEach(function(b){ b.classList.remove('active'); });
+      ui.color.value = e.target.value;
+    });
+
+    // ── Slug: autogenerar desde el nombre + check en vivo ────────
+    function slugify(s){
+      return String(s || '').toLowerCase().trim()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        .replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+    }
+
+    var slugTocado = false;   // si el user editó el slug a mano, no lo pisamos
+    var slugLibre  = false;
+    var slugTimer  = null;
+
+    ui.nombre.addEventListener('input', function(){
+      if (slugTocado) return;
+      ui.slug.value = slugify(ui.nombre.value);
+      programarCheck();
+    });
+    ui.slug.addEventListener('input', function(){
+      slugTocado = ui.slug.value.length > 0;
+      ui.slug.value = slugify(ui.slug.value) || ui.slug.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      programarCheck();
+    });
+
+    function programarCheck(){
+      slugLibre = false;
+      var v = ui.slug.value;
+      if (slugTimer) clearTimeout(slugTimer);
+      if (!v || v.length < 3) {
+        ui.slugHint.className = 'slughint';
+        ui.slugHint.textContent = v ? 'Mínimo 3 caracteres.' : '';
+        return;
+      }
+      ui.slugHint.className = 'slughint checking';
+      ui.slugHint.textContent = 'Verificando disponibilidad…';
+      slugTimer = setTimeout(function(){
+        var consulta = v;
+        fns.httpsCallable('verificarSlugLibre')({ slug: consulta })
+          .then(function(res){
+            if (ui.slug.value !== consulta) return;  // ya escribió otra cosa
+            var d = res.data || {};
+            slugLibre = !!d.libre;
+            ui.slugHint.className = 'slughint ' + (d.libre ? 'ok' : 'bad');
+            ui.slugHint.textContent = d.libre
+              ? '✓ ' + consulta + '.synaptechspa.cl está disponible'
+              : (d.motivo || 'No disponible.');
+          })
+          .catch(function(){
+            if (ui.slug.value !== consulta) return;
+            ui.slugHint.className = 'slughint';
+            ui.slugHint.textContent = 'No pudimos verificar — se validará al crear.';
+            slugLibre = true; // la CF de creación re-valida server-side
+          });
+      }, 450);
+    }
+
+    // ── Submit: cuenta + aprovisionamiento ───────────────────────
+    ui.form.addEventListener('submit', function(e){
+      e.preventDefault();
+      clearMsg();
+
+      var nombre   = ui.nombre.value.trim();
+      var slug     = slugify(ui.slug.value);
+      var telefono = ui.telefono.value.replace(/\D/g, '');
+      var email    = ui.email.value.trim().toLowerCase();
+      var pass     = ui.password.value;
+
+      if (!nombre)              return err('Escribe el nombre de tu local.');
+      if (!slug || slug.length < 3) return err('Elige tu dirección web (mínimo 3 caracteres).');
+      if (telefono.length < 8)  return err('Ingresa un WhatsApp válido.');
+      if (!email)               return err('Ingresa tu correo.');
+      if (pass.length < 6)      return err('La contraseña debe tener al menos 6 caracteres.');
+
+      busy(true, 'Creando tu cuenta…');
+
+      // 1. Cuenta (o login si ya existía — reintento del mismo dueño)
+      auth.createUserWithEmailAndPassword(email, pass)
+        .catch(function(e2){
+          if (e2 && e2.code === 'auth/email-already-in-use') {
+            return auth.signInWithEmailAndPassword(email, pass).catch(function(){
+              throw new Error('Ese correo ya tiene cuenta y la contraseña no coincide. Usa la contraseña original o escríbenos.');
+            });
+          }
+          if (e2 && e2.code === 'auth/invalid-email') throw new Error('El correo no es válido.');
+          if (e2 && e2.code === 'auth/weak-password') throw new Error('La contraseña es muy débil.');
+          throw e2;
+        })
+        // 2. Aprovisionar el tenant completo
+        .then(function(){
+          busy(true, 'Armando tu agenda…');
+          return fns.httpsCallable('provisionarTenantSelf')({
+            slug:        slug,
+            nombre:      nombre,
+            tipo:        ui.tipo.value,
+            telefono:    telefono,
+            color:       ui.color.value,
+            instagram:   ui.instagram.value.trim().replace(/^@+/, ''),
+            nombreDueno: ui.dueno.value.trim(),
+          });
+        })
+        .then(function(res){
+          var d = (res && res.data) || {};
+          if (!d.ok) throw new Error('No pudimos crear la agenda. Intenta de nuevo.');
+          mostrarExito(d);
+        })
+        .catch(function(e3){
+          busy(false);
+          err((e3 && e3.message) ? e3.message : 'Algo falló. Intenta de nuevo.');
+        });
+    });
+
+    function mostrarExito(d){
+      var a = document.getElementById('urlAgenda');
+      var p = document.getElementById('urlPanel');
+      a.href = d.urlAgenda; a.textContent = d.urlAgenda.replace('https://', '');
+      p.href = d.urlPanel;  p.textContent = d.urlPanel.replace('https://', '').split('?')[0];
+      document.getElementById('ctaPanel').href  = d.urlPanel;
+      document.getElementById('ctaAgenda').href = d.urlAgenda;
+      ui.form.style.display = 'none';
+      ui.hero.style.display = 'none';
+      ui.done.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  })();
+  </script>
+</body>
+</html>
