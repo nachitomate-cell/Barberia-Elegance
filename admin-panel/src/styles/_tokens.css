@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════════════
+ *  DESIGN TOKENS · gestion-interna
+ *  Sistema mínimo inspirado en Claude + Apple:
+ *    - Tipografía: Inter con letter-spacing negativo en headings
+ *    - Radios coherentes (nada más de rounded-lg/xl/2xl mezclados)
+ *    - Sombras editoriales sutiles (nada dramático)
+ *    - Números tabulares (evita saltos en dashboards)
+ *    - Font-features SS01, CV11 para variantes elegantes de Inter
+ *
+ *  NO cambia colores ni layout — solo mejora la calidad tipográfica y
+ *  la geometría. Aplica a TODO el panel sin refactor de componentes.
+ * ═══════════════════════════════════════════════════════════════ */
+
+/* Inter ya se carga desde Google Fonts en admin-panel/index.html
+ * (weights 300/400/500/600/700 + Playfair Display + Cormorant + Bebas Neue).
+ * Aquí solo definimos el system y las font-features. */
+
+:root {
+  /* Tipografía */
+  --font-sans: 'Inter', 'InterVariable', system-ui, -apple-system,
+               'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  /* Tracking (letter-spacing) — negativo en headings, positivo en labels */
+  --tracking-tight:  -0.014em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.02em;
+  --tracking-uppercase: 0.06em;
+
+  /* Line-height */
+  --leading-tight:   1.15;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* Radios (los 4 que necesita el 95% del UI) */
+  --r-sm:   8px;    /* inputs, chips, small buttons */
+  --r-md:   12px;   /* cards, buttons, dropdowns */
+  --r-lg:   16px;   /* modals, sheets, hero cards */
+  --r-pill: 999px;
+
+  /* Sombras editoriales (múltiples capas, opacidades bajas) */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 2px 6px -1px rgba(0, 0, 0, 0.06),
+              0 6px 20px -8px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 4px 12px -2px rgba(0, 0, 0, 0.10),
+              0 20px 40px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Aplicación tipográfica global ───────────────────────────────── */
+html, body {
+  font-family: var(--font-sans);
+  /* Font-features Inter:
+   *   cv11 = 'a' de una sola planta (más neutra, tipo SF Pro)
+   *   ss01 = 6 y 9 con "colas cortas" (más legibles en tablas)
+   *   ss03 = flechas geométricas
+   *   cv06 = '4' con top abierto (elegante en headings)
+   *   calt = alternates contextuales
+   */
+  font-feature-settings: 'cv11', 'ss01', 'ss03', 'cv06', 'calt';
+  font-variant-ligatures: contextual common-ligatures;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings con tracking negativo — el detalle que hace la diferencia
+ * inmediata visual entre "SaaS genérico" y "editorial premium".
+ * Aplica a h1-h4; los h5/h6 quedan neutros. */
+h1, h2, h3 {
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-tight);
+  font-feature-settings: 'cv11', 'ss01', 'cv06', 'calt', 'ss03';
+  font-optical-sizing: auto;
+}
+h4 {
+  letter-spacing: -0.008em;
+}
+
+/* Números tabulares en cualquier elemento marcado como tal.
+ * Ya se usa mucho `.tabular-nums` de Tailwind, mantenemos consistente.
+ * Además, TODOS los números dentro de <table> son tabulares por defecto. */
+.tabular-nums, table td, table th, [data-tabular] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Labels + eyebrows en uppercase reciben tracking apropiado */
+[class*="uppercase"] {
+  letter-spacing: var(--tracking-uppercase);
+}
+
+/* Utilities de radio consistentes (opcionales — el que quiera usarlas).
+ * Reemplazan las variantes de Tailwind poco a poco cuando toquemos vistas. */
+.r-sm   { border-radius: var(--r-sm); }
+.r-md   { border-radius: var(--r-md); }
+.r-lg   { border-radius: var(--r-lg); }
+.r-pill { border-radius: var(--r-pill); }
+
+/* Utilities de sombra editoriales */
+.shadow-e1 { box-shadow: var(--shadow-1); }
+.shadow-e2 { box-shadow: var(--shadow-2); }
+.shadow-e3 { box-shadow: var(--shadow-3); }
