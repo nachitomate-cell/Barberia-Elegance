@@ -1254,6 +1254,142 @@
       color: rgba(255, 255, 255, 0.4) !important;
     }
 
+    /* ══════════════════════════════════════════════════════════════════
+     * KRONNOS DASHBOARD · Animaciones editoriales sutiles
+     * ──────────────────────────────────────────────────────────────────
+     * Movimiento con intencion. Nada de bouncing SaaS. Curvas de easing
+     * inspiradas en iOS: cubic-bezier(0.16, 1, 0.3, 1) para entradas
+     * suaves, y spring apenas notable en hovers.
+     *
+     * Respeta prefers-reduced-motion: si el usuario tiene la preferencia
+     * activada, todo se desactiva (accesibilidad WCAG 2.3.3).
+     * ══════════════════════════════════════════════════════════════════ */
+
+    /* ── Entrance: fade + slide desde abajo (los elementos del hero y
+     *    el cuerpo aparecen escalonados al cargar). ── */
+    @keyframes kronnosFadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+    @keyframes kronnosFadeInOnly {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    [class*="tenant-kronnos_"] .hero-bg,
+    [class*="tenant-kronnos_"] header,
+    [class*="tenant-kronnos_"] #profileCard,
+    [class*="tenant-kronnos_"] #profileTierProgress,
+    [class*="tenant-kronnos_"] #premiosList,
+    [class*="tenant-kronnos_"] #anuncioOptOutRow,
+    [class*="tenant-kronnos_"] section {
+      animation: kronnosFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    [class*="tenant-kronnos_"] .hero-bg           { animation-delay: 0.00s; }
+    [class*="tenant-kronnos_"] header             { animation-delay: 0.02s; }
+    [class*="tenant-kronnos_"] #profileCard       { animation-delay: 0.10s; }
+    [class*="tenant-kronnos_"] #profileTierProgress { animation-delay: 0.18s; }
+    [class*="tenant-kronnos_"] #anuncioOptOutRow  { animation-delay: 0.24s; }
+    [class*="tenant-kronnos_"] #premiosList       { animation-delay: 0.30s; }
+
+    /* ── Cards de premios: aparecen escalonadas por :nth-child ── */
+    [class*="tenant-kronnos_"] #premiosList > div,
+    [class*="tenant-kronnos_"] #premiosList > button {
+      animation: kronnosFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(1) { animation-delay: 0.35s; }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(2) { animation-delay: 0.42s; }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(3) { animation-delay: 0.49s; }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(4) { animation-delay: 0.56s; }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(5) { animation-delay: 0.63s; }
+    [class*="tenant-kronnos_"] #premiosList > *:nth-child(n+6) { animation-delay: 0.70s; }
+
+    /* ── Hover con spring apenas notable (0.28s cubic bez suave) ── */
+    [class*="tenant-kronnos_"] #premiosList > div,
+    [class*="tenant-kronnos_"] #premiosList > button {
+      transition:
+        transform 0.28s cubic-bezier(0.34, 1.28, 0.64, 1),
+        border-color 0.24s ease,
+        background 0.24s ease !important;
+    }
+
+    /* ── Badge del rango: shimmer periódico muy tenue (cada 6s) ── */
+    @keyframes kronnosBadgeShimmer {
+      0%, 88%, 100% { background-position: -200% 0; opacity: 1; }
+      93%           { background-position: 200% 0; opacity: 1; }
+    }
+    [class*="tenant-kronnos_"] #profileTierBadge {
+      background-image: linear-gradient(
+        100deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.18) 50%,
+        transparent 60%
+      );
+      background-size: 200% 100%;
+      background-repeat: no-repeat;
+      background-clip: text;
+      -webkit-background-clip: text;
+      /* El shimmer solo se ve en el "recorrido" corto del 88%->93%.
+       * El resto del tiempo el gradient esta fuera del texto. */
+      animation: kronnosBadgeShimmer 6s ease-in-out infinite;
+    }
+
+    /* ── Hero CTA: shine sweep al hover (línea de luz que cruza) ── */
+    [class*="tenant-kronnos_"] .hero-cta {
+      position: relative;
+      overflow: hidden;
+    }
+    [class*="tenant-kronnos_"] .hero-cta::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(
+        100deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.22) 50%,
+        transparent 100%
+      );
+      transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    [class*="tenant-kronnos_"] .hero-cta:hover::after { left: 150%; }
+
+    /* ── Numeros de stats: pulso muy sutil al actualizar (JS los toca) ── */
+    @keyframes kronnosStatPulse {
+      0%   { transform: scale(1);    }
+      35%  { transform: scale(1.08); color: var(--gold); }
+      100% { transform: scale(1);    }
+    }
+    [class*="tenant-kronnos_"] #profileVisitsCount.stat-updated,
+    [class*="tenant-kronnos_"] #profileStamps.stat-updated {
+      animation: kronnosStatPulse 0.5s ease-out;
+    }
+
+    /* ── Ambient glow del hero: respira muy lento (12s ciclo) ── */
+    @keyframes kronnosAmbientBreathe {
+      0%, 100% { opacity: 0.4; transform: scale(1);    }
+      50%      { opacity: 0.6; transform: scale(1.05); }
+    }
+    [class*="tenant-kronnos_"] .hero-glow-spot {
+      animation: kronnosAmbientBreathe 12s ease-in-out infinite;
+    }
+
+    /* ── Tap feedback en cards (mobile-first) ── */
+    [class*="tenant-kronnos_"] #premiosList > div:active,
+    [class*="tenant-kronnos_"] #premiosList > button:active {
+      transform: translateY(0) scale(0.985) !important;
+      transition: transform 0.08s ease-out !important;
+    }
+
+    /* ── Reduced motion: TODO off (accesibilidad) ── */
+    @media (prefers-reduced-motion: reduce) {
+      [class*="tenant-kronnos_"] * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
     /* ══════════ YŪGEN STUDIO — Dark zen · marfil monocromático ══════════ */
     .tenant-yugen {
       --gold:      #f5f3ef;            /* marfil (como el logo) */
@@ -6966,6 +7102,42 @@ function _kronnosSedeCanjeInfo() {
   if (empate)     return { predominante: null,    isEmpate: true,  sedeCanje: sedeActual, resumen };
   return          { predominante: ganador, isEmpate: false, sedeCanje: ganador,    resumen };
 }
+/* ── Kronnos: contador animado para stats del perfil ──────────────
+ * Anima el textContent de un elemento desde su valor actual (0 si es
+ * primera vez) hasta el nuevo. Usa easing cubic-bezier(0.16, 1, 0.3, 1)
+ * — mismo perfil que las entradas CSS. Duracion 700ms max.
+ * Al finalizar agrega .stat-updated para el pulso definido en CSS.
+ * Respeta prefers-reduced-motion (setea directo, sin animar). */
+function _animarNumeroKronnos(el, target) {
+  if (!el) return;
+  const t = Number(target) || 0;
+  // Reduced motion o valor identico → set directo
+  const prefiereReduccion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const current = parseInt(el.textContent || '0', 10) || 0;
+  if (prefiereReduccion || current === t) {
+    el.textContent = t;
+    return;
+  }
+  const from = current;
+  const to   = t;
+  const start = performance.now();
+  const duration = Math.min(700, 220 + Math.abs(to - from) * 40);
+  function easeOutQuint(x) { return 1 - Math.pow(1 - x, 5); }
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(1, elapsed / duration);
+    const eased = easeOutQuint(progress);
+    const val = Math.round(from + (to - from) * eased);
+    el.textContent = val;
+    if (progress < 1) requestAnimationFrame(step);
+    else {
+      el.classList.add('stat-updated');
+      setTimeout(() => el.classList.remove('stat-updated'), 550);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
 function _kronnosPremioSublinea() {
   if (!(typeof window.isKronnos === 'function' && window.isKronnos())) return '';
   const info = _kronnosSedeCanjeInfo();
@@ -7615,9 +7787,9 @@ function renderStamps(count, historicos) {
   const profileTierEl = document.getElementById('profileTierBadge');
   if (profileTierEl) profileTierEl.textContent = tierNombre;
   const profileVisitsEl = document.getElementById('profileVisitsCount');
-  if (profileVisitsEl) profileVisitsEl.textContent = historicos;
+  if (profileVisitsEl) _animarNumeroKronnos(profileVisitsEl, historicos);
   const profileStampsEl = document.getElementById('profileStamps');
-  if (profileStampsEl) profileStampsEl.textContent = count;
+  if (profileStampsEl) _animarNumeroKronnos(profileStampsEl, count);
 
   // Beneficios por rango — tarjetas con nombres + beneficios (desplegables)
   renderRangoBeneficios(historicos);
