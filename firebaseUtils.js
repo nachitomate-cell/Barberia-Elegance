@@ -609,6 +609,15 @@ const FDB = (() => {
     }
     if (cita.sucursalId)     citaData.sucursalId     = cita.sucursalId;
     if (cita.sucursalNombre) citaData.sucursalNombre = cita.sucursalNombre;
+    // AURA: origen de adquisición del cliente (solo se persiste si el hook lo entregó).
+    // Ver aura-origen-pregunta.js. Estructura: { id, label, emoji, respondidoAt, textoLibre? }.
+    if (cita.origenAdquisicion && typeof cita.origenAdquisicion === 'object') {
+      citaData.origenAdquisicion = cita.origenAdquisicion;
+    }
+    // Servicio/barbero IDs adicionales (algunos callers los mandan y otros no).
+    if (cita.servicioId)             citaData.servicioId             = cita.servicioId;
+    if (cita.clienteUid)             citaData.clienteUid             = cita.clienteUid;
+    if (cita.clienteTelefonoSuf9)    citaData.clienteTelefonoSuf9    = cita.clienteTelefonoSuf9;
     // Productos reservados en el cross-sell del paso final (entrega/pago presencial).
     if (Array.isArray(cita.productosReservados) && cita.productosReservados.length) {
       citaData.productosReservados = cita.productosReservados.map(p => ({

@@ -1799,11 +1799,9 @@
     // No-op si el tenant no es aura o el modulo esta desactivado.
     // Si es obligatorio y el cliente cierra sin elegir, la promise
     // no resuelve y el flujo queda bloqueado hasta que responda.
-    console.log('[barbero.html] llamando hook aura. hasFn=', typeof window.askAuraOrigenSiCorresponde);
     const _auraOrigen = window.askAuraOrigenSiCorresponde
       ? await window.askAuraOrigenSiCorresponde()
       : undefined;
-    console.log('[barbero.html] hook resolvio con:', _auraOrigen);
 
     try {
       await FDB.addCita({
