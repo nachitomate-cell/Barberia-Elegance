@@ -5246,6 +5246,59 @@
     :is(.tenant-aura,.tenant-latincaribe) .text-white\/15 { color: rgba(24,24,27,0.15) !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-white\/20 { color: rgba(24,24,27,0.20) !important; }
 
+    /* ══ Modal de recomendaciones (upsell) — theming ══════════════════
+       Base oscura (todos los tenants) + variante clara para aura/latin-
+       caribe: su remap global de .text-white ya oscurece los textos del
+       modal, así que aquí solo aclaramos sheet, cards, radio y CTAs para
+       que el conjunto quede legible sobre blanco. */
+    .upsell-item {
+      background: rgba(255,255,255,0.01);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .upsell-item.sel {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.85);
+    }
+    .upsell-radio {
+      width: 1rem; height: 1rem; border-radius: 9999px; flex: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .upsell-item.sel .upsell-radio { background: #ffffff; border-color: #ffffff; }
+    .upsell-check { display: none; font-size: 8px; font-weight: 900; color: #000000; line-height: 1; }
+    .upsell-item.sel .upsell-check { display: block; }
+
+    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet {
+      background: #ffffff !important;
+      border-color: rgba(24,24,27,0.12) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-glow {
+      background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(24,24,27,0.05) 0%, transparent 80%) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe) .upsell-item {
+      background: #fafafa;
+      border-color: rgba(24,24,27,0.14);
+    }
+    :is(.tenant-aura,.tenant-latincaribe) .upsell-item.sel {
+      background: rgba(24,24,27,0.05);
+      border-color: #18181B;
+    }
+    :is(.tenant-aura,.tenant-latincaribe) .upsell-radio { border-color: rgba(24,24,27,0.3); }
+    :is(.tenant-aura,.tenant-latincaribe) .upsell-item.sel .upsell-radio {
+      background: #18181B; border-color: #18181B;
+    }
+    :is(.tenant-aura,.tenant-latincaribe) .upsell-check { color: #ffffff; }
+    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-cta {
+      background: #18181B !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 20px rgba(24,24,27,0.15) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-cta-ghost {
+      border-color: rgba(24,24,27,0.15) !important;
+      color: rgba(24,24,27,0.55) !important;
+    }
+
     /* ── Preserve white text inside navy/dark areas ── */
     :is(.tenant-aura,.tenant-latincaribe) .booking-hero .text-white,
     :is(.tenant-aura,.tenant-latincaribe) .booking-hero .text-white\/70,
@@ -9010,27 +9063,25 @@
     function _renderUpsellList() {
       const listEl = document.getElementById('upsellList');
       if (!listEl) return;
+      // Colores vía clases .upsell-item/.upsell-radio (no inline): así el
+      // tema claro de aura/latincaribe puede re-tematizarlos por CSS.
       listEl.innerHTML = _upsellPool.map(a => {
         const isSel = (selectedAddons || []).some(x => String(x.id) === String(a.id));
         const desc = a.descripcion || '';
         return `
           <div
             onclick="toggleUpsellAddon('${a.id}')"
-            class="p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none"
-            style="background: ${isSel ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.01)'}; border-color: ${isSel ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.08)'};"
+            class="upsell-item${isSel ? ' sel' : ''} p-3.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between gap-3 select-none"
           >
             <div class="min-w-0 flex-1">
               <p class="text-xs font-bold text-white leading-tight">${a.nombre}</p>
-              ${desc ? `<p class="text-[10px] text-white/40 mt-1 line-clamp-1 leading-snug">${desc}</p>` : ''}
+              ${desc ? `<p class="text-[10px] text-white/50 mt-1 line-clamp-1 leading-snug">${desc}</p>` : ''}
               <p class="text-[10px] text-white/30 mt-0.5 font-medium">🕒 +${a.duracion || 0} min</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-xs font-black text-white">$${Math.round(Number(a.precio) || 0).toLocaleString('es-CL')}</span>
-              <div
-                class="w-4 h-4 rounded-full border flex items-center justify-center transition-all"
-                style="border-color: ${isSel ? '#ffffff' : 'rgba(255,255,255,0.2)'}; background: ${isSel ? '#ffffff' : 'transparent'};"
-              >
-                ${isSel ? '<span class="text-[8px] font-black text-black">✓</span>' : ''}
+              <div class="upsell-radio">
+                <span class="upsell-check">✓</span>
               </div>
             </div>
           </div>
@@ -13239,7 +13290,7 @@
   <!-- Recomendaciones de servicios (módulo activable en gestión-interna/servicios) -->
   <div id="upsell-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0" onclick="if(event.target===this)cancelUpsell()">
     <div class="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0A0A0C] p-6 shadow-2xl overflow-hidden translate-y-8 transition-transform duration-300" id="upsell-sheet">
-      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(255,255,255,0.05) 0%, transparent 80%);"></div>
+      <div class="upsell-glow absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(255,255,255,0.05) 0%, transparent 80%);"></div>
       <div class="relative z-10">
         <h3 class="text-lg font-black text-center uppercase tracking-widest mb-1.5 text-white">
           ✦ Completa tu experiencia ✦
@@ -13249,10 +13300,10 @@
         </p>
         <div class="flex flex-col gap-3 mb-6" id="upsellList"></div>
         <div class="flex flex-col gap-2.5">
-          <button onclick="confirmUpsell()" class="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider text-center transition-all bg-white text-black hover:bg-white/90 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+          <button onclick="confirmUpsell()" class="upsell-cta w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider text-center transition-all bg-white text-black hover:bg-white/90 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.12)]">
             Continuar con mi reserva
           </button>
-          <button onclick="cancelUpsell()" class="w-full py-3 rounded-2xl text-xs font-bold text-center border border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5 transition-all">
+          <button onclick="cancelUpsell()" class="upsell-cta-ghost w-full py-3 rounded-2xl text-xs font-bold text-center border border-white/5 text-white/50 hover:text-white/60 hover:bg-white/5 transition-all">
             No, gracias
           </button>
         </div>
