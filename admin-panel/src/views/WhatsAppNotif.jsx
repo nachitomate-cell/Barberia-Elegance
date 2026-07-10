@@ -31,7 +31,9 @@ function WaLogo({ size = 22 }) {
   );
 }
 
-export default function WhatsAppNotif() {
+// `embedded`: sin header propio ni ancho máximo — la vista unificada
+// WhatsApp.jsx la renderiza como pestaña "Avisos de reservas".
+export default function WhatsAppNotif({ embedded = false }) {
   const tenant   = useTenant();
   const tenantId = resolveTenantId();
 
@@ -68,16 +70,20 @@ export default function WhatsAppNotif() {
   const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y quiero activar las confirmaciones automáticas por WhatsApp para mis clientes (plan pagado). ¿Me cuentas cómo funciona?`;
 
   return (
-    <div className="max-w-3xl">
-      {/* ── Header ── */}
-      <div className="flex items-center gap-3 mb-1">
-        <WaLogo size={30} />
-        <h1 className="text-xl font-bold text-white">Avisos WhatsApp</h1>
-      </div>
-      <p className="text-sm text-slate-400 mb-6">
-        Recibe cada reserva nueva directo en tu WhatsApp — y si quieres, confirma
-        también a tus clientes de forma automática.
-      </p>
+    <div className={embedded ? '' : 'max-w-3xl'}>
+      {!embedded && (
+        <>
+          {/* ── Header ── */}
+          <div className="flex items-center gap-3 mb-1">
+            <WaLogo size={30} />
+            <h1 className="text-xl font-bold text-white">Avisos WhatsApp</h1>
+          </div>
+          <p className="text-sm text-slate-400 mb-6">
+            Recibe cada reserva nueva directo en tu WhatsApp — y si quieres, confirma
+            también a tus clientes de forma automática.
+          </p>
+        </>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16">

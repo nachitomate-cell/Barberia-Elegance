@@ -53,8 +53,7 @@ import Comisiones       from './views/Comisiones';
 import GiftCards        from './views/GiftCards';
 import Sorteos          from './views/Sorteos';
 import Google           from './views/Google';
-import WhatsAppBot      from './views/WhatsAppBot';
-import WhatsAppNotif    from './views/WhatsAppNotif';
+import WhatsApp         from './views/WhatsApp';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import RecibirPagos     from './views/RecibirPagos';
@@ -146,8 +145,10 @@ function ProtectedApp() {
             <Route path="gift-cards"      element={<GiftCards />} />
             <Route path="sorteos"         element={<Sorteos />} />
             <Route path="google"          element={<Google />} />
-            <Route path="whatsapp-bot"    element={<WhatsAppBot />} />
-            <Route path="whatsapp-notif"  element={<WhatsAppNotif />} />
+            <Route path="whatsapp"        element={<WhatsApp />} />
+            {/* Rutas legacy de los módulos separados — misma vista unificada */}
+            <Route path="whatsapp-bot"    element={<WhatsApp />} />
+            <Route path="whatsapp-notif"  element={<WhatsApp />} />
             <Route path="lista-espera"    element={<ListaEspera />} />
             <Route path="sucursales"      element={<Sucursales />} />
             <Route path="booking-preview"   element={<BookingFlow />} />
