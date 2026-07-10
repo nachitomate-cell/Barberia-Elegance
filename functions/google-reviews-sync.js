@@ -38,7 +38,7 @@ const db = admin.firestore();
 const GOOGLE_PLACES_API_KEY = defineSecret('GOOGLE_PLACES_API_KEY');
 
 // Mismos tenants que el resto de funciones multi-tenant (ver instagram-sync.js)
-const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omegastudio', 'memphis'];
+const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'latincaribe', 'machos', 'infinity', 'sionbarberia', 'omegastudio', 'memphis'];
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
 
 // Doc de reseñas por tenant (elegance vive en la raíz; el resto bajo tenants/)
