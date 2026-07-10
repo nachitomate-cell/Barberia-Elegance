@@ -10062,21 +10062,13 @@
         </button>
       `;
 
-      // Shuffle configurable por tenant. Si el admin marcó el toggle en
-      // /gestion-interna/equipo, se guarda en configuracion/main.randomizarBarberos
-      // y esa es la fuente de verdad. Fallback: whitelist historica de tenants
-      // que ya lo tenian activo antes del toggle (backward compat — no queremos
-      // que se apague solo por deployar el cambio).
-      const _cfgRandom = _fsConfig && typeof _fsConfig.randomizarBarberos === 'boolean'
-        ? _fsConfig.randomizarBarberos
-        : null;
-      const _legacyRandomTenants = new Set([
-        'aura', 'latincaribe', 'lumen', 'machos', 'sionbarberia',
-        'elegance', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman',
-      ]);
-      const _shuffleBarberos = _cfgRandom !== null
-        ? _cfgRandom
-        : (_legacyRandomTenants.has(window.CURRENT_TENANT_ID) || !window.CURRENT_TENANT_ID);
+      // Shuffle configurable por tenant: configuracion/main.randomizarBarberos
+      // es la ÚNICA fuente de verdad (mismo campo que muestra el toggle de
+      // /gestion-interna/equipo). Ausente o false → orden fijo por `orden`.
+      // La whitelist legacy que existía aquí se eliminó tras backfillear
+      // `true` explícito a esos tenants (scripts/backfill-randomizar-barberos.js)
+      // — mantenía aleatorizando a tenants cuyo panel decía "desactivado".
+      const _shuffleBarberos = !!(_fsConfig && _fsConfig.randomizarBarberos === true);
       // Fisher-Yates para distribucion perfectamente uniforme (el clasico
       // sort(() => Math.random()-0.5) tiene sesgo detectable).
       let _barberosOrden = barberos;
