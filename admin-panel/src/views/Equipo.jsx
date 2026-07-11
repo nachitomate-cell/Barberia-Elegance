@@ -925,6 +925,11 @@ export default function Equipo() {
   const [uploadError, setUploadError] = useState('');
   const [resetMsg,  setResetMsg]  = useState('');
   const [resetSending, setResetSending] = useState(false);
+  // Cambio directo de contraseña (mini-form inline)
+  const [showSetPass, setShowSetPass] = useState(false);
+  const [newPass, setNewPass]         = useState('');
+  const [setPassSaving, setSetPassSaving] = useState(false);
+  const [setPassMsg,    setSetPassMsg]    = useState('');
   // Acceso al panel web (transient — no se guarda password en Firestore)
   const [accesoEnabled,  setAccesoEnabled]  = useState(false);
   const [accesoPassword, setAccesoPassword] = useState('');
@@ -1106,6 +1111,29 @@ export default function Equipo() {
         ? 'No existe una cuenta Firebase con ese email.'
         : `Error: ${err.message}`);
     } finally { setResetSending(false); }
+  };
+
+  /* ── Cambio directo de contraseña ──────────────────────────
+     El admin fija la clave y se la comparte al barbero (WhatsApp,
+     voz, etc.). Alternativa al reset por email cuando el barbero
+     no tiene acceso a su correo o pidió una clave específica.
+     Requiere la CF cambiarPasswordStaff (functions/index.js). */
+  const handleSetPassword = async () => {
+    const email = (form.email.trim() || editing?.email || '').trim().toLowerCase();
+    if (!email) { setSetPassMsg('Falta el email del barbero.'); return; }
+    if (newPass.length < 6) { setSetPassMsg('Al menos 6 caracteres.'); return; }
+    setSetPassSaving(true);
+    setSetPassMsg('');
+    try {
+      const call = httpsCallable(getFunctions(undefined, 'us-central1'), 'cambiarPasswordStaff');
+      await call({ email, nuevaPassword: newPass, tenantId: resolveTenantId() });
+      setSetPassMsg('✓ Contraseña actualizada. Compártesela al barbero.');
+      setNewPass('');
+      setTimeout(() => { setShowSetPass(false); setSetPassMsg(''); }, 2500);
+    } catch (err) {
+      const message = err?.message || 'No se pudo cambiar la contraseña.';
+      setSetPassMsg(message.replace(/^\[.*?\]\s*/, ''));
+    } finally { setSetPassSaving(false); }
   };
 
   /* ── Servicios toggle ── */
@@ -1692,19 +1720,75 @@ export default function Equipo() {
                   </p>
                 </div>
 
-                <div>
-                  <button type="button" onClick={handlePasswordReset}
-                    disabled={resetSending || !(form.email.trim() || editing.email)}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
-                    {resetSending
-                      ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                      : <KeyRound size={13} />}
-                    Enviar enlace de recuperación
-                  </button>
+                <div className="space-y-2.5">
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handlePasswordReset}
+                      disabled={resetSending || !(form.email.trim() || editing.email)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                      {resetSending
+                        ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                        : <KeyRound size={13} />}
+                      Enviar enlace por email
+                    </button>
+                    <button type="button" onClick={() => { setShowSetPass(v => !v); setSetPassMsg(''); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                      <KeyRound size={13} />
+                      Fijar contraseña
+                    </button>
+                  </div>
+
                   {resetMsg && (
-                    <p className={`text-xs font-semibold mt-2 ${resetMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <p className={`text-xs font-semibold ${resetMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
                       {resetMsg}
                     </p>
+                  )}
+
+                  {/* Form inline para cambiar contraseña directamente. Se muestra
+                      solo si el admin tocó "Fijar contraseña". La comparte por
+                      WhatsApp/voz — no envía email de confirmación. */}
+                  {showSetPass && (
+                    <div className="mt-2 p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        Nueva contraseña
+                      </label>
+                      <input
+                        type="text"
+                        value={newPass}
+                        onChange={e => setNewPass(e.target.value)}
+                        placeholder="mínimo 6 caracteres"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
+                        autoComplete="off"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSetPassword}
+                          disabled={setPassSaving || newPass.length < 6}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-bold transition-colors"
+                        >
+                          {setPassSaving
+                            ? <span className="w-3 h-3 border border-slate-950 border-t-transparent rounded-full animate-spin" />
+                            : <>Guardar</>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowSetPass(false); setNewPass(''); setSetPassMsg(''); }}
+                          className="px-3 py-2 rounded-lg text-slate-400 hover:text-white text-xs font-semibold transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                      {setPassMsg && (
+                        <p className={`text-xs font-semibold ${setPassMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {setPassMsg}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-600 leading-snug">
+                        Se aplica al instante. El barbero deberá volver a iniciar sesión.
+                        Compártesela por WhatsApp o dísela en persona — no le llega email.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

@@ -252,6 +252,74 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
 });
 
 // ─────────────────────────────────────────────────────────────────
+//  cambiarPasswordStaff — callable para que el admin del tenant fije
+//  directamente la contraseña de un barbero suyo.
+//
+//  Diferencia con sendPasswordResetEmail (que ya usa el frontend):
+//    · reset_email: el barbero recibe correo con link y elige su clave
+//    · cambiar directo: el admin le fija una y se la comunica (WhatsApp,
+//      voz, etc.). Útil cuando el barbero perdió acceso o pidió una
+//      contraseña específica en persona.
+//
+//  Autorización: mismo modelo que crearAccesoStaff — bootstrap superadmin
+//  o admin/jefe del tenant al que pertenece el barbero. El chequeo de que
+//  el email pertenece efectivamente a un barbero del tenant lo hacemos
+//  buscando su doc en tenants/{tid}/barberos con authUid=uid.
+// ─────────────────────────────────────────────────────────────────
+exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
+  const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
+  const BRAND_ADMINS = {
+    'administracionkronnos@gmail.com': ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+    'claudio.burgos91@gmail.com':      ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+    'grupo.kratos.spa@gmail.com':      ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+  };
+
+  const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
+  const callerRole   = request.auth?.token?.role;
+  const callerTenant = request.auth?.token?.tenantId;
+
+  const { email, nuevaPassword, tenantId } = request.data || {};
+
+  if (!email || typeof email !== 'string') {
+    throw new HttpsError('invalid-argument', 'Email requerido.');
+  }
+  if (!nuevaPassword || typeof nuevaPassword !== 'string' || nuevaPassword.length < 6) {
+    throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
+  }
+  if (!tenantId || typeof tenantId !== 'string') {
+    throw new HttpsError('invalid-argument', 'tenantId requerido.');
+  }
+
+  // Autorización: superadmin global, admin de marca (BRAND_ADMINS), o
+  // admin/jefe del tenant al que se le cambia la clave.
+  const isSuperadmin  = SUPERADMINS.includes(callerEmail);
+  const isBrandAdmin  = (BRAND_ADMINS[callerEmail] || []).includes(tenantId);
+  const isTenantAdmin = (callerRole === 'admin' || callerRole === 'jefe') && callerTenant === tenantId;
+  if (!isSuperadmin && !isBrandAdmin && !isTenantAdmin) {
+    throw new HttpsError('permission-denied', 'Solo el admin del local puede cambiar contraseñas.');
+  }
+
+  const emailNorm = email.trim().toLowerCase();
+  try {
+    const user = await admin.auth().getUserByEmail(emailNorm);
+    await admin.auth().updateUser(user.uid, { password: nuevaPassword });
+    // Forzar cierre de sesiones activas — el barbero deberá loguearse de nuevo.
+    await admin.auth().revokeRefreshTokens(user.uid);
+    logger.info(`[cambiarPasswordStaff] uid=${user.uid} email=${emailNorm} tenant=${tenantId} by=${callerEmail}`);
+    return { ok: true, uid: user.uid };
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      throw new HttpsError('not-found', 'No existe una cuenta con ese email.');
+    }
+    if (err.code === 'auth/invalid-password' || err.code === 'auth/weak-password') {
+      throw new HttpsError('invalid-argument', 'Contraseña muy débil (mínimo 6 caracteres).');
+    }
+    logger.error('[cambiarPasswordStaff] error:', err);
+    throw new HttpsError('internal', err.message || 'No se pudo cambiar la contraseña.');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
 //  HELPER: obtener tokens filtrados por rol (jefe/admin) y barbero
 // ─────────────────────────────────────────────────────────────────
 async function getTokensActivos(barberoId, barberoNombre) {
