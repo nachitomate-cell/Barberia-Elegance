@@ -455,7 +455,10 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         let snapshotServicios = [];
         if (idsCubiertos.length) {
           try {
-            const snapSvcs = await getDocs(query(tenantCol('services'), where('__name__', 'in', idsCubiertos.slice(0, 10))));
+            const snapSvcs = await withTimeout(
+              getDocs(query(tenantCol('services'), where('__name__', 'in', idsCubiertos.slice(0, 10)))),
+              8000, 'clientes/servicios-snapshot',
+            );
             const nombres = new Map();
             snapSvcs.docs.forEach(d => nombres.set(d.id, (d.data().nombre || d.id)));
             snapshotServicios = idsCubiertos.map(id => ({ id, nombre: nombres.get(id) || id }));

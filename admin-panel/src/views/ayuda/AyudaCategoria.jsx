@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getDocs, query, where, orderBy, limit as fbLimit } from 'firebase/firestore';
 import { ayudaCategoriasCol, ayudaArticulosCol, CATEGORIA_ICONOS } from './ayudaData';
+import { withTimeout } from '../../lib/firestore-helpers';
 import { CatIcon } from './AyudaIcons';
 import AyudaCmdK from './AyudaCmdK';
 import '../../styles/ayuda.css';
@@ -22,20 +23,26 @@ export default function AyudaCategoria() {
   useEffect(() => {
     (async () => {
       try {
-        const catSnap = await getDocs(query(ayudaCategoriasCol(), orderBy('orden')));
+        const catSnap = await withTimeout(
+          getDocs(query(ayudaCategoriasCol(), orderBy('orden'))),
+          12000, 'ayuda/cat-cats',
+        );
         const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         setCategorias(cats);
         const found = cats.find(c => c.slug === categoriaSlug);
         setCat(found || null);
 
         if (found) {
-          const artSnap = await getDocs(query(
-            ayudaArticulosCol(),
-            where('publicado', '==', true),
-            where('categoriaSlug', '==', categoriaSlug),
-            orderBy('orden'),
-            fbLimit(60),
-          ));
+          const artSnap = await withTimeout(
+            getDocs(query(
+              ayudaArticulosCol(),
+              where('publicado', '==', true),
+              where('categoriaSlug', '==', categoriaSlug),
+              orderBy('orden'),
+              fbLimit(60),
+            )),
+            12000, 'ayuda/cat-arts',
+          );
           setArticulos(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
         }
       } catch (e) {

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getDocs, query, where, limit as fbLimit, orderBy } from 'firebase/firestore';
 import { ayudaCategoriasCol, ayudaArticulosCol } from './ayudaData';
+import { withTimeout } from '../../lib/firestore-helpers';
 import { renderAyudaMd } from './ayudaMarkdown';
 import AyudaCmdK from './AyudaCmdK';
 import '../../styles/ayuda.css';
@@ -29,8 +30,8 @@ export default function AyudaArticulo() {
       setLoading(true);
       try {
         const [catSnap, artSnap] = await Promise.all([
-          getDocs(query(ayudaCategoriasCol(), orderBy('orden'))),
-          getDocs(query(ayudaArticulosCol(), where('slug', '==', articuloSlug), fbLimit(1))),
+          withTimeout(getDocs(query(ayudaCategoriasCol(), orderBy('orden'))), 12000, 'ayuda/art-cats'),
+          withTimeout(getDocs(query(ayudaArticulosCol(), where('slug', '==', articuloSlug), fbLimit(1))), 12000, 'ayuda/art-slug'),
         ]);
         const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         setCategorias(cats);
@@ -41,12 +42,15 @@ export default function AyudaArticulo() {
           setArt(a);
 
           // Otros artículos de la misma categoría para el buscador
-          const sameCat = await getDocs(query(
-            ayudaArticulosCol(),
-            where('publicado', '==', true),
-            where('categoriaSlug', '==', categoriaSlug),
-            fbLimit(30),
-          ));
+          const sameCat = await withTimeout(
+            getDocs(query(
+              ayudaArticulosCol(),
+              where('publicado', '==', true),
+              where('categoriaSlug', '==', categoriaSlug),
+              fbLimit(30),
+            )),
+            12000, 'ayuda/art-sameCat',
+          );
           setArticulosCategoria(sameCat.docs.map(d => ({ id: d.id, ...d.data() })));
         } else {
           setArt(null);

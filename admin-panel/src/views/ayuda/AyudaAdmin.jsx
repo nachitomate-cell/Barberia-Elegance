@@ -29,6 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   ayudaCategoriasCol, ayudaArticulosCol, ayudaArticuloDoc,
 } from './ayudaData';
+import { withTimeout } from '../../lib/firestore-helpers';
 import { renderAyudaMd, slugify } from './ayudaMarkdown';
 import '../../styles/ayuda.css';
 
@@ -91,8 +92,8 @@ function AdminList() {
     setLoading(true);
     try {
       const [artSnap, catSnap] = await Promise.all([
-        getDocs(query(ayudaArticulosCol(), orderBy('updatedAt', 'desc'))),
-        getDocs(query(ayudaCategoriasCol(), orderBy('orden'))),
+        withTimeout(getDocs(query(ayudaArticulosCol(), orderBy('updatedAt', 'desc'))), 15000, 'ayuda-admin/lista-arts'),
+        withTimeout(getDocs(query(ayudaCategoriasCol(), orderBy('orden'))), 12000, 'ayuda-admin/lista-cats'),
       ]);
       setArticulos(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setCategorias(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -266,12 +267,18 @@ function AdminEditor({ mode }) {
     (async () => {
       setLoading(true);
       try {
-        const catSnap = await getDocs(query(ayudaCategoriasCol(), orderBy('orden')));
+        const catSnap = await withTimeout(
+          getDocs(query(ayudaCategoriasCol(), orderBy('orden'))),
+          12000, 'ayuda-admin/editor-cats',
+        );
         const cs = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         setCats(cs);
 
         if (mode === 'edit' && artId) {
-          const artSnap = await getDoc(ayudaArticuloDoc(artId));
+          const artSnap = await withTimeout(
+            getDoc(ayudaArticuloDoc(artId)),
+            10000, 'ayuda-admin/editor-load',
+          );
           if (artSnap.exists()) {
             const d = artSnap.data();
             setForm({

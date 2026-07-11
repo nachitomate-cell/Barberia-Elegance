@@ -24,6 +24,7 @@ import { X, EyeOff, AlertTriangle, Cake, ArrowRight, TrendingUp, TrendingDown, M
 import { getDocs, query, where, orderBy, limit as fbLimit, collection } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { db } from '../lib/firebase';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 
 const LS_KEY  = 'daily_welcome_shown_date';
@@ -75,7 +76,10 @@ async function cargarBrief() {
   // 1) Citas de hoy
   let citasHoy = [];
   try {
-    const snap = await getDocs(query(tenantCol('citas'), where('fecha', '==', hoyStr)));
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('citas'), where('fecha', '==', hoyStr))),
+      10000, 'brief/citas-hoy',
+    );
     citasHoy = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) { console.warn('[brief] citas hoy:', e.message); }
 
@@ -83,11 +87,10 @@ async function cargarBrief() {
   //    Filtramos client-side por dow para no pedir un índice compuesto extra.
   let citasHistoricas = [];
   try {
-    const snap = await getDocs(query(
-      tenantCol('citas'),
-      orderBy('fecha', 'desc'),
-      fbLimit(90),
-    ));
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('citas'), orderBy('fecha', 'desc'), fbLimit(90))),
+      12000, 'brief/historico',
+    );
     citasHistoricas = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .filter(c => c.fecha && c.fecha !== hoyStr);
   } catch (e) { console.warn('[brief] historico:', e.message); }
@@ -137,7 +140,10 @@ async function cargarBrief() {
   // 4) Cumpleaños esta semana (users con cumpleDia MM-DD dentro de los próximos 7 días)
   let cumples = [];
   try {
-    const snap = await getDocs(query(tenantCol('users'), fbLimit(500)));
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('users'), fbLimit(500))),
+      12000, 'brief/users-cumples',
+    );
     const proximosMMDD = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date();
@@ -156,12 +162,15 @@ async function cargarBrief() {
   //    el bloque no quede vacío en semanas tranquilas de deploys.
   let features = [];
   try {
-    const snap = await getDocs(query(
-      collection(db, '_ayuda/global/articulos'),
-      where('publicado', '==', true),
-      orderBy('entregadoEn', 'desc'),
-      fbLimit(6),
-    ));
+    const snap = await withTimeout(
+      getDocs(query(
+        collection(db, '_ayuda/global/articulos'),
+        where('publicado', '==', true),
+        orderBy('entregadoEn', 'desc'),
+        fbLimit(6),
+      )),
+      10000, 'brief/features',
+    );
     const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const ahora = Date.now();
     const semana  = 7  * 86400 * 1000;

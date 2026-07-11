@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDocs, orderBy, query, where, limit as fbLimit } from 'firebase/firestore';
 import { ayudaCategoriasCol, ayudaArticulosCol, CATEGORIA_ICONOS } from './ayudaData';
+import { withTimeout } from '../../lib/firestore-helpers';
 import { CatIcon } from './AyudaIcons';
 import AyudaCmdK from './AyudaCmdK';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,8 +32,8 @@ export default function AyudaHome() {
     (async () => {
       try {
         const [catSnap, artSnap] = await Promise.all([
-          getDocs(query(ayudaCategoriasCol(), orderBy('orden'))),
-          getDocs(query(ayudaArticulosCol(), where('publicado', '==', true), orderBy('entregadoEn', 'desc'), fbLimit(50))),
+          withTimeout(getDocs(query(ayudaCategoriasCol(), orderBy('orden'))), 12000, 'ayuda/home-cats'),
+          withTimeout(getDocs(query(ayudaArticulosCol(), where('publicado', '==', true), orderBy('entregadoEn', 'desc'), fbLimit(50))), 12000, 'ayuda/home-arts'),
         ]);
         const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const arts = artSnap.docs.map(d => ({ id: d.id, ...d.data() }));
