@@ -188,6 +188,8 @@
     { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
     { "source": "/kronnos",                "destination": "/kronnos.html" },
     { "source": "/kronnos-admin",          "destination": "/kronnos-admin.html" },
+    { "source": "/ayuda",                  "destination": "/ayuda.html" },
+    { "source": "/ayuda/:path*",           "destination": "/ayuda.html" },
     { "source": "/chat",                    "destination": "/chat.html" },
     { "source": "/bio",                     "destination": "/bio.html" },
     { "source": "/sorteo",                  "destination": "/sorteo.html" },
