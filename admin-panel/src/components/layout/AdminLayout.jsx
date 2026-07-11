@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Menu, X, Calendar, ShoppingBag, ChevronRight, HelpCircle } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
 import BillingBanner       from './BillingBanner';
 import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
+import ContextualHelpButton     from '../ContextualHelpButton';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
 
@@ -257,6 +258,10 @@ export default function AdminLayout({ children }) {
           <ToastCard key={toast.id} {...toast} onDismiss={handleDismissToast} />
         ))}
       </div>
+
+      {/* Botón flotante de ayuda contextual: detecta la ruta actual y
+          abre la guía relacionada del Centro de Ayuda. Ver helpMap.js */}
+      <ContextualHelpButton />
 
     </div>
   );
