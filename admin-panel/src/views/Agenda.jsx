@@ -1893,8 +1893,23 @@ function ColacionBlock({ colacion }) {
    dijera "5 citas" mostrando 2 (reporte de D'Jones). Se muestran como
    chips de alerta arriba de la columna, clickeables para abrir la cita
    y asignarle hora. */
+/* Citas sin hora válida: si tienen creadoEn se les asigna esa hora como
+   ESTIMADA (_horaEstimada) para ubicarlas en la grilla donde probablemente
+   corresponden — el barbero suele registrar la cita cerca de la hora
+   conversada. El bloque se pinta con borde ámbar punteado y "estimada";
+   al abrirlo (o arrastrarlo a su slot real) la hora queda corregida. */
+const conHoraEstimada = (arr) => (arr || []).map(c => {
+  if (typeof c?.hora === 'string' && c.hora.includes(':')) return c;
+  const raw = c?.creadoEn;
+  const d = raw?.toDate ? raw.toDate() : null;
+  if (!d || Number.isNaN(d.getTime())) return c;
+  const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return { ...c, hora: hhmm, _horaEstimada: true };
+});
+
+// Solo las citas irrescatables (sin hora Y sin creadoEn) quedan en el tray.
 const sinHoraDe = (arr) =>
-  (arr || []).filter(c => !(typeof c?.hora === 'string' && c.hora.includes(':')));
+  conHoraEstimada(arr).filter(c => !(typeof c?.hora === 'string' && c.hora.includes(':')));
 
 function SinHoraTray({ citas, onOpen }) {
   if (!citas.length) return null;
@@ -1943,6 +1958,9 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
+  // Hora estimada desde creadoEn (cita guardada sin hora): borde ámbar
+  // punteado; al abrirla o arrastrarla a su slot la hora queda fijada.
+  const estimada = !!cita._horaEstimada;
   const pct   = 100 / colTotal;
   // NoAsistio es también un estado final: no se arrastra (como Completada/Cancelada).
   const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada' && cita.estado !== 'NoAsistio';
@@ -2162,7 +2180,9 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
           );
         })()}
       </p>
-      <p className="truncate text-[10px] opacity-50">{cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}</p>
+      <p className={`truncate text-[10px] ${estimada ? 'text-amber-300 opacity-90 font-bold' : 'opacity-50'}`}>
+        {estimada ? `≈${cita.hora} · hora estimada` : cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}
+      </p>
     </div>
   );
 }
@@ -3455,8 +3475,13 @@ export default function Agenda() {
   // grilla sin cortarse; y la reserva pública sigue usando el rango del tenant.
   const { hourStartEff, hourEndEff } = useMemo(() => {
     let hs = hourStart, he = hourEnd;
-    (citas || []).forEach(c => {
+    // conHoraEstimada: las citas sin hora usan su hora estimada (creadoEn)
+    // igual que en la grilla. Guard de ':' — sin él, String(null||'') = ''
+    // y Number('') = 0, con lo que una cita con hora nula estiraba el rango
+    // visible hasta las 00:00 (bug reportado por D'Jones).
+    conHoraEstimada(citas || []).forEach(c => {
       const t = String(c.hora || '');
+      if (!t.includes(':')) return;
       const parts = t.split(':').map(Number);
       if (!Number.isFinite(parts[0])) return;
       const dur = Number(c.duracion || c.duracionServicio || 30) || 30;
@@ -4069,7 +4094,7 @@ export default function Agenda() {
                 c.fecha === diaStr && c.barberoId === focusBarbero.id);
               const dayBloqueos = bloqueos.filter(b =>
                 b.fecha === diaStr && (!b.barberoId || b.barberoId === focusBarbero.id));
-              const layoutCitas = computeOverlapLayout(dayCitas);
+              const layoutCitas = computeOverlapLayout(conHoraEstimada(dayCitas));
               return (
                 <div key={diaStr} className="flex-1 min-w-[140px] border-r border-slate-800 last:border-r-0">
                   {/* Cabecera del día — "LUN 6". "Hoy" resaltado en emerald. */}
@@ -4154,7 +4179,7 @@ export default function Agenda() {
                   const barberBloqueos = bloqueosPorBarbero(b.id).filter(bl => bl.fecha === dateStr);
 
                   // Layout en columnas por solapamiento real de horarios (no solo misma hora)
-                  const layoutCitas = computeOverlapLayout(barberCitas);
+                  const layoutCitas = computeOverlapLayout(conHoraEstimada(barberCitas));
 
                   return (
                     <SortableCol key={b.id} id={b.id}>
