@@ -173,13 +173,15 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
   const callerRole   = request.auth?.token?.role;
   const callerTenant = request.auth?.token?.tenantId;
 
-  const { email, password, displayName, tenantId, rol = 'barbero' } = request.data || {};
+  const { email, password, displayName, tenantId, rol = 'barbero', linkIfExists = false } = request.data || {};
 
   // ── Validación de payload ───────────────────────────────────
   if (!email || typeof email !== 'string') {
     throw new HttpsError('invalid-argument', 'Email requerido.');
   }
-  if (!password || typeof password !== 'string' || password.length < 6) {
+  // La password es opcional cuando linkIfExists=true y la cuenta ya existe
+  // (solo necesitamos el UID para vincular al doc de barbero).
+  if (!linkIfExists && (!password || typeof password !== 'string' || password.length < 6)) {
     throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
   }
   if (!tenantId || typeof tenantId !== 'string') {
@@ -216,8 +218,25 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
 
     logger.info(`[crearAccesoStaff] uid=${userRecord.uid} email=${emailNorm} tenant=${tenantId} role=${rolNorm} by=${callerEmail}`);
 
-    return { uid: userRecord.uid, email: userRecord.email };
+    return { uid: userRecord.uid, email: userRecord.email, alreadyExisted: false };
   } catch (err) {
+    // ── Vinculación automática si el email ya existe ─────────
+    // Escenario típico: Claudio ya tiene cuenta como admin de marca de
+    // Kronnos y AHORA queremos darle rol de barbero en la sede Limache.
+    // No podemos crear una segunda cuenta con el mismo email — pero sí
+    // podemos devolver el UID existente para que el frontend lo vincule
+    // al doc del barbero (via `authUid`). NO tocamos sus custom claims:
+    // así preserva sus roles previos en otros tenants/sedes.
+    if (err.code === 'auth/email-already-exists' && linkIfExists) {
+      try {
+        const existing = await admin.auth().getUserByEmail(emailNorm);
+        logger.info(`[crearAccesoStaff] vinculado uid=${existing.uid} email=${emailNorm} tenant=${tenantId} role=${rolNorm} by=${callerEmail}`);
+        return { uid: existing.uid, email: existing.email, alreadyExisted: true };
+      } catch (lookupErr) {
+        logger.error('[crearAccesoStaff] lookup por email falló:', lookupErr);
+        throw new HttpsError('internal', 'La cuenta existe pero no pudimos leerla. Contacta a soporte.');
+      }
+    }
     if (err.code === 'auth/email-already-exists') {
       throw new HttpsError('already-exists', 'Ya existe una cuenta con ese correo.');
     }

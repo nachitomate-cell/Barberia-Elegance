@@ -1037,39 +1037,28 @@ export default function Equipo() {
       //    Lo hacemos vía Cloud Function con Admin SDK para no perder la
       //    sesión del admin actual (createUserWithEmailAndPassword del cliente
       //    loguea al usuario recién creado).
+      //    Con `linkIfExists: true`, si el email ya existe (típico en
+      //    admins de marca que ahora se agregan como barberos en una sede
+      //    específica), la CF devuelve el UID existente en vez de fallar.
       let newUid = null;
+      let vinculacion = false; // true si se enlazó a una cuenta preexistente
       if (wantsAcceso) {
         try {
           const call = httpsCallable(getFunctions(undefined, 'us-central1'), 'crearAccesoStaff');
           const res  = await call({
-            email:       form.email.trim(),
-            password:    accesoPassword,
-            displayName: form.nombre.trim(),
-            tenantId:    resolveTenantId(),
-            rol:         'barbero',
+            email:        form.email.trim(),
+            password:     accesoPassword,
+            displayName:  form.nombre.trim(),
+            tenantId:     resolveTenantId(),
+            rol:          'barbero',
+            linkIfExists: true,
           });
-          newUid = res?.data?.uid || null;
+          newUid       = res?.data?.uid || null;
+          vinculacion  = !!res?.data?.alreadyExisted;
         } catch (err) {
-          // Errores de callables v2: llegan con code ('functions/already-exists')
-          // y también con err.details / err.message. Detectamos el caso más
-          // común (email ya registrado en Auth pero desvinculado de Firestore)
-          // para dar una guía accionable, sin culpar al sistema.
           const code    = err?.code || '';
           const message = err?.message || '';
-          const isEmailTaken =
-            code === 'functions/already-exists' ||
-            code === 'already-exists' ||
-            /email.*already|ya existe|already.exists/i.test(message);
-
-          if (isEmailTaken) {
-            setAccesoMsg(
-              'Este correo ya tiene una cuenta en el sistema. Para vincularla, ' +
-              'busca el UID en Firebase Auth y pégalo manualmente, o usa un ' +
-              'correo distinto.'
-            );
-          } else {
-            setAccesoMsg((message || 'No se pudo crear la cuenta.').replace(/^\[.*?\]\s*/, ''));
-          }
+          setAccesoMsg((message || 'No se pudo crear la cuenta.').replace(/^\[.*?\]\s*/, ''));
           return; // no seguimos con Firestore si falló Auth
         }
       }
@@ -1091,7 +1080,15 @@ export default function Equipo() {
         await addDoc(tenantCol('barberos'), payload);
       }
 
-      setSlide(false);
+      // Feedback si fue vinculación (email preexistente):
+      // damos un beat visible antes de cerrar el slide para que el usuario
+      // sepa qué pasó (no cambiamos la contraseña de la cuenta original).
+      if (vinculacion) {
+        setAccesoMsg('✓ Vinculado a la cuenta existente. Este barbero usará su contraseña actual (no la cambiamos).');
+        setTimeout(() => setSlide(false), 2200);
+      } else {
+        setSlide(false);
+      }
     } finally { setSaving(false); }
   };
 
