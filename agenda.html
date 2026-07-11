@@ -5942,6 +5942,14 @@
             err.classList.remove('hidden');
             return;
         }
+        // Guard hora: sin esto se guardaban citas con hora null (contadas en
+        // la cabecera pero invisibles en la grilla del panel) y un slotLock
+        // truncado compartido — caso real de D'Jones el 2026-07-10.
+        if (!_timeSlotSeleccionado || !String(_timeSlotSeleccionado).includes(':')) {
+            err.textContent = 'Selecciona primero un horario en la agenda para esta cita.';
+            err.classList.remove('hidden');
+            return;
+        }
 
         btn.disabled = true;
         btn.textContent = 'Guardando...';

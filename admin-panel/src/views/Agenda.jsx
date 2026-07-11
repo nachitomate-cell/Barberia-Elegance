@@ -1886,6 +1886,38 @@ function ColacionBlock({ colacion }) {
   );
 }
 
+/* ── SinHoraTray ─────────────────────────────────────────────────
+   Citas con hora inválida/nula (p. ej. creadas desde la agenda manual
+   sin seleccionar horario). computeOverlapLayout las descarta para no
+   romper la grilla, pero ocultarlas del todo hacía que la cabecera
+   dijera "5 citas" mostrando 2 (reporte de D'Jones). Se muestran como
+   chips de alerta arriba de la columna, clickeables para abrir la cita
+   y asignarle hora. */
+const sinHoraDe = (arr) =>
+  (arr || []).filter(c => !(typeof c?.hora === 'string' && c.hora.includes(':')));
+
+function SinHoraTray({ citas, onOpen }) {
+  if (!citas.length) return null;
+  return (
+    <div className="absolute inset-x-0.5 top-0.5 z-20 flex flex-col gap-1">
+      {citas.map(c => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => onOpen(c)}
+          title="Cita sin hora asignada — toca para abrirla y ponerle horario"
+          className="w-full flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-950/90 px-2 py-1 text-left hover:bg-amber-900/90 transition-colors"
+        >
+          <AlertTriangle size={10} className="text-amber-400 shrink-0" />
+          <span className="text-[10px] font-bold text-amber-300 truncate">
+            {c.clienteNombre || 'Cita'} · sin hora
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
@@ -4060,6 +4092,7 @@ export default function Agenda() {
                       />
                     ))}
                     <ColacionBlock colacion={colacionDe(focusBarbero.id)} />
+                    <SinHoraTray citas={sinHoraDe(dayCitas)} onOpen={openEditCita} />
                     {dayBloqueos.map(blq => (
                       <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                     ))}
@@ -4171,6 +4204,7 @@ export default function Agenda() {
                               />
                             ))}
                             <ColacionBlock colacion={colacionDe(b.id)} />
+                            <SinHoraTray citas={sinHoraDe(barberCitas)} onOpen={openEditCita} />
                             {barberBloqueos.map(blq => (
                               <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                             ))}
