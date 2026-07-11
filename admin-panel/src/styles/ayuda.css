@@ -446,6 +446,55 @@
 }
 .ay-mech-desc { font-size: 14.5px; color: var(--ay-text-mute); line-height: 1.55; margin: 0; }
 
+/* ── Figuras (imágenes + placeholders) ──────────────────────
+   Se muestran como bloque a ancho completo de la columna. El
+   caption va abajo, tipografía sutil. */
+.ay-fig {
+  margin: 32px 0;
+  border-radius: var(--ay-r-md);
+  overflow: hidden;
+}
+.ay-fig img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--ay-r-md);
+  border: 1px solid var(--ay-line);
+  background: var(--ay-bg-elev);
+}
+.ay-fig-caption {
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: var(--ay-text-mute);
+  text-align: center;
+  font-style: italic;
+  font-family: var(--ay-font-serif);
+  line-height: 1.4;
+}
+.ay-fig-placeholder-box {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ay-r-md);
+  border: 2px dashed var(--ay-line-strong);
+  background: var(--ay-bg-elev);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px; text-align: center;
+  color: var(--ay-text-mute);
+}
+.ay-fig-placeholder-icon {
+  color: var(--ay-text-faint);
+  margin-bottom: 8px;
+}
+.ay-fig-placeholder-label {
+  font-family: var(--ay-font-display); font-weight: 700;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--ay-text-faint); margin-bottom: 8px;
+}
+.ay-fig-placeholder-hint {
+  font-size: 14px; color: var(--ay-text-mute);
+  max-width: 40ch; line-height: 1.5;
+}
+
 /* TOC */
 .ay-toc-label {
   font-family: var(--ay-font-display); font-weight: 700;

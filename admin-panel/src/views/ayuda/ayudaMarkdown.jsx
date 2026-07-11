@@ -47,7 +47,9 @@ function esc(s) {
   return String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }
 
-/* Formatea inlines: **b**, *i*, _serif_, `code`, [txt](url) — orden importa */
+/* Formatea inlines: **b**, *i*, _serif_, `code`, [txt](url) — orden importa.
+   Las imágenes ![alt](url) NO se procesan inline: se manejan como bloque
+   en el parser principal (para que ocupen su propio párrafo con caption). */
 function renderInline(text, keyPrefix = 'i') {
   const parts = [];
   const src = String(text || '');
@@ -124,6 +126,43 @@ export function renderAyudaMd(md) {
         </div>
       );
       continue;
+    }
+
+    // ── Imagen: ![alt](url) o ![alt](url "caption") ─────────
+    //   Se renderiza como bloque figura con borde, sombra y caption.
+    //   Si el URL empieza con "placeholder:", se muestra el placeholder
+    //   estilizado (útil mientras el usuario aún no tiene la captura).
+    const mImg = /^!\[([^\]]*)\]\(([^)"\s]+)(?:\s+"([^"]+)")?\)\s*$/.exec(line.trim());
+    if (mImg) {
+      const [, alt, url, caption] = mImg;
+      const capText = caption || alt || '';
+      if (url.startsWith('placeholder:')) {
+        const hint = url.slice('placeholder:'.length).trim() || (alt || 'Captura pendiente');
+        out.push(
+          <figure key={`fig-${k++}`} className="ay-fig ay-fig-placeholder" role="img" aria-label={alt || hint}>
+            <div className="ay-fig-placeholder-box">
+              <div className="ay-fig-placeholder-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="m21 15-5-5L5 21"/>
+                </svg>
+              </div>
+              <div className="ay-fig-placeholder-label">Captura pendiente</div>
+              <div className="ay-fig-placeholder-hint">{hint}</div>
+            </div>
+            {capText && <figcaption className="ay-fig-caption">{capText}</figcaption>}
+          </figure>
+        );
+      } else {
+        out.push(
+          <figure key={`fig-${k++}`} className="ay-fig">
+            <img src={url} alt={alt} loading="lazy" />
+            {capText && <figcaption className="ay-fig-caption">{capText}</figcaption>}
+          </figure>
+        );
+      }
+      i++; continue;
     }
 
     // ── H2 / H3 (H1 se maneja aparte en el header) ──────────
