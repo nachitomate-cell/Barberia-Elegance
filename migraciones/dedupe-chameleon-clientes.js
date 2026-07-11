@@ -28,7 +28,8 @@ const admin = require('firebase-admin');
 const fs    = require('fs');
 const path  = require('path');
 
-const TENANT_ID = 'chameleon';
+// --tenant=<id> para reusarlo en otros tenants migrados (default: chameleon).
+const TENANT_ID = (process.argv.find(a => a.startsWith('--tenant=')) || '--tenant=chameleon').split('=')[1];
 const COMMIT    = process.argv.includes('--commit');
 
 // ── Auth ──────────────────────────────────────────────────────────

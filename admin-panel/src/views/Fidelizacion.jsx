@@ -5,8 +5,9 @@ import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
   Users, TrendingUp, Clock, CheckCircle2, Gem, UserX,
   Send, X, MessageCircle, ChevronRight, ArrowUpRight, ArrowDownRight, Plus,
-  Smartphone, ExternalLink, RefreshCw, Share2,
+  Smartphone, ExternalLink, RefreshCw, Share2, QrCode, Download, Printer, Copy, Check,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 
@@ -29,8 +30,22 @@ const TABS_BASE = [
   { key: 'canjes',      label: 'Validar Canje', Icon: ScanLine   },
   { key: 'rangos',      label: 'Rangos',        Icon: Crown      },
   { key: 'boca-a-boca', label: 'Boca a boca',   Icon: Share2     },
+  { key: 'qr-cliente',  label: 'QR Cliente',    Icon: QrCode     },
   { key: 'preview',     label: 'Vista previa',  Icon: Smartphone },
 ];
+
+// Dominios por tenant para armar la URL pública del dashboard
+// (idéntico al mapa de Clientes.jsx — mantener sincronizado).
+const PROD_DOMAINS = {
+  elegance: 'https://barberiaelegance.synaptechspa.cl',
+  ferraza:  'https://barberiaferraza.synaptechspa.cl',
+  gitana:   'https://gitananails.synaptechspa.cl',
+  sionbarberia: 'https://barberiasion.synaptechspa.cl',
+  kronnos:            'https://kronnos.synaptechspa.cl',
+  kronnos_penablanca: 'https://kronnospenablanca.synaptechspa.cl',
+  kronnos_limache:    'https://kronnoslimache.synaptechspa.cl',
+  kronnos_woman:      'https://kronnoswoman.synaptechspa.cl',
+};
 
 // Escenarios que puede seleccionar el admin en el tab "Vista previa".
 // Cada key mapea a un scenario del dashboard.html (?preview=1&scenario=<key>).
@@ -1064,6 +1079,222 @@ function PreviewDashboard() {
 }
 
 /* ── Vista principal ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+ *  QrClienteFidelizacion — QR imprimible que lleva a /dashboard
+ *  ─────────────────────────────────────────────────────────────
+ *  Ideal para colgar en el local (mostrador, espejo, vitrina).
+ *  Cliente escanea con la cámara del teléfono → abre /dashboard.
+ *    · Si ya está registrado: ve sus sellos, premios, historial
+ *    · Si es nuevo: dashboard lo redirige a /registro para crear cuenta
+ * ═══════════════════════════════════════════════════════════════ */
+function QrClienteFidelizacion() {
+  const tenant = useTenant();
+  const [copied, setCopied] = useState(false);
+
+  const dashboardUrl = useMemo(() => {
+    const base = PROD_DOMAINS[tenant.id] || window.location.origin;
+    return `${base}/dashboard`;
+  }, [tenant.id]);
+
+  const nombreCorto = useMemo(() => {
+    return String(tenant.name || 'tu local').normalize('NFKD').trim().split(/\s+/).slice(0, 3).join(' ');
+  }, [tenant.name]);
+
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(dashboardUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {}
+  }
+
+  function descargarPNG() {
+    // Convertir el SVG del QR a PNG y disparar descarga.
+    const svg = document.getElementById('qr-cliente-svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const scale = 4; // resolución alta para imprimir
+    const svgSize = svg.getBoundingClientRect();
+    canvas.width  = (svgSize.width  || 320) * scale;
+    canvas.height = (svgSize.height || 320) * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const link = document.createElement('a');
+      link.download = `qr-${tenant.id}-club.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  }
+
+  function imprimir() {
+    // Abrir una ventana con solo el QR + copy limpio, e invocar print.
+    const w = window.open('', '_blank', 'width=800,height=1000');
+    if (!w) return;
+    const svg = document.getElementById('qr-cliente-svg');
+    const svgHtml = svg ? svg.outerHTML : '';
+    w.document.write(`
+      <!doctype html>
+      <html><head><meta charset="UTF-8"><title>QR Club · ${nombreCorto}</title>
+      <style>
+        @page { size: A4; margin: 15mm; }
+        body { font-family: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+               margin: 0; padding: 40px 30px; color: #111; text-align: center; }
+        .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; color: #666; margin-bottom: 6px; }
+        h1 { font-size: 32px; letter-spacing: -0.02em; margin: 0 0 8px; font-weight: 800; }
+        p.sub { font-size: 15px; color: #444; margin: 0 0 40px; }
+        .qrbox { display: inline-block; padding: 24px; background: #fff; border: 2px solid #111; border-radius: 20px; }
+        .qrbox svg { display: block; width: 320px; height: 320px; }
+        h2 { font-size: 20px; margin: 40px 0 12px; letter-spacing: -0.01em; }
+        ul { list-style: none; padding: 0; margin: 0 auto; max-width: 380px; text-align: left; font-size: 14px; line-height: 1.6; color: #333; }
+        ul li { padding: 6px 0; border-bottom: 1px solid #eee; }
+        ul li:last-child { border-bottom: none; }
+        .footer { margin-top: 30px; font-size: 11px; color: #999; }
+      </style></head><body>
+      <div class="eyebrow">Club de Fidelidad</div>
+      <h1>${nombreCorto}</h1>
+      <p class="sub">Escanea con la cámara de tu teléfono y accede a tus beneficios</p>
+      <div class="qrbox">${svgHtml}</div>
+      <h2>¿Cómo funciona?</h2>
+      <ul>
+        <li><b>Si es tu primera vez:</b> te llevará al registro rápido</li>
+        <li><b>Si ya eres cliente:</b> verás tus sellos, premios y beneficios</li>
+        <li>Cada visita suma un sello automáticamente</li>
+        <li>Junta sellos → canjea premios en el local</li>
+      </ul>
+      <div class="footer">Powered by SynapTech · ${dashboardUrl}</div>
+      <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
+      </body></html>
+    `);
+    w.document.close();
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header explicativo */}
+      <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-5 md:p-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shrink-0">
+            <QrCode size={20} className="text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-white font-bold text-lg leading-tight">QR del Club</h2>
+            <p className="text-sm text-slate-400 mt-1 leading-relaxed">
+              Imprime este QR y ponlo en el local. Cuando un cliente lo escanea, entra directo a su tarjeta de fidelidad.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* QR grande + acciones */}
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
+        {/* Tarjeta del QR */}
+        <div className="rounded-2xl bg-white border-2 border-slate-700 p-6 flex flex-col items-center gap-4">
+          <QRCodeSVG
+            id="qr-cliente-svg"
+            value={dashboardUrl}
+            size={280}
+            level="M"
+            includeMargin={false}
+            imageSettings={{
+              src: tenant.logo || '/synaptech/logo.png',
+              height: 44,
+              width: 44,
+              excavate: true,
+            }}
+          />
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-600">
+            Club · {nombreCorto}
+          </p>
+        </div>
+
+        {/* Instrucciones + acciones */}
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-5">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-emerald-400 mb-3">
+              Qué pasa cuando lo escanean
+            </h3>
+            <ul className="space-y-3 text-sm text-slate-300">
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 grid place-items-center shrink-0 mt-0.5">
+                  <Sparkles size={11} className="text-emerald-400" />
+                </span>
+                <div>
+                  <p className="font-semibold text-white">Cliente nuevo</p>
+                  <p className="text-slate-400 text-[13px] leading-snug">
+                    El sistema lo lleva al <span className="text-white font-medium">registro rápido</span> (30 segundos).
+                    Al terminar, ya tiene su tarjeta digital lista y su primer sello.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-amber-500/15 border border-amber-500/30 grid place-items-center shrink-0 mt-0.5">
+                  <Trophy size={11} className="text-amber-400" />
+                </span>
+                <div>
+                  <p className="font-semibold text-white">Cliente ya registrado</p>
+                  <p className="text-slate-400 text-[13px] leading-snug">
+                    Ve directamente su <span className="text-white font-medium">tarjeta de fidelidad</span>:
+                    cuántos sellos tiene, cuánto le falta para el próximo premio, y su historial de visitas.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={imprimir}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold rounded-lg transition-colors"
+            >
+              <Printer size={14} /> Imprimir
+            </button>
+            <button
+              onClick={descargarPNG}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold rounded-lg transition-colors"
+            >
+              <Download size={14} /> Descargar PNG
+            </button>
+            <button
+              onClick={copiarLink}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold rounded-lg transition-colors"
+            >
+              {copied ? <><Check size={14} className="text-emerald-400" /> Copiado</> : <><Copy size={14} /> Copiar link</>}
+            </button>
+            <a
+              href={dashboardUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              <ExternalLink size={14} /> Abrir en nueva pestaña
+            </a>
+          </div>
+
+          {/* Link visible + tip */}
+          <div className="rounded-lg bg-slate-900/40 border border-slate-800 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Enlace del QR</p>
+            <p className="text-[13px] font-mono text-emerald-300 break-all">{dashboardUrl}</p>
+          </div>
+
+          <div className="rounded-lg bg-amber-500/[0.06] border border-amber-500/20 px-4 py-3 flex items-start gap-3">
+            <Sparkles size={14} className="text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-amber-200/90 leading-snug">
+              <span className="font-semibold text-amber-200">Tip:</span> imprime a tamaño A4 y pégalo cerca de la caja
+              o en el espejo del cliente. Ideal en material laminado o marco para que dure. También sirve como
+              adhesivo transparente en la vitrina.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Fidelizacion() {
   const tenant = useTenant();
   const [params, setParams] = useSearchParams();
@@ -1135,6 +1366,7 @@ export default function Fidelizacion() {
         {activeTab === 'canjes'      && <Canjes />}
         {activeTab === 'rangos'      && <Rangos />}
         {activeTab === 'boca-a-boca' && <ReferidosBoca />}
+        {activeTab === 'qr-cliente'  && <QrClienteFidelizacion />}
         {activeTab === 'preview'     && <PreviewDashboard />}
         {activeTab === 'membresias'  && HAS_MEMBRESIAS.has(tenant.id) && <Membresias />}
       </div>
