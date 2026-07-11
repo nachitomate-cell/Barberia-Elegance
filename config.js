@@ -77,6 +77,17 @@
       instagramHandle: '',
       waEmoji:         '✂️',
       googleReviewUrl: '',
+      // ── Copy sugerida para reseñas Google (opcional) ───────────
+      //   Cuando el cliente no escribe nada, el helper copia al portapapeles
+      //   este texto (o uno del pool default). Acepta string o array de strings
+      //   — si es array, se pickea random para evitar patrones scripted que
+      //   Google penaliza. Ejemplo por tenant:
+      //     copyResenaSugerida: [
+      //       'Excelente atención en Kronnos, muy recomendados 🙌',
+      //       'Súper profesionales, quedé encantado con mi corte 💯',
+      //       'Gran experiencia en Kronnos ✂️ Ya me toca volver',
+      //     ]
+      // copyResenaSugerida: '',
       ratingGeneral:   0,
       totalReviews:    0,
       reviews:         [],

@@ -109,7 +109,7 @@ exports.sincronizarClaimsTenant = onDocumentWritten(
  *   firebase.functions().httpsCallable('migrarClaimsExistentes')()
  */
 exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (request) => {
-  const BOOTSTRAP = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
   const email     = request.auth?.token?.email || '';
   if (!BOOTSTRAP.includes(email.toLowerCase())) {
     throw new HttpsError('permission-denied', 'No autorizado.');
@@ -167,7 +167,7 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
 // (delnerobarber.synaptechspa.cl, elegance.synaptechspa.cl, etc.). Sin esto,
 // el default de v2 solo acepta *.web.app / *.firebaseapp.com y bloquea preflight.
 exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
-  const SUPERADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
 
   const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
   const callerRole   = request.auth?.token?.role;
@@ -619,7 +619,7 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
   const callerUid = request.auth?.uid;
   if (!callerUid) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-  const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
   const callerEmail = request.auth?.token?.email || '';
   const isBootstrap  = BOOTSTRAP_ADMINS.includes(callerEmail.toLowerCase());
 
@@ -856,6 +856,12 @@ const membresiaNotif = require('./membresia-notificaciones');
 exports.avisarVencimientoMembresia = membresiaNotif.avisarVencimientoMembresia;
 exports.notificarNuevoDecant       = membresiaNotif.notificarNuevoDecant;
 exports.notificarAnuncioChat       = membresiaNotif.notificarAnuncioChat;
+
+// ── Aviso de vencimiento de PACKS de sesiones (10:00 CLT diario) ─
+// Recorre los tenants, busca packsActivos que vencen en 2-3 días y
+// envía push al cliente con saldo restante. Un solo aviso por pack.
+const avisoPack = require('./aviso-vencimiento-pack');
+exports.avisarVencimientoPack = avisoPack.avisarVencimientoPack;
 
 // ─────────────────────────────────────────────────────────────────
 //  INSTAGRAM SYNC — ver instagram-sync.js

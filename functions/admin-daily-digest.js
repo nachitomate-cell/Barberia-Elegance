@@ -22,7 +22,7 @@ const admin                  = require('firebase-admin');
 const { dispatchAdminPush }  = require('./admin-push');
 
 const TIMEZONE = 'America/Santiago';
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
 // Mismo listado que alertas-financieras.js / cumpleanos.js.
 // Cuando agregues un tenant, súmalo acá también.

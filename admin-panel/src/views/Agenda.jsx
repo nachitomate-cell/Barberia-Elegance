@@ -52,7 +52,7 @@ import AIWatermark from '../components/ui/AIWatermark';
 
    Errores no bloquean el guardado de la cita: se loguean.
    ════════════════════════════════════════════════════════════════════════ */
-async function procesarPackDeCita({ servicio, cita, tenantId, barberos }) {
+async function procesarPackDeCita({ servicio, cita, tenantId, barberos, servicios = [] }) {
   const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
   if (!userId) return { skip: 'sin-userId' };
 
@@ -103,6 +103,15 @@ async function procesarPackDeCita({ servicio, cita, tenantId, barberos }) {
 
       const totalSes = Math.max(1, Number(servicio.sesionesTotales) || 1);
       const dias     = Math.max(1, Number(servicio.diasValidez)     || 30);
+      // Snapshot de nombres de servicios (mejora #7): congela el catálogo
+      // que cubre el pack al momento de la activación. Si el admin renombra
+      // o borra un servicio después, el pack sigue siendo legible para
+      // cliente y barbero.
+      const idsCubiertos = Array.isArray(servicio.serviciosIncluidos) ? servicio.serviciosIncluidos : [];
+      const snapshot = idsCubiertos.map(id => {
+        const svc = servicios.find(s => s.id === id);
+        return { id, nombre: svc?.nombre || id };
+      });
       const nuevoPack = {
         packId:            servicio.id,
         nombrePack:        servicio.nombre,
@@ -111,6 +120,8 @@ async function procesarPackDeCita({ servicio, cita, tenantId, barberos }) {
         fechaCompra:       Timestamp.fromMillis(now),
         fechaVencimiento:  Timestamp.fromMillis(now + dias * 24 * 60 * 60 * 1000),
         citaActivacion:    cita.id,
+        serviciosIncluidos: idsCubiertos,          // IDs vivos (match para consumo)
+        serviciosIncluidosSnapshot: snapshot,       // Nombres congelados (display)
       };
       packs.push(nuevoPack);
 
@@ -161,9 +172,66 @@ async function procesarPackDeCita({ servicio, cita, tenantId, barberos }) {
 
     tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
     if (logPayload) tx.set(logRef, logPayload);
+
+    // Denormalizar en la cita para que el badge de la agenda tenga
+    // toda la info al leerla (sin refetch). Se hace dentro de la
+    // misma transacción para mantener consistencia con el saldo.
+    if (esActivacion && cita?.id) {
+      const citaRef = doc(tenantCol('citas'), cita.id);
+      const vencAct = packs[packs.length - 1]?.fechaVencimiento || null;
+      tx.update(citaRef, {
+        esActivacionPack:     true,
+        packNombre:           servicio.nombre || null,
+        packSesionIndex:      1,
+        packSesionTotal:      Number(servicio.sesionesTotales) || 1,
+        packFechaVencimiento: vencAct,
+      });
+    } else if (esConsumo && cita?.id) {
+      // Consumo desde el admin panel (cita ya creada sin denormalizar
+      // el vencimiento): reflejarlo ahora si el pack activo lo tiene.
+      const idxU = packs.findIndex(p => p.packId === cita.packRefId);
+      const vencUse = idxU >= 0 ? (packs[idxU].fechaVencimiento || null) : null;
+      if (vencUse && !cita.packFechaVencimiento) {
+        const citaRef = doc(tenantCol('citas'), cita.id);
+        tx.update(citaRef, { packFechaVencimiento: vencUse });
+      }
+    }
   });
   return { ok: true };
 }
+
+/* ── Urgencia de vencimiento de pack ─────────────────────────
+   Devuelve nivel + días + label compacto. Consumido por el badge
+   de la agenda para colorear según qué tan cerca del vencimiento
+   está el pack del cliente. Recibe la cita porque los campos
+   packFechaVencimiento y packSesionIndex/Total viven en la cita
+   (denormalizado desde users/{uid}.packsActivos[] al crear la cita
+   o al activar). */
+function getPackUrgency(cita) {
+  const venc = cita?.packFechaVencimiento;
+  const vencMs = venc?.toMillis?.() ?? (venc ? new Date(venc).getTime() : 0);
+  const hoyMs  = Date.now();
+  if (!vencMs) return { nivel: 'neutro', dias: null, label: '' };
+
+  const dias = Math.ceil((vencMs - hoyMs) / (1000 * 60 * 60 * 24));
+  if (dias < 0)      return { nivel: 'expirado', dias, label: 'Vencido' };
+  if (dias === 0)    return { nivel: 'critico',  dias, label: 'Vence hoy' };
+  if (dias === 1)    return { nivel: 'critico',  dias, label: 'Vence mañana' };
+  if (dias <= 3)     return { nivel: 'urgente',  dias, label: `Vence en ${dias}d` };
+  if (dias <= 7)     return { nivel: 'proximo',  dias, label: `Vence en ${dias}d` };
+  return             { nivel: 'saludable', dias, label: `${dias}d restantes` };
+}
+
+/* Clases Tailwind por nivel de urgencia — mantiene el badge autocontenido
+   (sin CSS extra) y las clases se pueden purgar/leer estáticamente. */
+const PACK_URGENCY_STYLE = {
+  saludable: 'bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/50',
+  proximo:   'bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/50',
+  urgente:   'bg-amber-500/25 text-amber-200 ring-1 ring-amber-400/60',
+  critico:   'bg-red-500/25 text-red-200 ring-1 ring-red-400/60',
+  expirado:  'bg-red-500/40 text-white ring-1 ring-red-500/80',
+  neutro:    'bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/50',
+};
 
 /* ── Columna de barbero arrastrable (reordenar con tap+hold) ───
  * Render-prop: expone setNodeRef/style/listeners para usar la cabecera
@@ -1042,6 +1110,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               cita:     { ...cita, ...payload, id: cita.id },
               tenantId,
               barberos,
+              servicios,
             });
           } catch (err) {
             console.error('[pack] procesarPackDeCita:', err);
@@ -2008,30 +2077,43 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
             </span>
           );
         })()}
-        {/* Badge de pack: se muestra cuando la cita consume una sesión de
-            un pack (marca `consumeSesionPack: true` seteada por la reserva
-            pública) o cuando la cita ACTIVA un pack (servicio con isPack).
-            Diferenciar visualmente ayuda al barbero a entender que la cita
-            es cortesía / prepaga, no un cobro directo. */}
-        {(cita.consumeSesionPack || cita.esActivacionPack) && (
-          <span
-            title={cita.consumeSesionPack
-              ? `Sesión ${cita.packSesionIndex || '?'} del pack ${cita.packNombre || ''}`
-              : `Activación de pack: ${cita.servicioNombre || ''}`}
-            className="mr-1 inline-flex items-center gap-0.5 px-1 py-px rounded bg-violet-500/25 text-violet-100 text-[8px] font-black uppercase tracking-wide align-middle ring-1 ring-violet-400/50"
-          >
-            📦 {cita.consumeSesionPack ? 'Combo' : 'Nuevo Pack'}
-          </span>
-        )}
+        {/* Badge de pack enriquecido: PREPAGADO (consume una sesión) o
+            NUEVO PACK (activación). Colores dinámicos según urgencia de
+            vencimiento (verde/violeta neutro, ámbar próximo, rojo crítico).
+            El texto principal aclara si es dinero real ("prepagado") vs
+            cita normal, para que el barbero no confunda un $0. */}
+        {(cita.consumeSesionPack || cita.esActivacionPack) && (() => {
+          const u = getPackUrgency(cita);
+          const label = cita.consumeSesionPack ? 'Prepagado' : 'Nuevo Pack';
+          const tooltip = cita.consumeSesionPack
+            ? `Sesión ${cita.packSesionIndex || '?'} de ${cita.packSesionTotal || '?'} · Pack "${cita.packNombre || ''}"${u.label ? ` · ${u.label}` : ''}`
+            : `Activación del pack "${cita.servicioNombre || ''}"`;
+          return (
+            <span
+              title={tooltip}
+              className={`mr-1 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-black uppercase tracking-wide align-middle ${PACK_URGENCY_STYLE[u.nivel]}`}
+            >
+              📦 {label}
+            </span>
+          );
+        })()}
         {cita.clienteNombre || 'Cliente'}
       </p>
       <p className="truncate text-[10px] opacity-75">
         {cita.servicioNombre}
-        {cita.consumeSesionPack && cita.packSesionIndex && cita.packSesionTotal && (
-          <span className="ml-1 text-violet-300 font-semibold">
-            · Sesión {cita.packSesionIndex}/{cita.packSesionTotal}
-          </span>
-        )}
+        {cita.consumeSesionPack && cita.packSesionIndex && cita.packSesionTotal && (() => {
+          const u = getPackUrgency(cita);
+          // Color del contador y del "Vence en Xd" — usa el mismo nivel de urgencia.
+          const cls = u.nivel === 'critico' || u.nivel === 'expirado' ? 'text-red-300'
+                    : u.nivel === 'urgente' ? 'text-amber-300'
+                    : 'text-violet-300';
+          return (
+            <span className={`ml-1 ${cls} font-semibold`}>
+              · Sesión {cita.packSesionIndex}/{cita.packSesionTotal}
+              {u.label && <span className="ml-1 opacity-90">· {u.label}</span>}
+            </span>
+          );
+        })()}
       </p>
       <p className="truncate text-[10px] opacity-50">{cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}</p>
     </div>

@@ -42,7 +42,7 @@ const { FieldValue } = require('firebase-admin/firestore');
 
 const db = () => admin.firestore();
 const REGION = 'us-central1';
-const BOOTSTRAP = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 
 // Hosts OpenFactura (Haulmer). Sandbox usa CAF simulado (no válido en SII).
 const OF_HOSTS = {

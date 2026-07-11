@@ -78,7 +78,7 @@ const GRAPH_VERSION = 'v23.0';
 const VENTANA_MARGEN_MS = 30 * 60 * 1000;
 const TOPE_DIARIO       = 80;
 
-const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 

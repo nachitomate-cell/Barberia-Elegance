@@ -64,7 +64,7 @@ function openWhatsAppNative(phone, text) {
 /* ── Tab Resumen ────────────────────────────────────────────────
    Muestra rating actual, total de reseñas, las 5 más recientes
    (todo pulled por la CF googleReviewsSync que corre diariamente). */
-const SUPERADMINS = new Set(['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']);
+const SUPERADMINS = new Set(['ignaciiio.mate@gmail.com']);
 
 function TabResumen() {
   const tenant = useTenant();

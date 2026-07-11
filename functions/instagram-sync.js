@@ -36,7 +36,7 @@ const db = admin.firestore();
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
 const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omegastudio', 'memphis', 'barbersclub', 'elbarberomoderno'];
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
 // Map de fallback tenant → URL absoluta del panel. Se usa cuando el `state`

@@ -46,7 +46,7 @@ const PANEL_URL = 'https://barberia-elegance.web.app/gestion-interna';
 
 const REGION = 'us-central1';
 const CORS = true;
-const BOOTSTRAP = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 
 const db = () => admin.firestore();
 

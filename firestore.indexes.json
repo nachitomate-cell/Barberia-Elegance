@@ -1,6 +1,23 @@
 {
   "indexes": [
     {
+      "collectionGroup": "articulos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publicado",   "order": "ASCENDING"  },
+        { "fieldPath": "entregadoEn", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "articulos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publicado",     "order": "ASCENDING" },
+        { "fieldPath": "categoriaSlug", "order": "ASCENDING" },
+        { "fieldPath": "orden",         "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [

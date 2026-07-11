@@ -47,7 +47,6 @@ const db = admin.firestore();
 // Lista de emails super-admin (sincronizada con esBootstrap en firestore.rules).
 const SUPERADMIN_EMAILS = new Set([
   'ignaciiio.mate@gmail.com',
-  'barrazanicolasfabian@gmail.com',
 ]);
 
 function esSuperAdmin(auth) {

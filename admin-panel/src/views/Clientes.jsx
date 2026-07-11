@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check, Trash2, AlertTriangle, Package } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check, Trash2, AlertTriangle, Package, ShoppingCart, Loader2 } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, deleteDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp, runTransaction, Timestamp,
@@ -380,6 +380,134 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
     }
   };
 
+  /* ── Vender pack sin agendar (mejora #4) ─────────────────────
+     El cliente entra al local y compra un pack. No hay cita hoy.
+     A diferencia de la activación por cita, TODAS las sesiones
+     quedan disponibles (no se descuenta la 1ª). El pack se marca
+     con origen: 'venta-directa' para diferenciarlo. */
+  const [showVender, setShowVender]         = useState(false);
+  const [venderSaving, setVenderSaving]     = useState(false);
+  const [venderMsg, setVenderMsg]           = useState('');
+  const [servicioSel, setServicioSel]       = useState('');
+  const [metodoPago, setMetodoPago]         = useState('Efectivo');
+  const [packsDisponibles, setPacksDispo]   = useState([]);
+  const [packsCargando, setPacksCargando]   = useState(false);
+
+  useEffect(() => {
+    if (!showVender) return;
+    setPacksCargando(true);
+    setServicioSel('');
+    setVenderMsg('');
+    withTimeout(
+      getDocs(query(tenantCol('services'), where('isPack', '==', true))),
+      12000, 'clientes/servicios-pack'
+    ).then(snap => {
+      const items = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(s => Number(s.sesionesTotales) > 0)
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+      setPacksDispo(items);
+    }).catch(e => {
+      console.warn('[clientes] servicios pack:', e);
+      setVenderMsg('No pudimos cargar los servicios-pack.');
+    }).finally(() => setPacksCargando(false));
+  }, [showVender]);
+
+  const venderPackDirecto = async () => {
+    const svc = packsDisponibles.find(s => s.id === servicioSel);
+    if (!svc) { setVenderMsg('Elige un pack para vender.'); return; }
+    if (venderSaving) return;
+
+    const totalSes = Math.max(1, Number(svc.sesionesTotales) || 1);
+    const dias     = Math.max(1, Number(svc.diasValidez)     || 30);
+    const precio   = Math.round(Number(svc.precio) || 0);
+    const nombreCliente = data.nombre || 'este cliente';
+
+    const ok = await confirmDialog({
+      title: '📦 Vender pack',
+      message:
+        `Se activará el pack "${svc.nombre}" para ${nombreCliente}.\n\n` +
+        `• ${totalSes} sesiones disponibles (nada se descuenta ahora)\n` +
+        `• Vence en ${dias} días\n` +
+        `• Método de pago: ${metodoPago}\n` +
+        (precio > 0 ? `• Cobras ahora: ${precio.toLocaleString('es-CL')} CLP\n` : '') +
+        `\n¿Confirmar venta?`,
+      confirmText: 'Vender ahora',
+      cancelText:  'Cancelar',
+    });
+    if (!ok) return;
+
+    setVenderSaving(true);
+    setVenderMsg('');
+    try {
+      const userRef = doc(tenantCol('users'), data.uid);
+      const logRef  = doc(tenantCol('packConsumos'));
+      await runTransaction(db, async (tx) => {
+        const uSnap = await tx.get(userRef);
+        if (!uSnap.exists()) throw new Error('El cliente ya no existe');
+        const uData = uSnap.data() || {};
+        const packs = Array.isArray(uData.packsActivos) ? [...uData.packsActivos] : [];
+        const now = Date.now();
+
+        // Snapshot de servicios cubiertos (mejora #7): congela nombres.
+        // Necesita conocer los otros servicios para resolver IDs → nombres.
+        const idsCubiertos = Array.isArray(svc.serviciosIncluidos) ? svc.serviciosIncluidos : [];
+        let snapshotServicios = [];
+        if (idsCubiertos.length) {
+          try {
+            const snapSvcs = await getDocs(query(tenantCol('services'), where('__name__', 'in', idsCubiertos.slice(0, 10))));
+            const nombres = new Map();
+            snapSvcs.docs.forEach(d => nombres.set(d.id, (d.data().nombre || d.id)));
+            snapshotServicios = idsCubiertos.map(id => ({ id, nombre: nombres.get(id) || id }));
+          } catch (_) {
+            snapshotServicios = idsCubiertos.map(id => ({ id, nombre: id }));
+          }
+        }
+
+        const nuevoPack = {
+          packId:            svc.id,
+          nombrePack:        svc.nombre,
+          sesionesTotales:   totalSes,
+          sesionesRestantes: totalSes, // TODAS disponibles — no consume ninguna
+          fechaCompra:       Timestamp.fromMillis(now),
+          fechaVencimiento:  Timestamp.fromMillis(now + dias * 24 * 60 * 60 * 1000),
+          origen:            'venta-directa',
+          metodoPago,
+          precio,
+          citasConsumo:      [],
+          serviciosIncluidos:         idsCubiertos,
+          serviciosIncluidosSnapshot: snapshotServicios,
+        };
+        packs.push(nuevoPack);
+
+        tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
+        tx.set(logRef, {
+          tipo:              'venta-directa',
+          userId:            data.uid,
+          clienteNombre:     data.nombre || '',
+          clienteTelefonoSuf9: (data.telefono ? String(data.telefono).replace(/\D/g, '').slice(-9) : ''),
+          packId:            svc.id,
+          packNombre:        svc.nombre,
+          sesionesTotales:   totalSes,
+          sesionesAntes:     0,
+          sesionesDespues:   totalSes,
+          fechaVencimiento:  nuevoPack.fechaVencimiento,
+          metodoPago,
+          precio,
+          sedeId:            tenantId || '',
+          motivo:            'venta-directa-desde-ficha-cliente',
+          createdAt:         serverTimestamp(),
+        });
+      });
+      setShowVender(false);
+    } catch (e) {
+      console.error(e);
+      setVenderMsg('Error: ' + (e.message || 'no se pudo vender el pack.'));
+    } finally {
+      setVenderSaving(false);
+    }
+  };
+
   const eliminarCliente = async () => {
     setDelLoad(true);
     setDelMsg('');
@@ -635,11 +763,31 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
             · violet    — vigente y saludable
             · amber     — vence pronto (≤5 días)
             · red       — vencido
-            · slate     — sin saldo (informativo, sin acciones) */}
+            · slate     — sin saldo (informativo, sin acciones)
+          El botón "Vender pack" se muestra siempre — para clientes sin packs
+          es la primera venta directa (mejora #4), sin agendar cita. */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+            <Package size={11} /> Packs activos
+          </p>
+          <button
+            onClick={() => setShowVender(true)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            <ShoppingCart size={11} /> Vender pack
+          </button>
+        </div>
+        {(!Array.isArray(data.packsActivos) || data.packsActivos.length === 0) && (
+          <div className="rounded-xl px-3 py-3 bg-slate-800/40 border border-slate-800 text-[12px] text-slate-500">
+            Este cliente no tiene packs. Toca <strong className="text-slate-300">Vender pack</strong> para activarle uno sin agendar.
+          </div>
+        )}
+      </div>
       {Array.isArray(data.packsActivos) && data.packsActivos.length > 0 && (
         <div>
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-            <Package size={11} /> Packs activos
+            <Package size={11} /> Detalle
           </p>
           <div className="space-y-2">
             {data.packsActivos.map((p, idx) => {
@@ -684,6 +832,21 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                     <div className="h-full rounded-full transition-all"
                          style={{ width: `${pct}%`, background: paleta.bar }} />
                   </div>
+                  {/* Servicios cubiertos por el pack — snapshot congelado.
+                      Si no hay snapshot (packs viejos de antes de la migración)
+                      no se muestra. Truncado a 2 nombres + "y N más" para
+                      no explotar la card. */}
+                  {Array.isArray(p.serviciosIncluidosSnapshot) && p.serviciosIncluidosSnapshot.length > 0 && (
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Cubre:{' '}
+                      <span className="text-slate-300 font-semibold">
+                        {p.serviciosIncluidosSnapshot.slice(0, 2).map(s => s.nombre).join(' · ')}
+                        {p.serviciosIncluidosSnapshot.length > 2 && (
+                          <span className="text-slate-500 font-normal"> · +{p.serviciosIncluidosSnapshot.length - 2} más</span>
+                        )}
+                      </span>
+                    </p>
+                  )}
                   {/* Estado / avisos */}
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[10px] font-semibold" style={{ color: paleta.text }}>
@@ -815,6 +978,119 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
           </div>
         )}
       </div>
+
+      {/* ── Modal: Vender pack sin agendar (mejora #4) ────────────── */}
+      {showVender && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+          style={{ background: 'rgba(2,6,11,0.72)', backdropFilter: 'blur(6px)' }}
+          onClick={() => !venderSaving && setShowVender(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+            style={{ boxShadow: '0 24px 60px -12px rgba(0,0,0,0.6)' }}
+          >
+            <div className="px-5 pt-5 pb-3 border-b border-slate-800/70 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-400 mb-1">
+                  Nuevo pack · sin cita
+                </p>
+                <h3 className="text-white font-bold text-[17px] tracking-tight leading-tight">
+                  Vender pack a {(data.nombre || 'este cliente').split(' ')[0]}
+                </h3>
+              </div>
+              <button
+                onClick={() => !venderSaving && setShowVender(false)}
+                className="w-8 h-8 grid place-items-center rounded-full text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label="Cerrar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Selector de pack */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Pack a vender</label>
+                {packsCargando ? (
+                  <div className="h-11 rounded-lg bg-slate-900/50 border border-slate-800 flex items-center justify-center">
+                    <Loader2 size={14} className="animate-spin text-slate-500" />
+                  </div>
+                ) : packsDisponibles.length === 0 ? (
+                  <div className="rounded-lg bg-slate-900/50 border border-slate-800 px-3.5 py-3 text-[13px] text-slate-400">
+                    No hay servicios con <strong className="text-slate-200">isPack: true</strong>. Crea uno en /servicios primero.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                    {packsDisponibles.map(s => {
+                      const total = Number(s.sesionesTotales) || 1;
+                      const dias  = Number(s.diasValidez) || 30;
+                      const precio = Number(s.precio) || 0;
+                      const sel = servicioSel === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setServicioSel(s.id)}
+                          className={`w-full text-left px-3.5 py-2.5 rounded-lg border transition-colors ${sel ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[13.5px] font-semibold truncate ${sel ? 'text-emerald-300' : 'text-white'}`}>{s.nombre}</span>
+                            {precio > 0 && (
+                              <span className="text-[12px] tabular-nums text-slate-400 shrink-0">${precio.toLocaleString('es-CL')}</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
+                            {total} sesiones · vence en {dias} días
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Método de pago */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Método de pago</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {['Efectivo', 'Débito', 'Crédito', 'Transferencia'].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setMetodoPago(m)}
+                      className={`px-2 py-2 rounded-lg text-[12px] font-semibold transition-colors ${metodoPago === m ? 'bg-white text-slate-950' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-white'}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {venderMsg && (
+                <p className="text-[12px] text-red-400 leading-tight">{venderMsg}</p>
+              )}
+            </div>
+
+            <div className="px-5 pb-5 pt-1 flex gap-2">
+              <button
+                onClick={() => setShowVender(false)}
+                disabled={venderSaving}
+                className="flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white text-[13.5px] font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={venderPackDirecto}
+                disabled={venderSaving || !servicioSel}
+                className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[13.5px] hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+              >
+                {venderSaving ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
+                Vender pack
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

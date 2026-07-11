@@ -1412,6 +1412,137 @@ export default async function middleware(request) {
     return;
   }
 
+  // ── Centro de Ayuda: sitemap propio ───────────────────────────
+  //   /ayuda/sitemap.xml → lista todas las guías publicadas para SEO.
+  //   Se genera al vuelo desde Firestore REST + se cachea 1h.
+  if (url.pathname === '/ayuda/sitemap.xml') {
+    try {
+      const baseUrl   = `https://${hostname}`;
+      const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+      const today     = new Date().toISOString().split('T')[0];
+
+      const catsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/_ayuda/global/categorias`;
+      const artsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/_ayuda/global/articulos`;
+      const [catsRes, artsRes] = await Promise.all([fetch(catsUrl), fetch(artsUrl)]);
+      const cats = catsRes.ok ? ((await catsRes.json()).documents || []) : [];
+      const arts = artsRes.ok ? ((await artsRes.json()).documents || []) : [];
+
+      const entries = [
+        `  <url><loc>${baseUrl}/ayuda</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
+      ];
+      for (const c of cats) {
+        const slug = c.fields?.slug?.stringValue;
+        if (slug) entries.push(`  <url><loc>${baseUrl}/ayuda/${slug}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
+      }
+      for (const a of arts) {
+        if (a.fields?.publicado?.booleanValue !== true) continue;
+        const catSlug = a.fields?.categoriaSlug?.stringValue;
+        const artSlug = a.fields?.slug?.stringValue;
+        if (catSlug && artSlug) {
+          const upd = a.fields?.updatedAt?.timestampValue?.split('T')[0] || today;
+          entries.push(`  <url><loc>${baseUrl}/ayuda/${catSlug}/${artSlug}</loc><lastmod>${upd}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`);
+        }
+      }
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join('\n')}\n</urlset>`;
+      return new Response(xml, {
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      });
+    } catch (e) {
+      return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>', {
+        headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+      });
+    }
+  }
+
+  // ── Centro de Ayuda (SynapTech-wide, cross-tenant) ────────────
+  //   /ayuda                   → home
+  //   /ayuda/{cat}             → categoría
+  //   /ayuda/{cat}/{articulo}  → artículo (SEO server-side inyectado)
+  //   Todas las rutas caen a /ayuda.html y el client-side router
+  //   monta la vista según location.pathname. El HTML es único para
+  //   todos los tenants — el contenido vive en _ayuda/global/*.
+  if (url.pathname === '/ayuda' || url.pathname.startsWith('/ayuda/')) {
+    const rw = new URL('/ayuda.html', request.url);
+    const res = await fetch(new Request(rw, {
+      headers: new Headers([...request.headers, ['x-mw-bypass', '1']]),
+    }));
+    let html = await res.text();
+
+    // Inyectar meta tags server-side para artículos (SEO real para bots).
+    // Path /ayuda/{cat}/{art} → hacemos fetch al REST API de Firestore para
+    // resolver titulo + deck; con eso reemplazamos las 4-5 metas de la home
+    // por las del artículo. Bots ven contenido correcto sin ejecutar JS.
+    try {
+      const m = /^\/ayuda\/([^/]+)\/([^/]+)\/?$/.exec(url.pathname);
+      if (m) {
+        const [, catSlug, artSlug] = m;
+        const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+        const fsBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/_ayuda/global/articulos`;
+        // Firestore no permite where sobre un solo campo con REST sencillo:
+        // en su lugar, tratamos artSlug como docId primero (que es el patrón
+        // del seed), y si falla haremos un runQuery.
+        let art = null;
+        const direct = await fetch(`${fsBase}/${encodeURIComponent(artSlug)}`);
+        if (direct.ok) art = ((await direct.json()).fields) || null;
+        if (!art) {
+          const query = {
+            structuredQuery: {
+              from: [{ collectionId: 'articulos' }],
+              where: {
+                compositeFilter: {
+                  op: 'AND',
+                  filters: [
+                    { fieldFilter: { field: { fieldPath: 'slug' },      op: 'EQUAL', value: { stringValue: artSlug } } },
+                    { fieldFilter: { field: { fieldPath: 'publicado' }, op: 'EQUAL', value: { booleanValue: true } } },
+                  ],
+                },
+              },
+              limit: 1,
+            },
+          };
+          const qUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/_ayuda/global:runQuery`;
+          const qRes = await fetch(qUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query),
+          });
+          if (qRes.ok) {
+            const arr = await qRes.json();
+            const doc = Array.isArray(arr) ? arr.find(x => x.document) : null;
+            if (doc?.document?.fields) art = doc.document.fields;
+          }
+        }
+        if (art) {
+          const titulo = art.titulo?.stringValue || 'Guía';
+          const deck   = art.deck?.stringValue || '';
+          const seoTitle = `${titulo} · Centro de Ayuda SynapTech`;
+          const seoDesc  = deck || `Guía sobre ${titulo} en SynapTech.`;
+          const seoUrl   = `https://${hostname}${url.pathname}`;
+
+          const escAttr = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          html = html
+            .replace(/<title>[^<]*<\/title>/, `<title>${escAttr(seoTitle)}</title>`)
+            .replace(/(<meta name="description" content=")[^"]*(")/, `$1${escAttr(seoDesc)}$2`)
+            .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escAttr(seoTitle)}$2`)
+            .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${escAttr(seoDesc)}$2`)
+            .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${escAttr(seoUrl)}$2`);
+        }
+      }
+    } catch (e) {
+      // Si el fetch a Firestore falla, dejamos el HTML sin SSR y el JS del
+      // cliente actualiza las metas dinámicamente. Los bots ven las metas
+      // de la home hasta que se solucione, pero la página funciona.
+    }
+
+    const headers = new Headers(res.headers);
+    headers.set('Content-Type', 'text/html; charset=utf-8');
+    headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600');
+    return new Response(html, { status: res.status, headers });
+  }
+
   // /crea (registro self-service) y /empieza (landing leads): páginas propias
   // con su propio <head>; no inyectar el SEO de ningún tenant. En sus
   // subdominios dedicados la raíz NO puede resolverse por rewrite de
@@ -1501,7 +1632,7 @@ export default async function middleware(request) {
   // ── Robots.txt: generado dinámicamente para apuntar al sitemap correcto ───────
   if (url.pathname === '/robots.txt') {
     const baseUrl = `https://${hostname}`;
-    const txt = `User-agent: *\nAllow: /\n\nSitemap: ${baseUrl}/sitemap.xml\n`;
+    const txt = `User-agent: *\nAllow: /\n\nSitemap: ${baseUrl}/sitemap.xml\nSitemap: ${baseUrl}/ayuda/sitemap.xml\n`;
     return new Response(txt, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',

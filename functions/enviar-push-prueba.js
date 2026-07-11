@@ -17,7 +17,7 @@ const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { writeNotifLog }      = require('./lib/notif-log');
 
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
 function fcmTokensColPath(tenantId) {
   return tenantId === 'elegance' ? 'fcm_tokens' : `tenants/${tenantId}/fcm_tokens`;

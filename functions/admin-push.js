@@ -29,7 +29,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
 /**
  * Envía una push a todos los tokens de /admin_fcm_tokens activos.

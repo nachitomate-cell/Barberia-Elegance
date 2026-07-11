@@ -1728,7 +1728,7 @@
 
         // Resuelve isBarbero + isAdmin + barberoId + nombre en UNA sola lectura Firestore.
         async function resolverInfoBarbero(email, uid) {
-            const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+            const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
             const esBootstrap = email && BOOTSTRAP_ADMINS.includes(email.toLowerCase());
 
             // Para admins bootstrap, solo necesitamos el barberoId (una lectura por UID)

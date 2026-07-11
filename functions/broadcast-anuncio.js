@@ -21,7 +21,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
 /** Decide si un token de fcm_tokens cae dentro de la audiencia pedida.
  *  - 'web-cliente' NUNCA entra (este broadcast es interno).

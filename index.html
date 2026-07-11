@@ -10579,6 +10579,10 @@
         packNombre:        p.nombrePack,
         packSesionIndex:   Math.max(1, (Number(p.sesionesTotales) || 1) - Number(p.sesionesRestantes || 0) + 1),
         packSesionTotal:   Number(p.sesionesTotales) || 1,
+        // Denormalizado para que el badge de la agenda muestre urgencia
+        // sin tener que refetchear users/{uid}.packsActivos[]. Es una foto
+        // del vencimiento al momento de la reserva — no cambia después.
+        packFechaVencimiento: p.fechaVencimiento || null,
       };
       // Reset campos que dependen del servicio.
       selectedAddons = [];
@@ -11892,14 +11896,15 @@
             // en el paso 1, esta cita se cobra $0 y arrastra las marcas que
             // usa Agenda.jsx para decrementar sesionesRestantes al Completar.
             ...(selectedServiceObj?.consumeSesionPack ? {
-              consumeSesionPack: true,
-              packRefId:         selectedServiceObj.packRefId,
-              packNombre:        selectedServiceObj.packNombre,
-              packSesionIndex:   selectedServiceObj.packSesionIndex,
-              packSesionTotal:   selectedServiceObj.packSesionTotal,
-              precioTipo:        'CANJE_PACK_SESION',
-              precioBase:        0,
-              precioTotal:       0,
+              consumeSesionPack:     true,
+              packRefId:             selectedServiceObj.packRefId,
+              packNombre:            selectedServiceObj.packNombre,
+              packSesionIndex:       selectedServiceObj.packSesionIndex,
+              packSesionTotal:       selectedServiceObj.packSesionTotal,
+              packFechaVencimiento:  selectedServiceObj.packFechaVencimiento || null,
+              precioTipo:            'CANJE_PACK_SESION',
+              precioBase:            0,
+              precioTotal:           0,
             } : {}),
           };
           const _btnPago = document.getElementById('btnContinue');
@@ -12035,14 +12040,15 @@
             } : {}),
             // Consumo de pack (mismo tratamiento que en la rama con pasarela).
             ...(selectedServiceObj?.consumeSesionPack ? {
-              consumeSesionPack: true,
-              packRefId:         selectedServiceObj.packRefId,
-              packNombre:        selectedServiceObj.packNombre,
-              packSesionIndex:   selectedServiceObj.packSesionIndex,
-              packSesionTotal:   selectedServiceObj.packSesionTotal,
-              precioTipo:        'CANJE_PACK_SESION',
-              precioBase:        0,
-              precioTotal:       0,
+              consumeSesionPack:     true,
+              packRefId:             selectedServiceObj.packRefId,
+              packNombre:            selectedServiceObj.packNombre,
+              packSesionIndex:       selectedServiceObj.packSesionIndex,
+              packSesionTotal:       selectedServiceObj.packSesionTotal,
+              packFechaVencimiento:  selectedServiceObj.packFechaVencimiento || null,
+              precioTipo:            'CANJE_PACK_SESION',
+              precioBase:            0,
+              precioTotal:           0,
             } : {}),
           });
           citaGuardada = true;

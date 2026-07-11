@@ -16,7 +16,7 @@ import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
 
-const SUPERADMIN_EMAILS = new Set(['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']);
+const SUPERADMIN_EMAILS = new Set(['ignaciiio.mate@gmail.com']);
 
 export default function Referidos() {
   const { id: tenantId } = useTenant();

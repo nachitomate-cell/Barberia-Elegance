@@ -380,7 +380,7 @@ exports.mpReembolsar = onCall(
     if (!PAGO_TENANTS[tenantId]) throw new HttpsError('failed-precondition', 'Tenant sin pago online.');
 
     // Verificar que el caller sea admin/jefe del tenant
-    const BOOTSTRAP = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+    const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
     const email = (request.auth?.token?.email || '').toLowerCase();
     if (!BOOTSTRAP.includes(email)) {
       const claims = request.auth?.token || {};

@@ -35,8 +35,7 @@ service cloud.firestore {
     function esBootstrap() {
       return autenticado()
           && request.auth.token.email in [
-               'ignaciiio.mate@gmail.com',
-               'barrazanicolasfabian@gmail.com'
+               'ignaciiio.mate@gmail.com'
              ];
     }
 
@@ -827,6 +826,49 @@ service cloud.firestore {
                     || (autenticado() && resource.data.userId == uid());
       allow create: if esStaff('elegance');
       allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  _ayuda — Centro de Ayuda (SynapTech-wide, no per-tenant)
+    //  ─────────────────────────────────────────────────────────────
+    //  Contenido global compartido por TODOS los tenants. La landing
+    //  pública synaptechspa.cl/ayuda y el panel interno leen esta
+    //  misma raíz. Solo bootstrap (superadmin SynapTech) puede escribir.
+    //
+    //  Estructura:
+    //    _ayuda/categorias/{catId}     — 8 categorías fijas del mockup
+    //    _ayuda/articulos/{artId}      — guías markdown (indexadas por slug)
+    //    _ayuda/changelog/{cambioId}   — "Últimas features pedidas por ti"
+    //
+    //  Read público (SEO + landing sin login). Write solo bootstrap.
+    // ═══════════════════════════════════════════════════════════════
+    match /_ayuda/{docId} {
+      allow read:  if true;
+      allow write: if esBootstrap();
+
+      match /categorias/{catId} {
+        allow read:  if true;
+        allow write: if esBootstrap();
+      }
+      match /articulos/{artId} {
+        allow read:  if true;
+        allow write: if esBootstrap();
+      }
+      match /changelog/{cambioId} {
+        allow read:  if true;
+        allow write: if esBootstrap();
+      }
+      // Feedback público del "¿Te sirvió este artículo?" — cualquiera
+      // puede crear (sin login), solo bootstrap puede leer/borrar.
+      // Los docs son pequeños ({ util:bool, path:string, userAgent, ts })
+      // pero validamos tamaño para evitar spam malicioso.
+      match /feedback/{fbId} {
+        allow read:   if esBootstrap();
+        allow create: if request.resource.data.util is bool
+                      && request.resource.data.path is string
+                      && request.resource.data.path.size() < 200;
+        allow update, delete: if esBootstrap();
+      }
     }
 
     // ── /fcm_tokens ────────────────────────────────────────────────

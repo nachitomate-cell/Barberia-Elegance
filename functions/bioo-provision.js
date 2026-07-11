@@ -535,7 +535,7 @@ exports.biooProvisionBarbero = onCall(
     // Authz: el caller debe ser admin/jefe del tenant. Custom claims primero,
     // fallback bootstrap (mismos correos que firestore.rules).
     const claims = auth.token || {};
-    const isBootstrap = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']
+    const isBootstrap = ['ignaciiio.mate@gmail.com']
       .includes(String(claims.email || '').toLowerCase());
     const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
     if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede crear el bioo de un barbero.');
@@ -715,7 +715,7 @@ exports.biooOpenBarberoEditor = onCall(
     if (!tenantId || !barberoId) throw new HttpsError('invalid-argument', 'Faltan tenantId o barberoId.');
 
     const claims = auth.token || {};
-    const isBootstrap = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']
+    const isBootstrap = ['ignaciiio.mate@gmail.com']
       .includes(String(claims.email || '').toLowerCase());
     const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
     if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede abrir el editor del bioo.');

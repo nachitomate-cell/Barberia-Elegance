@@ -39,7 +39,7 @@ const marca                    = require('./lib/kronnos-marca');
 const db        = admin.firestore();
 const messaging = admin.messaging();
 
-const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const KRONNOS_SUPERADMIN = 'administracionkronnos@gmail.com';
 
 // ── Config defaults (override en tenants/{tid}/configuracion/anuncios) ──

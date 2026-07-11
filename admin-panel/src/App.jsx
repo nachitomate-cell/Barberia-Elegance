@@ -36,6 +36,7 @@ import ChatbotConfig   from './views/ChatbotConfig';
 import Marketing        from './views/Marketing';
 import Anuncios         from './views/Anuncios';
 import Aura             from './views/Aura';
+import Ayuda            from './views/Ayuda';
 import ServicioFavorito from './views/ServicioFavorito';
 import LoginPage        from './views/LoginPage';
 import BarberTV         from './views/BarberTV';
@@ -131,6 +132,7 @@ function ProtectedApp() {
             <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
             <Route path="anuncios"        element={<BillingGate><Anuncios /></BillingGate>} />
             <Route path="aura"            element={<BillingGate><Aura /></BillingGate>} />
+            <Route path="ayuda/*"         element={<Ayuda />} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="consultas"       element={<Consultas />} />
             <Route path="membresias"      element={<Membresias />} />

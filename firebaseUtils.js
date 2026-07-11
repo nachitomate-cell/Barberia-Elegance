@@ -227,7 +227,6 @@ const FDB = (() => {
       console.info('[FDB] Inicializando colección de barberos…');
       const initialBarberos = [
         { email: 'ignaciiio.mate@gmail.com' },
-        { email: 'barrazanicolasfabian@gmail.com' },
         { uid: 'MRbgFWo4dtUoauZea2YhkYXcjtJ3' },
         { uid: 'oQicdNhcCwbTFXU7NyNyfNeeXqZ2' }
       ];
@@ -630,6 +629,9 @@ const FDB = (() => {
     if (cita.packNombre)             citaData.packNombre             = cita.packNombre;
     if (cita.packSesionIndex != null) citaData.packSesionIndex       = Number(cita.packSesionIndex) || 0;
     if (cita.packSesionTotal != null) citaData.packSesionTotal       = Number(cita.packSesionTotal) || 0;
+    // Vencimiento del pack denormalizado — el badge de la agenda lo usa
+    // para colorear por urgencia sin refetchear users/{uid}.packsActivos[].
+    if (cita.packFechaVencimiento)   citaData.packFechaVencimiento   = cita.packFechaVencimiento;
     // Productos reservados en el cross-sell del paso final (entrega/pago presencial).
     if (Array.isArray(cita.productosReservados) && cita.productosReservados.length) {
       citaData.productosReservados = cita.productosReservados.map(p => ({
@@ -1491,7 +1493,7 @@ const FDB = (() => {
   }
 
   async function esBarbero(email, uid) {
-    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
     try {
       // 0. Bootstrap: Permitir siempre a los admins originales para que puedan inicializar la BD
       if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return true;
@@ -1549,7 +1551,7 @@ const FDB = (() => {
   }
 
   async function esAdminJefe(email, uid) {
-    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
     try {
       if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return true;
 
@@ -1582,7 +1584,7 @@ const FDB = (() => {
   }
 
   async function getRol(email, uid) {
-    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
     if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return 'admin';
     try {
       if (uid) {
