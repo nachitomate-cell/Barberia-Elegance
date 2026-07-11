@@ -245,9 +245,10 @@ export default function DailyWelcomePanel() {
     if (to) navigate(to);
   }
 
-  // Formato "salón" corto (a veces name es muy largo)
+  // Formato "salón" corto (a veces name es muy largo).
+  // NFKD decompone los "bold matemáticos" de Elegance (𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞) a ASCII normal.
   const salonCorto = useMemo(() => {
-    const raw = String(shopName || '').replace(/[𝐀-𝐳]/g, ''); // limpia unicode "bold"
+    const raw = String(shopName || '').normalize('NFKD');
     return raw.trim().split(/\s+/).slice(0, 3).join(' ') || 'tu barbería';
   }, [shopName]);
 
