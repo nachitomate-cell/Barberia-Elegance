@@ -87,9 +87,15 @@ export default function AyudaHome() {
             target="_blank" rel="noopener noreferrer"
             className="ay-btn ay-btn-ghost"
           >Contactar soporte</a>
-          <a href="/gestion-interna/agenda"
-             onClick={e => { e.preventDefault(); navigate('/agenda'); }}
-             className="ay-btn ay-btn-dark">Ir al panel</a>
+          <button
+            className="ay-btn ay-btn-close"
+            onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/agenda')}
+            title="Cerrar ayuda y volver al panel"
+            aria-label="Cerrar ayuda y volver al panel"
+          >
+            <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+            <span>Volver al panel</span>
+          </button>
         </div>
       </nav>
 

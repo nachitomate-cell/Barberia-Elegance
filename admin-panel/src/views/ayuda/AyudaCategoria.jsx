@@ -68,22 +68,26 @@ export default function AyudaCategoria() {
         </a>
         <div className="ayuda-nav-actions">
           <button className="ay-btn ay-btn-ghost" onClick={() => setCmdkOpen(true)}>Buscar ⌘ K</button>
-          <a
-            href="https://wa.me/56983568212?text=Hola,%20necesito%20ayuda%20con%20SynapTech"
-            target="_blank" rel="noopener noreferrer"
-            className="ay-btn ay-btn-dark"
-          >Contactar soporte</a>
+          <button
+            className="ay-btn ay-btn-close"
+            onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/agenda')}
+            title="Cerrar ayuda y volver al panel"
+            aria-label="Cerrar ayuda y volver al panel"
+          >
+            <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+            <span>Volver al panel</span>
+          </button>
         </div>
       </nav>
 
-      <section className="ay-hero" style={{ paddingBottom: 0, alignItems: 'start' }}>
+      <section className="ay-hero ay-hero-compact">
         <div>
-          <nav className="ay-breadcrumb" style={{ marginBottom: 24 }}>
+          <nav className="ay-breadcrumb" style={{ marginBottom: 20 }}>
             <Link to="/ayuda">Ayuda</Link>
             <span className="ay-breadcrumb-sep">/</span>
             <span>{cat?.nombre || (loading ? '…' : 'No encontrado')}</span>
           </nav>
-          <h1 style={{ fontSize: 'clamp(40px, 6vw, 72px)' }}>
+          <h1 className="ay-hero-title-compact">
             {cat?.nombre || 'Categoría'}.
           </h1>
         </div>

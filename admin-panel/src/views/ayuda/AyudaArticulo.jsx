@@ -104,11 +104,15 @@ export default function AyudaArticulo() {
         </a>
         <div className="ayuda-nav-actions">
           <button className="ay-btn ay-btn-ghost" onClick={() => setCmdkOpen(true)}>Buscar ⌘ K</button>
-          <a
-            href="https://wa.me/56983568212?text=Hola,%20necesito%20ayuda%20con%20SynapTech"
-            target="_blank" rel="noopener noreferrer"
-            className="ay-btn ay-btn-dark"
-          >Contactar soporte</a>
+          <button
+            className="ay-btn ay-btn-close"
+            onClick={() => window.history.length > 2 ? navigate(-1) : navigate('/agenda')}
+            title="Cerrar ayuda y volver al panel"
+            aria-label="Cerrar ayuda y volver al panel"
+          >
+            <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>×</span>
+            <span>Volver al panel</span>
+          </button>
         </div>
       </nav>
 

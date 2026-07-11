@@ -12,16 +12,19 @@
 
 .ayuda-root {
   /* ── Paleta warm cream monocromática ───────────────────────── */
-  --ay-cream:     #EFECE3;
-  --ay-cream-2:   #E4DFD1;
-  --ay-cream-3:   #D5CFBE;
+  /* Fondo principal más neutro y calmo; cards con contraste
+     ligeramente mayor para separarse mejor del fondo. Texto
+     mute más oscuro para mejor legibilidad. */
+  --ay-cream:     #F2EFE7;   /* fondo — más limpio, menos amarillo */
+  --ay-cream-2:   #E8E2D2;   /* cards — más contraste con el fondo */
+  --ay-cream-3:   #D9D2BF;   /* hover state */
   --ay-white:     #FBFAF6;
-  --ay-ink:       #171412;
+  --ay-ink:       #14110F;
   --ay-ink-2:     #26221E;
-  --ay-slate:     #6A6660;
-  --ay-slate-2:   #928E85;
-  --ay-chalk:     #C9C4B7;
-  --ay-hair:      #D9D3C4;
+  --ay-slate:     #5C5852;   /* texto secundario — un poco más oscuro para leer bien */
+  --ay-slate-2:   #8A867D;
+  --ay-chalk:     #C0BAAC;
+  --ay-hair:      #D2CCBB;
 
   /* Semánticos (light default) */
   --ay-bg:          var(--ay-cream);
@@ -140,6 +143,44 @@
 }
 .ay-btn-ghost:hover { background: var(--ay-bg-elev); border-color: var(--ay-text); }
 
+/* Botón "Volver al panel" / cerrar — visualmente destacado (rojo suave)
+   para que sea fácil salir de la ayuda con un solo clic. */
+.ay-btn-close {
+  background: rgba(200, 60, 60, 0.08);
+  color: #B54040;
+  border-color: rgba(181, 64, 64, 0.30);
+  font-weight: 600;
+}
+.ay-btn-close:hover {
+  background: rgba(200, 60, 60, 0.15);
+  border-color: #B54040;
+}
+.ayuda-root[data-ay-theme="dark"] .ay-btn-close {
+  background: rgba(248, 113, 113, 0.10);
+  color: #F87171;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+.ayuda-root[data-ay-theme="dark"] .ay-btn-close:hover {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: #F87171;
+}
+@media (prefers-color-scheme: dark) {
+  .ayuda-root:not([data-ay-theme="light"]) .ay-btn-close {
+    background: rgba(248, 113, 113, 0.10);
+    color: #F87171;
+    border-color: rgba(248, 113, 113, 0.35);
+  }
+  .ayuda-root:not([data-ay-theme="light"]) .ay-btn-close:hover {
+    background: rgba(248, 113, 113, 0.18);
+    border-color: #F87171;
+  }
+}
+/* Ícono solo en mobile — el texto se oculta para caber */
+@media (max-width: 640px) {
+  .ay-btn-close > span:last-child { display: none; }
+  .ay-btn-close { padding: 10px 14px; min-width: 42px; justify-content: center; }
+}
+
 .ay-theme-toggle {
   width: 38px; height: 38px; padding: 0;
   display: grid; place-items: center;
@@ -174,6 +215,26 @@
 .ay-hero-right { display: flex; flex-direction: column; gap: 28px; padding-bottom: 14px; }
 .ay-hero-copy { font-size: 17.5px; line-height: 1.5; color: var(--ay-text-mute); max-width: 42ch; margin: 0; }
 .ay-hero-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Hero compacto — para vistas de categoría y artículo donde el
+   título gigante del hero home resulta excesivo. Título más pequeño
+   + padding-top ajustado para evitar el corte visual bajo la nav
+   sticky en pantallas medianas (era el bug del screenshot). */
+.ay-hero.ay-hero-compact {
+  padding-top: clamp(32px, 5vw, 60px);
+  padding-bottom: 24px;
+  align-items: start;
+}
+.ay-hero-title-compact {
+  font-family: var(--ay-font-display);
+  font-weight: 700;
+  font-size: clamp(32px, 4.5vw, 52px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 0;
+  color: var(--ay-text);
+  text-wrap: balance;
+}
 
 /* Buscador */
 .ay-search-band {
@@ -252,17 +313,22 @@
   display: flex; flex-direction: column; gap: 14px;
   min-height: 200px; position: relative;
   border-radius: var(--ay-r-md);
-  border: 1px solid transparent;
+  border: 1px solid var(--ay-line);
   transition: background-color .18s ease, border-color .18s ease,
-              transform .2s cubic-bezier(.2,.9,.2,1);
+              transform .2s cubic-bezier(.2,.9,.2,1),
+              box-shadow .2s ease;
   cursor: pointer; text-align: left;
   font-family: var(--ay-font-body);
+  box-shadow: 0 1px 2px rgba(23, 20, 15, 0.02);
 }
 .ay-cat:hover {
   background: var(--ay-cream-3);
-  border-color: var(--ay-line);
+  border-color: var(--ay-line-strong);
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px -12px rgba(23, 20, 15, 0.15);
 }
+.ayuda-root[data-ay-theme="dark"] .ay-cat { box-shadow: none; }
+.ayuda-root[data-ay-theme="dark"] .ay-cat:hover { box-shadow: none; }
 .ayuda-root[data-ay-theme="dark"] .ay-cat:hover {
   background: #2A2621;
   border-color: var(--ay-line-strong);
@@ -296,13 +362,23 @@
 
 .ay-art-card {
   background: var(--ay-bg-card);
+  border: 1px solid var(--ay-line);
   border-radius: var(--ay-r-lg);
   padding: 32px 32px 28px;
   display: flex; flex-direction: column;
   min-height: 340px; cursor: pointer;
-  transition: background-color .18s ease, transform .2s cubic-bezier(.2,.9,.2,1);
+  transition: background-color .18s ease, transform .2s cubic-bezier(.2,.9,.2,1),
+              box-shadow .2s ease, border-color .18s ease;
+  box-shadow: 0 1px 2px rgba(23, 20, 15, 0.02);
 }
-.ay-art-card:hover { background: var(--ay-cream-3); transform: translateY(-2px); }
+.ay-art-card:hover {
+  background: var(--ay-cream-3);
+  border-color: var(--ay-line-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -14px rgba(23, 20, 15, 0.18);
+}
+.ayuda-root[data-ay-theme="dark"] .ay-art-card { border-color: transparent; box-shadow: none; }
+.ayuda-root[data-ay-theme="dark"] .ay-art-card:hover { box-shadow: none; }
 .ayuda-root[data-ay-theme="dark"] .ay-art-card:hover { background: #2A2621; }
 
 .ay-art-title {
