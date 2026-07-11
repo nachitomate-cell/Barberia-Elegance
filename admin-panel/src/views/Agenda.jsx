@@ -1898,22 +1898,37 @@ const sinHoraDe = (arr) =>
 
 function SinHoraTray({ citas, onOpen }) {
   if (!citas.length) return null;
+
+  // Momento de creación como pista de a qué horario correspondía la cita
+  // (el barbero suele agendar cerca de la hora conversada con el cliente).
+  const pistaCreacion = (c) => {
+    const raw = c.creadoEn;
+    const d = raw?.toDate ? raw.toDate() : (raw ? new Date(raw) : null);
+    if (!d || Number.isNaN(d.getTime())) return null;
+    const hhmm = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    const mismaFecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` === c.fecha;
+    return mismaFecha ? `creada ${hhmm}` : `creada ${d.getDate()}/${d.getMonth() + 1} ${hhmm}`;
+  };
+
   return (
     <div className="absolute inset-x-0.5 top-0.5 z-20 flex flex-col gap-1">
-      {citas.map(c => (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => onOpen(c)}
-          title="Cita sin hora asignada — toca para abrirla y ponerle horario"
-          className="w-full flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-950/90 px-2 py-1 text-left hover:bg-amber-900/90 transition-colors"
-        >
-          <AlertTriangle size={10} className="text-amber-400 shrink-0" />
-          <span className="text-[10px] font-bold text-amber-300 truncate">
-            {c.clienteNombre || 'Cita'} · sin hora
-          </span>
-        </button>
-      ))}
+      {citas.map(c => {
+        const pista = pistaCreacion(c);
+        return (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onOpen(c)}
+            title={`Cita sin hora asignada${pista ? ` (${pista})` : ''} — toca para abrirla y ponerle horario`}
+            className="w-full flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-950/90 px-2 py-1 text-left hover:bg-amber-900/90 transition-colors"
+          >
+            <AlertTriangle size={10} className="text-amber-400 shrink-0" />
+            <span className="text-[10px] font-bold text-amber-300 truncate">
+              {c.clienteNombre || 'Cita'} · sin hora{pista ? ` · ${pista}` : ''}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
