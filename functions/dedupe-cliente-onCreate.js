@@ -147,6 +147,23 @@ async function procesarDedup({ tenantId, uid, data }) {
   if (fechaOrig && !data.fechaRegistroOriginal) mergeUpdate.fechaRegistroOriginal = fechaOrig;
   if (telPrev   && !data.telefonoAnterior)      mergeUpdate.telefonoAnterior      = telPrev;
 
+  // Tenants multi-sede (kronnos): sumar los contadores por sede de los
+  // legacies al doc real. Sin esto la fusión perdía sellosPorSede y el
+  // cálculo de sede predominante partía de cero tras registrarse.
+  const sedeTotales = {};
+  legacies.forEach(l => {
+    const sps = l.data().sellosPorSede;
+    if (sps && typeof sps === 'object') {
+      Object.entries(sps).forEach(([sede, n]) => {
+        const v = Number(n) || 0;
+        if (v) sedeTotales[sede] = (sedeTotales[sede] || 0) + v;
+      });
+    }
+  });
+  Object.entries(sedeTotales).forEach(([sede, n]) => {
+    mergeUpdate[`sellosPorSede.${sede}`] = FieldValue.increment(n);
+  });
+
   // IDs de docs en clientes/ a borrar
   const telefonosLegacy = [
     ...new Set(legacies.flatMap(l => [l.data().telefono, l.id]).map(normalizePhone).filter(Boolean)),

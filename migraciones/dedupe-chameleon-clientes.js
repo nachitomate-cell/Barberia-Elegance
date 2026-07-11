@@ -55,9 +55,12 @@ function normalize(s) {
 
 function isLegacy(doc) {
   const d = doc.data();
-  // Heurística: el script de migración pobló users/{telefono} con uid === telefono
-  // y/o con importedFrom === 'agendapro'.
-  return d.uid === doc.id || d.importedFrom === 'agendapro';
+  // Doc de migración: users/{telefono} (uid === id) o id con forma de teléfono.
+  // OJO: 'importedFrom' ya NO clasifica — el merge lo estampa en el doc REAL
+  // como traza histórica, y usarlo hacía que un real ya fusionado quedara
+  // clasificado legacy en corridas posteriores (caso aura aaprz2121).
+  const idTelefono = /^\+?\d{8,15}$/.test(doc.id);
+  return d.uid === doc.id || idTelefono;
 }
 
 async function main() {
