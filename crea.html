@@ -631,6 +631,17 @@
             </div>
           </div>
 
+          <!-- Consentimiento B2B — SaaS + privacidad. Sin marcar el
+               submit aborta antes de tocar Firebase Auth (Ley 21.719). -->
+          <label style="display:flex;align-items:flex-start;gap:10px;margin:18px 0 8px;font-size:12px;color:#4a4a54;line-height:1.55;cursor:pointer;user-select:none;">
+            <input type="checkbox" id="aceptoTerminos" required
+              style="margin-top:3px;width:16px;height:16px;flex-shrink:0;accent-color:#8b7cf6;">
+            <span>He leído y acepto el
+              <a href="terminos-saas.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Contrato SaaS</a>,
+              su <a href="terminos-saas.html#dpa" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Anexo DPA</a>
+              y la <a href="privacidad.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Política de Privacidad</a>
+              de SynapTech. Actúo como Responsable de los datos de mis clientes; SynapTech actúa como Encargado (Ley 19.628 / 21.719).</span>
+          </label>
           <button class="submit" id="sb" type="submit">
             Crear mi agenda gratis
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -741,7 +752,11 @@
       dueno:    document.getElementById('dueno'),
       email:    document.getElementById('email'),
       password: document.getElementById('password'),
+      acepto:   document.getElementById('aceptoTerminos'),
     };
+    // Versión del contrato aceptado. Al cambiar los términos, bumpear
+    // esta constante y provocar renovación de aceptación (Sprint 2.1).
+    var TERMINOS_VERSION = '2026-07-11';
     var SB_HTML = ui.sb.innerHTML;
 
     function err(t){ ui.msg.className = 'msg err'; ui.msg.textContent = t; }
@@ -850,6 +865,8 @@
       if (telefono.length < 8)  return err('Ingresa un WhatsApp válido.');
       if (!email)               return err('Ingresa tu correo.');
       if (pass.length < 6)      return err('La contraseña debe tener al menos 6 caracteres.');
+      if (!ui.acepto || !ui.acepto.checked)
+        return err('Debes aceptar los Términos y la Política de Privacidad para continuar.');
 
       busy(true, 'Creando tu cuenta…');
 
@@ -876,6 +893,15 @@
             color:       ui.color.value,
             instagram:   ui.instagram.value.trim().replace(/^@+/, ''),
             nombreDueno: ui.dueno.value.trim(),
+            acepto: {
+              version:    TERMINOS_VERSION,
+              ua:         navigator.userAgent || '',
+              documentos: [
+                'terminos-saas@' + TERMINOS_VERSION,
+                'dpa@'          + TERMINOS_VERSION,
+                'privacidad@'   + TERMINOS_VERSION,
+              ],
+            },
           });
         })
         .then(function(res){
@@ -902,5 +928,7 @@
     }
   })();
   </script>
+  <div id="legal-footer-slot"></div>
+  <script src="/js/legal-widgets.js?v=1" defer></script>
 </body>
 </html>

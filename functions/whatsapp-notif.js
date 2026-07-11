@@ -106,6 +106,47 @@ async function getGlobalConfig() {
   } catch (_) { return {}; }
 }
 
+/**
+ * Estado de consentimiento WhatsApp del titular (cliente final).
+ * Almacenado en /wa_optout/{fono}. El default (sin doc) es "unknown",
+ * que la política de envío trata como bloqueo — es más estricto pero
+ * cumple con opt-in explícito de Meta Business Policy y Ley 21.719.
+ *   · 'optin'   → autorizó recibir por WhatsApp.
+ *   · 'optout'  → escribió STOP/BAJA. Prohibido enviar, sin renovación
+ *                 automática (solo respondiendo REACTIVAR).
+ *   · 'unknown' → nunca aceptó explícitamente. No enviar.
+ */
+async function consentimientoWa(fono) {
+  if (!fono) return 'unknown';
+  try {
+    const snap = await db.collection('wa_optout').doc(fono).get();
+    if (!snap.exists) return 'unknown';
+    return snap.data()?.estado === 'optout' ? 'optout' : 'optin';
+  } catch (_) { return 'unknown'; }
+}
+
+async function registrarOptOut(fono, motivo) {
+  const now = Timestamp.now();
+  await db.collection('wa_optout').doc(fono).set({
+    telefono:       fono,
+    estado:         'optout',
+    motivo:         motivo || 'stop-usuario',
+    actualizadoEn:  now,
+    historial:      FieldValue.arrayUnion({ estado: 'optout', fuente: motivo || 'stop-usuario', at: now }),
+  }, { merge: true });
+}
+
+async function registrarOptIn(fono, motivo) {
+  const now = Timestamp.now();
+  await db.collection('wa_optout').doc(fono).set({
+    telefono:       fono,
+    estado:         'optin',
+    motivo:         motivo || 'reactivar-usuario',
+    actualizadoEn:  now,
+    historial:      FieldValue.arrayUnion({ estado: 'optin', fuente: motivo || 'reactivar-usuario', at: now }),
+  }, { merge: true });
+}
+
 /** POST al Graph API. Devuelve el body parseado; lanza con detalle si falla. */
 async function graphPost(payload) {
   const res = await fetch(
@@ -241,10 +282,36 @@ async function procesarEntrante(msg) {
   // ── Rutear por teléfono conocido ──
   const idxSnap = await db.collection('wa_notif_phones').doc(from).get();
   if (!idxSnap.exists) {
-    // Número desconocido: instrucciones (gratis: acaba de escribir → ventana abierta).
+    // Número desconocido: puede ser un CLIENTE FINAL respondiendo a una
+    // plantilla que le llegó por confirmación de cita. Interceptamos STOP/
+    // BAJA/CANCELAR ANTES de la respuesta genérica para honrar la baja
+    // (Meta Business Policy + Ley 21.719). Y ACTIVAR/REACTIVAR para
+    // reincorporarlo.
+    const raw = texto.toLowerCase().trim();
+    const esStop      = raw === 'stop' || raw === 'baja' || raw === 'cancelar' || raw === 'no' || raw === 'salir';
+    const esReanudar  = raw === 'activar' || raw === 'reactivar' || raw === 'reanudar' || raw === 'si' || raw === 'sí';
+    if (esStop) {
+      await registrarOptOut(from, 'stop-cliente-final');
+      await enviarTexto(from,
+        '🔕 *Listo, no recibirás más avisos por WhatsApp.*\n\n' +
+        'Si cambias de opinión, respóndenos *ACTIVAR* y volveremos a enviarte confirmaciones de tus citas.');
+      logger.info(`[wa] opt-out cliente final fono=***${from.slice(-4)}`);
+      return;
+    }
+    if (esReanudar) {
+      await registrarOptIn(from, 'reactivar-cliente-final');
+      await enviarTexto(from,
+        '✅ *Notificaciones reactivadas.*\n\nVolverás a recibir confirmaciones de tus citas por aquí.');
+      logger.info(`[wa] opt-in cliente final fono=***${from.slice(-4)}`);
+      return;
+    }
+    // Número desconocido, sin comando: instrucciones (gratis: acaba de
+    // escribir → ventana abierta). Se mantiene el mensaje original para
+    // dueños que llegaron sin el flujo Activar-por-WhatsApp.
     await enviarTexto(from,
       'Hola 👋 Este es el número de notificaciones de *SynapTech Agenda*.\n\n' +
-      'Si tienes un local, actívalo desde tu panel de gestión → *Confirmaciones WhatsApp* → "Activar por WhatsApp".');
+      'Si tienes un local, actívalo desde tu panel de gestión → *Confirmaciones WhatsApp* → "Activar por WhatsApp".\n\n' +
+      'Si eres cliente y quieres dejar de recibir estos mensajes, responde *STOP*.');
     return;
   }
   const tid   = idxSnap.data().tenantId;
@@ -357,6 +424,35 @@ async function notificarCita(citaId, cita, tenantId) {
   if (cfg.templatesEnabled === true && wa.planCliente === true && cfg.templateCita) {
     const fonoCliente = normalizarFono(cita.clienteTelefono);
     if (fonoCliente && fonoCliente.length >= 11) {
+      // Cuarto candado — consentimiento explícito del titular. Requiere
+      // que el cliente haya marcado el opt-in en el flujo (cita.waOptIn
+      // === true en la reserva pública, o registro/dashboard) O que ya
+      // exista un consent 'optin' en /wa_optout/{fono}. STOP/BAJA queda
+      // bloqueado permanentemente hasta REACTIVAR. Esto cubre el opt-in
+      // explícito exigido por Meta Business Policy y Ley 21.719.
+      const consent = await consentimientoWa(fonoCliente);
+      if (consent === 'optout') {
+        logger.info(`[wa] template omitido por opt-out tenant=${tenantId} fono=***${fonoCliente.slice(-4)}`);
+        await writeNotifLog(db, {
+          tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'skipped_optout',
+          to: { telefono: fonoCliente }, meta: { citaId },
+        }).catch(() => {});
+        return;
+      }
+      if (consent !== 'optin') {
+        // Sin consentimiento previo. Si esta cita lo trae, se registra
+        // el opt-in ahora y se procede. Si no, se omite el envío.
+        if (cita.waOptIn === true) {
+          await registrarOptIn(fonoCliente, 'reserva-checkbox').catch(() => {});
+        } else {
+          logger.info(`[wa] template omitido por sin-consentimiento tenant=${tenantId} fono=***${fonoCliente.slice(-4)}`);
+          await writeNotifLog(db, {
+            tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'skipped_no_consent',
+            to: { telefono: fonoCliente }, meta: { citaId },
+          }).catch(() => {});
+          return;
+        }
+      }
       try {
         // Nombre visible del local para la plantilla.
         const nombreLocal = wa.nombreLocal

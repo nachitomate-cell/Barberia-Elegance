@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="author" content="SynapTech SpA">
+  <title>Mandato tributario — Emisión de BHE de terceros</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: #f6f5f2; color: #14161f;
+      font-family: 'Inter',sans-serif; line-height: 1.65;
+      margin: 0; padding: 40px 16px 80px;
+    }
+    .doc {
+      max-width: 720px; margin: 0 auto;
+      background: #fff; padding: 48px 56px;
+      border-radius: 12px;
+      box-shadow: 0 4px 30px rgba(0,0,0,.06);
+    }
+    h1 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+    .sub { color: #6b7280; font-size: 13px; margin: 0 0 30px; }
+    h2 { font-size: 14px; font-weight: 700; margin: 22px 0 8px; }
+    p, li { font-size: 13.5px; color: #2b2f3a; margin: 0 0 10px; }
+    ul, ol { padding-left: 22px; margin: 6px 0 14px; }
+    strong { color: #14161f; }
+    .datos {
+      background: #f8f7f2; border: 1px solid #ececea;
+      border-radius: 10px; padding: 16px 18px; margin: 12px 0 20px;
+      font-size: 13px;
+    }
+    .datos p { margin: 4px 0; }
+    .placeholder { color: #b45309; font-weight: 600; }
+    .firma-box {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e5e3;
+    }
+    .firma-linea { border-top: 1px solid #14161f; padding-top: 6px; font-size: 12px; color: #6b7280; }
+    .actions {
+      max-width: 720px; margin: 20px auto 0;
+      display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+    }
+    .btn {
+      border: 0; border-radius: 10px; padding: 12px 18px;
+      font-family: inherit; font-size: 13.5px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+    }
+    .btn-primary { background: #14161f; color: #fff; }
+    .btn-secondary { background: #fff; color: #14161f; border: 1px solid #d4d4d4; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .doc { box-shadow: none; padding: 24px 32px; }
+      .actions, .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="doc" id="doc">
+
+    <p class="sub">Documento privado · Ley 19.799 · Firma electrónica simple</p>
+    <h1>Mandato para emisión de Boleta de Honorarios Electrónica</h1>
+    <p class="sub">Este documento autoriza a SynapTech SpA a emitir BHE electrónicas en nombre y por cuenta del barbero, exclusivamente para los servicios que preste a través de la Plataforma en el local que lo contrata bajo modelo de arriendo de sillón.</p>
+
+    <div class="datos">
+      <p><strong>Mandante (barbero):</strong> <span id="fBarberoNombre" class="placeholder">[Nombre completo]</span></p>
+      <p><strong>RUT:</strong> <span id="fBarberoRut" class="placeholder">[XX.XXX.XXX-X]</span></p>
+      <p><strong>Correo:</strong> <span id="fBarberoEmail" class="placeholder">[email]</span></p>
+      <p><strong>Local (Cliente SynapTech):</strong> <span id="fTenantNombre" class="placeholder">[Nombre del local]</span></p>
+      <p><strong>Tenant ID:</strong> <span id="fTenantId" class="placeholder">[tenant-slug]</span></p>
+      <p><strong>Mandatario:</strong> SynapTech SpA · RUT <span class="placeholder">[por completar]</span></p>
+      <p><strong>Sub-encargado autorizado:</strong> Haulmer SpA — SimpleAPI (proveedor SII).</p>
+      <p><strong>Vigencia:</strong> desde <span id="fFechaInicio">[fecha inicio]</span> hasta que el barbero revoque el mandato o cese la relación con el local.</p>
+    </div>
+
+    <h2>1. Objeto del mandato</h2>
+    <p>El mandante autoriza al mandatario a emitir en su nombre las Boletas de Honorarios Electrónicas (BHE) que correspondan por los servicios profesionales que preste en el local individualizado, bajo el modelo de arriendo de sillón, cuyo monto y detalle se generan automáticamente en la Plataforma al completarse la cita.</p>
+
+    <h2>2. Alcance</h2>
+    <ul>
+      <li>Solo se emiten BHE por los honorarios que la Plataforma haya registrado a nombre del mandante como barbero asignado a la cita.</li>
+      <li>La emisión se ejecuta vía integración con SimpleAPI de Haulmer, sub-encargado que actúa por cuenta de SynapTech.</li>
+      <li>El monto imponible corresponde al valor del servicio menos el arriendo del sillón que se registra a nombre del local, según la configuración vigente del módulo de facturación del tenant.</li>
+      <li>La retención de honorarios se calcula conforme a la tabla anual del SII vigente al momento de la emisión.</li>
+    </ul>
+
+    <h2>3. Obligaciones del mandante</h2>
+    <ul>
+      <li>Mantener actualizado su RUT, correo electrónico y demás datos de identificación en la Plataforma.</li>
+      <li>Estar al día en su inicio de actividades ante el SII bajo el régimen de segunda categoría (o el que corresponda).</li>
+      <li>Declarar sus ingresos y pagar el impuesto único de retención mediante el formulario 29 o formulario 22, según su situación tributaria.</li>
+      <li>Notificar a SynapTech cualquier cambio en su situación tributaria (cese, cambio de régimen, iniciación de actividades como empresa) para suspender el mandato si corresponde.</li>
+    </ul>
+
+    <h2>4. Obligaciones del mandatario</h2>
+    <ul>
+      <li>Emitir las BHE con los datos exactos suministrados por el mandante y por la Plataforma.</li>
+      <li>Entregar al mandante los folios emitidos, montos, retenciones y comprobantes en su panel del local.</li>
+      <li>Facilitar el histórico de emisiones para efectos de fiscalización.</li>
+      <li>Emitir Nota de Crédito o anulación cuando corresponda (por ejemplo, cancelación de una cita ya facturada), respetando los plazos del SII.</li>
+      <li>Mantener la confidencialidad de los datos tributarios del mandante y no usarlos para fines distintos.</li>
+    </ul>
+
+    <h2>5. Revocación</h2>
+    <p>El mandato puede ser revocado por el mandante en cualquier momento notificándolo por escrito a <a href="mailto:facturacion@synaptechspa.cl">facturacion@synaptechspa.cl</a> o desde su panel personal en la Plataforma. La revocación surte efecto al día hábil siguiente y no afecta la validez de las BHE emitidas hasta esa fecha.</p>
+
+    <h2>6. Responsabilidad tributaria</h2>
+    <p>El mandante conserva la calidad de contribuyente ante el SII y la responsabilidad por sus obligaciones tributarias (declaración y pago). SynapTech, como mandatario, responde por la exactitud de los datos que consigna en cada BHE según lo suministrado por la Plataforma.</p>
+
+    <h2>7. Firma electrónica simple</h2>
+    <p>Conforme a la Ley 19.799 este mandato se firma electrónicamente al marcar el botón <em>"Firmo y acepto"</em> en el panel de la Plataforma. Ese acto tiene el mismo valor probatorio que la firma manuscrita para efectos entre las partes. SynapTech guarda la evidencia del acto (identidad autenticada, fecha, IP y user-agent).</p>
+
+    <div class="firma-box">
+      <div>
+        <div class="firma-linea">Firma electrónica del mandante</div>
+        <p style="margin-top:6px;font-size:12px;color:#6b7280;">
+          Nombre: <span id="fFirmaNombre" class="placeholder">[Nombre]</span><br>
+          RUT: <span id="fFirmaRut" class="placeholder">[RUT]</span><br>
+          Fecha: <span id="fFirmaFecha" class="placeholder">[fecha aceptación]</span>
+        </p>
+      </div>
+      <div>
+        <div class="firma-linea">Firma electrónica del mandatario</div>
+        <p style="margin-top:6px;font-size:12px;color:#6b7280;">
+          SynapTech SpA<br>
+          RUT: <span class="placeholder">[por completar]</span><br>
+          Ignacio Mateluna — Representante legal
+        </p>
+      </div>
+    </div>
+
+    <p style="font-size:11px;color:#9ca3af;margin-top:36px;text-align:center;">
+      Documento versión 2026-07-11 · SynapTech SpA
+    </p>
+  </div>
+
+  <div class="actions no-print">
+    <button class="btn btn-secondary" type="button" onclick="window.print()">Imprimir / Guardar PDF</button>
+    <a class="btn btn-primary" id="btnFirmar" href="#" onclick="alert('Este flujo debe integrarse desde el panel: llamar a firmarMandatoTributario callable con los datos del barbero.'); return false;">Firmo y acepto</a>
+  </div>
+
+  <script>
+    // Placeholders rellenables desde el panel via query params:
+    //   ?nombre=Juan+Perez&rut=12.345.678-9&email=juan@x.cl&tenantId=elegance&tenantNombre=Elegance
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var map = {
+        fBarberoNombre: q.get('nombre'),
+        fBarberoRut:    q.get('rut'),
+        fBarberoEmail:  q.get('email'),
+        fTenantNombre:  q.get('tenantNombre'),
+        fTenantId:      q.get('tenantId'),
+        fFirmaNombre:   q.get('nombre'),
+        fFirmaRut:      q.get('rut'),
+      };
+      Object.keys(map).forEach(function (id) {
+        var v = map[id];
+        if (v) {
+          var el = document.getElementById(id);
+          if (el) { el.textContent = v; el.classList.remove('placeholder'); }
+        }
+      });
+      var hoy = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+      ['fFechaInicio','fFirmaFecha'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.textContent = hoy; el.classList.remove('placeholder'); }
+      });
+    })();
+  </script>
+</body>
+</html>

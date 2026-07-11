@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="author" content="SynapTech SpA">
+  <title>Legal — SynapTech SaaS</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/output.css?v=5" rel="stylesheet">
+
+  <style>
+    body { background:#050505; color:#f8fafc; font-family:'Inter',sans-serif; overscroll-behavior-y:none; }
+    .tab-btn.active { color:#8b7cf6; border-bottom-color:#8b7cf6; }
+    .tab-btn { color:#6b7280; border-bottom:2px solid transparent; transition:all .2s; }
+    .doc-section { display:none; }
+    .doc-section.active { display:block; }
+    h1 { font-size:1.25rem; font-weight:700; color:#fff; }
+    h2 { font-size:.9rem; font-weight:700; color:#fff; margin-bottom:.5rem; }
+    p, li { font-size:.8125rem; color:rgba(255,255,255,.72); line-height:1.72; }
+    ul { list-style:disc; padding-left:1.25rem; margin-top:.5rem; }
+    ol { list-style:decimal; padding-left:1.25rem; margin-top:.5rem; }
+    ul li, ol li { margin-bottom:.35rem; }
+    .divider { height:1px; background:rgba(255,255,255,.07); margin:1.5rem 0; }
+    strong { color:rgba(255,255,255,.9); font-weight:600; }
+    .callout { border:1px solid rgba(139,124,246,.25); background:rgba(139,124,246,.06); border-radius:.75rem; padding:.9rem 1rem; }
+    .placeholder { color:#f59e0b; font-weight:600; }
+    a.inline { color:#8b7cf6; text-decoration:underline; }
+  </style>
+</head>
+<body class="min-h-screen max-w-2xl mx-auto">
+
+  <!-- Header -->
+  <div class="sticky top-0 z-20 px-5 pt-8 pb-4"
+       style="background:rgba(5,5,5,.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);">
+    <div class="flex items-center gap-3 mb-5">
+      <button onclick="history.length>1 ? history.back() : (location.href='crea.html')"
+        class="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all shrink-0" aria-label="Volver">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+          <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/>
+        </svg>
+      </button>
+      <div class="flex items-center gap-2">
+        <img src="/synaptech/logo1.png" alt="" class="w-6 h-6 rounded object-cover" onerror="this.style.display='none'">
+        <div>
+          <p class="text-sm font-bold text-white">SynapTech SaaS</p>
+          <p class="text-xs text-white/30">Documentos legales para barberías y salones</p>
+        </div>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div class="flex gap-6">
+      <button onclick="switchTab('saas')" id="tabBtnSaas"
+        class="tab-btn active pb-2 text-sm font-semibold">Contrato SaaS</button>
+      <button onclick="switchTab('dpa')" id="tabBtnDpa"
+        class="tab-btn pb-2 text-sm font-semibold">Anexo DPA</button>
+    </div>
+  </div>
+
+  <!-- Contenido -->
+  <div class="px-5 py-8 pb-24">
+
+    <!-- ═══════════════════════════════════════════════════
+         TAB 1 — CONTRATO DE PRESTACIÓN DE SERVICIOS SAAS
+         ═══════════════════════════════════════════════════ -->
+    <div id="docSaas" class="doc-section active space-y-5">
+
+      <div>
+        <h1>Contrato de Prestación de Servicios SaaS</h1>
+        <p class="text-xs text-white/30 mt-1">Versión 2026-07-11 · Ley chilena · SynapTech SpA</p>
+      </div>
+
+      <div class="callout">
+        <p>Al marcar la casilla de aceptación en el formulario de alta (<a href="crea.html" class="inline">crea.html</a>) o al firmar electrónicamente este documento, aceptas quedar obligado por estas condiciones. Este contrato se complementa con el <a href="#" onclick="switchTab('dpa');return false;" class="inline">Anexo DPA</a> (tratamiento de datos personales) y con la <a href="/privacidad.html" target="_blank" class="inline">Política de Privacidad</a>.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <section>
+        <h2>1. Partes</h2>
+        <p><strong>Proveedor:</strong> SynapTech SpA <span class="placeholder">[RUT: por completar]</span>, con domicilio en <span class="placeholder">[dirección legal por completar]</span>, en adelante "<strong>SynapTech</strong>".</p>
+        <p><strong>Cliente:</strong> la persona natural o jurídica que crea una cuenta en la plataforma, identificada por el correo, teléfono y datos declarados al momento del registro. Cuando el registro lo realiza una persona natural en representación de un local, esa persona declara contar con facultades suficientes.</p>
+      </section>
+
+      <section>
+        <h2>2. Definiciones</h2>
+        <ul>
+          <li><strong>Plataforma:</strong> la aplicación SynapTech accesible en synaptechspa.cl y sus subdominios (agenda, panel de gestión, apps móviles, integraciones y demás servicios asociados).</li>
+          <li><strong>Servicios:</strong> las funcionalidades de agenda, fidelización, notificaciones, cobros, facturación electrónica, mensajería, Bioo, Yügen y cualquier otro módulo activado en la cuenta del Cliente.</li>
+          <li><strong>Cliente Final:</strong> las personas que reservan, compran o interactúan con el local del Cliente a través de la Plataforma.</li>
+          <li><strong>Contenido del Cliente:</strong> textos, imágenes, catálogos, precios, marca y demás datos que el Cliente carga en la Plataforma.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. Objeto</h2>
+        <p>SynapTech otorga al Cliente una licencia no exclusiva, personal, no transferible y limitada al plazo de este contrato para usar la Plataforma en modalidad SaaS (Software as a Service), con el fin de operar su agenda comercial y las demás funcionalidades habilitadas en su plan.</p>
+      </section>
+
+      <section>
+        <h2>4. Registro y cuenta</h2>
+        <p>El Cliente debe entregar información veraz, completa y actualizada. Es responsable de la confidencialidad de sus credenciales y de toda actividad realizada bajo su cuenta. Debe notificar a SynapTech ante cualquier uso no autorizado.</p>
+        <p>La cuenta puede tener varios usuarios (administradores, jefes, barberos, staff). El Cliente es responsable de asignar y revocar accesos.</p>
+      </section>
+
+      <section>
+        <h2>5. Planes, precios y forma de pago</h2>
+        <p>Los planes actualmente disponibles son:</p>
+        <ul>
+          <li><strong>Plan gratis (self-service, alta por /crea):</strong> sin costo, con funciones básicas y con branding SynapTech visible.</li>
+          <li><strong>Planes a medida:</strong> se acuerdan por separado por correo, WhatsApp o contrato accesorio, e incluyen su propio precio, factura mensual y SLA específico.</li>
+        </ul>
+        <p>SynapTech puede modificar precios avisando con al menos <strong>30 días de anticipación</strong>. Si el Cliente no acepta el nuevo precio, puede terminar el contrato sin penalidad antes de la entrada en vigencia.</p>
+      </section>
+
+      <section>
+        <h2>6. Uso permitido</h2>
+        <p>El Cliente se obliga a usar la Plataforma exclusivamente para operar su negocio lícito y respetando la legislación chilena, en particular la Ley 19.628 / 21.719 (protección de datos), la Ley 19.496 (consumidor), la Ley 19.223 (delitos informáticos) y las obligaciones tributarias del SII.</p>
+      </section>
+
+      <section>
+        <h2>7. Uso prohibido</h2>
+        <p>El Cliente <strong>no</strong> podrá:</p>
+        <ul>
+          <li>Usar la Plataforma para enviar spam, comunicaciones no solicitadas o mensajes engañosos a sus Clientes Finales.</li>
+          <li>Vender, sublicenciar, arrendar o revender el acceso a terceros no autorizados.</li>
+          <li>Descompilar, aplicar ingeniería inversa o intentar extraer el código fuente de la Plataforma.</li>
+          <li>Realizar scraping masivo, ataques de denegación de servicio o intentos de vulnerar la seguridad.</li>
+          <li>Cargar contenido ilegal, difamatorio, discriminatorio, que infrinja derechos de terceros o marcas registradas.</li>
+          <li>Suplantar la identidad de otra persona o local.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Obligaciones del Cliente</h2>
+        <ul>
+          <li>Contar con el consentimiento válido de sus Clientes Finales para recopilar y tratar sus datos personales conforme al DPA anexo.</li>
+          <li>Mantener actualizada la información comercial visible en su agenda pública (precios, servicios, horarios, contacto).</li>
+          <li>Emitir los documentos tributarios que legalmente corresponda por los servicios prestados a través de la Plataforma.</li>
+          <li>Pagar puntualmente la mensualidad, si su plan la contempla.</li>
+          <li>Respetar las condiciones específicas de las pasarelas de pago (Mercado Pago, Stripe) y proveedores de mensajería (Meta / WhatsApp) que se activen en su cuenta.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>9. Obligaciones de SynapTech</h2>
+        <ul>
+          <li>Prestar la Plataforma con esfuerzo comercialmente razonable, sin garantía de uptime en el plan gratuito. Los planes a medida pueden pactar un SLA específico.</li>
+          <li>Adoptar medidas técnicas y organizativas razonables para proteger los datos y el Contenido del Cliente (ver Anexo DPA).</li>
+          <li>Notificar al Cliente cualquier incidente de seguridad que le afecte, en un plazo máximo de 72 horas desde su detección.</li>
+          <li>Mantener disponibles los canales de soporte declarados en la Plataforma (correo, WhatsApp <a class="inline" href="https://wa.me/56983568212" target="_blank">+56 9 8356 8212</a>).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10. Datos personales</h2>
+        <p>El tratamiento de datos personales de los Clientes Finales y del personal del Cliente se rige por el <a href="#" onclick="switchTab('dpa');return false;" class="inline">Anexo DPA</a> que forma parte integrante de este contrato. En resumen: el <strong>Cliente actúa como Responsable</strong> y <strong>SynapTech como Encargado</strong> del tratamiento.</p>
+      </section>
+
+      <section>
+        <h2>11. Propiedad intelectual</h2>
+        <p>La Plataforma, su código, diseño, marcas ("SynapTech", "Bioo", "Yügen" y otras asociadas), documentación y mejoras son de propiedad exclusiva de SynapTech. Este contrato no transfiere ninguno de esos derechos al Cliente.</p>
+        <p>El Contenido del Cliente sigue siendo de su propiedad. El Cliente otorga a SynapTech una licencia limitada, mundial, gratuita y no exclusiva para hospedar, procesar, mostrar y transmitir dicho contenido con el único fin de prestar los Servicios.</p>
+        <p>El Cliente declara que tiene los derechos, autorizaciones y licencias necesarias sobre las fotos, videos y datos que carga (incluyendo, cuando aplique, autorizaciones de imagen de sus Clientes Finales).</p>
+      </section>
+
+      <section>
+        <h2>12. Confidencialidad</h2>
+        <p>Cada parte se obliga a mantener en reserva la información no pública de la otra parte a la que acceda con motivo de este contrato, durante su vigencia y por un plazo de <strong>2 años</strong> a partir de su término. No se considera confidencial la información que sea pública, que la parte receptora ya conociera legítimamente o que deba divulgarse por orden legal o judicial.</p>
+      </section>
+
+      <section>
+        <h2>13. Suspensión y terminación</h2>
+        <p>SynapTech podrá suspender o terminar la cuenta del Cliente en los siguientes casos:</p>
+        <ul>
+          <li>Incumplimiento grave del uso permitido (sección 7) o de las obligaciones (sección 8).</li>
+          <li>Impago sostenido de la mensualidad, si corresponde, tras un aviso de al menos <strong>15 días corridos</strong>.</li>
+          <li>Requerimiento fundado de autoridad competente.</li>
+          <li>Uso de la Plataforma con fines ilícitos, fraudulentos o que pongan en riesgo la infraestructura.</li>
+        </ul>
+        <p>El Cliente puede terminar el contrato en cualquier momento, con aviso escrito de <strong>30 días</strong>, desde el panel o por correo a <a class="inline" href="mailto:legal@synaptechspa.cl">legal@synaptechspa.cl</a>.</p>
+      </section>
+
+      <section>
+        <h2>14. Retención y portabilidad de datos post-terminación</h2>
+        <p>Terminado el contrato:</p>
+        <ol>
+          <li>El Cliente dispondrá de <strong>30 días corridos</strong> para exportar o solicitar la entrega de sus datos y del Contenido del Cliente en formatos estándar.</li>
+          <li>Al vencer ese plazo, SynapTech eliminará o anonimizará los datos, salvo aquellos que deban conservarse por obligación legal (por ejemplo, respaldos de emisiones tributarias exigidas por el SII por un plazo de 6 años).</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>15. Limitación de responsabilidad</h2>
+        <p>En la medida permitida por la ley chilena:</p>
+        <ul>
+          <li>La responsabilidad total acumulada de SynapTech frente al Cliente por cualquier reclamación derivada de este contrato quedará limitada al monto efectivamente pagado por el Cliente a SynapTech en los <strong>6 meses</strong> anteriores al hecho que da origen a la reclamación. En el plan gratuito, esa limitación equivale a $50.000 CLP.</li>
+          <li>Ninguna parte responderá por daños indirectos, lucro cesante, pérdida de datos por causas ajenas o pérdida de reputación.</li>
+          <li>Nada de lo anterior limita la responsabilidad por dolo, culpa grave o infracciones a las leyes de protección de datos personales.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>16. Fuerza mayor</h2>
+        <p>Ninguna parte será responsable por el incumplimiento causado por hechos ajenos a su control razonable (desastres naturales, actos de autoridad, cortes de infraestructura de terceros como Google Cloud, Meta, Mercado Pago, ataques informáticos masivos, etc.), siempre que se notifique con prontitud a la otra parte.</p>
+      </section>
+
+      <section>
+        <h2>17. Modificaciones al contrato</h2>
+        <p>SynapTech podrá modificar este contrato avisando al Cliente con al menos <strong>30 días de anticipación</strong> por correo y/o mediante notificación destacada en el panel. Si el Cliente no está de acuerdo, puede terminar el contrato sin penalidad antes de la entrada en vigencia. El uso continuado de la Plataforma después de esa fecha implica aceptación de la nueva versión.</p>
+      </section>
+
+      <section>
+        <h2>18. Notificaciones</h2>
+        <p>Las notificaciones se harán al correo electrónico registrado en la cuenta o mediante el panel. Para asuntos legales, el correo de contacto de SynapTech es <a class="inline" href="mailto:legal@synaptechspa.cl">legal@synaptechspa.cl</a>.</p>
+      </section>
+
+      <section>
+        <h2>19. Ley aplicable y jurisdicción</h2>
+        <p>Este contrato se rige por la ley de la República de Chile. Cualquier controversia derivada del mismo se someterá a los <strong>Tribunales Ordinarios de Santiago</strong>, salvo que la ley disponga jurisdicción especial (Sernac, tribunales laborales, etc.).</p>
+      </section>
+
+      <section>
+        <h2>20. Cesión</h2>
+        <p>SynapTech podrá ceder este contrato a una empresa relacionada o continuadora, notificando al Cliente. El Cliente no puede ceder sus derechos u obligaciones sin autorización previa por escrito de SynapTech.</p>
+      </section>
+
+      <section>
+        <h2>21. Firma electrónica</h2>
+        <p>Este contrato se acepta electrónicamente al marcar la casilla correspondiente en el formulario de alta o al usar por primera vez la Plataforma. Conforme a la Ley 19.799, esa aceptación tiene el mismo valor probatorio que una firma manuscrita. SynapTech guarda la evidencia del consentimiento (versión aceptada, fecha, IP y user-agent) por el plazo legal aplicable.</p>
+      </section>
+
+      <section>
+        <h2>22. Contacto</h2>
+        <ul>
+          <li>Comercial / soporte: <a class="inline" href="https://wa.me/56983568212" target="_blank">WhatsApp +56 9 8356 8212</a></li>
+          <li>Legal: <a class="inline" href="mailto:legal@synaptechspa.cl">legal@synaptechspa.cl</a></li>
+          <li>Privacidad / DPO: <a class="inline" href="mailto:privacidad@synaptechspa.cl">privacidad@synaptechspa.cl</a></li>
+          <li>Instagram: <a class="inline" href="https://instagram.com/synaptechspa" target="_blank">@synaptechspa</a></li>
+        </ul>
+      </section>
+
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════
+         TAB 2 — ANEXO DPA (Data Processing Addendum)
+         ═══════════════════════════════════════════════════ -->
+    <div id="docDpa" class="doc-section space-y-5">
+
+      <div>
+        <h1>Anexo DPA — Tratamiento de Datos Personales</h1>
+        <p class="text-xs text-white/30 mt-1">Versión 2026-07-11 · Ley 21.719 (Chile) · Anexo al Contrato SaaS</p>
+      </div>
+
+      <div class="callout">
+        <p>Este Anexo forma parte integral del <a href="#" onclick="switchTab('saas');return false;" class="inline">Contrato SaaS</a> y define los roles, obligaciones y salvaguardas del tratamiento de datos personales que ocurre cuando el Cliente usa la Plataforma. Aplica cada vez que SynapTech procesa datos personales por instrucción del Cliente.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <section>
+        <h2>1. Roles</h2>
+        <ul>
+          <li>El <strong>Cliente</strong> (barbería, salón u otro local) actúa como <strong>Responsable del Tratamiento</strong>. Determina las finalidades, decide qué comunicar a sus Clientes Finales y responde ante ellos por el ejercicio de sus derechos.</li>
+          <li><strong>SynapTech</strong> actúa como <strong>Encargado del Tratamiento</strong>. Procesa los datos únicamente siguiendo las instrucciones documentadas del Cliente (que quedan reflejadas en el uso del panel, la configuración de la cuenta y este DPA).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. Objeto y duración</h2>
+        <p>SynapTech tratará los datos personales del Cliente durante toda la vigencia del Contrato SaaS y, posteriormente, durante el plazo de retención descrito en la sección 14 del contrato (30 días para portabilidad + retenciones legales obligatorias).</p>
+      </section>
+
+      <section>
+        <h2>3. Naturaleza y finalidades del tratamiento</h2>
+        <p>Los datos se tratarán para las siguientes finalidades:</p>
+        <ul>
+          <li>Gestión de agenda, reservas y cancelaciones.</li>
+          <li>Programa de fidelización (sellos, canjes, membresías).</li>
+          <li>Envío de recordatorios, confirmaciones y comunicaciones operacionales (push, email, WhatsApp) desde el número/dominio del Cliente o desde la infraestructura compartida de SynapTech.</li>
+          <li>Cobros online y emisión de comprobantes de pago.</li>
+          <li>Emisión de documentos tributarios electrónicos (DTE) cuando el Cliente lo active.</li>
+          <li>Métricas agregadas y reportes internos.</li>
+          <li>Soporte al Cliente y al Cliente Final.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Tipos de datos y categorías de titulares</h2>
+        <p><strong>Clientes Finales del Cliente:</strong> nombre, teléfono, correo, foto de perfil (opcional), fecha de nacimiento (opcional), historial de servicios, preferencias, sellos acumulados, comentarios de reseña privada.</p>
+        <p><strong>Personal del Cliente:</strong> nombre, correo, teléfono, rol, credenciales de acceso.</p>
+        <p><strong>Titulares menores de edad:</strong> pueden existir cuando el negocio del Cliente atienda a menores (cortes infantiles). Aplican las salvaguardas del artículo 26 de la Ley 21.719: requieren autorización del tutor legal cuando el titular es menor de 14 años.</p>
+        <p>SynapTech no trata datos personales sensibles en su Plataforma. El Cliente se obliga a no cargar en la Plataforma información médica, biométrica, religiosa, política, sindical, penal ni relativa a la vida sexual.</p>
+      </section>
+
+      <section>
+        <h2>5. Instrucciones documentadas</h2>
+        <p>Este DPA, sumado a la configuración de la cuenta del Cliente y a las funciones que active en el panel, constituye la instrucción documentada del Responsable al Encargado. Cualquier instrucción adicional deberá dirigirse por escrito a <a class="inline" href="mailto:privacidad@synaptechspa.cl">privacidad@synaptechspa.cl</a>.</p>
+      </section>
+
+      <section>
+        <h2>6. Confidencialidad del personal</h2>
+        <p>SynapTech se obliga a que su personal (empleados, contratistas, agentes) con acceso a los datos personales del Cliente esté sujeto a obligaciones de confidencialidad contractual o legal, y a que su acceso sea el mínimo indispensable.</p>
+      </section>
+
+      <section>
+        <h2>7. Medidas de seguridad</h2>
+        <p>SynapTech aplica medidas técnicas y organizativas apropiadas al riesgo, incluyendo:</p>
+        <ul>
+          <li>Cifrado en tránsito (HTTPS/TLS) para todos los accesos.</li>
+          <li>Cifrado en reposo provisto por Google Firebase.</li>
+          <li>Control de acceso con roles (admin / jefe / barbero / cliente), custom claims por tenant y aislamiento en las reglas de Firestore.</li>
+          <li>Rate limiting en formularios públicos y APIs sensibles.</li>
+          <li>Autenticación con proveedores confiables (Firebase Auth, Google, contraseñas hasheadas).</li>
+          <li>Bitácora de eventos administrativos críticos (creaciones, eliminaciones, cambios de rol).</li>
+          <li>Copias de seguridad automáticas de la base de datos.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Sub-encargados autorizados</h2>
+        <p>El Cliente autoriza a SynapTech a apoyarse en los siguientes sub-encargados para prestar los Servicios. Cada uno actúa bajo sus propios términos y medidas de seguridad:</p>
+        <ul>
+          <li><strong>Google LLC / Firebase</strong> — hosting, base de datos, autenticación, notificaciones push, cloud functions (Estados Unidos y regiones globales).</li>
+          <li><strong>Meta Platforms, Inc.</strong> — envío de mensajes WhatsApp Business Cloud API (Estados Unidos / Irlanda).</li>
+          <li><strong>Mercado Pago (MercadoLibre Chile Ltda.)</strong> — pasarela de pago para Chile.</li>
+          <li><strong>Stripe, Inc.</strong> — pasarela de pago para Bioo y cobros internacionales.</li>
+          <li><strong>Haulmer SpA / SimpleAPI</strong> — emisión de boletas afectas y BHE electrónicas (Chile).</li>
+          <li><strong>Resend, Inc.</strong> — envío de correos transaccionales.</li>
+          <li><strong>Anthropic, PBC</strong> — modelos de IA para funcionalidades opcionales (por ejemplo, AI Bio Builder de Bioo).</li>
+        </ul>
+        <p>SynapTech puede añadir o reemplazar sub-encargados, avisando al Cliente con al menos <strong>15 días de anticipación</strong> por correo o panel. Si el Cliente objeta un nuevo sub-encargado por causa razonable, puede terminar el contrato sin penalidad.</p>
+      </section>
+
+      <section>
+        <h2>9. Transferencia internacional</h2>
+        <p>Algunos sub-encargados almacenan datos fuera de Chile (principalmente Estados Unidos y la Unión Europea). Estas transferencias se realizan bajo los términos contractuales y medidas de seguridad que cada proveedor ofrece a sus usuarios globales. El Cliente autoriza estas transferencias como condición necesaria para prestar los Servicios.</p>
+      </section>
+
+      <section>
+        <h2>10. Derechos de los Titulares (ARCO+P)</h2>
+        <p>El Cliente es el interlocutor principal frente a sus Clientes Finales para el ejercicio de sus derechos de Acceso, Rectificación, Cancelación, Oposición y Portabilidad. SynapTech le brindará la asistencia técnica razonablemente necesaria (por ejemplo, mediante funciones de exportación y eliminación de cuenta ya disponibles en el panel y en el club).</p>
+        <p>Los Clientes Finales también pueden contactar directamente a <a class="inline" href="mailto:privacidad@synaptechspa.cl">privacidad@synaptechspa.cl</a> y SynapTech coordinará la respuesta con el Cliente.</p>
+      </section>
+
+      <section>
+        <h2>11. Notificación de brechas</h2>
+        <p>SynapTech notificará al Cliente cualquier violación de seguridad que afecte a sus datos personales dentro de las <strong>72 horas</strong> siguientes a su detección, indicando la naturaleza, categorías de datos y titulares afectados, medidas adoptadas y punto de contacto. Con esa información, el Cliente decidirá si debe notificar a la autoridad de protección de datos y a los titulares afectados conforme a la Ley 21.719.</p>
+      </section>
+
+      <section>
+        <h2>12. Auditorías</h2>
+        <p>El Cliente puede solicitar información razonable para verificar el cumplimiento de este DPA. SynapTech responderá con documentación técnica, respuestas por escrito y, cuando corresponda, un cuestionario de seguridad. Auditorías presenciales o de terceros se acordarán con antelación razonable (mínimo 30 días) y a costa del Cliente, salvo que revelen incumplimiento material de SynapTech.</p>
+      </section>
+
+      <section>
+        <h2>13. Devolución y purga al final del contrato</h2>
+        <p>Al terminar el Contrato SaaS, SynapTech pondrá a disposición del Cliente un mecanismo de exportación por 30 días corridos y, transcurrido ese plazo, eliminará o anonimizará los datos personales del tenant, salvo aquellos que deban conservarse por obligación legal (por ejemplo, DTE con retención SII de 6 años).</p>
+      </section>
+
+      <section>
+        <h2>14. Responsabilidad</h2>
+        <p>Cada parte responde por los incumplimientos que le sean directamente imputables. La limitación de responsabilidad del contrato principal (sección 15) aplica también a este anexo, salvo lo dispuesto por normas de orden público en materia de protección de datos.</p>
+      </section>
+
+      <section>
+        <h2>15. Registro de Actividades de Tratamiento (RAT)</h2>
+        <p>SynapTech mantiene un Registro de Actividades de Tratamiento interno, actualizado, con la información exigida por el artículo 15 quinquies de la Ley 21.719. El Cliente puede solicitar un extracto pertinente a su cuenta escribiendo a <a class="inline" href="mailto:privacidad@synaptechspa.cl">privacidad@synaptechspa.cl</a>.</p>
+      </section>
+
+      <section>
+        <h2>16. Ley aplicable</h2>
+        <p>Este DPA se rige por la ley chilena y se somete a la jurisdicción prevista en el contrato principal (sección 19).</p>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.getElementById('docSaas').classList.toggle('active', tab === 'saas');
+      document.getElementById('docDpa').classList.toggle('active',  tab === 'dpa');
+      document.getElementById('tabBtnSaas').classList.toggle('active', tab === 'saas');
+      document.getElementById('tabBtnDpa').classList.toggle('active',  tab === 'dpa');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Deep-link con #saas o #dpa para poder linkear directo al anexo.
+      try { history.replaceState(null, '', '#' + tab); } catch (_) {}
+    }
+    // Deep link al cargar
+    (function () {
+      var h = (location.hash || '').replace('#', '').toLowerCase();
+      if (h === 'dpa') switchTab('dpa');
+    })();
+  </script>
+</body>
+</html>

@@ -8712,6 +8712,27 @@
             <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email"
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
+          <!-- Consentimiento Ley 19.628 / 21.719 para reserva pública sin auth.
+               El submit del step 4 valida clientAceptoTerminos.checked. -->
+          <label class="flex items-start gap-2.5 text-[11px] text-gray-500 leading-relaxed cursor-pointer select-none pt-1">
+            <input type="checkbox" id="clientAceptoTerminos"
+              class="mt-0.5 flex-shrink-0 accent-white"
+              style="width:15px;height:15px;">
+            <span>He leído y acepto los
+              <a href="privacidad.html" target="_blank" rel="noopener"
+                 class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>.
+              Autorizo el tratamiento de mis datos para gestionar la reserva y enviarme recordatorios (Ley 19.628 / 21.719).</span>
+          </label>
+          <!-- Opt-in WhatsApp separado del ToS (Meta exige granularidad).
+               Opcional: sin marcar la reserva se guarda igual pero la CF
+               notificarCitaWhatsApp* no le envía template. -->
+          <label class="flex items-start gap-2.5 text-[11px] text-gray-500 leading-relaxed cursor-pointer select-none pt-1">
+            <input type="checkbox" id="clientAceptoWhatsapp"
+              class="mt-0.5 flex-shrink-0 accent-white"
+              style="width:15px;height:15px;">
+            <span>Quiero recibir la confirmación y los recordatorios de esta cita por
+              <strong class="text-white/70">WhatsApp</strong>. Puedo darme de baja respondiendo <strong class="text-white/70">STOP</strong>.</span>
+          </label>
         </div>
 
         <!-- ── Resumen de cita ── -->
@@ -8941,6 +8962,15 @@
           class="flex items-center justify-center gap-2 mt-5 text-xs font-semibold text-gray-600 hover:text-gray-400 transition-colors">
           <i class="ph-fill ph-instagram-logo text-sm"></i>
           <span id="footerInstagramHandle"></span>
+        </a>
+
+        <!-- Chat con el local (bot Syna + equipo). Antes /chat solo era
+             alcanzable desde el email de confirmación; este es el acceso
+             orgánico para dudas pre-reserva. -->
+        <a href="/chat"
+          class="flex items-center justify-center gap-2 mt-3 text-xs font-semibold text-gray-600 hover:text-gray-400 transition-colors">
+          <i class="ph-fill ph-chat-circle-dots text-sm"></i>
+          <span>¿Dudas? Chatea con nosotros</span>
         </a>
 
       </div>
@@ -11768,6 +11798,21 @@
         if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
+        if (!document.getElementById('clientAceptoTerminos')?.checked)
+          return showToast('Debes aceptar los Términos y la Política de Privacidad para reservar.');
+
+        // Se adjunta al doc de cita (persistencia de consentimiento Ley 21.719).
+        // Al cambiar los términos, bumpear esta versión y refrescar dashboards.
+        const RESERVA_TERMINOS_VERSION = '2026-07-11';
+        const _waOptInReserva = !!document.getElementById('clientAceptoWhatsapp')?.checked;
+        const _reservaAcepto = {
+          aceptoTerminosAt:   firebase.firestore.FieldValue.serverTimestamp(),
+          aceptoPrivacidadAt: firebase.firestore.FieldValue.serverTimestamp(),
+          terminosVersion:    RESERVA_TERMINOS_VERSION,
+          signupMetodo:       'reserva-publica',
+          waOptIn:            _waOptInReserva,
+          waOptInAt:          firebase.firestore.FieldValue.serverTimestamp(),
+        };
 
         // Normalización de teléfono a canónico "+56XXXXXXXXX" ANTES de guardar
         // la cita. Sin esto, formatos como "+56 9 5885 6719" quedan almacenados
@@ -11872,6 +11917,7 @@
             clienteTelefono:  tel,
             clienteTelefonoSuf9: telSuf9,
             clienteEmail:     email,
+            ..._reservaAcepto,
             servicioId:       selectedServiceObj.id,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
@@ -12013,6 +12059,7 @@
             clienteTelefono:  tel,
             clienteTelefonoSuf9: telSuf9,
             clienteEmail:     email,
+            ..._reservaAcepto,
             ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
@@ -13364,6 +13411,7 @@
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <script src="/aura-origen-pregunta.js?v=2"></script>
 
+  <script src="/js/legal-widgets.js?v=1" defer></script>
 
 </body>
 

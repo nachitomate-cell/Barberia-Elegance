@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="author" content="SynapTech SpA">
+  <title>Legal — SynapTech</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/output.css?v=5" rel="stylesheet">
+
+  <style>
+    body { background:#050505; color:#f8fafc; font-family:'Inter',sans-serif; overscroll-behavior-y:none; }
+    h1 { font-size:1.5rem; font-weight:700; color:#fff; }
+    h2 { font-size:.95rem; font-weight:700; color:#fff; }
+    p, li { font-size:.8125rem; color:rgba(255,255,255,.72); line-height:1.72; }
+    strong { color:rgba(255,255,255,.9); font-weight:600; }
+    a.card {
+      display:block; padding:1rem 1.1rem; border-radius:1rem;
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
+      transition:all .2s; text-decoration:none;
+    }
+    a.card:hover { border-color:rgba(139,124,246,.35); background:rgba(139,124,246,.04); transform:translateY(-1px); }
+    .badge { display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.08em;
+             text-transform:uppercase; padding:.15rem .5rem; border-radius:9999px;
+             background:rgba(139,124,246,.12); color:#c4b5fd; border:1px solid rgba(139,124,246,.25); }
+    .divider { height:1px; background:rgba(255,255,255,.07); margin:1.75rem 0; }
+    .placeholder { color:#f59e0b; font-weight:600; }
+  </style>
+</head>
+<body class="min-h-screen max-w-2xl mx-auto">
+
+  <!-- Header -->
+  <div class="px-5 pt-10 pb-4"
+       style="border-bottom:1px solid rgba(255,255,255,.06);">
+    <div class="flex items-center gap-3 mb-4">
+      <button onclick="history.length>1 ? history.back() : (location.href='/')"
+        class="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all shrink-0" aria-label="Volver">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+          <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/>
+        </svg>
+      </button>
+      <div class="flex items-center gap-2">
+        <img src="/synaptech/logo1.png" alt="" class="w-7 h-7 rounded object-cover" onerror="this.style.display='none'">
+        <div>
+          <h1>Centro Legal</h1>
+          <p class="text-xs text-white/40 mt-0.5">Documentos, políticas y contacto</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 py-8 pb-24 space-y-8">
+
+    <!-- ══ Documentos ══ -->
+    <section class="space-y-3">
+      <h2>Documentos</h2>
+
+      <a class="card" href="/terminos-saas.html">
+        <div class="flex items-start justify-between gap-3 mb-1.5">
+          <p class="text-sm font-bold text-white">Contrato SaaS</p>
+          <span class="badge">B2B</span>
+        </div>
+        <p>Condiciones de uso de la plataforma SynapTech para barberías y salones. Regula licencia, precios, cancelación y responsabilidades.</p>
+      </a>
+
+      <a class="card" href="/terminos-saas.html#dpa">
+        <div class="flex items-start justify-between gap-3 mb-1.5">
+          <p class="text-sm font-bold text-white">Anexo DPA</p>
+          <span class="badge">Datos</span>
+        </div>
+        <p>Acuerdo de Tratamiento de Datos. Define roles (Responsable / Encargado), sub-encargados autorizados y salvaguardas bajo Ley 21.719.</p>
+      </a>
+
+      <a class="card" href="/privacidad.html">
+        <div class="flex items-start justify-between gap-3 mb-1.5">
+          <p class="text-sm font-bold text-white">Política de Privacidad</p>
+          <span class="badge">B2C</span>
+        </div>
+        <p>Cómo se recopilan, usan y protegen los datos personales del cliente final. Incluye derechos ARCO y contacto para ejercerlos.</p>
+      </a>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══ Cookies ══ -->
+    <section class="space-y-2">
+      <h2>Política de Cookies</h2>
+      <p>La plataforma <strong>no utiliza cookies de terceros ni publicidad</strong>. Usamos exclusivamente almacenamiento local del navegador (localStorage / sessionStorage) para:</p>
+      <ul style="list-style:disc; padding-left:1.25rem; margin-top:.5rem;">
+        <li>Mantener tu sesión iniciada (Firebase Auth).</li>
+        <li>Recordar tu último tenant activo cuando visitas varios subdominios.</li>
+        <li>Guardar preferencias de la interfaz (tab activo, modo compacto, etc.).</li>
+        <li>Cachear anti-spam de reservas (evitar duplicados y bots).</li>
+      </ul>
+      <p class="mt-2">Los sub-encargados que operan pagos (Mercado Pago, Stripe) y mensajería (Meta) pueden usar sus propias cookies dentro de sus dominios. Esos usos se rigen por las políticas de cada proveedor.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══ Menores ══ -->
+    <section class="space-y-2">
+      <h2>Uso por menores de edad</h2>
+      <p>El servicio está dirigido a personas mayores de 14 años. Si eres menor de 14, necesitas la autorización de tu tutor legal para registrarte. Los locales que atiendan menores son responsables de recabar esa autorización antes de crear su ficha.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══ Marcas ══ -->
+    <section class="space-y-2">
+      <h2>Marcas y propiedad intelectual</h2>
+      <p><strong>SynapTech</strong>, <strong>Bioo</strong>, <strong>Yügen</strong> y sus logotipos son marcas de SynapTech SpA. Los nombres de barberías y salones que operan sobre la plataforma pertenecen a sus respectivos titulares y su uso en este sitio corresponde a la relación comercial vigente.</p>
+      <p>Fuentes tipográficas: Inter (SIL Open Font License), Plus Jakarta Sans (SIL OFL), Playfair Display (SIL OFL). Íconos: Phosphor Icons (MIT).</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══ Contacto DPO ══ -->
+    <section class="space-y-2">
+      <h2>Encargado de protección de datos</h2>
+      <p>Para ejercer tus derechos ARCO+P (Acceso, Rectificación, Cancelación, Oposición, Portabilidad), reportar una brecha o resolver cualquier consulta sobre el tratamiento de tus datos personales:</p>
+      <p class="mt-2"><strong>Correo:</strong> <a class="inline" href="mailto:privacidad@synaptechspa.cl" style="color:#8b7cf6;text-decoration:underline;">privacidad@synaptechspa.cl</a></p>
+      <p><strong>WhatsApp:</strong> <a class="inline" href="https://wa.me/56983568212" target="_blank" style="color:#8b7cf6;text-decoration:underline;">+56 9 8356 8212</a></p>
+      <p><strong>Emisor:</strong> SynapTech SpA · RUT <span class="placeholder">[por completar]</span> · <span class="placeholder">[dirección legal por completar]</span></p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══ Footer ══ -->
+    <footer class="text-center pt-2">
+      <p class="text-[11px] text-white/30 leading-relaxed">
+        &copy; 2026 SynapTech SpA · Todos los derechos reservados.<br>
+        SynapTech&reg; · Bioo&trade; · Y&uuml;gen&trade;<br>
+        Última actualización de este centro legal: 2026-07-11.
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>

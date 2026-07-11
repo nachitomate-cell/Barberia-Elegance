@@ -30,6 +30,38 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  FIREBASE APP CHECK (reCAPTCHA v3) — deshabilitado por defecto.
+//
+//  Activar cuando esté listo el setup en Firebase Console:
+//    1. Firebase Console → App Check → Register the web app.
+//    2. Elige "reCAPTCHA v3" como proveedor y crea un site key
+//       (protégelo en Firebase, NO en Google reCAPTCHA admin).
+//    3. Copia la site key aquí abajo (APPCHECK_SITE_KEY).
+//    4. En cada tenant, agrega el subdominio en Google reCAPTCHA
+//       admin → allowed domains (*.synaptechspa.cl cubre a todos).
+//    5. Descomenta el bloque y agrega en TODOS los HTML públicos:
+//         <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check-compat.js"></script>
+//    6. Activa el enforcement en Firebase Console (después de probar
+//       una semana en modo "unenforced"): Firestore, Functions.
+//
+//  Impacto: protege Firestore y Cloud Functions contra bots y clientes
+//  no autorizados. Requerido por Sprint 3.1 del roadmap legal.
+// ═══════════════════════════════════════════════════════════════════
+/*
+try {
+  const APPCHECK_SITE_KEY = 'REEMPLAZAR_CON_SITE_KEY_RECAPTCHA_V3';
+  if (typeof firebase.appCheck === 'function') {
+    firebase.appCheck().activate(
+      new firebase.appCheck.ReCaptchaV3Provider(APPCHECK_SITE_KEY),
+      true // isTokenAutoRefreshEnabled
+    );
+  }
+} catch (e) {
+  console.warn('[AppCheck] no se pudo inicializar:', e.message);
+}
+*/
+
 let auth;
 try {
   auth = firebase.auth();

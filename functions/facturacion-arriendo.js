@@ -151,6 +151,81 @@ async function emitirAfecta({ host, apiKey, emisor, items, receptor }) {
   };
 }
 
+// Emite una Nota de Crédito Electrónica (DTE 61) referenciando la boleta
+// afecta original (DTE 39). CodRef: 1 = anula el documento referenciado.
+// Usa el mismo host + apiKey + emisor que la boleta original.
+async function emitirNC({ host, apiKey, emisor, folioOriginal, fechaOriginal, motivo, items }) {
+  const total = items.reduce((s, i) => s + (Number(i.montoBruto) || 0), 0);
+  if (total <= 0) return { ok: false, error: 'total-cero' };
+
+  const neto = Math.round(total / 1.19);
+  const iva  = total - neto;
+
+  const detalle = items.map((it, i) => {
+    const qty   = Number(it.cantidad) || 1;
+    const bruto = Number(it.montoBruto) || 0;
+    return {
+      NroLinDet: i + 1,
+      NmbItem:   String(it.nombre || 'Item').slice(0, 80),
+      QtyItem:   qty,
+      PrcItem:   Math.round(bruto / qty),
+      MontoItem: bruto,
+    };
+  });
+
+  const body = {
+    response: ['FOLIO', 'TOKEN', 'URL'],
+    dte: {
+      Encabezado: {
+        IdDoc:   { TipoDTE: 61, Folio: 0, FchEmis: hoyChileISO() },
+        Emisor:  {
+          RUTEmisor:    emisor.rut,
+          RznSocEmisor: emisor.razonSocial,
+          GiroEmisor:   emisor.giro || 'Servicios',
+          ...(emisor.cdgSiiSucur ? { CdgSIISucur: String(emisor.cdgSiiSucur) } : {}),
+          DirOrigen:    emisor.direccion || '',
+          CmnaOrigen:   emisor.comuna || '',
+        },
+        Receptor: { RUTRecep: '66666666-6' },
+        Totales:  { MntNeto: neto, IVA: iva, MntTotal: total },
+      },
+      Detalle: detalle,
+      Referencia: [{
+        NroLinRef:   1,
+        TpoDocRef:   '39',                        // boleta afecta
+        FolioRef:    String(folioOriginal || ''),
+        FchRef:      String(fechaOriginal || hoyChileISO()),
+        CodRef:      1,                           // 1 = anula
+        RazonRef:    String(motivo || 'Cancelacion de cita').slice(0, 90),
+      }],
+    },
+  };
+
+  let res, text;
+  try {
+    res  = await fetch(`${host}/v2/dte/document`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', apikey: apiKey },
+      body:    JSON.stringify(body),
+    });
+    text = await res.text();
+  } catch (e) { return { ok: false, error: `red: ${e.message}` }; }
+
+  let json; try { json = JSON.parse(text); } catch { json = { _raw: text }; }
+  if (!res.ok || !json.FOLIO) {
+    const err = (json.error && (json.error.message || JSON.stringify(json.error)))
+             || json.message || json._raw || `HTTP ${res.status}`;
+    return { ok: false, httpStatus: res.status, error: String(err) };
+  }
+  return {
+    ok:    true,
+    folio: json.FOLIO,
+    token: json.TOKEN || null,
+    url:   json.URL   || null,
+    neto, iva, total,
+  };
+}
+
 // Extrae la lista de productos del ticket (misma fórmula que Comisiones.jsx).
 function productosDelTicket(cita) {
   if (!Array.isArray(cita.ticketProductos)) return [];
@@ -426,4 +501,74 @@ exports.facturacionObtenerPDF = onCall({ region: REGION, cors: true }, async (re
   }
   const buf = Buffer.from(await res.arrayBuffer());
   return { ok: true, pdfBase64: buf.toString('base64') };
+});
+
+// ── Callable: emitir Nota de Crédito para anular una boleta emitida ──
+// Uso típico: el admin del local cancela una cita que ya generó una
+// afecta (folio real en el SII). El bloqueo comercial de anulación
+// respeta el plazo tributario (SII permite NC dentro del mismo mes o
+// hasta 60 días, según categoría — validar antes de invocar).
+exports.facturacionEmitirNC = onCall({ region: REGION, cors: true }, async (request) => {
+  const { tenantId, citaId, motivo } = request.data || {};
+  if (!tenantId || !citaId) throw new HttpsError('invalid-argument', 'Falta tenantId o citaId.');
+  assertTenantAdmin(request, tenantId);
+
+  const cols = colecciones(tenantId);
+  const citaRef = cols.citas.doc(citaId);
+  const [citaSnap, cfgSnap, secSnap] = await Promise.all([
+    citaRef.get(), cols.configRef.get(), cols.secretRef.get(),
+  ]);
+  if (!citaSnap.exists) throw new HttpsError('not-found', 'Cita no encontrada.');
+
+  const cita = citaSnap.data();
+  const f    = cita.facturacion || {};
+  const docs = Array.isArray(f.documentos) ? f.documentos : [];
+  const afecta = docs.find(d => d && d.tipo === 'afecta' && d.folio && d.estado === 'emitida');
+  if (!afecta) throw new HttpsError('failed-precondition', 'La cita no tiene una boleta afecta emitida que se pueda anular.');
+  if (docs.some(d => d && d.tipo === 'nc' && d.refFolio === afecta.folio && d.estado === 'emitida')) {
+    throw new HttpsError('already-exists', 'Esta boleta ya tiene una Nota de Crédito emitida.');
+  }
+
+  const cfg    = cfgSnap.exists ? (cfgSnap.data() || {}) : {};
+  const apiKey = secSnap.exists ? (secSnap.data() || {}).openfacturaApiKey : null;
+  if (!apiKey) throw new HttpsError('failed-precondition', 'Sin API Key de OpenFactura configurada.');
+  if (!cfg.emisorLocal || !cfg.emisorLocal.rut) throw new HttpsError('failed-precondition', 'Falta el RUT del emisor.');
+
+  const host = OF_HOSTS[cfg.openfacturaAmbiente || 'produccion'] || OF_HOSTS.produccion;
+  // Reconstruimos los mismos items para revertir el monto exacto.
+  const items = itemsAfecta({ cita, modo: cfg.modo || 'arriendo_sillon', arriendoPct: cfg.arriendoPct });
+  if (!items.length) throw new HttpsError('failed-precondition', 'La cita no tiene monto afecto para anular.');
+
+  const fechaOriginal = (afecta.emitidoEn || '').slice(0, 10) || hoyChileISO();
+  const res = await emitirNC({
+    host, apiKey, emisor: cfg.emisorLocal,
+    folioOriginal: afecta.folio, fechaOriginal,
+    motivo: motivo || 'Cancelacion de cita', items,
+  });
+
+  const documento = {
+    tipo: 'nc', tipoDTE: 61, emisor: 'local',
+    folio: res.folio || null, token: res.token || null, url: res.url || null,
+    refFolio: afecta.folio,
+    neto: res.neto || null, iva: res.iva || null, total: res.total || null,
+    estado: res.ok ? 'emitida' : 'error',
+    error: res.ok ? null : String(res.error || '').slice(0, 300),
+    motivo: motivo || 'Cancelacion de cita',
+    emitidoEn: new Date().toISOString(),
+  };
+  await citaRef.set({ facturacion: {
+    documentos: [...docs, documento],
+    ncEmitidaAt: FieldValue.serverTimestamp(),
+  } }, { merge: true });
+
+  try {
+    await cols.log.add({
+      citaId, tipo: 'nc', documento,
+      ok: res.ok, motivo: motivo || null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (e) { logger.warn(`[facturacion:nc] audit fail: ${e.message}`); }
+
+  if (!res.ok) throw new HttpsError('internal', `OpenFactura rechazó la NC: ${res.error}`);
+  return { ok: true, folio: res.folio, token: res.token };
 });

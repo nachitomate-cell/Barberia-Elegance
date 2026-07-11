@@ -1659,7 +1659,27 @@
             class="field uppercase" autocomplete="off" style="letter-spacing:0.05em;">
         </div>
       </div>
-      <button onclick="registerWithEmail()" class="btn-primary mt-5">
+      <!-- Consentimiento Ley 19.628 / 21.719. Sin marcar, registerWithEmail() aborta. -->
+      <label class="flex items-start gap-2.5 mt-5 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
+        <input type="checkbox" id="regAceptoTerminos"
+          class="mt-0.5 flex-shrink-0 accent-white"
+          style="width:15px;height:15px;">
+        <span>He leído y acepto los
+          <a href="privacidad.html" target="_blank" rel="noopener"
+             class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>.
+          Autorizo el tratamiento de mis datos personales conforme a la Ley 19.628 / 21.719.</span>
+      </label>
+      <!-- Opt-in WhatsApp — separado del consentimiento base (Meta exige
+           granularidad). Opcional: si no lo marca, igual puede registrarse
+           pero no recibirá plantillas de confirmación por WhatsApp. -->
+      <label class="flex items-start gap-2.5 mt-3 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
+        <input type="checkbox" id="regAceptoWhatsapp"
+          class="mt-0.5 flex-shrink-0 accent-white"
+          style="width:15px;height:15px;">
+        <span>Quiero recibir confirmaciones y recordatorios de mis citas por
+          <strong class="text-white/70">WhatsApp</strong>. Puedo darme de baja en cualquier momento respondiendo <strong class="text-white/70">STOP</strong>.</span>
+      </label>
+      <button onclick="registerWithEmail()" class="btn-primary mt-4">
         <i class="ph-bold ph-user-plus"></i> Crear cuenta
       </button>
     </div>
@@ -1676,7 +1696,24 @@
         <input type="tel" id="googleTelefono" placeholder="+56 9 XXXX XXXX" autocomplete="tel"
           inputmode="numeric" class="field" required>
       </div>
-      <button onclick="saveGooglePhone()" class="btn-primary mt-5">
+      <!-- Consentimiento Ley 19.628 / 21.719 para flujo Google. -->
+      <label class="flex items-start gap-2.5 mt-5 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
+        <input type="checkbox" id="googleAceptoTerminos"
+          class="mt-0.5 flex-shrink-0 accent-white"
+          style="width:15px;height:15px;">
+        <span>He leído y acepto los
+          <a href="privacidad.html" target="_blank" rel="noopener"
+             class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>.
+          Autorizo el tratamiento de mis datos personales conforme a la Ley 19.628 / 21.719.</span>
+      </label>
+      <label class="flex items-start gap-2.5 mt-3 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
+        <input type="checkbox" id="googleAceptoWhatsapp"
+          class="mt-0.5 flex-shrink-0 accent-white"
+          style="width:15px;height:15px;">
+        <span>Quiero recibir confirmaciones y recordatorios de mis citas por
+          <strong class="text-white/70">WhatsApp</strong>. Puedo darme de baja respondiendo <strong class="text-white/70">STOP</strong>.</span>
+      </label>
+      <button onclick="saveGooglePhone()" class="btn-primary mt-4">
         <i class="ph-bold ph-check"></i> Continuar
       </button>
     </div>
@@ -1847,6 +1884,28 @@
   // Kick off — no bloquea el resto de la inicialización
   _loadReferralProgramConfig();
 
+  // Versión del contrato legal aceptado en signup. Se persiste junto
+  // con el timestamp para poder identificar a users bajo términos viejos
+  // cuando publiquemos una nueva versión (Ley 21.719 art. 12).
+  const TERMINOS_VERSION = '2026-07-11';
+
+  // Edad exacta en años desde una fecha ISO "YYYY-MM-DD". Devuelve null si
+  // el formato es inválido. Usado para verificar el mínimo de 14 años
+  // (Ley 21.719 art. 26) al crear cuenta con email.
+  function _calcularEdad(fechaISO) {
+    if (!fechaISO || typeof fechaISO !== 'string') return null;
+    const partes = fechaISO.split('-').map(n => parseInt(n, 10));
+    if (partes.length !== 3 || partes.some(isNaN)) return null;
+    const [y, m, d] = partes;
+    const nac = new Date(y, m - 1, d);
+    if (isNaN(nac.getTime())) return null;
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const dm = hoy.getMonth() - nac.getMonth();
+    if (dm < 0 || (dm === 0 && hoy.getDate() < nac.getDate())) edad--;
+    return edad;
+  }
+
   // ── Firestore: crear/actualizar perfil ────────────────────────
   async function ensureUserDoc(user, extra = {}) {
     const ref = FDB.usersCol().doc(user.uid);
@@ -1878,6 +1937,21 @@
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
       };
       if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
+      // Evidencia de consentimiento — Ley 19.628 art. 4 / Ley 21.719 art. 12.
+      // Se guarda una sola vez al crear el doc; renovaciones futuras (nueva
+      // versión de términos) se manejarán con una migración/callable aparte.
+      if (extra.acepto) {
+        data.aceptoTerminosAt   = firebase.firestore.FieldValue.serverTimestamp();
+        data.aceptoPrivacidadAt = firebase.firestore.FieldValue.serverTimestamp();
+        data.terminosVersion    = extra.acepto.version || TERMINOS_VERSION;
+        data.userAgentSignup    = (extra.acepto.ua || '').slice(0, 500);
+        data.signupMetodo       = extra.acepto.metodo || 'email';
+        if (extra.acepto.waOptIn === true || extra.acepto.waOptIn === false) {
+          data.waOptIn        = !!extra.acepto.waOptIn;
+          data.waOptInAt      = firebase.firestore.FieldValue.serverTimestamp();
+          data.waOptInMetodo  = extra.acepto.metodo || 'email';
+        }
+      }
       // Referidos — se genera SIEMPRE (aunque el programa esté apagado hoy)
       // para que un tenant que lo active mañana no tenga que backfillear.
       data.referralCode = generateReferralCode(data.nombre || 'CLUB');
@@ -2178,11 +2252,27 @@
     const telefono = document.getElementById('googleTelefono').value.trim();
     if (!validatePhone(telefono))
       return showAlert('Ingresa un teléfono válido. Debe comenzar con +56 9 seguido de 8 dígitos.');
+    if (!document.getElementById('googleAceptoTerminos')?.checked)
+      return showAlert('Debes aceptar los Términos y la Política de Privacidad para continuar.');
     const user = firebase.auth().currentUser;
     if (!user) return showAlert('Sesión expirada. Intenta de nuevo.');
     showLoading('Guardando...');
     try {
-      await FDB.usersCol().doc(user.uid).update({ telefono });
+      // ensureUserDoc corrió en handleGoogleUser SIN consentimiento (todavía
+      // no lo habíamos pedido). Aquí completamos con el consentimiento
+      // recién recibido — es un update para NO sobreescribir campos ya set.
+      const _waOptInGoogle = !!document.getElementById('googleAceptoWhatsapp')?.checked;
+      await FDB.usersCol().doc(user.uid).update({
+        telefono,
+        aceptoTerminosAt:   firebase.firestore.FieldValue.serverTimestamp(),
+        aceptoPrivacidadAt: firebase.firestore.FieldValue.serverTimestamp(),
+        terminosVersion:    TERMINOS_VERSION,
+        userAgentSignup:    (navigator.userAgent || '').slice(0, 500),
+        signupMetodo:       'google',
+        waOptIn:            _waOptInGoogle,
+        waOptInAt:          firebase.firestore.FieldValue.serverTimestamp(),
+        waOptInMetodo:      'google',
+      });
       // Crear/actualizar clientes/{phone} igual que en registerWithEmail
       const fs = firebase.firestore();
       const tid = window.CURRENT_TENANT_ID || 'elegance';
@@ -2203,6 +2293,10 @@
             historial:           [],
             creadoEn:            firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt:           firebase.firestore.FieldValue.serverTimestamp(),
+            aceptoTerminosAt:    firebase.firestore.FieldValue.serverTimestamp(),
+            aceptoPrivacidadAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            terminosVersion:     TERMINOS_VERSION,
+            signupMetodo:        'google',
           });
         } else {
           await clienteRef.update({ uid: user.uid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
@@ -2235,13 +2329,34 @@
       return showAlert('Ingresa un teléfono válido. Debe comenzar con +56 9 seguido de 8 dígitos.');
     if (password.length < 6)
       return showAlert('La contraseña debe tener al menos 6 caracteres.');
+    if (!document.getElementById('regAceptoTerminos')?.checked)
+      return showAlert('Debes aceptar los Términos y la Política de Privacidad para crear tu cuenta.');
+    // Verificación de edad (Ley 21.719 art. 26). Solo bloqueamos si el user
+    // declara una fecha < 14; si no ingresa fecha, se acepta la declaración
+    // implícita del ToS de ser mayor de 14 o contar con autorización de tutor.
+    if (fechaNacimiento) {
+      const _edad = _calcularEdad(fechaNacimiento);
+      if (_edad !== null && _edad < 14) {
+        return showAlert(
+          'El registro requiere ser mayor de 14 años. Si eres menor, pide a tu papá/mamá o tutor que te ayude a crear la cuenta a su nombre. Los locales pueden agendarte como cliente desde su panel con el consentimiento del tutor.'
+        );
+      }
+    }
+
+    const waOptIn = !!document.getElementById('regAceptoWhatsapp')?.checked;
+    const acepto = {
+      version:  TERMINOS_VERSION,
+      ua:       navigator.userAgent || '',
+      metodo:   'email',
+      waOptIn,
+    };
 
     showLoading('Creando cuenta...');
     _registering = true;
     try {
       const cred = await auth.createUserWithEmailAndPassword(email, password);
       await cred.user.updateProfile({ displayName: nombre });
-      await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento });
+      await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento, acepto });
 
       // Crear/actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
       const normalizedPhone = telefono.replace(/\D/g, '');
@@ -2249,13 +2364,19 @@
         const clienteData = {
           nombre,
           telefono,
-          email:             cred.user.email || '',
-          uid:               cred.user.uid,
-          sellosDisponibles: 0,
-          sellosHistoricos:  0,
-          historial:         [],
-          creadoEn:          firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt:         firebase.firestore.FieldValue.serverTimestamp(),
+          email:               cred.user.email || '',
+          uid:                 cred.user.uid,
+          sellosDisponibles:   0,
+          sellosHistoricos:    0,
+          historial:           [],
+          creadoEn:            firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt:           firebase.firestore.FieldValue.serverTimestamp(),
+          aceptoTerminosAt:    firebase.firestore.FieldValue.serverTimestamp(),
+          aceptoPrivacidadAt:  firebase.firestore.FieldValue.serverTimestamp(),
+          terminosVersion:     TERMINOS_VERSION,
+          signupMetodo:        'email',
+          waOptIn,
+          waOptInAt:           firebase.firestore.FieldValue.serverTimestamp(),
         };
         if (fechaNacimiento) {
           const parts = fechaNacimiento.split('-'); // ["YYYY","MM","DD"]
@@ -2417,5 +2538,7 @@
     });
   }
 </script>
+<div id="legal-footer-slot"></div>
+<script src="/js/legal-widgets.js?v=1" defer></script>
 </body>
 </html>

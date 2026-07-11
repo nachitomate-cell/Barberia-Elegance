@@ -1729,5 +1729,77 @@
 
   <script src="js/dashboard/feedback-share.js?v=1"></script>
 
+  <!-- ═══════ ELIMINAR CUENTA (Ley 19.628 / 21.719) ═══════
+       Los onclicks del modal (confirmDeleteAccount / deleteAccount /
+       closeDeleteModal) no estaban definidos y disparaban ReferenceError
+       silencioso. Ese estado incumple lo publicado en privacidad.html:104
+       ("puedes eliminar tu cuenta desde Mi Perfil"). Ver
+       functions/eliminar-mis-datos.js para la CF que ejecuta la baja. -->
+  <script>
+    (function () {
+      const modalEl = () => document.getElementById('deleteModal');
+      const btnConfirmarEl = () =>
+        document.querySelector('#deleteModal button[onclick="deleteAccount()"]');
+
+      window.confirmDeleteAccount = function confirmDeleteAccount() {
+        const el = modalEl();
+        if (el) el.classList.remove('hidden');
+      };
+
+      window.closeDeleteModal = function closeDeleteModal() {
+        const el = modalEl();
+        if (el) el.classList.add('hidden');
+      };
+
+      window.deleteAccount = async function deleteAccount() {
+        const btn = btnConfirmarEl();
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          alert('Tu sesión expiró. Vuelve a iniciar sesión e inténtalo de nuevo.');
+          window.location.href = 'registro.html';
+          return;
+        }
+
+        const tenantId = window.CURRENT_TENANT_ID || 'elegance';
+        const callableName = tenantId === 'elegance'
+          ? 'eliminarMisDatosElegance'
+          : 'eliminarMisDatosTenant';
+
+        if (btn) { btn.disabled = true; btn.innerHTML = 'Eliminando...'; }
+
+        try {
+          const fn  = firebase.functions().httpsCallable(callableName);
+          const res = await fn({ confirmacion: 'ELIMINAR', tenantId });
+          const conteos = (res && res.data && res.data.conteos) || {};
+          console.info('[eliminarMisDatos] ok', res && res.data);
+
+          await firebase.auth().signOut().catch(() => {});
+          try { sessionStorage.clear(); localStorage.clear(); } catch (_) {}
+
+          alert(
+            'Tu cuenta y tus datos fueron eliminados.\n\n' +
+            '· Perfil: '                 + (conteos.users             || 0) + '\n' +
+            '· Avatar público: '         + (conteos.userPublic        || 0) + '\n' +
+            '· Ficha cliente: '          + (conteos.clientes          || 0) + '\n' +
+            '· Notificaciones push: '    + (conteos.fcmTokens         || 0) + '\n' +
+            '· Citas anonimizadas: '     + (conteos.citasAnonimizadas || 0) +
+            (conteos.bioUsers ? '\n· Bioo: ' + conteos.bioUsers : '')
+          );
+          window.location.href = 'registro.html';
+        } catch (err) {
+          console.error('[eliminarMisDatos] error', err);
+          alert(
+            'No pudimos eliminar tu cuenta:\n' +
+            ((err && err.message) || 'error desconocido') +
+            '\n\nSi el problema persiste, escríbenos a privacidad@synaptechspa.cl.'
+          );
+          if (btn) { btn.disabled = false; btn.innerHTML = 'Sí, eliminar mi cuenta'; }
+        }
+      };
+    })();
+  </script>
+
+  <script src="/js/legal-widgets.js?v=1" defer></script>
+
 </body>
 </html>

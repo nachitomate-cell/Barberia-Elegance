@@ -184,6 +184,23 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const instagram = String(raw.instagram || '').trim().replace(/^@+/, '').slice(0, 40);
   const nombreDueno = String(raw.nombreDueno || '').trim().slice(0, 60);
 
+  // Evidencia de aceptación B2B (contrato SaaS + DPA + privacidad). El
+  // frontend (crea.html) obliga el checkbox y lo envía en raw.acepto. Si
+  // falta → no se puede provisionar el tenant (Ley 21.719: consentimiento
+  // previo). Se persisten los documentos aceptados en el tenant doc para
+  // atender solicitudes ARCO y demostrar que el usuario aceptó una
+  // versión concreta y no una posterior.
+  const acepto = raw.acepto || {};
+  const terminosVersion = String(acepto.version || '').trim();
+  if (!terminosVersion) {
+    throw new HttpsError('failed-precondition',
+      'Debes aceptar el Contrato SaaS, el Anexo DPA y la Política de Privacidad antes de crear tu local.');
+  }
+  const userAgentSignup    = String(acepto.ua || '').slice(0, 500) || null;
+  const documentosAceptados = Array.isArray(acepto.documentos)
+    ? acepto.documentos.map(String).slice(0, 20)
+    : [];
+
   if (!nombre)   throw new HttpsError('invalid-argument', 'Falta el nombre de tu local.');
   if (!slug)     throw new HttpsError('invalid-argument', 'Falta la dirección web (slug).');
   if (!telefono || telefono.length < 8) {
@@ -243,6 +260,12 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       estado:    'activo',
       ownerUid:  uid,
       ownerEmail: email || null,
+      // Evidencia B2B del contrato SaaS + DPA + política de privacidad al alta.
+      aceptoTerminosAt:    FieldValue.serverTimestamp(),
+      aceptoPrivacidadAt:  FieldValue.serverTimestamp(),
+      terminosVersion,
+      documentosAceptados,
+      signupUserAgent:     userAgentSignup,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

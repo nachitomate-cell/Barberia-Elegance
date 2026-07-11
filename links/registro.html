@@ -65,6 +65,16 @@
         <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.com" required />
         <label for="pass">Contraseña</label>
         <input id="pass" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+        <!-- Consentimiento — solo se muestra en modo signup (lo alterna paintMode). -->
+        <label id="aceptoWrap"
+          style="display:flex;align-items:flex-start;gap:8px;margin:10px 0 6px;font-size:12px;color:#586071;line-height:1.55;cursor:pointer;user-select:none;">
+          <input type="checkbox" id="aceptoTerminos"
+            style="margin-top:2px;width:15px;height:15px;flex-shrink:0;">
+          <span>He leído y acepto los
+            <a href="/privacidad.html" target="_blank" rel="noopener"
+               style="color:#0a66c2;text-decoration:underline;">Términos y la Política de Privacidad</a>
+            de bioo. Autorizo el tratamiento de mis datos (Ley 19.628 / 21.719).</span>
+        </label>
         <button class="btn" id="emailBtn" type="submit">Crear cuenta</button>
       </form>
 
@@ -111,8 +121,19 @@
         document.getElementById('claimedUser').textContent = desiredUser;
         cb.style.display = 'flex';
       } else { cb.style.display = 'none'; }
+      // Consentimiento solo aplica al alta — al iniciar sesión el user ya
+      // aceptó en su día. Se oculta para no confundir con "acepta de nuevo".
+      var wrap = document.getElementById('aceptoWrap');
+      if (wrap) wrap.style.display = isLogin ? 'none' : 'flex';
     }
     paintMode();
+
+    // Versión del contrato aceptado. Bumpear cuando cambien los términos.
+    var BIOO_TERMINOS_VERSION = '2026-07-11';
+    function aceptoOK() {
+      var el = document.getElementById('aceptoTerminos');
+      return !!(el && el.checked);
+    }
 
     // ── Reclamar usuario de forma atómica (doc id = username) ──
     function claimUsername(uid, email){
@@ -140,7 +161,16 @@
               bloques: [], theme: 'lime', views: 0,
               createdAt: now, updatedAt: now
             });
-            tx.set(userRef, { username: user, email: email || '', createdAt: now });
+            tx.set(userRef, {
+              username:           user,
+              email:              email || '',
+              createdAt:          now,
+              aceptoTerminosAt:   now,
+              aceptoPrivacidadAt: now,
+              terminosVersion:    BIOO_TERMINOS_VERSION,
+              userAgentSignup:    (navigator.userAgent || '').slice(0, 500),
+              signupMetodo:       modo === 'login' ? 'bioo-legacy' : 'bioo-signup',
+            });
             return { username: user, already: false };
           });
         });
@@ -195,6 +225,10 @@
     }
     document.getElementById('googleBtn').addEventListener('click', function(){
       clearMsg();
+      if (modo !== 'login' && !aceptoOK()) {
+        showMsg('Debes aceptar los Términos y la Política de Privacidad para crear tu cuenta.', false);
+        return;
+      }
       var provider = new firebase.auth.GoogleAuthProvider();
       if (_useRedirect) { googleRedirect(provider); return; }
       ensureLocal().then(function(){ return auth.signInWithPopup(provider); })
@@ -212,6 +246,10 @@
     document.getElementById('emailForm').addEventListener('submit', function(e){
       e.preventDefault();
       clearMsg();
+      if (modo !== 'login' && !aceptoOK()) {
+        showMsg('Debes aceptar los Términos y la Política de Privacidad para crear tu cuenta.', false);
+        return;
+      }
       var email = document.getElementById('email').value.trim();
       var pass  = document.getElementById('pass').value;
       var btn   = document.getElementById('emailBtn');
@@ -252,5 +290,7 @@
     auth.onAuthStateChanged(function(user){ if (user && volver === 'editor') { goEditor(); } });
   })();
   </script>
+  <div id="legal-footer-slot"></div>
+  <script src="/js/legal-widgets.js?v=1" defer></script>
 </body>
 </html>

@@ -894,6 +894,26 @@ service cloud.firestore {
       allow delete: if esBootstrap();
     }
 
+    // ── /eliminaciones_log ─────────────────────────────────────────
+    // Asientos de auditoría del derecho de supresión (Ley 21.719).
+    // Guarda solo hashes de uid/email, nunca PII cruda. Solo la Cloud
+    // Function eliminarMisDatos escribe aquí (Admin SDK bypass). El
+    // bootstrap puede leer para responder solicitudes ARCO cruzadas.
+    match /eliminaciones_log/{docId} {
+      allow read:  if esBootstrap();
+      allow write: if false;
+    }
+
+    // ── /wa_optout ─────────────────────────────────────────────────
+    // Opt-out global de WhatsApp por teléfono E.164 (sin '+'). La
+    // escritura solo la hace la CF whatsappWebhook (Admin SDK bypass)
+    // al recibir "STOP"/"BAJA" del cliente final. Lectura vetada al
+    // cliente porque expone el teléfono. Bootstrap puede auditar.
+    match /wa_optout/{telefono} {
+      allow read:  if esBootstrap();
+      allow write: if false;
+    }
+
     // ── /publicidad_tv ─────────────────────────────────────────────
     match /publicidad_tv/{docId} {
       allow read: if true;

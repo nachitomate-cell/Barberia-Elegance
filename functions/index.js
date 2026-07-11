@@ -810,6 +810,8 @@ exports.facturacionGuardarApiKey    = facturacionArriendo.facturacionGuardarApiK
 exports.facturacionTestAfecta       = facturacionArriendo.facturacionTestAfecta;
 exports.facturacionReemitir         = facturacionArriendo.facturacionReemitir;
 exports.facturacionObtenerPDF       = facturacionArriendo.facturacionObtenerPDF;
+// Nota de Crédito para anular una boleta ya emitida al cancelar la cita.
+exports.facturacionEmitirNC         = facturacionArriendo.facturacionEmitirNC;
 
 // ─────────────────────────────────────────────────────────────────
 //  CANJES ATÓMICOS — ver canjes.js
