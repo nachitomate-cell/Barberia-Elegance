@@ -1955,14 +1955,22 @@
 
       // Si hay un flujo pendiente (esperando código), procesamos primero
       if (pendingAction?.type === 'awaiting-code') {
-        const codigo = String(text || '').toUpperCase().replace(/\s+/g, '');
-        // Validación mínima — el código real son 6 chars + guión
-        if (codigo.length < 5) {
+        const bruto  = String(text || '').trim();
+        const codigo = bruto.toUpperCase().replace(/\s+/g, '');
+        const pareceCodigo = /^[A-Z0-9-]{5,8}$/.test(codigo);
+        if (pareceCodigo) {
+          await botConsultarCodigo(codigo);
+          return;
+        }
+        if (bruto.length <= 8) {
+          // Intento corto con typo: pedir de nuevo sin salir del flujo.
           await sendBotMessage('Ese código no parece válido. Tiene que ser tipo *XXX-XXX*. Prueba de nuevo o toca otra opción.');
           return;
         }
-        await botConsultarCodigo(codigo);
-        return;
+        // Escribió una frase normal ("hola, quiero reservar…"): salir del
+        // modo código y procesar como mensaje estándar — antes quedaba
+        // atrapado en un loop de "código no válido".
+        pendingAction = null;
       }
 
       const matched = botMatchByKeyword(text);
