@@ -7,6 +7,7 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
+  Coffee,
 } from 'lucide-react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -1785,6 +1786,37 @@ function BloqueoBlock({ bloqueo, onDelete }) {
   );
 }
 
+/* ── ColacionBlock ───────────────────────────────────────────────
+   Franja informativa de colación/descanso del barbero en la grilla
+   del admin (la agenda del profesional ya la pinta). Es solo visual:
+   pointer-events-none para que el admin pueda igualmente agendar en
+   ese rango si lo necesita (sobrecupo consciente). La colación viene
+   de barberos/{id}/configuracion/main.colacion con fallback a la
+   colación global de configuracion/main. */
+function ColacionBlock({ colacion }) {
+  const { slotIdx, totalSlots } = useContext(AgendaCtx);
+  const valid = colacion
+    && typeof colacion.inicio === 'string' && colacion.inicio.includes(':')
+    && typeof colacion.fin === 'string' && colacion.fin.includes(':');
+  if (!valid) return null;
+  const startIdx = Math.max(0, slotIdx(colacion.inicio));
+  const endIdx   = Math.min(totalSlots, slotIdx(colacion.fin));
+  if (endIdx <= startIdx) return null;
+  const spans = endIdx - startIdx;
+
+  return (
+    <div
+      className="absolute inset-x-0.5 rounded-md border border-dashed border-amber-500/25 bg-amber-500/[0.05] pointer-events-none overflow-hidden flex items-start justify-center"
+      style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
+    >
+      <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-950/70 px-2 py-0.5 text-[10px] font-bold text-amber-400/90">
+        <Coffee size={10} />
+        <span className="truncate">Colación {colacion.inicio}–{colacion.fin}</span>
+      </span>
+    </div>
+  );
+}
+
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
@@ -3205,12 +3237,19 @@ export default function Agenda() {
     setHasNewCita(ultimaCita.id !== lastSeen);
   }, [ultimaCita?.id]);
 
+  // Colación visible en la grilla: global (configuracion/main.colacion) con
+  // override por barbero (barberos/{id}/configuracion/main.colacion) — misma
+  // fuente que usa la agenda del profesional (agenda.html).
+  const [colacionGlobal,    setColacionGlobal]    = useState(null);
+  const [colacionesBarbero, setColacionesBarbero] = useState({});
+
   useEffect(() => {
     withTimeout(getDoc(doc(tenantCol('configuracion'), 'main')), 10000, 'agenda/cfg-main')
       .then(snap => {
         if (!snap.exists()) return;
         const data = snap.data();
         if (data.intervaloMinutos) { setSlotMins(data.intervaloMinutos); setLabelStep(data.intervaloMinutos); try { localStorage.setItem(SLOT_KEY, String(data.intervaloMinutos)); } catch { /* noop */ } }
+        if (data.colacion && data.colacion.inicio && data.colacion.fin) setColacionGlobal(data.colacion);
         // Guardamos el horario completo; el rango visible se calcula POR DÍA (abajo),
         // respetando diasConfig (cada día puede cerrar a una hora distinta).
         setCfgHorario({ horarioInicio: data.horarioInicio, horarioFin: data.horarioFin, diasConfig: data.diasConfig || null });
@@ -3248,6 +3287,29 @@ export default function Agenda() {
   );
 
   const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
+
+  // Colación por barbero — un getDoc por profesional visible, una sola vez
+  // por cambio real de la lista (dep-key estable por ids, no por identidad
+  // del array que useCollection renueva en cada snapshot).
+  const _barberoIdsKey = (rawBarberos || []).map(b => b.id).sort().join(',');
+  useEffect(() => {
+    const ids = _barberoIdsKey ? _barberoIdsKey.split(',') : [];
+    if (!ids.length) return;
+    let cancelado = false;
+    Promise.all(ids.map(id =>
+      withTimeout(getDoc(doc(tenantCol('barberos'), id, 'configuracion', 'main')), 10000, 'agenda/cfg-barbero')
+        .then(s => [id, s.exists() ? (s.data().colacion || null) : null])
+        .catch(() => [id, null]),
+    )).then(entries => { if (!cancelado) setColacionesBarbero(Object.fromEntries(entries)); });
+    return () => { cancelado = true; };
+  }, [_barberoIdsKey]);
+
+  // Colación efectiva de un barbero: la suya propia > la global del local.
+  const colacionDe = useCallback((barberoId) => {
+    const propia = colacionesBarbero[barberoId];
+    if (propia && propia.inicio && propia.fin) return propia;
+    return colacionGlobal;
+  }, [colacionesBarbero, colacionGlobal]);
   // Query multi-fecha:
   //   day  → 1 fecha  → equivale al where(==, dateStr) previo
   //   week → 7 fechas → where('fecha', 'in', [...]) (Firestore acepta hasta 30 valores)
@@ -3915,6 +3977,7 @@ export default function Agenda() {
                         dragActive={!!draggedCita}
                       />
                     ))}
+                    <ColacionBlock colacion={colacionDe(focusBarbero.id)} />
                     {dayBloqueos.map(blq => (
                       <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                     ))}
@@ -4025,6 +4088,7 @@ export default function Agenda() {
                                 dragActive={!!draggedCita}
                               />
                             ))}
+                            <ColacionBlock colacion={colacionDe(b.id)} />
                             {barberBloqueos.map(blq => (
                               <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                             ))}
