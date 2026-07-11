@@ -115,7 +115,7 @@
       '  <a href="/legal.html" target="_blank" rel="noopener">Centro legal</a> · ' +
       '  <a href="/privacidad.html" target="_blank" rel="noopener">Privacidad</a> · ' +
       '  <a href="/terminos-saas.html" target="_blank" rel="noopener">Términos</a><br>' +
-      '  SynapTech&reg; · Bioo&trade; · Y&uuml;gen&trade;' +
+      '  SynapTech&reg; · Bioo&trade;' +
       '</div>';
   }
 

@@ -27,7 +27,7 @@ SynapTech actúa en dos calidades:
 | Rol | Actividades cubiertas |
 |-----|----------------------|
 | **Responsable** | Leads inbound (empieza.html), correo de contacto, contabilidad interna, comunicaciones comerciales propias, RRHH, gestión del propio equipo. |
-| **Encargado (por cuenta de las barberías/salones/creadores)** | Toda la operación de agenda, fidelización, notificaciones, pagos, facturación, Bioo, Yügen, Corte al Lápiz para los tenants. |
+| **Encargado (por cuenta de las barberías/salones/creadores)** | Toda la operación de agenda, fidelización, notificaciones, pagos, facturación, Bioo y Corte al Lápiz para los tenants. |
 
 Cuando SynapTech actúa como Encargado, el tratamiento se rige por el DPA anexo al Contrato SaaS.
 
@@ -67,7 +67,7 @@ Cuando SynapTech actúa como Encargado, el tratamiento se rige por el DPA anexo 
 - **Transferencias internacionales:** sí — US e Irlanda.
 - **Medidas de seguridad:** cuarto candado de opt-in en `notificarCita` (whatsapp-notif.js); rate-limit por tenant; kill-switch `_system/whatsapp_notif`.
 
-### 3.4 Pagos online (Yügen / arriendo sillón / Bioo)
+### 3.4 Pagos online (membresías / arriendo sillón / Bioo)
 
 - **Categorías de titulares:** Clientes finales.
 - **Categorías de datos:** identidad básica, monto, medio de pago (procesado por la pasarela, no almacenado en Firestore).
