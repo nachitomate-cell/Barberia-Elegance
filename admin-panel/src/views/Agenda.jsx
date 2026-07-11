@@ -833,6 +833,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
+    // Guard hora: misma protección que agenda.html — sin esto el panel
+    // también podía guardar citas con hora vacía (invisibles en la grilla).
+    if (!form.hora || !String(form.hora).includes(':')) return;
 
     // ── Confirmación explícita si la cita involucra un pack ─────────
     // Se dispara SOLO al pasar de "pendiente" a "Completada" — es el momento
@@ -1157,7 +1160,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           )}
           <div className="hidden sm:block sm:flex-1" />
           <button onClick={onClose} className="shrink-0 px-4 py-2.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
-          <button onClick={handleSave} disabled={saving || !form.clienteNombre}
+          <button onClick={handleSave} disabled={saving || !form.clienteNombre || !form.hora}
             className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {isNew ? 'Crear cita' : 'Guardar'}
