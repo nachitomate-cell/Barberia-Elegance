@@ -312,9 +312,11 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 
   const cancelUrl    = `${cfg.dashboardUrl}?accion=cancelar&citaId=${citaId}`;
   const reagendarUrl = `${cfg.dashboardUrl}?accion=reagendar&citaId=${citaId}`;
-  // chatUrl = misma raíz del dashboard pero terminando en /chat. Permite
-  // gestionar la cita sin login usando el código que va en el email.
-  const chatUrl      = String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/chat');
+  // chatUrl = misma raíz del dashboard pero terminando en /chat. Lleva el
+  // código de la cita (?codigo=) para que el bot la presente de inmediato
+  // con los chips de cancelar/reagendar, sin pedirle nada al cliente.
+  const chatUrl      = String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/chat')
+    + (data.codigoCita ? `?codigo=${encodeURIComponent(data.codigoCita)}` : '');
 
   const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl });
 

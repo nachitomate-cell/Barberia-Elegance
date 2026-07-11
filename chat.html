@@ -25,6 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.3"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
@@ -872,6 +873,28 @@
     .composer button:active:not(:disabled) { transform: scale(0.92); }
     .composer button:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* Botón adjuntar foto — ghost, no compite con el de enviar */
+    .composer #attachBtn {
+      background: #15161a;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.55);
+    }
+    .composer #attachBtn:hover:not(:disabled) { color: #fff; border-color: rgba(255,255,255,0.25); filter: none; }
+    .composer #attachBtn.subiendo { animation: attachPulse 1s ease-in-out infinite; pointer-events: none; }
+    @keyframes attachPulse { 0%,100% { opacity: 0.9; } 50% { opacity: 0.4; } }
+
+    /* Imagen dentro de una burbuja */
+    .bubble .chat-img {
+      display: block;
+      max-width: 230px;
+      max-height: 280px;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 2px 0 4px;
+      cursor: pointer;
+    }
+
     /* ── Toast / opt-in push banner ───────────────────────────── */
     /* Banner premium para activar notificaciones — slide-in desde arriba,
        icono circular con anillo de acento, tipografía con jerarquía clara,
@@ -1206,6 +1229,14 @@
 
     <!-- Composer (input + botón) -->
     <form id="composer" class="composer" autocomplete="off">
+      <button type="button" id="attachBtn" aria-label="Enviar foto" title="Enviar una foto (ej: referencia de corte)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+      </button>
+      <input type="file" id="attachInput" accept="image/*" class="hidden" style="display:none" />
       <textarea
         id="msgInput"
         rows="1"
@@ -1411,15 +1442,26 @@
     //   { type: 'awaiting-cancel-confirm', codigo, cita } // esperando "sí" para cancelar
     let pendingAction = null;
 
-    // localStorage para deshabilitar el bot en este chat
-    // (cuando admin tomó control o cliente pidió hablar con humano)
+    // Bot apagado en este chat (admin tomó control o cliente pidió humano).
+    // Fuente de verdad: campo `botDisabled` en el DOC del chat (compartido
+    // entre dispositivos y visible para el panel, que puede reactivarlo).
+    // localStorage queda como cache/fallback para cuando el doc aún no
+    // trae el flag (chats antiguos).
     const KEY_BOT_DISABLED = KEY_PREFIX + 'botDisabled';
+    let remoteBotDisabled = null; // null = el doc no trae flag → manda localStorage
 
     function isBotDisabled() {
+      if (remoteBotDisabled !== null) return remoteBotDisabled;
       return localStorage.getItem(KEY_BOT_DISABLED) === '1';
     }
     function disableBotForThisChat() {
       localStorage.setItem(KEY_BOT_DISABLED, '1');
+      remoteBotDisabled = true;
+      // Persistir en el doc (best-effort): silencia el bot en TODOS los
+      // dispositivos del cliente, no solo en este.
+      if (chatId) {
+        chatDocRef(chatId).set({ botDisabled: true }, { merge: true }).catch(() => {});
+      }
     }
 
     // ── Bot config — paths Firestore ─────────────────────────
@@ -1570,18 +1612,23 @@
       return (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
     function botMatchByKeyword(text) {
-      if (!botConfig?.keywords) return null;
       const norm = normText(text);
-      for (const kw of botConfig.keywords) {
+      for (const kw of (botConfig?.keywords || [])) {
         const words = kw.words || [];
         if (words.some(w => norm.includes(normText(w)))) {
           if (kw.optionId === '__greet__') {
             // Re-saludo: enviar el greeting con opciones de nuevo
             return { __regreet__: true };
           }
-          return (botConfig.options || []).find(o => o.id === kw.optionId);
+          const opt = (botConfig.options || []).find(o => o.id === kw.optionId);
+          if (opt) return opt;
         }
       }
+      // Built-in: disponibilidad ("¿tienes hora hoy?"). Va después de la
+      // config para que las keywords del tenant tengan prioridad.
+      const HORAS_KW = ['disponible', 'disponibilidad', 'tienes hora', 'hay hora',
+        'hay cupo', 'tienes cupo', 'horas libres', 'hora libre', 'hora para hoy'];
+      if (HORAS_KW.some(w => norm.includes(normText(w)))) return OPCION_HORAS;
       return null;
     }
 
@@ -1639,6 +1686,42 @@
       }
       if (cta && cta.url && cta.label) doc.cta = cta;
       await chatMsgsCol(chatId).add(doc);
+    }
+
+    // ── Horas disponibles (callable chatHorasDisponibles) ─────
+    // Muestra los slots libres de hoy (o del primer día con cupos en
+    // los próximos 4). Modelo v1: "al menos un profesional libre" —
+    // por eso se presenta como sujeto a confirmación al reservar.
+    async function botMostrarHorasDisponibles() {
+      showTyping();
+      let res = null;
+      try {
+        const fn = firebase.functions().httpsCallable('chatHorasDisponibles');
+        res = (await fn({ tenantId: TENANT_ID })).data;
+      } catch (err) {
+        console.warn('[bot] horas disponibles:', err?.message);
+      }
+      hideTyping();
+      const url = getReservaUrl();
+
+      if (!res || !res.ok) {
+        await sendBotMessage('No pude revisar la agenda en este momento 😕 — mira las horas directo aquí:', {
+          cta: { label: 'Ver agenda y reservar', url }, typingMs: 0,
+        });
+        return;
+      }
+      if (!res.slots || !res.slots.length) {
+        await sendBotMessage('No veo horas libres en los próximos días 😕 — revisa el calendario completo por si se libera algo:', {
+          cta: { label: 'Ver agenda completa', url }, typingMs: 0,
+        });
+        return;
+      }
+      const dia   = res.esHoy ? '*hoy*' : `el *${plainText(fmtFechaCorta(res.fecha))}*`;
+      const lista = res.slots.slice(0, 8).join('  ·  ');
+      await sendBotMessage(
+        `Tenemos estas horas libres ${dia}:\n\n🕒 ${lista}\n\n(sujetas a confirmación al reservar)`,
+        { cta: { label: 'Reservar ahora', url }, typingMs: 0 },
+      );
     }
 
     // ── Cancelar/reagendar cita por código ────────────────────
@@ -1724,6 +1807,11 @@
         return;
       }
 
+      if (action === 'available-slots') {
+        await botMostrarHorasDisponibles();
+        return;
+      }
+
       if (action === 'cancel-reagendar') {
         const intro = opt.response || '¿Cuál es tu código de cita? Lo encontrás en el email o push que te llegó al reservar (formato XXX-XXX).';
         pendingAction = { type: 'awaiting-code' };
@@ -1749,13 +1837,78 @@
       // 'escalate' o 'reply'
       await sendBotMessage(opt.response || '');
       if (action === 'escalate' || opt.escalate) {
+        await avisarSiFueraDeHorario();
         await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
         disableBotForThisChat();
       }
     }
 
+    // ── Aviso fuera de horario ────────────────────────────────
+    // Cuando la conversación escala a un humano y el local está cerrado,
+    // el bot fija expectativas ("te responden mañana desde las 10:00")
+    // usando el horario real de configuracion/main.
+    let _cfgHorarioLocal = null;
+    async function cargarHorarioLocal() {
+      if (_cfgHorarioLocal !== null) return _cfgHorarioLocal;
+      try {
+        const ref = usesRoot
+          ? db.collection('configuracion').doc('main')
+          : db.collection('tenants').doc(TENANT_ID).collection('configuracion').doc('main');
+        const snap = await ref.get();
+        _cfgHorarioLocal = snap.exists ? (snap.data() || {}) : {};
+      } catch (_) { _cfgHorarioLocal = {}; }
+      return _cfgHorarioLocal;
+    }
+    function _rangoDelDia(cfg, dow) {
+      const dias = Array.isArray(cfg.diasLaborales) ? cfg.diasLaborales.map(Number) : [1, 2, 3, 4, 5, 6];
+      if (!dias.includes(dow)) return null;
+      const dc = cfg.diasConfig || {};
+      const d = dc[dow] ?? dc[String(dow)] ?? null;
+      if (d && d.activo === false) return null;
+      return {
+        ini: (d && d.inicio) || cfg.horarioInicio || '09:00',
+        fin: (d && d.fin)    || cfg.horarioFin    || '20:00',
+      };
+    }
+    async function avisarSiFueraDeHorario() {
+      try {
+        const cfg   = await cargarHorarioLocal();
+        const ahora = new Date();
+        const toM   = t => { const [h, m] = String(t).split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+        const mins  = ahora.getHours() * 60 + ahora.getMinutes();
+        const hoy   = _rangoDelDia(cfg, ahora.getDay());
+        if (hoy && mins >= toM(hoy.ini) && mins < toM(hoy.fin)) return; // abierto ahora
+
+        let aviso = null;
+        if (hoy && mins < toM(hoy.ini)) {
+          aviso = `Eso sí, ahora estamos fuera de horario — el equipo te responde hoy desde las *${hoy.ini}*. Tu mensaje queda guardado 🙌`;
+        } else {
+          const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+          for (let i = 1; i <= 7; i++) {
+            const d = new Date(ahora); d.setDate(ahora.getDate() + i);
+            const r = _rangoDelDia(cfg, d.getDay());
+            if (r) {
+              const cuando = i === 1 ? 'mañana' : `el ${DIAS[d.getDay()]}`;
+              aviso = `Eso sí, ahora estamos fuera de horario — el equipo te responde ${cuando} desde las *${r.ini}*. Tu mensaje queda guardado 🙌`;
+              break;
+            }
+          }
+        }
+        if (aviso) await sendBotMessage(aviso, { typingMs: 350 });
+      } catch (_) { /* best-effort: sin aviso no se rompe nada */ }
+    }
+
+    // Opción integrada: disponibilidad de horas. Vive en código (no en la
+    // config del tenant) para que TODOS los locales la tengan aunque su
+    // config guardada sea anterior a esta feature.
+    const OPCION_HORAS = { id: '__horas__', label: '🕒 Horas disponibles', action: 'available-slots' };
+
     function buildReplyChips() {
-      return (botConfig?.options || []).map(o => ({ id: o.id, label: o.label }));
+      const chips = (botConfig?.options || []).map(o => ({ id: o.id, label: o.label }));
+      if (!(botConfig?.options || []).some(o => o.action === 'available-slots')) {
+        chips.splice(Math.min(1, chips.length), 0, { id: OPCION_HORAS.id, label: OPCION_HORAS.label });
+      }
+      return chips;
     }
 
     // Interpola placeholders del tipo {clave} en un string usando vars.
@@ -1808,6 +1961,34 @@
           await sendBotMessage('Ese código no parece válido. Tiene que ser tipo *XXX-XXX*. Prueba de nuevo o toca otra opción.');
           return;
         }
+        await botConsultarCodigo(codigo);
+        return;
+      }
+
+      const matched = botMatchByKeyword(text);
+      if (matched?.__regreet__) {
+        // Re-saludo (cliente dijo "hola" durante la conversación) también
+        // se personaliza con el nombre.
+        const greeting = buildPersonalGreeting(botConfig.greeting);
+        await sendBotMessage(greeting, { replies: buildReplyChips() });
+        return;
+      }
+      if (matched) {
+        await executeOption(matched);
+        return;
+      }
+      // Sin match → mandar fallback + escalar
+      const fallback = botConfig.fallback || 'Anoté tu mensaje, un barbero te responde apenas pueda 👍';
+      await sendBotMessage(fallback);
+      await avisarSiFueraDeHorario();
+      await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+      disableBotForThisChat();
+    }
+
+    // Consulta una cita por código y presenta el resumen con chips de
+    // acción. Reutilizada por el flujo "escribe tu código" y por el
+    // deep-link ?codigo= del email de confirmación.
+    async function botConsultarCodigo(codigo) {
         try {
           const res = await callGestionarCita({
             tenantId: TENANT_ID, codigo, accion: 'consultar',
@@ -1862,26 +2043,21 @@
           await sendBotMessage(friendly);
           pendingAction = null;
         }
-        return;
-      }
+    }
 
-      const matched = botMatchByKeyword(text);
-      if (matched?.__regreet__) {
-        // Re-saludo (cliente dijo "hola" durante la conversación) también
-        // se personaliza con el nombre.
-        const greeting = buildPersonalGreeting(botConfig.greeting);
-        await sendBotMessage(greeting, { replies: buildReplyChips() });
-        return;
-      }
-      if (matched) {
-        await executeOption(matched);
-        return;
-      }
-      // Sin match → mandar fallback + escalar
-      const fallback = botConfig.fallback || 'Anoté tu mensaje, un barbero te responde apenas pueda 👍';
-      await sendBotMessage(fallback);
-      await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
-      disableBotForThisChat();
+    // ── Deep-link ?codigo= (viene del email de confirmación) ──
+    // Al entrar al chat con su código, el bot presenta la cita al tiro
+    // con los chips de cancelar/reagendar — sin pedirle nada al cliente.
+    let deepLinkProcesado = false;
+    async function handleDeepLinkCodigo() {
+      if (deepLinkProcesado || !chatId) return;
+      deepLinkProcesado = true;
+      const raw = String(new URLSearchParams(location.search).get('codigo') || '')
+        .toUpperCase().replace(/\s+/g, '');
+      if (!/^[A-Z0-9]{3}-?[A-Z0-9]{3}$/.test(raw)) return;
+      const codigo = raw.includes('-') ? raw : `${raw.slice(0, 3)}-${raw.slice(3)}`;
+      await echoClientLabel(`Vengo por mi cita (${codigo})`);
+      await botConsultarCodigo(codigo);
     }
 
     // Click en un quick-reply chip
@@ -1965,7 +2141,9 @@
       }
 
       // ── Chip normal de las opciones del config ─────────────
-      const opt = (botConfig?.options || []).find(o => o.id === optionId);
+      let opt = (botConfig?.options || []).find(o => o.id === optionId);
+      // Chip integrado de disponibilidad (no vive en la config del tenant)
+      if (!opt && optionId === OPCION_HORAS.id) opt = OPCION_HORAS;
       if (!opt || !chatId) return;
       // Mandamos el label como mensaje del cliente
       const ts = firebase.firestore.FieldValue.serverTimestamp();
@@ -2084,9 +2262,22 @@
       // Cargar config del bot antes de mostrar mensajes para que el saludo
       // (si corresponde) salga sin demora visible.
       await loadBotConfig();
+      subscribeBotState();
       subscribeMessages();
       adjustTextareaHeight();
       maybeShowPushBanner();
+    }
+
+    // Estado remoto del bot en este chat: si el staff lo pausa/reactiva
+    // desde el panel (Mensajes), aplica en vivo en todos los dispositivos.
+    function subscribeBotState() {
+      chatDocRef(chatId).onSnapshot(snap => {
+        const d = snap.exists ? snap.data() : null;
+        remoteBotDisabled = (d && typeof d.botDisabled === 'boolean') ? d.botDisabled : null;
+        // Si el panel reactivó el bot, limpiamos el cache local para que
+        // este dispositivo no lo siga bloqueando.
+        if (remoteBotDisabled === false) localStorage.removeItem(KEY_BOT_DISABLED);
+      }, () => {});
     }
 
     function subscribeMessages() {
@@ -2106,6 +2297,9 @@
           if (firstLoad) {
             firstLoad = false;
             await botGreetIfFirstMessage(msgs.length);
+            // Deep-link del email de confirmación (?codigo=XXX-XXX):
+            // presentar la cita de inmediato con sus chips de acción.
+            await handleDeepLinkCodigo();
           }
         }, err => {
           console.warn('[chat] msgs onSnapshot error:', err);
@@ -2155,11 +2349,14 @@
               ? `<img class="bot-avatar" src="/syna.png" alt="Syna" loading="lazy">`
               : `<span class="bot-avatar-spacer" aria-hidden="true"></span>`)
           : '';
+        const imgHtml = m.imageUrl
+          ? `<img class="chat-img" src="${escapeAttr(m.imageUrl)}" alt="Foto" loading="lazy" onclick="window.open('${escapeAttr(m.imageUrl)}', '_blank', 'noopener')">`
+          : '';
         html.push(`
           <div class="msg-row from-${isClient ? 'client' : 'admin'}">
             ${botAvatar}
             <div class="bubble ${isClient ? 'client' : 'admin'}">
-              ${linkify(m.text || '')}${d ? `<span class="bubble-time">${timeLabel(d)}</span>` : ''}
+              ${imgHtml}${linkify(m.text || '')}${d ? `<span class="bubble-time">${timeLabel(d)}</span>` : ''}
             </div>
           </div>
         `);
@@ -2241,6 +2438,66 @@
       return s.replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       })[c]);
+    }
+
+    // ── Fotos en el composer ──────────────────────────────────
+    // Compresión client-side (máx 1280px, JPEG 0.82) → Storage en
+    // chat/{tenant}/{chatId}/ (regla: solo el dueño del chat escribe)
+    // → mensaje con imageUrl que ambos lados renderizan como burbuja.
+    const $attachBtn   = document.getElementById('attachBtn');
+    const $attachInput = document.getElementById('attachInput');
+
+    function comprimirImagen(file, maxPx = 1280, calidad = 0.82) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let { width, height } = img;
+          if (width > maxPx || height > maxPx) {
+            const r = Math.min(maxPx / width, maxPx / height);
+            width = Math.round(width * r); height = Math.round(height * r);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(b => resolve(b || file), 'image/jpeg', calidad);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    if ($attachBtn && $attachInput) {
+      $attachBtn.addEventListener('click', () => $attachInput.click());
+      $attachInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file || !chatId) return;
+        if (!file.type.startsWith('image/')) { showToast('Solo se pueden enviar imágenes.'); return; }
+        $attachBtn.classList.add('subiendo');
+        try {
+          const blob = await comprimirImagen(file);
+          const ref  = firebase.storage().ref(`chat/${TENANT_ID}/${chatId}/${Date.now()}.jpg`);
+          await ref.put(blob, { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' });
+          const url = await ref.getDownloadURL();
+          const ts  = firebase.firestore.FieldValue.serverTimestamp();
+          await chatMsgsCol(chatId).add({ imageUrl: url, text: '', sender: 'client', timestamp: ts });
+          await chatDocRef(chatId).set({
+            lastMessage: '📷 Foto',
+            updatedAt:   ts,
+            hasUnread:   true,
+            userName:    localStorage.getItem(KEY_NAME) || 'Cliente',
+            userPhone:   localStorage.getItem(KEY_PHONE) || '',
+            source:      'public_chat',
+          }, { merge: true });
+        } catch (err) {
+          console.warn('[chat] foto:', err?.message);
+          showToast('No se pudo enviar la foto. Intenta de nuevo.');
+        } finally {
+          $attachBtn.classList.remove('subiendo');
+        }
+      });
     }
 
     // ── Composer ──────────────────────────────────────────────

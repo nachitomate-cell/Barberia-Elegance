@@ -1225,6 +1225,13 @@ exports.verificarSlugLibre     = provisionTenant.verificarSlugLibre;
 exports.provisionarTenantSelf  = provisionTenant.provisionarTenantSelf;
 
 // ─────────────────────────────────────────────────────────────────
+//  CHAT — disponibilidad de horas para el bot de /chat (callable).
+//  Ver functions/chat-horas-disponibles.js.
+// ─────────────────────────────────────────────────────────────────
+const chatHoras = require('./chat-horas-disponibles');
+exports.chatHorasDisponibles = chatHoras.chatHorasDisponibles;
+
+// ─────────────────────────────────────────────────────────────────
 //  WHATSAPP NOTIFICACIONES — confirmaciones de cita vía Cloud API
 //  oficial de Meta. Nivel gratis (aviso al dueño, solo mensajes de
 //  sesión = costo $0 garantizado) + nivel pagado (plantilla utility
@@ -1236,3 +1243,14 @@ exports.whatsappWebhook              = whatsappNotif.whatsappWebhook;
 exports.notificarCitaWhatsAppElegance = whatsappNotif.notificarCitaWhatsAppElegance;
 exports.notificarCitaWhatsAppTenant  = whatsappNotif.notificarCitaWhatsAppTenant;
 exports.waNotifEstado                = whatsappNotif.waNotifEstado;
+
+// ─────────────────────────────────────────────────────────────────
+//  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
+//  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users
+//  del cliente autenticado y anonimiza sus citas (retención SII 6a).
+//  Deja asiento de auditoría en /eliminaciones_log con hashes.
+//  Ver functions/eliminar-mis-datos.js
+// ─────────────────────────────────────────────────────────────────
+const eliminarMisDatos = require('./eliminar-mis-datos');
+exports.eliminarMisDatosElegance = eliminarMisDatos.eliminarMisDatosElegance;
+exports.eliminarMisDatosTenant   = eliminarMisDatos.eliminarMisDatosTenant;

@@ -27,6 +27,17 @@ service firebase.storage {
                    && isUnder5MB();
     }
 
+    // Imágenes del chat público (/chat) — el cliente (sesión anónima) sube
+    // solo a la carpeta de SU chat (userId == uid). Se comprimen client-side
+    // antes de subir; el cap de 5MB es la red de seguridad.
+    match /chat/{tenantId}/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && isImage()
+                   && isUnder5MB();
+    }
+
     // Fotos de perfil de barberos
     match /barberos/{imageId} {
       allow read: if true;

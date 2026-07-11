@@ -339,6 +339,23 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
     return unsub;
   }, [userId]);
 
+  // Estado del bot en ESTE chat (doc.botDisabled = fuente de verdad
+  // compartida con chat.html). Al responder un humano se pausa solo;
+  // desde aquí se puede reactivar.
+  const [botPausado, setBotPausado] = useState(false);
+  useEffect(() => {
+    if (!userId) return;
+    const unsub = onSnapshot(chatDoc(userId), snap => {
+      setBotPausado(snap.exists() && snap.data().botDisabled === true);
+    });
+    return unsub;
+  }, [userId]);
+
+  const toggleBot = async () => {
+    if (!userId) return;
+    await setDoc(chatDoc(userId), { botDisabled: !botPausado }, { merge: true });
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -355,6 +372,10 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
         lastMessage: text,
         updatedAt:   ts,
         hasUnread:   false,
+        // Takeover automático: si responde un humano, el bot se pausa en
+        // este chat (server-side, aplica en todos los dispositivos del
+        // cliente). Se reactiva con el botón del header.
+        botDisabled: true,
       }, { merge: true });
     } finally {
       setSending(false);
@@ -403,6 +424,21 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
             <p className="text-[10px] text-slate-500">Chat en tiempo real</p>
           )}
         </div>
+
+        {/* Toggle del bot en este chat */}
+        <button
+          type="button"
+          onClick={toggleBot}
+          className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-xl active:scale-95 transition-all ${
+            botPausado
+              ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+              : 'text-emerald-400 hover:bg-emerald-500/10'
+          }`}
+          aria-label={botPausado ? 'Reactivar bot en este chat' : 'Pausar bot en este chat'}
+          title={botPausado ? 'Bot pausado (respondes tú) — toca para reactivarlo' : 'Bot activo en este chat — toca para pausarlo'}
+        >
+          <Bot size={17} />
+        </button>
 
         {/* Botón eliminar conversación */}
         <button
@@ -458,6 +494,16 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
                   }`}
                   style={isAdmin ? { background: accent.hex, color: accent.text, whiteSpace: 'pre-wrap' } : { whiteSpace: 'pre-wrap' }}
                 >
+                  {m.imageUrl && (
+                    <a href={m.imageUrl} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                      <img
+                        src={m.imageUrl}
+                        alt="Foto del cliente"
+                        loading="lazy"
+                        className="max-w-[220px] max-h-[260px] w-full object-cover rounded-xl"
+                      />
+                    </a>
+                  )}
                   {m.text}
                   {m.timestamp && (
                     <span

@@ -145,10 +145,12 @@ async function enviar(tenantId, tokens, { title, body, data = {}, link, icon }) 
 async function notifMensaje(tenantId, userId, msg) {
   const sender = msg?.sender;
   const text   = (msg?.text || '').trim();
-  if (!text) return;
+  // Mensajes de solo imagen (composer de fotos de /chat): notificar igual.
+  if (!text && !msg?.imageUrl) return;
+  const base = text || '📷 Foto';
 
   // Recorta el cuerpo de la notificación
-  const preview = text.length > 120 ? text.slice(0, 117) + '…' : text;
+  const preview = base.length > 120 ? base.slice(0, 117) + '…' : base;
 
   if (sender === 'admin') {
     // Admin respondió → avisar al cliente (userId == uid del cliente)
