@@ -4,109 +4,309 @@
       "collectionGroup": "articulos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicado",   "order": "ASCENDING"  },
-        { "fieldPath": "entregadoEn", "order": "DESCENDING" }
-      ]
+        {
+          "fieldPath": "publicado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "categoriaSlug",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orden",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "articulos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "publicado",     "order": "ASCENDING" },
-        { "fieldPath": "categoriaSlug", "order": "ASCENDING" },
-        { "fieldPath": "orden",         "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "publicado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "entregadoEn",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "citas",
+      "collectionGroup": "barberos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "fecha",     "order": "ASCENDING" },
-        { "fieldPath": "barberoId", "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "citas",
+      "collectionGroup": "barberos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "barberoId", "order": "ASCENDING" },
-        { "fieldPath": "creadoEn",  "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "citas",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "clienteEmail", "order": "ASCENDING" },
-        { "fieldPath": "fecha",        "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "citas",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
-        { "fieldPath": "fecha",           "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "citas",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "fecha",   "order": "ASCENDING" },
-        { "fieldPath": "estado",  "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "local",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "bloqueos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "fecha",     "order": "ASCENDING" },
-        { "fieldPath": "barberoId", "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "fecha",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "barberoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "barberos",
+      "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "local",  "order": "ASCENDING" },
-        { "fieldPath": "activo", "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "barberoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "creadoEn",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "barberos",
+      "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "email",  "order": "ASCENDING" },
-        { "fieldPath": "activo", "order": "ASCENDING" }
-      ]
+        {
+          "fieldPath": "clienteEmail",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteEmail",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteEmail",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "hora",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteTelefono",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fecha",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "barberoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fecha",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "reservas",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "estado",     "order": "ASCENDING" },
-        { "fieldPath": "reminderAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "reminderAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "product_reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
   "fieldOverrides": [
     {
-      "collectionGroup": "purchases",
-      "fieldPath": "status",
+      "collectionGroup": "fcm_tokens",
+      "fieldPath": "activo",
+      "ttl": false,
       "indexes": [
-        { "order": "ASCENDING",  "queryScope": "COLLECTION" },
-        { "order": "DESCENDING", "queryScope": "COLLECTION" },
-        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING",  "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     },
     {
-      "collectionGroup": "fcm_tokens",
-      "fieldPath": "activo",
+      "collectionGroup": "purchases",
+      "fieldPath": "status",
+      "ttl": false,
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION" },
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     }
   ]
