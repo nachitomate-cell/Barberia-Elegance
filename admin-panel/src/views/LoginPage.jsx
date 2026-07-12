@@ -4,6 +4,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
@@ -55,6 +56,16 @@ const MANIFIESTO_MARCA = [
 const MANIFIESTO_INTERVAL_MS = 6000;
 const MANIFIESTO_FADE_MS     = 500;
 
+/* Persistimos la última elección de "Mantener sesión". El panel corre en el
+   mismo iPad/PC compartido del local, así que el default útil es `true`. */
+const REMEMBER_ME_KEY = 'sy_gi_remember';
+function readRememberMe() {
+  try {
+    const saved = localStorage.getItem(REMEMBER_ME_KEY);
+    return saved === null ? true : saved === '1';
+  } catch { return true; }
+}
+
 /* Traduce los códigos de error de Firebase Auth a mensajes claros en español. */
 function authErrorMessage(err) {
   const code = err?.code || '';
@@ -78,20 +89,29 @@ function authErrorMessage(err) {
   }
 }
 
-/* Soporte por WhatsApp cuando no pueden ingresar. */
+/* Soporte por WhatsApp cuando no pueden ingresar. Incluye tenant.id y correo
+   tecleado para que soporte no tenga que hacer ping-pong preguntando. */
 const SUPPORT_WHATSAPP = '56983568212';
-function whatsappHelpHref(tenantName) {
-  const msg = `Hola, no puedo ingresar al panel de gestión interna de ${tenantName}. ¿Me pueden ayudar?`;
-  return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+function whatsappHelpHref({ tenantName, tenantId, email } = {}) {
+  const parts = [
+    `Hola, soy usuario del panel de gestión de ${tenantName || 'una barbería SynapTech'}.`,
+    tenantId ? `(tenant: ${tenantId})` : '',
+    'No puedo iniciar sesión.',
+    email ? `Mi correo es ${email}.` : '',
+    '¿Me pueden ayudar?',
+  ].filter(Boolean).join(' ');
+  return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(parts)}`;
 }
 
 export default function LoginPage() {
   const tenant = useTenant();
   const [email,      setEmail]      = useState('');
   const [password,   setPassword]   = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(readRememberMe);
   const [error,      setError]      = useState('');
   const [loading,    setLoading]    = useState(false);
+  const [resetSent,    setResetSent]    = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   /* Carrusel del manifiesto de marca (panel izquierdo). */
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -113,28 +133,67 @@ export default function LoginPage() {
     };
   }, []);
 
+  /* Persistencia de la elección "Mantener sesión". */
+  useEffect(() => {
+    try { localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? '1' : '0'); } catch {}
+  }, [rememberMe]);
+
   const manifiesto = MANIFIESTO_MARCA[currentIndex];
 
   const bgImage = LOGIN_IMAGE[tenant.id] || DEFAULT_LOGIN_IMAGE;
 
+  const validateEmail = mail => {
+    if (!mail) { setError('Ingresa tu correo electrónico.'); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      setError('Ingresa un correo electrónico válido (ejemplo: nombre@correo.com).');
+      return false;
+    }
+    return true;
+  };
+
   const loginEmail = async e => {
     e?.preventDefault();
     setError('');
+    setResetSent(false);
 
-    // Validación propia (en español) — reemplaza los mensajes nativos del navegador.
     const mail = email.trim();
-    if (!mail)     return setError('Ingresa tu correo electrónico.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return setError('Ingresa un correo electrónico válido (ejemplo: nombre@correo.com).');
+    if (!validateEmail(mail)) return;
     if (!password) return setError('Ingresa tu contraseña.');
 
     setLoading(true);
     try {
-      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      // setPersistence puede fallar en iframes/Safari privado; no debe
+      // bloquear el intento de login (por eso el .catch silencioso).
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : browserSessionPersistence
+      ).catch(() => {});
       await signInWithEmailAndPassword(auth, mail, password);
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setResetSent(false);
+    const mail = email.trim();
+    if (!mail) {
+      setError('Escribe tu correo arriba y luego toca "¿Olvidaste tu contraseña?" — te enviaremos un enlace.');
+      return;
+    }
+    if (!validateEmail(mail)) return;
+
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, mail);
+      setResetSent(true);
+    } catch (err) {
+      setError(authErrorMessage(err));
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -146,7 +205,9 @@ export default function LoginPage() {
         password={password} setPassword={setPassword}
         rememberMe={rememberMe} setRememberMe={setRememberMe}
         error={error} loading={loading} onSubmit={loginEmail}
-        tenantName={tenant.name}
+        onForgot={handleForgotPassword}
+        resetLoading={resetLoading} resetSent={resetSent}
+        tenantName={tenant.name} tenantId={tenant.id}
       />
     );
   }
@@ -195,13 +256,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── PANEL DERECHO — formulario (full bleed en mobile) ───────
-          En mobile: fondo negro sólido, sin bordes ni redondeos.
-          En desktop: mantiene la mitad derecha del split-screen.
-          Estructura flex-col con h-[100dvh]: el wrapper del formulario
-          usa flex-1 + justify-center (centra el form matemáticamente en
-          el espacio disponible), y el footer se ancla naturalmente al
-          borde inferior por ser el último hijo con shrink-0. */}
+      {/* ── PANEL DERECHO — formulario (full bleed en mobile) ─────── */}
       <div className="flex flex-col h-[100dvh] relative bg-[#050505] lg:bg-[#09090b]">
 
         {/* Ambient glow — resplandor sutil detrás del formulario */}
@@ -210,9 +265,6 @@ export default function LoginPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md aspect-square bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none z-0"
         />
 
-        {/* Wrapper centrado del formulario — flex-1 hace que ocupe todo el
-            espacio disponible entre el borde superior y el footer, y
-            justify-center centra el contenido verticalmente adentro. */}
         <div className="flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 relative z-10">
 
           {tenant.logo && (
@@ -233,41 +285,55 @@ export default function LoginPage() {
           <form onSubmit={loginEmail} noValidate className="space-y-4">
             <input
               type="email"
+              inputMode="email"
               placeholder="Correo electrónico"
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
+              autoFocus
               className={inputClass}
               aria-label="Correo electrónico"
             />
-            <input
-              type="password"
-              placeholder="Contraseña"
+
+            <PasswordField
               value={password}
               onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password"
-              className={inputClass}
-              aria-label="Contraseña"
+              inputClass={inputClass}
+              accent="emerald"
             />
 
-            <div className="flex items-center pt-1">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="accent-emerald-500 h-4 w-4 bg-white/5 border-white/10 rounded cursor-pointer"
-              />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-neutral-400 select-none cursor-pointer">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
+              <label className="flex items-center gap-2 text-sm text-neutral-400 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="accent-emerald-500 h-4 w-4 bg-white/5 border-white/10 rounded cursor-pointer"
+                />
                 Mantener sesión iniciada
               </label>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={resetLoading}
+                className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50"
+              >
+                {resetLoading ? 'Enviando…' : '¿Olvidaste tu contraseña?'}
+              </button>
             </div>
 
-            <LoginError error={error} tenantName={tenant.name} />
+            <LoginError
+              error={error}
+              resetSent={resetSent}
+              email={email.trim()}
+              tenantName={tenant.name}
+              tenantId={tenant.id}
+            />
 
             <button
               type="submit"
               disabled={loading}
+              aria-busy={loading}
               className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl py-3.5 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -277,10 +343,18 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Ayuda por WhatsApp — siempre visible, no solo cuando falla */}
+          <a
+            href={whatsappHelpHref({ tenantName: tenant.name, tenantId: tenant.id, email: email.trim() })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex items-center justify-center gap-1.5 text-xs text-neutral-500 hover:text-emerald-300 transition-colors"
+          >
+            <WhatsappIcon /> ¿Problemas para entrar? Escríbenos
+          </a>
         </div>
 
-        {/* Footer anclado al pie: shrink-0 asegura que no colapse;
-            el flex-1 del wrapper superior lo empuja naturalmente hacia abajo. */}
         <p className="shrink-0 pb-8 text-center text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap relative z-10">
           <img
             src="/synaptech/ig.png"
@@ -294,20 +368,88 @@ export default function LoginPage() {
   );
 }
 
-/* ── Error de login + ayuda por WhatsApp ───────────────────────────── */
-function LoginError({ error, tenantName }) {
+/* ── Error de login + confirmación de reset + ayuda WhatsApp ───────── */
+function LoginError({ error, resetSent, email, tenantName, tenantId }) {
+  if (resetSent) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-3 mt-2"
+      >
+        <p className="text-xs text-emerald-200 font-medium leading-relaxed">
+          Te enviamos un enlace de recuperación{email ? ` a ${email}` : ''}. Revisa tu bandeja de entrada y la carpeta de spam.
+        </p>
+      </div>
+    );
+  }
   if (!error) return null;
   return (
-    <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 space-y-2 mt-2">
+    <div
+      role="alert"
+      aria-live="polite"
+      className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 space-y-2 mt-2"
+    >
       <p className="text-xs text-red-300 font-medium leading-relaxed">{error}</p>
       <a
-        href={whatsappHelpHref(tenantName)}
+        href={whatsappHelpHref({ tenantName, tenantId, email })}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300 hover:text-emerald-200 transition-colors"
       >
         <WhatsappIcon /> ¿No puedes ingresar? Escríbenos
       </a>
+    </div>
+  );
+}
+
+/* ── Campo de contraseña con toggle mostrar/ocultar + Bloq Mayús ──── */
+function PasswordField({ value, onChange, inputClass, accent = 'emerald' }) {
+  const [show, setShow] = useState(false);
+  const [caps, setCaps] = useState(false);
+
+  const detectCaps = e => {
+    if (typeof e.getModifierState === 'function') {
+      setCaps(e.getModifierState('CapsLock'));
+    }
+  };
+
+  const capsColor = accent === 'pink' ? 'text-pink-300' : 'text-amber-400';
+
+  return (
+    <div>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          placeholder="Contraseña"
+          value={value}
+          onChange={onChange}
+          onKeyDown={detectCaps}
+          onKeyUp={detectCaps}
+          onBlur={() => setCaps(false)}
+          autoComplete="current-password"
+          className={`${inputClass} pr-11`}
+          aria-label="Contraseña"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(s => !s)}
+          tabIndex={-1}
+          aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-200 transition-colors"
+        >
+          {show ? <EyeOffIcon /> : <EyeIcon />}
+        </button>
+      </div>
+      {caps && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${capsColor}`}
+        >
+          <CapsLockIcon /> Bloq Mayús activado
+        </p>
+      )}
     </div>
   );
 }
@@ -320,6 +462,29 @@ function WhatsappIcon() {
     </svg>
   );
 }
+function EyeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+function EyeOffIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.94 17.94A10.06 10.06 0 0 1 12 20c-7 0-10-8-10-8a18.5 18.5 0 0 1 4.24-5.19M9.9 4.24A10.05 10.05 0 0 1 12 4c7 0 10 8 10 8a18.6 18.6 0 0 1-2.16 3.19M1 1l22 22" />
+      <path d="M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-.88" />
+    </svg>
+  );
+}
+function CapsLockIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3l8 9h-4v6H8v-6H4l8-9z" />
+    </svg>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    MemphisLogin — diseño propio para Memphis Salón.
@@ -328,7 +493,9 @@ function WhatsappIcon() {
    ═══════════════════════════════════════════════════════════════════ */
 function MemphisLogin({
   email, setEmail, password, setPassword,
-  rememberMe, setRememberMe, error, loading, onSubmit, tenantName,
+  rememberMe, setRememberMe, error, loading, onSubmit,
+  onForgot, resetLoading, resetSent,
+  tenantName, tenantId,
 }) {
   const PINK  = '#ec4899';
   const CYAN  = '#06b6d4';
@@ -357,27 +524,21 @@ function MemphisLogin({
 
       {/* Formas geométricas estilo Memphis */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        {/* Círculo contorneado */}
         <div className="absolute top-16 left-[12%] w-16 h-16 rounded-full border-2"
              style={{ borderColor: `${CYAN}55`, animation: 'mphFloat 8s ease-in-out infinite' }} />
-        {/* Cuadrado rotado */}
         <div className="absolute bottom-24 left-[18%] w-10 h-10 rotate-12 rounded-md"
              style={{ background: `${AMBER}33` }} />
-        {/* Triángulo */}
         <div className="absolute top-1/2 left-[8%] w-0 h-0"
              style={{ borderLeft: '10px solid transparent', borderRight: '10px solid transparent', borderBottom: `18px solid ${PINK}40`, animation: 'mphFloat 10s ease-in-out infinite' }} />
-        {/* Squiggle */}
         <svg className="absolute top-24 right-[14%] opacity-50" width="90" height="24" viewBox="0 0 90 24" fill="none"
              style={{ animation: 'mphFloat 12s ease-in-out infinite' }}>
           <path d="M2 12 Q 12 2, 22 12 T 42 12 T 62 12 T 82 12" stroke={PINK} strokeWidth="3" strokeLinecap="round" />
         </svg>
-        {/* Grilla de puntos */}
         <svg className="absolute bottom-16 right-[10%] opacity-40" width="80" height="48" viewBox="0 0 80 48">
           {[0, 1, 2, 3].map(r => [0, 1, 2, 3, 4].map(c => (
             <circle key={`${r}-${c}`} cx={4 + c * 18} cy={4 + r * 14} r="2.5" fill={CYAN} />
           )))}
         </svg>
-        {/* Anillo girando lento */}
         <div className="absolute bottom-1/3 right-[6%] w-12 h-12 rounded-full border-2 border-dashed"
              style={{ borderColor: `${AMBER}66`, animation: 'mphSpin 26s linear infinite' }} />
       </div>
@@ -387,7 +548,6 @@ function MemphisLogin({
 
         {/* Header */}
         <div className="flex flex-col items-center mb-8 text-center">
-          {/* Monograma "M" */}
           <div className="relative w-20 h-20 mb-5">
             <div className="absolute inset-0 rounded-2xl blur-md opacity-70"
                  style={{ background: `linear-gradient(135deg, ${PINK}, ${AMBER})` }} />
@@ -411,36 +571,62 @@ function MemphisLogin({
         {/* Card */}
         <div className="relative rounded-2xl p-6 border border-white/10 overflow-hidden"
              style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)' }}>
-          {/* Barra superior tricolor */}
           <div className="absolute top-0 left-0 right-0 h-1"
                style={{ background: `linear-gradient(90deg, ${PINK}, ${AMBER} 50%, ${CYAN})` }} />
 
           <form onSubmit={onSubmit} noValidate className="space-y-3 mt-1">
             <input
-              type="email" className={field} placeholder="Correo electrónico"
-              value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+              type="email"
+              inputMode="email"
+              className={field}
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
+              aria-label="Correo electrónico"
             />
-            <input
-              type="password" className={field} placeholder="Contraseña"
-              value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password"
+            <PasswordField
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              inputClass={field}
+              accent="pink"
             />
 
-            <div className="flex items-center mt-4 mb-1">
-              <input
-                type="checkbox" id="rememberMe" checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-white/20 bg-white/10"
-                style={{ accentColor: PINK }}
-              />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-white/45 select-none cursor-pointer">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-4 mb-1">
+              <label className="flex items-center gap-2 text-sm text-white/55 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/10"
+                  style={{ accentColor: PINK }}
+                />
                 Mantener sesión iniciada
               </label>
+              <button
+                type="button"
+                onClick={onForgot}
+                disabled={resetLoading}
+                className="text-sm font-medium disabled:opacity-50 transition-opacity hover:brightness-125"
+                style={{ color: PINK }}
+              >
+                {resetLoading ? 'Enviando…' : '¿Olvidaste tu contraseña?'}
+              </button>
             </div>
 
-            <LoginError error={error} tenantName={tenantName} />
+            <LoginError
+              error={error}
+              resetSent={resetSent}
+              email={email.trim()}
+              tenantName={tenantName}
+              tenantId={tenantId}
+            />
 
             <button
-              type="submit" disabled={loading}
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
               className="w-full py-3 disabled:opacity-50 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-1 text-white hover:brightness-110 active:scale-[0.99]"
               style={{ background: `linear-gradient(135deg, ${PINK}, ${AMBER})`, boxShadow: `0 8px 28px ${PINK}44` }}
             >
@@ -450,7 +636,16 @@ function MemphisLogin({
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-white/25 mt-6">Memphis Salón · Viña del Mar</p>
+        <a
+          href={whatsappHelpHref({ tenantName, tenantId, email: email.trim() })}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 w-full inline-flex items-center justify-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+        >
+          <WhatsappIcon /> ¿Problemas para entrar? Escríbenos
+        </a>
+
+        <p className="text-center text-[11px] text-white/25 mt-4">Memphis Salón · Viña del Mar</p>
       </div>
     </div>
   );
