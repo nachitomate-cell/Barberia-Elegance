@@ -244,6 +244,7 @@ export default function AdminLayout({ children }) {
 
         {/* Page content */}
         <main
+          data-app-canvas
           className="flex-1 overflow-y-auto bg-slate-950 p-5 lg:p-7"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
         >

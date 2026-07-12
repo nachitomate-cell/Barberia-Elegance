@@ -134,6 +134,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'whatsapp',      label: 'WhatsApp',      Icon: WhatsAppIcon,      adminOnly: true, variant: 'whatsapp' },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,    adminOnly: true, variant: 'tv' },
       { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon,  adminOnly: true, variant: 'pagos' },
+      { to: 'wallets',       label: 'Wallet',        Icon: Wallet,            adminOnly: true },
     ],
   },
   {
@@ -496,8 +497,14 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
         if (variant) {
           return `${base} ${isActive ? `${variant.bg} ${variant.border} border-l-2 pl-[10px]` : variant.hover}`;
         }
+        // Modo claro: el color del acento del tenant vive en el border-left +
+        // fondo, NO en el texto. Sobre el sidebar blanco, acentos claros
+        // (zinc-200/slate-300/…) quedan casi invisibles y NO se remapean en
+        // html.light. Forzamos texto neutro oscuro; el ícono y el label lo
+        // heredan (no tienen color propio). Las variantes de marca traen su
+        // propio lightText y usan otra rama, así que no se ven afectadas.
         return `${base} ${isActive
-          ? `${accent.active} ${accent.border} border-l-2 pl-[10px]`
+          ? `${accent.active} ${accent.border} border-l-2 pl-[10px] [html.light_&]:text-slate-900`
           : 'text-slate-400 hover:text-slate-50 hover:bg-white/5'}`;
       }}
     >
@@ -551,7 +558,7 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
             </span>
           )}
           {isActive && !hasBadge && !dot && !variant && (
-            <ChevronRight size={14} className={`${accent.chevron} opacity-60`} />
+            <ChevronRight size={14} className={`${accent.chevron} opacity-60 [html.light_&]:text-slate-500`} />
           )}
         </>
       )}

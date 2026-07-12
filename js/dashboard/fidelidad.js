@@ -817,3 +817,58 @@ function renderMisPacks(packs) {
   }).join('');
 }
 
+/* ═══ Google Wallet — botón "Añadir a Google Wallet" ═══════════════
+   Visible solo si el local activó el módulo (configuracion/wallet.enabled).
+   Al tocar, la CF walletGenerarPase crea/asegura el LoyaltyObject del
+   cliente y devuelve el "Save to Google Wallet" URL. El pase se
+   sincroniza solo después (trigger walletSyncSello*). */
+(function initWalletSave() {
+  function walletCfgRef() {
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    return tid === 'elegance'
+      ? db.doc('configuracion/wallet')
+      : db.doc(`tenants/${tid}/configuracion/wallet`);
+  }
+
+  async function maybeShow() {
+    const btn = document.getElementById('walletSaveBtn');
+    if (!btn) return;
+    try {
+      const snap = await walletCfgRef().get();
+      if (snap.exists && snap.data().enabled === true) btn.classList.remove('hidden');
+      else btn.classList.add('hidden');
+    } catch (_) { /* config no disponible → botón oculto */ }
+  }
+
+  window.guardarEnGoogleWallet = async function () {
+    const btn = document.getElementById('walletSaveBtn');
+    if (!currentUser) {
+      if (typeof showToast === 'function') showToast('Inicia sesión para guardar tu tarjeta.', 'err');
+      return;
+    }
+    const original = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-4 h-4 border-2 border-black/50 border-t-transparent rounded-full animate-spin inline-block"></span> Generando...';
+    }
+    try {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const fn = firebase.functions().httpsCallable('walletGenerarPase');
+      const res = await fn({ tenantId: tid });
+      const url = res.data && res.data.saveUrl;
+      if (!url) throw new Error('Respuesta sin URL de guardado.');
+      const w = window.open(url, '_blank');
+      if (!w) window.location.href = url; // fallback si el popup fue bloqueado
+    } catch (e) {
+      console.error('[wallet] guardar:', e);
+      if (typeof showToast === 'function') showToast('No pudimos generar tu tarjeta. Reintenta.', 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    }
+  };
+
+  // Mostrar cuando el auth esté listo (cubre flujo real y preview).
+  try { firebase.auth().onAuthStateChanged(() => maybeShow()); } catch (_) {}
+  document.addEventListener('DOMContentLoaded', maybeShow);
+})();
+

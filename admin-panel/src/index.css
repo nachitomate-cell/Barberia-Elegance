@@ -40,8 +40,10 @@ html.theme-switching *::after {
 }
 
 /* ── Light mode ─────────────────────────────────────────────── */
-html.light body { background-color: #f1f5f9; }
-html.light .bg-slate-900  { background-color: #f8fafc !important; }
+html.light body { background-color: #e9eef4; }
+/* Tarjetas sólidas → BLANCO puro para que se eleven sobre el canvas gris.
+   (antes #f8fafc, que quedaba MÁS gris que el canvas blanco → plano). */
+html.light .bg-slate-900  { background-color: #ffffff !important; }
 html.light .bg-slate-800  { background-color: #e2e8f0 !important; }
 html.light .bg-slate-950  { background-color: #ffffff !important; }
 html.light .bg-slate-700  { background-color: #cbd5e1 !important; }
@@ -61,6 +63,15 @@ html.light textarea,
 html.light select { background-color: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
 html.light .divide-slate-800 > * + * { border-color: #e2e8f0 !important; }
 html.light .divide-y > * + * { border-color: #e2e8f0 !important; }
+
+/* ── Light mode · jerarquía de superficie (canvas de contenido) ──────
+   El shell y el <main> usan bg-slate-950 (→ #fff en el mapeo base), así
+   que el canvas de contenido quedaba BLANCO y las tarjetas encima (blancas)
+   no tenían de dónde despegarse: todo plano/washed. Marcamos el <main>
+   con [data-app-canvas] y lo pintamos gris claro. Va DESPUÉS del mapeo
+   base .bg-slate-950 → gana por orden de fuente a igualdad de especificidad.
+   Resultado: canvas gris < tarjetas blancas → elevación real. */
+html.light [data-app-canvas] { background-color: #e9eef4 !important; }
 
 /* ── Light mode · utilidades con opacidad (Agenda y tarjetas) ──── */
 /* Fondos slate translúcidos → grises claros sutiles */
@@ -550,6 +561,25 @@ html.light [data-view="agenda"] .bg-amber-500\/25            { background-color:
 html.light [data-view="agenda"] .border-amber-500\/30,
 html.light [data-view="agenda"] .border-amber-500\/40        { border-color: #f59e0b !important; }      /* amber-500 */
 html.light [data-view="agenda"] .text-amber-300              { color: #78350f !important; }            /* amber-900 */
+
+/* ── Light mode · Tarjetas de cita — sombra y hover editoriales ──────
+   Las cards usan shadow-[0_2px_8px_rgba(0,0,0,0.2)] (negro arbitrario,
+   fuera del alcance de los overrides de --tw-shadow-color) y
+   hover:brightness-125. En claro: (1) la sombra negra al 20% se ve dura;
+   la cambiamos por una sombra suave tintada de slate en dos capas, para
+   que la card lea como bloque elevado sobre la grilla blanca; (2) el
+   brightness-125 LAVA el pastel hacia blanco al hover (la card se
+   desvanece) → lo invertimos a un leve oscurecido + más elevación.
+   Scope: [data-cita-barbero] = atributo presente en toda tarjeta. */
+html.light [data-view="agenda"] [data-cita-barbero] {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05),
+              0 4px 10px -3px rgba(15, 23, 42, 0.12) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero]:hover {
+  filter: brightness(0.97) !important;   /* profundiza en vez de lavar */
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.07),
+              0 10px 22px -4px rgba(15, 23, 42, 0.18) !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    LIGHT MODE · Link in Bio — segundo pase fino

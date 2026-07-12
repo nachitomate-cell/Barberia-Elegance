@@ -3,7 +3,7 @@ import {
   Wallet, DollarSign, ArrowDownCircle, ArrowUpCircle,
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
-  FileText, Printer, ListChecks,
+  FileText, Printer, ListChecks, Undo2, Scissors,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
@@ -46,6 +46,18 @@ function fmtDateTime(ts) {
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 }
 
+// YYYY-MM-DD en hora local — no usar toISOString().slice(0,10) porque saca fecha
+// UTC y en Chile pasadas las ~20:00 CLT devuelve el día siguiente.
+function todayYMD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Débito y Crédito son los métodos vigentes en /agenda, /productos y /gastos.
+// 'Tarjeta' sigue existiendo como legacy para citas antiguas.
+const TARJETA_METODOS = new Set(['Tarjeta', 'Débito', 'Crédito']);
+const isTarjeta = (m) => TARJETA_METODOS.has(m);
+
 /* ── KPI Card ─────────────────────────────────────────────── */
 function KpiCard({ icon: Icon, label, value, color = 'emerald', sub }) {
   const colors = {
@@ -65,6 +77,30 @@ function KpiCard({ icon: Icon, label, value, color = 'emerald', sub }) {
       </div>
       <p className="text-2xl font-black tracking-tight">{value}</p>
       {sub && <p className="text-[11px] mt-1 opacity-60">{sub}</p>}
+    </div>
+  );
+}
+
+/* ── Historial: fila con desglose del snapshot congelado al cierre ─ */
+function HistorialSnapshotRow({ snapshot }) {
+  if (!snapshot) return null;
+  const chips = [
+    { label: 'Efectivo', v: snapshot.ingresosEfectivo, color: 'text-emerald-400' },
+    { label: 'Tarjeta',  v: snapshot.ingresosTarjeta,  color: 'text-purple-400' },
+    { label: 'Transf.',  v: snapshot.ingresosTransf,   color: 'text-cyan-400'   },
+    { label: 'Gastos',   v: snapshot.egresosEfectivo,  color: 'text-rose-400', prefix: '−' },
+    { label: 'Propinas', v: snapshot.propinasTotal,    color: 'text-amber-400' },
+  ].filter(c => (c.v ?? 0) > 0);
+  if (chips.length === 0) return null;
+  const nTx = (snapshot.totalCitas || 0) + (snapshot.totalVentas || 0);
+  return (
+    <div className="mt-2 pt-2 border-t border-slate-700/40 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+      {chips.map(c => (
+        <span key={c.label} className="text-slate-500">
+          {c.label}: <span className={`font-semibold tabular-nums ${c.color}`}>{c.prefix || ''}{fmtCurrency(c.v)}</span>
+        </span>
+      ))}
+      {nTx > 0 && <span className="text-slate-500">· {nTx} transacciones</span>}
     </div>
   );
 }
@@ -278,6 +314,77 @@ function buildReporteHTML({ mesKey, tenantName, settings, r }) {
   <div class="footer">
     Reporte generado por SynapTech · ${escapeHTML(periodoLabel)} · ${escapeHTML(generadoEn)}
   </div>
+</body></html>`;
+}
+
+/* ── Corte X — HTML imprimible del arqueo intermedio ─────────── */
+// Snapshot del momento para relevo de turno. NO cierra la sesión.
+function buildCorteXHTML({ tenantName, kpis, cajero, efectivoContado, apertura, fechaApertura }) {
+  const fmt = v => '$' + Math.round(v || 0).toLocaleString('es-CL');
+  const generadoEn = new Date().toLocaleString('es-CL');
+  const desdeStr = fechaApertura
+    ? (fechaApertura.toDate ? fechaApertura.toDate() : new Date(fechaApertura)).toLocaleString('es-CL')
+    : '—';
+  const diff = efectivoContado != null && !isNaN(efectivoContado)
+    ? efectivoContado - kpis.saldoEsperado
+    : null;
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Corte X — ${escapeHTML(tenantName || 'Local')}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2937; padding: 24px; max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 12px; margin: 20px 0 6px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  .meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; line-height: 1.5; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .row.total { border-top: 2px solid #111827; padding-top: 8px; margin-top: 6px; font-weight: bold; font-size: 15px; }
+  .diff-ok  { color: #059669; font-weight: bold; }
+  .diff-bad { color: #dc2626; font-weight: bold; }
+  .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 10px; text-align: center; }
+  .toolbar { background: #111827; color: #fff; padding: 10px 14px; border-radius: 6px; display: flex; gap: 8px; margin-bottom: 14px; }
+  .toolbar button { background: #fff; color: #111827; border: 0; padding: 5px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; }
+  @media print { body { padding: 12px; } .noprint { display: none; } }
+</style></head>
+<body>
+  <div class="toolbar noprint">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+  <h1>${escapeHTML(tenantName || 'Local')} — Corte X</h1>
+  <div class="meta">
+    <strong>Arqueo intermedio</strong> (la caja sigue abierta)<br>
+    Cajero: <strong>${escapeHTML(cajero || '—')}</strong><br>
+    Sesión abierta: ${escapeHTML(desdeStr)}<br>
+    Generado: ${escapeHTML(generadoEn)}
+  </div>
+
+  <h2>Movimientos del turno</h2>
+  <div class="row"><span>Apertura</span><span>${fmt(apertura)}</span></div>
+  <div class="row"><span>+ Servicios efectivo</span><span>${fmt(kpis.serviciosEfectivo)}</span></div>
+  <div class="row"><span>+ Productos efectivo</span><span>${fmt(kpis.productosEfectivo)}</span></div>
+  ${kpis.propinasEfectivo > 0 ? `<div class="row"><span>+ Propinas efectivo (equipo)</span><span>${fmt(kpis.propinasEfectivo)}</span></div>` : ''}
+  ${kpis.ingManuales > 0 ? `<div class="row"><span>+ Ingresos manuales</span><span>${fmt(kpis.ingManuales)}</span></div>` : ''}
+  <div class="row"><span>− Gastos efectivo</span><span>−${fmt(kpis.gastosEfectivo)}</span></div>
+  ${kpis.egrManuales > 0 ? `<div class="row"><span>− Egresos manuales</span><span>−${fmt(kpis.egrManuales)}</span></div>` : ''}
+  <div class="row total"><span>Saldo esperado en efectivo</span><span>${fmt(kpis.saldoEsperado)}</span></div>
+
+  ${efectivoContado != null && !isNaN(efectivoContado) ? `
+  <h2>Arqueo físico</h2>
+  <div class="row"><span>Efectivo contado</span><span>${fmt(efectivoContado)}</span></div>
+  <div class="row total"><span>Diferencia</span><span class="${diff >= 0 ? 'diff-ok' : 'diff-bad'}">${diff >= 0 ? '+' : ''}${fmt(diff)} ${diff >= 0 ? '(sobrante)' : '(faltante)'}</span></div>
+  ` : ''}
+
+  <h2>Otros métodos</h2>
+  <div class="row"><span>Tarjeta</span><span>${fmt(kpis.totalIngresosTarjeta)}</span></div>
+  <div class="row"><span>Transferencia</span><span>${fmt(kpis.totalIngresosTransf)}</span></div>
+  <div class="row"><span>Propinas totales</span><span>${fmt(kpis.propinasTotal)}</span></div>
+
+  <h2>Actividad</h2>
+  <div class="row"><span>Servicios completados</span><span>${kpis.totalCitas}</span></div>
+  <div class="row"><span>Productos vendidos</span><span>${kpis.totalVentas}</span></div>
+  <div class="row"><span>Gastos registrados</span><span>${kpis.totalGastos}</span></div>
+
+  <div class="footer">Corte X · No cierra la sesión · SynapTech</div>
 </body></html>`;
 }
 
@@ -703,6 +810,61 @@ function ResultadoConciliacion({ res, onReset }) {
   );
 }
 
+/* ── Arqueo por denominación (billetes + monedas CLP) ─────────── */
+// Grilla para contar el efectivo billete a billete. El total se propaga
+// al input libre del cierre para evitar errores de tipeo.
+const DENOMINACIONES_CLP = [
+  { valor: 20000, tipo: 'billete', label: '$20.000' },
+  { valor: 10000, tipo: 'billete', label: '$10.000' },
+  { valor:  5000, tipo: 'billete', label: '$5.000'  },
+  { valor:  2000, tipo: 'billete', label: '$2.000'  },
+  { valor:  1000, tipo: 'billete', label: '$1.000'  },
+  { valor:   500, tipo: 'moneda',  label: '$500'    },
+  { valor:   100, tipo: 'moneda',  label: '$100'    },
+  { valor:    50, tipo: 'moneda',  label: '$50'     },
+  { valor:    10, tipo: 'moneda',  label: '$10'     },
+];
+
+function ArqueoDenominaciones({ conteo, setConteo, total }) {
+  const setQty = (valor, raw) => {
+    const q = raw === '' ? '' : Math.max(0, parseInt(raw, 10) || 0);
+    setConteo(prev => ({ ...prev, [valor]: q }));
+  };
+  return (
+    <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3 space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        {DENOMINACIONES_CLP.map(d => {
+          const q = conteo[d.valor] ?? '';
+          const subtotal = (Number(q) || 0) * d.valor;
+          return (
+            <div key={d.valor} className="bg-slate-900/60 rounded-lg p-2">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide">{d.label}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  placeholder="0"
+                  value={q}
+                  onChange={e => setQty(d.valor, e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-sm text-white text-center focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              {subtotal > 0 && (
+                <p className="text-[10px] text-emerald-400 tabular-nums text-right mt-1">{fmtCurrency(subtotal)}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between px-1 pt-1 border-t border-slate-700/60">
+        <span className="text-xs text-slate-400">Total contado</span>
+        <span className="text-base font-black text-emerald-400 tabular-nums">{fmtCurrency(total)}</span>
+      </div>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════ */
 /*  CAJA — Control de Caja                                     */
 /* ════════════════════════════════════════════════════════════ */
@@ -717,13 +879,28 @@ export default function Caja() {
   const [sesionActiva, setSesionActiva] = useState(null);   // doc data + id
   const [loadingSesion, setLoadingSesion] = useState(true);
   const [montoApertura, setMontoApertura] = useState('');
+  const [nombreApertura, setNombreApertura] = useState(() => {
+    try { return localStorage.getItem('caja_nombre_default') || ''; } catch { return ''; }
+  });
   const [abriendo, setAbriendo] = useState(false);
 
   // Cierre
   const [showCierre, setShowCierre] = useState(false);
   const [cierreEfectivo, setCierreEfectivo] = useState('');
   const [cierreObs, setCierreObs] = useState('');
+  const [nombreCierre, setNombreCierre] = useState('');
   const [cerrando, setCerrando] = useState(false);
+  const [usarDenominaciones, setUsarDenominaciones] = useState(false);
+  const [conteoDenom, setConteoDenom] = useState({});
+  const totalDenom = useMemo(
+    () => DENOMINACIONES_CLP.reduce((s, d) => s + (Number(conteoDenom[d.valor]) || 0) * d.valor, 0),
+    [conteoDenom],
+  );
+  // Cuando el modo denominación está activo, el input libre lo pisa el total.
+  useEffect(() => {
+    if (!usarDenominaciones) return;
+    setCierreEfectivo(totalDenom > 0 ? String(totalDenom) : '');
+  }, [usarDenominaciones, totalDenom]);
 
   // Manual adjustments
   const [showIngreso, setShowIngreso] = useState(false);
@@ -731,6 +908,16 @@ export default function Caja() {
   const [adjDesc, setAdjDesc] = useState('');
   const [adjMonto, setAdjMonto] = useState('');
   const [adjSaving, setAdjSaving] = useState(false);
+  // Revertir ajuste manual: { tipo: 'ingreso'|'egreso', id }
+  const [revertirTarget, setRevertirTarget] = useState(null);
+  const [motivoReverso, setMotivoReverso] = useState('');
+  const [revirtiendo, setRevirtiendo] = useState(false);
+
+  // Corte X — arqueo intermedio
+  const [showCorteX, setShowCorteX] = useState(false);
+  const [corteXCajero, setCorteXCajero] = useState('');
+  const [corteXEfectivo, setCorteXEfectivo] = useState('');
+  const [corteXSaving, setCorteXSaving] = useState(false);
 
   // Transactions from today
   const [citasHoy, setCitasHoy] = useState([]);
@@ -762,30 +949,30 @@ export default function Caja() {
   useEffect(() => {
     if (!sesionActiva) return;
     const { start, end } = todayRange();
+    const hoy = todayYMD();
 
-    // Citas completadas hoy
+    // Citas completadas hoy (fecha es string YYYY-MM-DD, comparación exacta)
     const qCitas = query(
       tenantCol('citas'),
-      where('fecha', '>=', start.toDate().toISOString().slice(0, 10)),
-      where('fecha', '<=', end.toDate().toISOString().slice(0, 10)),
+      where('fecha', '==', hoy),
     );
     const unsub1 = onSnapshot(qCitas, snap => {
       setCitasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada'));
     }, () => {});
 
     // Productos vendidos hoy
+    // Filtramos por updatedAt en el server: cubre ventas directas (creadas hoy
+    // como delivered) y reservas antiguas que se entregan hoy. Antes traíamos
+    // TODO el histórico de delivered y filtrábamos en cliente — inviable en
+    // tenants grandes.
     const qVentas = query(
       tenantCol('product_reservations'),
       where('status', '==', 'delivered'),
+      where('updatedAt', '>=', start),
+      where('updatedAt', '<', end),
     );
     const unsub2 = onSnapshot(qVentas, snap => {
-      const today = new Date().toISOString().slice(0, 10);
-      setVentasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(v => {
-        const vDate = v.fecha || v.createdAt || v.creadoEn;
-        if (!vDate) return false;
-        const dateStr = typeof vDate === 'string' ? vDate.slice(0, 10) : (vDate.toDate ? vDate.toDate().toISOString().slice(0, 10) : '');
-        return dateStr === today;
-      }));
+      setVentasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
 
     // Gastos de hoy
@@ -816,30 +1003,47 @@ export default function Caja() {
 
     // Servicios (citas completadas)
     const serviciosEfectivo = citasHoy.filter(c => c.metodoPago === 'Efectivo').reduce((s, c) => s + (Number(c.precio) || 0), 0);
-    const serviciosTarjeta = citasHoy.filter(c => c.metodoPago === 'Tarjeta').reduce((s, c) => s + (Number(c.precio) || 0), 0);
+    const serviciosTarjeta = citasHoy.filter(c => isTarjeta(c.metodoPago)).reduce((s, c) => s + (Number(c.precio) || 0), 0);
     const serviciosTransf = citasHoy.filter(c => c.metodoPago === 'Transferencia').reduce((s, c) => s + (Number(c.precio) || 0), 0);
     const serviciosNoEspecificado = citasHoy.filter(c => !c.metodoPago).reduce((s, c) => s + (Number(c.precio) || 0), 0);
 
     // Propinas
+    // Total: incluye todas las citas (para métricas del día).
+    // Efectivo: solo citas con método Efectivo — están físicamente en el cajón
+    // y deben cuadrar contra el arqueo real. Las de tarjeta las cobra el POS.
+    // Las citas sin método NO cuentan (consistente con serviciosNoEspecificado).
     const propinasTotal = citasHoy.reduce((s, c) => s + (Number(c.propina) || 0), 0);
+    const propinasEfectivo = citasHoy
+      .filter(c => c.metodoPago === 'Efectivo')
+      .reduce((s, c) => s + (Number(c.propina) || 0), 0);
 
     // Productos vendidos
     const productosEfectivo = ventasHoy.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
-    const productosTarjeta = ventasHoy.filter(v => v.metodoPago === 'Tarjeta').reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
+    const productosTarjeta = ventasHoy.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
     const productosTransf = ventasHoy.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
 
     // Gastos
     const gastosEfectivo = gastosHoy.filter(g => g.metodoPago === 'Efectivo').reduce((s, g) => s + (Number(g.monto) || 0), 0);
-    const gastosTarjeta = gastosHoy.filter(g => g.metodoPago === 'Tarjeta').reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    const gastosTarjeta = gastosHoy.filter(g => isTarjeta(g.metodoPago)).reduce((s, g) => s + (Number(g.monto) || 0), 0);
     const gastosTransf = gastosHoy.filter(g => g.metodoPago === 'Transferencia').reduce((s, g) => s + (Number(g.monto) || 0), 0);
 
-    // Manual adjustments
-    const ingManuales = (sesionActiva?.ingresosManuales || []).reduce((s, i) => s + (Number(i.monto) || 0), 0);
-    const egrManuales = (sesionActiva?.egresosManuales || []).reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    // Manual adjustments — los revertidos quedan en el doc para audit trail
+    // pero NO se suman ni al saldo esperado ni al desglose.
+    const ingManuales = (sesionActiva?.ingresosManuales || [])
+      .filter(i => !i.revertido)
+      .reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    const egrManuales = (sesionActiva?.egresosManuales || [])
+      .filter(i => !i.revertido)
+      .reduce((s, i) => s + (Number(i.monto) || 0), 0);
 
-    const totalIngresosEfectivo = serviciosEfectivo + serviciosNoEspecificado + productosEfectivo + ingManuales;
+    const totalIngresosEfectivo = serviciosEfectivo + productosEfectivo + ingManuales;
     const totalEgresosEfectivo = gastosEfectivo + egrManuales;
-    const saldoEsperado = apertura + totalIngresosEfectivo - totalEgresosEfectivo;
+    // Las citas sin método NO se suman al saldo esperado — inflarían falsamente
+    // el arqueo. Se muestran aparte como alerta para que el dueño las corrija en /agenda.
+    // Las propinas efectivo SÍ se suman: están físicamente en el cajón hasta
+    // que el dueño las separe para el equipo (ver aviso en el modal de cierre).
+    const saldoEsperado = apertura + totalIngresosEfectivo + propinasEfectivo - totalEgresosEfectivo;
+    const citasSinMetodo = citasHoy.filter(c => !c.metodoPago).length;
 
     const totalIngresosTarjeta = serviciosTarjeta + productosTarjeta;
     const totalIngresosTransf = serviciosTransf + productosTransf;
@@ -853,12 +1057,35 @@ export default function Caja() {
       ingManuales, egrManuales,
       totalIngresosEfectivo, totalEgresosEfectivo, saldoEsperado,
       totalIngresosTarjeta, totalIngresosTransf, totalIngresosGeneral,
-      propinasTotal,
+      propinasTotal, propinasEfectivo,
+      citasSinMetodo,
       totalCitas: citasHoy.length,
       totalVentas: ventasHoy.length,
       totalGastos: gastosHoy.length,
     };
   }, [sesionActiva, citasHoy, ventasHoy, gastosHoy]);
+
+  /* ── Detección de caja olvidada ─────────────────────────── */
+  // Si la sesión se abrió antes de hoy 00:00 (hora local), es probable que
+  // el cajero olvidó cerrarla. Los KPIs del día muestran datos MIXTOS
+  // (todos los días desde la apertura) — banner rojo + fastpath a cerrar.
+  const sesionOlvidada = useMemo(() => {
+    if (!sesionActiva?.fechaApertura) return null;
+    const apertura = sesionActiva.fechaApertura.toDate
+      ? sesionActiva.fechaApertura.toDate()
+      : new Date(sesionActiva.fechaApertura);
+    const hoyStart = new Date();
+    hoyStart.setHours(0, 0, 0, 0);
+    if (apertura >= hoyStart) return null;
+    const msDia = 86_400_000;
+    const diasAtras = Math.floor((hoyStart - apertura) / msDia);
+    return {
+      apertura,
+      diasAtras,
+      fechaLabel: apertura.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }),
+      horaLabel:  apertura.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+    };
+  }, [sesionActiva]);
 
   /* ── Timeline ───────────────────────────────────────────── */
   const timeline = useMemo(() => {
@@ -903,25 +1130,43 @@ export default function Caja() {
         metodo: g.metodoPago || 'Efectivo',
       });
     });
-    // Manual adjustments
+    // Manual adjustments — incluimos los revertidos para que quede huella
+    // visible en el timeline (tachados). El botón revertir se muestra solo
+    // en los activos.
+    const quienSub = (i) => {
+      const persona = i.nombre || i.usuario;
+      return persona ? ` · por ${persona}` : '';
+    };
     (sesionActiva?.ingresosManuales || []).forEach(i => {
       items.push({
         type: 'ingreso_manual',
         label: i.descripcion || 'Ingreso manual',
-        sub: 'Ajuste manual · Efectivo',
+        sub: `Ajuste manual · Efectivo${quienSub(i)}`,
         monto: Number(i.monto) || 0,
         time: i.hora ? fmtTime(i.hora) : '00:00',
         metodo: 'Efectivo',
+        revertido: !!i.revertido,
+        motivoReverso: i.motivoReverso || '',
+        revertidoPor: i.revertidoPor || '',
+        manualId: i.id || null,
+        manualHoraSeconds: i.hora?.seconds || null,
+        manualTipo: 'ingreso',
       });
     });
     (sesionActiva?.egresosManuales || []).forEach(i => {
       items.push({
         type: 'egreso_manual',
         label: i.descripcion || 'Egreso manual',
-        sub: 'Retiro manual · Efectivo',
+        sub: `Retiro manual · Efectivo${quienSub(i)}`,
         monto: -(Number(i.monto) || 0),
         time: i.hora ? fmtTime(i.hora) : '00:00',
         metodo: 'Efectivo',
+        revertido: !!i.revertido,
+        motivoReverso: i.motivoReverso || '',
+        revertidoPor: i.revertidoPor || '',
+        manualId: i.id || null,
+        manualHoraSeconds: i.hora?.seconds || null,
+        manualTipo: 'egreso',
       });
     });
     items.sort((a, b) => a.time.localeCompare(b.time));
@@ -932,6 +1177,7 @@ export default function Caja() {
   const handleAbrirCaja = async () => {
     const monto = parseFloat(montoApertura);
     if (isNaN(monto) || monto < 0) return;
+    const nombre = nombreApertura.trim();
     setAbriendo(true);
     try {
       await addDoc(tenantCol('caja_sesiones'), {
@@ -939,9 +1185,13 @@ export default function Caja() {
         fechaApertura: serverTimestamp(),
         montoApertura: monto,
         usuarioApertura: userEmail,
+        nombreApertura: nombre,
         ingresosManuales: [],
         egresosManuales: [],
       });
+      if (nombre) {
+        try { localStorage.setItem('caja_nombre_default', nombre); } catch {}
+      }
       setMontoApertura('');
     } finally { setAbriendo(false); }
   };
@@ -950,9 +1200,47 @@ export default function Caja() {
     if (!sesionActiva) return;
     const efectivoReal = parseFloat(cierreEfectivo);
     if (isNaN(efectivoReal) || efectivoReal < 0) return;
+    const nombre = nombreCierre.trim();
     setCerrando(true);
     try {
       const esperado = kpis.saldoEsperado;
+      // Congelamos los KPIs del día en el doc para que el historial muestre
+      // desglose real sin recalcular (métricas cambian con el tiempo).
+      const snapshot = {
+        apertura: kpis.apertura,
+        ingresosEfectivo:  kpis.totalIngresosEfectivo,
+        ingresosTarjeta:   kpis.totalIngresosTarjeta,
+        ingresosTransf:    kpis.totalIngresosTransf,
+        ingresosGeneral:   kpis.totalIngresosGeneral,
+        egresosEfectivo:   kpis.totalEgresosEfectivo,
+        propinasTotal:     kpis.propinasTotal,
+        propinasEfectivo:  kpis.propinasEfectivo,
+        serviciosEfectivo: kpis.serviciosEfectivo,
+        serviciosTarjeta:  kpis.serviciosTarjeta,
+        serviciosTransf:   kpis.serviciosTransf,
+        serviciosNoEspecificado: kpis.serviciosNoEspecificado,
+        productosEfectivo: kpis.productosEfectivo,
+        productosTarjeta:  kpis.productosTarjeta,
+        productosTransf:   kpis.productosTransf,
+        gastosEfectivo:    kpis.gastosEfectivo,
+        gastosTarjeta:     kpis.gastosTarjeta,
+        gastosTransf:      kpis.gastosTransf,
+        ingManuales:       kpis.ingManuales,
+        egrManuales:       kpis.egrManuales,
+        citasSinMetodo:    kpis.citasSinMetodo,
+        totalCitas:        kpis.totalCitas,
+        totalVentas:       kpis.totalVentas,
+        totalGastos:       kpis.totalGastos,
+      };
+      // Si el usuario contó por denominación, guardamos el desglose para
+      // auditoría posterior (útil para saber qué billetes faltaron/sobraron).
+      const denominaciones = usarDenominaciones
+        ? Object.fromEntries(
+            DENOMINACIONES_CLP
+              .map(d => [d.valor, Number(conteoDenom[d.valor]) || 0])
+              .filter(([, q]) => q > 0),
+          )
+        : null;
       await updateDoc(doc(tenantCol('caja_sesiones'), sesionActiva.id), {
         estado: 'cerrada',
         fechaCierre: serverTimestamp(),
@@ -960,10 +1248,19 @@ export default function Caja() {
         montoCierreEsperado: esperado,
         diferencia: efectivoReal - esperado,
         usuarioCierre: userEmail,
+        nombreCierre: nombre,
         observaciones: cierreObs.trim(),
+        snapshot,
+        ...(denominaciones ? { denominaciones } : {}),
       });
+      if (nombre) {
+        try { localStorage.setItem('caja_nombre_default', nombre); } catch {}
+      }
       setCierreEfectivo('');
       setCierreObs('');
+      setNombreCierre('');
+      setConteoDenom({});
+      setUsarDenominaciones(false);
       setShowCierre(false);
     } finally { setCerrando(false); }
   };
@@ -975,14 +1272,102 @@ export default function Caja() {
     try {
       const field = tipo === 'ingreso' ? 'ingresosManuales' : 'egresosManuales';
       const current = sesionActiva[field] || [];
+      // id: usamos ms + random para no chocar en el mismo ms si dos usuarios
+      // ajustan a la vez. No es criptográfico, sirve para identificar el item.
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       await updateDoc(doc(tenantCol('caja_sesiones'), sesionActiva.id), {
-        [field]: [...current, { descripcion: adjDesc.trim(), monto, hora: Timestamp.now() }],
+        [field]: [...current, {
+          id,
+          descripcion: adjDesc.trim(),
+          monto,
+          hora: Timestamp.now(),
+          usuario: userEmail,
+          nombre: (nombreApertura || '').trim() || (sesionActiva.nombreApertura || ''),
+        }],
       });
       setAdjDesc('');
       setAdjMonto('');
       setShowIngreso(false);
       setShowEgreso(false);
     } finally { setAdjSaving(false); }
+  };
+
+  const handleCorteX = async () => {
+    if (!sesionActiva) return;
+    setCorteXSaving(true);
+    try {
+      const efectivoContado = corteXEfectivo === '' ? null : parseFloat(corteXEfectivo);
+      const cajero = corteXCajero.trim() || sesionActiva.nombreApertura || userEmail;
+
+      // 1) Imprimible en nueva ventana
+      const html = buildCorteXHTML({
+        tenantName: tenant?.name,
+        kpis,
+        cajero,
+        efectivoContado,
+        apertura: kpis.apertura,
+        fechaApertura: sesionActiva.fechaApertura,
+      });
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      } else {
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `corte-x-${todayYMD()}.html`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      // 2) Registro en el doc de sesión (audit trail — no modifica saldos)
+      const cortes = sesionActiva.cortesX || [];
+      const registro = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        hora: Timestamp.now(),
+        cajero,
+        usuario: userEmail,
+        saldoEsperado: kpis.saldoEsperado,
+        efectivoContado: efectivoContado != null && !isNaN(efectivoContado) ? efectivoContado : null,
+        diferencia: efectivoContado != null && !isNaN(efectivoContado) ? efectivoContado - kpis.saldoEsperado : null,
+      };
+      await updateDoc(doc(tenantCol('caja_sesiones'), sesionActiva.id), {
+        cortesX: [...cortes, registro],
+      });
+
+      setCorteXCajero('');
+      setCorteXEfectivo('');
+      setShowCorteX(false);
+    } finally { setCorteXSaving(false); }
+  };
+
+  const handleRevertir = async () => {
+    if (!revertirTarget || !sesionActiva) return;
+    const motivo = motivoReverso.trim();
+    if (!motivo) return;
+    setRevirtiendo(true);
+    try {
+      const field = revertirTarget.tipo === 'ingreso' ? 'ingresosManuales' : 'egresosManuales';
+      const current = sesionActiva[field] || [];
+      const updated = current.map(item => {
+        // Fallback: si el item no tiene id (registros viejos), matchear por hora.
+        const matches = item.id
+          ? item.id === revertirTarget.id
+          : item.hora?.seconds === revertirTarget.horaSeconds;
+        if (!matches) return item;
+        return {
+          ...item,
+          revertido: true,
+          motivoReverso: motivo,
+          revertidoPor: userEmail,
+          revertidoAt: Timestamp.now(),
+        };
+      });
+      await updateDoc(doc(tenantCol('caja_sesiones'), sesionActiva.id), { [field]: updated });
+      setRevertirTarget(null);
+      setMotivoReverso('');
+    } finally { setRevirtiendo(false); }
   };
 
   /* ── Render helpers ─────────────────────────────────────── */
@@ -1043,8 +1428,16 @@ export default function Caja() {
             </div>
           </div>
           <div>
-            <label className={lbl}>Responsable</label>
-            <input className={field} value={userEmail} disabled />
+            <label className={lbl}>¿Quién abre la caja?</label>
+            <input
+              className={field}
+              placeholder="Nombre del cajero (ej: Camila)"
+              value={nombreApertura}
+              onChange={e => setNombreApertura(e.target.value)}
+              autoComplete="off"
+              maxLength={40}
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Cuenta: {userEmail}</p>
           </div>
           <button
             onClick={handleAbrirCaja}
@@ -1066,18 +1459,21 @@ export default function Caja() {
               {historial.map(h => {
                 const diff = h.diferencia ?? 0;
                 return (
-                  <div key={h.id} className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
-                      <p className="text-xs text-slate-500">{h.usuarioApertura || '-'} / {h.usuarioCierre || '-'}</p>
+                  <div key={h.id} className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                        <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                        <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                        <span className={`font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {diff >= 0 ? '+' : ''}{fmtCurrency(diff)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs">
-                      <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                      <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
-                      <span className={`font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {diff >= 0 ? '+' : ''}{fmtCurrency(diff)}
-                      </span>
-                    </div>
+                    <HistorialSnapshotRow snapshot={h.snapshot} />
                   </div>
                 );
               })}
@@ -1111,7 +1507,7 @@ export default function Caja() {
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Abierta por {sesionActiva.usuarioApertura || '-'} a las {fmtTime(sesionActiva.fechaApertura)} · Apertura: {fmtCurrency(kpis.apertura)}
+            Abierta por {sesionActiva.nombreApertura || sesionActiva.usuarioApertura || '-'} a las {fmtTime(sesionActiva.fechaApertura)} · Apertura: {fmtCurrency(kpis.apertura)}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -1127,11 +1523,55 @@ export default function Caja() {
           <button onClick={() => setShowEgreso(true)} className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500/20 transition-colors">
             <ArrowUpCircle size={14} /> Egreso
           </button>
+          <button onClick={() => setShowCorteX(true)} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-xl text-xs font-bold hover:bg-indigo-500/20 transition-colors">
+            <Scissors size={14} /> Corte X
+          </button>
           <button onClick={() => setShowCierre(true)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-bold hover:bg-amber-500/20 transition-colors">
             <Lock size={14} /> Cerrar Caja
           </button>
         </div>
       </div>
+
+      {/* Alerta CRÍTICA: caja olvidada de un día anterior */}
+      {sesionOlvidada && (
+        <div className="bg-rose-500/15 border-2 border-rose-500/50 rounded-xl px-4 py-4 flex items-start gap-3 shadow-lg shadow-rose-500/10">
+          <AlertTriangle size={22} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-black text-rose-300">
+              Caja abierta desde {sesionOlvidada.fechaLabel}
+              {sesionOlvidada.diasAtras >= 1 && (
+                <span className="ml-2 text-xs font-bold uppercase tracking-wider bg-rose-500/30 text-rose-200 px-2 py-0.5 rounded-full">
+                  hace {sesionOlvidada.diasAtras} {sesionOlvidada.diasAtras === 1 ? 'día' : 'días'}
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-rose-200/80 mt-1">
+              Se abrió a las {sesionOlvidada.horaLabel}. Los KPIs de abajo <strong>solo cuentan movimientos de hoy</strong> — no incluyen ventas/gastos de los días anteriores de esta misma sesión. Ciérrala antes de abrir la del día actual, o el arqueo va a descuadrar.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCierre(true)}
+            className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+          >
+            <Lock size={14} /> Cerrar ahora
+          </button>
+        </div>
+      )}
+
+      {/* Alerta: citas sin método de pago */}
+      {kpis.citasSinMetodo > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-300">
+              {kpis.citasSinMetodo} {kpis.citasSinMetodo === 1 ? 'cita' : 'citas'} sin método de pago por {fmtCurrency(kpis.serviciosNoEspecificado)}
+            </p>
+            <p className="text-xs text-amber-200/70 mt-0.5">
+              No se cuentan en el saldo esperado hasta que las marques con método. Edítalas en Agenda para que aparezcan en el arqueo.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1150,8 +1590,9 @@ export default function Caja() {
           <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Banknote size={15} className="text-emerald-400" /> Flujo de Efectivo</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-slate-400">Apertura</span><span className="text-white font-semibold">{fmtCurrency(kpis.apertura)}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">+ Servicios (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.serviciosEfectivo + kpis.serviciosNoEspecificado)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-400">+ Servicios (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.serviciosEfectivo)}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">+ Productos (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.productosEfectivo)}</span></div>
+            {kpis.propinasEfectivo > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Propinas efectivo <span className="text-[10px] text-amber-400">(para equipo)</span></span><span className="text-amber-400 font-semibold">+{fmtCurrency(kpis.propinasEfectivo)}</span></div>}
             {kpis.ingManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Ingresos manuales</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.ingManuales)}</span></div>}
             <div className="flex justify-between"><span className="text-slate-400">− Gastos (efectivo)</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.gastosEfectivo)}</span></div>
             {kpis.egrManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">− Egresos manuales</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.egrManuales)}</span></div>}
@@ -1205,6 +1646,8 @@ export default function Caja() {
           <div className="space-y-1.5 max-h-[28rem] overflow-y-auto pr-2">
             {timeline.map((t, i) => {
               const isPositive = t.monto >= 0;
+              const isManual = t.type === 'ingreso_manual' || t.type === 'egreso_manual';
+              const revertido = !!t.revertido;
               const typeColors = {
                 servicio: 'border-l-blue-500',
                 producto: 'border-l-emerald-500',
@@ -1213,15 +1656,30 @@ export default function Caja() {
                 egreso_manual: 'border-l-red-500',
               };
               return (
-                <div key={i} className={`flex items-center gap-3 px-3 py-2.5 bg-slate-900/40 border border-slate-700/30 border-l-2 ${typeColors[t.type] || 'border-l-slate-500'} rounded-lg`}>
+                <div key={i} className={`flex items-center gap-3 px-3 py-2.5 bg-slate-900/40 border border-slate-700/30 border-l-2 ${typeColors[t.type] || 'border-l-slate-500'} rounded-lg ${revertido ? 'opacity-50' : ''}`}>
                   <span className="text-xs text-slate-500 font-mono w-12 shrink-0">{t.time}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">{t.label}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{t.sub}</p>
+                    <p className={`text-sm text-white truncate ${revertido ? 'line-through' : ''}`}>{t.label}</p>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {t.sub}
+                      {revertido && t.motivoReverso ? (
+                        <span className="ml-1 text-rose-400"> · Revertido: {t.motivoReverso}</span>
+                      ) : null}
+                    </p>
                   </div>
-                  <span className={`text-sm font-bold shrink-0 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <span className={`text-sm font-bold shrink-0 ${revertido ? 'text-slate-500 line-through' : (isPositive ? 'text-emerald-400' : 'text-rose-400')}`}>
                     {isPositive ? '+' : ''}{fmtCurrency(t.monto)}
                   </span>
+                  {isManual && !revertido && (
+                    <button
+                      type="button"
+                      onClick={() => setRevertirTarget({ tipo: t.manualTipo, id: t.manualId, horaSeconds: t.manualHoraSeconds, label: t.label, monto: t.monto })}
+                      title="Revertir ajuste"
+                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors shrink-0"
+                    >
+                      <Undo2 size={14} />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1239,18 +1697,21 @@ export default function Caja() {
             {historial.slice(0, 10).map(h => {
               const diff = h.diferencia ?? 0;
               return (
-                <div key={h.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
-                    <p className="text-xs text-slate-500">{h.usuarioApertura || '-'} / {h.usuarioCierre || '-'}{h.observaciones ? ` · ${h.observaciones}` : ''}</p>
+                <div key={h.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                      <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}{h.observaciones ? ` · ${h.observaciones}` : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs">
+                      <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                      <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                      <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${diff >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                        {diff >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(diff))}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                    <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
-                    <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${diff >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                      {diff >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(diff))}
-                    </span>
-                  </div>
+                  <HistorialSnapshotRow snapshot={h.snapshot} />
                 </div>
               );
             })}
@@ -1268,9 +1729,38 @@ export default function Caja() {
               <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>Saldo esperado en efectivo: <strong>{fmtCurrency(kpis.saldoEsperado)}</strong></span>
             </div>
+            {sesionOlvidada && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/40 rounded-xl text-xs text-rose-200 flex items-start gap-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5 text-rose-400" />
+                <span>
+                  Esta caja se abrió el <strong>{sesionOlvidada.fechaLabel}</strong>. El saldo esperado <strong>solo considera movimientos de hoy</strong> — es probable que descuadre. Anota el motivo en observaciones.
+                </span>
+              </div>
+            )}
+            {kpis.propinasEfectivo > 0 && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-200 flex items-start gap-2">
+                <DollarSign size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                <span>
+                  Del esperado, <strong className="text-amber-300">{fmtCurrency(kpis.propinasEfectivo)}</strong> son propinas para el equipo. Sepáralas del arqueo antes de guardar la caja.
+                </span>
+              </div>
+            )}
             <div>
-              <label className={lbl}>Efectivo físico contado ($)</label>
-              <input type="number" className={field} placeholder="0" min="0" value={cierreEfectivo} onChange={e => setCierreEfectivo(e.target.value)} />
+              <div className="flex items-center justify-between mb-1">
+                <label className={`${lbl} mb-0`}>Efectivo físico contado ($)</label>
+                <button
+                  type="button"
+                  onClick={() => setUsarDenominaciones(v => !v)}
+                  className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full transition-colors ${usarDenominaciones ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-slate-200'}`}
+                >
+                  {usarDenominaciones ? '✓ Contando por billete' : 'Contar por billete'}
+                </button>
+              </div>
+              {usarDenominaciones ? (
+                <ArqueoDenominaciones conteo={conteoDenom} setConteo={setConteoDenom} total={totalDenom} />
+              ) : (
+                <input type="number" inputMode="numeric" className={field} placeholder="0" min="0" value={cierreEfectivo} onChange={e => setCierreEfectivo(e.target.value)} />
+              )}
             </div>
             {cierreEfectivo !== '' && (
               <div className={`p-3 rounded-xl text-sm font-bold flex items-center gap-2 ${diferenciaCierre >= 0 ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`}>
@@ -1279,6 +1769,18 @@ export default function Caja() {
                 {diferenciaCierre >= 0 ? ' (Sobrante)' : ' (Faltante)'}
               </div>
             )}
+            <div>
+              <label className={lbl}>¿Quién cierra la caja?</label>
+              <input
+                className={field}
+                placeholder="Nombre del cajero (ej: Camila)"
+                value={nombreCierre}
+                onChange={e => setNombreCierre(e.target.value)}
+                autoComplete="off"
+                maxLength={40}
+              />
+              <p className="text-[10px] text-slate-500 mt-1">Cuenta: {userEmail}</p>
+            </div>
             <div>
               <label className={lbl}>Observaciones / Novedades</label>
               <textarea className={`${field} resize-none`} rows={2} placeholder="Ej: Se cayó una moneda..." value={cierreObs} onChange={e => setCierreObs(e.target.value)} />
@@ -1340,6 +1842,97 @@ export default function Caja() {
         </MiniModal>
       )}
 
+      {/* Modal Corte X */}
+      {showCorteX && (
+        <MiniModal title="Corte X — Arqueo intermedio" onClose={() => setShowCorteX(false)}>
+          <div className="space-y-4">
+            <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl text-xs text-indigo-300 flex items-start gap-2">
+              <Scissors size={14} className="shrink-0 mt-0.5" />
+              <span>Genera un imprimible con el estado actual de la caja para relevo de turno. <strong>No cierra la sesión.</strong></span>
+            </div>
+            <div>
+              <label className={lbl}>¿Quién hace el corte?</label>
+              <input
+                className={field}
+                placeholder={sesionActiva?.nombreApertura || 'Nombre del cajero'}
+                value={corteXCajero}
+                onChange={e => setCorteXCajero(e.target.value)}
+                autoComplete="off"
+                maxLength={40}
+              />
+            </div>
+            <div>
+              <label className={lbl}>Efectivo contado hasta el momento ($) — opcional</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                className={field}
+                placeholder={fmtCurrency(kpis.saldoEsperado)}
+                min="0"
+                value={corteXEfectivo}
+                onChange={e => setCorteXEfectivo(e.target.value)}
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Si lo dejas vacío, el corte solo registra el estado esperado ({fmtCurrency(kpis.saldoEsperado)}).
+              </p>
+            </div>
+            {corteXEfectivo !== '' && !isNaN(parseFloat(corteXEfectivo)) && (() => {
+              const dif = parseFloat(corteXEfectivo) - kpis.saldoEsperado;
+              return (
+                <div className={`p-3 rounded-xl text-sm font-bold flex items-center gap-2 ${dif >= 0 ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'}`}>
+                  {dif >= 0 ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                  Diferencia: {dif >= 0 ? '+' : ''}{fmtCurrency(dif)} {dif >= 0 ? '(sobrante)' : '(faltante)'}
+                </div>
+              );
+            })()}
+            <button
+              onClick={handleCorteX}
+              disabled={corteXSaving}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {corteXSaving ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Printer size={14} />}
+              {corteXSaving ? 'Generando...' : 'Imprimir corte X'}
+            </button>
+          </div>
+        </MiniModal>
+      )}
+
+      {/* Modal Revertir Ajuste Manual */}
+      {revertirTarget && (
+        <MiniModal title="Revertir ajuste manual" onClose={() => { setRevertirTarget(null); setMotivoReverso(''); }}>
+          <div className="space-y-4">
+            <div className="p-3 bg-rose-500/5 border border-rose-500/20 rounded-xl text-sm">
+              <p className="text-rose-300 font-semibold">{revertirTarget.label}</p>
+              <p className="text-rose-400/80 text-xs mt-0.5">
+                {revertirTarget.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} de {fmtCurrency(Math.abs(revertirTarget.monto))}
+              </p>
+            </div>
+            <p className="text-xs text-slate-400">
+              El movimiento queda en el registro como <strong className="text-white">revertido</strong> (no se borra), con tu usuario y el motivo. El saldo esperado se recalcula sin este monto.
+            </p>
+            <div>
+              <label className={lbl}>Motivo del reverso</label>
+              <textarea
+                className={`${field} resize-none`}
+                rows={2}
+                placeholder="Ej: monto ingresado por error, se duplicó el registro..."
+                value={motivoReverso}
+                onChange={e => setMotivoReverso(e.target.value)}
+                autoComplete="off"
+                maxLength={200}
+              />
+            </div>
+            <button
+              onClick={handleRevertir}
+              disabled={revirtiendo || !motivoReverso.trim()}
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors"
+            >
+              {revirtiendo ? 'Revirtiendo...' : 'Confirmar reverso'}
+            </button>
+          </div>
+        </MiniModal>
+      )}
+
       {/* Modal de ayuda */}
       {showHelp && (
         <HelpModal title="Cómo usar la Caja" onClose={() => setShowHelp(false)}>
@@ -1362,6 +1955,7 @@ export default function Caja() {
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Cerrar la caja</p>
             <p>Al final del día, toca <em>"Cerrar Caja"</em> e ingresa lo que <strong className="text-white">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-white">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
+            <p className="text-xs text-amber-400 mt-1">Las propinas en efectivo cuentan en el saldo esperado porque están en el cajón. Cuando cierres, separa esa plata para el equipo antes de guardar la caja.</p>
           </div>
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo puede haber <strong>una caja abierta a la vez</strong>. Si olvidaste cerrar la del día anterior, ciérrala antes de abrir la de hoy.</p>

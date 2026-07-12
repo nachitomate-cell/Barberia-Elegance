@@ -1256,3 +1256,19 @@ exports.waNotifEstado                = whatsappNotif.waNotifEstado;
 const eliminarMisDatos = require('./eliminar-mis-datos');
 exports.eliminarMisDatosElegance = eliminarMisDatos.eliminarMisDatosElegance;
 exports.eliminarMisDatosTenant   = eliminarMisDatos.eliminarMisDatosTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  WALLETS — tarjetas de fidelidad Google Wallet (multi-tenant).
+//  El cliente lleva sus sellos + rango en su Google Wallet, con
+//  geo-push (locations del class) y notificación automática de hito.
+//  Sync = espejo de push-cliente.js (trigger sobre users/{uid}).
+//  Secret: WALLET_SA_KEY (JSON de wallet-issuer@barberia-elegance).
+//  Ver functions/wallet.js + lib/wallet-core.js + lib/wallet-render.js
+// ─────────────────────────────────────────────────────────────────
+const wallet = require('./wallet');
+exports.walletStampImg          = wallet.walletStampImg;
+exports.walletProvisionarClase  = wallet.walletProvisionarClase;
+exports.walletGenerarPase       = wallet.walletGenerarPase;
+exports.walletActivarTenant     = wallet.walletActivarTenant;
+exports.walletSyncSelloElegance = wallet.walletSyncSelloElegance;
+exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;

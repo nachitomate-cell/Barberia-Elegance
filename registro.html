@@ -1624,7 +1624,7 @@
         Continuar con Google
       </button>
       <p class="text-center text-[10px] text-gray-500 mt-2 uppercase tracking-widest">
-        <i class="ph-fill ph-lightning" style="color:#fbbf24;font-size:11px;"></i> Más rápido — sin contraseñas
+        Más rápido
       </p>
 
       <!-- Divider -->
@@ -1693,29 +1693,22 @@
             class="field uppercase" autocomplete="off" style="letter-spacing:0.05em;">
         </div>
       </div>
-      <!-- Consentimiento Ley 19.628 / 21.719. Sin marcar, registerWithEmail() aborta. -->
-      <label class="flex items-start gap-2.5 mt-5 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
-        <input type="checkbox" id="regAceptoTerminos"
-          class="mt-0.5 flex-shrink-0 accent-white"
-          style="width:15px;height:15px;">
-        <span>He leído y acepto los
-          <a href="privacidad.html" target="_blank" rel="noopener"
-             class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>.
-          Autorizo el tratamiento de mis datos personales conforme a la Ley 19.628 / 21.719.</span>
-      </label>
-      <!-- Opt-in WhatsApp — separado del consentimiento base (Meta exige
-           granularidad). Opcional: si no lo marca, igual puede registrarse
-           pero no recibirá plantillas de confirmación por WhatsApp. -->
-      <label class="flex items-start gap-2.5 mt-3 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
-        <input type="checkbox" id="regAceptoWhatsapp"
-          class="mt-0.5 flex-shrink-0 accent-white"
-          style="width:15px;height:15px;">
-        <span>Quiero recibir confirmaciones y recordatorios de mis citas por
-          <strong class="text-white/70">WhatsApp</strong>. Puedo darme de baja en cualquier momento respondiendo <strong class="text-white/70">STOP</strong>.</span>
-      </label>
-      <button onclick="registerWithEmail()" class="btn-primary mt-4">
+      <button onclick="registerWithEmail()" class="btn-primary mt-5">
         <i class="ph-bold ph-user-plus"></i> Crear cuenta
       </button>
+      <!-- Consentimiento pasivo (clickwrap): el botón ES la acción afirmativa.
+           Al crear la cuenta, registerWithEmail() registra la evidencia legal
+           (aceptoTerminosAt, aceptoPrivacidadAt, terminosVersion, userAgentSignup)
+           y el opt-in WhatsApp transaccional (waOptIn/waOptInAt) en Firestore.
+           Se quitaron los checkboxes para reducir fricción; el rastro de
+           compliance se conserva server-side. Ley 19.628 / 21.719 · Meta. -->
+      <p class="mt-3 text-[10.5px] leading-relaxed text-gray-500 text-center px-1 select-none">
+        Al crear tu cuenta aceptas los
+        <a href="privacidad.html" target="_blank" rel="noopener"
+           class="underline text-gray-400 hover:text-white">Términos y la Política de Privacidad</a>
+        y el tratamiento de tus datos según la Ley 19.628 / 21.719. Recibirás confirmaciones y recordatorios de tus citas por
+        <span class="text-gray-400">WhatsApp</span> — puedes darte de baja respondiendo <span class="text-gray-400">STOP</span>.
+      </p>
     </div>
 
     <!-- PANEL TELÉFONO REQUERIDO (post Google) -->
@@ -1730,26 +1723,19 @@
         <input type="tel" id="googleTelefono" placeholder="+56 9 XXXX XXXX" autocomplete="tel"
           inputmode="numeric" class="field" required>
       </div>
-      <!-- Consentimiento Ley 19.628 / 21.719 para flujo Google. -->
-      <label class="flex items-start gap-2.5 mt-5 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
-        <input type="checkbox" id="googleAceptoTerminos"
-          class="mt-0.5 flex-shrink-0 accent-white"
-          style="width:15px;height:15px;">
-        <span>He leído y acepto los
-          <a href="privacidad.html" target="_blank" rel="noopener"
-             class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>.
-          Autorizo el tratamiento de mis datos personales conforme a la Ley 19.628 / 21.719.</span>
-      </label>
-      <label class="flex items-start gap-2.5 mt-3 text-[11px] text-gray-400 leading-relaxed cursor-pointer select-none">
-        <input type="checkbox" id="googleAceptoWhatsapp"
-          class="mt-0.5 flex-shrink-0 accent-white"
-          style="width:15px;height:15px;">
-        <span>Quiero recibir confirmaciones y recordatorios de mis citas por
-          <strong class="text-white/70">WhatsApp</strong>. Puedo darme de baja respondiendo <strong class="text-white/70">STOP</strong>.</span>
-      </label>
-      <button onclick="saveGooglePhone()" class="btn-primary mt-4">
+      <button onclick="saveGooglePhone()" class="btn-primary mt-5">
         <i class="ph-bold ph-check"></i> Continuar
       </button>
+      <!-- Consentimiento pasivo — la evidencia legal (aceptoTerminosAt,
+           terminosVersion) y el opt-in WhatsApp (waOptIn/waOptInAt) se
+           registran en saveGooglePhone() al continuar. Ley 19.628 / 21.719. -->
+      <p class="mt-3 text-[10.5px] leading-relaxed text-gray-500 text-center px-1 select-none">
+        Al continuar aceptas los
+        <a href="privacidad.html" target="_blank" rel="noopener"
+           class="underline text-gray-400 hover:text-white">Términos y la Política de Privacidad</a>
+        y el tratamiento de tus datos según la Ley 19.628 / 21.719. Recibirás recordatorios de tus citas por
+        <span class="text-gray-400">WhatsApp</span> — puedes darte de baja respondiendo <span class="text-gray-400">STOP</span>.
+      </p>
     </div>
 
     <!-- PANEL RECUPERAR CONTRASEÑA -->
@@ -2263,8 +2249,8 @@
     const telefono = document.getElementById('googleTelefono').value.trim();
     if (!validatePhone(telefono))
       return showAlert('Ingresa un teléfono válido. Debe comenzar con +56 9 seguido de 8 dígitos.');
-    if (!document.getElementById('googleAceptoTerminos')?.checked)
-      return showAlert('Debes aceptar los Términos y la Política de Privacidad para continuar.');
+    // Consentimiento pasivo: al pulsar "Continuar" el usuario acepta Términos +
+    // Política (clickwrap). La evidencia se registra abajo (aceptoTerminosAt, etc.).
     const user = firebase.auth().currentUser;
     if (!user) return showAlert('Sesión expirada. Intenta de nuevo.');
     showLoading('Guardando...');
@@ -2272,7 +2258,9 @@
       // ensureUserDoc corrió en handleGoogleUser SIN consentimiento (todavía
       // no lo habíamos pedido). Aquí completamos con el consentimiento
       // recién recibido — es un update para NO sobreescribir campos ya set.
-      const _waOptInGoogle = !!document.getElementById('googleAceptoWhatsapp')?.checked;
+      // Opt-in WhatsApp implícito: al continuar acepta recibir notificaciones
+      // transaccionales de sus citas (evidencia legal: waOptInAt/waOptInMetodo).
+      const _waOptInGoogle = true;
       await FDB.usersCol().doc(user.uid).update({
         telefono,
         aceptoTerminosAt:   firebase.firestore.FieldValue.serverTimestamp(),
@@ -2340,8 +2328,8 @@
       return showAlert('Ingresa un teléfono válido. Debe comenzar con +56 9 seguido de 8 dígitos.');
     if (password.length < 6)
       return showAlert('La contraseña debe tener al menos 6 caracteres.');
-    if (!document.getElementById('regAceptoTerminos')?.checked)
-      return showAlert('Debes aceptar los Términos y la Política de Privacidad para crear tu cuenta.');
+    // Consentimiento pasivo: al pulsar "Crear cuenta" el usuario acepta Términos +
+    // Política (clickwrap). La evidencia se registra abajo (aceptoTerminosAt, etc.).
     // Verificación de edad (Ley 21.719 art. 26). Solo bloqueamos si el user
     // declara una fecha < 14; si no ingresa fecha, se acepta la declaración
     // implícita del ToS de ser mayor de 14 o contar con autorización de tutor.
@@ -2354,7 +2342,9 @@
       }
     }
 
-    const waOptIn = !!document.getElementById('regAceptoWhatsapp')?.checked;
+    // Opt-in WhatsApp implícito: al crear la cuenta acepta recibir notificaciones
+    // transaccionales de sus citas (evidencia legal: waOptInAt).
+    const waOptIn = true;
     const acepto = {
       version:  TERMINOS_VERSION,
       ua:       navigator.userAgent || '',

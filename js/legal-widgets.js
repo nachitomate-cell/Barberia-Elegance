@@ -37,24 +37,24 @@
   function injectStyles() {
     const css = `
       .sptl-banner {
-        position: fixed; left: 12px; right: 12px; bottom: 12px;
+        position: fixed; left: 12px; bottom: 12px;
         z-index: 999999;
+        width: min(340px, calc(100vw - 24px));
         background: rgba(15,15,20,.96); color: #f4f4f6;
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255,255,255,.10);
-        border-radius: 14px; padding: 14px 16px;
+        border-radius: 12px; padding: 11px 13px;
         font-family: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-        font-size: 12.5px; line-height: 1.55;
-        box-shadow: 0 20px 40px -20px rgba(0,0,0,.6);
-        display: flex; align-items: flex-start; gap: 12px;
-        max-width: 640px; margin: 0 auto;
+        font-size: 11px; line-height: 1.5;
+        box-shadow: 0 14px 32px -16px rgba(0,0,0,.6);
+        display: flex; flex-direction: column; align-items: stretch; gap: 9px;
       }
-      .sptl-banner p { margin: 0; color: rgba(255,255,255,.78); }
+      .sptl-banner p { margin: 0; color: rgba(255,255,255,.72); }
       .sptl-banner a { color: #a78bfa; text-decoration: underline; }
-      .sptl-banner__actions { display: flex; gap: 8px; flex-shrink: 0; }
+      .sptl-banner__actions { display: flex; gap: 8px; justify-content: flex-end; }
       .sptl-banner button {
-        border: 0; border-radius: 8px; padding: 8px 14px;
-        font-family: inherit; font-size: 12.5px; font-weight: 600;
+        border: 0; border-radius: 7px; padding: 5px 16px;
+        font-family: inherit; font-size: 11px; font-weight: 600;
         cursor: pointer; transition: transform .1s;
       }
       .sptl-banner button:active { transform: scale(.97); }
@@ -68,10 +68,12 @@
       }
       .sptl-footer a { color: rgba(255,255,255,.55); text-decoration: underline; }
       .sptl-footer strong { color: rgba(255,255,255,.6); font-weight: 600; }
-      @media (max-width: 480px) {
-        .sptl-banner { flex-direction: column; }
-        .sptl-banner__actions { width: 100%; }
-        .sptl-banner button { flex: 1; }
+      @media (prefers-reduced-motion: no-preference) {
+        .sptl-banner { animation: sptl-slide-in .28s cubic-bezier(.16,1,.3,1); }
+      }
+      @keyframes sptl-slide-in {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
       }
     `;
     const style = document.createElement('style');
@@ -88,9 +90,9 @@
     wrap.setAttribute('role', 'dialog');
     wrap.setAttribute('aria-label', 'Aviso de privacidad y cookies');
     wrap.innerHTML =
-      '<p>Usamos <strong>almacenamiento local del navegador</strong> ' +
-      '(no cookies de terceros ni publicidad) para mantener tu sesión y ' +
-      'recordar tus preferencias. Al continuar aceptas la ' +
+      '<p>Usamos <strong>almacenamiento local</strong> del navegador ' +
+      '(sin cookies de terceros ni publicidad) para tu sesión y preferencias. ' +
+      'Al continuar aceptas la ' +
       '<a href="/privacidad.html" target="_blank" rel="noopener">Política de Privacidad</a> ' +
       'y las <a href="/legal.html" target="_blank" rel="noopener">condiciones legales</a>.</p>' +
       '<div class="sptl-banner__actions">' +

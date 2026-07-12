@@ -65,16 +65,16 @@
         <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.com" required />
         <label for="pass">Contraseña</label>
         <input id="pass" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
-        <!-- Consentimiento — solo se muestra en modo signup (lo alterna paintMode). -->
-        <label id="aceptoWrap"
-          style="display:flex;align-items:flex-start;gap:8px;margin:10px 0 6px;font-size:12px;color:#586071;line-height:1.55;cursor:pointer;user-select:none;">
-          <input type="checkbox" id="aceptoTerminos"
-            style="margin-top:2px;width:15px;height:15px;flex-shrink:0;">
-          <span>He leído y acepto los
-            <a href="/privacidad.html" target="_blank" rel="noopener"
-               style="color:#0a66c2;text-decoration:underline;">Términos y la Política de Privacidad</a>
-            de bioo. Autorizo el tratamiento de mis datos (Ley 19.628 / 21.719).</span>
-        </label>
+        <!-- Consentimiento pasivo — solo visible en signup (paintMode togglea
+             #aceptoWrap). "Crear cuenta" ES la acción afirmativa; la evidencia
+             (aceptoTerminosAt, terminosVersion) se guarda en el alta. -->
+        <p id="aceptoWrap"
+          style="margin:10px 0 6px;font-size:11.5px;color:#586071;line-height:1.55;user-select:none;">
+          Al crear tu cuenta aceptas los
+          <a href="/privacidad.html" target="_blank" rel="noopener"
+             style="color:#0a66c2;text-decoration:underline;">Términos y la Política de Privacidad</a>
+          de bioo y el tratamiento de tus datos (Ley 19.628 / 21.719).
+        </p>
         <button class="btn" id="emailBtn" type="submit">Crear cuenta</button>
       </form>
 
@@ -130,10 +130,9 @@
 
     // Versión del contrato aceptado. Bumpear cuando cambien los términos.
     var BIOO_TERMINOS_VERSION = '2026-07-11';
-    function aceptoOK() {
-      var el = document.getElementById('aceptoTerminos');
-      return !!(el && el.checked);
-    }
+    // Consentimiento pasivo: el alta (submit) ES la aceptación de Términos +
+    // Política (clickwrap). Sin checkbox; la evidencia se persiste igual.
+    function aceptoOK() { return true; }
 
     // ── Reclamar usuario de forma atómica (doc id = username) ──
     function claimUsername(uid, email){

@@ -2194,6 +2194,9 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
 function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop, dragActive }) {
   const { timeLabels } = useContext(AgendaCtx);
   const hora = timeLabels[idx];
+  // Franja en punto (HH:00) → línea superior más marcada para dar jerarquía
+  // hora vs. cuarto y romper el efecto "grilla de Excel". Aplica en ambos modos.
+  const esHora = hora?.endsWith(':00');
   const [over, setOver] = useState(false);
   return (
     <div
@@ -2209,8 +2212,8 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
       onDragLeave={() => setOver(false)}
       onDrop={() => { setOver(false); onDrop && onDrop(barberoId, hora, dateStr); }}
       className={`absolute inset-x-0 h-10 border-b border-slate-800/40 transition-colors ${
-        idx % 2 === 0 ? '' : 'bg-slate-800/10'
-      } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'} ${
+        esHora ? 'border-t border-slate-800/80' : ''
+      } ${idx % 2 === 0 ? '' : 'bg-slate-800/10'} ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'} ${
         over && dragActive ? '!bg-emerald-500/30 ring-2 ring-inset ring-emerald-400 z-10'
           : dragActive && !blockMode ? 'bg-emerald-900/10 ring-1 ring-inset ring-emerald-500/25' : ''
       }`}
