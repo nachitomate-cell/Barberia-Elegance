@@ -340,3 +340,151 @@ exports.liberarCanjesExpirados = onSchedule(
     logger.info(`[canjes] liberarCanjesExpirados: total=${total} tenants=${tenants.length}`);
   },
 );
+
+// ═════════════════════════════════════════════════════════════════
+//  canjearRecompensaLink — canje por LINK/QR (autoservicio del STAFF)
+//
+//  El QR del premio del cliente abre /canjear.html?t=&r=&k=. Cualquier
+//  barbero/admin escanea con la cámara nativa, inicia sesión con su cuenta
+//  (o ya la tiene) y confirma — SIN depender del panel administrativo.
+//
+//  Seguridad: SOLO staff del tenant puede canjear. Si el link fuera abierto,
+//  el propio cliente se auto-canjearía desde la casa. Replica la misma
+//  transacción del panel (status:'approved' + approvedBy + stock + historial).
+//
+//  Modo:
+//    { tenant, rid, token, confirm:false } → info del premio (preview)
+//    { tenant, rid, token, confirm:true  } → marca approved y lo entrega
+//
+//  DEPLOY: firebase deploy --only functions:canjearRecompensaLink
+// ═════════════════════════════════════════════════════════════════
+const BOOTSTRAP_CANJE = ['ignaciiio.mate@gmail.com'];
+
+// ¿El que llama es del EQUIPO del local? (cualquier barbero/admin, o bootstrap)
+async function asegurarStaff(request, tenantId) {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Inicia sesión con tu cuenta del local.');
+  const uid   = request.auth.uid;
+  const email = (request.auth.token?.email || '').toLowerCase();
+  if (BOOTSTRAP_CANJE.includes(email)) return { uid, email };
+  const isElegance  = tenantId === 'elegance';
+  const barberosTid = marca.marcaAwareTenant(tenantId, 'barberos');
+  const barberoRef = (id) => isElegance
+    ? db.collection('barberos').doc(id)
+    : db.collection(`tenants/${barberosTid}/barberos`).doc(id);
+  let snap = await barberoRef(uid).get();
+  if (snap.exists && snap.data()._mainDocId) snap = await barberoRef(snap.data()._mainDocId).get();
+  if (!snap.exists) throw new HttpsError('permission-denied', 'Solo el equipo del local puede canjear premios.');
+  return { uid, email };
+}
+
+// Instrucción legible para el staff (misma idea que Canjes.jsx, con nombre limpio).
+function instruccionCanje(r) {
+  const cfg = r.configuracion || r.detalle || {};
+  const nombre = cfg.nombre || r.prizeName || '';
+  if (r.categoria === 'PRODUCTO') return `📦 Entregar ${nombre ? `“${nombre}”` : 'el producto'} en mostrador`;
+  if (r.categoria === 'SERVICIO') return `✂️ ${nombre ? `“${nombre}”` : 'Servicio'} de regalo`;
+  if (r.categoria === 'DESCUENTO') {
+    const val   = cfg.valorDescuento ?? cfg.valor ?? 0;
+    const esPct = cfg.tipoDescuento ? cfg.tipoDescuento === 'PORCENTAJE' : (cfg.tipo || '%') === '%';
+    return `🏷️ Aplicar ${esPct ? `${val}% OFF` : `$${Number(val).toLocaleString('es-CL')} OFF`} en caja`;
+  }
+  return nombre || 'Recompensa';
+}
+
+exports.canjearRecompensaLink = onCall({ region: 'us-central1', cors: true }, async (request) => {
+  const tid     = String(request.data?.tenant || '').trim();
+  const rid     = String(request.data?.rid    || '').trim();
+  const token   = String(request.data?.token  || '').trim();
+  const confirm = request.data?.confirm === true;
+  if (!tid || !rid) throw new HttpsError('invalid-argument', 'Link de canje inválido.');
+
+  const quien = await asegurarStaff(request, tid);
+  const { users, redemptions } = colecciones(tid);
+  const redRef = redemptions.doc(rid);
+
+  const snap = await redRef.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Este premio no existe o ya no está disponible.');
+  const r = snap.data();
+  if (token && r.token && String(r.token) !== token) {
+    throw new HttpsError('permission-denied', 'El código del premio no coincide.');
+  }
+  const exp = r.expiresAt?.toMillis ? r.expiresAt.toMillis() : 0;
+  const vencido = !!(exp && exp < Date.now());
+
+  const info = {
+    prizeName:   r.prizeName || 'Recompensa',
+    categoria:   r.categoria || null,
+    instruccion: instruccionCanje(r),
+    origen:      r.origen || null,
+    status:      r.status || null,
+    vencido,
+  };
+
+  // Preview: no marca nada, solo muestra qué es y su estado.
+  if (!confirm) return { ok: true, ...info };
+
+  if (r.status === 'approved') throw new HttpsError('failed-precondition', 'Este premio YA fue canjeado.');
+  if (r.status !== 'pending')  throw new HttpsError('failed-precondition', 'Este premio no está disponible.');
+  if (vencido)                 throw new HttpsError('failed-precondition', 'Este premio expiró.');
+
+  // Transacción — misma lógica que confirmarEntrega del panel (reads primero).
+  const isElegance   = tid === 'elegance';
+  const productosTid = marca.marcaAwareTenant(tid, 'productos');
+  const cfg = r.configuracion || {};
+  const stockRef = (r.categoria === 'PRODUCTO' && cfg.descuentaStock && cfg.skuProducto)
+    ? (isElegance ? db.collection('productos').doc(cfg.skuProducto)
+                  : db.collection(`tenants/${productosTid}/productos`).doc(cfg.skuProducto))
+    : null;
+  const userRef = r.userId ? users.doc(r.userId) : null;
+
+  await db.runTransaction(async (tx) => {
+    const rSnap = await tx.get(redRef);
+    if (!rSnap.exists) throw new HttpsError('not-found', 'El canje ya no existe.');
+    const rr = rSnap.data();
+    if (rr.status !== 'pending') throw new HttpsError('failed-precondition', 'Este premio ya fue procesado.');
+    const expMs = rr.expiresAt?.toMillis ? rr.expiresAt.toMillis() : 0;
+    if (expMs && expMs < Date.now()) throw new HttpsError('failed-precondition', 'El premio expiró antes de confirmar.');
+
+    const costo = Number(rr.costoSellos) || 0;
+    const necesitaDescuento = costo > 0 && rr.sellosCargados !== true;
+
+    // READS
+    const uSnap = userRef  ? await tx.get(userRef)  : null;
+    const sSnap = stockRef ? await tx.get(stockRef) : null;
+    if (necesitaDescuento) {
+      const disp = uSnap && uSnap.exists ? (uSnap.data().sellosDisponibles ?? uSnap.data().stamps ?? 0) : 0;
+      if (disp < costo) throw new HttpsError('failed-precondition', 'Saldo insuficiente del cliente.');
+    }
+
+    // WRITES
+    if (sSnap && sSnap.exists && Number(sSnap.data().stock ?? 0) > 0) {
+      tx.update(stockRef, { stock: FieldValue.increment(-1) });
+    }
+    tx.update(redRef, {
+      status:      'approved',
+      approvedAt:  FieldValue.serverTimestamp(),
+      approvedBy:  quien.email || quien.uid,
+      approvedVia: 'link-qr',
+    });
+    if (userRef && uSnap && uSnap.exists) {
+      const patch = {
+        historialSellos: FieldValue.arrayUnion({
+          fecha:        new Date().toISOString(),
+          tipo:         necesitaDescuento ? 'canje' : 'canje-aprobado',
+          cantidad:     necesitaDescuento ? -costo : 0,
+          nota:         `${rr.prizeName || 'Premio'} (canje por QR · ${quien.email || 'staff'})`,
+          redemptionId: rid,
+          categoria:    rr.categoria || 'SERVICIO',
+        }),
+      };
+      if (necesitaDescuento) {
+        patch.sellosDisponibles = FieldValue.increment(-costo);
+        patch.stamps            = FieldValue.increment(-costo);
+      }
+      tx.update(userRef, patch);
+    }
+  });
+
+  logger.info(`[canjes] canjearRecompensaLink ${tid}/${rid} por ${quien.email || quien.uid} (link-qr)`);
+  return { ok: true, done: true, ...info };
+});

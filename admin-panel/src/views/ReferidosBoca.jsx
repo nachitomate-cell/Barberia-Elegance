@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { onSnapshot, query, orderBy, limit, where, Timestamp, getCountFromServer } from 'firebase/firestore';
 import {
   Share2, Users, Award, Gift, Sparkles, RefreshCw,
   Copy, MessageCircle, ArrowUpRight,
@@ -42,6 +42,7 @@ export default function ReferidosBoca() {
   const [rp, setRp]                 = useState(null);   // referralProgram config
   const [users, setUsers]           = useState([]);
   const [awards, setAwards]         = useState([]);
+  const [esteMesCount, setEsteMesCount] = useState(null); // count exacto del mes
   const [loadingCfg, setLoadingCfg] = useState(true);
 
   // ── settings/general.referralProgram (config) ────────────────────
@@ -87,14 +88,37 @@ export default function ReferidosBoca() {
     return unsub;
   }, [tenant.id]);
 
+  // ── "Este mes": count aggregation exacto (sin tope de 50) ─────────
+  //    getCountFromServer con un solo where(createdAt>=) → 1 read, sin índice
+  //    compuesto. Fallback al cálculo desde el audit log si falla.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
+        const snap = await getCountFromServer(
+          query(tenantCol('referral_awards'), where('createdAt', '>=', Timestamp.fromMillis(d.getTime()))),
+        );
+        if (alive) setEsteMesCount(snap.data().count);
+      } catch { if (alive) setEsteMesCount(null); }
+    })();
+    return () => { alive = false; };
+  }, [tenant.id, awards.length]);
+
   // ── Métricas derivadas ───────────────────────────────────────────
   const metricas = useMemo(() => {
-    const total = awards.length;
+    // Total EXACTO: suma de referralConversionsCount (cada conversión incrementa
+    // exactamente un referidor). El audit log está topado a 50, así que
+    // awards.length subestimaba en programas con >50 conversiones.
+    const total = users.reduce((s, u) => s + (u.referralConversionsCount || 0), 0);
+
+    // Fallback de "este mes" desde el audit log (exacto hasta 50); si el count
+    // aggregation cargó, ese gana (exacto sin tope).
     const desdeInicioMes = (() => {
       const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
       return d.getTime();
     })();
-    const esteMes = awards.filter(a => {
+    const esteMesLog = awards.filter(a => {
       const t = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
       return t >= desdeInicioMes;
     }).length;
@@ -102,7 +126,7 @@ export default function ReferidosBoca() {
     const conCodigo   = users.filter(u => u.referralCode).length;
     const referidores = users.filter(u => (u.referralConversionsCount || 0) > 0);
     return {
-      total, esteMes,
+      total, esteMesLog,
       conCodigo,
       referidoresActivos: referidores.length,
     };
@@ -166,7 +190,7 @@ export default function ReferidosBoca() {
       {/* ── Métricas ────────────────────────────────────────────── */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard Icon={Award}    label="Conversiones totales"   value={fmt(metricas.total)} accent="amber"   />
-        <MetricCard Icon={Sparkles} label="Este mes"               value={fmt(metricas.esteMes)} accent="emerald" />
+        <MetricCard Icon={Sparkles} label="Este mes"               value={fmt(esteMesCount ?? metricas.esteMesLog)} accent="emerald" />
         <MetricCard Icon={Users}    label="Referidores activos"    value={fmt(metricas.referidoresActivos)} accent="violet" />
         <MetricCard Icon={Gift}     label="Clientes con código"    value={fmt(metricas.conCodigo)} accent="sky" />
       </section>

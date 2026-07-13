@@ -60,15 +60,20 @@ function normPhone(p) {
   return String(p || '').replace(/\D/g, '');
 }
 
-// Cuenta las citas del user (excluye la actual). Si es 0 → es la primera.
-// Ligero: proyecta solo el docId, sin traer campos.
-async function esPrimeraCita({ citasCol, userId, citaIdActual }) {
+// ¿Es la PRIMERA cita COMPLETADA de este user? Proyecta solo `estado`
+// (query de un solo campo → NO requiere índice compuesto) y cuenta las
+// Completadas distintas de la actual. Antes contaba TODAS las citas, así que
+// un referido que cancelaba/reagendaba antes de completar perdía su recompensa;
+// ahora solo cuentan las completadas.
+async function esPrimeraCitaCompletada({ citasCol, userId, citaIdActual }) {
   const snap = await citasCol
     .where('userId', '==', userId)
-    .select() // no bajamos data, solo docIds
+    .select('estado') // solo el campo estado, no toda la data
     .get();
-  const otros = snap.docs.filter(d => d.id !== citaIdActual);
-  return otros.length === 0;
+  const otrasCompletadas = snap.docs.filter(
+    d => d.id !== citaIdActual && d.data().estado === 'Completada',
+  );
+  return otrasCompletadas.length === 0;
 }
 
 // Otorga una recompensa polimórfica a un user. Si es SELLOS incrementa
@@ -146,12 +151,10 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
   const referredByCode = userData.referredByCode;
   if (!referredByCode) return { skip: 'sin-referredByCode' };
 
-  // Debe ser su primera cita COMPLETADA. Chequeamos solo citas del mismo user.
-  // Ojo: esPrimeraCita cuenta TODAS las citas del user; con el guard de
-  // estado arriba, permite otorgar en la primera cita completada aunque
-  // haya cancelado 3 antes.
-  const esPrimera = await esPrimeraCita({ citasCol: citas, userId, citaIdActual: citaId });
-  if (!esPrimera) return { skip: 'no-es-primera-cita' };
+  // Debe ser su PRIMERA cita COMPLETADA. Solo cuentan las Completadas: si el
+  // amigo canceló o reagendó antes de completar, igual recibe su recompensa.
+  const esPrimera = await esPrimeraCitaCompletada({ citasCol: citas, userId, citaIdActual: citaId });
+  if (!esPrimera) return { skip: 'no-es-primera-cita-completada' };
 
   // Config del programa debe estar habilitada.
   const setSnap = await settingsRef.get();

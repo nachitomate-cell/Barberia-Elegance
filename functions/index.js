@@ -822,6 +822,8 @@ const canjes = require('./canjes');
 exports.crearCanje              = canjes.crearCanje;
 exports.cancelarCanje           = canjes.cancelarCanje;
 exports.liberarCanjesExpirados  = canjes.liberarCanjesExpirados;
+// Canje por link/QR (autoservicio del staff, sin panel).
+exports.canjearRecompensaLink   = canjes.canjearRecompensaLink;
 
 // ─────────────────────────────────────────────────────────────────
 //  CUMPLEAÑOS AUTOMÁTICO — ver cumpleanos.js para detalles

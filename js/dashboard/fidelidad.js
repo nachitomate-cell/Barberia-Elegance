@@ -440,14 +440,16 @@ function _mostrarPinYQR(red) {
   document.getElementById('canjeTokenPrizeName').textContent = red.prizeName;
   document.getElementById('canjeTokenPin').textContent       = red.token;
 
-  // Payload del QR: incluye tenant, id y token para que el escáner pueda
-  // resolver directamente sin depender del PIN.
-  const payload = JSON.stringify({
-    v: 1,
-    tenant: window.CURRENT_TENANT_ID || 'elegance',
-    rid: red.id,
-    token: red.token,
-  });
+  // Payload del QR: una URL a la página de canje del staff. Cualquier barbero
+  // /admin la abre con la cámara nativa del teléfono (sin depender del panel),
+  // inicia sesión con su cuenta y confirma la entrega. La página + la Cloud
+  // Function canjearRecompensaLink validan que sea staff del local (si el link
+  // fuera abierto, el propio cliente se auto-canjearía desde la casa).
+  const _tenant = window.CURRENT_TENANT_ID || 'elegance';
+  const payload = `${location.origin}/canjear.html`
+    + `?t=${encodeURIComponent(_tenant)}`
+    + `&r=${encodeURIComponent(red.id)}`
+    + `&k=${encodeURIComponent(red.token || '')}`;
   const canvas = document.getElementById('canjeQrCanvas');
   if (canvas) {
     const pintarQR = () => window.QRCode.toCanvas(canvas, payload, {
