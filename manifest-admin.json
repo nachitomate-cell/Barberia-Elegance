@@ -10,6 +10,11 @@
   "background_color": "#080d17",
   "theme_color": "#080d17",
   "categories": ["business", "productivity"],
+  "shortcuts": [
+    { "name": "Buscar local", "short_name": "Buscar", "url": "/admin/?a=buscar", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Por cobrar", "short_name": "Cobrar", "url": "/admin/?a=cobrar", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Leads", "short_name": "Leads", "url": "/admin/?a=leads", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

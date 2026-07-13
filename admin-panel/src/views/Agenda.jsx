@@ -2976,6 +2976,9 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
       if (c.estado !== 'Cancelada' && c.estado !== 'NoAsistio') {
         const dur  = Number(c.duracion || c.duracionServicio || 30);
         const base = c.hora;
+        // Guard: citas legacy/corruptas pueden traer hora=null/'' → base.split
+        // explota y tumba el render completo de la agenda. Las saltamos.
+        if (typeof base !== 'string' || !base.includes(':')) return;
         const baseMin = parseInt(base.split(':')[0]) * 60 + parseInt(base.split(':')[1]);
         for (let offset = 0; offset < dur; offset += SLOT_M) {
           const m = baseMin + offset;

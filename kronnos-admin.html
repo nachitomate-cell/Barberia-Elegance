@@ -199,7 +199,9 @@
     });
 
     // Quién puede ver/usar este lobby admin de Kronnos.
-    const ALLOWED = ['administracionkronnos@gmail.com', 'ignaciiio.mate@gmail.com'];
+    // claudio.burgos91 = admin de marca (barbero + administrador); ya es
+    // brand admin en el panel (BRAND_ADMINS + esKronnosBrandAdmin).
+    const ALLOWED = ['administracionkronnos@gmail.com', 'ignaciiio.mate@gmail.com', 'claudio.burgos91@gmail.com'];
 
     const $ = id => document.getElementById(id);
     const show = id => { ['loginView','loadingView','lobbyView'].forEach(v => $(v).classList.toggle('hidden', v !== id)); };

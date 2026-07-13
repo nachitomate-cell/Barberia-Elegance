@@ -483,6 +483,14 @@
       background-position: center 35% !important;
       background-color: #18181b !important;
     }
+    /* ── STUDIO LUXURY — hereda el tema de Barbers Club (alias) pero usa el
+       banner REAL del local en el hero del dashboard, no la foto de barbersclub.
+       Va después para ganar por orden (misma especificidad). ── */
+    .tenant-estudioluxury .hero-bg {
+      background-image: url('/luxury/banner.png') !important;
+      background-position: center 42% !important;
+      background-color: #0b0a09 !important;
+    }
     .tenant-barbersclub .hero-overlay {
       background: linear-gradient(160deg,
         rgba(24,24,27,0.40) 0%, rgba(24,24,27,0.28) 40%, rgba(24,24,27,0.92) 100%);

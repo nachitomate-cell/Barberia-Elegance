@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Studio Luxury</title>
+  <style>
+    body { font-family: monospace; background: #0b0a09; color: #94a3b8; padding: 2rem; }
+    h1   { color: #DAA520; }
+    p code { color: #e8b04b; }
+    button { padding: .75rem 1.5rem; background: #DAA520; color: #0a0800; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #141210; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem;
+           border: 1px solid rgba(218,165,32,0.15); }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .note { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Studio Luxury 💈</h1>
+  <p>Popula <code>tenants/estudioluxury/</code> con barbero, servicios (precios reales de la
+     lista de Instagram), premios y configuración del club.</p>
+  <p class="note">⚠️ Escribe en Firestore de PRODUCCIÓN. Revisa los datos antes de ejecutar.<br>
+     ⚠️ Barbero cargado como "Matías" — confirma nombre/foto/WhatsApp desde el panel.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed completo</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    const TID = 'estudioluxury';
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
+    }
+
+    async function set(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    async function run() {
+      btn.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* ── Barbero (Matías, dueño · confirmar foto/WhatsApp en el panel) ── */
+        write('── Barberos ──');
+        const horarioBase = {
+          '1': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '2': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '3': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '4': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '5': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '6': { activo: true,  inicio: '10:00', fin: '18:00', descansos: [] },
+          '0': { activo: false, inicio: '10:00', fin: '20:00', descansos: [] },
+        };
+        await set(`tenants/${TID}/barberos/matias`, {
+          nombre: 'Matías', activo: true, disponible: true,
+          foto: '/luxury/luxury.jpg', horario: horarioBase, rol: 'Barbero',
+        });
+
+        /* ── Servicios · Cortes ── */
+        write('\n── Servicios · Cortes ──');
+        await set(`tenants/${TID}/servicios/corte-de-cabello`, {
+          nombre: 'Corte de Cabello', categoria: 'Cortes',
+          duracion: 40, precio: 10000, disponible: true, orden: 1,
+          descripcion: 'Corte a medida. Incluye lavado y arreglo de cejas.',
+        });
+        await set(`tenants/${TID}/servicios/diseno`, {
+          nombre: 'Diseño', categoria: 'Cortes',
+          duracion: 15, precio: 1000, disponible: true, orden: 2,
+          descripcion: 'Diseño de líneas y detalles. Desde $1.000 según complejidad.',
+        });
+
+        /* ── Servicios · Barba ── */
+        write('\n── Servicios · Barba ──');
+        await set(`tenants/${TID}/servicios/perfilado-de-barba`, {
+          nombre: 'Perfilado de Barba', categoria: 'Barba',
+          duracion: 20, precio: 4000, disponible: true, orden: 3,
+          descripcion: 'Perfilado y diseño de barba para un acabado prolijo.',
+        });
+
+        /* ── Servicios · Combos ── */
+        write('\n── Servicios · Combos ──');
+        await set(`tenants/${TID}/servicios/corte-limpieza-facial`, {
+          nombre: 'Corte + Limpieza Facial', categoria: 'Combos',
+          duracion: 55, precio: 15000, disponible: true, orden: 4,
+          descripcion: 'Corte a medida más limpieza facial profunda.',
+        });
+
+        /* ── Servicios · Facial ── */
+        write('\n── Servicios · Facial ──');
+        await set(`tenants/${TID}/servicios/limpieza-facial`, {
+          nombre: 'Limpieza Facial', categoria: 'Facial',
+          duracion: 30, precio: 10000, disponible: true, orden: 5,
+          descripcion: 'Limpieza facial profunda. Elimina impurezas y renueva la piel.',
+        });
+
+        /* ── Servicios · Color ── */
+        write('\n── Servicios · Color ──');
+        await set(`tenants/${TID}/servicios/visos`, {
+          nombre: 'Visos', categoria: 'Color',
+          duracion: 90, precio: 35000, disponible: true, orden: 6,
+          descripcion: 'Visos / mechas para dar dimensión y estilo al cabello.',
+        });
+        await set(`tenants/${TID}/servicios/global-platinado`, {
+          nombre: 'Global Platinado', categoria: 'Color',
+          duracion: 120, precio: 40000, disponible: true, orden: 7,
+          descripcion: 'Decoloración global y platinado profesional.',
+        });
+
+        /* ── Servicios · Domicilio ── */
+        write('\n── Servicios · Domicilio ──');
+        await set(`tenants/${TID}/servicios/corte-a-domicilio`, {
+          nombre: 'Corte a Domicilio', categoria: 'Domicilio',
+          duracion: 45, precio: 14000, disponible: true, orden: 8,
+          descripcion: 'Corte a domicilio en Talagante, Isla de Maipo y El Monte. Coordina la dirección por WhatsApp.',
+        });
+
+        /* ── Servicios · Membresía (suscripción) ── */
+        write('\n── Servicios · Membresía ──');
+        await set(`tenants/${TID}/servicios/suscripcion-mensual`, {
+          nombre: 'Suscripción Studio Luxury', categoria: 'Membresía',
+          duracion: 40, precio: 30000, disponible: true, orden: 9,
+          descripcion: 'Suscripción mensual: 4 cortes en un mes por $30.000. Consulta condiciones y vigencia.',
+        });
+
+        /* ── Premios / Club de Fidelidad ── */
+        write('\n── Premios · Club de Fidelidad ──');
+        const premCol = db.collection(`tenants/${TID}/premios`);
+        const premSnap = await premCol.get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
+        const addPremio = async (data) => {
+          await premCol.add(data);
+          write(`  ✓ Premio → "${data.nombre}" (${data.costoSellos} sellos)`, 'ok');
+        };
+        await addPremio({
+          nombre: 'Corte de cabello gratis',
+          descripcion: 'Al completar 6 sellos, obtén un corte de cabello completamente gratis.',
+          costoSellos: 6, icono: 'ph-scissors', activo: true,
+        });
+        await addPremio({
+          nombre: 'Perfilado de barba gratis',
+          descripcion: 'Al completar 4 sellos, canjea un perfilado de barba gratis.',
+          costoSellos: 4, icono: 'ph-user-focus', activo: true,
+        });
+
+        /* ── Config del Club ── */
+        write('\n── Configuración del Club ──');
+        await set(`tenants/${TID}/config/club`, {
+          nombreClub: 'Club Luxury',
+          descripcion: '1 sello por cada visita asistida. Al completar 6 sellos, obtén un corte gratis. '
+                     + 'Promo referidos: invita a 2 amigos que no se hayan cortado antes con nosotros y tu corte es gratis.',
+          totalSellos: 6,
+          sellosPorVisita: 1,
+          activo: true,
+        });
+
+        write('\n✅ Seed completado exitosamente.', 'ok');
+        write('   Recuerda: renombra el barbero y agrega su foto/WhatsApp desde el panel.', 'note');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

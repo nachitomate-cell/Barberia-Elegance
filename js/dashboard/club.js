@@ -73,7 +73,22 @@ async function renderReferralCard(userDocData) {
   const codeEl = document.getElementById('referralCodeDisplay');
   const nombreLocal = SHOP.nombre || SHOP.nombreCorto || 'nuestro Club';
   if (msgEl) {
-    const reward = rp.rewardText || '¡Gana beneficios exclusivos por cada amigo que se una!';
+    // Prioriza la recompensa estructurada (recompensaReferidor.textoDinamico);
+    // el rewardText legacy queda solo como respaldo. Antes se usaba SIEMPRE el
+    // legacy → el cliente veía "1 sello" aunque el dueño hubiera configurado 3.
+    const rewardRefdor = rp.recompensaReferidor && rp.recompensaReferidor.textoDinamico;
+    const rewardRefdo  = rp.recompensaReferido  && rp.recompensaReferido.textoDinamico;
+    let reward;
+    if (rewardRefdor) {
+      // "complete su primer corte": la recompensa se otorga al COMPLETAR la cita,
+      // no solo al reservar (coincide con el guard de la Cloud Function).
+      reward = `<span class="text-white font-bold">¡${rewardRefdor}</span> por cada amigo que se registre y complete su primer corte!`;
+      if (rewardRefdo) {
+        reward += `<br><span style="opacity:.65;font-size:12px">Tu amigo también recibe ${rewardRefdo} de bienvenida.</span>`;
+      }
+    } else {
+      reward = rp.rewardText || '¡Gana beneficios exclusivos por cada amigo que se una!';
+    }
     msgEl.innerHTML = `Comparte <span class="text-white font-bold">${nombreLocal}</span> y gana:<br>${reward}`;
   }
   if (codeEl) codeEl.textContent = code || '—';

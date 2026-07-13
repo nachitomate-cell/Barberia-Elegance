@@ -11,7 +11,7 @@ import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
-import { useAuth }   from '../../contexts/AuthContext';
+import { useAuth, getBrandTenants } from '../../contexts/AuthContext';
 import { useCollection } from '../../hooks/useCollection';
 import { useBillingRestriction } from '../BillingGate';
 
@@ -105,87 +105,100 @@ const MEMBRESIAS_ITEM = {
 /* ── Grupos de navegación ────────────────────────────────────────── */
 const NAV_GROUPS_DEFAULT = [
   {
-    id: 'operaciones',
-    label: 'Operaciones',
+    // Lo que se abre cada día.
+    id: 'operacion',
+    label: 'Operación',
     items: [
-      { to: 'inicio',         label: 'Inicio',          Icon: Home          },
-      { to: 'agenda',         label: 'Agenda',          Icon: CalendarDays  },
-      { to: 'por-cerrar',     label: 'Por cerrar',      Icon: CalendarClock },
-      { to: 'reserva-online', label: 'Reserva online',  Icon: Globe         },
-      { to: 'productos',      label: 'Productos',       Icon: ShoppingBag   },
+      { to: 'inicio',         label: 'Inicio',         Icon: Home          },
+      { to: 'agenda',         label: 'Agenda',         Icon: CalendarDays  },
+      { to: 'por-cerrar',     label: 'Por cerrar',     Icon: CalendarClock },
+      { to: 'reserva-online', label: 'Reserva online', Icon: Globe         },
+      { to: 'mensajes',       label: 'Mensajes',       Icon: MessageCircle },
     ],
   },
   {
+    // Relación con el cliente + TODA la retención junta.
     id: 'clientes',
     label: 'Clientes',
     items: [
-      { to: 'clientes',     label: 'Clientes',     Icon: Star          },
-      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,       variant: 'fideli' },
-      { to: 'mensajes',     label: 'Mensajes',     Icon: MessageCircle },
-      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp      },
+      { to: 'clientes',     label: 'Clientes',     Icon: Star                                          },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,   variant: 'fideli'                   },
+      { to: 'wallets',      label: 'Wallet',       Icon: Wallet,   adminOnly: true                     },
+      { to: 'gift-cards',   label: 'Gift Cards',   Icon: Gift,     adminOnly: true, variant: 'giftcard' },
+      { to: 'sorteos',      label: 'Sorteos',      Icon: Ticket,   adminOnly: true                     },
+      { to: 'referidos',    label: 'Referidos',    Icon: Sparkles, adminOnly: true, variant: 'referidos' },
     ],
   },
   {
-    id: 'conexiones',
-    label: 'Conexiones',
+    // Lo que ofreces / vendes.
+    id: 'catalogo',
+    label: 'Catálogo',
     items: [
-      { to: 'google',        label: 'Google',        Icon: GoogleIcon,        adminOnly: true, variant: 'google' },
-      { to: 'instagram',     label: 'Instagram',     Icon: Instagram,         adminOnly: false, variant: 'instagram' },
-      { to: 'whatsapp',      label: 'WhatsApp',      Icon: WhatsAppIcon,      adminOnly: true, variant: 'whatsapp' },
-      { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,    adminOnly: true, variant: 'tv' },
-      { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon,  adminOnly: true, variant: 'pagos' },
-      { to: 'wallets',       label: 'Wallet',        Icon: Wallet,            adminOnly: true },
+      { to: 'servicios',         label: 'Servicios',        Icon: Scissors                  },
+      { to: 'productos',         label: 'Productos',        Icon: ShoppingBag               },
+      { to: 'inventario',        label: 'Inventario',       Icon: Package,   adminOnly: true },
+      { to: 'lookbook',          label: 'Lookbook',         Icon: Images                    },
+      { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus                 },
     ],
   },
   {
     id: 'equipo',
     label: 'Equipo',
     items: [
-      { to: 'equipo',    label: 'Equipo',    Icon: Users    },
-      { to: 'servicios', label: 'Servicios', Icon: Scissors },
+      { to: 'equipo',     label: 'Equipo',     Icon: Users                     },
+      { to: 'comisiones', label: 'Comisiones', Icon: Banknote,  adminOnly: true },
     ],
   },
   {
-    id: 'contenido',
-    label: 'Contenido',
+    // Reputación + marketing en un solo lugar.
+    id: 'crecimiento',
+    label: 'Crecimiento',
     items: [
-      { to: 'lookbook',          label: 'Lookbook',              Icon: Images    },
-      { to: 'link-bio',          label: 'Link in Bio (bioo.cl)', Icon: Link2, adminOnly: true, variant: 'bioo' },
-      { to: 'servicio-favorito', label: 'Foto de servicio',      Icon: ImagePlus },
+      { to: 'marketing', label: 'Marketing',             Icon: Megaphone,  adminOnly: true                       },
+      { to: 'anuncios',  label: 'Anuncios',              Icon: BellRing,   adminOnly: true                       },
+      { to: 'resenas',   label: 'Reseñas',               Icon: ThumbsUp                                          },
+      { to: 'instagram', label: 'Instagram',             Icon: Instagram,  adminOnly: false, variant: 'instagram' },
+      { to: 'link-bio',  label: 'Link in Bio (bioo.cl)', Icon: Link2,      adminOnly: true,  variant: 'bioo'      },
     ],
   },
   {
-    id: 'analisis',
-    label: 'Análisis',
+    // Toda la plata junta.
+    id: 'finanzas',
+    label: 'Finanzas',
     items: [
-      { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
-      { to: 'comisiones',  label: 'Comisiones',      Icon: Banknote,     adminOnly: true  },
-      { to: 'facturacion', label: 'Facturación',     Icon: Receipt,      adminOnly: true  },
-      { to: 'inventario',  label: 'Inventario',      Icon: Package,      adminOnly: true  },
-      { to: 'gastos',      label: 'Gastos',          Icon: TrendingDown, adminOnly: true  },
       { to: 'caja',        label: 'Control de Caja', Icon: Wallet,       adminOnly: true  },
+      { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
+      { to: 'gastos',      label: 'Gastos',          Icon: TrendingDown, adminOnly: true  },
+      { to: 'facturacion', label: 'Facturación',     Icon: Receipt,      adminOnly: true  },
+      { to: 'mensualidad', label: 'Mensualidad',     Icon: CreditCard,   adminOnly: true  },
     ],
   },
   {
-    id: 'administracion',
-    label: 'Administración',
+    // Solo integraciones / plumbing.
+    id: 'conexiones',
+    label: 'Conexiones',
+    items: [
+      { to: 'google',        label: 'Google',        Icon: GoogleIcon,       adminOnly: true, variant: 'google'   },
+      { to: 'whatsapp',      label: 'WhatsApp',      Icon: WhatsAppIcon,     adminOnly: true, variant: 'whatsapp' },
+      { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,   adminOnly: true, variant: 'tv'       },
+      { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon, adminOnly: true, variant: 'pagos'    },
+    ],
+  },
+  {
+    // Configuración y soporte, al fondo.
+    id: 'sistema',
+    label: 'Sistema',
     adminOnly: true,
     items: [
-      { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,    adminOnly: true },
-      { to: 'anuncios',      label: 'Anuncios',       Icon: BellRing,     adminOnly: true },
-      { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,         adminOnly: true, variant: 'giftcard' },
-      { to: 'sorteos',       label: 'Sorteos',        Icon: Ticket,       adminOnly: true },
-      { to: 'lista-espera',  label: 'Lista de espera',Icon: ClipboardList,adminOnly: true },
-      { to: 'lista-negra',   label: 'Lista Negra',    Icon: UserX,        adminOnly: true },
+      { to: 'configuracion', label: 'Configuración',   Icon: Settings,     adminOnly: true },
+      { to: 'chatbot',       label: 'Chatbot · Syna',  Icon: SynaIcon,     adminOnly: true },
+      { to: 'lista-espera',  label: 'Lista de espera', Icon: ClipboardList,adminOnly: true },
+      { to: 'lista-negra',   label: 'Lista Negra',     Icon: UserX,        adminOnly: true },
       // Oculto del sidebar (la ruta /sucursales sigue activa si se accede directo).
-      // { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
-      { to: 'referidos',     label: 'Referidos',      Icon: Sparkles,     adminOnly: true, variant: 'referidos' },
-      { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,   adminOnly: true },
-      { to: 'chatbot',       label: 'Chatbot · Syna', Icon: SynaIcon,     adminOnly: true },
-      { to: 'configuracion', label: 'Configuración',  Icon: Settings,     adminOnly: true },
-      { to: 'consultas',     label: 'Consultas',      Icon: HelpCircle,   adminOnly: true },
-      { to: 'soporte',       label: 'Soporte',        Icon: Headphones,   adminOnly: true },
-      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen },
+      // { to: 'sucursales', label: 'Sucursales', Icon: Building2, adminOnly: true },
+      { to: 'consultas',     label: 'Consultas',       Icon: HelpCircle,   adminOnly: true },
+      { to: 'soporte',       label: 'Soporte',         Icon: Headphones,   adminOnly: true },
+      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen                      },
     ],
   },
 ];
@@ -566,6 +579,57 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
   );
 }
 
+/* ── Switch rápido de sede (solo brand admins Kronnos) ────────────
+ * admin.kronnos.synaptechspa.cl es UN solo origen → cambiar de sede es
+ * solo cambiar `?local=` (misma sesión Firebase, SIN re-login). Se
+ * muestra únicamente a los brand-admins (allowlist) parados en una sede. */
+const KRONNOS_SEDES_SWITCH = [
+  { tenant: 'kronnos_penablanca', label: 'Peñablanca', color: '#e11d2a' },
+  { tenant: 'kronnos_limache',    label: 'Limache',    color: '#f97316' },
+  { tenant: 'kronnos_woman',      label: 'Woman',      color: '#ec4899' },
+];
+
+function SedeSwitcher() {
+  const { user } = useAuth();
+  const tenant   = useTenant();
+  const brandTenants = getBrandTenants(user?.email);
+  if (!brandTenants) return null;
+  const sedes = KRONNOS_SEDES_SWITCH.filter(s => brandTenants.includes(s.tenant));
+  // Solo con 2+ sedes accesibles y estando parado en una de ellas.
+  if (sedes.length < 2 || !sedes.some(s => s.tenant === tenant.id)) return null;
+
+  const irASede = (t) => {
+    if (t === tenant.id) return;
+    // Mismo origen → misma sesión, sin re-login. Conserva la vista actual.
+    window.location.href = `${window.location.pathname}?local=${encodeURIComponent(t)}`;
+  };
+
+  return (
+    <div className="mt-3">
+      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Cambiar de sede</p>
+      <div className="grid grid-cols-3 gap-1">
+        {sedes.map(s => {
+          const active = s.tenant === tenant.id;
+          return (
+            <button
+              key={s.tenant}
+              onClick={() => irASede(s.tenant)}
+              title={`Ir a Kronnos ${s.label}`}
+              aria-current={active ? 'true' : undefined}
+              className={`text-[10px] font-bold py-1.5 px-1 rounded-lg truncate transition-all active:scale-95 ${
+                active ? 'text-white shadow-sm' : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white'
+              }`}
+              style={active ? { background: s.color } : undefined}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
@@ -619,7 +683,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
     // servicios y el clubBanner en la página pública. Solo este tenant.
     if (tenant.id === 'elegance') {
       base = base.map(group => {
-        if (group.id !== 'contenido') return group;
+        if (group.id !== 'crecimiento') return group;
         return {
           ...group,
           items: [
@@ -634,7 +698,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
     // para máxima visibilidad. Solo este tenant lo ve.
     if (tenant.id === 'aura') {
       base = base.map(group => {
-        if (group.id !== 'administracion') return group;
+        if (group.id !== 'sistema') return group;
         return {
           ...group,
           items: [
@@ -690,6 +754,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
             </button>
           )}
         </div>
+        <SedeSwitcher />
       </div>
 
       {/* Nav agrupado — único área scrollable. `min-h-0` permite que

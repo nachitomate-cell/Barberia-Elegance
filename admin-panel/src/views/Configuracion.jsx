@@ -229,6 +229,221 @@ function DayRow({ diaKey, config, onChange }) {
    (frase leíble). `detalle.*` es lo que consumirá la CF de otorgamiento
    en Fase 2 (productoId, servicioId, tipo/valor de descuento, sellos).
    ──────────────────────────────────────────────────────────────── */
+/* Explicación visual del flujo del programa de referidos (3 pasos). */
+function ReferralComoFunciona() {
+  const pasos = [
+    { n: 1, emoji: '🔗', t: 'Cada cliente recibe su código', d: 'Aparece solo en su app (pestaña Fidelización), con botones para copiar y compartir por WhatsApp.' },
+    { n: 2, emoji: '🙋', t: 'Un amigo se registra con el código', d: 'Al crear su cuenta pega el código y queda vinculado al cliente que lo invitó.' },
+    { n: 3, emoji: '✅', t: 'El amigo completa su primer corte', d: 'Cuando marcas esa cita como “Completada” en tu agenda, los dos reciben su recompensa automáticamente.' },
+  ];
+  return (
+    <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-3.5">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">Cómo funciona</p>
+      <div className="grid gap-2.5 sm:grid-cols-3">
+        {pasos.map(p => (
+          <div key={p.n} className="flex gap-2.5 sm:flex-col sm:gap-1.5">
+            <span className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black flex items-center justify-center shrink-0">{p.n}</span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-white leading-tight">{p.emoji} {p.t}</p>
+              <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{p.d}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-amber-400/80 mt-3 flex items-start gap-1.5 leading-relaxed">
+        <span className="shrink-0">⚠️</span>
+        <span>La recompensa se entrega al <b>completar</b> la primera cita, no solo al reservar — así nadie abusa reservando y cancelando.</span>
+      </p>
+    </div>
+  );
+}
+
+/* QR falso decorativo (grid determinista) para el mock de canje. */
+function FakeQR() {
+  return (
+    <div className="w-24 h-24 bg-white rounded-lg p-1.5 grid grid-cols-7 grid-rows-7 gap-[2px]">
+      {Array.from({ length: 49 }).map((_, i) => {
+        const r = Math.floor(i / 7), c = i % 7;
+        const finder = (r < 3 && c < 3) || (r < 3 && c > 3) || (r > 3 && c < 3);
+        const on = finder ? !((r === 1 && c === 1) || (r === 1 && c === 5) || (r === 5 && c === 1)) : ((i * 13 + 5) % 3 === 0);
+        return <div key={i} className={on ? 'bg-black rounded-[1px]' : 'bg-white'} />;
+      })}
+    </div>
+  );
+}
+
+/* Vista previa animada del SISTEMA COMPLETO de referidos + canje.
+   Un mock de teléfono que cicla las 7 etapas de punta a punta. Usa el nombre
+   real del local y las recompensas configuradas donde aplica. */
+function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
+  const nombre = nombreLocal || 'Tu Barbería';
+  const rDor = referidor?.textoDinamico || '3 sellos gratis';
+  const rDo  = referido?.textoDinamico || '1 sello gratis';
+  const [phase, setPhase] = useState(0);
+  const N = 7;
+
+  useEffect(() => {
+    const dur = [2900, 2500, 2700, 2700, 2500, 2700, 3100];
+    const t = setTimeout(() => setPhase(p => (p + 1) % N), dur[phase]);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  const CAPTIONS = [
+    '1 · Tu cliente comparte su código',
+    '2 · Un amigo se registra con el código',
+    '3 · El amigo completa su primer corte',
+    '4 · Ambos ganan su recompensa (automático)',
+    '5 · El cliente ve su premio en la app',
+    '6 · Lo abre: QR + PIN de 4 dígitos',
+    '7 · El local lo escanea y lo entrega',
+  ];
+
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 mb-2">Vista previa · el sistema completo</p>
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/60 p-5">
+        {/* Teléfono */}
+        <div className="relative w-[250px] h-[400px] rounded-[2rem] border-[5px] border-neutral-800 bg-black overflow-hidden shadow-2xl">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-neutral-800 rounded-b-2xl z-20" />
+          <div key={phase} className="absolute inset-0 animate-in fade-in duration-500">
+
+            {/* ── 0 · Comparte ── */}
+            {phase === 0 && (
+              <div className="h-full bg-black p-3.5 pt-8 flex flex-col justify-center">
+                <p className="text-center text-[10px] text-white/40 font-bold tracking-widest mb-3">{nombre.toUpperCase()}</p>
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 text-center">
+                  <div className="text-2xl mb-1">🎁</div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Invita y gana</p>
+                  <p className="text-[11px] text-white mt-1.5 leading-snug">Comparte <b>{nombre}</b> y gana <b className="text-emerald-300">{rDor}</b> por cada amigo.</p>
+                  <div className="mt-2.5 bg-black/50 border border-neutral-700 rounded-lg py-1.5 text-sm font-black tracking-widest text-white">IGNA-6072</div>
+                  <div className="flex gap-1.5 mt-2.5">
+                    <div className="flex-1 bg-neutral-800 rounded-md py-1.5 text-[9px] text-neutral-300 font-bold">📋 Copiar</div>
+                    <div className="flex-1 bg-emerald-500 rounded-md py-1.5 text-[9px] text-black font-black">📱 WhatsApp</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── 1 · El amigo se registra ── */}
+            {phase === 1 && (
+              <div className="h-full bg-black p-4 pt-9 flex flex-col">
+                <p className="text-sm font-bold text-white text-center mb-3">Crear cuenta</p>
+                <div className="space-y-2">
+                  <div className="h-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center px-2.5 text-[11px] text-neutral-500">Nombre del amigo</div>
+                  <div className="h-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center px-2.5 text-[11px] text-neutral-500">+56 9 ····</div>
+                  <div className="h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-between px-2.5 animate-pulse">
+                    <span className="text-[9px] text-emerald-300/70 uppercase tracking-wide font-bold">Código de referido</span>
+                    <span className="text-[12px] font-black tracking-widest text-emerald-300">IGNA-6072</span>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-lg bg-white text-black text-center py-2 text-[11px] font-bold">Crear cuenta</div>
+                <p className="text-[9px] text-neutral-500 text-center mt-2.5">Queda vinculado a quien lo invitó ✓</p>
+              </div>
+            )}
+
+            {/* ── 2 · Completa su primer corte ── */}
+            {phase === 2 && (
+              <div className="h-full bg-neutral-950 p-4 pt-9 flex flex-col">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">Agenda del barbero</p>
+                <div className="rounded-xl border-l-4 border-emerald-500 bg-neutral-900 p-3">
+                  <p className="text-[12px] font-bold text-white">Amigo nuevo</p>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">Corte · 12:30</p>
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 text-[10px] font-bold text-emerald-400">
+                    <span className="animate-pulse">✓</span> Completada
+                  </div>
+                </div>
+                <p className="text-[10px] text-neutral-500 mt-3.5 text-center leading-relaxed">El barbero marca la cita como <b className="text-neutral-300">Completada</b> → se dispara la recompensa.</p>
+              </div>
+            )}
+
+            {/* ── 3 · Ambos ganan ── */}
+            {phase === 3 && (
+              <div className="h-full bg-gradient-to-b from-emerald-500/10 to-black p-4 pt-9 flex flex-col items-center text-center">
+                <div className="text-3xl mb-1.5">🎉</div>
+                <p className="text-sm font-black text-white">¡Recompensa automática!</p>
+                <div className="w-full space-y-2 mt-3">
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-2">
+                    <p className="text-[9px] text-emerald-400/70 uppercase font-bold tracking-wide">Referidor · tu cliente</p>
+                    <p className="text-[12px] font-black text-emerald-300">+ {rDor}</p>
+                  </div>
+                  <div className="rounded-lg bg-sky-500/10 border border-sky-500/25 p-2">
+                    <p className="text-[9px] text-sky-400/70 uppercase font-bold tracking-wide">Referido · el amigo</p>
+                    <p className="text-[12px] font-black text-sky-300">+ {rDo}</p>
+                  </div>
+                </div>
+                <p className="text-[9px] text-neutral-500 mt-3 leading-relaxed">Si es <b>sellos</b>, se suman al instante. Si es <b>servicio/producto</b>, se canjea así ↓</p>
+              </div>
+            )}
+
+            {/* ── 4 · Cliente ve su premio ── */}
+            {phase === 4 && (
+              <div className="h-full bg-black p-4 pt-9 flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm font-bold text-white">Recompensas</p>
+                  <span className="text-[9px] font-black bg-amber-500 text-black rounded-full px-1.5 py-0.5">1</span>
+                </div>
+                <div className="rounded-2xl p-3 flex items-center gap-2.5" style={{ background: 'linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04))', border: '1px solid rgba(251,191,36,.25)' }}>
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-base">🎁</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-white">Corte gratis</p>
+                    <p className="text-[9px] text-white/50">Por invitar a un amigo</p>
+                  </div>
+                  <span className="text-[9px] font-bold text-white/70 bg-white/10 rounded-full px-2 py-1">Canjear →</span>
+                </div>
+                <p className="text-[9px] text-neutral-500 mt-3.5 text-center">El cliente ve su premio en la app y toca “Canjear”.</p>
+              </div>
+            )}
+
+            {/* ── 5 · QR + PIN ── */}
+            {phase === 5 && (
+              <div className="h-full bg-black p-4 pt-9 flex flex-col items-center">
+                <p className="text-[12px] font-bold text-white">Corte gratis</p>
+                <p className="text-[9px] text-neutral-500 mb-3">Muéstralo en el local</p>
+                <FakeQR />
+                <div className="mt-3 text-center">
+                  <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">PIN</p>
+                  <p className="text-2xl font-black tracking-[0.35em] text-white">4821</p>
+                </div>
+                <div className="mt-2 text-[9px] text-red-400/80 font-bold">Expira en 04:58 ⏳</div>
+              </div>
+            )}
+
+            {/* ── 6 · El local lo valida ── */}
+            {phase === 6 && (
+              <div className="h-full bg-neutral-950 p-4 pt-9 flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-emerald-400 text-sm">🔍</span>
+                  <p className="text-sm font-bold text-white">Canjes · Panel</p>
+                </div>
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-black text-lg font-black">✓</div>
+                    <div>
+                      <p className="text-[12px] font-bold text-white">Corte gratis</p>
+                      <p className="text-[10px] text-emerald-400">Validado · PIN 4821</p>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 rounded-lg bg-black/40 border border-neutral-800 p-2 text-[10px] text-neutral-300">✂️ “Corte gratis” de regalo · aplicar en la sesión</div>
+                </div>
+                <p className="text-[9px] text-neutral-500 mt-3.5 text-center leading-relaxed">El staff escanea el QR o teclea el PIN, ve qué entregar, y confirma. ✅</p>
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* Caption + progreso */}
+        <p className="text-xs font-semibold text-white text-center min-h-[2.5rem] flex items-center">{CAPTIONS[phase]}</p>
+        <div className="flex gap-1.5">
+          {Array.from({ length: N }).map((_, i) => (
+            <span key={i} className={`h-1 rounded-full transition-all duration-300 ${i === phase ? 'w-5 bg-emerald-400' : 'w-1.5 bg-neutral-700'}`} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecompensaEstructurada({ title, subtitle, value, onChange, productos, servicios }) {
   const inp = 'h-9 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500';
   const cat = value?.categoria || null;
@@ -1117,7 +1332,7 @@ export default function Configuracion() {
           <div>
             <span className="text-sm font-semibold text-white">Activar programa de referidos</span>
             <p className="text-xs text-slate-500 mt-0.5">
-              Muestra un código único a cada cliente para que invite amigos. Cuando el amigo se registra usando ese código, queda vinculado al referidor.
+              Convierte a tus clientes en promotores: cada uno recibe un código para invitar amigos, y cuando el amigo completa su primer corte, premias a los dos automáticamente.
             </p>
           </div>
           <button type="button" onClick={() => setRef('enabled', !form.referralProgram.enabled)}
@@ -1127,28 +1342,37 @@ export default function Configuracion() {
         </div>
         {form.referralProgram.enabled && (
           <div className="space-y-3 mt-4">
+            <ReferralComoFunciona />
+
             <RecompensaEstructurada
-              title="🎁 Recompensa al REFERIDOR"
-              subtitle="Lo que recibe el cliente que comparte su código."
+              title="🎁 Recompensa para el REFERIDOR"
+              subtitle="Lo que gana tu cliente cada vez que un amigo suyo se une y completa su primer corte."
               value={form.referralProgram.recompensaReferidor}
               onChange={v => setRef('recompensaReferidor', v)}
               productos={productos}
               servicios={servicios}
             />
             <RecompensaEstructurada
-              title="🙋 Recompensa al REFERIDO (nuevo cliente)"
-              subtitle="Lo que recibe el cliente que usa el código al registrarse."
+              title="🙋 Recompensa para el REFERIDO (el amigo nuevo)"
+              subtitle="El regalo de bienvenida para quien se registra con el código. Un buen gancho para que acepten la invitación."
               value={form.referralProgram.recompensaReferido}
               onChange={v => setRef('recompensaReferido', v)}
               productos={productos}
               servicios={servicios}
             />
 
-            {/* Copy general del programa — se muestra si no hay recompensas nuevas
-                (backward compat con tenants existentes) o como slogan del banner. */}
-            <details className="pt-2">
+            <ReferralSystemPreview
+              nombreLocal={form.nombre}
+              referidor={form.referralProgram.recompensaReferidor}
+              referido={form.referralProgram.recompensaReferido}
+            />
+
+            {/* Texto libre del banner — SOLO fallback. Con recompensas
+                estructuradas arriba, la tarjeta del cliente usa esas y este
+                texto se ignora (evita el desfase "config dice 3, cliente ve 1"). */}
+            <details className="pt-1">
               <summary className="text-[11px] text-slate-500 cursor-pointer hover:text-slate-300">
-                Copy del banner (opcional, legacy)
+                Texto personalizado del banner (avanzado — opcional)
               </summary>
               <div className="mt-2">
                 <textarea className={`${inp} resize-none`} rows={2}
@@ -1156,8 +1380,7 @@ export default function Configuracion() {
                   value={form.referralProgram.rewardText}
                   onChange={e => setRef('rewardText', e.target.value)} />
                 <p className="text-[11px] text-slate-500 mt-1.5">
-                  Texto libre de fallback. Los tenants sin recompensa estructurada
-                  siguen mostrando este mensaje en la tarjeta de <code>/club</code>.
+                  Solo se usa como <b>respaldo</b> si arriba no elegiste ninguna recompensa. Si configuraste “Sellos gratis” (u otra), la tarjeta del cliente muestra esa y este texto se ignora.
                 </p>
               </div>
             </details>

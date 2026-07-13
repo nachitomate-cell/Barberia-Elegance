@@ -46,7 +46,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.3"></script>
-  <script src="/js/utils/error-logger.js?v=1.1"></script>
+  <script src="/js/utils/error-logger.js?v=1.2"></script>
   <script src="firebaseUtils.js?v=3.1"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script src="/js/guards/version-manager.js?v=1.1"></script>
@@ -885,31 +885,13 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
-    /* Ocultar campos de contraseña y botón de recuperar para tenants passwordless (Aura, D'Jones, Kronnos, Infinity, etc.) */
-    :is(.tenant-aura,.tenant-latincaribe) #panelLogin .relative,
-    :is(.tenant-aura,.tenant-latincaribe) #panelRegister .relative,
-    :is(.tenant-aura,.tenant-latincaribe) button[onclick="switchTab('reset')"],
-    .tenant-lumen #panelLogin .relative,
-    .tenant-lumen #panelRegister .relative,
-    .tenant-lumen button[onclick="switchTab('reset')"],
-    .tenant-kronnos_penablanca #panelLogin .relative,
-    .tenant-kronnos_penablanca #panelRegister .relative,
-    .tenant-kronnos_penablanca button[onclick="switchTab('reset')"],
-    .tenant-kronnos_limache #panelLogin .relative,
-    .tenant-kronnos_limache #panelRegister .relative,
-    .tenant-kronnos_limache button[onclick="switchTab('reset')"],
-    .tenant-yugen #panelLogin .relative,
-    .tenant-yugen #panelRegister .relative,
-    .tenant-yugen button[onclick="switchTab('reset')"],
-    .tenant-kronnos_woman #panelLogin .relative,
-    .tenant-kronnos_woman #panelRegister .relative,
-    .tenant-kronnos_woman button[onclick="switchTab('reset')"],
-    .tenant-sionbarberia #panelLogin .relative,
-    .tenant-sionbarberia #panelRegister .relative,
-    .tenant-sionbarberia button[onclick="switchTab('reset')"],
-    .tenant-infinity #panelLogin .relative,
-    .tenant-infinity #panelRegister .relative,
-    .tenant-infinity button[onclick="switchTab('reset')"] {
+    /* Passwordless por DEFAULT (todos los tenants): ocultamos los campos de
+       contraseña y el enlace "¿Olvidaste tu contraseña?". El bloque de abajo
+       (.show-password-fallback) los vuelve a mostrar solo cuando una cuenta
+       antigua con contraseña propia necesita migrarse durante el login. */
+    #panelLogin .relative,
+    #panelRegister .relative,
+    button[onclick="switchTab('reset')"] {
       display: none !important;
     }
     /* Mostrar campos de contraseña en Aura, Lumen, Infinity si hay fallback de contraseña custom */
@@ -2026,8 +2008,12 @@
   // su email; el sistema usa una password fija interna por tenant. Hoy: aura y
   // lumen (D'Jones). Para sumar otro, agregarlo al array.
   const PASSWORDLESS_TENANTS = ['aura', 'latincaribe', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman', 'yugen', 'sionbarberia', 'infinity'];
+  // Passwordless es el DEFAULT para TODOS los tenants (2026-07). El array de
+  // arriba queda como referencia histórica de los primeros en adoptarlo; ya no
+  // restringe. Las cuentas antiguas creadas con contraseña propia se migran
+  // solas en el primer login (ver fallback `show-password-fallback` abajo).
   function isPasswordless() {
-    return PASSWORDLESS_TENANTS.includes(window.CURRENT_TENANT_ID);
+    return true;
   }
   function clubPassword() {
     // Password interna fija por tenant. NO cambiar las existentes (rompería
@@ -2039,6 +2025,7 @@
     if (tid === 'yugen') return 'YugenLoyaltyPassword2026!';
     if (tid === 'sionbarberia') return 'DieciseisLoyaltyPassword2026!';
     if (tid === 'infinity') return 'InfinityLoyaltyPassword2026!';
+    if (tid === 'estudioluxury') return 'LuxuryLoyaltyPassword2026!';
     return 'AuraLoyaltyPassword2026!';
   }
   auth.onAuthStateChanged(async user => {

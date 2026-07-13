@@ -48,6 +48,7 @@
     'kronnos-woman.synaptechspa.cl':      'kronnos_woman',
     'barbersclub.synaptechspa.cl':        'barbersclub',
     'elbarberomoderno.synaptechspa.cl':   'elbarberomoderno',
+    'estudioluxury.synaptechspa.cl':      'estudioluxury',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -55,6 +56,11 @@
   const _themeAlias = {
     // elbarberomoderno tiene tema propio "Silver & Pure Dark" — ver bloque
     // .tenant-elbarberomoderno en index.html.
+    // Estudio Luxury reutiliza el tema "Premium Dark" (dark + dorado) de
+    // Barbers Club en las 3 superficies —index.html (booking), registro.html
+    // y dashboard.css— sin duplicar CSS. Se distingue solo por contenido
+    // (logo, nombre, slogan, watermark) y datos.
+    estudioluxury: 'barbersclub',
   };
 
   const _tenants = {
@@ -116,7 +122,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CalD8G9cDQ8FEAI/review', // Peñablanca (unica sede con Google Business review)
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJV4oFY8XXiZYRqUPwb1wNDwU', // Peñablanca (unica sede con Google Business review)
       // ── Dashboard (club): copy del hero, subtítulo del header y watermark ──
       // heroLine1/2: string = innerHTML (admite <br>) · false = oculto · ausente = default
       headerSub:       'STUDIO',
@@ -140,7 +146,7 @@
           telefono:         '56982504870',
           instagram:        'https://www.instagram.com/Kronnos.pb/',
           instagramHandle:  '@Kronnos.pb',
-          googleReviewUrl:  'https://g.page/r/CalD8G9cDQ8FEAI/review',
+          googleReviewUrl:  'https://search.google.com/local/writereview?placeid=ChIJV4oFY8XXiZYRqUPwb1wNDwU',
           colorAccent:      '#e11d2a', // rojo Peñablanca
           heroBgUrl:        '/kronnos/kronospena.png',
           logo:             '/kronnos/studio.jpg',
@@ -167,7 +173,7 @@
           telefono:         '56920241041',
           instagram:        'https://www.instagram.com/kronnos.studio/',
           instagramHandle:  '@kronnos.studio',
-          googleReviewUrl:  'https://g.page/r/CZ4zw9oWz-iJEAI/review',
+          googleReviewUrl:  'https://search.google.com/local/writereview?placeid=ChIJS-YkghHViZYRnjPD2hbP6Ik',
           colorAccent:      '#f97316', // naranja Limache
           heroBgUrl:        '/kronnos/kronoslima.png',
           logo:             '/kronnos/studio.jpg',
@@ -238,7 +244,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CalD8G9cDQ8FEAI/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJV4oFY8XXiZYRqUPwb1wNDwU',
       ratingGeneral:   4.3,     // real Google (7 opiniones al 2026-07-09)
       totalReviews:    7,
       reviews:         [],
@@ -361,7 +367,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CT_OVpP50fd8EBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJS67hFAzdiZYRP85Wk_nR93w',
       ratingGeneral: 4.8,
       totalReviews:  46,
       reviews: [
@@ -426,7 +432,7 @@
         { author: 'Cristian Veas',        rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, con tema de conversación, ambiente muy agradable y precio acorde al resultado. 5/5' },
         { author: 'Jorge Miranda',         rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras, creo que es lo que más destacaría, primera vez que voy, y volvería a ir.' },
       ],
-      googleReviewUrl: 'https://g.page/r/CQJzgHEVI1p-EBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJkWF0fDDdiZYRAnOAcRUjWn4',
       features: {
         hasCourses: true,
         courses: {
@@ -464,7 +470,7 @@
       instagram:       'https://www.instagram.com/d.jonesbarberia/',
       instagramHandle: '@d.jonesbarberia',
       waEmoji:         '⚓',
-      googleReviewUrl: 'https://g.page/r/CaRaQIfLJDVrEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJL9JDMXTfiZYRpFpAh8skNWs',
       ratingGeneral: 4.98,
       totalReviews:  64,
       reviews: [
@@ -516,7 +522,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CZ39qJYmBtlqEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJV8m8wKXdiZYRnf2oliYG2Wo',
       ratingGeneral: 0,
       totalReviews:  0,
       reviews:       [],
@@ -564,7 +570,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CSAV1u-lXwVeEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJr877gzibCoQRIBXW76VfBV4',
       ratingGeneral: 4.8,
       totalReviews:  72,
       reviews: [
@@ -623,7 +629,7 @@
       instagram:       'https://www.instagram.com/aura.salon.cl',
       instagramHandle: '@aura.salon.cl',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CRw9h990wQ5jEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJsdBD2IvdiZYRHD2H33TBDmM',
       ratingGeneral: 5.0,
       totalReviews:  43,
       reviews: [
@@ -650,7 +656,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: 'https://g.page/r/CYzjmLVF5B4FEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJUbDnXQAFmJYRjOOYtUXkHgU',
       ratingGeneral:   0,
       totalReviews:    0,
       reviews:         [],
@@ -862,7 +868,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '☯',
-      googleReviewUrl: 'https://g.page/r/CQfin_qogrhoEBM/review',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJ_y0F1__NiZYRB-Kf-qiCuGg',
       ratingGeneral:   0,
       totalReviews:    0,
       reviews:         [],
@@ -938,6 +944,41 @@
       barberos: [
         { nombre: 'Jhoseth Morales', foto: '/elbarberomoderno/barbero2.jpg', disponible: true },
       ],
+    },
+    // ── STUDIO LUXURY — barbería clásica (dark + dorado/naranja) · Talagante ──
+    // Acceso: ?local=estudioluxury  o  estudioluxury.synaptechspa.cl
+    // Reutiliza el tema "Premium Dark" de Barbers Club vía _themeAlias.
+    // Logo real en /luxury/luxury.jpg. Servicios/precios → seed-estudioluxury.html.
+    // ⚠️ Pendiente del cliente: teléfono (WhatsApp), dirección exacta del local,
+    //    horario definitivo y nombre(s) del/los barbero(s).
+    estudioluxury: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Domicilio', 'Membresía'],
+      nombre:          'Studio Luxury',
+      nombreCorto:     'Luxury',
+      pageTitle:       'Studio Luxury | Barbería · Agenda tu hora',
+      bodyBg:          '#0b0a09',
+      slogan:          'Estilo y distinción en cada corte.',
+      sobreNosotros:   'Barbería Studio Luxury: cortes clásicos y modernos con atención de lujo. Servicio en local y a domicilio en Talagante, Isla de Maipo y El Monte. Consulta por nuestra suscripción mensual (4 cortes) y nuestras promociones.',
+      logo:            '/luxury/luxury.jpg',
+      banner:          '/luxury/banner.png',   // foto real de la estación de Matías (hero)
+      direccion:       '📍 Talagante · Isla de Maipo · El Monte (local y domicilio)',
+      horario:         '🕒 Lun a Sáb · Agenda tu hora',
+      telefono:        '56958994297',    // WhatsApp Matías
+      club:            'Club Luxury',
+      headerSub:       'BARBERÍA',
+      heroLine1:       'Estilo &',
+      heroLine2:       'Distinción.',
+      watermark:       'L',
+      instagram:       'https://www.instagram.com/estudio.luxury_/',
+      instagramHandle: '@estudio.luxury_',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      darkHeader:      true,
+      headerBg:        '#0b0a09',
+      barberos:        [],               // se provisiona en Firestore (ver seed-estudioluxury.html)
     },
   };
 

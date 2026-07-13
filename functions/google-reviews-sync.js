@@ -116,14 +116,10 @@ async function pickSpanishText(review) {
   return translateToSpanish(originalStr, src);
 }
 
-// Consulta Google Places (New) y mergea el resultado en el doc del tenant.
-// Devuelve un resumen; si el local no tiene placeId, lo omite sin error.
-async function syncTenant(tenantId, apiKey) {
-  const ref  = reviewsDocRef(tenantId);
-  const snap = await ref.get();
-  const placeId = snap.exists ? (snap.data().placeId || '') : '';
-  if (!placeId) return { tenantId, skipped: 'sin placeId' };
-
+// Consulta Google Places (New) por un placeId y devuelve { rating,
+// totalReviews, reviews[] } ya normalizado y en español. Lo usan syncTenant
+// (cron) y googleReviewsVincular (autoservicio). Tira si el placeId es inválido.
+async function fetchPlaceReviews(placeId, apiKey) {
   // X-Goog-Language-Code: 'es' es una pista para Places API pero NO garantiza
   // traduccion — Google es inconsistente. Lo dejamos por si algun placeId lo
   // respeta, pero fallbackeamos a MyMemory abajo para los que no.
@@ -148,16 +144,31 @@ async function syncTenant(tenantId, apiKey) {
     time:   localizeTimeString(r.relativePublishTimeDescription || ''),
   })));
 
-  await ref.set({
+  return {
     rating:       typeof data.rating === 'number' ? data.rating : null,
     totalReviews: typeof data.userRatingCount === 'number' ? data.userRatingCount : null,
     reviews,
-    source:       'google-places',
-    updatedAt:    Timestamp.now(),
+  };
+}
+
+// Consulta Google Places (New) y mergea el resultado en el doc del tenant.
+// Devuelve un resumen; si el local no tiene placeId, lo omite sin error.
+async function syncTenant(tenantId, apiKey) {
+  const ref  = reviewsDocRef(tenantId);
+  const snap = await ref.get();
+  const placeId = snap.exists ? (snap.data().placeId || '') : '';
+  if (!placeId) return { tenantId, skipped: 'sin placeId' };
+
+  const { rating, totalReviews, reviews } = await fetchPlaceReviews(placeId, apiKey);
+
+  await ref.set({
+    rating, totalReviews, reviews,
+    source:    'google-places',
+    updatedAt: Timestamp.now(),
   }, { merge: true }); // merge: conserva el placeId existente
 
-  logger.info(`[GoogleReviews] ${tenantId}: ${data.rating} · ${data.userRatingCount} opiniones (${reviews.length} reseñas)`);
-  return { tenantId, rating: data.rating, totalReviews: data.userRatingCount, reviews: reviews.length };
+  logger.info(`[GoogleReviews] ${tenantId}: ${rating} · ${totalReviews} opiniones (${reviews.length} reseñas)`);
+  return { tenantId, rating, totalReviews, reviews: reviews.length };
 }
 
 // ── Cron: una vez al día (las reseñas cambian lento) ───────────────
@@ -196,5 +207,119 @@ exports.googleReviewsSyncManual = onCall(
       catch (e) { out.push({ tenantId: t, error: String(e) }); }
     }
     return out;
+  }
+);
+
+// ── Auth: ¿el que llama es admin/jefe de este tenant? ──────────────
+//  El panel NO guarda el rol en un custom claim — lo lee de Firestore
+//  (barberos/{uid}.rol, ver AuthContext.jsx). Los custom claims (role/
+//  tenantId) solo los traen los dueños provisionados por provision-tenant,
+//  NO el equipo agregado desde el panel. Por eso autorizamos leyendo el doc
+//  de barbero (con fallback a claims + bootstrap), igual que el frontend.
+function barberoRef(tenantId, uid) {
+  return tenantId === 'elegance'
+    ? db.collection('barberos').doc(uid)
+    : db.collection('tenants').doc(tenantId).collection('barberos').doc(uid);
+}
+async function autorizarTenantAdmin(request, tenantId) {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
+  if (!tenantId)     throw new HttpsError('invalid-argument', 'Falta el local (tenantId).');
+  const email = (request.auth.token?.email || '').toLowerCase();
+  if (BOOTSTRAP_ADMINS.includes(email)) return; // superadmin
+  // Fast path: dueños provisionados traen rol/tenant en el claim.
+  const claims = request.auth.token || {};
+  if (['admin', 'jefe'].includes(claims.role || '') && (claims.tenantId || '') === tenantId) return;
+  // Fuente de verdad: barberos/{uid}.rol (sigue _mainDocId como AuthContext).
+  let snap = await barberoRef(tenantId, request.auth.uid).get();
+  if (snap.exists && snap.data()._mainDocId) {
+    snap = await barberoRef(tenantId, snap.data()._mainDocId).get();
+  }
+  const rol = snap.exists ? (snap.data().rol || '') : '';
+  if (['admin', 'jefe'].includes(rol)) return;
+  throw new HttpsError('permission-denied', 'Solo administradores del local.');
+}
+
+// ── Callable: buscar el negocio del local por nombre (AUTOSERVICIO) ──
+//  El admin del local escribe el nombre de su barbería; devolvemos hasta 6
+//  candidatos con su Place ID, nombre, dirección y rating para que elija el
+//  suyo. Usa Places API (New) searchText. A diferencia de googleReviewsSyncManual
+//  (superadmin), esto lo puede usar el admin/jefe de cualquier local para SU local.
+exports.googlePlacesBuscar = onCall(
+  { region: 'us-central1', cors: true, secrets: [GOOGLE_PLACES_API_KEY] },
+  async (request) => {
+    await autorizarTenantAdmin(request, String(request.data?.tenantId || ''));
+    const query = String(request.data?.query || '').trim();
+    if (query.length < 3) throw new HttpsError('invalid-argument', 'Escribe al menos 3 caracteres.');
+
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-Goog-Api-Key':   GOOGLE_PLACES_API_KEY.value(),
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount',
+      },
+      body: JSON.stringify({ textQuery: query, languageCode: 'es', regionCode: 'CL' }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error('[GooglePlacesBuscar] Places API', res.status, body.slice(0, 300));
+      throw new HttpsError('internal', 'No pudimos buscar en Google ahora. Reintenta.');
+    }
+    const data = await res.json();
+    const candidatos = (Array.isArray(data.places) ? data.places : []).slice(0, 6).map(p => ({
+      placeId:      p.id,
+      nombre:       p.displayName?.text || '(sin nombre)',
+      direccion:    p.formattedAddress || '',
+      rating:       typeof p.rating === 'number' ? p.rating : null,
+      totalReviews: typeof p.userRatingCount === 'number' ? p.userRatingCount : null,
+    }));
+    return { candidatos };
+  }
+);
+
+// ── Callable: vincular el Place ID elegido al local (AUTOSERVICIO) ──
+//  El admin elige un candidato de la búsqueda; guardamos su placeId en
+//  settings/googleReviews (o tenants/{tid}/...) y hacemos un sync inicial
+//  inmediato (rating + reseñas). Escribe SOLO sobre el tenant del que llama;
+//  el superadmin puede pasar un tenantId explícito. Con esto, rate.html
+//  redirige a Google y el panel muestra el rating — sin tocar config.js.
+exports.googleReviewsVincular = onCall(
+  { region: 'us-central1', cors: true, secrets: [GOOGLE_PLACES_API_KEY] },
+  async (request) => {
+    const tid = String(request.data?.tenantId || '');
+    await autorizarTenantAdmin(request, tid);
+
+    const placeId = String(request.data?.placeId || '').trim();
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(placeId)) {
+      throw new HttpsError('invalid-argument', 'Place ID inválido.');
+    }
+
+    const apiKey = GOOGLE_PLACES_API_KEY.value();
+    // Validación + sync inicial en un solo fetch: si el placeId no existe, tira.
+    let datos;
+    try {
+      datos = await fetchPlaceReviews(placeId, apiKey);
+    } catch (e) {
+      logger.error('[GoogleReviewsVincular] fetch', String(e));
+      throw new HttpsError('invalid-argument', 'No pudimos verificar ese lugar en Google. Elige otro de la lista.');
+    }
+
+    const ref = reviewsDocRef(tid);
+    await ref.set({
+      placeId,
+      rating:       datos.rating,
+      totalReviews: datos.totalReviews,
+      reviews:      datos.reviews,
+      source:       'google-places',
+      vinculadoPor: (request.auth.token?.email || '').toLowerCase() || null,
+      vinculadoEn:  Timestamp.now(),
+      updatedAt:    Timestamp.now(),
+    }, { merge: true });
+
+    logger.info(`[GoogleReviewsVincular] ${tid} ← ${placeId} (${datos.rating} · ${datos.totalReviews})`);
+    return {
+      ok: true, tenantId: tid, placeId,
+      rating: datos.rating, totalReviews: datos.totalReviews, reviews: datos.reviews.length,
+    };
   }
 );

@@ -973,6 +973,9 @@ exports.instagramSyncManual      = instagramSync.instagramSyncManual;
 const googleReviews = require('./google-reviews-sync');
 exports.googleReviewsSyncScheduled = googleReviews.googleReviewsSyncScheduled;
 exports.googleReviewsSyncManual    = googleReviews.googleReviewsSyncManual;
+// Autoservicio: el propio local busca su negocio y vincula su Place ID.
+exports.googlePlacesBuscar         = googleReviews.googlePlacesBuscar;
+exports.googleReviewsVincular      = googleReviews.googleReviewsVincular;
 
 // ─────────────────────────────────────────────────────────────────
 //  DEDUP CLIENTE — ver dedupe-cliente-onCreate.js
@@ -1272,3 +1275,15 @@ exports.walletGenerarPase       = wallet.walletGenerarPase;
 exports.walletActivarTenant     = wallet.walletActivarTenant;
 exports.walletSyncSelloElegance = wallet.walletSyncSelloElegance;
 exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  ALERTAS PROACTIVAS AL /admin — ver admin-alerts.js. Convierte el
+//  portal superadmin en un copiloto que avisa por push (admin_fcm_tokens):
+//  nuevo local self-service, mensaje de soporte, pico de errores y
+//  onboardings estancados (diaria). Reusa dispatchAdminPush.
+// ─────────────────────────────────────────────────────────────────
+const adminAlerts = require('./admin-alerts');
+exports.adminAlertaNuevoTenant         = adminAlerts.adminAlertaNuevoTenant;
+exports.adminAlertaSoporte             = adminAlerts.adminAlertaSoporte;
+exports.adminAlertaErroresSpike        = adminAlerts.adminAlertaErroresSpike;
+exports.adminAlertaOnboardingEstancado = adminAlerts.adminAlertaOnboardingEstancado;

@@ -20,6 +20,14 @@ const BRAND_ADMINS = {
   'grupo.kratos.spa@gmail.com':      ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
 };
 
+// Sedes Kronnos a las que un email tiene acceso de marca (para el switcher
+// de sede del panel). Superadmin ve las 3. Devuelve null si no aplica.
+export function getBrandTenants(email) {
+  const e = (email || '').toLowerCase();
+  if (e === SUPERADMIN_EMAIL) return ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+  return BRAND_ADMINS[e] || null;
+}
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined);
   const [role,    setRole]    = useState(null);

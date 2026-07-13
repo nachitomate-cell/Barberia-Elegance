@@ -1066,6 +1066,22 @@
     </p>
   </div>
 
+  <!-- ── Búsqueda global + Modo Hoy ── -->
+  <div style="width:100%; max-width:660px; margin-bottom:1.25rem;">
+    <div style="position:relative; margin-bottom:0.75rem;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:0.9rem; top:0.95rem; color:#475569; font-size:1.1rem; pointer-events:none;"></i>
+      <input id="global-search" type="search" inputmode="search" autocomplete="off" placeholder="Buscar local o slug…" oninput="onGlobalSearch(this.value)" onfocus="onGlobalSearch(this.value)"
+        style="width:100%; box-sizing:border-box; padding:0.8rem 0.9rem 0.8rem 2.6rem; border-radius:0.875rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; font-size:1rem; outline:none;" />
+      <div id="global-search-results" style="display:none; margin-top:0.4rem; background:#0d1526; border:1px solid rgba(255,255,255,0.1); border-radius:0.875rem; overflow:hidden;"></div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem;">
+      <button onclick="scrollToSection('cobrar')" id="mh-cobrar" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+      <button onclick="scrollToSection('leads')" id="mh-leads" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+      <button onclick="toggleOptionalSection('embudo')" id="mh-estancado" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+    </div>
+    <div style="margin-top:0.7rem; text-align:center; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:#475569; font-weight:700;">MRR estimado · <span id="mrr-value" style="color:#a3e635; font-weight:800; font-size:1rem; letter-spacing:0;">—</span> <span style="text-transform:none; letter-spacing:0; color:#64748b;">/mes</span></div>
+  </div>
+
   <!-- ── Ingresos proyectados del mes ── -->
   <div id="income-projection" style="width:100%; max-width:660px; margin-bottom:1.5rem;
     background:linear-gradient(135deg, rgba(132,204,22,0.08), rgba(52,211,153,0.04));
@@ -1435,6 +1451,48 @@
       </span>
       <i class="ph ph-caret-down" id="toggle-referrals-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
     </button>
+    <button type="button" onclick="toggleOptionalSection('embudo')" id="toggle-embudo" style="
+      flex:1; min-width:200px; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      padding:0.625rem 0.875rem; border-radius:0.75rem; cursor:pointer;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+      color:#94a3b8; font-size:0.8125rem; font-weight:600; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i class="ph-fill ph-funnel" style="color:#34d399;"></i>
+        Embudo self-service
+        <span id="toggle-embudo-badge" style="display:none; padding:0.0625rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700; background:rgba(52,211,153,0.15); color:#6ee7b7; border:1px solid rgba(52,211,153,0.3);"></span>
+      </span>
+      <i class="ph ph-caret-down" id="toggle-embudo-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
+    </button>
+    <button type="button" onclick="toggleOptionalSection('cobrar')" id="toggle-cobrar" style="
+      flex:1; min-width:200px; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      padding:0.625rem 0.875rem; border-radius:0.75rem; cursor:pointer;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+      color:#94a3b8; font-size:0.8125rem; font-weight:600; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i class="ph-fill ph-hand-coins" style="color:#f59e0b;"></i>
+        Por cobrar
+        <span id="toggle-cobrar-badge" style="display:none; padding:0.0625rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700; background:rgba(245,158,11,0.15); color:#fcd34d; border:1px solid rgba(245,158,11,0.3);"></span>
+      </span>
+      <i class="ph ph-caret-down" id="toggle-cobrar-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
+    </button>
+    <button type="button" onclick="toggleOptionalSection('leads')" id="toggle-leads" style="
+      flex:1; min-width:200px; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      padding:0.625rem 0.875rem; border-radius:0.75rem; cursor:pointer;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+      color:#94a3b8; font-size:0.8125rem; font-weight:600; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i class="ph-fill ph-user-plus" style="color:#22d3ee;"></i>
+        Leads
+        <span id="toggle-leads-badge" style="display:none; padding:0.0625rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700; background:rgba(34,211,238,0.15); color:#67e8f9; border:1px solid rgba(34,211,238,0.3);"></span>
+      </span>
+      <i class="ph ph-caret-down" id="toggle-leads-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
+    </button>
   </div>
 
   <!-- ── Fechas de pago (colapsable) ── -->
@@ -1549,6 +1607,55 @@
         Cargando programa…
       </div>
     </div>
+  </div>
+
+  <!-- ── Embudo self-service (colapsable) ── -->
+  <div id="embudo-wrapper" hidden style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; gap:0.5rem; flex-wrap:wrap;">
+      <div>
+        <p class="analytics-eyebrow">Producto masivo</p>
+        <h2 class="analytics-title">Embudo self-service · <span style="color:#64748b; font-weight:500;">activación de locales</span></h2>
+      </div>
+      <button onclick="loadEmbudo()" style="
+        display:flex; align-items:center; gap:0.375rem;
+        padding:0.375rem 0.75rem; border-radius:0.5rem;
+        background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+        color:#64748b; font-size:0.75rem; cursor:pointer; transition:all 0.2s;"
+        onmouseover="this.style.color='#34d399'" onmouseout="this.style.color='#64748b'">
+        <i class="ph ph-arrows-clockwise"></i>
+      </button>
+    </div>
+    <div id="embudo-summary" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.5rem; margin-bottom:1rem;"></div>
+    <div id="embudo-content">
+      <div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">
+        <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
+        Cargando embudo…
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Por cobrar (colapsable) ── -->
+  <div id="cobrar-wrapper" hidden style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; gap:0.5rem; flex-wrap:wrap;">
+      <div>
+        <p class="analytics-eyebrow">Cobranza</p>
+        <h2 class="analytics-title">Por cobrar · <span style="color:#64748b; font-weight:500;">recordar y marcar pagado</span></h2>
+      </div>
+      <button onclick="loadCobranza()" style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#64748b; font-size:0.75rem; cursor:pointer;" onmouseover="this.style.color='#fcd34d'" onmouseout="this.style.color='#64748b'"><i class="ph ph-arrows-clockwise"></i></button>
+    </div>
+    <div id="cobrar-content"><div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>Cargando cobros…</div></div>
+  </div>
+
+  <!-- ── Leads (colapsable) ── -->
+  <div id="leads-wrapper" hidden style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; gap:0.5rem; flex-wrap:wrap;">
+      <div>
+        <p class="analytics-eyebrow">Inbound</p>
+        <h2 class="analytics-title">Leads · <span style="color:#64748b; font-weight:500;">de la landing empieza</span></h2>
+      </div>
+      <button onclick="loadLeads()" style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#64748b; font-size:0.75rem; cursor:pointer;" onmouseover="this.style.color='#67e8f9'" onmouseout="this.style.color='#64748b'"><i class="ph ph-arrows-clockwise"></i></button>
+    </div>
+    <div id="leads-content"><div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>Cargando leads…</div></div>
   </div>
 
     <!-- Footer meta -->
@@ -1755,6 +1862,39 @@
           </div>
         </div>
 
+        <!-- Add-on: Wallet (tarjeta de fidelidad Google Wallet + geo-push) -->
+        <div class="stat-card">
+          <div class="stat-icon" id="wallet-addon-icon" style="background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ph-fill ph-wallet" style="font-size:1.25rem;color:#94a3b8;"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.25rem;">Add-on Wallet · $9.990/mes</p>
+            <div id="wallet-addon-status"><div class="skeleton" style="width:80px;height:16px;"></div></div>
+          </div>
+          <button onclick="toggleWalletAddon()" id="wallet-addon-btn"
+            style="padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#64748b;transition:all 0.2s;"
+          >…</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Notas & seguimiento (CRM del local) -->
+    <div style="margin-bottom:1.5rem;">
+      <p class="section-label">Notas & Seguimiento</p>
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <textarea id="crm-notas" rows="3" placeholder="Notas del local (contexto, acuerdos, preferencias del dueño…)"
+          style="width:100%; box-sizing:border-box; padding:0.6rem 0.7rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:0.6rem; color:#e2e8f0; font-size:0.85rem; resize:vertical; outline:none; font-family:inherit;"></textarea>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <label style="font-size:0.7rem; color:#64748b; flex-shrink:0;">Próx. contacto</label>
+          <input id="crm-proximo" type="date" style="flex:1; min-width:0; padding:0.4rem 0.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:0.5rem; color:#e2e8f0; font-size:0.8rem; outline:none;" />
+          <button onclick="saveTenantCRM()" id="crm-save-btn" style="padding:0.45rem 0.85rem; border-radius:0.5rem; background:rgba(132,204,22,0.12); border:1px solid rgba(132,204,22,0.3); color:#a3e635; font-size:0.8rem; font-weight:700; cursor:pointer; flex-shrink:0;">Guardar</button>
+        </div>
+        <a id="crm-wa-owner" href="#" target="_blank" class="quick-link" style="display:none;">
+          <i class="ph-fill ph-whatsapp-logo" style="font-size:1rem; color:#25d366;"></i>
+          <span>WhatsApp al dueño</span>
+          <i class="ph ph-arrow-square-out" style="margin-left:auto; font-size:0.875rem; color:#475569;"></i>
+        </a>
       </div>
     </div>
 
@@ -2327,6 +2467,8 @@
 
       loadStats(tenantId);
       loadTenantStatus(tenantId);
+      loadWalletAddon(tenantId);
+      loadTenantCRM(tenantId);
     }
 
     function closeDrawer(updateHistory = true) {
@@ -4385,6 +4527,9 @@
     let _analyticsLoaded  = false;
     let _fechasLoaded     = false;
     let _referralsLoaded  = false;
+    let _embudoLoaded     = false;
+    let _cobrarLoaded     = false;
+    let _leadsLoaded      = false;
     function toggleOptionalSection(key) {
       const wrapper = document.getElementById(key + '-wrapper');
       const caret   = document.getElementById('toggle-' + key + '-caret');
@@ -4407,6 +4552,18 @@
           _referralsLoaded = true;
           loadReferralsProgram().catch(e => console.warn('[Admin] loadReferralsProgram error:', e));
         }
+        if (key === 'embudo' && !_embudoLoaded) {
+          _embudoLoaded = true;
+          loadEmbudo().catch(e => console.warn('[Admin] loadEmbudo error:', e));
+        }
+        if (key === 'cobrar' && !_cobrarLoaded) {
+          _cobrarLoaded = true;
+          loadCobranza().catch(e => console.warn('[Admin] loadCobranza error:', e));
+        }
+        if (key === 'leads' && !_leadsLoaded) {
+          _leadsLoaded = true;
+          loadLeads().catch(e => console.warn('[Admin] loadLeads error:', e));
+        }
         // Scroll suave hasta la sección
         setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
       } else {
@@ -4416,6 +4573,409 @@
       }
     }
     window.toggleOptionalSection = toggleOptionalSection;
+
+    // ══ Add-on Wallet por tenant (drawer) ═══════════════════════════
+    // Flag pagado en _billing/{tid}.walletActivo. Se activa/desactiva vía el
+    // callable walletActivarTenant (que además apaga el botón del cliente).
+    async function loadWalletAddon(tenantId) {
+      const st = document.getElementById('wallet-addon-status');
+      if (st) st.innerHTML = '<div class="skeleton" style="width:80px;height:16px;"></div>';
+      let activo = false;
+      try {
+        const snap = await db.collection('_billing').doc(tenantId).get();
+        activo = snap.exists && snap.data().walletActivo === true;
+      } catch (_) {}
+      renderWalletAddon(activo);
+    }
+    function renderWalletAddon(activo) {
+      const icon = document.getElementById('wallet-addon-icon');
+      const st   = document.getElementById('wallet-addon-status');
+      const btn  = document.getElementById('wallet-addon-btn');
+      if (!icon || !st || !btn) return;
+      const i = icon.querySelector('i');
+      if (activo) {
+        icon.style.background = 'rgba(251,191,36,0.12)'; icon.style.borderColor = 'rgba(251,191,36,0.3)';
+        if (i) i.style.color = '#fbbf24';
+        st.innerHTML = '<span style="color:#fbbf24;font-weight:700;font-size:0.9rem;">Activo</span>';
+        btn.textContent = 'Desactivar';
+        btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.borderColor = 'rgba(239,68,68,0.3)'; btn.style.color = '#f87171';
+      } else {
+        icon.style.background = 'rgba(100,116,139,0.1)'; icon.style.borderColor = 'rgba(100,116,139,0.2)';
+        if (i) i.style.color = '#94a3b8';
+        st.innerHTML = '<span style="color:#64748b;font-weight:600;font-size:0.9rem;">Inactivo</span>';
+        btn.textContent = 'Activar';
+        btn.style.background = 'rgba(251,191,36,0.12)'; btn.style.borderColor = 'rgba(251,191,36,0.3)'; btn.style.color = '#fbbf24';
+      }
+    }
+    async function toggleWalletAddon() {
+      if (!_activeTenant) return;
+      let activoActual = false;
+      try {
+        const snap = await db.collection('_billing').doc(_activeTenant).get();
+        activoActual = snap.exists && snap.data().walletActivo === true;
+      } catch (_) {}
+      const activar = !activoActual;
+      const nombre = (typeof TENANTS !== 'undefined' && TENANTS[_activeTenant] && TENANTS[_activeTenant].nombre) || _activeTenant;
+      const msg = activar
+        ? `¿ACTIVAR el add-on Wallet para "${nombre}"?\n\nSe suma a su mensualidad ($9.990/mes) y habilita la tarjeta de fidelidad + geo-push para sus clientes.`
+        : `¿DESACTIVAR el add-on Wallet para "${nombre}"?\n\nSe apaga el botón "Añadir a Google Wallet" para sus clientes.`;
+      if (!confirm(msg)) return;
+      const btn = document.getElementById('wallet-addon-btn');
+      const prev = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      HAPTIC([10, 30, 10]);
+      try {
+        await firebase.functions().httpsCallable('walletActivarTenant')({ tenantId: _activeTenant, activo: activar });
+        renderWalletAddon(activar);
+      } catch (e) {
+        alert('Error: ' + (e.message || e));
+        if (btn) btn.textContent = prev;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    window.toggleWalletAddon = toggleWalletAddon;
+
+    // ══ Embudo self-service ═════════════════════════════════════════
+    // Locales creados solos en {slug}.synaptechspa.cl (origen:'self-service').
+    // Etapas: nuevo → configuró → con reserva → estancado (+3d sin 1ª cita).
+    async function loadEmbudo() {
+      const content = document.getElementById('embudo-content');
+      const summary = document.getElementById('embudo-summary');
+      if (content) content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>Cargando embudo…</div>';
+      try {
+        const snap  = await db.collection('tenants').where('origen', '==', 'self-service').get();
+        const ahora = Date.now();
+        const DIA   = 24 * 60 * 60 * 1000;
+        const rows  = [];
+        await Promise.all(snap.docs.map(async (docu) => {
+          const t = docu.data();
+          const creadoMs = (t.createdAt && t.createdAt.toMillis) ? t.createdAt.toMillis() : 0;
+          let tieneCita = false;
+          try { const c = await docu.ref.collection('citas').limit(1).get(); tieneCita = !c.empty; } catch (_) {}
+          const configuro = !!(t.logoUrl || t.direccion || t.slogan);
+          let etapa;
+          if (tieneCita) etapa = 'activo';
+          else if (creadoMs && ahora - creadoMs > 3 * DIA) etapa = 'estancado';
+          else if (configuro) etapa = 'configuro';
+          else etapa = 'nuevo';
+          rows.push({ slug: docu.id, nombre: t.nombre || docu.id, telefono: String(t.telefono || ''), tipo: t.tipo || '', creadoMs, etapa });
+        }));
+        rows.sort((a, b) => b.creadoMs - a.creadoMs);
+        const counts = { nuevo: 0, configuro: 0, activo: 0, estancado: 0 };
+        rows.forEach(r => { counts[r.etapa]++; });
+        if (summary) {
+          const card = (label, n, color) => `<div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:0.75rem; padding:0.75rem; text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:${color};">${n}</div><div style="font-size:0.62rem; text-transform:uppercase; letter-spacing:0.05em; color:#64748b; font-weight:600; margin-top:0.125rem;">${label}</div></div>`;
+          summary.innerHTML = card('Nuevos', counts.nuevo, '#38bdf8') + card('Configuró', counts.configuro, '#a78bfa') + card('Con reserva', counts.activo, '#34d399') + card('Estancado', counts.estancado, '#f87171');
+        }
+        const badge = document.getElementById('toggle-embudo-badge');
+        if (badge) { if (counts.estancado > 0) { badge.style.display = ''; badge.textContent = String(counts.estancado); } else badge.style.display = 'none'; }
+        if (content) {
+          if (!rows.length) { content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">Aún no hay locales self-service.</div>'; return; }
+          const META = {
+            nuevo:     { label: 'Nuevo',       color: '#38bdf8', bg: 'rgba(56,189,248,0.12)' },
+            configuro: { label: 'Configuró',   color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+            activo:    { label: 'Con reserva', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+            estancado: { label: 'Estancado',   color: '#f87171', bg: 'rgba(239,68,68,0.12)' },
+          };
+          content.innerHTML = rows.map(r => {
+            const m = META[r.etapa];
+            const dias = r.creadoMs ? Math.floor((ahora - r.creadoMs) / DIA) : null;
+            const tel = r.telefono.replace(/\D/g, '');
+            const waMsg = encodeURIComponent(`Hola ${r.nombre}, soy de SynapTech. Vi que creaste tu agenda en ${r.slug}.synaptechspa.cl y quiero ayudarte a dejarla lista para tus primeras reservas. ¿Te muestro cómo en 5 minutos?`);
+            const waBtn = tel ? `<a href="https://wa.me/${tel}?text=${waMsg}" target="_blank" title="Nudge por WhatsApp" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.25);color:#25d366;flex-shrink:0;text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i></a>` : '';
+            const panelUrl = `https://${r.slug}.synaptechspa.cl/gestion-interna/?local=${r.slug}`;
+            return `<div style="display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0.75rem; border-radius:0.75rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); margin-bottom:0.375rem;">
+              <span style="width:8px;height:8px;border-radius:50%;background:${m.color};flex-shrink:0;"></span>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:0.8125rem; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.nombre)}</div>
+                <div style="font-size:0.6875rem; color:#64748b;">${esc(r.slug)}${dias != null ? ' · hace ' + dias + 'd' : ''}${r.tipo ? ' · ' + esc(r.tipo) : ''}</div>
+              </div>
+              <span style="font-size:0.625rem; font-weight:700; padding:0.1875rem 0.5rem; border-radius:999px; background:${m.bg}; color:${m.color}; white-space:nowrap;">${m.label}</span>
+              <a href="${panelUrl}" target="_blank" title="Abrir su panel" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;flex-shrink:0;text-decoration:none;"><i class="ph ph-arrow-square-out"></i></a>
+              ${waBtn}
+            </div>`;
+          }).join('');
+        }
+      } catch (e) {
+        if (content) content.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#f87171; font-size:0.8125rem;">Error cargando el embudo: ${esc(e.message || e)}</div>`;
+      }
+    }
+    window.loadEmbudo = loadEmbudo;
+
+    // ══════════════════════════════════════════════════════════════
+    //  COCKPIT MÓVIL: búsqueda global · Modo Hoy · MRR · cobranza ·
+    //  leads · CRM por local · badge de app · haptics · shortcuts.
+    // ══════════════════════════════════════════════════════════════
+    const HAPTIC = (p) => { try { if (navigator.vibrate) navigator.vibrate(p || 15); } catch (_) {} };
+    const _spinner = (t) => `<div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>${t}</div>`;
+    let _ssTenantsCache = [];
+    let _billingCache = [];
+
+    async function initCockpit() {
+      try {
+        const snap = await db.collection('tenants').where('origen', '==', 'self-service').get();
+        _ssTenantsCache = snap.docs.map(d => Object.assign({ slug: d.id }, d.data()));
+      } catch (_) { _ssTenantsCache = []; }
+      loadModoHoy().catch(e => console.warn('[Admin] loadModoHoy:', e));
+      handleShortcutParam();
+    }
+
+    // ── #1 Búsqueda global ────────────────────────────────────────
+    function _searchIndex() {
+      const out = [];
+      if (typeof TENANTS !== 'undefined') {
+        Object.keys(TENANTS).forEach(tid => out.push({ slug: tid, nombre: (TENANTS[tid] && TENANTS[tid].nombre) || tid, ss: false }));
+      }
+      _ssTenantsCache.forEach(t => out.push({ slug: t.slug, nombre: t.nombre || t.slug, ss: true }));
+      return out;
+    }
+    function onGlobalSearch(q) {
+      const box = document.getElementById('global-search-results');
+      if (!box) return;
+      const term = (q || '').trim().toLowerCase();
+      if (term.length < 1) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      const res = _searchIndex().filter(t => t.nombre.toLowerCase().includes(term) || t.slug.toLowerCase().includes(term)).slice(0, 8);
+      box.style.display = 'block';
+      if (!res.length) { box.innerHTML = '<div style="padding:0.75rem; color:#64748b; font-size:0.8125rem;">Sin resultados</div>'; return; }
+      box.innerHTML = res.map(t => `<button onclick="_openFromSearch('${t.slug}', ${t.ss})" style="display:flex; align-items:center; gap:0.625rem; width:100%; text-align:left; padding:0.7rem 0.875rem; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,0.05); color:#e2e8f0; cursor:pointer; font-size:0.875rem;"><i class="ph ph-storefront" style="color:#64748b;"></i><span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(t.nombre)}</span>${t.ss ? '<span style="font-size:0.58rem; color:#34d399; font-weight:700; letter-spacing:0.05em;">SELF</span>' : ''}</button>`).join('');
+    }
+    window.onGlobalSearch = onGlobalSearch;
+    function _openFromSearch(slug, ss) {
+      const box = document.getElementById('global-search-results');
+      const inp = document.getElementById('global-search');
+      if (box) box.style.display = 'none';
+      if (inp) inp.value = '';
+      HAPTIC(12);
+      if (ss) window.open(`https://${slug}.synaptechspa.cl/gestion-interna/?local=${slug}`, '_blank');
+      else openDrawer(slug);
+    }
+    window._openFromSearch = _openFromSearch;
+
+    // ── #2 / #11 Billing, Modo Hoy y MRR ──────────────────────────
+    async function _loadBilling() {
+      try {
+        const snap = await db.collection('_billing').get();
+        _billingCache = snap.docs.map(d => Object.assign({ tid: d.id }, d.data()));
+      } catch (_) { _billingCache = []; }
+      return _billingCache;
+    }
+    function _isPorCobrar(b) {
+      if (b.estadoPago === 'pendiente' || b.estadoPago === 'atrasado') return true;
+      if (Number(b.montoPendiente) > 0) return true;
+      const f = b.fechaProximoPago;
+      if (f) {
+        let dt;
+        try { dt = f && f.toDate ? f.toDate() : new Date(String(f) + 'T00:00:00'); } catch (_) { dt = null; }
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        if (dt instanceof Date && !isNaN(dt.getTime()) && dt < hoy) return true;
+      }
+      return false;
+    }
+    function _renderChip(id, icon, n, label, color) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const strong = n > 0;
+      el.innerHTML = `<i class="ph-fill ${icon}" style="color:${color}; font-size:1.1rem;"></i><span style="font-size:1.15rem; font-weight:800; color:${strong ? color : '#e2e8f0'};">${n}</span><span style="font-size:0.6rem; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; font-weight:600; text-align:center;">${label}</span>`;
+    }
+    function _setToggleBadge(key, n, txt) {
+      const b = document.getElementById('toggle-' + key + '-badge');
+      if (!b) return;
+      if (n > 0) { b.style.display = ''; b.textContent = (txt != null ? txt : String(n)); } else b.style.display = 'none';
+    }
+    async function loadModoHoy() {
+      await _loadBilling();
+      const porCobrar = _billingCache.filter(_isPorCobrar).length;
+      const mrr = _billingCache.reduce((s, b) => s + (Number(b.monto) || 0), 0);
+      let soporte = 0, leadsNew = 0, estancados = 0;
+      try { const s = await db.collection('soporte_mensajes').where('status', '==', 'open').get(); soporte = s.size; } catch (_) {}
+      try { const l = await db.collection('_synaptechLeads').where('status', '==', 'new').get(); leadsNew = l.size; } catch (_) {}
+      const ahora = Date.now(), DIA = 864e5;
+      await Promise.all(_ssTenantsCache.map(async t => {
+        const c = (t.createdAt && t.createdAt.toMillis) ? t.createdAt.toMillis() : 0;
+        if (!c || ahora - c <= 3 * DIA) return;
+        try { const q = await db.collection('tenants').doc(t.slug).collection('citas').limit(1).get(); if (q.empty) estancados++; } catch (_) {}
+      }));
+      const mrrEl = document.getElementById('mrr-value');
+      if (mrrEl) mrrEl.textContent = '$' + mrr.toLocaleString('es-CL');
+      _renderChip('mh-cobrar', 'ph-hand-coins', porCobrar, 'Por cobrar', '#f59e0b');
+      _renderChip('mh-leads', 'ph-user-plus', leadsNew, 'Leads', '#22d3ee');
+      _renderChip('mh-estancado', 'ph-funnel', estancados, 'Estancados', '#f87171');
+      _setToggleBadge('cobrar', porCobrar);
+      _setToggleBadge('leads', leadsNew);
+      _setToggleBadge('embudo', estancados);
+      setAppBadgeCount(porCobrar + soporte + leadsNew + estancados);
+    }
+    function scrollToSection(key) {
+      HAPTIC(10);
+      const w = document.getElementById(key + '-wrapper');
+      if (!w) return;
+      if (w.hasAttribute('hidden')) toggleOptionalSection(key);
+      else setTimeout(() => w.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
+    window.scrollToSection = scrollToSection;
+
+    // ── #2 Cobranza ───────────────────────────────────────────────
+    function _nombreDe(tid) {
+      if (typeof TENANTS !== 'undefined' && TENANTS[tid] && TENANTS[tid].nombre) return TENANTS[tid].nombre;
+      const ss = _ssTenantsCache.find(t => t.slug === tid);
+      return ss ? (ss.nombre || tid) : tid;
+    }
+    function _telDe(b) {
+      const ss = _ssTenantsCache.find(t => t.slug === b.tid);
+      return String(b.whatsapp || b.telefono || b.telefonoContacto || (ss && ss.telefono) || '').replace(/\D/g, '');
+    }
+    async function loadCobranza() {
+      const content = document.getElementById('cobrar-content');
+      if (content) content.innerHTML = _spinner('Cargando cobros…');
+      await _loadBilling();
+      const items = _billingCache.filter(_isPorCobrar);
+      if (!content) return;
+      if (!items.length) { content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#34d399; font-size:0.8125rem;">✓ Nadie con pagos pendientes.</div>'; return; }
+      content.innerHTML = items.map(b => {
+        const nombre = _nombreDe(b.tid);
+        const tel = _telDe(b);
+        const monto = Number(b.montoPendiente || b.monto || 0);
+        const waMsg = encodeURIComponent(`Hola, te saluda SynapTech 👋 Te recordamos el pago de tu mensualidad${monto ? ` ($${monto.toLocaleString('es-CL')})` : ''}. ¿Te ayudo con el medio de pago?`);
+        const wa = tel ? `<a href="https://wa.me/${tel}?text=${waMsg}" target="_blank" title="Recordar por WhatsApp" style="width:32px;height:32px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.25);color:#25d366;flex-shrink:0;text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i></a>` : '';
+        return `<div style="display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0.75rem; border-radius:0.75rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); margin-bottom:0.375rem;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:0.8125rem; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(nombre)}</div>
+            <div style="font-size:0.6875rem; color:#f59e0b;">${monto ? '$' + monto.toLocaleString('es-CL') : 'Pendiente'}${b.estadoPago ? ' · ' + esc(b.estadoPago) : ''}</div>
+          </div>
+          <button onclick="marcarPagado('${b.tid}')" title="Marcar pagado" style="width:32px;height:32px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.25);color:#34d399;flex-shrink:0;cursor:pointer;font-weight:900;"><i class="ph-bold ph-check"></i></button>
+          ${wa}
+        </div>`;
+      }).join('');
+    }
+    async function marcarPagado(tid) {
+      if (!confirm(`¿Marcar como PAGADO a "${_nombreDe(tid)}"?`)) return;
+      HAPTIC([10, 30, 10]);
+      try {
+        await db.collection('_billing').doc(tid).set({
+          estadoPago: 'pagado', montoPendiente: 0,
+          ultimoPagoAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'superadmin',
+        }, { merge: true });
+        loadCobranza(); loadModoHoy();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+    window.loadCobranza = loadCobranza; window.marcarPagado = marcarPagado;
+
+    // ── #10 Leads ─────────────────────────────────────────────────
+    async function loadLeads() {
+      const content = document.getElementById('leads-content');
+      if (content) content.innerHTML = _spinner('Cargando leads…');
+      try {
+        const snap = await db.collection('_synaptechLeads').orderBy('createdAt', 'desc').limit(40).get();
+        const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        if (!content) return;
+        if (!rows.length) { content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">Aún no hay leads.</div>'; return; }
+        const ST = { new: { l: 'Nuevo', c: '#22d3ee' }, contactado: { l: 'Contactado', c: '#f59e0b' }, convertido: { l: 'Convertido', c: '#34d399' }, descartado: { l: 'Descartado', c: '#64748b' } };
+        content.innerHTML = rows.map(r => {
+          const st = ST[r.status] || ST.new;
+          const tel = String(r.phone || '').replace(/\D/g, '');
+          const waMsg = encodeURIComponent(`Hola ${r.name || ''}, te escribo de SynapTech ✦ Recibí tu solicitud para ${r.barberia || 'tu local'}. ¿Te queda bien una llamada corta para mostrarte la demo?`);
+          const wa = tel ? `<a href="https://wa.me/${tel}?text=${waMsg}" target="_blank" title="WhatsApp" style="width:32px;height:32px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.25);color:#25d366;flex-shrink:0;text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i></a>` : '';
+          const next = r.status === 'new' ? 'contactado' : (r.status === 'contactado' ? 'convertido' : null);
+          const nextBtn = next ? `<button onclick="leadStatus('${r.id}','${next}')" title="Marcar ${next}" style="padding:0 0.6rem;height:32px;border-radius:0.5rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;flex-shrink:0;cursor:pointer;font-size:0.68rem;font-weight:700;white-space:nowrap;">${next === 'contactado' ? '✓' : '★'}</button>` : '';
+          return `<div style="display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0.75rem; border-radius:0.75rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); margin-bottom:0.375rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${st.c};flex-shrink:0;"></span>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:0.8125rem; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.barberia || r.name || 'Lead')}</div>
+              <div style="font-size:0.6875rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.name || '')}${r.source ? ' · ' + esc(r.source) : ''}</div>
+            </div>
+            <span style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:999px; background:${st.c}22; color:${st.c}; white-space:nowrap;">${st.l}</span>
+            ${wa}${nextBtn}
+          </div>`;
+        }).join('');
+      } catch (e) {
+        if (content) content.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#f87171; font-size:0.8125rem;">Error: ${esc(e.message || e)}</div>`;
+      }
+    }
+    async function leadStatus(id, status) {
+      HAPTIC(12);
+      try {
+        await db.collection('_synaptechLeads').doc(id).set({ status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        loadLeads(); loadModoHoy();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+    window.loadLeads = loadLeads; window.leadStatus = leadStatus;
+
+    // ── #3 CRM por local (notas + próx. contacto + WhatsApp dueño) ─
+    let _crmTenant = null;
+    async function loadTenantCRM(tid) {
+      _crmTenant = tid;
+      const ta = document.getElementById('crm-notas');
+      const dt = document.getElementById('crm-proximo');
+      const wa = document.getElementById('crm-wa-owner');
+      if (ta) ta.value = '';
+      if (dt) dt.value = '';
+      if (wa) wa.style.display = 'none';
+      try {
+        const snap = await db.collection('_system').doc(tid).get();
+        const d = snap.exists ? snap.data() : {};
+        if (ta) ta.value = d.adminNotas || '';
+        if (dt) dt.value = d.proximoContacto || '';
+      } catch (_) {}
+      let tel = '';
+      try {
+        const b = await db.collection('_billing').doc(tid).get();
+        const bd = b.exists ? b.data() : {};
+        tel = String(bd.whatsapp || bd.telefono || bd.telefonoContacto || '').replace(/\D/g, '');
+      } catch (_) {}
+      if (!tel) { const ss = _ssTenantsCache.find(t => t.slug === tid); if (ss) tel = String(ss.telefono || '').replace(/\D/g, ''); }
+      if (tel && wa) {
+        const msg = encodeURIComponent(`Hola, te saluda SynapTech 👋 sobre ${_nombreDe(tid)}. `);
+        wa.href = `https://wa.me/${tel}?text=${msg}`;
+        wa.style.display = 'flex';
+      }
+    }
+    async function saveTenantCRM() {
+      if (!_crmTenant) return;
+      const ta = document.getElementById('crm-notas');
+      const dt = document.getElementById('crm-proximo');
+      const btn = document.getElementById('crm-save-btn');
+      const prev = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      HAPTIC(12);
+      try {
+        await db.collection('_system').doc(_crmTenant).set({
+          adminNotas: (ta && ta.value.slice(0, 2000)) || '',
+          proximoContacto: (dt && dt.value) || null,
+          notasUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        if (btn) btn.textContent = '✓ Guardado';
+        setTimeout(() => { if (btn) btn.textContent = prev; }, 1500);
+      } catch (e) {
+        alert('Error guardando notas: ' + e.message);
+        if (btn) btn.textContent = prev;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    window.loadTenantCRM = loadTenantCRM; window.saveTenantCRM = saveTenantCRM;
+
+    // ── #6 Badge de app + #7 Shortcuts ────────────────────────────
+    function setAppBadgeCount(n) {
+      try {
+        if ('setAppBadge' in navigator) {
+          if (n > 0) navigator.setAppBadge(n);
+          else if (navigator.clearAppBadge) navigator.clearAppBadge();
+        }
+      } catch (_) {}
+    }
+    function handleShortcutParam() {
+      let a = null;
+      try { a = new URLSearchParams(location.search).get('a'); } catch (_) {}
+      if (!a) return;
+      setTimeout(() => {
+        if (a === 'buscar') { const i = document.getElementById('global-search'); if (i) { i.focus(); i.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
+        else if (a === 'cobrar') scrollToSection('cobrar');
+        else if (a === 'leads') scrollToSection('leads');
+        try { history.replaceState({}, '', '/admin/'); } catch (_) {}
+      }, 500);
+    }
 
     // ── Programa de referidos ─────────────────────────────────────
     // Modelo: _referrals/{referrerTid}/referidos/{referredTid} = {
@@ -5722,6 +6282,7 @@
           console.warn('[Admin] loadPlatformStats error:', e);
           document.getElementById('ps-loading').textContent = 'Error al cargar estadísticas.';
         });
+        initCockpit().catch(e => console.warn('[Admin] initCockpit error:', e));
         // loadAnalytics + loadFechasPago corren en background para que los badges
         // de los toggles muestren su cuenta desde el inicio; los wrappers siguen
         // ocultos por default.

@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   Star, MessageSquare, Send, Clock, CheckCircle2, AlertCircle,
   Info, X, ExternalLink, Copy, Check, TrendingUp, Users, Sparkles,
-  RefreshCw,
+  RefreshCw, Search, MapPin,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
@@ -66,6 +66,141 @@ function openWhatsAppNative(phone, text) {
    (todo pulled por la CF googleReviewsSync que corre diariamente). */
 const SUPERADMINS = new Set(['ignaciiio.mate@gmail.com']);
 
+/* ── Conectar Google (AUTOSERVICIO) ─────────────────────────────
+   Reemplaza el viejo "Contáctate con soporte". El local busca su negocio
+   por nombre (googlePlacesBuscar), elige el suyo y lo vincula
+   (googleReviewsVincular) → guarda el placeId + hace sync inicial. El
+   onSnapshot de TabResumen detecta el placeId nuevo y refresca solo. */
+function ConectarGoogle() {
+  const tenant = useTenant();
+  const [query, setQuery]           = useState(tenant?.name || '');
+  const [buscando, setBuscando]     = useState(false);
+  const [candidatos, setCandidatos] = useState(null); // null = sin buscar; [] = sin resultados
+  const [vinculando, setVinculando] = useState('');   // placeId en curso
+  const [error, setError]           = useState('');
+
+  async function buscar() {
+    const q = query.trim();
+    if (q.length < 3 || buscando) return;
+    setBuscando(true); setError(''); setCandidatos(null);
+    try {
+      const fn  = httpsCallable(getFunctions(undefined, 'us-central1'), 'googlePlacesBuscar');
+      const res = await fn({ query: q, tenantId: tenant.id });
+      setCandidatos(res.data?.candidatos || []);
+    } catch (e) {
+      setError(e?.message || 'No pudimos buscar. Reintenta.');
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  async function vincular(c) {
+    if (vinculando) return;
+    setVinculando(c.placeId); setError('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'googleReviewsVincular');
+      await fn({ placeId: c.placeId, tenantId: tenant.id });
+      // El onSnapshot del padre refresca la vista al detectar el placeId nuevo.
+    } catch (e) {
+      setError(e?.message || 'No pudimos conectar ese lugar. Reintenta.');
+      setVinculando('');
+    }
+  }
+
+  return (
+    <div className="max-w-xl mx-auto space-y-4">
+      <div className="text-center">
+        <div className="w-11 h-11 rounded-xl bg-white/95 shadow border border-slate-200 flex items-center justify-center mx-auto mb-3">
+          <GoogleG size={22} />
+        </div>
+        <h3 className="text-sm font-bold text-white">Conecta tu ficha de Google</h3>
+        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-sm mx-auto">
+          Busca tu barbería como aparece en Google Maps y selecciónala. Con eso
+          activamos tus reseñas y el enlace para que tus clientes te califiquen.
+        </p>
+      </div>
+
+      {/* Buscador */}
+      <div className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3">
+          <Search size={15} className="text-slate-500 shrink-0" />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') buscar(); }}
+            placeholder="Ej: Infinity Studio, Santiago"
+            autoComplete="off"
+            className="flex-1 bg-transparent py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+          />
+        </div>
+        <button
+          onClick={buscar}
+          disabled={buscando || query.trim().length < 3}
+          className="px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center gap-2 shrink-0"
+        >
+          {buscando
+            ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : <Search size={14} />}
+          Buscar
+        </button>
+      </div>
+
+      {error && (
+        <p className="text-xs text-rose-400 font-semibold flex items-center gap-1">
+          <X size={12} /> {error}
+        </p>
+      )}
+
+      {/* Resultados */}
+      {candidatos && candidatos.length === 0 && !buscando && (
+        <p className="text-xs text-slate-500 text-center py-4">
+          Sin resultados. Prueba con el nombre + la ciudad (ej: "Barbería Central, Valparaíso").
+        </p>
+      )}
+
+      {candidatos && candidatos.length > 0 && (
+        <ul className="space-y-2">
+          {candidatos.map(c => {
+            const enCurso = vinculando === c.placeId;
+            return (
+              <li key={c.placeId}>
+                <button
+                  onClick={() => vincular(c)}
+                  disabled={!!vinculando}
+                  className="w-full text-left bg-slate-900 border border-slate-700 hover:border-blue-500/60 rounded-xl p-3.5 flex items-center gap-3 transition-colors disabled:opacity-60"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <MapPin size={15} className="text-blue-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">{c.nombre}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{c.direccion}</p>
+                    {c.rating != null && (
+                      <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                        <Star size={10} className="text-yellow-400" fill="currentColor" />
+                        {c.rating.toFixed(1)}{c.totalReviews != null && ` · ${c.totalReviews.toLocaleString('es-CL')} reseñas`}
+                      </p>
+                    )}
+                  </div>
+                  {enCurso
+                    ? <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                    : <span className="text-[11px] font-bold text-blue-400 shrink-0 whitespace-nowrap">Es la mía →</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="text-[10.5px] text-slate-600 text-center leading-relaxed">
+        ¿No encuentras tu local? Debe existir como ficha en Google Maps. Si es nuevo,
+        créalo en Google Business primero y vuelve aquí.
+      </p>
+    </div>
+  );
+}
+
 function TabResumen() {
   const tenant = useTenant();
   const { user } = useAuth();
@@ -117,13 +252,8 @@ function TabResumen() {
 
   if (!data?.placeId) {
     return (
-      <div className="bg-amber-500/5 border border-amber-500/25 rounded-xl p-6 text-center">
-        <AlertCircle size={22} className="mx-auto text-amber-400 mb-2" />
-        <p className="text-sm font-bold text-white">Aún no configuraste tu Place ID de Google</p>
-        <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
-          Sin el Place ID no podemos leer tus reseñas de Google Maps ni redirigir a los clientes
-          para que dejen su opinión. Contáctate con soporte para activarlo — se hace en 1 minuto.
-        </p>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <ConectarGoogle />
       </div>
     );
   }
@@ -518,55 +648,181 @@ function StatMini({ label, value, color = 'slate' }) {
   );
 }
 
-/* ── Tab Cómo funciona ─────────────────────────────────────────── */
-function TabComoFunciona() {
+/* ── "Google" en sus 4 colores oficiales (para el mock de reseña) ── */
+function GoogleWord() {
+  const cols = ['#4285F4', '#EA4335', '#FBBC05', '#4285F4', '#34A853', '#EA4335'];
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Info size={14} className="text-blue-400" />
-          Sistema de reseñas con protección de rating
-        </h3>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Este módulo hace lo mismo que Weibook o Podium: convierte más clientes en reseñas
-          positivas en Google Maps, protegiendo tu calificación pública de opiniones negativas.
+    <span className="text-sm font-bold tracking-tight select-none" aria-label="Google">
+      {'Google'.split('').map((ch, i) => (
+        <span key={i} style={{ color: cols[i] }}>{ch}</span>
+      ))}
+    </span>
+  );
+}
+
+/* ── Vista previa EN VIVO (animada) del flujo de reseñas ──────────
+   Cicla en loop: el cliente valora → si es positivo se le invita a
+   Google → la reseña se publica y sube el contador. Self-contained
+   (estado + transiciones Tailwind), la tarjeta es blanca a propósito
+   porque representa la UI de Google (se ve bien en claro y oscuro). */
+function LivePreviewResenas() {
+  const tenant = useTenant();
+  const nombre = tenant?.name || 'Tu Barbería';
+  const [phase, setPhase]     = useState(0); // 0 valorar · 1 tap · 2 google · 3 publicada
+  const [reviews, setReviews] = useState(178);
+
+  useEffect(() => {
+    const dur = [1900, 1500, 1400, 2900][phase];
+    const t = setTimeout(() => {
+      setPhase(p => {
+        const next = (p + 1) % 4;
+        if (next === 3) setReviews(c => c + 1);
+        if (next === 0) setReviews(178);
+        return next;
+      });
+    }, dur);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  const enGoogle  = phase >= 2;
+  const tapped    = phase === 1;
+  const published = phase === 3;
+
+  return (
+    <div className="relative h-[340px] rounded-2xl overflow-hidden border border-slate-200 bg-gradient-to-b from-slate-50 to-slate-200/70">
+      {/* Pantalla A — el cliente valora */}
+      <div className={`absolute inset-0 flex flex-col items-center justify-center px-6 transition-all duration-500 ${enGoogle ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100'}`}>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{nombre}</p>
+        <p className="text-[15px] font-bold text-slate-800 mb-6 text-center">¿Cómo estuvo tu experiencia?</p>
+        <div className={`flex gap-2 ${tapped ? '' : 'animate-pulse'}`}>
+          {[1, 2, 3, 4, 5].map(n => (
+            <Star
+              key={n}
+              size={36}
+              strokeWidth={1.5}
+              className={`transition-all duration-300 ${tapped ? 'text-yellow-400 scale-110 -translate-y-0.5' : 'text-slate-300'}`}
+              fill={tapped ? 'currentColor' : 'none'}
+              style={{ transitionDelay: `${n * 55}ms` }}
+            />
+          ))}
+        </div>
+        <p className={`mt-7 text-sm font-bold text-emerald-600 transition-opacity duration-300 ${tapped ? 'opacity-100' : 'opacity-0'}`}>
+          ¡Nos alegra! Te llevamos a Google →
         </p>
       </div>
 
-      {/* Pasos */}
-      <div className="space-y-3">
-        {[
-          {
-            n: 1,
-            title: 'Envías el link al cliente',
-            desc: 'Después de la cita, generas un link único desde el tab "Solicitar reseña" y se lo mandas por WhatsApp con un mensaje pre-armado.',
-          },
-          {
-            n: 2,
-            title: 'El cliente califica su experiencia',
-            desc: 'Al abrir el link ve 5 estrellas grandes. La landing es limpia, sin logins ni pasos extra — el cliente tapea una calificación en 5 segundos.',
-          },
-          {
-            n: 3,
-            title: 'Branching automático según el rating',
-            desc: 'Si califica 4 o 5 estrellas, se redirige directo a la ventana de escribir reseña en Google Maps. Si califica 1, 2 o 3, se abre un formulario privado para que cuente qué falló — a ti te llega el feedback y NO va a Google. Así proteges tu rating.',
-          },
-          {
-            n: 4,
-            title: 'Tracking de intención (~85% certeza)',
-            desc: 'No podemos saber CON SEGURIDAD si el cliente publicó en Google (Google no lo notifica). Pero registramos el momento en que redirigiste. Si el sync diario detecta que el total de reseñas subió +1 dentro de los 5 minutos, atribuimos la reseña a esa persona.',
-          },
-        ].map(step => (
-          <div key={step.n} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shrink-0 text-white text-sm font-black">
-              {step.n}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-white leading-tight">{step.title}</p>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.desc}</p>
-            </div>
+      {/* Pantalla B — reseña publicada en Google */}
+      <div className={`absolute inset-0 flex items-center justify-center p-5 transition-all duration-500 ${enGoogle ? 'opacity-100' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+        <div className="w-full max-w-[300px] bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)] border border-slate-200 p-4 relative">
+          {/* Toast */}
+          <div className={`absolute -top-3 right-3 bg-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 transition-all duration-300 ${published ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            ¡Reseña publicada en Google!
           </div>
+          <GoogleWord />
+          <p className="text-[15px] font-bold text-slate-800 mt-2">{nombre}</p>
+          <div className="flex items-center gap-1.5 mt-0.5 mb-3">
+            <span className="text-lg font-black text-slate-800 leading-none">4.9</span>
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map(n => <Star key={n} size={12} className="text-yellow-400" fill="currentColor" />)}
+            </div>
+            <span className="text-[11px] text-slate-500 tabular-nums">{reviews} reseñas</span>
+          </div>
+          <div className={`bg-slate-50 border border-slate-200 rounded-xl p-3 transition-all duration-500 ${published ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0">C</div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-700 leading-none">Carolina R.</p>
+                <p className="text-[9px] text-slate-400 mt-1">hace un momento · vía {nombre}</p>
+              </div>
+            </div>
+            <div className="flex gap-0.5 mt-2">
+              {[1, 2, 3, 4, 5].map(n => <Star key={n} size={10} className="text-yellow-400" fill="currentColor" />)}
+            </div>
+            <p className="text-[10.5px] text-slate-600 mt-1.5 leading-snug">
+              ¡Excelente servicio! El corte quedó perfecto y la atención de primera. 100% recomendados.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicador de fase */}
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+        {[0, 1, 2, 3].map(i => (
+          <span key={i} className={`h-1 rounded-full transition-all duration-300 ${i === phase ? 'w-5 bg-blue-500' : 'w-1.5 bg-slate-300'}`} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab Cómo funciona ─────────────────────────────────────────── */
+const COMO_FUNCIONA_STEPS = [
+  {
+    n: 1,
+    title: 'El cliente valora su experiencia',
+    desc: 'Le mandas un link único por WhatsApp (mensaje pre-armado). Al abrirlo ve 5 estrellas grandes — tapea su calificación en 5 segundos, sin logins ni pasos extra.',
+  },
+  {
+    n: 2,
+    title: 'Branching automático según el rating',
+    desc: 'Si califica 4 o 5, se redirige directo a escribir su reseña en Google Maps. Si califica 1-3, se abre un formulario privado y el feedback te llega solo a ti — NO va a Google. Así proteges tu rating.',
+  },
+  {
+    n: 3,
+    title: 'Sube en Google Maps',
+    desc: 'Cada reseña positiva engorda tu perfil de Google. Más reseñas continuas = más visibilidad y mejor posicionamiento local.',
+  },
+  {
+    n: 4,
+    title: 'Tracking de intención (~85% certeza)',
+    desc: 'Google no avisa si el cliente publicó, pero registramos el momento del redirect. Si el sync diario ve que el total subió +1 en los 5 minutos siguientes, atribuimos la reseña a esa persona.',
+  },
+];
+
+function TabComoFunciona() {
+  return (
+    <div className="max-w-5xl space-y-6">
+      <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
+        {/* Izquierda: intro + pasos */}
+        <div className="space-y-4 order-2 lg:order-1">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+              <Info size={14} className="text-blue-400" />
+              Reseñas con Google Maps
+            </h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Convierte más clientes en reseñas positivas en Google Maps, protegiendo tu
+              calificación pública de opiniones negativas. Mismo enfoque que Weibook o Podium.
+            </p>
+          </div>
+
+          {COMO_FUNCIONA_STEPS.map(step => (
+            <div key={step.n} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shrink-0 text-white text-sm font-black">
+                {step.n}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white leading-tight">{step.title}</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Derecha: vista previa EN VIVO (sticky) */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-4">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Vista previa</span>
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> En vivo
+            </span>
+          </div>
+          <LivePreviewResenas />
+          <p className="text-[11px] text-slate-500 text-center mt-2 leading-relaxed px-2">
+            Tras una buena experiencia, el cliente deja su reseña en Google Maps.
+          </p>
+        </div>
       </div>
 
       {/* Nota sobre atribución dura */}

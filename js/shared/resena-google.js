@@ -173,40 +173,20 @@
     }
   }
 
-  // ── Detección de plataforma + deep-link a Maps app ───────────
-  function abrirGoogleMaps(url, placeId) {
-    const ua = navigator.userAgent || '';
-    const esIOS     = /iPhone|iPad|iPod/.test(ua);
-    const esAndroid = /Android/.test(ua);
-
-    // Si no tenemos placeId no podemos deep-link. Ir al web como está.
-    if (!placeId) { window.open(url, '_blank', 'noopener'); return; }
-
-    if (esIOS) {
-      // iOS: intento con esquema de la app. Si no está instalada, el
-      // esquema falla silenciosamente y caemos al web tras 400ms.
-      const app = `comgooglemaps://?daddr=&q=place_id:${placeId}`;
-      const t = Date.now();
-      const w = window.open(app, '_self');
-      setTimeout(() => {
-        // Si sigue en el sitio (no saltó a Maps) → fallback web
-        if (Date.now() - t < 1000) window.open(url, '_blank', 'noopener');
-      }, 500);
-      return;
-    }
-
-    if (esAndroid) {
-      // Android: intent oficial. Si Maps no está, el navegador cae
-      // automáticamente al fallback (que es el mismo URL web).
-      const intent = `intent://maps.google.com/?q=place_id:${placeId}` +
-                     `#Intent;package=com.google.android.apps.maps;scheme=https;` +
-                     `S.browser_fallback_url=${encodeURIComponent(url)};end`;
-      window.location.href = intent;
-      return;
-    }
-
-    // Desktop: el web es lo único que hay
-    window.open(url, '_blank', 'noopener');
+  // ── Normalizar a un URL que abra el FORMULARIO de reseña ─────
+  //   Si hay un place_id REAL (ChIJ…), forzamos search.google.com/local/
+  //   writereview: ese dominio abre el formulario en el navegador y NO lo
+  //   intercepta la app de Google Maps. Los g.page/r/CODE/review se dejan
+  //   como están: window.open los abre en el navegador in-app (que NO
+  //   respeta Universal Links) y siguen el redirect al formulario.
+  //
+  //   Bug histórico (corregido): se armaban deep links comgooglemaps://?
+  //   daddr=… → Maps abría en modo DIRECCIONES + "No se encuentra ese
+  //   lugar", porque el código de g.page NO es un place_id válido.
+  function formUrl(url) {
+    const m = String(url || '').match(/placeid=(ChIJ[A-Za-z0-9_-]+)/i);
+    if (m) return 'https://search.google.com/local/writereview?placeid=' + m[1];
+    return url;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -229,23 +209,32 @@
       return { ok: true, google: false };
     }
 
-    // 1. Armar copy y copiar al clipboard EN PARALELO con el guardado interno
-    const copy = pickCopy({ texto, chips });
+    // 1. Abrir el formulario de reseña YA, DENTRO del gesto del click.
+    //    Es crítico abrir aquí (sin await previo) por dos razones en iOS:
+    //      · window.open fuera del gesto → el navegador lo BLOQUEA.
+    //      · abre en el navegador in-app (SFSafariViewController), que NO
+    //        respeta Universal Links → el g.page redirige al formulario en
+    //        vez de saltar a la app de Maps.
+    //    Disparamos también la copia al portapapeles dentro del gesto.
+    const destino  = formUrl(googleUrl);
+    const copy     = pickCopy({ texto, chips });
+    const copiadoP = copiarAlPortapapeles(copy);
+    const win      = window.open(destino, '_blank');
+
+    // 2. Guardado interno en paralelo (no bloquea el open ya hecho).
     const [copiado] = await Promise.all([
-      copiarAlPortapapeles(copy),
-      guardarInterno({ citaId, texto, chips, rating }),
+      copiadoP,
+      guardarInterno({ citaId, texto, chips, rating }).catch(() => {}),
     ]);
 
-    // 2. Toast según si se copió
-    if (copiado) {
-      toast('📋 Tu opinión ya está copiada — solo pégala y publica');
-    } else {
-      toast('Te abrimos Google Maps — dinos algo bonito 🙌');
-    }
+    // 3. Última red: si el navegador igual bloqueó el popup, navegamos en
+    //    la misma pestaña (una sola apertura, sin el doble-open que antes
+    //    disparaba Maps).
+    if (!win) window.location.href = destino;
 
-    // 3. Abrir Google Maps (app si es móvil con Maps instalado)
-    const placeId = extraerPlaceId(googleUrl);
-    setTimeout(() => abrirGoogleMaps(googleUrl, placeId), copiado ? 400 : 100);
+    toast(copiado
+      ? '📋 Tu opinión ya está copiada — solo pégala y publica'
+      : 'Te abrimos Google — cuéntanos algo bonito 🙌');
 
     return { ok: true, google: true, copiado };
   }

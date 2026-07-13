@@ -31,25 +31,31 @@ const CATEGORIAS = {
   DESCUENTO: { label: 'Descuento', Icon: Tag,      emoji: '🏷️', color: 'amber',   accion: 'Aplicar descuento en caja' },
 };
 
-/* Instrucción legible según la categoría del canje. */
+/* Instrucción legible según la categoría del canje. Soporta dos orígenes:
+   premios (skuProducto/servicioId/valorDescuento/tipoDescuento) y recompensas
+   del programa de referidos (detalle.nombre/productoId/servicioId/valor/tipo).
+   Preferimos SIEMPRE el nombre limpio del ítem (cfg.nombre / r.prizeName) para
+   que el barbero lea “Corte Degradado de regalo” en vez de “Servicio abc123”. */
 function buildInstruccion(r) {
   const cat = CATEGORIAS[r.categoria] || CATEGORIAS.SERVICIO;
-  const cfg = r.configuracion || {};
+  const cfg = r.configuracion || r.detalle || {};
+  const nombre = cfg.nombre || r.prizeName || '';
   if (r.categoria === 'PRODUCTO') {
+    const sku       = cfg.skuProducto ? ` · SKU ${cfg.skuProducto}` : '';
     const stockNote = cfg.descuentaStock ? ' · descontar stock' : '';
-    return `📦 Entregar en mostrador · SKU ${cfg.skuProducto || '—'}${stockNote}`;
+    return `📦 Entregar ${nombre ? `“${nombre}”` : 'el producto'} en mostrador${sku}${stockNote}`;
   }
   if (r.categoria === 'SERVICIO') {
     const turnoNote = cfg.requiereTurno ? ' · el cliente debe reservar turno' : ' · aplicar en la sesión actual';
-    return `✂️ Servicio ${cfg.servicioId || '—'} de regalo${turnoNote}`;
+    return `✂️ ${nombre ? `“${nombre}”` : 'Servicio'} de regalo${turnoNote}`;
   }
   if (r.categoria === 'DESCUENTO') {
-    const val     = cfg.valorDescuento || 0;
+    // valorDescuento/tipoDescuento (premios) o valor/tipo (referidos).
+    const val     = cfg.valorDescuento ?? cfg.valor ?? 0;
+    const esPct   = cfg.tipoDescuento ? cfg.tipoDescuento === 'PORCENTAJE' : (cfg.tipo || '%') === '%';
+    const monto   = esPct ? `${val}% OFF` : `$${Number(val).toLocaleString('es-CL')} OFF`;
     const aplicaA = cfg.aplicaA || 'GLOBAL';
     const target  = cfg.targetName || cfg.targetId || '';
-    const monto = cfg.tipoDescuento === 'PORCENTAJE'
-      ? `${val}% OFF`
-      : `$${val.toLocaleString('es-CL')} OFF`;
     if (aplicaA === 'SERVICIO_ESPECIFICO' && target) {
       return `🏷️ Aplicar ${monto} solo en: ${target}`;
     }

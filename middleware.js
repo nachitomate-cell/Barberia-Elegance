@@ -41,6 +41,7 @@ const DOMAIN_MAP = {
   'admin.kronnos.synaptechspa.cl':     'kronnos_penablanca',
   'barbersclub.synaptechspa.cl':       'barbersclub',
   'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
+  'estudioluxury.synaptechspa.cl':     'estudioluxury',
 };
 
 // Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
@@ -1041,6 +1042,51 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=elbarberomoderno',
       icons: [
         { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  estudioluxury: {
+    booking: {
+      title:       'Studio Luxury | Barbería · Agenda tu hora',
+      description: 'Reserva en Barbería Studio Luxury (Talagante). Cortes clásicos y modernos, barba, facial y color. Atención en local y a domicilio en Talagante, Isla de Maipo y El Monte.',
+      ogTitle:     'Agendar Hora | Studio Luxury',
+      ogDesc:      'Barbería · Cortes con estilo, atención de lujo. Local y domicilio. Reserva tu hora online.',
+    },
+    dashboard: {
+      title:       'Mi Club | Studio Luxury',
+      description: 'Tu panel personal en Studio Luxury. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Studio Luxury',
+      ogDesc:      'Panel de fidelidad de Studio Luxury. Acumula sellos y disfruta beneficios exclusivos.',
+    },
+    registro: {
+      title:       'Únete al Club Luxury',
+      description: 'Crea tu cuenta en el Club de Studio Luxury. Acumula sellos y accede a beneficios exclusivos.',
+      ogTitle:     'Únete al Club Luxury',
+      ogDesc:      'Regístrate en Studio Luxury y disfruta beneficios exclusivos.',
+    },
+    siteName:    'Studio Luxury',
+    ogImage:     '/luxury/og.png',       // 1200x630 con logo+nombre centrado → preview grande en WhatsApp
+    themeColor:  '#0b0a09',
+    appTitle:    'Studio Luxury',
+    icon:        '/luxury/luxury.jpg',
+    local: { addressLocality: 'Talagante', schemaType: 'HairSalon' },
+    manifest: {
+      name:             'Studio Luxury',
+      short_name:       'Studio Luxury',
+      theme_color:      '#0b0a09',
+      background_color: '#0b0a09',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Studio Luxury',
+      short_name:       'Studio Luxury',
+      description:      'Panel de administración — Studio Luxury',
+      theme_color:      '#DAA520',
+      background_color: '#0b0a09',
+      start_url:        '/gestion-interna/?local=estudioluxury',
+      icons: [
+        { src: '/luxury/luxury.jpg',           sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

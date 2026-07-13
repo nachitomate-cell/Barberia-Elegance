@@ -33,7 +33,7 @@ function _reportPush(logId, evento) {
 }
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v30';
+const CACHE_VERSION = 'saas-v31';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',

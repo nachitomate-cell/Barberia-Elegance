@@ -22,6 +22,10 @@
   //    que no existen en todos los contextos y revientan en su propio script.
   //  - "Script error." cross-origin: Safari/Chrome sanitizan el mensaje y
   //    perdemos contexto — no es accionable.
+  //  - Autofill de iOS Safari: WebKit inyecta `_AutofillCallbackHandler`
+  //    (y afines) al autocompletar credenciales en formularios; a veces
+  //    referencia la variable antes de definirla y lanza en su propio
+  //    script. No es un bug de la app (lo vemos en registro.html).
   const IGNORE_PATTERNS = [
     'Attempt to get records from database without an in-progress transaction',
     'Connection to Indexed Database server lost',
@@ -34,6 +38,7 @@
     'gCrWeb',
     'instantSearchSDKJSBridgeClearHighlight',
     'ReactNativeWebView',
+    '_AutofillCallbackHandler',
   ];
 
   function shouldIgnore(message) {
