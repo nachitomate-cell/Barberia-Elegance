@@ -200,7 +200,7 @@ function ResumenFidelizacion() {
         return {
           id:       d.id,
           status:   r.status,
-          ms:       r.completedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0,
+          ms:       r.approvedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0,
         };
       });
       setRedemptions6m(data);
@@ -262,13 +262,19 @@ function ResumenFidelizacion() {
       baseRangos += 1;
     }
 
-    const completados = redemptions.filter(r => r.status === 'completed');
+    // "Canjeado" = status 'approved' (lo que escriben el panel Canjes y la CF
+    // canjearRecompensaLink). Antes filtraba 'completed', un status FANTASMA que
+    // nadie escribe → esta vista nunca mostró canjes. Aceptamos 'completed' por
+    // si hubiera datos legacy.
+    const esCanjeado = (r) => r.status === 'approved' || r.status === 'completed';
+    const completados = redemptions.filter(esCanjeado);
     const pendientes  = redemptions.filter(r => r.status === 'pending');
 
-    // Top premios canjeados en el período
+    // Top premios canjeados en el período. Los premios de referido no tienen
+    // premioId (no vienen del catálogo) → usamos prizeName como identidad.
     const byPremio = new Map();
     completados.forEach(r => {
-      const key = r.premioId || r.premio || '—';
+      const key = r.premioId || r.prizeName || r.premio || '—';
       byPremio.set(key, (byPremio.get(key) || 0) + 1);
     });
     const topPremios = [...byPremio.entries()]
@@ -278,21 +284,22 @@ function ResumenFidelizacion() {
         const p = premios.find(x => x.id === premioId);
         return {
           id: premioId,
-          nombre: p?.nombre || 'Premio eliminado',
+          nombre: p?.nombre || (premioId !== '—' ? premioId : 'Premio'),
           count,
           costo: p ? costoDe(p) : 0,
         };
       });
 
-    // Últimos 5 canjes validados
+    // Últimos 5 canjes validados. Ordenamos/mostramos por approvedAt (el campo
+    // real; completedAt no existe), con fallback a createdAt.
     const ultimosCanjes = [...completados]
-      .sort((a, b) => (b.completedAt?.seconds || b.createdAt?.seconds || 0) - (a.completedAt?.seconds || a.createdAt?.seconds || 0))
+      .sort((a, b) => (b.approvedAt?.seconds || b.createdAt?.seconds || 0) - (a.approvedAt?.seconds || a.createdAt?.seconds || 0))
       .slice(0, 5)
       .map(r => ({
         id: r.id,
-        premio: premios.find(p => p.id === r.premioId)?.nombre || r.premio || '—',
+        premio: premios.find(p => p.id === r.premioId)?.nombre || r.prizeName || r.premio || '—',
         cliente: r.clienteNombre || r.userName || '—',
-        fecha: r.completedAt?.toDate() || r.createdAt?.toDate() || null,
+        fecha: r.approvedAt?.toDate() || r.createdAt?.toDate() || null,
       }));
 
     const sellosEnCirculacion = registrados.reduce((s, u) => s + sellosDe(u), 0);
@@ -320,7 +327,7 @@ function ResumenFidelizacion() {
     };
 
     for (const r of redemptions6m) {
-      if (r.status !== 'completed') continue;
+      if (!esCanjeado(r)) continue;
       const idx = bucketFor(r.ms);
       if (idx >= 0) buckets[idx].canjes += 1;
     }
@@ -354,12 +361,12 @@ function ResumenFidelizacion() {
 
     // Lista completa de canjes ordenados para el modal "Ver todos"
     const todosLosCanjes = [...completados]
-      .sort((a, b) => (b.completedAt?.seconds || b.createdAt?.seconds || 0) - (a.completedAt?.seconds || a.createdAt?.seconds || 0))
+      .sort((a, b) => (b.approvedAt?.seconds || b.createdAt?.seconds || 0) - (a.approvedAt?.seconds || a.createdAt?.seconds || 0))
       .map(r => ({
         id: r.id,
-        premio: premios.find(p => p.id === r.premioId)?.nombre || r.premio || '—',
+        premio: premios.find(p => p.id === r.premioId)?.nombre || r.prizeName || r.premio || '—',
         cliente: r.clienteNombre || r.userName || '—',
-        fecha: r.completedAt?.toDate() || r.createdAt?.toDate() || null,
+        fecha: r.approvedAt?.toDate() || r.createdAt?.toDate() || null,
       }));
 
     return {
