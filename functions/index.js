@@ -1289,3 +1289,11 @@ exports.adminAlertaNuevoTenant         = adminAlerts.adminAlertaNuevoTenant;
 exports.adminAlertaSoporte             = adminAlerts.adminAlertaSoporte;
 exports.adminAlertaErroresSpike        = adminAlerts.adminAlertaErroresSpike;
 exports.adminAlertaOnboardingEstancado = adminAlerts.adminAlertaOnboardingEstancado;
+
+// ─────────────────────────────────────────────────────────────────
+//  SUPERADMIN — crear accesos de staff (admin de local / admin que
+//  atiende / barbero) para cualquier local. Auth + claims + doc en
+//  una llamada. Solo ignaciiio.mate@gmail.com. Ver superadmin-staff.js
+// ─────────────────────────────────────────────────────────────────
+const superadminStaff = require('./superadmin-staff');
+exports.superadminCrearStaff = superadminStaff.superadminCrearStaff;

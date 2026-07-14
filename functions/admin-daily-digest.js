@@ -65,7 +65,11 @@ async function contarCitasDelDia(db, root, fechaStr) {
       const estado = String(c.estado || '').toLowerCase();
       if (estado.startsWith('cancelad')) return; // excluye Cancelada / Cancelado
       total++;
-      ingreso += Number(c.precio) || PRECIO_FALLBACK;
+      // precio 0 = cortesía/gratis REAL → cuenta 0, no estimar. El fallback solo
+      // aplica cuando el precio falta (dato no registrado). Antes `|| FALLBACK`
+      // trataba el 0 como falsy → una cortesía sumaba $15.000 al digest.
+      const _p = Number(c.precio);
+      ingreso += (c.precio == null || c.precio === '' || Number.isNaN(_p)) ? PRECIO_FALLBACK : _p;
     });
     return { total, ingreso };
   } catch (e) {

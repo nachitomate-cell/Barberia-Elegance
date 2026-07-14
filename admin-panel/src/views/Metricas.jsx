@@ -1121,9 +1121,11 @@ export default function Metricas() {
 
     rangeVentas.forEach(v => {
       const k = normalize(v.metodoPago);
+      // `precio` ya es el total de línea (× cantidad aplicado por el writer).
+      // Antes hacía `monto * (v.total ? 1 : qty)`, pero el campo es `subtotal`,
+      // no `total` → v.total siempre undefined → siempre × qty = doble conteo.
       const monto = Number(v.precio) || Number(v.total) || 0;
-      const qty   = Number(v.cantidad) || 1;
-      acc[k].productos += monto * (v.total ? 1 : qty);
+      acc[k].productos += monto;
       acc[k].count     += 1;
     });
 

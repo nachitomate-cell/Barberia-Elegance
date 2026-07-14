@@ -614,8 +614,18 @@ export default function Membresias() {
 
   // Cálculos de métricas
   const ahora = Date.now();
-  const activos = useMemo(() => miembros.filter(m => (m.fechaVencimientoMembresia?.toDate()?.getTime() ?? 0) > ahora), [miembros, ahora]);
-  const vencidos = useMemo(() => miembros.filter(m => (m.fechaVencimientoMembresia?.toDate()?.getTime() ?? 0) <= ahora), [miembros, ahora]);
+  // `miembros` ya viene filtrado a esMiembro:true. Un miembro SIN fecha de
+  // vencimiento (plan indefinido o dato faltante) cuenta como ACTIVO — antes
+  // el `?? 0` lo forzaba a "vencido" y lo dejaba fuera del MRR. Solo es vencido
+  // si tiene una fecha REAL en el pasado (así no inflamos el MRR con vencidos).
+  const activos = useMemo(() => miembros.filter(m => {
+    const venc = m.fechaVencimientoMembresia?.toDate()?.getTime();
+    return venc == null || venc > ahora;
+  }), [miembros, ahora]);
+  const vencidos = useMemo(() => miembros.filter(m => {
+    const venc = m.fechaVencimientoMembresia?.toDate()?.getTime();
+    return venc != null && venc <= ahora;
+  }), [miembros, ahora]);
   const porVencer = useMemo(() => activos.filter(m => {
     const dias = diasRestantes(m.fechaVencimientoMembresia?.toDate());
     return dias !== null && dias <= 7;

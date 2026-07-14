@@ -70,7 +70,7 @@ export default function Facturacion() {
   // ── Cargar audit log ─────────────────────────────────────────────
   useEffect(() => {
     if (!tenantId) return;
-    const q = query(tenantCol('facturacion_log'), orderBy('createdAt', 'desc'), limit(30));
+    const q = query(tenantCol('facturacion_log'), orderBy('createdAt', 'desc'), limit(200));
     const unsub = onSnapshot(
       q,
       snap => setLog(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -85,9 +85,14 @@ export default function Facturacion() {
   const configurada = cfg?.openfacturaConfigurada === true;
 
   const stats = useMemo(() => {
-    const emitidas = log.filter(l => l.ok).length;
+    // Excluir Notas de Crédito (tipo:'nc') del facturado y del conteo de emitidas
+    // — son anulaciones, no boletas. Antes sumaban al total y contaban como
+    // emisión (sobre-reporte). El límite del query subió a 200 para que el total
+    // no quede topado (para volumen mayor haría falta una suma agregada server-side).
+    const boletas  = log.filter(l => l.tipo !== 'nc');
+    const emitidas = boletas.filter(l => l.ok).length;
     const errores  = log.filter(l => !l.ok).length;
-    const total    = log.reduce((s, l) => s + (Number(l.documento?.total) || 0), 0);
+    const total    = boletas.reduce((s, l) => s + (Number(l.documento?.total) || 0), 0);
     return { emitidas, errores, total };
   }, [log]);
 
@@ -339,7 +344,7 @@ export default function Facturacion() {
           </div>
         ) : (
           <ul className="divide-y divide-slate-800/60">
-            {log.map(l => (
+            {log.slice(0, 40).map(l => (
               <li key={l.id} className="px-5 py-3 flex items-center gap-3">
                 <div className={`p-1.5 rounded-md border mt-0.5 ${l.ok
                   ? 'bg-emerald-500/10 border-emerald-500/20'

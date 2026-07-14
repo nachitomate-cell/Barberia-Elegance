@@ -317,50 +317,78 @@ async function syncTenant(tenantId) {
   });
   if (!posts.length) return { tenantId, added: 0 };
 
-  // Filtrar los ya sincronizados
+  // Mapa instagramId → docRef de los ya sincronizados. Lo usamos para dos cosas:
+  //   1) NO duplicar los que ya existen.
+  //   2) REFRESCAR su `url`/`thumbnailUrl`/`videoUrl` en cada corrida — las URLs
+  //      del CDN de Instagram (scontent.cdninstagram.com) vienen firmadas y
+  //      CADUCAN en horas/días. Como el cron corre cada 6h y cada llamada a la
+  //      API devuelve URLs recién firmadas, refrescarlas las mantiene vivas y
+  //      las tarjetas dejan de salir en negro. (Los posts que ya no estén entre
+  //      los últimos 30 —o borrados de IG— no se refrescan y eventualmente
+  //      mueren; aceptable para el lookbook, que muestra lo reciente.)
   const col          = lookbookCol(tenantId);
   const existingSnap = await col.where('source', '==', 'instagram').get();
-  const existingIds  = new Set(existingSnap.docs.map(d => d.data().instagramId).filter(Boolean));
-
-  const newPosts = posts.filter(p => !existingIds.has(p.id));
-  if (!newPosts.length) return { tenantId, added: 0 };
+  const existingById = new Map();
+  existingSnap.docs.forEach(d => {
+    const igId = d.data().instagramId;
+    if (igId) existingById.set(igId, d.ref);
+  });
 
   // Calcular order base (debajo de los posts manuales existentes)
   const topSnap  = await col.orderBy('order', 'desc').limit(1).get();
   const maxOrder = topSnap.empty ? 0 : (topSnap.docs[0].data().order ?? 0);
 
   const batch = db.batch();
-  newPosts.forEach((post, idx) => {
-    const isVideo = post.media_type === 'VIDEO';
-    batch.set(col.doc(`ig_${post.id}`), {
-      // Para VIDEO, `url` = thumbnail (poster). Renderers legacy siguen
-      // funcionando (muestran una imagen). El player la sobrescribe si detecta
-      // mediaType === 'VIDEO'.
-      url:          isVideo ? post.thumbnail_url : post.media_url,
-      mediaType:    post.media_type,
-      thumbnailUrl: post.thumbnail_url || null,
-      videoUrl:     isVideo ? (post.media_url || null) : null,
-      permalink:    post.permalink || null,
-      titulo:       extractTitulo(post.caption),
-      categoria:    extractCategoria(post.caption),
-      source:       'instagram',
-      instagramId:  post.id,
-      caption:      post.caption || '',
-      timestamp:    post.timestamp || '',
-      order:        maxOrder + idx + 1,
-      creadoEn:     Timestamp.now(),
-    });
+  let added = 0, refreshed = 0;
+  posts.forEach(post => {
+    const isVideo  = post.media_type === 'VIDEO';
+    // Para VIDEO, `url` = thumbnail (poster) para que los renderers legacy
+    // muestren una imagen sin romperse. La URL del video va en videoUrl.
+    const freshUrl = isVideo ? post.thumbnail_url : post.media_url;
+    const existingRef = existingById.get(post.id);
+
+    if (existingRef) {
+      // Refrescar SOLO los campos que caducan. NO tocar order/likes/focalX/Y/
+      // titulo/categoria: pueden haber sido reordenados o editados a mano.
+      batch.update(existingRef, {
+        url:            freshUrl,
+        thumbnailUrl:   post.thumbnail_url || null,
+        videoUrl:       isVideo ? (post.media_url || null) : null,
+        permalink:      post.permalink || null,
+        urlRefreshedAt: Timestamp.now(),
+      });
+      refreshed++;
+    } else {
+      batch.set(col.doc(`ig_${post.id}`), {
+        url:          freshUrl,
+        mediaType:    post.media_type,
+        thumbnailUrl: post.thumbnail_url || null,
+        videoUrl:     isVideo ? (post.media_url || null) : null,
+        permalink:    post.permalink || null,
+        titulo:       extractTitulo(post.caption),
+        categoria:    extractCategoria(post.caption),
+        source:       'instagram',
+        instagramId:  post.id,
+        caption:      post.caption || '',
+        timestamp:    post.timestamp || '',
+        order:        maxOrder + added + 1,
+        creadoEn:     Timestamp.now(),
+      });
+      added++;
+    }
   });
+
+  if (added === 0 && refreshed === 0) return { tenantId, added: 0, refreshed: 0 };
   await batch.commit();
 
   await igConfigRef(tenantId).update({
     lastSync:  Timestamp.now(),
-    postCount: FieldValue.increment(newPosts.length),
+    postCount: FieldValue.increment(added),
     errorMsg:  FieldValue.delete(),
   });
 
-  logger.info(`[Instagram] Sync OK ${tenantId}: +${newPosts.length} posts`);
-  return { tenantId, added: newPosts.length };
+  logger.info(`[Instagram] Sync OK ${tenantId}: +${added} nuevos, ${refreshed} refrescados`);
+  return { tenantId, added, refreshed };
 }
 
 // ── Cron: cada 6 horas ─────────────────────────────────────────────

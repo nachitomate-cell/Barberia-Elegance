@@ -189,7 +189,10 @@ function calcReporte({ citas, ventas, gastos }) {
     ventasPorMetodo[normMet(c.metodoPago)] += monto;
   });
   ventas.forEach(v => {
-    const monto = (Number(v.precio) || Number(v.total) || 0) * (Number(v.cantidad) || 1);
+    // `precio` ya es el TOTAL DE LÍNEA (precio_unitario × cantidad, con descuento)
+    // — así lo escriben la venta rápida (Productos.jsx) y el ticket (agenda.html).
+    // Multiplicar otra vez por cantidad duplicaba el monto en el arqueo/reporte.
+    const monto = Number(v.precio) || Number(v.total) || 0;
     ventasProductos += monto;
     ventasPorMetodo[normMet(v.metodoPago)] += monto;
   });
@@ -620,7 +623,8 @@ async function cargarMovimientosMes(mesKey) {
     if (!['confirmed', 'completed', 'paid', 'delivered'].includes(v.status)) return;
     const f = fechaToYMD(v.fecha || v.creadoEn || v.createdAt);
     if (f < firstStr || f > lastStr) return;
-    const monto = (Number(v.precio) || Number(v.total) || 0) * (Number(v.cantidad) || 1);
+    // `precio` ya es el total de línea (× cantidad ya aplicado) → no re-multiplicar.
+    const monto = Number(v.precio) || Number(v.total) || 0;
     if (monto > 0) ventas.push({
       _id: 'p:' + d.id, _fecha: f, _monto: monto,
       label: `${v.productName || v.productoNombre || 'Producto'} ×${v.cantidad || 1}`,
@@ -1017,10 +1021,12 @@ export default function Caja() {
       .filter(c => c.metodoPago === 'Efectivo')
       .reduce((s, c) => s + (Number(c.propina) || 0), 0);
 
-    // Productos vendidos
-    const productosEfectivo = ventasHoy.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
-    const productosTarjeta = ventasHoy.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
-    const productosTransf = ventasHoy.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0) * (Number(v.cantidad) || 1), 0);
+    // Productos vendidos. `precio` ya es el total de línea (× cantidad aplicado
+    // por la venta rápida y el ticket) → sumar precio directo, sin re-multiplicar
+    // (antes duplicaba y el arqueo mostraba faltantes falsos).
+    const productosEfectivo = ventasHoy.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    const productosTarjeta = ventasHoy.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    const productosTransf = ventasHoy.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0), 0);
 
     // Gastos
     const gastosEfectivo = gastosHoy.filter(g => g.metodoPago === 'Efectivo').reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -1105,7 +1111,7 @@ export default function Caja() {
         type: 'producto',
         label: `${v.productName || v.productoNombre || 'Producto'} x${v.cantidad || 1}`,
         sub: `Venta producto · ${v.metodoPago || 'No especificado'}`,
-        monto: (Number(v.precio) || 0) * (Number(v.cantidad) || 1),
+        monto: Number(v.precio) || 0, // precio = total de línea; no re-multiplicar
         time: (() => {
           const ts = v.creadoEn || v.createdAt;
           if (!ts) return '00:00';

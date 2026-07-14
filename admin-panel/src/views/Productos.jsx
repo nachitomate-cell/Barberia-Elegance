@@ -549,6 +549,12 @@ export default function Productos() {
       const descuento = Math.min(100, Math.max(0, Number(vrForm.descuento) || 0));
       const subtotalVenta = Number(prod.precio || 0) * Number(vrForm.cantidad);
       const totalVenta = Math.round(subtotalVenta * (1 - descuento / 100));
+      // Fecha local "YYYY-MM-DD" (componentes locales, NO toISOString/UTC → evita
+      // el salto de día nocturno en Chile). Métricas e Inicio filtran
+      // product_reservations por `fecha`; sin este campo la venta rápida quedaba
+      // invisible en ingresos y P&L (el ticket de agenda.html ya lo escribe).
+      const _now = new Date();
+      const fechaHoy = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
 
       // Create delivered reservation representing direct sale
       const reservationRef = doc(tenantCol('product_reservations'));
@@ -559,6 +565,7 @@ export default function Productos() {
         subtotal: subtotalVenta,
         descuento,
         cantidad: Number(vrForm.cantidad),
+        fecha: fechaHoy,
         status: 'delivered',
         userName: 'Venta Directa Local',
         userEmail: 'admin@barberia.cl',

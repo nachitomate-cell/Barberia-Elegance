@@ -1169,8 +1169,22 @@ export default function Equipo() {
   const comisionProductoMonto = selectedBarber ? (selectedBarber.comisionProductosMonto ?? 0) : 0;
   const sueldoBaseMonto = selectedBarber ? (selectedBarber.sueldoBase || 0) : 0;
 
-  const serviciosBruto = citasSueldos.reduce((acc, curr) => acc + (curr.precio || 0), 0);
-  const serviciosComision = citasSueldos.reduce((acc, curr) => acc + ((curr.precio || 0) * comisionServicioPorc / 100), 0);
+  // Precio de referencia por servicio (id o nombre) para citas completadas SIN
+  // precio explícito registrado. Mismo fallback que Métricas (Metricas.jsx:589):
+  // así la nómina no paga $0 por cortes reales sin precio. Las cortesías
+  // (cortesia:true) pagan 0, consistente con el ingreso que muestra Métricas.
+  const precioMapSueldo = {};
+  (servicios || []).forEach(s => {
+    const p = Number(s.precio) || 0;
+    if (s.id)     precioMapSueldo[s.id]     = p;
+    if (s.nombre) precioMapSueldo[s.nombre] = p;
+  });
+  const precioCitaSueldo = (c) => c.cortesia
+    ? 0
+    : (Number(c.precio) || precioMapSueldo[c.servicioId] || precioMapSueldo[c.servicioNombre] || 0);
+
+  const serviciosBruto = citasSueldos.reduce((acc, curr) => acc + precioCitaSueldo(curr), 0);
+  const serviciosComision = citasSueldos.reduce((acc, curr) => acc + (precioCitaSueldo(curr) * comisionServicioPorc / 100), 0);
 
   const productosBruto = ventasSueldos.reduce((acc, curr) => acc + (curr.precioTotal || curr.precio || 0), 0);
   // Comisión por venta = (precio × %) + monto fijo. El monto se aplica una vez por venta.
@@ -1542,7 +1556,8 @@ export default function Equipo() {
                   ) : (
                     <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                       {citasSueldos.map(c => {
-                        const comisionMonto = (c.precio || 0) * comisionServicioPorc / 100;
+                        const precioEfectivo = precioCitaSueldo(c);
+                        const comisionMonto = precioEfectivo * comisionServicioPorc / 100;
                         return (
                           <div key={c.id} className="flex justify-between items-center p-2.5 rounded-lg bg-slate-800/40 border border-slate-800/80 text-xs text-slate-300">
                             <div>
@@ -1550,7 +1565,7 @@ export default function Equipo() {
                               <p className="text-[10px] text-slate-500 mt-0.5">{c.servicioNombre} • {c.fecha} {c.hora}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-white">{fmtCurrency(c.precio)}</p>
+                              <p className="font-bold text-white">{fmtCurrency(precioEfectivo)}</p>
                               <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
                               {c.propina > 0 && <p className="text-[9px] text-yellow-500 mt-0.5">Propina: {fmtCurrency(c.propina)}</p>}
                             </div>

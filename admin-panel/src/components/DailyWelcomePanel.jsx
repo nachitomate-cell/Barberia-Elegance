@@ -95,9 +95,11 @@ async function cargarBrief() {
       .filter(c => c.fecha && c.fecha !== hoyStr);
   } catch (e) { console.warn('[brief] historico:', e.message); }
 
-  // Ingresos hoy — solo las que no estén canceladas
+  // Ingreso REALIZADO de hoy — solo citas Completadas (igual que Inicio.jsx).
+  // Antes incluía Confirmadas (aún no atendidas) → sobrestimaba el ingreso del
+  // día hasta que se cerraban las citas.
   const ingresoHoy = citasHoy
-    .filter(c => c.estado !== 'Cancelada' && c.estado !== 'NoAsistio')
+    .filter(c => c.estado === 'Completada')
     .reduce((sum, c) => sum + (Number(c.precio) || 0), 0);
 
   // Ingresos del mismo dow, agrupados por fecha (para promediar por día)
