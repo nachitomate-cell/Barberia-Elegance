@@ -820,7 +820,7 @@
       slogan:          'Cuidado personal que combina estilo y calidad.',
       sobreNosotros:   'En Studio Dieciséis, ubicado en el corazón de Valparaíso, ofrecemos una experiencia de cuidado personal que combina estilo y calidad. Nos especializamos en cortes de cabello que incluyen el arreglo de cejas, así como en servicios premium que integran detallados retoques de barba para quienes buscan un look impecable. Además, nuestro equipo experto se dedica al cuidado de uñas, garantizando un acabado elegante y duradero.<br><br>Visítanos y descubre un studio privado con un ambiente grato y familiar donde puedes conectar contigo mismo y recibir la atención que te mereces.',
       logo:            '/dieciseis/logo.png',
-      banner:          '/dieciseis/banner.png',
+      banner:          '/dieciseis/Banner16.png',
       infoBtnLabel:    'Portafolio',
       galeria:         [],
       direccion:       '📍 Condell 1525, Piso 5, Local 43 · Galería Beye, Valparaíso',
@@ -960,7 +960,7 @@
       slogan:          'Estilo y distinción en cada corte.',
       sobreNosotros:   'Barbería Studio Luxury: cortes clásicos y modernos con atención de lujo. Servicio en local y a domicilio en Talagante, Isla de Maipo y El Monte. Consulta por nuestra suscripción mensual (4 cortes) y nuestras promociones.',
       logo:            '/luxury/luxury.jpg',
-      banner:          '/luxury/banner.png',   // foto real de la estación de Matías (hero)
+      banner:          '/luxury/banner.webp',  // foto real de la estación de Matías (hero)
       direccion:       '📍 Talagante · Isla de Maipo · El Monte (local y domicilio)',
       horario:         '🕒 Lun a Sáb · Agenda tu hora',
       telefono:        '56958994297',    // WhatsApp Matías

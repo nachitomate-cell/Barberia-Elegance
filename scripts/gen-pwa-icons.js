@@ -43,6 +43,7 @@ const TENANTS = {
   elbarberomoderno:     { src: 'elbarberomoderno/logobarb.jpeg',  bg: '#0b0a09' },
   estudioluxury:        { src: 'luxury/luxury.jpg',               bg: '#0a0a0a' },
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
+  memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
 };
 
 const SIZES = [192, 512];

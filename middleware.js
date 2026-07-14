@@ -1158,10 +1158,12 @@ const TENANT_META = {
       ogDesc:      'Regístrate en Memphis Salón y disfruta de beneficios exclusivos.',
     },
     siteName:    'Memphis Salón',
-    ogImage:     '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    ogImage:     '/mem.png',
     themeColor:  '#0a0a0a',
     appTitle:    'Memphis',
-    icon:        '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    icon:        '/mem.png',
+    iconPwa192:  '/icons/pwa/memphis-192.png',
+    iconPwa512:  '/icons/pwa/memphis-512.png',
     local: { addressLocality: 'Viña del Mar', schemaType: 'BeautySalon' },
     manifest: {
       name:             'Memphis Salón',
