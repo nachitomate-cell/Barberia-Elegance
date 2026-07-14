@@ -6,11 +6,13 @@
 //  que el teléfono mantenga viva la suscripción del navegador (tokens stale,
 //  ahorro de batería, PWA matada en background); el email siempre llega.
 //
-//  Opt-in por tenant: _system/{tid}.emailStaffCitas === true
-//  (controla el volumen contra la cuota de Resend).
+//  Opt-in por tenant con destinatarios EXPLÍCITOS:
+//    _system/{tid}.emailStaffCitas = 'correo@real.cl' | ['a@x.cl', 'b@y.cl']
+//  Sin configurar (o boolean) → no se envía nada.
 //
-//  Destinatarios: el barbero asignado a la cita (si tiene email);
-//  si no se resuelve, fallback a admins/jefes del local con email.
+//  ⚠️ Nunca usar los emails de los docs barberos como destinatarios: son
+//  credenciales de login y muchos son direcciones inventadas, no casillas
+//  reales. Los destinatarios los define Ignacio por tenant en el flag.
 //  No incluye teléfono ni email del cliente (política: no exponer el canal
 //  de contacto del cliente al staff).
 //
@@ -51,13 +53,21 @@ async function sendResend(apiKey, payload) {
   return body;
 }
 
-async function estaHabilitado(tenantId) {
+// Devuelve los destinatarios configurados explícitamente para el tenant.
+// Acepta string o array de strings; cualquier otro valor (p. ej. el boolean
+// true de una versión anterior) se ignora → [] = feature apagada.
+async function destinatariosConfigurados(tenantId) {
   try {
     const doc = await db.doc(`_system/${tenantId}`).get();
-    return doc.exists && doc.data().emailStaffCitas === true;
+    if (!doc.exists) return [];
+    const raw = doc.data().emailStaffCitas;
+    const lista = Array.isArray(raw) ? raw : (typeof raw === 'string' ? [raw] : []);
+    return [...new Set(
+      lista.map(e => String(e || '').trim().toLowerCase()).filter(e => e.includes('@'))
+    )];
   } catch (e) {
     logger.warn(`[AvisoStaff] No se pudo leer _system/${tenantId}: ${e.message}`);
-    return false;
+    return [];
   }
 }
 
@@ -80,32 +90,6 @@ async function brandingDe(tenantId) {
     logger.warn(`[AvisoStaff] Branding fallback para ${tenantId}: ${e.message}`);
     return { nombre: tenantId, color: '#DAA520', from: `Agenda <citas@synaptechspa.cl>`, dashboardUrl: '' };
   }
-}
-
-// Emails del staff: barbero asignado primero; si no hay, admins/jefes.
-// Mismo criterio de match que getTokensActivosTenant (id, _mainDocId, nombre).
-async function resolverDestinatarios(barberosCol, cita) {
-  const barberoId     = String(cita.barberoId || '').trim();
-  const barberoNombre = String(cita.barbero || cita.barberoNombre || '').toLowerCase().trim();
-
-  const snap = await barberosCol.get();
-  const asignado = new Set();
-  const jefes    = new Set();
-
-  snap.forEach(docSnap => {
-    const b = docSnap.data();
-    if (b.activo === false) return;
-    const email = String(b.email || '').trim().toLowerCase();
-    if (!email || !email.includes('@')) return;
-
-    const matchById      = barberoId && docSnap.id === barberoId;
-    const matchByMainDoc = barberoId && b._mainDocId === barberoId;
-    const matchByName    = barberoNombre && String(b.nombre || '').toLowerCase().trim() === barberoNombre;
-    if (matchById || matchByMainDoc || matchByName) asignado.add(email);
-    if (b.rol === 'jefe' || b.rol === 'admin') jefes.add(email);
-  });
-
-  return asignado.size ? [...asignado] : [...jefes];
 }
 
 function buildStaffHtml({ cfg, cita, panelUrl }) {
@@ -173,14 +157,9 @@ function buildStaffHtml({ cfg, cita, panelUrl }) {
 
 // ── Core ──────────────────────────────────────────────────────────────────────
 
-async function avisarStaff(tenantId, citaId, cita, barberosCol, panelUrl) {
-  if (!(await estaHabilitado(tenantId))) return;
-
-  const destinatarios = await resolverDestinatarios(barberosCol, cita);
-  if (!destinatarios.length) {
-    logger.info(`[AvisoStaff] ${tenantId}: sin emails de staff para cita ${citaId} — omitiendo`);
-    return;
-  }
+async function avisarStaff(tenantId, citaId, cita, panelUrl) {
+  const destinatarios = await destinatariosConfigurados(tenantId);
+  if (!destinatarios.length) return; // feature apagada para este tenant
 
   const cfg  = await brandingDe(tenantId);
   const html = buildStaffHtml({ cfg, cita, panelUrl: panelUrl(cfg) });
@@ -214,7 +193,7 @@ async function avisarStaff(tenantId, citaId, cita, barberosCol, panelUrl) {
 }
 
 // Para scripts de prueba (scripts/test-aviso-staff.js)
-exports._test = { buildStaffHtml, resolverDestinatarios, brandingDe, sendResend };
+exports._test = { buildStaffHtml, destinatariosConfigurados, brandingDe, sendResend };
 
 // ── Triggers ──────────────────────────────────────────────────────────────────
 
@@ -227,7 +206,6 @@ exports.avisoCitaStaffElegance = onDocumentCreated(
       'elegance',
       event.params.citaId,
       cita,
-      db.collection('barberos'),
       cfg => String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/agenda'),
     );
     return null;
@@ -244,7 +222,6 @@ exports.avisoCitaStaffTenant = onDocumentCreated(
       tenantId,
       citaId,
       cita,
-      db.collection(`tenants/${tenantId}/barberos`),
       cfg => String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/gestion-interna/agenda'),
     );
     return null;

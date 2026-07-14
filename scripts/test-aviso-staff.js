@@ -34,10 +34,8 @@ async function run() {
     barberoId: 'jhoseth-morales',
   };
 
-  const destinatariosReales = await _test.resolverDestinatarios(
-    db.collection(`tenants/${TENANT}/barberos`), citaFake
-  );
-  console.log('Destinatarios que resolvería en producción:', destinatariosReales);
+  const destinatariosReales = await _test.destinatariosConfigurados(TENANT);
+  console.log('Destinatarios configurados en _system (explícitos):', destinatariosReales);
 
   const cfg  = await _test.brandingDe(TENANT);
   console.log('Branding:', cfg.nombre, '| from:', cfg.from);
