@@ -42,6 +42,8 @@ const DOMAIN_MAP = {
   'barbersclub.synaptechspa.cl':       'barbersclub',
   'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
   'estudioluxury.synaptechspa.cl':     'estudioluxury',
+  'memphissalon.synaptechspa.cl':      'memphis',
+  'alfamen.synaptechspa.cl':           'alfamen',
 };
 
 // Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
@@ -78,6 +80,8 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Elegance',
     icon:        '/logo.jpg',
+    iconPwa192:  '/icons/pwa/elegance-192.png',
+    iconPwa512:  '/icons/pwa/elegance-512.png',
     local: { telephone: '+56947999370', streetAddress: 'Ecuador 243', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon' },
     manifest: {
       name:             'Elegance Barbershop',
@@ -123,6 +127,8 @@ const TENANT_META = {
     themeColor:  '#000000',
     appTitle:    'Ferraza',
     icon:        '/local1.jpg',
+    iconPwa192:  '/icons/pwa/ferraza-192.png',
+    iconPwa512:  '/icons/pwa/ferraza-512.png',
     local: { telephone: '+56994269228', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
     manifest: {
       name:             'Barbería Ferraza',
@@ -168,6 +174,8 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Gitana',
     icon:        '/gitana.png',
+    iconPwa192:  '/icons/pwa/gitana-192.png',
+    iconPwa512:  '/icons/pwa/gitana-512.png',
     local: { telephone: '', streetAddress: 'Las Encinas 1390', addressLocality: 'Concón', schemaType: 'BeautySalon' },
     manifest: {
       name:             'Gitana Nails Studio',
@@ -214,6 +222,8 @@ const TENANT_META = {
     themeColor:  '#2A1E22',
     appTitle:    'Mapu',
     icon:        '/mapu2.png',
+    iconPwa192:  '/icons/pwa/mapubarbershop-192.png',
+    iconPwa512:  '/icons/pwa/mapubarbershop-512.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 72, reviews: [{ author: 'Tomás E.', rating: 5, text: 'Dos sucursales y en ambas el nivel es excelente. Mi favorito en Valparaíso y Viña del Mar.' }, { author: 'Ignacio F.', rating: 5, text: 'El corte perfecto y el ambiente de barbería que te hace volver. Siempre satisfecho.' }, { author: 'Andrés C.', rating: 5, text: 'Profesionalismo total. Me dejaron exactamente el estilo que quería.' }] },
     manifest: {
       name:             'Mapu Barber Shop',
@@ -259,6 +269,8 @@ const TENANT_META = {
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
     icon:        '/local3.jpg',
+    iconPwa192:  '/icons/pwa/chameleon-192.png',
+    iconPwa512:  '/icons/pwa/chameleon-512.png',
     local: { telephone: '+56928186861', streetAddress: 'Av. Libertad 868', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' }, { author: 'Cristian Veas', rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, ambiente muy agradable y precio acorde al resultado.' }, { author: 'Jorge Miranda', rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras. Primera vez que voy y volvería a ir.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
@@ -304,6 +316,8 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Del Nero',
     icon:        '/nero.jpg',
+    iconPwa192:  '/icons/pwa/delnero-192.png',
+    iconPwa512:  '/icons/pwa/delnero-512.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Placilla', schemaType: 'HairSalon' },
     manifest: {
       name:             'Del Nero Barber',
@@ -349,6 +363,8 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Marcelo Palma',
     icon:        '/marcelo1.png',
+    iconPwa192:  '/icons/pwa/marcelo_hairdressing-192.png',
+    iconPwa512:  '/icons/pwa/marcelo_hairdressing-512.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Placilla', schemaType: 'HairSalon' },
     manifest: {
       name:             'Marcelo Palma Hairdressing',
@@ -394,6 +410,8 @@ const TENANT_META = {
     themeColor:  '#C9A050',
     appTitle:    "D'Jones",
     icon:        '/djones.png',
+    iconPwa192:  '/icons/pwa/lumen-192.png',
+    iconPwa512:  '/icons/pwa/lumen-512.png',
     local: { telephone: '+56929808223', streetAddress: 'Villanelo 279', postalCode: '2340000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon' },
     manifest: {
       name:             "D'Jones Barber",
@@ -439,6 +457,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'AURA',
     icon:        '/aura.png',
+    iconPwa192:  '/icons/pwa/aura-192.png',
+    iconPwa512:  '/icons/pwa/aura-512.png',
     local: { telephone: '+56966153086', streetAddress: '2 Oriente 124, Local 3', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', instagram: 'https://www.instagram.com/aura.salon.cl', openingHours: ['Mo-Sa 10:00-20:00'], ratingGeneral: 5.0, totalReviews: 43, reviews: [{ author: 'Rafael Contador', rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. Definitivamente volveré.' }, { author: 'Luciano Bravo', rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal.' }, { author: 'Ignacio Ibaceta', rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' }] },
     manifest: {
       name:             'AURA SALÓN & MALE GROOMING',
@@ -484,6 +504,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Latin Caribe',
     icon:        '/thelatin/latin.png',
+    iconPwa192:  '/icons/pwa/latincaribe-192.png',
+    iconPwa512:  '/icons/pwa/latincaribe-512.png',
     local: { streetAddress: '', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', openingHours: ['Mo-Sa 10:00-20:00'], ratingGeneral: 0, totalReviews: 0, reviews: [] },
     manifest: {
       name:             'The Latin Caribe',
@@ -576,6 +598,8 @@ const TENANT_META = {
     themeColor:  '#090d16',
     appTitle:    'Machos',
     icon:        '/machos.png',
+    iconPwa192:  '/icons/pwa/machos-192.png',
+    iconPwa512:  '/icons/pwa/machos-512.png',
     local: {
       telephone: '56978390422',
       streetAddress: '4 Norte 477 local 5',
@@ -633,6 +657,8 @@ const TENANT_META = {
     themeColor:  '#121214',
     appTitle:    'Infinity',
     icon:        '/infinity.png',
+    iconPwa192:  '/icons/pwa/infinity-192.png',
+    iconPwa512:  '/icons/pwa/infinity-512.png',
     local: {
       telephone: '56985551234',
       streetAddress: 'Traslaviña 114',
@@ -689,6 +715,8 @@ const TENANT_META = {
     themeColor:  '#0c0c0e',
     appTitle:    'Omega',
     icon:        '/omega.jpg',
+    iconPwa192:  '/icons/pwa/omegastudio-192.png',
+    iconPwa512:  '/icons/pwa/omegastudio-512.png',
     local: {
       telephone:       '56972302811',
       streetAddress:   'Av. Valparaíso 595, Local 53',
@@ -739,6 +767,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Dieciséis',
     icon:        '/dieciseis/logo.png',
+    iconPwa192:  '/icons/pwa/sionbarberia-192.png',
+    iconPwa512:  '/icons/pwa/sionbarberia-512.png',
     local: {
       telephone: '56937179177',
       streetAddress: 'Condell 1525, Piso 5, Local 43, Galería Beye',
@@ -798,6 +828,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
+    iconPwa192:  '/icons/pwa/kronnos-192.png',
+    iconPwa512:  '/icons/pwa/kronnos-512.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
@@ -837,6 +869,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
+    iconPwa192:  '/icons/pwa/kronnos-192.png',
+    iconPwa512:  '/icons/pwa/kronnos-512.png',
     local: { telephone: '', streetAddress: 'Av. Vicepresidente Bernardo Leighton 20, local 13', addressLocality: 'Villa Alemana', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio Peñablanca', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
@@ -873,6 +907,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
+    iconPwa192:  '/icons/pwa/kronnos-192.png',
+    iconPwa512:  '/icons/pwa/kronnos-512.png',
     local: { telephone: '', streetAddress: 'Paseo Las Araucarias 405, local 5', addressLocality: 'Limache', schemaType: 'HairSalon', ratingGeneral: 0, totalReviews: 0 },
     manifest: { name: 'Kronnos Studio Limache', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
@@ -909,6 +945,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos Woman',
     icon:        '/kronnos/woman.jpg',
+    iconPwa192:  '/icons/pwa/kronnos_woman-192.png',
+    iconPwa512:  '/icons/pwa/kronnos_woman-512.png',
     local: { telephone: '', streetAddress: 'Palmira Romano Sur 405, local 3', addressLocality: 'Limache', schemaType: 'BeautySalon', ratingGeneral: 0, totalReviews: 0 },
     manifest: { name: 'Kronnos Woman', short_name: 'Kronnos Woman', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
@@ -945,6 +983,8 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'Kronnos',
     icon:        '/kronnos/studio.jpg',
+    iconPwa192:  '/icons/pwa/kronnos-192.png',
+    iconPwa512:  '/icons/pwa/kronnos-512.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.3, totalReviews: 7 },
     manifest: { name: 'Kronnos Studio', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
     adminManifest: {
@@ -981,6 +1021,8 @@ const TENANT_META = {
     themeColor:  '#0b0a09',
     appTitle:    'Barbers Club',
     icon:        '/barbersclub/barber12.jpg',
+    iconPwa192:  '/icons/pwa/barbersclub-192.png',
+    iconPwa512:  '/icons/pwa/barbersclub-512.png',
     local: { telephone: '+56981806262', streetAddress: 'Av. Del Canal 19811, Local 12', addressLocality: 'Ciudad de los Valles, Pudahuel, Santiago', schemaType: 'HairSalon' },
     manifest: {
       name:             'Barbers Club',
@@ -1025,7 +1067,9 @@ const TENANT_META = {
     ogImage:     '/elbarberomoderno/barbero1.png',
     themeColor:  '#0b0a09',
     appTitle:    'El Barbero Moderno',
-    icon:        '/logo.jpg',
+    icon:        '/elbarberomoderno/logobarb.jpeg',
+    iconPwa192:  '/icons/pwa/elbarberomoderno-192.png',
+    iconPwa512:  '/icons/pwa/elbarberomoderno-512.png',
     local: { streetAddress: 'Serrano 73', schemaType: 'HairSalon' },
     manifest: {
       name:             'El Barbero Moderno',
@@ -1071,6 +1115,8 @@ const TENANT_META = {
     themeColor:  '#0b0a09',
     appTitle:    'Studio Luxury',
     icon:        '/luxury/luxury.jpg',
+    iconPwa192:  '/icons/pwa/estudioluxury-192.png',
+    iconPwa512:  '/icons/pwa/estudioluxury-512.png',
     local: { addressLocality: 'Talagante', schemaType: 'HairSalon' },
     manifest: {
       name:             'Studio Luxury',
@@ -1090,6 +1136,128 @@ const TENANT_META = {
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
+    },
+  },
+  memphis: {
+    booking: {
+      title:       'Memphis Salón | Agenda tu hora',
+      description: 'Reserva tu hora en Memphis Salón, Viña del Mar. Cortes, color, uñas y estilismo. Elige tu profesional y horario en segundos.',
+      ogTitle:     'Agendar Hora | Memphis Salón',
+      ogDesc:      'Reserva tu hora en Memphis Salón. Estilo y profesionalismo en Viña del Mar.',
+    },
+    dashboard: {
+      title:       'Mi Club | Memphis Salón',
+      description: 'Tu panel personal en Memphis Salón. Revisa tus sellos, canjea premios y actualiza tu perfil.',
+      ogTitle:     'Mi Club | Memphis Salón',
+      ogDesc:      'Club de fidelidad de Memphis Salón. Acumula sellos y canjea premios.',
+    },
+    registro: {
+      title:       'Únete al Club | Memphis Salón',
+      description: 'Crea tu cuenta en Memphis Salón. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | Memphis Salón',
+      ogDesc:      'Regístrate en Memphis Salón y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Memphis Salón',
+    ogImage:     '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    themeColor:  '#0a0a0a',
+    appTitle:    'Memphis',
+    icon:        '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    local: { addressLocality: 'Viña del Mar', schemaType: 'BeautySalon' },
+    manifest: {
+      name:             'Memphis Salón',
+      short_name:       'Memphis',
+      theme_color:      '#0a0a0a',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Memphis',
+      short_name:       'Memphis',
+      description:      'Panel de administración — Memphis Salón',
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=memphis',
+    },
+  },
+  alfamen: {
+    booking: {
+      title:       'Barbería Alfa Men | Agenda tu hora',
+      description: 'Reserva tu hora en Barbería Alfa Men, Av. Valparaíso #694 L. 14, Viña del Mar. Since 2017 · Aesthetics For Men.',
+      ogTitle:     'Agendar Hora | Barbería Alfa Men',
+      ogDesc:      'Reserva tu hora en Barbería Alfa Men. Since 2017 · Aesthetics For Men.',
+    },
+    dashboard: {
+      title:       'Mi Club | Alfa Men',
+      description: 'Tu panel personal en Barbería Alfa Men. Revisa tus sellos, canjea premios y actualiza tu perfil.',
+      ogTitle:     'Mi Club | Alfa Men',
+      ogDesc:      'Club Alfa Men. Acumula sellos y canjea premios.',
+    },
+    registro: {
+      title:       'Únete al Club Alfa Men',
+      description: 'Crea tu cuenta en Barbería Alfa Men. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club Alfa Men',
+      ogDesc:      'Regístrate en Barbería Alfa Men y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Barbería Alfa Men',
+    ogImage:     '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    themeColor:  '#0a0a0a',
+    appTitle:    'Alfa Men',
+    icon:        '/icons/icon-512.png',   // PENDIENTE: logo real del local
+    local: { telephone: '', streetAddress: 'Av. Valparaíso #694 L. 14', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', instagram: 'https://www.instagram.com/barberia_alfa/' },
+    manifest: {
+      name:             'Barbería Alfa Men',
+      short_name:       'Alfa Men',
+      theme_color:      '#0a0a0a',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Alfa Men',
+      short_name:       'Alfa Men',
+      description:      'Panel de administración — Barbería Alfa Men',
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=alfamen',
+    },
+  },
+  deluxeperfumes: {
+    booking: {
+      title:       'Deluxe Perfumes | Catálogo online',
+      description: 'Descubre el catálogo de Deluxe Perfumes. Perfumes originales, club de puntos y beneficios exclusivos.',
+      ogTitle:     'Deluxe Perfumes | Catálogo online',
+      ogDesc:      'Perfumes originales y beneficios exclusivos del Club Deluxe.',
+    },
+    dashboard: {
+      title:       'Mi Club | Deluxe Perfumes',
+      description: 'Tu panel personal en Deluxe Perfumes. Revisa tus puntos y canjea premios.',
+      ogTitle:     'Mi Club | Deluxe Perfumes',
+      ogDesc:      'Club Deluxe Perfumes. Acumula puntos y canjea premios.',
+    },
+    registro: {
+      title:       'Únete al Club | Deluxe Perfumes',
+      description: 'Crea tu cuenta en Deluxe Perfumes. Acumula puntos y canjea premios.',
+      ogTitle:     'Únete al Club | Deluxe Perfumes',
+      ogDesc:      'Regístrate en Deluxe Perfumes y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Deluxe Perfumes',
+    ogImage:     '/logo5.jpg',
+    themeColor:  '#0a0a0a',
+    appTitle:    'Deluxe',
+    icon:        '/logo5.jpg',
+    iconPwa192:  '/icons/pwa/deluxeperfumes-192.png',
+    iconPwa512:  '/icons/pwa/deluxeperfumes-512.png',
+    local: { schemaType: 'Store' },
+    manifest: {
+      name:             'Deluxe Perfumes',
+      short_name:       'Deluxe',
+      theme_color:      '#0a0a0a',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Deluxe',
+      short_name:       'Deluxe',
+      description:      'Panel de administración — Deluxe Perfumes',
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=deluxeperfumes',
     },
   },
 };
@@ -1189,6 +1357,9 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
     ? meta.icon
     : `https://${hostname}${meta.icon}`;
   const mimeType = mimeFromSrc(meta.icon);
+  // apple-touch-icon debe ser cuadrado: iOS lo usa como ícono al instalar la PWA.
+  const rawApple = meta.iconPwa192 || meta.icon;
+  const absApple = rawApple.startsWith('http') ? rawApple : `https://${hostname}${rawApple}`;
 
   // 5. Build clean, unified, edge-injected head block with absolute favicon and thumbnail URLs
   const seoBlock = `
@@ -1204,7 +1375,7 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   <meta name="twitter:image" content="${r(absImage)}">
   <link rel="icon" type="${mimeType}" href="${r(absIcon)}">
   <link rel="shortcut icon" type="${mimeType}" href="${r(absIcon)}">
-  <link rel="apple-touch-icon" href="${r(absIcon)}">`;
+  <link rel="apple-touch-icon" href="${r(absApple)}">`;
 
   // 6. Prepend this block right at the beginning of the <head>
   html = html.replace('<head>', `<head>${seoBlock}`);
@@ -1246,7 +1417,7 @@ function injectAdminMeta(html, meta, hostname) {
   html = html.replace(/<meta\s+[^>]*property=["']?og:[^"']*["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?twitter:[^"']*["']?[^>]*>/gi, '');
 
-  const amIcon = am.icons && am.icons[0] ? am.icons[0].src : meta.icon;
+  const amIcon = meta.iconPwa192 || (am.icons && am.icons[0] ? am.icons[0].src : meta.icon);
   const mimeType = mimeFromSrc(amIcon);
   const absIcon = amIcon.startsWith('http') ? amIcon : `https://${hostname}${amIcon}`;
   const absImage = meta.ogImage.startsWith('http') ? meta.ogImage : `https://${hostname}${meta.ogImage}`;
@@ -1352,6 +1523,8 @@ function buildSelfTenantMeta(slug, t) {
     themeColor: '#0a0a0a',
     appTitle:   corto,
     icon,
+    // El logo del local siempre le gana al ícono genérico al instalar la PWA.
+    ...(t.logoUrl ? { iconPwa192: t.logoUrl, iconPwa512: t.logoUrl } : {}),
     local: {
       schemaType: schemaPorTipo[t.tipo] || 'HairSalon',
       ...(t.telefono  ? { telephone: `+${String(t.telefono).replace(/^\+/, '')}` } : {}),
@@ -1757,11 +1930,20 @@ export default async function middleware(request) {
 
   // ── Manifest admin: devolver versión dinámica por tenant ─────────────────────
   if (url.pathname === '/gestion-interna/manifest.webmanifest') {
+    // Íconos por tenant: sin este override Android instala el PNG genérico
+    // (pwa-192/512 = logo SynapTech) porque es el único con sizes declarado.
+    // Fallback neutro (círculo gris), jamás el logo SynapTech.
+    const p192 = meta.iconPwa192 || '/icons/icon-192.png';
+    const p512 = meta.iconPwa512 || '/icons/icon-512.png';
     const manifest = {
       ...meta.adminManifest,
       display:     'standalone',
       orientation: 'portrait-primary',
       scope:       '/gestion-interna/',
+      icons: [
+        { src: p192, sizes: '192x192', type: mimeFromSrc(p192), purpose: 'any' },
+        { src: p512, sizes: '512x512', type: mimeFromSrc(p512), purpose: 'any maskable' },
+      ],
     };
     return new Response(JSON.stringify(manifest, null, 2), {
       headers: {

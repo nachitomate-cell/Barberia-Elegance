@@ -11,6 +11,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Admin Panel" />
+  <!-- Manifest dinámico por tenant (lo sirve el Edge middleware, no el build) -->
+  <link rel="manifest" href="/gestion-interna/manifest.webmanifest" />
   <link rel="icon" type="image/png" href="/logo1.png" />
   <link rel="apple-touch-icon" href="/gestion-interna/pwa-192.png" />
 
@@ -21,7 +23,7 @@
   <script defer src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   <script type="module" crossorigin src="/gestion-interna/assets/index-CVBAYkWL.js"></script>
   <link rel="stylesheet" crossorigin href="/gestion-interna/assets/index-DZ8W6NwB.css">
-<link rel="manifest" href="/gestion-interna/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/gestion-interna/registerSW.js"></script></head>
+<script id="vite-plugin-pwa:register-sw" src="/gestion-interna/registerSW.js"></script></head>
 <body class="bg-slate-900 text-white antialiased">
   <div id="root"></div>
 </body>

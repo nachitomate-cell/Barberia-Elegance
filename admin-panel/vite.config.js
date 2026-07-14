@@ -11,31 +11,12 @@ export default defineConfig({
       scope: '/gestion-interna/',
       base: '/gestion-interna/',
       includeAssets: ['pwa-192.png', 'pwa-512.png'],
-      manifest: {
-        name: 'Panel Admin · Barbería',
-        short_name: 'Admin Panel',
-        description: 'Panel de administración para barberías',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
-        display: 'standalone',
-        orientation: 'portrait-primary',
-        start_url: '/gestion-interna/',
-        scope: '/gestion-interna/',
-        gcm_sender_id: '515311607907',
-        icons: [
-          {
-            src: '/gestion-interna/pwa-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/gestion-interna/pwa-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+      // El manifest NO lo genera el build: lo sirve el Edge middleware por
+      // tenant en /gestion-interna/manifest.webmanifest (nombre + íconos del
+      // local). Con manifest:false el SW tampoco lo precachea — antes el
+      // precache servía el manifest genérico (logo SynapTech) pisando al
+      // dinámico. El <link rel="manifest"> vive manual en index.html.
+      manifest: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 5000000,
         importScripts: ['/gestion-interna/firebase-messaging-sw.js'],
