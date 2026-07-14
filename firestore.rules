@@ -69,24 +69,37 @@ service cloud.firestore {
           && tid in ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
     }
 
+    // ── Staff de sede Kronnos → pool marca ──────────────────────────
+    // Camino 1.5: la fidelización (users/clientes/sellos/canjes/premios)
+    // vive en tenants/kronnos/* (pool marca), pero el staff de sede tiene
+    // claims del tenant legacy (kronnos_<sede>). Sin este helper, un admin
+    // de sede recibe permission-denied al leer el pool y ve la lista vacía.
+    function esKronnosSedeMiembro() {
+      return autenticado()
+          && tenantClaim() in ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+    }
+
     // ── Roles ───────────────────────────────────────────────────────
     function esStaff(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero'])
           || esBootstrap()
           || esKronnosBrandAdmin(tid)
+          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe', 'barbero'])
           || esBarberoFirestore(tid); // TEMP: eliminar post-migración
     }
 
     function esAdmin(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe'])
           || esBootstrap()
-          || esKronnosBrandAdmin(tid);
+          || esKronnosBrandAdmin(tid)
+          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe']);
     }
 
     function esAdminEstricto(tid) {
       return (esDeTenant(tid) && rol() == 'admin')
           || esBootstrap()
-          || esKronnosBrandAdmin(tid);
+          || esKronnosBrandAdmin(tid)
+          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() == 'admin');
     }
 
     // ── Verificar si el usuario es el cliente de un documento de cita ──
