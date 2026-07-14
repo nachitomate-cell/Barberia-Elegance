@@ -5045,7 +5045,10 @@
         const r = await firebase.functions().httpsCallable('superadminCrearStaff')({ tenantId: _activeTenant, nombre, email, password, rol, atiende });
         HAPTIC([10, 30, 10]);
         const rolLabel = rol === 'admin' ? (atiende ? 'Admin que atiende' : 'Admin de local') : 'Barbero';
-        res.innerHTML = `✓ <b>${rolLabel}</b> creado.<br>Comparte estos accesos:<br><span style="color:#e2e8f0; font-family:monospace;">${esc(email)}</span><br><span style="color:#e2e8f0; font-family:monospace;">${esc(password)}</span>${(r.data && r.data.yaExistia) ? '<br><span style="color:#fcd34d;">La cuenta ya existía: se actualizó su rol y clave.</span>' : ''}`;
+        const _notas = [];
+        if (r.data && r.data.yaExistia) _notas.push('La cuenta ya existía: se actualizó su rol y clave.');
+        if (r.data && r.data.reusoDoc) _notas.push('Se reutilizó el perfil existente del local (no se duplicó).');
+        res.innerHTML = `✓ <b>${rolLabel}</b> ${(r.data && r.data.reusoDoc) ? 'actualizado' : 'creado'}.<br>Comparte estos accesos:<br><span style="color:#e2e8f0; font-family:monospace;">${esc(email)}</span><br><span style="color:#e2e8f0; font-family:monospace;">${esc(password)}</span>${_notas.length ? '<br><span style="color:#fcd34d;">' + _notas.join('<br>') + '</span>' : ''}`;
         res.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Crear otro';
         document.getElementById('cs-nombre').value = '';
