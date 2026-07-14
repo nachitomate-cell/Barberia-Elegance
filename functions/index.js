@@ -398,6 +398,10 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
     return null;
   }
 
+  // Tag único por cita: con tag compartido, una notificación nueva
+  // reemplaza a la anterior no leída (se pierden citas al llegar en cola).
+  const notifTag = `nueva-cita-${citaId || Date.now()}`;
+
   const message = {
     notification: { title, body },
     data: {
@@ -405,6 +409,7 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
       url:    barberoId ? `/agenda/${barberoId}` : '/agenda',
       fecha:  fecha  || '',
       hora:   hora   || '',
+      tag:    notifTag,
     },
     webpush: {
       headers: { Urgency: 'high' },
@@ -414,7 +419,7 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
         icon:     '/icons/icon-192.png',
         badge:    '/icons/icon-192.png',
         vibrate:  [200, 100, 200],
-        tag:      'nueva-cita',
+        tag:      notifTag,
         renotify: true,
         actions:  [{ action: 'abrir', title: 'Ver cita' }],
         data:     { url: barberoId ? `/agenda/${barberoId}` : '/agenda', citaId: citaId || '' }
@@ -623,7 +628,7 @@ exports.notificarCitaTenant = onDocumentCreated(
 
       const message = {
         notification: { title, body },
-        data: { citaId, url: '/gestion-interna/agenda', fecha, hora },
+        data: { citaId, url: '/gestion-interna/agenda', fecha, hora, tag: `nueva-cita-${citaId}` },
         webpush: {
           headers: { Urgency: 'high' },
           notification: {
@@ -631,7 +636,7 @@ exports.notificarCitaTenant = onDocumentCreated(
             icon:     '/gestion-interna/pwa-192.png',
             badge:    '/gestion-interna/pwa-192.png',
             vibrate:  [200, 100, 200],
-            tag:      'nueva-cita',
+            tag:      `nueva-cita-${citaId}`,
             renotify: true,
           },
           fcmOptions: { link: '/gestion-interna/agenda' },

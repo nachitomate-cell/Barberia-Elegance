@@ -20,7 +20,9 @@ messaging.onBackgroundMessage(payload => {
     icon:     '/gestion-interna/pwa-192.png',
     badge:    '/gestion-interna/pwa-192.png',
     vibrate:  [200, 100, 200],
-    tag:      'nueva-cita',
+    // Tag único por notificación (viene del server); un tag fijo hace que
+    // cada notificación nueva reemplace a la anterior no leída.
+    tag:      payload.data?.tag || 'notif-' + Date.now(),
     renotify: true,
     data:     payload.data || {},
   });
