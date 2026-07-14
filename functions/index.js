@@ -937,6 +937,14 @@ exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  AVISO DE CITA AL STAFF POR EMAIL — ver aviso-cita-staff.js
+//  Respaldo del push FCM (opt-in: _system/{tid}.emailStaffCitas)
+// ─────────────────────────────────────────────────────────────────
+const avisoCitaStaff = require('./aviso-cita-staff');
+exports.avisoCitaStaffElegance = avisoCitaStaff.avisoCitaStaffElegance;
+exports.avisoCitaStaffTenant   = avisoCitaStaff.avisoCitaStaffTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECUPERACIÓN DE CONTRASEÑA — ver recuperacion-password.js
 //  Envía el enlace por Resend desde citas@synaptechspa.cl
 // ─────────────────────────────────────────────────────────────────
