@@ -146,7 +146,7 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoslimache.synaptechspa.cl" }],       "destination": "/kronnos/studio.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoswoman.synaptechspa.cl" }],         "destination": "/kronnos/woman.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barbersclub.synaptechspa.cl" }],          "destination": "/logo.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "elbarberomoderno.synaptechspa.cl" }],     "destination": "/logo.jpg" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "elbarberomoderno.synaptechspa.cl" }],     "destination": "/elbarberomoderno/logobarb.webp" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "estudioluxury.synaptechspa.cl" }],        "destination": "/luxury/luxury.jpg" },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
 

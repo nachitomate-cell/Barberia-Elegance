@@ -5075,12 +5075,11 @@
     }
     .tenant-sionbarberia body { background-color: #0a0a0a !important; color: #e8e8ea !important; }
 
-    /* Hero: banner oficial en B&N (banner16-bn = grayscale + dim de la
-       fachada, generado con sharp — la foto original es muy clara y rompía
-       el tema oscuro). contain + aspect-ratio EXACTO del archivo → se ve
-       COMPLETO, sin recorte ni franjas. Si cambia el archivo, actualizar. */
+    /* Hero: banner oficial banner16.webp (foto fachada · neón verde). contain +
+       aspect-ratio EXACTO del archivo (1536x1024) → se ve COMPLETO, sin recorte
+       ni franjas. Si cambia el archivo, actualizar el aspect-ratio. */
     .tenant-sionbarberia .booking-hero {
-      background-image: url('/dieciseis/banner16-bn.png') !important;
+      background-image: url('/dieciseis/banner16.webp') !important;
       background-size: contain !important;
       background-repeat: no-repeat !important;
       background-position: center !important;
@@ -5089,18 +5088,49 @@
       min-height: 0 !important;
       height: auto !important;
     }
-    /* Funde los bordes del banner con la página (viñeta + fade inferior) */
+    /* Scrim radial central (legibilidad del logo/frase) + fade de bordes con la página */
     .tenant-sionbarberia .booking-hero-overlay {
-      background: linear-gradient(180deg,
-        rgba(10,10,10,0.22) 0%, rgba(10,10,10,0) 26%,
-        rgba(10,10,10,0) 58%, rgba(10,10,10,0.48) 86%,
-        #0a0a0a 100%) !important;
+      background:
+        radial-gradient(ellipse 58% 44% at 50% 47%, rgba(0,0,0,0.44) 0%, rgba(0,0,0,0.14) 55%, rgba(0,0,0,0) 76%),
+        linear-gradient(180deg,
+          rgba(10,10,10,0.30) 0%, rgba(10,10,10,0) 26%,
+          rgba(10,10,10,0) 58%, rgba(10,10,10,0.50) 86%,
+          #0a0a0a 100%) !important;
     }
-    /* El banner ya trae branding → ocultamos el logo/nombre/tagline superpuestos */
-    .tenant-sionbarberia #heroLogoArea,
+    /* Mostramos el logo circular + frase sobre el banner; ocultamos nombre y divisor. */
     .tenant-sionbarberia .gold-divider,
-    .tenant-sionbarberia #shopNombre,
-    .tenant-sionbarberia .booking-hero p:has(#shopSlogan) { display: none !important; }
+    .tenant-sionbarberia #shopNombre { display: none !important; }
+
+    /* ── Logo: contorno circular blanco + animación flotante ── */
+    .tenant-sionbarberia #heroLogoArea { margin-bottom: 18px !important; }
+    .tenant-sionbarberia .hero-logo-ring {
+      width: 118px !important; height: 118px !important;
+      background: #0a0a0a !important;
+      border: 2px solid rgba(255,255,255,0.92) !important;
+      box-shadow:
+        0 0 0 5px rgba(0,0,0,0.42),
+        0 0 26px rgba(255,255,255,0.26),
+        0 14px 34px rgba(0,0,0,0.65) !important;
+      animation: dieciseis-float 3.8s ease-in-out infinite !important;
+    }
+    @keyframes dieciseis-float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-9px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-sionbarberia .hero-logo-ring { animation: none !important; }
+    }
+    /* ── Frase bajo el logo: blanco legible sobre la foto ── */
+    .tenant-sionbarberia .booking-hero p:has(#shopSlogan) {
+      display: block !important;
+      max-width: 300px; margin: 0 auto !important;
+      color: #ffffff !important;
+      font-size: 12.5px !important; font-weight: 600 !important;
+      text-transform: none !important; letter-spacing: 0.02em !important;
+      line-height: 1.45 !important;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.95), 0 0 22px rgba(0,0,0,0.75) !important;
+    }
+    .tenant-sionbarberia #shopSlogan { color: #ffffff !important; }
 
     /* ── Info-strip (bajo el hero): grafito con borde sutil ── */
     html.tenant-sionbarberia .info-strip,
@@ -5268,19 +5298,26 @@
       background: rgba(0,0,0,0.65) !important;
     }
 
-    /* Ocultamos el logo circular (placeholder) — solo texto protagonista */
-    .tenant-elbarberomoderno #heroLogoArea { display: none !important; }
-
-    .tenant-elbarberomoderno #shopNombre {
-      display: block !important;
-      color: #ffffff !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.22em !important;
-      font-weight: 900 !important;
-      font-size: 2.1rem !important;
-      line-height: 1.1 !important;
-      text-shadow: 0 2px 24px rgba(0,0,0,0.6) !important;
+    /* Logo oficial (monograma BM plateado) como protagonista sobre la foto.
+       El logo ya trae el nombre → ocultamos el texto #shopNombre para no duplicar. */
+    .tenant-elbarberomoderno #heroLogoArea {
+      display: flex !important;
+      margin-bottom: 14px !important;
     }
+    .tenant-elbarberomoderno .hero-logo-ring {
+      width: 168px !important; height: 168px !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+      box-shadow: none !important;
+    }
+    .tenant-elbarberomoderno #shopLogo {
+      object-fit: contain !important;
+      border-radius: 0 !important;
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,0.7));
+    }
+    .tenant-elbarberomoderno #shopNombre { display: none !important; }
     .tenant-elbarberomoderno .gold-divider {
       display: block !important;
       background: linear-gradient(90deg, transparent, rgba(224,224,224,0.55), transparent) !important;

@@ -42,7 +42,7 @@ const TENANTS = {
   kronnos:              { src: 'kronnos/studio.jpg',              bg: '#0a0a0a' },
   kronnos_woman:        { src: 'kronnos/woman.jpg',               bg: '#0a0a0a' },
   barbersclub:          { src: 'barbersclub/barber12.jpg',        bg: '#0a0a0a' },
-  elbarberomoderno:     { src: 'elbarberomoderno/logobarb.jpeg',  bg: '#0b0a09' },
+  elbarberomoderno:     { src: 'elbarberomoderno/logobarb.webp',  bg: '#0b0a09' },
   estudioluxury:        { src: 'luxury/luxury.jpg',               bg: '#0a0a0a', fit: 'cover' },
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
   memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
