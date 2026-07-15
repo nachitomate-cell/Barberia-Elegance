@@ -2202,7 +2202,7 @@
       border-top-color: rgba(255,255,255,0.05) !important;
     }
 
-    /* ── KRONNOS — Banner "Agenda operativa desde el 15 de julio" ── */
+    /* ── KRONNOS — Banner "Agenda operativa desde el 20 de julio" ── */
     #kronnosAgendaSoonBanner { display: none; }
     .tenant-kronnos_penablanca #kronnosAgendaSoonBanner,
     .tenant-kronnos_limache    #kronnosAgendaSoonBanner,
@@ -4884,11 +4884,12 @@
     }
     .tenant-sionbarberia body { background-color: #0a0a0a !important; color: #e8e8ea !important; }
 
-    /* Hero: banner oficial del cliente (fachada, ya incluye nombre).
-       contain + aspect-ratio EXACTO del banner vigente → se ve COMPLETO,
-       sin recorte ni franjas. Si cambia el archivo, actualizar el ratio. */
+    /* Hero: banner oficial en B&N (banner16-bn = grayscale + dim de la
+       fachada, generado con sharp — la foto original es muy clara y rompía
+       el tema oscuro). contain + aspect-ratio EXACTO del archivo → se ve
+       COMPLETO, sin recorte ni franjas. Si cambia el archivo, actualizar. */
     .tenant-sionbarberia .booking-hero {
-      background-image: url('/dieciseis/Banner16.png') !important;
+      background-image: url('/dieciseis/banner16-bn.png') !important;
       background-size: contain !important;
       background-repeat: no-repeat !important;
       background-position: center !important;
@@ -4897,14 +4898,147 @@
       min-height: 0 !important;
       height: auto !important;
     }
+    /* Funde los bordes del banner con la página (viñeta + fade inferior) */
     .tenant-sionbarberia .booking-hero-overlay {
-      background: transparent !important;
+      background: linear-gradient(180deg,
+        rgba(10,10,10,0.22) 0%, rgba(10,10,10,0) 26%,
+        rgba(10,10,10,0) 58%, rgba(10,10,10,0.48) 86%,
+        #0a0a0a 100%) !important;
     }
     /* El banner ya trae branding → ocultamos el logo/nombre/tagline superpuestos */
     .tenant-sionbarberia #heroLogoArea,
     .tenant-sionbarberia .gold-divider,
     .tenant-sionbarberia #shopNombre,
     .tenant-sionbarberia .booking-hero p:has(#shopSlogan) { display: none !important; }
+
+    /* ── Info-strip (bajo el hero): grafito con borde sutil ── */
+    html.tenant-sionbarberia .info-strip,
+    html.tenant-sionbarberia .info-strip[style] {
+      background: linear-gradient(135deg, #0e0e0e 0%, #141414 50%, #0c0c0c 100%) !important;
+      border-bottom-color: rgba(255,255,255,0.08) !important;
+    }
+    .tenant-sionbarberia .info-strip i.ph-fill { color: rgba(255,255,255,0.65) !important; }
+
+    /* ── Barra de progreso ("PASO X DE 4") ── */
+    .tenant-sionbarberia #progressTrack { background-color: #1c1c1e !important; }
+    .tenant-sionbarberia #progressBar {
+      background: linear-gradient(90deg, #6b6b70, #d4d4d8, #fafafa) !important;
+      box-shadow: 0 0 10px rgba(255,255,255,0.28) !important;
+    }
+    .tenant-sionbarberia #stepIndicatorText {
+      color: #fafafa !important;
+      text-shadow: none !important;
+      letter-spacing: 0.14em !important;
+      font-weight: 800 !important;
+    }
+    .tenant-sionbarberia #progressPercentage { color: rgba(255,255,255,0.5) !important; }
+
+    /* ── Píldoras de categoría ── */
+    .tenant-sionbarberia .category-pill {
+      background: #0a0a0a !important;
+      border: 1px solid #2e2e32 !important;
+      color: #e8e8ea !important;
+      transition: all 0.25s ease !important;
+    }
+    .tenant-sionbarberia .category-pill:hover { border-color: #8a8a90 !important; }
+    .tenant-sionbarberia .category-pill.border-neon {
+      background: #1b1b1e !important;
+      border: 1px solid #fafafa !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(255,255,255,0.18) !important;
+    }
+    .tenant-sionbarberia .category-pill.text-neon { color: #fafafa !important; }
+
+    /* ── Tarjetas de servicio ── */
+    .tenant-sionbarberia .service-option {
+      background: #101012 !important;
+      border: 1px solid #29292d !important;
+      transition: all 0.25s ease !important;
+    }
+    .tenant-sionbarberia .service-option:hover {
+      border-color: #d4d4d8 !important;
+      box-shadow: 0 0 18px rgba(255,255,255,0.12) !important;
+    }
+    .tenant-sionbarberia .service-option.border-neon {
+      border-color: #fafafa !important;
+      background: #17171a !important;
+      box-shadow: 0 0 16px rgba(255,255,255,0.16) !important;
+    }
+    .tenant-sionbarberia .service-option.bg-brand-neon\/10 {
+      background-color: rgba(255,255,255,0.06) !important;
+    }
+
+    /* ── Barbero / día / hora seleccionados: blanco puro ── */
+    .tenant-sionbarberia .barber-option.border-neon,
+    .tenant-sionbarberia .day-btn.border-neon,
+    .tenant-sionbarberia .time-pill.border-neon {
+      border-color: #fafafa !important;
+      box-shadow: 0 0 12px rgba(255,255,255,0.16) !important;
+    }
+    .tenant-sionbarberia .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(255,255,255,0.06) !important;
+    }
+    .tenant-sionbarberia .text-brand-neon { color: #fafafa !important; }
+
+    /* ── Títulos de sección sin glow de neón ── */
+    .tenant-sionbarberia h2.text-neon,
+    .tenant-sionbarberia .text-neon {
+      color: #ffffff !important;
+      text-shadow: none !important;
+    }
+
+    /* ── Club banner + footer: tarjetas grafito con borde hairline ── */
+    .tenant-sionbarberia #clubBanner a {
+      background: #111113 !important;
+      border: 1px solid rgba(255,255,255,0.09) !important;
+      border-radius: 1rem !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+    }
+    .tenant-sionbarberia #clubBanner .club-icon-wrap {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.12) !important;
+      color: #ffffff !important;
+    }
+    .tenant-sionbarberia #footerContact > .rounded-2xl,
+    .tenant-sionbarberia #footerContact > div {
+      background: #111113 !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 1rem !important;
+    }
+    .tenant-sionbarberia #footerContact p.uppercase { color: #9ca3af !important; }
+    .tenant-sionbarberia #footerContact .w-10.h-10.rounded-xl {
+      background: rgba(255,255,255,0.06) !important;
+      border-color: rgba(255,255,255,0.16) !important;
+    }
+    .tenant-sionbarberia #footerContact i.ph-fill { color: #e5e7eb !important; }
+    .tenant-sionbarberia #shopHorarioGrid span.rounded-full {
+      background: #d4d4d8 !important;
+      opacity: 0.6 !important;
+    }
+
+    /* ── Recap de selección + precio ── */
+    .tenant-sionbarberia #selectionRecap span {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+      color: #b4b4ba !important;
+    }
+    .tenant-sionbarberia #summaryPrice { color: #ffffff !important; }
+
+    /* ── Sticky CTA: botón blanco sobre barra vidrio ── */
+    .tenant-sionbarberia #btnContinueBar {
+      background: rgba(10,10,10,0.94) !important;
+      border-top: 1px solid rgba(255,255,255,0.1) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+    }
+    .tenant-sionbarberia #btnContinue {
+      background-color: #fafafa !important;
+      color: #0a0a0a !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 2px 20px rgba(255,255,255,0.15) !important;
+    }
 
     /* ══════════════════════════════════════════════════════════
        EL BARBERO MODERNO (tenant elbarberomoderno) — SILVER & PURE DARK
@@ -8580,7 +8714,7 @@
 
     <main class="px-6 pb-6 relative min-h-[500px]">
 
-      <!-- KRONNOS — Aviso "agenda online disponible desde el 15/07" + CTA Club.
+      <!-- KRONNOS — Aviso "agenda online disponible desde el 20/07" + CTA Club.
            Se muestra automáticamente vía CSS cuando body tiene
            .tenant-kronnos_penablanca / _limache / _woman. -->
       <div id="kronnosAgendaSoonBanner" class="mb-6 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
@@ -8596,7 +8730,7 @@
                 <p class="text-[10px] font-bold uppercase tracking-widest mb-1"
                    style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.75);">Próximamente</p>
                 <p class="text-base font-extrabold text-white leading-snug">
-                  Agenda online operativa desde el 15 de julio
+                  Agenda online operativa desde el 20 de julio
                 </p>
                 <p class="text-[12.5px] text-gray-400 leading-relaxed mt-1.5">
                   Estamos terminando los últimos detalles. Mientras tanto, regístrate gratis en el
@@ -12317,7 +12451,7 @@
           aura: '/auralogin.png',
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
-          sionbarberia: '/dieciseis/Banner16.png',
+          sionbarberia: '/dieciseis/banner16-bn.png',
           elbarberomoderno: '/elbarberomoderno/barbero1.png',
           omegastudio:  '/omega2.avif',
           memphis:      '/mem.png',

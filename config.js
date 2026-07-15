@@ -820,7 +820,7 @@
       slogan:          'Cuidado personal que combina estilo y calidad.',
       sobreNosotros:   'En Studio Dieciséis, ubicado en el corazón de Valparaíso, ofrecemos una experiencia de cuidado personal que combina estilo y calidad. Nos especializamos en cortes de cabello que incluyen el arreglo de cejas, así como en servicios premium que integran detallados retoques de barba para quienes buscan un look impecable. Además, nuestro equipo experto se dedica al cuidado de uñas, garantizando un acabado elegante y duradero.<br><br>Visítanos y descubre un studio privado con un ambiente grato y familiar donde puedes conectar contigo mismo y recibir la atención que te mereces.',
       logo:            '/dieciseis/logo.png',
-      banner:          '/dieciseis/Banner16.png',
+      banner:          '/dieciseis/banner16-bn.png',
       infoBtnLabel:    'Portafolio',
       galeria:         [],
       direccion:       '📍 Condell 1525, Piso 5, Local 43 · Galería Beye, Valparaíso',
