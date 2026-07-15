@@ -35,10 +35,15 @@ admin.initializeApp({ credential, projectId: 'barberia-elegance' });
 
 const db         = admin.firestore();
 const TS         = admin.firestore.FieldValue.serverTimestamp;
+const DEL        = admin.firestore.FieldValue.delete();
 const TENANT_ID  = 'renacer';
 const COMMIT     = process.argv.includes('--commit');
 const IMG_DIR    = path.join(__dirname, 'renacer', 'servicios');
 const URL_PREFIX = '/renacer/servicios';
+// Convención del cliente: `index.html:10043` lee `s.imagen` (NO `imagenUrl`).
+// Escribimos ambos: `imagen` (correcto) + `imagenUrl` marcado para delete si
+// existía de una corrida previa que usó el nombre equivocado.
+const FIELD      = 'imagen';
 
 async function main() {
   console.log('\n╔══════════════════════════════════════════════════╗');
@@ -80,10 +85,10 @@ async function main() {
   let batch = db.batch();
   let opCount = 0;
   for (const slug of matched) {
-    const imagenUrl = `${URL_PREFIX}/${slug}.webp`;
+    const url = `${URL_PREFIX}/${slug}.webp`;
     const ref = col.doc(slug);
-    batch.set(ref, { imagenUrl, updatedAt: TS() }, { merge: true });
-    console.log(`  → ${slug.padEnd(50)} · imagenUrl=${imagenUrl}`);
+    batch.set(ref, { [FIELD]: url, imagenUrl: DEL, updatedAt: TS() }, { merge: true });
+    console.log(`  → ${slug.padEnd(50)} · ${FIELD}=${url}`);
     opCount++;
     // Firestore batch limit is 500 ops; split if needed (safety, not expected here)
     if (opCount % 400 === 0 && COMMIT) {
