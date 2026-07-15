@@ -76,6 +76,37 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+    /* Buscador dark: eliminar el fondo blanco default de <input type="search">
+       en Chromium/Safari y estilizar el botón nativo de limpiar. */
+    input.svc-search {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input.svc-search::-webkit-search-cancel-button {
+      -webkit-appearance: none;
+      height: 14px; width: 14px;
+      background: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 14px 14px;
+    }
+    input.svc-search:hover::-webkit-search-cancel-button,
+    input.svc-search:focus::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
+    /* Neutraliza el autofill amarillo/blanco del navegador */
+    input.svc-search:-webkit-autofill,
+    input.svc-search:-webkit-autofill:hover,
+    input.svc-search:-webkit-autofill:focus {
+      -webkit-text-fill-color: #f5f5f5 !important;
+      -webkit-box-shadow: 0 0 0 1000px #120e0c inset !important;
+      caret-color: #f5f5f5 !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
     .text-accent { color: var(--accent); }
     .border-accent { border-color: var(--accent) !important; }
     .bg-accent-soft { background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10); }
@@ -87,35 +118,19 @@
         var(--body-bg) 100%);
     }
 
-    /* Service cards */
-    .svc-card {
-      background: #0a0a0d;
-      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
-      border-radius: 0.9rem;
-      transition: border-color 0.2s, background 0.2s;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
+    /* Service cards — fila horizontal compacta obsidiana + acento ámbar.
+       Las clases Tailwind del markup ya definen bg/border/padding; aquí solo
+       ajustamos el estado :selected y afinamos accesibilidad. */
+    .svc-card { -webkit-tap-highlight-color: transparent; user-select: none; }
     .svc-card:active { transform: scale(0.98); }
     .svc-card.selected {
       border-color: var(--accent) !important;
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08) !important;
     }
-    .svc-card .icon-wrap {
-      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);
-      border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
-      overflow: hidden;   /* asegura que la imagen redonda quede clipeada al borde */
-    }
-    /* Radio a la derecha (mismo patrón que .svc-radio del index): vacío por defecto,
-       relleno del color accent cuando la tarjeta está seleccionada. */
-    .svc-card .svc-radio {
-      background: transparent;
-      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);
-    }
+    /* Radio a la derecha: vacío por defecto, relleno del accent al seleccionar. */
     .svc-card.selected .svc-radio {
-      background: var(--accent);
-      border-color: var(--accent);
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
     }
 
     /* ── Service description expand/collapse ── */
@@ -755,7 +770,7 @@
       <div id="svcSearchWrap" class="relative mb-4 px-1">
         <input id="svcSearchInput" type="search" placeholder="🔍 Buscar servicio, corte o tratamiento..."
           autocomplete="off"
-          class="w-full bg-[#120e0c] border border-neutral-800 rounded-xl py-2.5 px-4 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 transition-all">
+          class="svc-search w-full bg-[#120e0c] border border-neutral-800 hover:border-neutral-700 focus:border-amber-500 focus:bg-[#18120f] rounded-xl py-3 px-4 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none transition-all shadow-inner">
       </div>
 
       <!-- Category pills -->
@@ -1167,31 +1182,26 @@
     grid.innerHTML = services.map(s => {
       const icon = _svcIcon(s.nombre, s.categoria);
       const isSelected = _selectedService?.id === s.id;
-      // Fallback pattern idéntico al del index (líneas 7763-7767 y 7789-7791):
-      // si el servicio tiene .imagen configurada en Firestore usamos foto circular,
-      // si no, mantenemos el ícono Phosphor de respaldo (tijeras, barba, etc.).
+      // Miniatura cuadrada 48px (rounded-lg) — imagen del servicio o ícono ámbar.
       const iconMarkup = s.imagen
-        ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
-        : `<i class="ph-fill ${icon} text-lg" style="color:var(--accent);"></i>`;
+        ? `<img src="${s.imagen}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-neutral-800 border border-neutral-700/50">`
+        : `<div class="w-12 h-12 rounded-lg flex-shrink-0 bg-neutral-800 border border-neutral-700/50 flex items-center justify-center">
+             <i class="ph-fill ${icon} text-lg text-amber-500"></i>
+           </div>`;
       return `
       <button onclick="selectService(this, '${s.id}')"
-        class="svc-card ${isSelected ? 'selected' : ''} relative flex flex-row items-center gap-3 p-3 text-left active:scale-[0.99]"
+        class="svc-card ${isSelected ? 'selected' : ''} w-full flex items-center justify-between p-3.5 rounded-xl bg-[#120e0c]/90 border border-neutral-800/80 hover:border-neutral-700 transition-all cursor-pointer gap-3 text-left active:scale-[0.99]"
         data-id="${s.id}">
-        <!-- Imagen circular (o ícono fallback) a la IZQUIERDA -->
-        <div class="icon-wrap w-11 h-11 rounded-full flex items-center justify-center shrink-0">
-          ${iconMarkup}
+        ${iconMarkup}
+        <div class="flex-1 min-w-0 text-left">
+          <p class="text-sm font-semibold text-white truncate">${s.nombre}</p>
+          <p class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5"><i class="ph ph-clock text-[11px]"></i>${formatDuration(s.duracion)}</p>
+          ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
         </div>
-        <!-- Texto al CENTRO -->
-        <div class="flex-1 min-w-0">
-          <p class="text-[13px] font-bold text-white leading-snug">${s.nombre}</p>
-          ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 leading-snug mt-0.5 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</span>` : ''}
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
-            <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
-          </div>
+        <div class="text-right flex items-center gap-3 shrink-0">
+          <span class="text-sm font-bold text-amber-500">${formatPrice(s.precio)}</span>
+          <div class="svc-radio w-5 h-5 rounded-full border-2 border-neutral-600 shrink-0 flex items-center justify-center transition-all"></div>
         </div>
-        <!-- Radio (selector) a la DERECHA -->
-        <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all"></div>
       </button>`;
     }).join('');
   }
