@@ -1011,11 +1011,9 @@
       instagramHandle: '@renacer.studio',
       waEmoji:         '✂️',
       googleReviewUrl: '',
-      ratingGeneral:   5.0,
-      totalReviews:    1,
-      reviews: [
-        { author: 'Cliente Renacer', rating: 5, text: 'Excelente atención y el sistema de reservas es facilísimo de usar. ¡Totalmente recomendados!' },
-      ],
+      ratingGeneral:   0,     // limpio hasta tener reseñas reales
+      totalReviews:    0,
+      reviews:         [],
       barberos:        [],   // se poblará en Firestore (ver seed-renacer.js — Fase 3)
     },
   };
