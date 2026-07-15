@@ -33,7 +33,9 @@ function _reportPush(logId, evento) {
 }
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v31';
+// v32: purga cachés envenenadas — el SPA fallback (200 text/html) quedaba
+// cacheado como si fuera la imagen/asset pedido (logos rotos para siempre).
+const CACHE_VERSION = 'saas-v32';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
@@ -146,8 +148,11 @@ self.addEventListener('fetch', event => {
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(res => {
-          // Solo cachear respuestas exitosas
-          if (res.ok) {
+          // Solo cachear respuestas exitosas. OJO: si el archivo NO existe,
+          // Vercel responde el SPA fallback (200 text/html) — cachearlo
+          // dejaba el asset roto para siempre (ej. logo de Estudio Luxury).
+          const ct = res.headers.get('content-type') || '';
+          if (res.ok && !ct.includes('text/html')) {
             const clone = res.clone();
             caches.open(CACHE_VERSION).then(c => c.put(event.request, clone));
           }
