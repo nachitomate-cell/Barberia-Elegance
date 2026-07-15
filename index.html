@@ -4884,16 +4884,16 @@
     }
     .tenant-sionbarberia body { background-color: #0a0a0a !important; color: #e8e8ea !important; }
 
-    /* Hero: banner oficial del cliente (ya incluye logo, nombre y tagline).
-       contain + aspect-ratio exacto del banner (1983×793) → se ve COMPLETO,
-       sin recorte. El fondo negro del banner se funde con el del hero. */
+    /* Hero: banner oficial del cliente (fachada, ya incluye nombre).
+       contain + aspect-ratio EXACTO del banner vigente → se ve COMPLETO,
+       sin recorte ni franjas. Si cambia el archivo, actualizar el ratio. */
     .tenant-sionbarberia .booking-hero {
       background-image: url('/dieciseis/Banner16.png') !important;
       background-size: contain !important;
       background-repeat: no-repeat !important;
       background-position: center !important;
       background-color: #0a0a0a !important;
-      aspect-ratio: 1983 / 793 !important;
+      aspect-ratio: 1536 / 1024 !important;
       min-height: 0 !important;
       height: auto !important;
     }

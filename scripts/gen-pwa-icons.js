@@ -22,6 +22,8 @@ const sharp = require('sharp');
 const ROOT = path.resolve(__dirname, '..');
 const OUT  = path.join(ROOT, 'icons', 'pwa');
 
+// fit 'cover' = el logo llena el ícono completo (para logos que ya traen su
+// propio fondo — con padding quedan chicos/invisibles sobre fondo oscuro).
 const TENANTS = {
   elegance:             { src: 'logo.jpg',                        bg: '#050505' },
   ferraza:              { src: 'local1.jpg',                      bg: '#000000' },
@@ -41,7 +43,7 @@ const TENANTS = {
   kronnos_woman:        { src: 'kronnos/woman.jpg',               bg: '#0a0a0a' },
   barbersclub:          { src: 'barbersclub/barber12.jpg',        bg: '#0a0a0a' },
   elbarberomoderno:     { src: 'elbarberomoderno/logobarb.jpeg',  bg: '#0b0a09' },
-  estudioluxury:        { src: 'luxury/luxury.jpg',               bg: '#0a0a0a' },
+  estudioluxury:        { src: 'luxury/luxury.jpg',               bg: '#0a0a0a', fit: 'cover' },
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
   memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
 };
@@ -52,7 +54,7 @@ const SIZES = [192, 512];
   fs.mkdirSync(OUT, { recursive: true });
   let ok = 0, fail = 0;
 
-  for (const [tenant, { src, bg }] of Object.entries(TENANTS)) {
+  for (const [tenant, { src, bg, fit }] of Object.entries(TENANTS)) {
     const srcPath = path.join(ROOT, src);
     if (!fs.existsSync(srcPath)) {
       console.error(`✗ ${tenant}: falta ${src}`);
@@ -60,6 +62,13 @@ const SIZES = [192, 512];
       continue;
     }
     for (const size of SIZES) {
+      if (fit === 'cover') {
+        await sharp(srcPath)
+          .resize(size, size, { fit: 'cover', position: 'centre' })
+          .png()
+          .toFile(path.join(OUT, `${tenant}-${size}.png`));
+        continue;
+      }
       // Safe zone maskable: logo al 80% del canvas, centrado sobre bg.
       const content = Math.round(size * 0.8);
       const logo = await sharp(srcPath)
