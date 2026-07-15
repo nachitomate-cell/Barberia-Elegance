@@ -2208,6 +2208,197 @@
     .tenant-kronnos_limache    #kronnosAgendaSoonBanner,
     .tenant-kronnos_woman      #kronnosAgendaSoonBanner { display: block; }
 
+    /* Red banner compacto (Alert Bar) — reemplaza la tarjeta grande. */
+    .kr-alert {
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+      gap: 12px; width: 100%; padding: 14px; border-radius: 12px;
+      background: linear-gradient(90deg, rgba(69,10,10,0.80) 0%, rgba(127,29,29,0.60) 50%, rgba(69,10,10,0.80) 100%);
+      border: 1px solid rgba(239,68,68,0.30);
+    }
+    .kr-alert-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .kr-alert-emoji { font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .kr-alert-title { font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; }
+    .kr-alert-sub   { font-size: 11px; color: rgba(254,202,202,0.80); line-height: 1.3; }
+    .kr-alert-cta {
+      display: block; text-align: center; flex-shrink: 0; width: 100%;
+      font-size: 12px; font-weight: 700; color: #fff; text-decoration: none;
+      background: #dc2626; padding: 6px 14px; border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.30); transition: background .2s ease;
+    }
+    .kr-alert-cta:hover { background: #ef4444; }
+    @media (min-width: 640px) {
+      .kr-alert { flex-direction: row; align-items: center; }
+      .kr-alert-cta { width: auto; }
+    }
+
+    /* Para que las categorías sticky funcionen: el marco phone usa overflow:hidden
+       (evita scroll horizontal) que rompe position:sticky. `overflow-x:clip` recorta
+       en horizontal SIN crear contenedor de scroll, así el sticky vuelve a anclarse
+       al viewport. Solo sedes Kronnos. */
+    .tenant-kronnos_penablanca #bookingFrame,
+    .tenant-kronnos_limache    #bookingFrame,
+    .tenant-kronnos_woman      #bookingFrame {
+      overflow-x: clip;
+      overflow-y: visible;
+    }
+
+    /* Categorías pegajosas (sticky tabs) — solo sedes Kronnos. */
+    .tenant-kronnos_penablanca #categoryPills,
+    .tenant-kronnos_limache    #categoryPills,
+    .tenant-kronnos_woman      #categoryPills {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(10,8,6,0.95);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(23,23,23,0.80);
+      padding-top: 12px; padding-bottom: 12px; margin-bottom: 12px;
+    }
+    /* Al quedar pegadas, deja aire para el botón "volver" flotante (fixed top-8 left-5).
+       Solo en anchos de teléfono (donde el marco ocupa toda la pantalla y hay solape). */
+    @media (max-width: 480px) {
+      .tenant-kronnos_penablanca #categoryPills.kr-pills-stuck,
+      .tenant-kronnos_limache    #categoryPills.kr-pills-stuck,
+      .tenant-kronnos_woman      #categoryPills.kr-pills-stuck { padding-left: 72px; }
+    }
+    /* Sedes con banner Viking al final: reducir el colchón inferior del grid
+       (la limpieza para la barra Continuar la aporta el banner Viking). */
+    .tenant-kronnos_penablanca #servicesGrid,
+    .tenant-kronnos_limache    #servicesGrid { padding-bottom: 0.5rem !important; }
+
+    /* ══ KRONNOS × VIKING — visibilidad reforzada (solo sedes masculinas) ══ */
+    /* Pestaña VIP "TIENDA VIKING" en las categorías sticky (inyectada por JS). */
+    .vk-tab {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 800; white-space: nowrap; text-decoration: none;
+      color: #fbbf24;
+      background: linear-gradient(90deg, rgba(69,26,3,0.80) 0%, #1c1410 100%);
+      border: 2px solid rgba(245,158,11,0.80);
+      box-shadow: 0 0 12px -2px rgba(245,158,11,0.40);
+      transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+    }
+    .vk-tab:hover  { border-color: #fbbf24; box-shadow: 0 0 16px -2px rgba(245,158,11,0.55); }
+    .vk-tab:active { transform: scale(0.96); }
+
+    /* Banner in-feed: 2º elemento del listado, tras la 1ª tarjeta (inyectado por JS). */
+    .vk-infeed {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 14px; border-radius: 16px;
+      text-decoration: none; cursor: pointer;
+      background: linear-gradient(90deg, #1c1410 0%, #140e0a 50%, #0a0806 100%);
+      border: 1px solid rgba(245,158,11,0.60);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.40);
+      transition: border-color .2s ease, transform .12s ease;
+    }
+    .vk-infeed:hover  { border-color: #fbbf24; }
+    .vk-infeed:active { transform: scale(0.99); }
+    .vk-infeed-text  { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .vk-infeed-emoji { font-size: 18px; flex-shrink: 0; }
+    .vk-infeed-text p { font-size: 12.5px; line-height: 1.35; color: #cbb89e; margin: 0; }
+    .vk-infeed-text strong { color: #fbbf24; font-weight: 700; }
+    .vk-infeed-cta {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fbbf24; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.45);
+    }
+    .vk-infeed-cta i { font-size: 15px; }
+
+    /* Hero badge "Embajador oficial" resaltado en ámbar + flecha (sedes masculinas). */
+    .tenant-kronnos_penablanca .partner-badge,
+    .tenant-kronnos_limache    .partner-badge {
+      background: rgba(18,13,10,0.90);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      box-shadow: 0 0 15px -3px rgba(217,119,6,0.30);
+      transition: border-color .2s ease, transform .2s ease, background .2s ease;
+    }
+    .tenant-kronnos_penablanca .partner-badge:hover,
+    .tenant-kronnos_limache    .partner-badge:hover {
+      border-color: #fbbf24;
+      background: rgba(18,13,10,0.95);
+      transform: scale(1.05);
+    }
+    .tenant-kronnos_penablanca .partner-badge #partnerBadgeName,
+    .tenant-kronnos_limache    .partner-badge #partnerBadgeName { color: #fbbf24; font-weight: 800; }
+    .tenant-kronnos_penablanca .partner-badge:hover #partnerBadgeName,
+    .tenant-kronnos_limache    .partner-badge:hover #partnerBadgeName { color: #fcd34d; }
+    .tenant-kronnos_penablanca .partner-badge::after,
+    .tenant-kronnos_limache    .partner-badge::after {
+      content: "→"; color: #fbbf24; font-weight: 700; font-size: 13px; margin-left: 2px; line-height: 1;
+    }
+
+    /* ── KRONNOS × VIKING — Módulo embajador de marca.
+       Estética Viking: cobre/bronce sobre negro, "Authentic Man".
+       SOLO sedes masculinas: Peñablanca y Limache.
+       NUNCA en Kronnos Woman (marca masculina, estudio femenino). ── */
+    #vikingAmbassadorModule { display: none; }
+    .tenant-kronnos_penablanca #vikingAmbassadorModule,
+    .tenant-kronnos_limache    #vikingAmbassadorModule { display: block; }
+
+    /* Banner horizontal compacto — no bloquea el flujo de agenda.
+       (Equivale al spec Tailwind: gradiente #1c1410→#0a0806, borde amber-600/40,
+       hover amber-500/80, rounded-2xl, shadow ámbar, flex row en sm+.) */
+    .vk-banner {
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      gap: 16px;
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      text-decoration: none;
+      cursor: pointer;
+      background: linear-gradient(90deg, #1c1410 0%, #120d0a 50%, #0a0806 100%);
+      border: 1px solid rgba(217,119,6,0.40);            /* amber-600/40 */
+      box-shadow: 0 4px 20px -5px rgba(217,119,6,0.15);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+    }
+    .vk-banner:hover {
+      border-color: rgba(245,158,11,0.80);               /* amber-500/80 */
+      box-shadow: 0 6px 26px -5px rgba(217,119,6,0.28);
+    }
+    .vk-banner:active { transform: scale(0.99); }
+    @media (min-width: 640px) {
+      .vk-banner { flex-direction: row; padding: 20px; }
+    }
+
+    .vk-banner-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .vk-logo {
+      width: 48px; height: 48px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
+      background: #000; border: 1px solid rgba(230,169,107,0.22);
+    }
+    .vk-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .vk-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+
+    .vk-badge {
+      display: inline-flex; align-items: center; width: fit-content;
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #f59e0b;                                    /* amber-500 */
+      background: rgba(69,26,3,0.60);                    /* amber-950/60 */
+      border: 1px solid rgba(180,83,9,0.50);             /* amber-700/50 */
+      padding: 2px 10px; border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .vk-title { font-size: 14px; font-weight: 600; color: #e5e5e5; line-height: 1.25; }  /* neutral-200 */
+    .vk-sub   { font-size: 12px; color: #a3a3a3; margin-top: 2px; }                        /* neutral-400 */
+    @media (max-width: 639px) {
+      .vk-banner-info { flex-direction: column; text-align: center; }
+      .vk-text { align-items: center; }
+      .vk-sub { display: none; }                          /* hidden sm:block */
+    }
+
+    .vk-cta {
+      display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+      color: #0a0a0a;                                    /* neutral-950 */
+      background: linear-gradient(90deg, #d97706 0%, #b45309 100%);  /* amber-600→700 */
+      padding: 8px 16px; border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      transition: background 0.2s ease, transform 0.12s ease;
+    }
+    .vk-banner:hover .vk-cta { background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); } /* amber-500→600 */
+    .vk-banner:active .vk-cta { transform: scale(0.95); }
+    .vk-cta i { font-size: 14px; }
+    @media (min-width: 640px) { .vk-cta { font-size: 13px; } }
+
     /* ══ KRONNOS — Layout en filas (igual que AURA) en pasos 1 y 2.
        Los radios de servicio/barbero usan el neón de cada sede en vez del
        dorado por defecto que el JS aplica inline. ══ */
@@ -8419,7 +8610,7 @@
     setTimeout(hideBootLoader, 12000);
   </script>
 
-  <div class="max-w-md mx-auto relative overflow-hidden">
+  <div id="bookingFrame" class="max-w-md mx-auto relative overflow-hidden">
 
     <!-- ── BOOKING HERO ── -->
     <header class="booking-hero" style="min-height:300px;position:relative;">
@@ -8718,34 +8909,15 @@
            Se muestra automáticamente vía CSS cuando body tiene
            .tenant-kronnos_penablanca / _limache / _woman. -->
       <div id="kronnosAgendaSoonBanner" class="mb-6 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-        <div class="rounded-2xl overflow-hidden"
-             style="background:linear-gradient(135deg,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.14) 0%,rgba(0,0,0,0.40) 100%);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.40);box-shadow:0 8px 28px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.06);">
-          <div class="p-5">
-            <div class="flex items-start gap-3 mb-4">
-              <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-                   style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);">
-                <i class="ph-fill ph-calendar-check text-xl" style="color:var(--accent);"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-[10px] font-bold uppercase tracking-widest mb-1"
-                   style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.75);">Próximamente</p>
-                <p class="text-base font-extrabold text-white leading-snug">
-                  Agenda online operativa desde el 20 de julio
-                </p>
-                <p class="text-[12.5px] text-gray-400 leading-relaxed mt-1.5">
-                  Estamos terminando los últimos detalles. Mientras tanto, regístrate gratis en el
-                  <strong class="text-white">Club de Beneficios Kronnos</strong> y empieza a acumular sellos desde tu primera visita.
-                </p>
-              </div>
+        <div class="kr-alert">
+          <div class="kr-alert-info">
+            <span class="kr-alert-emoji">📅</span>
+            <div>
+              <p class="kr-alert-title">Agenda operativa: 20 de Julio</p>
+              <p class="kr-alert-sub">Únete al Club Kronnos y acumula sellos desde tu primera visita.</p>
             </div>
-            <a href="registro.html"
-               class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.97]"
-               style="background:var(--accent);color:#fff;box-shadow:0 4px 18px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.42);text-decoration:none;">
-              <i class="ph-fill ph-medal text-base"></i>
-              Unirme al Club Kronnos
-              <i class="ph-bold ph-arrow-right text-sm"></i>
-            </a>
           </div>
+          <a href="registro.html" class="kr-alert-cta">Unirme al Club</a>
         </div>
       </div>
 
@@ -8789,8 +8961,26 @@
           <div class="h-36 bg-white/5 rounded-lg animate-pulse"></div>
           <div class="h-36 bg-white/5 rounded-lg animate-pulse"></div>
         </div>
-        <div class="flex flex-col gap-6 pb-32" id="servicesGrid">
+        <div class="flex flex-col gap-6" id="servicesGrid">
         </div>
+
+        <script>
+          // Categorías sticky (Kronnos): marca .kr-pills-stuck cuando quedan pegadas,
+          // para dejar aire al botón flotante "volver". Sentinel + IntersectionObserver.
+          (function () {
+            var t = window.CURRENT_TENANT_ID || '';
+            if (t !== 'kronnos_penablanca' && t !== 'kronnos_limache' && t !== 'kronnos_woman') return;
+            var pills = document.getElementById('categoryPills');
+            if (!pills || !('IntersectionObserver' in window)) return;
+            var sentinel = document.createElement('div');
+            sentinel.setAttribute('aria-hidden', 'true');
+            sentinel.style.cssText = 'height:0;width:0;pointer-events:none;';
+            pills.parentNode.insertBefore(sentinel, pills);
+            new IntersectionObserver(function (entries) {
+              pills.classList.toggle('kr-pills-stuck', entries[0].boundingClientRect.top < 0);
+            }, { threshold: [0, 1] }).observe(sentinel);
+          })();
+        </script>
       </section>
 
       <!-- PASO 2 -->
@@ -9137,6 +9327,14 @@
     let _fsProducts = [];
     let _isProductsEnabled = false;
     let _selectedProducts = [];
+
+    // ── Cart de productos compartido con la vista /viking (localStorage por sede) ──
+    // /viking (viking.html) escribe aquí; el paso 4 hidrata _selectedProducts desde acá.
+    const _reservaCartKey = () => 'reservaProductos_' + (window.CURRENT_TENANT_ID || 'x');
+    const _loadReservaCart  = () => { try { return JSON.parse(localStorage.getItem(_reservaCartKey())) || []; } catch (_) { return []; } };
+    const _saveReservaCart  = (a) => { try { localStorage.setItem(_reservaCartKey(), JSON.stringify(a || [])); } catch (_) {} };
+    const _clearReservaCart = ()  => { try { localStorage.removeItem(_reservaCartKey()); } catch (_) {} };
+    const _isVikingSede = () => (window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache');
 
     // ── Recomendaciones de servicios (upsell configurable) ──────────
     // El admin define en /gestion-interna/servicios qué servicios se
@@ -9917,6 +10115,45 @@
       });
     }
 
+    // Refuerzo de marca Viking (SOLO sedes masculinas Kronnos): pestaña VIP en las
+    // categorías + banner in-feed tras la 1ª tarjeta de servicio. Nunca en Woman.
+    function _injectVikingUI() {
+      const t = window.CURRENT_TENANT_ID;
+      if (t !== 'kronnos_penablanca' && t !== 'kronnos_limache') return;
+      const vikingHref = '/viking?local=' + encodeURIComponent(t);
+
+      // 1) Pestaña VIP "TIENDA VIKING" como 2ª pestaña (tras "Todos").
+      const pills = document.getElementById('categoryPills');
+      if (pills && !pills.querySelector('.vk-tab')) {
+        const tab = document.createElement('a');
+        tab.href = vikingHref;
+        tab.className = 'vk-tab';
+        tab.setAttribute('aria-label', 'Tienda Viking');
+        tab.textContent = '👑 TIENDA VIKING';
+        const first = pills.firstElementChild;
+        if (first) pills.insertBefore(tab, first.nextSibling);
+        else pills.appendChild(tab);
+      }
+
+      // 2) Banner in-feed tras la 1ª tarjeta de servicio.
+      const grid = document.getElementById('servicesGrid');
+      if (grid && !grid.querySelector('.vk-infeed')) {
+        const firstCard = grid.querySelector('.service-option');
+        if (firstCard) {
+          const banner = document.createElement('a');
+          banner.href = vikingHref;
+          banner.className = 'vk-infeed';
+          banner.innerHTML =
+            '<div class="vk-infeed-text">' +
+              '<span class="vk-infeed-emoji">✨</span>' +
+              '<p><strong>Complementa tu servicio:</strong> Descubre los aceites y pomadas Viking utilizados en tu corte.</p>' +
+            '</div>' +
+            '<span class="vk-infeed-cta"><i class="ph-bold ph-arrow-right"></i></span>';
+          firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
+        }
+      }
+    }
+
     // Devuelve el precio efectivo de un servicio para un día de la semana (0=Dom…6=Sáb).
     // Si el servicio tiene preciosPorDia y ese día tiene un valor definido, lo usa;
     // de lo contrario, cae al precio base.
@@ -10586,6 +10823,7 @@
       ]);
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
+      _injectVikingUI();   // pestaña VIP + banner in-feed (solo sedes masculinas Kronnos)
       _renderBarberos(_fsBarberos);
       // Renderizar packs activos del user logueado (si aplica). No bloqueante.
       _renderPacksActivosBanner().catch(err => console.warn('[packs] render banner:', err.message));
@@ -11606,8 +11844,19 @@
           }
           const prodTotal = _selectedProducts.reduce((s, p) => s + (Number(p.precio) || 0), 0);
           const grand = totalCost + prodTotal;
+          const vk = _isVikingSede();
+          // Sedes Viking: cabecera "Productos Viking incluidos" + Editar (→/viking) y total en esmeralda.
+          const header = vk ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#f59e0b;margin-bottom:8px;">
+              <span>🛍️ Productos Viking incluidos</span>
+              <a href="/viking?local=${encodeURIComponent(window.CURRENT_TENANT_ID || '')}" style="color:rgba(251,191,36,0.85);text-transform:none;letter-spacing:normal;font-weight:500;text-decoration:underline;text-underline-offset:2px;">Editar</a>
+            </div>` : '';
+          const totalSpan = vk
+            ? `<span style="font-size:24px;font-weight:900;color:#34d399;line-height:1;">$${grand.toLocaleString('es-CL')}</span>`
+            : `<span class="font-black text-white text-[15px]">$${grand.toLocaleString('es-CL')}</span>`;
           wrap.innerHTML = `
             <div class="h-px bg-white/5 my-2"></div>
+            ${header}
             ${_selectedProducts.map(p => `
               <div class="flex justify-between items-center mb-1 text-[13px]">
                 <span class="text-gray-500 flex items-center gap-1.5"><i class="ph-fill ph-shopping-bag text-white/20 text-sm"></i>${p.nombre}</span>
@@ -11615,13 +11864,30 @@
               </div>`).join('')}
             <div class="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
               <span class="font-bold text-white text-[15px]">Total</span>
-              <span class="font-black text-white text-[15px]">$${grand.toLocaleString('es-CL')}</span>
+              ${totalSpan}
             </div>
             <p class="mt-2 text-[11px] text-gray-500 leading-snug flex items-start gap-1.5">
               <i class="ph-fill ph-storefront text-white/30 text-sm mt-0.5"></i>
               <span>Los productos los <b class="text-gray-400">apartamos para ti</b>: la entrega y el pago son presenciales en el local. ¡Así nadie te los gana! 💈</span>
             </p>`;
           wrap.classList.remove('hidden');
+        };
+
+        // Hidratar productos elegidos en /viking (cart compartido). Fuera del bloque de
+        // cross-sell para que aparezcan en el resumen aunque el cross-sell esté oculto.
+        _selectedProducts = _loadReservaCart();
+        refreshReservaTotal();
+
+        // Marca como "✓ Añadido" los botones del cross-sell cuyo producto ya está en el cart.
+        const _markXsellSelected = (container) => {
+          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+          container.querySelectorAll('button[data-pid]').forEach(btn => {
+            if (_selectedProducts.some(p => p.id === btn.dataset.pid)) {
+              btn.textContent = '✓ Añadido';
+              if (isAuraTenant) { btn.style.background = '#111827'; btn.style.color = '#FFFFFF'; btn.style.borderColor = '#111827'; }
+              else { btn.style.background = '#D4AF37'; btn.style.color = '#000'; btn.style.borderColor = '#D4AF37'; }
+            }
+          });
         };
 
         // ── Cross-selling carousel ──
@@ -11675,7 +11941,8 @@
             }
 
             xsellEl.classList.remove('hidden');
-            _selectedProducts = [];
+            // _selectedProducts ya viene hidratado del cart /viking — reflejar en los botones.
+            _markXsellSelected(xsellEl);
             refreshReservaTotal();
 
             xsellEl.onclick = e => {
@@ -11705,6 +11972,7 @@
                 btn.style.color = '';
                 btn.style.borderColor = '';
               }
+              if (_isVikingSede()) _saveReservaCart(_selectedProducts);  // sincronía con /viking (solo sedes Viking)
               refreshReservaTotal();
             };
           } else {
@@ -12304,6 +12572,7 @@
             })
           )).catch(e => console.warn('[Reserva producto]', e));
           _selectedProducts = [];
+          _clearReservaCart();   // vaciar el cart compartido con /viking tras agendar
         }
 
         document.getElementById('step4').classList.add('hidden');
@@ -12896,7 +13165,16 @@
       if (logoEl) { logoEl.src = partner.logo || ''; logoEl.alt = partner.name || ''; }
       if (roleEl) roleEl.textContent = partner.role || 'Marca asociada';
       if (nameEl) nameEl.textContent = partner.name || '';
-      badge.href = partner.instagram || partner.url || '#';
+      // Sedes Viking (Kronnos masculinas): el badge del hero abre el showcase /viking
+      // en la misma pestaña; el resto conserva el enlace a la red social del partner.
+      const _tid = window.CURRENT_TENANT_ID;
+      if (_tid === 'kronnos_penablanca' || _tid === 'kronnos_limache') {
+        badge.href = '/viking?local=' + encodeURIComponent(_tid);
+        badge.target = '_self';
+        badge.removeAttribute('rel');
+      } else {
+        badge.href = partner.instagram || partner.url || '#';
+      }
       badge.style.display = 'flex';
     }
     if (document.readyState === 'loading') {

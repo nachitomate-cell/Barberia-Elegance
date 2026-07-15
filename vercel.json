@@ -184,6 +184,7 @@
     { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
     { "source": "/catalogo",               "destination": "/catalogo.html" },
+    { "source": "/viking",                 "destination": "/viking.html" },
     { "source": "/membresia",              "destination": "/membresia.html" },
     { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
     { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
