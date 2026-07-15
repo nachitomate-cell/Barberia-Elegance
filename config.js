@@ -998,8 +998,8 @@
       bodyBg:          '#0a0806',
       slogan:          'Peluquería & Barbería de Autor',
       sobreNosotros:   'Un espacio de estilismo unisex y barbería de alta gama dedicado al cuidado integral, la técnica de autor y una experiencia de reserva fluida y sin demoras.',
-      logo:            '/renacer/logo.png',
-      direccion:       '📍 Por definir en panel administrativo',
+      logo:            '/renacer/logo.webp',
+      direccion:       '📍 Ecuador 226 | Viña del Mar',
       horario:         '🕒 Lun a Sáb · 10:00 – 20:00',
       telefono:        '',
       club:            'Club Renacer',
@@ -1011,8 +1011,8 @@
       instagramHandle: '@renacer.studio',
       waEmoji:         '✂️',
       googleReviewUrl: '',
-      ratingGeneral:   0,     // limpio hasta tener reseñas reales
-      totalReviews:    0,
+      ratingGeneral:   5.0,   // aggregateRating real desde AgendaPro (2026-07-14)
+      totalReviews:    13,
       reviews:         [],
       barberos:        [],   // se poblará en Firestore (ver seed-renacer.js — Fase 3)
     },

@@ -46,6 +46,7 @@ const TENANTS = {
   estudioluxury:        { src: 'luxury/luxury.jpg',               bg: '#0a0a0a', fit: 'cover' },
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
   memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
+  renacer:              { src: 'renacer/logo.webp',               bg: '#0a0806' },
 };
 
 const SIZES = [192, 512];
