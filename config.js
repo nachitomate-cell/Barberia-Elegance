@@ -999,6 +999,7 @@
       slogan:          'Peluquería & Barbería de Autor',
       sobreNosotros:   'Un espacio de estilismo unisex y barbería de alta gama dedicado al cuidado integral, la técnica de autor y una experiencia de reserva fluida y sin demoras.',
       logo:            '/renacer/logo.webp',
+      banner:          '/renacer/banner.webp',  // hero background (evita fallback al banner de Elegance)
       direccion:       '📍 Ecuador 226 | Viña del Mar',
       horario:         '🕒 Lun a Sáb · 10:00 – 20:00',
       telefono:        '',
