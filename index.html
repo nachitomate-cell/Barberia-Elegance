@@ -321,49 +321,84 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Buscador de servicios dark. Se declara TODO en CSS plano (no Tailwind
-       arbitrario) porque la página usa output.css compilado sin JIT: clases
-       como bg-[#120e0c] o text-neutral-100 no están compiladas y el input
-       caía a default del browser (fondo blanco + texto blanco = invisible). */
+    /* Buscador de servicios — TEMA POR DEFECTO (Aura, Elegance, resto):
+       fondo blanco/gris claro + texto oscuro para contrastar sobre pantallas
+       claras. Renacer overridea al esquema obsidiana más abajo. */
     input.svc-search {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      background-color: #120e0c !important;
+      background-color: #ffffff !important;
       background-image: none !important;
-      color: #f5f5f5 !important;
-      border: 1px solid #262626;
+      color: #1f2937 !important;                     /* neutral-800 */
+      border: 1px solid #e5e7eb;                     /* neutral-200 */
       border-radius: 0.75rem;
       padding: 0.75rem 1rem;
       font-size: 0.875rem;
       line-height: 1.25rem;
-      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
+      box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.06);
       outline: none;
-      transition: background-color .2s ease, border-color .2s ease;
+      transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+      caret-color: #1f2937;
+    }
+    input.svc-search::placeholder { color: #9ca3af !important; opacity: 1; }  /* neutral-400 */
+    input.svc-search:hover { border-color: #d1d5db; }
+    input.svc-search:focus {
+      background-color: #ffffff !important;
+      border-color: #9ca3af;
+      box-shadow: 0 0 0 3px rgba(156,163,175,0.15);
+    }
+
+    /* ── Renacer: variante obsidiana premium con acento ámbar ──
+       Scoping vía .tenant-renacer para no filtrar a otros tenants. */
+    .tenant-renacer input.svc-search {
+      background-color: #120e0c !important;
+      color: #f5f5f5 !important;
+      border-color: #262626;
+      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
       caret-color: #f59e0b;
     }
-    input.svc-search::placeholder { color: #737373 !important; opacity: 1; }
-    input.svc-search:hover { border-color: #404040; }
-    input.svc-search:focus {
+    .tenant-renacer input.svc-search::placeholder { color: #737373 !important; }
+    .tenant-renacer input.svc-search:hover { border-color: #404040; }
+    .tenant-renacer input.svc-search:focus {
       background-color: #18120f !important;
       border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
     }
+    /* Botón nativo 'x' — gris neutro por defecto, blanco al hover. */
     input.svc-search::-webkit-search-cancel-button {
       -webkit-appearance: none; height: 14px; width: 14px; cursor: pointer;
       background: transparent no-repeat center / 14px 14px;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
     }
     input.svc-search:hover::-webkit-search-cancel-button,
     input.svc-search:focus::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%231f2937'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
+    /* Renacer: 'x' claro sobre el input obsidiana. */
+    .tenant-renacer input.svc-search::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
+    .tenant-renacer input.svc-search:hover::-webkit-search-cancel-button,
+    .tenant-renacer input.svc-search:focus::-webkit-search-cancel-button {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
     }
+
+    /* Autofill: tema claro por defecto, override obsidiana en Renacer. */
     input.svc-search:-webkit-autofill,
     input.svc-search:-webkit-autofill:hover,
     input.svc-search:-webkit-autofill:focus {
+      -webkit-text-fill-color: #1f2937 !important;
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+      caret-color: #1f2937 !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+    .tenant-renacer input.svc-search:-webkit-autofill,
+    .tenant-renacer input.svc-search:-webkit-autofill:hover,
+    .tenant-renacer input.svc-search:-webkit-autofill:focus {
       -webkit-text-fill-color: #f5f5f5 !important;
       -webkit-box-shadow: 0 0 0 1000px #120e0c inset !important;
       caret-color: #f5f5f5 !important;
-      transition: background-color 5000s ease-in-out 0s;
     }
 
     .text-neon {
@@ -10087,12 +10122,13 @@
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
 
-        // Vista de lista horizontal compacta unificada para TODOS los servicios.
-        // Antes: los tenants sin _useRowLayout caían a grilla 2-col con tarjetas
-        // verticales gigantes (Renacer). Ahora todos usan la misma fila obsidiana.
-        const _forceCompact = true;
+        // Vista de lista horizontal compacta EXCLUSIVA para Renacer.
+        // Los demás tenants conservan su render original (row-layout brand-
+        // specific o grilla 2-col fallback). Aplicarlo global rompía tenants
+        // de fondo claro tipo Aura Salon.
+        const _forceCompact = window.CURRENT_TENANT_ID === 'renacer';
         const innerGrid = document.createElement('div');
-        innerGrid.className = 'flex flex-col gap-0';
+        innerGrid.className = (_useRowLayout || _forceCompact) ? 'flex flex-col gap-0' : 'grid grid-cols-2 gap-4';
 
         categories[cat].forEach((s, i) => {
           if (_forceCompact) {
@@ -10752,11 +10788,6 @@
         return;
       }
 
-      // ── Fila horizontal compacta unificada para el resto de tenants ──
-      // Antes se dividía en tarjetas horizontales (Elegance/Chameleon) y
-      // tarjetas verticales masivas (Renacer y otros default). Ahora ambos
-      // caen a una sola vista de lista obsidiana + acento ámbar.
-
       // Shuffle configurable por tenant: configuracion/main.randomizarBarberos
       // es la ÚNICA fuente de verdad (mismo campo que muestra el toggle de
       // /gestion-interna/equipo). Ausente o false → orden fijo por `orden`.
@@ -10770,70 +10801,178 @@
         }
       }
 
-      const _rowBase = 'barber-option w-full flex items-center justify-between p-3.5 rounded-xl bg-[#120e0c]/90 border border-neutral-800/80 hover:border-amber-500/50 mb-2.5 transition-all cursor-pointer gap-3.5 text-left active:scale-[0.99]';
-      const _isAnySel = (window._selectedBarberId === 'any' || window._selectedBarber === 'any');
-      const anyCardCompact = `
-        <button onclick="selectBarber(this, 'any', 'any')" class="${_rowBase}"${_isAnySel ? ' style="border-color:rgba(245,158,11,0.6);background:rgba(245,158,11,0.06);"' : ''}>
-          <div class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800 flex items-center justify-center text-amber-500">
-            <i class="ph-fill ph-shuffle text-lg"></i>
-          </div>
-          <div class="flex-1 min-w-0 text-left">
-            <span class="barber-name text-sm font-bold text-white block truncate">Sin preferencia</span>
-            <span class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5">⚡ Primer horario disponible</span>
-          </div>
-          <div class="barber-radio w-5 h-5 rounded-full border border-neutral-600 shrink-0 flex items-center justify-center transition-all">
-            <i class="barber-check ph-bold ph-check text-[11px] text-black" style="display:none;line-height:1;"></i>
-          </div>
-        </button>`;
+      // ── Renacer EXCLUSIVO: fila horizontal compacta obsidiana + ámbar ──
+      // El resto de tenants (Aura, Chameleon, Kronnos, Elegance, etc.) cae al
+      // render original más abajo. Aislar así evita romper temas claros.
+      if (window.CURRENT_TENANT_ID === 'renacer') {
+        const _rowBase = 'barber-option w-full flex items-center justify-between p-3.5 rounded-xl bg-[#120e0c]/90 border border-neutral-800/80 hover:border-amber-500/50 mb-2.5 transition-all cursor-pointer gap-3.5 text-left active:scale-[0.99]';
+        const _isAnySel = (window._selectedBarberId === 'any' || window._selectedBarber === 'any');
+        const anyCardCompact = `
+          <button onclick="selectBarber(this, 'any', 'any')" class="${_rowBase}"${_isAnySel ? ' style="border-color:rgba(245,158,11,0.6);background:rgba(245,158,11,0.06);"' : ''}>
+            <div class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800 flex items-center justify-center text-amber-500">
+              <i class="ph-fill ph-shuffle text-lg"></i>
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <span class="barber-name text-sm font-bold text-white block truncate">Sin preferencia</span>
+              <span class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5">⚡ Primer horario disponible</span>
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full border border-neutral-600 shrink-0 flex items-center justify-center transition-all">
+              <i class="barber-check ph-bold ph-check text-[11px] text-black" style="display:none;line-height:1;"></i>
+            </div>
+          </button>`;
 
-      grid.className = 'flex flex-col gap-0';
-      grid.innerHTML = anyCardCompact + _barberosOrden.map(b => {
+        grid.className = 'flex flex-col gap-0';
+        grid.innerHTML = anyCardCompact + _barberosOrden.map(b => {
+          const isSelected = window._selectedBarber === b.nombre;
+          const disponible = b.disponible !== false;
+          const initials = (b.nombre || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+          const avatar = b.foto
+            ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800">`
+            : `<div class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800 flex items-center justify-center text-amber-500 font-bold">${initials}</div>`;
+          const estadoLine = disponible ? '✔️ Disponible para reservas' : '⛔ Agenda llena hoy';
+          const especialidad = b.especialidad ? ` · ${b.especialidad}` : '';
+          const selectedStyle = isSelected
+            ? ' style="border-color:rgba(245,158,11,0.6);background:rgba(245,158,11,0.06);"'
+            : '';
+          return `
+          <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="${_rowBase}"${selectedStyle}>
+            ${avatar}
+            <div class="flex-1 min-w-0 text-left">
+              <span class="barber-name text-sm font-bold text-white block truncate">${b.nombre}</span>
+              <span class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5 truncate">${estadoLine}${especialidad}</span>
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full border border-neutral-600 shrink-0 flex items-center justify-center transition-all">
+              <i class="barber-check ph-bold ph-check text-[11px] text-black" style="display:none;line-height:1;"></i>
+            </div>
+          </button>`;
+        }).join('');
+        return;
+      }
+
+      // ── Render original (Elegance/Chameleon horizontal + fallback vertical) ──
+      const anyCard = (_isElegance || _isChameleon) ? `
+        <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${anyStateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-shuffle text-xl text-gray-400"></i></div>
+          <div class="flex-1 min-w-0">
+            <span class="barber-name font-bold text-gray-100 text-base block">Sin preferencia</span>
+            <p class="text-xs text-gray-500 font-medium mt-0.5">${_profLabel}</p>
+            <span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
+              <i class="ph-fill ph-check-circle text-[14px]"></i>Primer horario disponible
+            </span>
+          </div>
+          <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
+        </button>
+      ` : `
+        <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${anyStateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
+          <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
+          <div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-shuffle text-3xl text-gray-400"></i></div>
+          <span class="barber-name font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">Sin preferencia</span>
+          <p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${_profLabel}</p>
+          <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
+            <i class="ph-fill ph-check-circle text-[16px]"></i>
+            Primer horario disponible
+          </span>
+        </button>
+      `;
+
+      grid.className = 'flex flex-col gap-4';
+      grid.innerHTML = anyCard + _barberosOrden.map(b => {
+        const fotoHTMLElegance = b.foto
+          ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover border border-white/10 shrink-0 bg-[#111115]">`
+          : `<div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-user text-xl text-gray-400"></i></div>`;
+        const fotoHTMLDefault = b.foto
+          ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-20 h-20 rounded-full object-cover border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]">`
+          : `<div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-user text-3xl text-gray-400"></i></div>`;
+
         const isSelected = window._selectedBarber === b.nombre;
-        const disponible = b.disponible !== false;
+        const stateClass = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
 
-        // Avatar: foto si existe, iniciales ámbar si no.
-        const initials = (b.nombre || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
-        const avatar = b.foto
-          ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800">`
-          : `<div class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-neutral-600/50 bg-neutral-800 flex items-center justify-center text-amber-500 font-bold">${initials}</div>`;
+        const especialidadElegance = b.especialidad
+          ? `<p class="text-xs text-gray-500 font-medium mt-0.5">${b.especialidad}</p>` : '';
+        const especialidadDefault = b.especialidad
+          ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>` : '';
 
-        // Estado: mantenemos badge Chameleon (Sin disp / Pocos / Disponible).
-        let estadoLine;
-        if (_isChameleon) {
-          const occupied = _chameleonSlotMap[b.id] || 0;
-          const [icon, label] = (b.disponible === false || occupied >= 6)
-            ? ['⛔', 'Sin disponibilidad']
-            : occupied >= 3
-              ? ['⚠️', 'Pocos horarios']
-              : ['✔️', 'Disponible para reservas'];
-          estadoLine = `${icon} ${label}`;
-        } else {
-          estadoLine = disponible ? '✔️ Disponible para reservas' : '⛔ Agenda llena hoy';
-        }
-        const especialidad = b.especialidad ? ` · ${b.especialidad}` : '';
-
-        const selectedStyle = isSelected
-          ? ' style="border-color:rgba(245,158,11,0.6);background:rgba(245,158,11,0.06);"'
+        const diasLabel = _buildDiasLabel(b.horario);
+        const diasHTMLElegance = diasLabel
+          ? `<p class="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5"><i class="ph-fill ph-calendar-blank text-[11px]"></i>${diasLabel}</p>`
+          : '';
+        const diasHTMLDefault = diasLabel
+          ? `<p class="flex items-center justify-center gap-1 text-[11px] text-gray-400 mb-1.5 relative z-10"><i class="ph-fill ph-calendar-blank text-[11px]"></i>${diasLabel}</p>`
           : '';
 
+        const disponibilidadString = b.disponible !== false ? 'Disponible para reservas' : 'Agenda llena hoy';
+        const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
+
+        if (_isElegance || _isChameleon) {
+          let availabilityHtml;
+          if (_isChameleon) {
+            const occupied = _chameleonSlotMap[b.id] || 0;
+            let badgeClass, badgeLabel;
+            if (b.disponible === false || occupied >= 6) {
+              badgeClass = 'cham-badge-gray'; badgeLabel = 'Sin disponibilidad';
+            } else if (occupied >= 3) {
+              badgeClass = 'cham-badge-amber'; badgeLabel = 'Pocos horarios';
+            } else {
+              badgeClass = 'cham-badge-green'; badgeLabel = 'Disponible';
+            }
+            availabilityHtml = `<span class="cham-badge ${badgeClass}"><span class="cham-badge-dot"></span>${badgeLabel}</span>`;
+            const dotColor = badgeClass === 'cham-badge-green' ? '#4ADE80'
+              : badgeClass === 'cham-badge-amber' ? '#DAA520' : 'rgba(156,163,175,0.45)';
+            const dotGlow = badgeClass === 'cham-badge-green' ? '0 0 5px rgba(74,222,128,0.7)'
+              : badgeClass === 'cham-badge-amber' ? '0 0 5px rgba(218,165,32,0.7)' : 'none';
+            const fotoInner = b.foto
+              ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover border border-white/10 bg-[#111115]">`
+              : `<div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 bg-[#111115]"><i class="ph-fill ph-user text-xl text-gray-400"></i></div>`;
+            return `
+            <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+              <div class="relative shrink-0">
+                ${fotoInner}
+                <span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:${dotColor};box-shadow:${dotGlow};border:1.5px solid #000;"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
+                ${especialidadElegance}
+                ${diasHTMLElegance}
+                ${availabilityHtml}
+              </div>
+              <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
+            </button>`;
+          }
+          availabilityHtml = `<span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
+            <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
+          </span>`;
+          return `
+          <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+            ${fotoHTMLElegance}
+            <div class="flex-1 min-w-0">
+              <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
+              ${especialidadElegance}
+              ${diasHTMLElegance}
+              ${availabilityHtml}
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
+          </button>`;
+        }
         return `
-        <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="${_rowBase}"${selectedStyle}>
-          ${avatar}
-          <div class="flex-1 min-w-0 text-left">
-            <span class="barber-name text-sm font-bold text-white block truncate">${b.nombre}</span>
-            <span class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5 truncate">${estadoLine}${especialidad}</span>
-          </div>
-          <div class="barber-radio w-5 h-5 rounded-full border border-neutral-600 shrink-0 flex items-center justify-center transition-all">
-            <i class="barber-check ph-bold ph-check text-[11px] text-black" style="display:none;line-height:1;"></i>
-          </div>
-        </button>`;
-      }).join('');
+        <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${stateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
+          <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
+          ${fotoHTMLDefault}
+          <span class="barber-name font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">${b.nombre}</span>
+          ${especialidadDefault}
+          ${diasHTMLDefault}
+          <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
+            <i class="ph-fill ph-${isAvailableIcon} text-[16px]"></i>
+            ${disponibilidadString}
+          </span>
+        </button>
+      `;}).join('');
     }
 
     function selectBarber(btn, id, nombre) {
-      const _isMapuSel = window.CURRENT_TENANT_ID === 'mapubarbershop';
-      const _isSionSel = window.CURRENT_TENANT_ID === 'sionbarberia';
-      const _isBcSel   = window.CURRENT_TENANT_ID === 'barbersclub';
+      const _isMapuSel    = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _isSionSel    = window.CURRENT_TENANT_ID === 'sionbarberia';
+      const _isBcSel      = window.CURRENT_TENANT_ID === 'barbersclub';
+      const _isRenacerSel = window.CURRENT_TENANT_ID === 'renacer';
       document.querySelectorAll('.barber-option').forEach(el => {
         if (_isMapuSel) {
           el.style.borderColor = 'rgba(191,163,126,0.15)';
@@ -10842,16 +10981,21 @@
           el.style.borderColor = 'rgba(255,255,255,0.12)';
           el.style.background  = '#111111';
           el.style.boxShadow   = 'none';
-        } else {
-          // Filas compactas obsidiana: limpiamos inline-styles del estado
-          // seleccionado; el hover/border-default vuelve a Tailwind.
+        } else if (_isRenacerSel) {
+          // Renacer usa inline-style (ámbar) al seleccionar; al deseleccionar
+          // hay que limpiarlos para que vuelva al obsidian base.
           el.style.borderColor = '';
           el.style.background  = '';
+        } else {
           el.classList.replace('border-neon', 'border-brand-accent/20');
           el.classList.replace('bg-brand-neon/10', 'bg-[#0a0a0d]');
         }
         const radio = el.querySelector('.barber-radio');
-        const _radioBorderUnsel = _isMapuSel ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)' : _isBcSel ? '#525252' : '#525252';
+        const _radioBorderUnsel = _isMapuSel ? 'rgba(191,163,126,0.40)'
+          : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)'
+          : _isBcSel ? '#525252'
+          : _isRenacerSel ? '#525252'
+          : 'rgba(212,175,55,0.4)';
         if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioBorderUnsel; }
         const chk = el.querySelector('.barber-check');
         if (chk) chk.style.display = 'none';
@@ -10863,20 +11007,26 @@
         btn.style.borderColor = '#FAFAFA';
         btn.style.background  = 'rgba(255,255,255,0.07)';
         btn.style.boxShadow   = '0 0 0 1.5px #FAFAFA, 0 6px 18px rgba(0,0,0,0.35)';
-      } else {
-        // Compact obsidian rows: acento ámbar en borde y fondo.
+      } else if (_isRenacerSel) {
+        // Renacer: acento ámbar sobre fila obsidiana.
         btn.style.borderColor = 'rgba(245,158,11,0.6)';
         btn.style.background  = 'rgba(245,158,11,0.06)';
+      } else {
         btn.classList.replace('border-brand-accent/20', 'border-neon');
         btn.classList.replace('bg-[#0a0a0d]', 'bg-brand-neon/10');
       }
       const _isChameleonSel = window.CURRENT_TENANT_ID === 'chameleon';
       const selRadio = btn.querySelector('.barber-radio');
-      const _radioFill = _isMapuSel ? '#BFA37E' : _isChameleonSel ? '#c9a84c' : _isBcSel ? '#eab308' : '#F59E0B';
+      const _radioFill = _isMapuSel ? '#BFA37E'
+        : _isChameleonSel ? '#c9a84c'
+        : _isBcSel ? '#eab308'
+        : _isRenacerSel ? '#F59E0B'
+        : '#D4AF37';
       if (selRadio) { selRadio.style.background = _radioFill; selRadio.style.borderColor = _radioFill; }
-      // Compact rows: check visible dentro del radio ámbar al seleccionar.
+      // Check dentro del radio visible solo en tenants que sí muestran el ícono
+      // (Barbers Club dorado, Renacer ámbar). El resto mantiene radio limpio.
       const selChkB = btn.querySelector('.barber-check');
-      if (selChkB) selChkB.style.display = (_isMapuSel || _isSionSel) ? 'none' : 'inline-block';
+      if (selChkB) selChkB.style.display = (_isBcSel || _isRenacerSel) ? 'inline-block' : 'none';
 
       if (window._selectedBarberId !== id) { selectedTimeStr = null; _selectedSlotInfo = null; }
       window._selectedBarber = nombre;

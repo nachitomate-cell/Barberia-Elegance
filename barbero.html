@@ -76,31 +76,45 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Buscador dark. TODO en CSS plano (no Tailwind arbitrario) porque el CSS
-       compilado que sirve la página no incluye clases como bg-[#120e0c] ni
-       text-neutral-100 → el input caía a default del browser (blanco/blanco). */
+    /* Buscador — TEMA POR DEFECTO (Aura y otros): fondo claro + texto oscuro
+       para contrastar con pantallas claras. Renacer overridea a obsidiana. */
     input.svc-search {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      background-color: #120e0c !important;
+      background-color: #ffffff !important;
       background-image: none !important;
-      color: #f5f5f5 !important;
-      border: 1px solid #262626;
+      color: #1f2937 !important;
+      border: 1px solid #e5e7eb;
       border-radius: 0.75rem;
       padding: 0.75rem 1rem;
       font-size: 0.875rem;
       line-height: 1.25rem;
-      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
+      box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.06);
       outline: none;
-      transition: background-color .2s ease, border-color .2s ease;
-      caret-color: var(--accent, #f59e0b);
+      transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+      caret-color: #1f2937;
     }
-    input.svc-search::placeholder { color: #737373 !important; opacity: 1; }
-    input.svc-search:hover { border-color: #404040; }
+    input.svc-search::placeholder { color: #9ca3af !important; opacity: 1; }
+    input.svc-search:hover { border-color: #d1d5db; }
     input.svc-search:focus {
+      border-color: var(--accent, #9ca3af);
+      box-shadow: 0 0 0 3px rgba(var(--accent-r,156),var(--accent-g,163),var(--accent-b,175),0.18);
+    }
+    /* Renacer: variante obsidiana premium. */
+    .tenant-renacer input.svc-search {
+      background-color: #120e0c !important;
+      color: #f5f5f5 !important;
+      border-color: #262626;
+      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
+      caret-color: #f59e0b;
+    }
+    .tenant-renacer input.svc-search::placeholder { color: #737373 !important; }
+    .tenant-renacer input.svc-search:hover { border-color: #404040; }
+    .tenant-renacer input.svc-search:focus {
       background-color: #18120f !important;
-      border-color: var(--accent, #f59e0b);
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
     }
     input.svc-search::-webkit-search-cancel-button {
       -webkit-appearance: none;
@@ -108,23 +122,39 @@
       background: transparent;
       border-radius: 50%;
       cursor: pointer;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
       background-repeat: no-repeat;
       background-position: center;
       background-size: 14px 14px;
     }
     input.svc-search:hover::-webkit-search-cancel-button,
     input.svc-search:focus::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%231f2937'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
+    /* Renacer: 'x' claro sobre input obsidiana. */
+    .tenant-renacer input.svc-search::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
+    .tenant-renacer input.svc-search:hover::-webkit-search-cancel-button,
+    .tenant-renacer input.svc-search:focus::-webkit-search-cancel-button {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
     }
-    /* Neutraliza el autofill amarillo/blanco del navegador */
+
+    /* Autofill: claro por defecto, obsidiana en Renacer. */
     input.svc-search:-webkit-autofill,
     input.svc-search:-webkit-autofill:hover,
     input.svc-search:-webkit-autofill:focus {
+      -webkit-text-fill-color: #1f2937 !important;
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+      caret-color: #1f2937 !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+    .tenant-renacer input.svc-search:-webkit-autofill,
+    .tenant-renacer input.svc-search:-webkit-autofill:hover,
+    .tenant-renacer input.svc-search:-webkit-autofill:focus {
       -webkit-text-fill-color: #f5f5f5 !important;
       -webkit-box-shadow: 0 0 0 1000px #120e0c inset !important;
       caret-color: #f5f5f5 !important;
-      transition: background-color 5000s ease-in-out 0s;
     }
 
     .text-accent { color: var(--accent); }
@@ -138,19 +168,54 @@
         var(--body-bg) 100%);
     }
 
-    /* Service cards — fila horizontal compacta obsidiana + acento ámbar.
-       Las clases Tailwind del markup ya definen bg/border/padding; aquí solo
-       ajustamos el estado :selected y afinamos accesibilidad. */
-    .svc-card { -webkit-tap-highlight-color: transparent; user-select: none; }
+    /* Service cards — diseño estándar por tenant (usa la variable --accent).
+       La variante obsidiana compacta se activa via HTML solo en Renacer
+       (renderServices detecta el tenant y aplica clases distintas). */
+    .svc-card {
+      background: #0a0a0d;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+      border-radius: 0.9rem;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
     .svc-card:active { transform: scale(0.98); }
     .svc-card.selected {
       border-color: var(--accent) !important;
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08) !important;
     }
-    /* Radio a la derecha: vacío por defecto, relleno del accent al seleccionar. */
+    .svc-card .icon-wrap {
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);
+      border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+      overflow: hidden;
+    }
+    .svc-card .svc-radio {
+      background: transparent;
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);
+    }
     .svc-card.selected .svc-radio {
-      background: var(--accent) !important;
-      border-color: var(--accent) !important;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    /* ── Renacer: variante obsidiana con acento ámbar.
+       Aplica solo cuando el tenant es Renacer (renderServices marca la clase). */
+    .svc-card.renacer-compact {
+      background: rgba(18,14,12,0.90);
+      border: 1px solid rgba(38,38,38,0.85);   /* neutral-800/80 */
+      border-radius: 0.75rem;
+    }
+    .svc-card.renacer-compact.selected {
+      border-color: #f59e0b !important;
+      background: rgba(245,158,11,0.06) !important;
+    }
+    .svc-card.renacer-compact .svc-radio {
+      background: transparent;
+      border-color: #525252;   /* neutral-600 */
+    }
+    .svc-card.renacer-compact.selected .svc-radio {
+      background: #f59e0b;
+      border-color: #f59e0b;
     }
 
     /* ── Service description expand/collapse ── */
@@ -1199,29 +1264,56 @@
       grid.innerHTML = '<p class="col-span-2 text-sm text-gray-600 text-center py-8">No hay servicios disponibles.</p>';
       return;
     }
+    const _isRenacer = window.CURRENT_TENANT_ID === 'renacer';
     grid.innerHTML = services.map(s => {
       const icon = _svcIcon(s.nombre, s.categoria);
       const isSelected = _selectedService?.id === s.id;
-      // Miniatura cuadrada 48px (rounded-lg) — imagen del servicio o ícono ámbar.
+
+      // ── Renacer: fila obsidiana compacta con miniatura cuadrada ámbar ──
+      if (_isRenacer) {
+        const iconMarkup = s.imagen
+          ? `<img src="${s.imagen}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-neutral-800 border border-neutral-700/50">`
+          : `<div class="w-12 h-12 rounded-lg flex-shrink-0 bg-neutral-800 border border-neutral-700/50 flex items-center justify-center">
+               <i class="ph-fill ${icon} text-lg text-amber-500"></i>
+             </div>`;
+        return `
+        <button onclick="selectService(this, '${s.id}')"
+          class="svc-card renacer-compact ${isSelected ? 'selected' : ''} w-full flex items-center justify-between p-3.5 gap-3 text-left active:scale-[0.99]"
+          data-id="${s.id}">
+          ${iconMarkup}
+          <div class="flex-1 min-w-0 text-left">
+            <p class="text-sm font-semibold text-white truncate">${s.nombre}</p>
+            <p class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5"><i class="ph ph-clock text-[11px]"></i>${formatDuration(s.duracion)}</p>
+            ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
+          </div>
+          <div class="text-right flex items-center gap-3 shrink-0">
+            <span class="text-sm font-bold text-amber-500">${formatPrice(s.precio)}</span>
+            <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all"></div>
+          </div>
+        </button>`;
+      }
+
+      // ── Diseño estándar (Elegance/Aura/etc): tarjeta con avatar circular
+      //    de accent, título + descripción, precio con accent variable. ──
       const iconMarkup = s.imagen
-        ? `<img src="${s.imagen}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-neutral-800 border border-neutral-700/50">`
-        : `<div class="w-12 h-12 rounded-lg flex-shrink-0 bg-neutral-800 border border-neutral-700/50 flex items-center justify-center">
-             <i class="ph-fill ${icon} text-lg text-amber-500"></i>
-           </div>`;
+        ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
+        : `<i class="ph-fill ${icon} text-lg" style="color:var(--accent);"></i>`;
       return `
       <button onclick="selectService(this, '${s.id}')"
-        class="svc-card ${isSelected ? 'selected' : ''} w-full flex items-center justify-between p-3.5 rounded-xl bg-[#120e0c]/90 border border-neutral-800/80 hover:border-neutral-700 transition-all cursor-pointer gap-3 text-left active:scale-[0.99]"
+        class="svc-card ${isSelected ? 'selected' : ''} relative flex flex-row items-center gap-3 p-3 text-left active:scale-[0.99]"
         data-id="${s.id}">
-        ${iconMarkup}
-        <div class="flex-1 min-w-0 text-left">
-          <p class="text-sm font-semibold text-white truncate">${s.nombre}</p>
-          <p class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5"><i class="ph ph-clock text-[11px]"></i>${formatDuration(s.duracion)}</p>
-          ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
+        <div class="icon-wrap w-11 h-11 rounded-full flex items-center justify-center shrink-0">
+          ${iconMarkup}
         </div>
-        <div class="text-right flex items-center gap-3 shrink-0">
-          <span class="text-sm font-bold text-amber-500">${formatPrice(s.precio)}</span>
-          <div class="svc-radio w-5 h-5 rounded-full border-2 border-neutral-600 shrink-0 flex items-center justify-center transition-all"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[13px] font-bold text-white leading-snug">${s.nombre}</p>
+          ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 leading-snug mt-0.5 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</span>` : ''}
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
+            <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
+          </div>
         </div>
+        <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all"></div>
       </button>`;
     }).join('');
   }
