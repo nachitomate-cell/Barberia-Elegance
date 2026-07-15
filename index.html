@@ -5097,29 +5097,33 @@
       min-height: 0 !important;
       height: auto !important;
     }
-    /* Scrim radial central (legibilidad del logo/frase) + fade de bordes con la página */
+    /* Scrim radial central (legibilidad del logo/frase) + degradado inferior
+       reforzado (bg-gradient-to-t from-[#0a0806] via-[#0a0806]/85 to-transparent)
+       para garantizar contraste del eslogan sobre piso/sillas del banner. */
     .tenant-sionbarberia .booking-hero-overlay {
       background:
         radial-gradient(ellipse 58% 44% at 50% 47%, rgba(0,0,0,0.44) 0%, rgba(0,0,0,0.14) 55%, rgba(0,0,0,0) 76%),
-        linear-gradient(180deg,
-          rgba(10,10,10,0.30) 0%, rgba(10,10,10,0) 26%,
-          rgba(10,10,10,0) 58%, rgba(10,10,10,0.50) 86%,
-          #0a0a0a 100%) !important;
+        linear-gradient(to top,
+          #0a0806 0%,
+          rgba(10,8,6,0.85) 22%,
+          rgba(10,8,6,0.55) 40%,
+          rgba(10,8,6,0.15) 56%,
+          rgba(10,8,6,0) 70%) !important;
     }
     /* Mostramos el logo circular + frase sobre el banner; ocultamos nombre y divisor. */
     .tenant-sionbarberia .gold-divider,
     .tenant-sionbarberia #shopNombre { display: none !important; }
 
-    /* ── Logo: contorno circular blanco + animación flotante ── */
+    /* ── Logo: acento neón esmeralda (conecta con la iluminación interior) + flotante ── */
     .tenant-sionbarberia #heroLogoArea { margin-bottom: 18px !important; }
     .tenant-sionbarberia .hero-logo-ring {
-      width: 118px !important; height: 118px !important;
+      width: 82px !important; height: 82px !important;
       background: #0a0a0a !important;
-      border: 2px solid rgba(255,255,255,0.92) !important;
+      border: 1px solid rgba(16,185,129,0.40) !important;
       box-shadow:
-        0 0 0 5px rgba(0,0,0,0.42),
-        0 0 26px rgba(255,255,255,0.26),
-        0 14px 34px rgba(0,0,0,0.65) !important;
+        0 0 0 4px rgba(0,0,0,0.42),
+        0 0 25px rgba(16,185,129,0.25),
+        0 12px 30px rgba(0,0,0,0.65) !important;
       animation: dieciseis-float 3.8s ease-in-out infinite !important;
     }
     @keyframes dieciseis-float {
@@ -5141,12 +5145,77 @@
     }
     .tenant-sionbarberia #shopSlogan { color: #ffffff !important; }
 
-    /* ── Info-strip (bajo el hero): grafito con borde sutil ── */
+    /* ── Info-strip compacta (dieciseis): ULTRA-COMPACTA, una sola fila
+         · Izquierda → estado (🔴 Cerrado · Abre 09:00) con font-medium
+         · Derecha  → Ubicación + Quiénes somos (pills discretos)
+         Absorbe también la fila de "Quiénes somos" (qs-btn) que se re-ubica
+         dentro del strip vía JS (bloque tenant sionbarberia). */
     html.tenant-sionbarberia .info-strip,
     html.tenant-sionbarberia .info-strip[style] {
-      background: linear-gradient(135deg, #0e0e0e 0%, #141414 50%, #0c0c0c 100%) !important;
-      border-bottom-color: rgba(255,255,255,0.08) !important;
+      background: rgba(18,14,12,0.95) !important;
+      border-top: 1px solid rgba(64,64,64,0.5) !important;
+      border-bottom: 1px solid rgba(64,64,64,0.5) !important;
+      padding: 10px 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+      font-size: 12px !important;
+      color: #d4d4d4 !important;
+      width: 100% !important;
     }
+    /* Estado (Cerrado/Abierto) — bloque izquierdo, sin borde ni flex-1 */
+    html.tenant-sionbarberia .info-strip #heroInfoHorBtn {
+      order: 1 !important;
+      flex: 0 1 auto !important;
+      justify-content: flex-start !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      color: #d4d4d4 !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      gap: 6px !important;
+      min-width: 0 !important;
+    }
+    html.tenant-sionbarberia .info-strip #heroInfoHorBtn > span { min-width: 0 !important; }
+    /* Ubicación (right-side pill) */
+    html.tenant-sionbarberia .info-strip #heroInfoAddr {
+      order: 2 !important;
+      flex: 0 0 auto !important;
+      padding: 4px 8px !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      color: #a3a3a3 !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      gap: 5px !important;
+      transition: color 0.15s ease !important;
+      text-decoration: none !important;
+    }
+    html.tenant-sionbarberia .info-strip #heroInfoAddr:hover { color: #ffffff !important; }
+    /* Quiénes somos: pill discreto dentro del strip (movido vía JS) */
+    html.tenant-sionbarberia .info-strip #quienesSomosBtn.qs-btn {
+      order: 3 !important;
+      display: inline-flex !important;
+      width: auto !important;
+      flex: 0 0 auto !important;
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      color: #a3a3a3 !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      gap: 5px !important;
+      transition: color 0.15s ease !important;
+    }
+    html.tenant-sionbarberia .info-strip #quienesSomosBtn.qs-btn:hover { color: #ffffff !important; }
+    html.tenant-sionbarberia .info-strip #quienesSomosBtn.qs-btn i {
+      color: currentColor !important;
+      font-size: 12px !important;
+    }
+    /* Íconos por defecto del strip: gris neutro */
     .tenant-sionbarberia .info-strip i.ph-fill { color: rgba(255,255,255,0.65) !important; }
 
     /* ── Barra de progreso ("PASO X DE 4") ── */
@@ -5478,12 +5547,7 @@
       box-shadow: 0 4px 28px rgba(255,255,255,0.22) !important;
     }
 
-    /* Info-strip: negro con borde sutil */
-    html.tenant-sionbarberia .info-strip,
-    html.tenant-sionbarberia .info-strip[style] {
-      background: linear-gradient(135deg, #111111 0%, #161616 50%, #0e0e0e 100%) !important;
-      border-bottom-color: rgba(255,255,255,0.10) !important;
-    }
+    /* Info-strip compacta: definida arriba (bloque tenant sionbarberia). */
     :is(.tenant-aura,.tenant-latincaribe) .hero-logo-ring {
       border: 2.5px solid #ffffff !important;
       box-shadow: 0 0 20px rgba(156,163,175,0.25), 0 0 0 1px rgba(255,255,255,0.15) !important;
@@ -10828,6 +10892,13 @@
           const _qsB = document.getElementById('quienesSomosBtn');
           if (_qsT) _qsT.textContent = _qs.texto;
           if (_qsB) _qsB.style.display = 'flex';
+          // Studio Dieciséis: absorbe "Quiénes somos" dentro de la info-strip
+          // como pill del lado derecho, para unificar en una sola fila y ahorrar
+          // scroll en mobile. El estilo lo aplica el CSS scoped por tenant.
+          if (_qsB && window.CURRENT_TENANT_ID === 'sionbarberia') {
+            const _strip = document.querySelector('.info-strip');
+            if (_strip && _qsB.parentElement !== _strip) _strip.appendChild(_qsB);
+          }
         }
       } catch (e) {}
 
@@ -13185,15 +13256,17 @@
 
     function renderHeroBadge() {
       const rating = SHOP.ratingGeneral;
-      const total  = SHOP.totalReviews;
+      const total  = Number(SHOP.totalReviews) || 0;
       const badge = document.getElementById('heroGoogleBadge');
-      // Sin reseñas → ocultar el badge (no dejar el placeholder estático con datos falsos).
-      if (!rating || !total) { if (badge) badge.style.display = 'none'; return; }
+      // Sin rating → ocultar el badge (no dejar el placeholder estático con datos falsos).
+      if (!rating) { if (badge) badge.style.display = 'none'; return; }
       const rEl   = document.getElementById('heroBadgeRating');
       const cEl   = document.getElementById('heroBadgeCount');
       if (!badge || !rEl || !cEl) return;
       rEl.textContent = rating.toFixed(1).replace('.', ',');
-      cEl.textContent = `${total} opiniones · Google`;
+      // Umbral de fricción: con <10 reseñas mostramos solo "Google" (ocultamos el
+      // conteo). Un contador muy bajo genera desconfianza pese al 5,0 general.
+      cEl.textContent = total >= 10 ? `${total} opiniones · Google` : 'Google';
       if (SHOP.googleReviewUrl) badge.href = SHOP.googleReviewUrl;
       badge.style.display = 'flex';
     }
@@ -13249,7 +13322,7 @@
       if (ratingBig) ratingBig.textContent = rating.toFixed(1);
 
       const totalEl = document.getElementById('reviewsTotalText');
-      if (totalEl) totalEl.textContent = `(${total} reseñas)`;
+      if (totalEl) totalEl.textContent = (Number(total) || 0) >= 10 ? `(${total} reseñas)` : '';
 
       const grid = document.getElementById('reviewsGrid');
       if (grid) {
