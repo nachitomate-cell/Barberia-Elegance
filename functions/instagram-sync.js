@@ -35,7 +35,7 @@ const db = admin.firestore();
 
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
-const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omegastudio', 'memphis', 'barbersclub', 'elbarberomoderno'];
+const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omegastudio', 'memphis', 'barbersclub', 'elbarberomoderno', 'renacer'];
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
@@ -61,6 +61,7 @@ const TENANT_PANEL_URL = {
   memphis:              'https://memphissalon.synaptechspa.cl',
   barbersclub:          'https://barbersclub.synaptechspa.cl',
   elbarberomoderno:     'https://elbarberomoderno.synaptechspa.cl',
+  renacer:              'https://renacer.synaptechspa.cl',
 };
 
 // Allow-list de orígenes para el redirect post-OAuth. Evita open-redirect
