@@ -35,7 +35,18 @@ function _reportPush(logId, evento) {
 // ── 3. CACHE ─────────────────────────────────────────────────────
 // v32: purga cachés envenenadas — el SPA fallback (200 text/html) quedaba
 // cacheado como si fuera la imagen/asset pedido (logos rotos para siempre).
-const CACHE_VERSION = 'saas-v32';
+// v33: config.js (y demás archivos no-store de vercel.json) pasan a
+// network-first. Cache-first los dejaba pegados en una versión vieja aunque
+// el server ya tuviera lo nuevo → al editar un tenant (nombre/logo/banner) los
+// usuarios con SW activo seguían viendo lo viejo hasta el próximo bump. Ese era
+// el motivo de fondo del logo "roto" de Studio Luxury: config viejo cacheado.
+const CACHE_VERSION = 'saas-v33';
+
+// Archivos que DEBEN estar siempre frescos (marcados no-cache/no-store en
+// vercel.json). config.js es la fuente de verdad de la marca/datos por tenant;
+// servirlo desde caché deja logo/nombre/servicios viejos. Network-first respeta
+// ese contrato; la caché queda solo como respaldo offline.
+const FRESH_FIRST = /^\/(config\.js|firebase-config\.js|firebaseUtils\.js|output\.css|output-lookbook\.css|js\/.+\.js)$/;
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
