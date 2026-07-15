@@ -4835,3 +4835,147 @@
     .tenant-latincaribe #stampsBar {
       background: linear-gradient(90deg, #35DDE6, #F35BA6) !important;
     }
+
+    /* ══════════════════════════════════════════════════════════════════
+     * RENACER — pulido visual del /dashboard (Obsidian & Warm Amber)
+     * ──────────────────────────────────────────────────────────────────
+     * Renacer hereda el tema Elegance vía _themeAlias, por lo que sin
+     * este bloque el hero muestra /elegance.png (leak) y los acentos
+     * quedan en dorado antiguo. Aquí SOLO tocamos color, fondo, bordes
+     * y tipografía — NUNCA layout, orden o posicionamiento.
+     * ══════════════════════════════════════════════════════════════════ */
+
+    /* Paleta base — acento ámbar cálido (amber-500 de Tailwind) */
+    .tenant-renacer {
+      --gold:      #F59E0B;
+      --gold-dim:  rgba(245,158,11,0.30);
+      --gold-glow: rgba(245,158,11,0.10);
+    }
+    html.tenant-renacer body      { background-color: #0a0806; }
+    .tenant-renacer #authGuard    { background: #0a0806 !important; }
+    .tenant-renacer header {
+      background-color: rgba(10,8,6,0.96) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
+
+    /* 1) Fondo del hero: piso /elegance.png con banner propio del local.
+       Selectores defensivos por si alguna vista usa otras clases. */
+    .tenant-renacer .hero-bg,
+    .tenant-renacer .club-hero,
+    .tenant-renacer .dashboard-promo-banner,
+    .tenant-renacer .booking-hero {
+      background-image: url('/renacer/banner.webp') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      background-color: #0a0806 !important;
+    }
+    .tenant-renacer .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(0,0,0,0.35) 0%,
+        rgba(10,8,6,0.60) 45%,
+        rgba(10,8,6,0.92) 100%) !important;
+    }
+    .tenant-renacer .hero-glow-spot {
+      background: radial-gradient(circle, rgba(245,158,11,0.10) 0%, transparent 65%) !important;
+    }
+    .tenant-renacer .hero-cta {
+      background: rgba(10,8,6,0.65) !important;
+      border-color: rgba(245,158,11,0.42) !important;
+      box-shadow: 0 0 18px rgba(245,158,11,0.10) !important;
+    }
+    .tenant-renacer .hero-cta i,
+    .tenant-renacer .hero-cta span { color: #F59E0B !important; }
+
+    /* 2) Botones/bloques de información — obsidiana con hover ámbar,
+       reemplazando el azul estándar heredado y el dorado antiguo. */
+    .tenant-renacer #sellosOnboarding,
+    .tenant-renacer #canjeAutoAviso,
+    .tenant-renacer .info-btn {
+      background: rgba(18,14,12,0.90) !important;
+      border: 1px solid rgba(115,115,115,0.28) !important;   /* neutral-700/70 */
+      color: #d4d4d4 !important;                              /* neutral-300 */
+      transition: color .2s ease, border-color .2s ease;
+    }
+    .tenant-renacer #sellosOnboarding i,
+    .tenant-renacer #canjeAutoAviso i,
+    .tenant-renacer .info-btn i { color: #d4d4d4 !important; }
+    .tenant-renacer .info-btn:hover {
+      color: #F59E0B !important;
+      border-color: rgba(245,158,11,0.50) !important;
+    }
+
+    /* 3) Tarjetas / superficies — obsidiana premium con borde sutil,
+       sin sombras pesadas. Aplica a recordatorios, PWA card e íconos. */
+    .tenant-renacer #notifBanner,
+    .tenant-renacer #pwaBigInstallCard,
+    .tenant-renacer #perfilIncompletoAviso {
+      background: rgba(18,14,12,0.90) !important;
+      border-color: rgba(38,38,38,0.85) !important;          /* neutral-800/80 */
+      box-shadow: none !important;
+    }
+    .tenant-renacer .pwa-icon-bg {
+      background: rgba(245,158,11,0.08) !important;
+      border-color: rgba(245,158,11,0.22) !important;
+      box-shadow: none !important;
+    }
+    .tenant-renacer #perfilIncompletoAviso i,
+    .tenant-renacer #perfilIncompletoMsg { color: rgba(245,158,11,0.90) !important; }
+
+    /* 4) Acentos ámbar en fidelización — sellos, barra de progreso y
+       textos destacados heredan el warm amber de la marca. */
+    .tenant-renacer #stampsBar {
+      background: #F59E0B !important;
+      box-shadow: 0 0 10px rgba(245,158,11,0.45) !important;
+    }
+    .tenant-renacer .stamp-cell.filled {
+      background: #F59E0B !important;
+      border: 1px solid #F59E0B !important;
+      box-shadow: 0 0 6px rgba(245,158,11,0.35) !important;
+    }
+    .tenant-renacer .stamp-cell.filled i { color: #0a0806 !important; }
+    .tenant-renacer .premio-icon { color: #F59E0B !important; }
+    .tenant-renacer .text-gold   { color: #F59E0B !important; text-shadow: none !important; }
+    .tenant-renacer .border-gold { border-color: rgba(245,158,11,0.35) !important; box-shadow: none !important; }
+    .tenant-renacer .membership-glow {
+      background: radial-gradient(circle, rgba(245,158,11,0.05) 0%, transparent 70%) !important;
+    }
+    .tenant-renacer #membershipWatermark { color: rgba(245,158,11,0.05) !important; }
+    .tenant-renacer input:focus {
+      border-color: #F59E0B !important;
+      --tw-ring-color: rgba(245,158,11,0.35) !important;
+      box-shadow: 0 0 0 1px rgba(245,158,11,0.35) !important;
+    }
+
+    /* 5) Tipografía — títulos principales nítidos en blanco puro,
+       secundarios en gris neutro no fatigante. */
+    .tenant-renacer #shopClubName,
+    .tenant-renacer #stampsCount,
+    .tenant-renacer #heroLine1 {
+      color: #ffffff !important;
+      font-weight: 800 !important;
+    }
+    .tenant-renacer #heroLine2  { color: #F59E0B !important; font-weight: 700 !important; }
+    .tenant-renacer #membershipDesc,
+    .tenant-renacer #notifBannerText,
+    .tenant-renacer #shopHeaderSub { color: #a3a3a3 !important; }  /* neutral-400 */
+
+    /* 6) Badge SILVER como insignia metálica elegante. Se mantienen
+       gold/platinum del sistema por si el cliente escala rangos. */
+    .tenant-renacer .tier-badge.silver {
+      background: #262626 !important;                        /* neutral-800 */
+      color: #d4d4d4 !important;                             /* neutral-300 */
+      border: 1px solid rgba(115,115,115,0.55) !important;   /* neutral-600/55 */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+      font-size: 10px !important;
+      letter-spacing: 0.14em !important;
+      padding: 2px 8px !important;
+      border-radius: 4px !important;
+    }
+    .tenant-renacer .tier-badge.gold {
+      color: #F59E0B !important;
+      border-color: rgba(245,158,11,0.40) !important;
+    }
+    .tenant-renacer .tier-badge.platinum {
+      color: #e5e5e5 !important;
+      border-color: rgba(229,229,229,0.45) !important;
+    }
