@@ -44,6 +44,7 @@ const DOMAIN_MAP = {
   'estudioluxury.synaptechspa.cl':     'estudioluxury',
   'memphissalon.synaptechspa.cl':      'memphis',
   'alfamen.synaptechspa.cl':           'alfamen',
+  'renacer.synaptechspa.cl':           'renacer',
 };
 
 // Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
@@ -1260,6 +1261,55 @@ const TENANT_META = {
       theme_color:      '#10b981',
       background_color: '#0f172a',
       start_url:        '/gestion-interna/?local=deluxeperfumes',
+    },
+  },
+  renacer: {
+    booking: {
+      title:       'Reserva tu cita | Peluquería y Barbería Renacer',
+      description: 'Agenda online en Peluquería y Barbería Renacer. Elige profesional, servicio de estilismo o barbería y horario en segundos.',
+      ogTitle:     'Reserva tu cita en Renacer',
+      ogDesc:      'Estilismo unisex, barbería de autor y tratamientos premium. Reserva online 24/7.',
+    },
+    dashboard: {
+      title:       'Mis Citas y Sellos | Club Renacer',
+      description: 'Revisa el historial de tus reservas, administra tus citas y acumula sellos de fidelidad en Peluquería y Barbería Renacer.',
+      ogTitle:     'Tu cuenta en Club Renacer',
+      ogDesc:      'Accede a tus beneficios, sellos y reservas activas en Renacer.',
+    },
+    registro: {
+      title:       'Únete al Club Renacer | Registro',
+      description: 'Regístrate gratis en el Club Renacer para acumular sellos y canjear servicios gratuitos.',
+      ogTitle:     'Únete al Club Renacer',
+      ogDesc:      'Crea tu cuenta, acumula sellos desde tu primera visita y accede a premios exclusivos.',
+    },
+    siteName:    'Peluquería y Barbería Renacer',
+    ogImage:     '/renacer/banner.jpg',
+    themeColor:  '#f59e0b',
+    appTitle:    'Renacer',
+    icon:        '/renacer/logo.png',
+    iconPwa192:  '/icons/pwa/renacer-192.png',
+    iconPwa512:  '/icons/pwa/renacer-512.png',
+    local: {
+      telephone:       '',
+      streetAddress:   'Por definir',
+      postalCode:      '2520000',
+      priceRange:      '$$',
+      addressLocality: 'Viña del Mar',
+      schemaType:      'BeautySalon',
+    },
+    manifest: {
+      name:             'Peluquería y Barbería Renacer',
+      short_name:       'Renacer',
+      theme_color:      '#f59e0b',
+      background_color: '#0a0806',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Renacer',
+      short_name:       'Renacer',
+      description:      'Panel de administración — Peluquería y Barbería Renacer',
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=renacer',
     },
   },
 };

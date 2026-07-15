@@ -49,6 +49,7 @@
     'barbersclub.synaptechspa.cl':        'barbersclub',
     'elbarberomoderno.synaptechspa.cl':   'elbarberomoderno',
     'estudioluxury.synaptechspa.cl':      'estudioluxury',
+    'renacer.synaptechspa.cl':            'renacer',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -61,6 +62,9 @@
     // y dashboard.css— sin duplicar CSS. Se distingue solo por contenido
     // (logo, nombre, slogan, watermark) y datos.
     estudioluxury: 'barbersclub',
+    // Renacer reutiliza el tema base de Elegance (dark + acentos finos) para
+    // salir en vivo sin CSS propio. Se puede desacoplar en fase visual futura.
+    renacer:      'elegance',
   };
 
   const _tenants = {
@@ -979,6 +983,40 @@
       darkHeader:      true,
       headerBg:        '#0b0a09',
       barberos:        [],               // se provisiona en Firestore (ver seed-estudioluxury.html)
+    },
+    // ── PELUQUERÍA Y BARBERÍA RENACER — salón unisex de alta gama · Viña del Mar ──
+    // Migración desde AgendaPro. Fase 1: registro base + ruteo + SEO.
+    // Tema visual reutiliza "Elegance" vía _themeAlias (sin CSS propio).
+    // Acceso: ?local=renacer  o  renacer.synaptechspa.cl
+    // ⚠️ Pendiente del cliente: teléfono real, dirección exacta, IG real,
+    //    horarios definitivos, staff. Placeholders seguros hasta panel.
+    renacer: {
+      categoriasServicio: ['Peluquería', 'Barbería', 'Estética', 'Manicura'],
+      nombre:          'Peluquería y Barbería Renacer',
+      nombreCorto:     'Renacer',
+      pageTitle:       'Renacer | Peluquería & Barbería',
+      bodyBg:          '#0a0806',
+      slogan:          'Peluquería & Barbería de Autor',
+      sobreNosotros:   'Un espacio de estilismo unisex y barbería de alta gama dedicado al cuidado integral, la técnica de autor y una experiencia de reserva fluida y sin demoras.',
+      logo:            '/renacer/logo.png',
+      direccion:       '📍 Por definir en panel administrativo',
+      horario:         '🕒 Lun a Sáb · 10:00 – 20:00',
+      telefono:        '',
+      club:            'Club Renacer',
+      headerSub:       'ESTUDIO UNISEX',
+      heroLine1:       'Tu estilo,',
+      heroLine2:       'elevado al siguiente nivel.',
+      watermark:       'R',
+      instagram:       'https://instagram.com',
+      instagramHandle: '@renacer.studio',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   5.0,
+      totalReviews:    1,
+      reviews: [
+        { author: 'Cliente Renacer', rating: 5, text: 'Excelente atención y el sistema de reservas es facilísimo de usar. ¡Totalmente recomendados!' },
+      ],
+      barberos:        [],   // se poblará en Firestore (ver seed-renacer.js — Fase 3)
     },
   };
 
