@@ -751,6 +751,13 @@
     <section id="step1" class="fade-up">
       <h2 class="text-2xl font-bold mb-5 tracking-tight" style="color:var(--accent);">¿Qué servicio buscas?</h2>
 
+      <!-- Buscador rápido de servicios (visible siempre; filtra en tiempo real ≥2 chars) -->
+      <div id="svcSearchWrap" class="relative mb-4 px-1">
+        <input id="svcSearchInput" type="search" placeholder="🔍 Buscar servicio, corte o tratamiento..."
+          autocomplete="off"
+          class="w-full bg-[#120e0c] border border-neutral-800 rounded-xl py-2.5 px-4 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 transition-all">
+      </div>
+
       <!-- Category pills -->
       <div id="catPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6"></div>
 
@@ -1011,7 +1018,7 @@
   /* ── Utilities ──────────────────────────────────────────────────── */
   function slugify(str) {
     return String(str)
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toLowerCase().trim()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
@@ -1200,17 +1207,32 @@
     return 'ph-scissors';
   }
 
+  // Categoría activa (persistida para que el buscador pueda restaurar el estado al limpiarse).
+  let _activeCategory = 'Todos';
+
   function renderCategories(services) {
     const cats = [...new Set(services.map(s => s.categoria || 'Otro').filter(Boolean))];
     if (cats.length < 2) { document.getElementById('catPills').style.display = 'none'; return; }
     const container = document.getElementById('catPills');
-    container.innerHTML = ['Todos', ...cats].map((c, i) => `
+    // Catálogos masivos (>20 servicios): omitimos "Todos" del arranque para reducir
+    // scroll inicial; entra al final de la lista como opción avanzada. Categoría inicial
+    // = primera específica.
+    const isLarge = services.length > 20;
+    const initialCat = isLarge ? cats[0] : 'Todos';
+    _activeCategory = initialCat;
+    const order = isLarge ? [...cats, 'Todos'] : ['Todos', ...cats];
+    container.innerHTML = order.map(c => `
       <button onclick="filterByCategory('${c}')"
-        class="cat-pill ${i === 0 ? 'active' : ''}"
+        class="cat-pill ${c === initialCat ? 'active' : ''}"
         data-cat="${c}">${c}</button>`).join('');
   }
 
   function filterByCategory(cat) {
+    _activeCategory = cat;
+    // Al cambiar categoría manualmente, limpiamos el buscador para no dar la
+    // sensación de que la pestaña "no aplica".
+    const inp = document.getElementById('svcSearchInput');
+    if (inp && inp.value) inp.value = '';
     document.querySelectorAll('.cat-pill').forEach(p => {
       p.classList.toggle('active', p.dataset.cat === cat);
     });
@@ -1218,6 +1240,30 @@
       ? _allServices
       : _allServices.filter(s => (s.categoria || 'Otro') === cat);
     renderServices(filtered);
+  }
+
+  // Filtro en tiempo real (≥2 chars): ignora la categoría seleccionada y busca en
+  // todo el catálogo por nombre (case/accent-insensitive). Al vaciar, restaura la
+  // categoría activa.
+  function _norm(s) {
+    return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function _wireSvcSearch() {
+    const inp = document.getElementById('svcSearchInput');
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      const q = _norm(inp.value.trim());
+      if (q.length < 2) {
+        // Restaurar vista por categoría activa
+        const base = _activeCategory === 'Todos'
+          ? _allServices
+          : _allServices.filter(s => (s.categoria || 'Otro') === _activeCategory);
+        renderServices(base);
+        return;
+      }
+      const hits = _allServices.filter(s => _norm(s.nombre).includes(q));
+      renderServices(hits);
+    });
   }
 
   function selectService(btn, id) {
@@ -2016,7 +2062,13 @@
     }
 
     renderCategories(_allServices);
-    renderServices(_allServices);
+    // Si el catálogo del barbero es grande, arrancamos con la 1ª categoría
+    // específica (renderCategories ya la marcó activa y guardó en _activeCategory).
+    const _initial = _activeCategory && _activeCategory !== 'Todos'
+      ? _allServices.filter(s => (s.categoria || 'Otro') === _activeCategory)
+      : _allServices;
+    renderServices(_initial);
+    _wireSvcSearch();
 
     // Show main content
     document.getElementById('mainContent').classList.remove('hidden');

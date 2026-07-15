@@ -9062,6 +9062,13 @@
              consume al Completar la cita). Múltiples packs → múltiples cards. -->
         <div id="packActivoBanner" class="hidden mb-4 space-y-2.5"></div>
 
+        <!-- Buscador rápido de servicios (filtra en tiempo real ≥2 chars, ignora la categoría activa) -->
+        <div id="svcSearchWrap" class="relative mb-4 px-1">
+          <input id="svcSearchInput" type="search" placeholder="🔍 Buscar servicio, corte o tratamiento..."
+            autocomplete="off"
+            class="w-full bg-[#120e0c] border border-neutral-800 rounded-xl py-2.5 px-4 text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 transition-all">
+        </div>
+
         <!-- Category Pills -->
         <div id="categoryPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6 scroll-smooth">
         </div>
@@ -10035,10 +10042,17 @@
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
 
+        // Categorías masivas (>12 ítems) siempre en lista compacta,
+        // independiente del layout del tenant, para evitar scroll interminable.
+        const _forceCompact = categories[cat].length > 12;
         const innerGrid = document.createElement('div');
-        innerGrid.className = _useRowLayout ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
+        innerGrid.className = (_useRowLayout || _forceCompact) ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
 
         categories[cat].forEach((s, i) => {
+          if (_forceCompact) {
+            innerGrid.innerHTML += _svcCompactRow(s);
+            return;
+          }
           const icon = s.icono || (_useRowLayout ? _catIcon(cat, i) : _ICONS[i % _ICONS.length]);
           const finalIconEl = s.imagen
             ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
@@ -10179,11 +10193,18 @@
       if (!pillsContainer) return;
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
 
-      const categories = ['Todos'];
+      const cats = [];
       services.forEach(s => {
         const cat = s.categoria || 'Otro';
-        if (!categories.includes(cat)) categories.push(cat);
+        if (!cats.includes(cat)) cats.push(cat);
       });
+
+      // Catálogos masivos (>20): omitimos "Todos" del arranque para reducir scroll
+      // inicial en pantallas pequeñas. "Todos" queda al final como salida.
+      const isLarge = services.length > 20;
+      const initialCat = isLarge && cats.length ? cats[0] : 'Todos';
+      const categories = isLarge ? [...cats, 'Todos'] : ['Todos', ...cats];
+      window._activeCategory = initialCat;
 
       const activeClass = _isGitana
         ? 'bg-brand-neon/10 border-neon text-neon'
@@ -10191,12 +10212,16 @@
       const inactiveClass = 'bg-[#0a0a0d] border-brand-accent/20 text-gray-400';
 
       pillsContainer.innerHTML = '';
-      categories.forEach((cat, index) => {
-        const isActive = index === 0;
+      categories.forEach((cat) => {
+        const isActive = cat === initialCat;
         const btn = document.createElement('button');
         btn.className = `category-pill flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold border transition-all active:scale-95 ${isActive ? activeClass : inactiveClass}`;
         btn.textContent = cat;
         btn.onclick = () => {
+          // Al cambiar de pestaña manualmente limpiamos el buscador para evitar
+          // sensación de "esta pestaña está vacía" cuando el usuario tenía texto.
+          const inp = document.getElementById('svcSearchInput');
+          if (inp && inp.value) inp.value = '';
           document.querySelectorAll('.category-pill').forEach(el => {
             el.classList.remove('bg-brand-neon/10', 'border-neon', 'text-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.15)]');
             el.classList.add('bg-[#0a0a0d]', 'border-brand-accent/20', 'text-gray-400');
@@ -10204,13 +10229,24 @@
           btn.classList.add('bg-brand-neon/10', 'border-neon', 'text-neon');
           if (!_isGitana) btn.classList.add('shadow-[0_0_15px_rgba(255,255,255,0.15)]');
           btn.classList.remove('bg-[#0a0a0d]', 'border-brand-accent/20', 'text-gray-400');
+          window._activeCategory = cat;
           filterServicesByCategory(cat);
         };
         pillsContainer.appendChild(btn);
       });
+
+      // Aplica inmediatamente el filtro inicial (oculta el resto de secciones
+      // si arrancamos en una categoría específica).
+      filterServicesByCategory(initialCat);
     }
 
     function filterServicesByCategory(category) {
+      // Al filtrar por categoría salimos del modo búsqueda si estaba activo.
+      const searchWrap = document.getElementById('servicesSearchResults');
+      if (searchWrap) searchWrap.remove();
+      const grid = document.getElementById('servicesGrid');
+      if (grid) grid.style.display = '';
+
       const allSections = document.querySelectorAll('.category-section');
       allSections.forEach(section => {
         if (category === 'Todos') {
@@ -10223,6 +10259,72 @@
           }
         }
       });
+    }
+
+    // ── Buscador rápido de servicios ─────────────────────────────
+    // ≥2 chars: se muestra un contenedor dedicado con todos los hits
+    // (ignorando categoría). <2 chars: restaura la vista por categoría activa.
+    function _normSvc(s) {
+      return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function _wireSvcSearch() {
+      const inp = document.getElementById('svcSearchInput');
+      if (!inp || inp.dataset.wired === '1') return;
+      inp.dataset.wired = '1';
+      inp.addEventListener('input', () => {
+        const q = _normSvc(inp.value.trim());
+        const grid = document.getElementById('servicesGrid');
+        let box = document.getElementById('servicesSearchResults');
+        if (q.length < 2) {
+          if (box) box.remove();
+          if (grid) grid.style.display = '';
+          // Restaurar filtro por categoría activa
+          filterServicesByCategory(window._activeCategory || 'Todos');
+          return;
+        }
+        // Modo búsqueda: ocultar grid normal, renderizar resultados en lista compacta
+        if (grid) grid.style.display = 'none';
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'servicesSearchResults';
+          box.className = 'flex flex-col gap-2';
+          grid.parentNode.insertBefore(box, grid.nextSibling);
+        }
+        const services = window._fsServices || [];
+        const hits = services.filter(s => _normSvc(s.nombre).includes(q));
+        if (!hits.length) {
+          box.innerHTML = `<p class="text-sm text-neutral-500 text-center py-8">No hay servicios que coincidan con "${inp.value.trim()}".</p>`;
+          return;
+        }
+        box.innerHTML = hits.map(s => _svcCompactRow(s)).join('');
+      });
+    }
+
+    // Render fila compacta reutilizable (buscador + categorías con >12 ítems).
+    // Miniatura + nombre/duración a la izquierda, precio ámbar + selector a la derecha.
+    function _svcCompactRow(s) {
+      const precio = _getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL');
+      const cat = s.categoria || 'Otro';
+      const thumb = s.imagen
+        ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
+        : `<i class="ph-fill ph-scissors text-base text-amber-500"></i>`;
+      return `
+        <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+          class="service-option svc-compact-row flex items-center justify-between p-3 rounded-xl bg-[#120e0c]/80 border border-neutral-800/80 gap-3 text-left active:scale-[0.99] transition-all w-full">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="icon-bg w-10 h-10 rounded-full bg-[#0a0806] border border-neutral-800 flex items-center justify-center shrink-0 overflow-hidden">
+              ${thumb}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-neutral-100 leading-tight truncate">${s.nombre}</p>
+              <p class="text-xs text-neutral-400 mt-0.5 flex items-center gap-1"><i class="ph ph-clock text-[11px]"></i>${formatDuration(s.duracion)}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="price-tag font-bold text-amber-500 text-sm">$${precio}</span>
+            <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(245,158,11,0.45)"></div>
+          </div>
+        </button>`;
     }
 
     // Refuerzo de marca Viking (SOLO sedes masculinas Kronnos): pestaña VIP en las
@@ -10940,6 +11042,7 @@
       ]);
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
+      _wireSvcSearch();    // buscador en tiempo real (idempotente si ya hay listener)
       _injectVikingUI();   // pestaña VIP + banner in-feed (solo sedes masculinas Kronnos)
       _renderBarberos(_fsBarberos);
       // Renderizar packs activos del user logueado (si aplica). No bloqueante.
