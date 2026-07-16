@@ -5176,34 +5176,49 @@
       aspect-ratio: 1536 / 1024 !important;
       min-height: 0 !important;
       height: auto !important;
+      position: relative !important;
+    }
+    /* Grano de película sutil → textura editorial premium (sobre la foto, BAJO el
+       texto: z-index 2 < contenido z-10). No afecta legibilidad. */
+    .tenant-sionbarberia .booking-hero::after {
+      content: "" !important;
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 2 !important;
+      pointer-events: none !important;
+      opacity: 0.05 !important;
+      mix-blend-mode: overlay !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E") !important;
     }
     /* Scrim radial central (legibilidad del logo/frase) + degradado inferior
        reforzado (bg-gradient-to-t from-[#0a0806] via-[#0a0806]/85 to-transparent)
        para garantizar contraste del eslogan sobre piso/sillas del banner. */
     .tenant-sionbarberia .booking-hero-overlay {
       background:
-        radial-gradient(ellipse 58% 44% at 50% 47%, rgba(0,0,0,0.44) 0%, rgba(0,0,0,0.14) 55%, rgba(0,0,0,0) 76%),
+        radial-gradient(ellipse 62% 48% at 50% 50%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 56%, rgba(0,0,0,0) 78%),
         linear-gradient(to top,
           #0a0806 0%,
-          rgba(10,8,6,0.85) 22%,
-          rgba(10,8,6,0.55) 40%,
-          rgba(10,8,6,0.15) 56%,
-          rgba(10,8,6,0) 70%) !important;
+          rgba(10,8,6,0.90) 20%,
+          rgba(10,8,6,0.60) 40%,
+          rgba(10,8,6,0.18) 58%,
+          rgba(10,8,6,0) 72%) !important;
     }
     /* Mostramos el logo circular + frase sobre el banner; ocultamos nombre y divisor. */
     .tenant-sionbarberia .gold-divider,
     .tenant-sionbarberia #shopNombre { display: none !important; }
 
-    /* ── Logo: acento neón esmeralda (conecta con la iluminación interior) + flotante ── */
+    /* ── Logo: aro hairline blanco + glow plata (B&N premium consistente; el verde
+         lo carga la FOTO de la fachada, no el chrome de la UI) + flotante ── */
     .tenant-sionbarberia #heroLogoArea { margin-bottom: 18px !important; }
     .tenant-sionbarberia .hero-logo-ring {
-      width: 82px !important; height: 82px !important;
+      width: 84px !important; height: 84px !important;
       background: #0a0a0a !important;
-      border: 1px solid rgba(16,185,129,0.40) !important;
+      border: 1px solid rgba(255,255,255,0.22) !important;
       box-shadow:
-        0 0 0 4px rgba(0,0,0,0.42),
-        0 0 25px rgba(16,185,129,0.25),
-        0 12px 30px rgba(0,0,0,0.65) !important;
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 0 0 5px rgba(0,0,0,0.45),
+        0 0 26px rgba(255,255,255,0.16),
+        0 14px 34px rgba(0,0,0,0.70) !important;
       animation: dieciseis-float 3.8s ease-in-out infinite !important;
     }
     @keyframes dieciseis-float {
@@ -5225,45 +5240,57 @@
     }
     .tenant-sionbarberia #shopSlogan { color: #ffffff !important; }
 
-    /* ── Info-strip compacta (dieciseis): ULTRA-COMPACTA, una sola fila
-         · Izquierda → estado (🔴 Cerrado · Abre 09:00) con font-medium
-         · Derecha  → Ubicación + Quiénes somos (pills discretos)
-         Absorbe también la fila de "Quiénes somos" (qs-btn) que se re-ubica
-         dentro del strip vía JS (bloque tenant sionbarberia). */
+    /* ── Info-strip (dieciseis): WRAP responsivo para NO colisionar en móvil.
+         · Estado (🔴 Cerrado · Abre 09:00) = píldora compacta con hairline
+         · Ubicación + Quiénes somos = pills discretos con separador hairline
+         Cuando el texto del estado es largo, los botones saltan LIMPIO a la 2da
+         línea (order + flex-wrap + justify-center), sin overlap.
+         "Quiénes somos" (qs-btn) se re-ubica dentro del strip vía JS. */
     html.tenant-sionbarberia .info-strip,
     html.tenant-sionbarberia .info-strip[style] {
-      background: rgba(18,14,12,0.95) !important;
-      border-top: 1px solid rgba(64,64,64,0.5) !important;
-      border-bottom: 1px solid rgba(64,64,64,0.5) !important;
-      padding: 10px 16px !important;
+      background: rgba(12,10,9,0.96) !important;
+      border-top: 1px solid rgba(255,255,255,0.07) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+      padding: 11px 14px !important;
       display: flex !important;
+      flex-wrap: wrap !important;
       align-items: center !important;
-      justify-content: space-between !important;
-      gap: 8px !important;
+      justify-content: center !important;
+      row-gap: 9px !important;
+      column-gap: 10px !important;
       font-size: 12px !important;
       color: #d4d4d4 !important;
       width: 100% !important;
     }
-    /* Estado (Cerrado/Abierto) — bloque izquierdo, sin borde ni flex-1 */
+    /* Estado → píldora compacta centrada; primera en el orden, así cuando es
+       larga empuja a Ubicación/Quiénes somos a la segunda línea (sin colisión). */
     html.tenant-sionbarberia .info-strip #heroInfoHorBtn {
       order: 1 !important;
       flex: 0 1 auto !important;
-      justify-content: flex-start !important;
-      padding: 0 !important;
-      border: 0 !important;
-      background: transparent !important;
-      color: #d4d4d4 !important;
-      font-size: 12px !important;
-      font-weight: 500 !important;
+      justify-content: center !important;
+      padding: 4px 12px !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      border-radius: 999px !important;
+      background: rgba(255,255,255,0.045) !important;
+      color: #ededed !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.015em !important;
       gap: 6px !important;
       min-width: 0 !important;
+      max-width: 100% !important;
+      white-space: nowrap !important;
     }
-    html.tenant-sionbarberia .info-strip #heroInfoHorBtn > span { min-width: 0 !important; }
-    /* Ubicación (right-side pill) */
+    html.tenant-sionbarberia .info-strip #heroInfoHorBtn > span {
+      min-width: 0 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    /* Ubicación (salta a la 2da línea cuando el estado es largo) */
     html.tenant-sionbarberia .info-strip #heroInfoAddr {
       order: 2 !important;
       flex: 0 0 auto !important;
-      padding: 4px 8px !important;
+      padding: 4px 10px !important;
       border: 0 !important;
       border-radius: 999px !important;
       color: #a3a3a3 !important;
@@ -5274,19 +5301,21 @@
       text-decoration: none !important;
     }
     html.tenant-sionbarberia .info-strip #heroInfoAddr:hover { color: #ffffff !important; }
-    /* Quiénes somos: pill discreto dentro del strip (movido vía JS) */
+    /* Quiénes somos: pill discreto con separador hairline (movido vía JS) */
     html.tenant-sionbarberia .info-strip #quienesSomosBtn.qs-btn {
       order: 3 !important;
       display: inline-flex !important;
+      align-items: center !important;
       width: auto !important;
       flex: 0 0 auto !important;
-      padding: 4px 8px !important;
+      padding: 4px 6px 4px 12px !important;
       font-size: 12px !important;
       font-weight: 500 !important;
       color: #a3a3a3 !important;
       background: transparent !important;
       border: 0 !important;
-      border-radius: 999px !important;
+      border-left: 1px solid rgba(255,255,255,0.12) !important;
+      border-radius: 0 !important;
       gap: 5px !important;
       transition: color 0.15s ease !important;
     }
@@ -5295,8 +5324,8 @@
       color: currentColor !important;
       font-size: 12px !important;
     }
-    /* Íconos por defecto del strip: gris neutro */
-    .tenant-sionbarberia .info-strip i.ph-fill { color: rgba(255,255,255,0.65) !important; }
+    /* Íconos por defecto del strip: plata neutro */
+    .tenant-sionbarberia .info-strip i.ph-fill { color: rgba(255,255,255,0.70) !important; }
 
     /* ── Barra de progreso ("PASO X DE 4") ── */
     .tenant-sionbarberia #progressTrack { background-color: #1c1c1e !important; }
