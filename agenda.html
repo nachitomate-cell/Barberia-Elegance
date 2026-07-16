@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda | Barbershop</title>
-    <meta name="description" content="Gestión de agenda interna">
+    <title>Agenda Personal · Reserva Directa con tu Profesional</title>
+    <meta name="description" content="Agenda personal del profesional · gestión de reservas y horarios.">
     <meta name="theme-color" content="#050505">
     <meta name="author" content="SynapTech SpA">
 
@@ -1025,7 +1025,26 @@
                 <p style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.3em;margin:0;">Agenda Barbero</p>
                 <h1 id="loginShopName" style="font-size:1.55rem;line-height:1.1;font-weight:900;color:#fff;margin:0.45rem 0 0;">Barbershop</h1>
                 <p id="loginSlogan" style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin:0.35rem 0 0;"></p>
+                <!-- Badge: diferencia esta vista como la agenda DIRECTA del profesional -->
+                <div id="agendaDirectaBadge" style="display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.9rem;padding:0.3rem 0.8rem;border-radius:9999px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-size:10.5px;font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-weight:700;letter-spacing:0.08em;">
+                    <span class="animate-pulse" style="width:6px;height:6px;border-radius:9999px;background:#f59e0b;"></span>
+                    <span id="agendaDirectaBadgeText">AGENDA DIRECTA DEL PROFESIONAL</span>
+                </div>
             </div>
+            <!-- Mejora dinámica: si el link trae ?barbero= o ?staff=, personaliza el badge -->
+            <script>
+              (function () {
+                try {
+                  var p = new URLSearchParams(location.search);
+                  var raw = p.get('barbero') || p.get('staff') || '';
+                  if (!raw) return;
+                  var nombre = decodeURIComponent(raw).replace(/[-_]+/g, ' ').trim()
+                    .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+                  var el = document.getElementById('agendaDirectaBadgeText');
+                  if (el && nombre) el.textContent = 'AGENDA DE ' + nombre.toUpperCase();
+                } catch (_) {}
+              })();
+            </script>
 
             <!-- Tarjeta -->
             <div style="border-radius:1.5rem;padding:1.6rem 1.5rem;background:rgba(14,14,18,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 24px 60px rgba(0,0,0,0.55);">

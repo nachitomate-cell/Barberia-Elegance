@@ -1357,6 +1357,9 @@ function buildJsonLd(meta, hostname) {
 function getPageType(pathname) {
   if (pathname.startsWith('/dashboard')) return 'dashboard';
   if (pathname.startsWith('/registro'))  return 'registro';
+  // Agenda PRIVADA del profesional (con login): título/OG propios, no el home
+  // de reservas del local. Cubre /agenda y /agenda.html (rewrite de vercel.json).
+  if (pathname === '/agenda' || pathname === '/agenda.html') return 'agenda';
   return 'booking';
 }
 
@@ -2037,6 +2040,19 @@ export default async function middleware(request) {
   const pageType = getPageType(url.pathname);
   let pageMeta = meta[pageType];
 
+  // ── Agenda PERSONAL del profesional (/agenda.html) ───────────────────────────
+  //  Vista privada con login del barbero. meta['agenda'] no existe en el config
+  //  por-tenant, así que componemos su título/OG acá — para que al compartirse o
+  //  al verse en la pestaña/PWA diga "Agenda Personal" y no "Agendar Hora | Local".
+  if (pageType === 'agenda') {
+    pageMeta = {
+      title:       `Agenda Personal · ${meta.siteName}`,
+      ogTitle:     '✂️ Agenda Directa del Profesional',
+      ogDesc:      'Canal de agendamiento directo del profesional. Vista privada para gestionar reservas y horarios.',
+      description: `Agenda personal del profesional en ${meta.siteName}.`,
+    };
+  }
+
   // ── Consulta Dinámica para Rutas de Barberos (Fetch a Firestore) ─────────────
   if (isDynamicRoute) {
     const slug = url.pathname.substring(1).toLowerCase();
@@ -2068,9 +2084,9 @@ export default async function middleware(request) {
           const fotoBarbero = match.fields?.foto?.stringValue;
 
           if (nombreBarbero) {
-            pageMeta.title = `Agenda con ${nombreBarbero} - ${meta.siteName}`;
-            pageMeta.ogTitle = `Agenda con ${nombreBarbero} - ${meta.siteName}`;
-            pageMeta.ogDesc = `Reserva tu hora con ${nombreBarbero} en ${meta.siteName}.`;
+            pageMeta.title = `Agenda directa de ${nombreBarbero} · Reserva tu hora`;
+            pageMeta.ogTitle = `✂️ Agenda directa de ${nombreBarbero} · Reserva tu hora`;
+            pageMeta.ogDesc = `Canal de agendamiento directo con ${nombreBarbero}. Elige tu servicio y asegura tu cita sin esperas.`;
           }
           if (fotoBarbero) {
             meta.ogImage = fotoBarbero.startsWith('http') ? fotoBarbero : (fotoBarbero.startsWith('/') ? fotoBarbero : `/${fotoBarbero}`);
