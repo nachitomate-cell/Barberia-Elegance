@@ -41,9 +41,14 @@ export default function BookingFlow() {
 
   const barberos = useMemo(
     () => (rawBarberos ?? []).filter(
-      b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin',
+      // Excluimos admins PUROS, pero incluimos al admin-barbero (admin que
+      // atiende): esBarbero/mostrarEnAgenda === true, o la convención delnero.
+      // Mismo criterio que la agenda (Agenda.jsx) para no dejarlo fuera de la
+      // reserva cuando el dueño también corta.
+      b => !b._mainDocId && b.disponible !== false &&
+        (b.rol !== 'admin' || id === 'delnero' || b.esBarbero === true || b.mostrarEnAgenda === true),
     ),
-    [rawBarberos],
+    [rawBarberos, id],
   );
   const servicios = useMemo(() => rawServicios ?? [], [rawServicios]);
   const loading = loadingBarberos || loadingServicios;

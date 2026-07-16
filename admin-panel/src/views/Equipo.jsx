@@ -1394,7 +1394,7 @@ export default function Equipo() {
                 {orderedBarberos.map(b => (
                   <SortableBarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
                     sucursales={sucursales} onVerAgenda={() => navigate('/agenda')}
-                    allowAdminEdit={tenant.id === 'delnero'}
+                    allowAdminEdit={tenant.id === 'delnero' || b.esBarbero === true || b.mostrarEnAgenda === true}
                     tenant={tenant} canManageBioo={isAdmin}
                     linkedMainDocIds={linkedMainDocIds} />
                 ))}
