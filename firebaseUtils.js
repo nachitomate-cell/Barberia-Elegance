@@ -598,6 +598,11 @@ const FDB = (() => {
       // cita normal se referencia el lock que crearemos en la transacción.
       slotLockId:       esSobrecupo ? null : (cita.barberoId ? lockId : null),
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
+      // Opt-in transaccional de WhatsApp: el cliente entregó su teléfono al
+      // reservar SU propia cita (confirmación utility, no marketing). El envío
+      // real está gated por LOCAL (wa_notif/{tid}.planCliente) + opt-out con STOP,
+      // así que solo se materializa donde el dueño activó el plan de confirmaciones.
+      waOptIn:          true,
     };
     // Desglose del cupo VIP: se persiste tal cual lo mandó el cliente
     // (validado en el front porque el motor de disponibilidad lo emitió).
