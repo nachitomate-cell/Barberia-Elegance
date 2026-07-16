@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Evolution API (WhatsApp por sesión / dispositivos vinculados) — infra del
+#  add-on "Asistente IA 24/7 + Confirmaciones" de SynapTech. Corre en un VPS
+#  propio (Hetzner / DigitalOcean), aislado del stack Firebase/Vercel.
+#
+#  Levanta 4 servicios:
+#    · evolution-api  — el gateway de WhatsApp (crea instancias, QR, envía/recibe)
+#    · postgres       — persistencia de instancias/sesiones
+#    · redis          — caché de sesión (reconexión rápida)
+#    · caddy          — reverse proxy con HTTPS automático (Let's Encrypt)
+#
+#  ⚠️ Verifica el tag estable más reciente de la imagen en:
+#     https://github.com/EvolutionAPI/evolution-api  (Docker: atendai/evolution-api)
+#  Pinéalo (NO uses `latest` en prod).
+# ─────────────────────────────────────────────────────────────────────────────
+version: "3.9"
+
+services:
+  evolution-api:
+    image: atendai/evolution-api:v2.2.3   # ← verifica/pinea el tag v2 estable vigente
+    container_name: evolution_api
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    expose:
+      - "8080"
+    environment:
+      # URL pública (la que verá el webhook y donde se sirve el QR)
+      SERVER_URL: https://${EVOLUTION_DOMAIN}
+      # Clave maestra de la API (→ se guarda como secret EVOLUTION_API_KEY en Firebase)
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      # Persistencia
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      # Caché
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+      # Webhook: NO global; cada instancia (instance_{tenantId}) apuntará a nuestra
+      # Cloud Function `evolutionWebhook` con su propio token (se setea por API al crear).
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      # Presencia "escribiendo…" y anti-ban básico
+      QRCODE_LIMIT: "20"
+      CONFIG_SESSION_PHONE_CLIENT: SynapTech Agenda
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      DEL_INSTANCE: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolution_pg
+    restart: always
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: evolution_caddy
+    restart: always
+    depends_on:
+      - evolution-api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      EVOLUTION_DOMAIN: ${EVOLUTION_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  evolution_instances:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { BellRing, Bot } from 'lucide-react';
+import { BellRing, Bot, Sparkles } from 'lucide-react';
 import WhatsAppNotif from './WhatsAppNotif';
 import WhatsAppBot from './WhatsAppBot';
+import WhatsAppAsistente from './WhatsAppAsistente';
 
 // Vista unificada "WhatsApp" — agrupa los dos módulos del canal:
 //   · Avisos de reservas  (WhatsAppNotif: gratis al dueño + pagado al cliente)
@@ -32,6 +33,13 @@ const TABS = [
     Icon: Bot,
     badge: 'Pro',
     badgeCls: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+  },
+  {
+    key: 'asistente',
+    label: 'Asistente IA',
+    Icon: Sparkles,
+    badge: 'Premium',
+    badgeCls: 'bg-purple-500/15 text-purple-300 border-purple-500/25',
   },
 ];
 
@@ -80,7 +88,9 @@ export default function WhatsApp() {
       </div>
 
       {/* ── Contenido ── */}
-      {tab === 'avisos' ? <WhatsAppNotif embedded /> : <WhatsAppBot embedded />}
+      {tab === 'avisos'    && <WhatsAppNotif embedded />}
+      {tab === 'bot'       && <WhatsAppBot embedded />}
+      {tab === 'asistente' && <WhatsAppAsistente embedded />}
     </div>
   );
 }

@@ -1265,6 +1265,17 @@ exports.notificarCitaWhatsAppTenant  = whatsappNotif.notificarCitaWhatsAppTenant
 exports.waNotifEstado                = whatsappNotif.waNotifEstado;
 
 // ─────────────────────────────────────────────────────────────────
+//  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del
+//  local, por sesión/QR). Gateway multi-tenant del add-on premium.
+//  Aislado del número oficial de Meta (arriba). Ver functions/evolution/.
+// ─────────────────────────────────────────────────────────────────
+const evolutionGateway = require('./evolution/gateway');
+exports.evolutionVincular    = evolutionGateway.evolutionVincular;
+exports.evolutionEstado      = evolutionGateway.evolutionEstado;
+exports.evolutionDesvincular = evolutionGateway.evolutionDesvincular;
+exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
+
+// ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users
 //  del cliente autenticado y anonimiza sus citas (retención SII 6a).
