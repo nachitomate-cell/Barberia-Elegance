@@ -14,7 +14,7 @@ const db = admin.firestore();
 const OPS_TOKEN = defineSecret('OPS_TOKEN');
 
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
-const CONEXION_URL = 'https://fideliza.synaptechspa.cl/api/metrics/summary';
+const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 
 function ultimosDias(n) {
   const out = [];
