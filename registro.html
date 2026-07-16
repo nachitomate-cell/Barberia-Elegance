@@ -2060,21 +2060,43 @@
 
   // Post-login común (popup y redirect): asegura el doc y pide teléfono si falta.
   async function handleGoogleUser(user) {
-    await ensureUserDoc(user);
-    const snap = await FDB.usersCol().doc(user.uid).get();
-    const telefono = snap.exists ? (snap.data().telefono || '').replace(/\D/g, '') : '';
-    if (!telefono) {
-      hideLoading();
-      // Ocultar tabs, paneles y sección social; mostrar solo el panel de teléfono
-      document.querySelector('.flex.mb-7').classList.add('hidden');
-      document.getElementById('panelLogin').classList.add('hidden');
-      document.getElementById('panelRegister').classList.add('hidden');
-      document.querySelector('.social-section').classList.add('hidden');
-      document.getElementById('panelPhoneRequired').classList.remove('hidden');
-      initPhonePrefix('googleTelefono');
-      return;
+    // Fail-safe PWA/WebView: una escritura o lectura lenta de Firestore no debe
+    // dejar el spinner colgado tras volver del OAuth. Si algo tarda > 6s,
+    // entramos igual — la sesión de Auth ya quedó resuelta al volver el token.
+    let _gDone = false;
+    const _gSafety = setTimeout(() => {
+      if (_gDone) return;
+      _gDone = true;
+      console.warn('[Auth] Fail-safe Google: redirigiendo por timeout.');
+      goToDashboard();
+    }, 6000);
+    try {
+      try { await ensureUserDoc(user); }
+      catch (e) { console.warn('[registro] googleUser doc:', e && (e.code || e.message)); }
+      const snap = await FDB.usersCol().doc(user.uid).get();
+      if (_gDone) return; // el fail-safe ya actuó
+      clearTimeout(_gSafety);
+      _gDone = true;
+      const telefono = snap.exists ? (snap.data().telefono || '').replace(/\D/g, '') : '';
+      if (!telefono) {
+        hideLoading();
+        // Ocultar tabs, paneles y sección social; mostrar solo el panel de teléfono
+        document.querySelector('.flex.mb-7').classList.add('hidden');
+        document.getElementById('panelLogin').classList.add('hidden');
+        document.getElementById('panelRegister').classList.add('hidden');
+        document.querySelector('.social-section').classList.add('hidden');
+        document.getElementById('panelPhoneRequired').classList.remove('hidden');
+        initPhonePrefix('googleTelefono');
+        return;
+      }
+      goToDashboard();
+    } catch (e) {
+      if (_gDone) return;
+      _gDone = true;
+      clearTimeout(_gSafety);
+      console.warn('[registro] handleGoogleUser:', e && (e.code || e.message));
+      goToDashboard(); // la cuenta existe; entrar igual
     }
-    goToDashboard();
   }
 
   async function loginWithGoogle() {
@@ -2341,9 +2363,54 @@
 
     showLoading('Creando cuenta...');
     _registering = true;
+
+    // ── Blindaje anti-cuelgue ───────────────────────────────────────────────
+    // La cuenta se crea en Auth ANTES de escribir en Firestore. Sin persistencia
+    // offline, esas escrituras esperan al servidor y en redes móviles lentas
+    // pueden colgarse — dejando el spinner infinito aunque la cuenta ya exista.
+    // Blindajes:
+    //   · redirectOnce(): una sola redirección (sin carreras con el observador).
+    //   · safetyTimeout (6s): fail-safe → redirige igual si algo se cuelga.
+    //   · las escrituras post-Auth van en try/catch y NUNCA frenan la entrada.
+    let _redirected = false;
+    const redirectOnce = () => {
+      if (_redirected) return;
+      _redirected = true;
+      clearTimeout(safetyTimeout);
+      _registering = false;
+      goToDashboard();
+    };
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[Auth] Fail-safe activado: redirigiendo por timeout (escritura lenta).');
+      redirectOnce();
+    }, 6000);
+
+    // 1) Crear la cuenta — lo ÚNICO cuyo error debe frenar el flujo.
+    let cred;
     try {
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
-      await cred.user.updateProfile({ displayName: nombre });
+      cred = await auth.createUserWithEmailAndPassword(email, password);
+    } catch (err) {
+      clearTimeout(safetyTimeout);
+      _registering = false;
+      hideLoading();
+      if (isPasswordless() && err.code === 'auth/email-already-in-use') {
+        _auraForceCustomPassword = true;
+        document.body.classList.add('show-password-fallback');
+        switchTab('login');
+        document.getElementById('loginEmail').value = email;
+        showAlert('Esta cuenta ya existe. Por favor, ingresa tu contraseña para acceder (se migrará automáticamente).', false);
+        return;
+      }
+      showAlert(friendlyError(err.code));
+      return;
+    }
+
+    // 2) A partir de aquí la cuenta YA EXISTE: pase lo que pase con las
+    //    escrituras, terminamos entrando (jamás spinner colgado).
+    try {
+      // displayName no es crítico para redirigir → fire-and-forget.
+      cred.user.updateProfile({ displayName: nombre }).catch(() => {});
+
       await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento, acepto });
 
       // Crear/actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
@@ -2371,28 +2438,15 @@
           clienteData.fechaNacimiento = fechaNacimiento;
           clienteData.cumpleDia       = `${parts[1]}-${parts[2]}`;
         }
-        try {
-          await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
-        } catch (e) {
-          console.warn('[registro] clientes write skipped:', e.code);
-        }
+        await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
       }
-
-      goToDashboard();
-    } catch (err) {
-      hideLoading();
-      if (isPasswordless() && err.code === 'auth/email-already-in-use') {
-        _auraForceCustomPassword = true;
-        document.body.classList.add('show-password-fallback');
-        switchTab('login');
-        document.getElementById('loginEmail').value = email;
-        showAlert('Esta cuenta ya existe. Por favor, ingresa tu contraseña para acceder (se migrará automáticamente).', false);
-        return;
-      }
-      showAlert(friendlyError(err.code));
-    } finally {
-      _registering = false;
+    } catch (e) {
+      // La cuenta existe; una escritura fallida NO debe frenar la entrada.
+      console.warn('[registro] escritura post-registro falló:', e && (e.code || e.message));
     }
+
+    // 3) Entrar (si el fail-safe no lo hizo ya).
+    redirectOnce();
   }
 
   // ── Recuperar contraseña ──────────────────────────────────────
