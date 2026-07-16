@@ -9,15 +9,13 @@
 #    · redis          — caché de sesión (reconexión rápida)
 #    · caddy          — reverse proxy con HTTPS automático (Let's Encrypt)
 #
-#  ⚠️ Verifica el tag estable más reciente de la imagen en:
-#     https://github.com/EvolutionAPI/evolution-api  (Docker: atendai/evolution-api)
-#  Pinéalo (NO uses `latest` en prod).
+#  Imagen oficial vigente (Docker Hub, pública, sin login):
+#     https://hub.docker.com/r/evoapicloud/evolution-api
+#  Para prod pinea un tag estable (ej. v2.3.7) en vez de `latest`.
 # ─────────────────────────────────────────────────────────────────────────────
-version: "3.9"
-
 services:
   evolution-api:
-    image: atendai/evolution-api:v2.2.3   # ← verifica/pinea el tag v2 estable vigente
+    image: evoapicloud/evolution-api:latest   # oficial vigente; pinea v2.3.7 para prod
     container_name: evolution_api
     restart: always
     depends_on:
