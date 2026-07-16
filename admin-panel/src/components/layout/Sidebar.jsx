@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -182,6 +182,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'whatsapp',      label: 'WhatsApp',      Icon: WhatsAppIcon,     adminOnly: true, variant: 'whatsapp' },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,   adminOnly: true, variant: 'tv'       },
       { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon, adminOnly: true, variant: 'pagos'    },
+      // `integraciones` (mockup CAPI + GHL) se inyecta solo en delnero — ver NAV_GROUPS builder.
     ],
   },
   {
@@ -689,6 +690,22 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           items: [
             ...group.items,
             { to: 'publicidad', label: 'Publicidad', Icon: Award, adminOnly: true },
+          ],
+        };
+      });
+    }
+
+    // Integraciones (mockup Conversión & CRM: Meta CAPI + GoHighLevel) — SOLO
+    // en el sandbox `delnero`, para demos a socios de marketing sin que el
+    // borrador aparezca en el panel de los clientes reales.
+    if (tenant.id === 'delnero') {
+      base = base.map(group => {
+        if (group.id !== 'conexiones') return group;
+        return {
+          ...group,
+          items: [
+            ...group.items,
+            { to: 'integraciones', label: 'Integraciones', Icon: Plug, adminOnly: true },
           ],
         };
       });

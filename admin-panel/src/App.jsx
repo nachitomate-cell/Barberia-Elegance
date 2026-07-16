@@ -58,6 +58,7 @@ import WhatsApp         from './views/WhatsApp';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import RecibirPagos     from './views/RecibirPagos';
+import Integraciones    from './views/Integraciones';
 import Wallets          from './views/Wallets';
 import Facturacion      from './views/Facturacion';
 import Referidos        from './views/Referidos';
@@ -126,6 +127,7 @@ function ProtectedApp() {
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="recibir-pagos"   element={<RecibirPagos />} />
+            <Route path="integraciones"   element={<Integraciones />} />
             <Route path="wallets"         element={<Wallets />} />
             <Route path="facturacion"     element={<Facturacion />} />
             <Route path="referidos"       element={<Referidos />} />
