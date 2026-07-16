@@ -191,5 +191,89 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
   }
 });
 
-// Para tests locales (scripts con Admin SDK): no es parte del API público.
-exports._horasParaFecha = horasParaFecha;
+/**
+ * Busca el primer día (dentro de MAX_DIAS_BUSQUEDA desde `desdeFecha`) con cupos.
+ * Misma semántica que el callable, extraída para reuso por el bot de WhatsApp.
+ * @returns {{ fecha:string|null, esHoy:boolean, slots:string[] }}
+ */
+async function buscarDisponibilidad(tenantId, desdeFecha) {
+  const ahora = ahoraChile();
+  const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
+  for (let i = 0; i < MAX_DIAS_BUSQUEDA; i++) {
+    const fecha = sumarDias(desde, i);
+    const esHoy = fecha === ahora.fecha;
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0);
+    if (slots.length) return { fecha, esHoy, slots };
+  }
+  return { fecha: null, esHoy: false, slots: [] };
+}
+
+/**
+ * Elige un profesional ELEGIBLE que esté LIBRE en [hora, hora+dur) de `fechaStr`.
+ * Reusa la misma regla de elegibilidad y de ocupación que `horasParaFecha`.
+ * (El bot lo usa para asignar barbero al agendar; devuelve null si no hay ninguno.)
+ * @returns {Promise<{ id:string, nombre:string }|null>}
+ */
+async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
+  const c = cols(tenantId);
+  const startMin = toMins(hora);
+  const endMin   = startMin + (Number(dur) || 30);
+
+  const barbSnap = await c.barberos.get();
+  const barberos = [];
+  barbSnap.forEach(d => {
+    const b = d.data();
+    if (b._mainDocId) return;
+    if (b.disponible === false || b.activo === false) return;
+    if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return;
+    barberos.push({ id: d.id, nombre: b.nombre || '' });
+  });
+  if (!barberos.length) return null;
+
+  const [citasSnap, locksSnap, bloqueosSnap] = await Promise.all([
+    c.citas.where('fecha', '==', fechaStr).get(),
+    c.locks.where('fecha', '==', fechaStr).get(),
+    c.bloqueos.where('fecha', '==', fechaStr).get(),
+  ]);
+
+  const busy = new Map();
+  const addBusy = (bid, ini, fin) => {
+    const key = bid || '*';
+    if (!busy.has(key)) busy.set(key, []);
+    busy.get(key).push([ini, fin]);
+  };
+  citasSnap.forEach(d => {
+    const x = d.data();
+    if (x.estado === 'Cancelada' || x.estado === 'NoAsistio') return;
+    if (typeof x.hora !== 'string' || !x.hora.includes(':')) return;
+    const ini = toMins(x.hora);
+    addBusy(x.barberoId, ini, ini + (Number(x.duracion || x.duracionServicio) || 30));
+  });
+  locksSnap.forEach(d => {
+    const x = d.data();
+    if (typeof x.hora !== 'string' || !x.hora.includes(':')) return;
+    const ini = toMins(x.hora);
+    addBusy(x.barberoId, ini, ini + (Number(x.duracion) || 30));
+  });
+  bloqueosSnap.forEach(d => {
+    const x = d.data();
+    if (x.todo_el_dia) { addBusy(x.barberoId, 0, 1440); return; }
+    if (typeof x.hora_inicio !== 'string' || typeof x.hora_fin !== 'string') return;
+    addBusy(x.barberoId, toMins(x.hora_inicio), toMins(x.hora_fin));
+  });
+
+  const global = busy.get('*') || [];
+  if (global.some(([a, b]) => solapan(startMin, endMin, a, b))) return null;
+  for (const barb of barberos) {
+    const propios = busy.get(barb.id) || [];
+    if (!propios.some(([a, b]) => solapan(startMin, endMin, a, b))) return barb;
+  }
+  return null;
+}
+
+// Para tests locales (scripts con Admin SDK) y reuso por el bot de WhatsApp
+// (functions/evolution/cerebro.js): no son parte del API público.
+exports._horasParaFecha        = horasParaFecha;
+exports._buscarDisponibilidad  = buscarDisponibilidad;
+exports._barberoLibreParaSlot  = barberoLibreParaSlot;
+exports._ahoraChile            = ahoraChile;

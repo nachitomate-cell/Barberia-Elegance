@@ -47,6 +47,7 @@ export default function WhatsAppAsistente() {
   const isConnected = estado === 'connected';
   const numero      = cfg?.numeroVinculado;
   const botOn       = cfg?.botEnabled === true;
+  const confirmOn   = cfg?.confirmacionesEnabled === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
 
   /* ── Escritura directa de switches (admin) ── */
@@ -177,24 +178,44 @@ export default function WhatsAppAsistente() {
             </button>
           </div>
 
-          {/* Ventana de confirmación */}
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Clock size={18} className="text-slate-300" />
-              <div>
-                <p className="text-sm font-semibold text-white">Confirmación de cita</p>
-                <p className="text-xs text-slate-400">Cuántas horas antes se le pide confirmar al cliente</p>
+          {/* Confirmaciones anti-no-show */}
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Clock size={18} className={confirmOn ? 'text-emerald-400' : 'text-slate-500'} />
+                <div>
+                  <p className="text-sm font-semibold text-white">Confirmación de cita</p>
+                  <p className="text-xs text-slate-400">
+                    {confirmOn
+                      ? 'Le pedimos al cliente confirmar por WhatsApp antes de su hora'
+                      : 'Apagado — no se piden confirmaciones (útil para no molestar)'}
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={confirmOn}
+                onClick={() => patchCfg({ confirmacionesEnabled: !confirmOn })}
+                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${confirmOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${confirmOn ? 'left-6' : 'left-1'}`} />
+              </button>
             </div>
-            <select
-              value={ventana}
-              onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
-              className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-            >
-              <option value={12}>12 horas antes</option>
-              <option value={24}>24 horas antes</option>
-              <option value={48}>48 horas antes</option>
-            </select>
+            {confirmOn && (
+              <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-700/40">
+                <p className="text-xs text-slate-400">¿Cuántas horas antes se le pide confirmar?</p>
+                <select
+                  value={ventana}
+                  onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
+                  className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value={12}>12 horas antes</option>
+                  <option value={24}>24 horas antes</option>
+                  <option value={48}>48 horas antes</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
       )}

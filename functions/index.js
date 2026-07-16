@@ -1275,6 +1275,11 @@ exports.evolutionEstado      = evolutionGateway.evolutionEstado;
 exports.evolutionDesvincular = evolutionGateway.evolutionDesvincular;
 exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
 
+// Cron de confirmaciones anti-no-show (Sprint 3): pide CONFIRMAR/CANCELAR por
+// el número propio del local. La respuesta la maneja el cerebro (webhook).
+const evolutionConfirmaciones = require('./evolution/confirmaciones');
+exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
+
 // ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users

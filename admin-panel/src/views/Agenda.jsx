@@ -325,6 +325,9 @@ function formatWeekLabel(d) {
 
 const STATUS_STYLE = {
   Confirmada: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
+  // Pendiente: cita del asistente WhatsApp aún sin confirmar por el cliente.
+  // Ámbar = "esperando confirmación"; pasa a Confirmada (verde) al responder CONFIRMAR.
+  Pendiente:  'bg-amber-500/15  border-amber-500/40    text-amber-300',
   Cancelada:  'bg-red-500/10   border-red-500/30     text-red-400',
   Completada: 'bg-blue-500/10  border-blue-500/30    text-blue-400',
   // No asistió: el cliente no llegó y no aviso. Rose para distinguirlo de

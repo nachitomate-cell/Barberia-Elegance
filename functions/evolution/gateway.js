@@ -25,12 +25,14 @@ const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
 const { FieldValue }                    = require('firebase-admin/firestore');
 const { crearCliente }                  = require('./client');
+const { procesarMensajeEntrante }       = require('./cerebro');
 
 const db = admin.firestore();
 
 const EVOLUTION_API_URL       = defineSecret('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY       = defineSecret('EVOLUTION_API_KEY');
 const EVOLUTION_WEBHOOK_TOKEN = defineSecret('EVOLUTION_WEBHOOK_TOKEN');
+const ANTHROPIC_API_KEY       = defineSecret('ANTHROPIC_API_KEY');
 
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 // URL pública de ESTA función (a la que apunta cada instancia del VPS).
@@ -72,16 +74,24 @@ exports.evolutionVincular = onCall({ region: 'us-central1', cors: true, secrets:
   }
   const instanceName = `instance_${tid}`;
   const c = cliente();
+  const opts = { webhookUrl: WEBHOOK_URL, webhookToken: EVOLUTION_WEBHOOK_TOKEN.value() };
 
   let r;
   try {
-    r = await c.crearInstancia(instanceName, {
-      webhookUrl: WEBHOOK_URL,
-      webhookToken: EVOLUTION_WEBHOOK_TOKEN.value(),
-    });
+    r = await c.crearInstancia(instanceName, opts);
   } catch (e) {
-    logger.error(`[evolution:vincular] tid=${tid}:`, e.message);
-    throw new HttpsError('internal', 'No se pudo iniciar la vinculación. Reintenta en unos segundos.');
+    // La instancia puede existir de un intento previo sin escanear (queda
+    // 'connecting') y el create falla por "nombre en uso". La destruimos y
+    // reintentamos UNA vez para entregar un QR fresco (auto-sanado).
+    logger.warn(`[evolution:vincular] tid=${tid} create falló (${e.message}); auto-sanando`);
+    try { await c.logout(instanceName); }           catch (_) {}
+    try { await c.eliminarInstancia(instanceName); } catch (_) {}
+    try {
+      r = await c.crearInstancia(instanceName, opts);
+    } catch (e2) {
+      logger.error(`[evolution:vincular] tid=${tid}:`, e2.message);
+      throw new HttpsError('internal', 'No se pudo iniciar la vinculación. Reintenta en unos segundos.');
+    }
   }
 
   await waCfgRef(tid).set({
@@ -148,7 +158,12 @@ exports.evolutionDesvincular = onCall({ region: 'us-central1', cors: true, secre
 
 /* ─────────────────── 4) Webhook — pararrayos del VPS ─────────────────── */
 
-exports.evolutionWebhook = onRequest({ region: 'us-central1', secrets: [EVOLUTION_WEBHOOK_TOKEN], cors: false }, async (req, res) => {
+exports.evolutionWebhook = onRequest({
+  region: 'us-central1',
+  secrets: [EVOLUTION_WEBHOOK_TOKEN, EVOLUTION_API_URL, EVOLUTION_API_KEY, ANTHROPIC_API_KEY],
+  cors: false,
+  timeoutSeconds: 60,
+}, async (req, res) => {
   // Validar que venga de NUESTRO VPS.
   if (req.get('x-webhook-token') !== EVOLUTION_WEBHOOK_TOKEN.value()) {
     res.status(403).send('forbidden');
@@ -178,10 +193,19 @@ exports.evolutionWebhook = onRequest({ region: 'us-central1', secrets: [EVOLUTIO
       }
     }
 
-    // ── messages.upsert → SPRINT 2 (cerebro AI) + SPRINT 4 (anti-colisión fromMe) ──
-    // Aquí solo dejamos el enganche listo; el ruteo real llega en el próximo sprint.
-    // const fromMe = body.data?.key?.fromMe === true;   // humano escribió desde su celular
-    // if (event === 'messages.upsert') { await rutearAlCerebro(tid, body, { fromMe }); }
+    // ── messages.upsert → CEREBRO (Sprint 2): responde y agenda solo ──
+    //  Se procesa INLINE (antes del 200) a propósito: el claim de dedup por
+    //  messageId se escribe temprano, así que un reintento de Evolution por un
+    //  200 lento no re-procesa ni re-agenda. El cerebro filtra fromMe/grupos y
+    //  gatea por botEnabled+connected. (Anti-colisión con silencio 2h → Sprint 4.)
+    if (event === 'messages.upsert') {
+      await procesarMensajeEntrante({
+        tid,
+        body,
+        evoClient:    cliente(),
+        anthropicKey: ANTHROPIC_API_KEY.value(),
+      }).catch((e) => logger.error(`[evolution:webhook] cerebro tid=${tid}:`, e.message));
+    }
 
     logger.info(`[evolution:webhook] tid=${tid} event=${event}`);
   } catch (e) {
