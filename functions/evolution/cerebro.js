@@ -37,7 +37,7 @@ const {
 
 const db = admin.firestore();
 
-const MODEL       = 'claude-sonnet-4-6'; // buen tool-use + latencia OK (tuneable a Haiku)
+const MODEL       = 'claude-haiku-4-5-20251001'; // el más barato + rápido, ideal para agendar (subir a 'claude-sonnet-5' si falta calidad)
 const MAX_TOKENS  = 900;                 // respuestas de WhatsApp: cortas
 const MAX_ROUNDS  = 5;                   // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 20;                 // turnos de texto que recordamos (10 pares)

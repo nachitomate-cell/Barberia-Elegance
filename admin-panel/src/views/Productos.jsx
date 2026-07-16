@@ -720,13 +720,50 @@ export default function Productos() {
 
   const [uploadError, setUploadError] = useState('');
 
+  // Comprime/redimensiona imágenes grandes antes de subir. Las fotos de celular
+  // suelen pesar >5MB y el límite de Storage es 5MB → sin esto la subida daba
+  // 'storage/unauthorized'. Devuelve un File JPEG liviano; si falla, el original.
+  const comprimirImagen = async (file, maxDim = 1400, quality = 0.82) => {
+    if (!file.type?.startsWith('image/')) return file;
+    try {
+      const dataUrl = await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.onerror = rej;
+        fr.readAsDataURL(file);
+      });
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = rej;
+        i.src = dataUrl;
+      });
+      let { width, height } = img;
+      if (Math.max(width, height) > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+      if (!blob || blob.size >= file.size) return file; // ya era chico/mejor el original
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch {
+      return file;
+    }
+  };
+
   const handleFileChange = async e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const original = e.target.files?.[0];
+    if (!original) return;
     setUploadError('');
-    setPreview(URL.createObjectURL(file));
+    setPreview(URL.createObjectURL(original));
     setUploading(true);
     try {
+      const file     = await comprimirImagen(original);
       const tid      = resolveTenantId();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const prefix   = tid === 'elegance' ? '' : `tenants/${tid}/`;
