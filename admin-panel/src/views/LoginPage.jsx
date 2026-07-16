@@ -27,8 +27,9 @@ const LOGIN_IMAGE = {
   barbersclub:        '/barbersclub/hero-bg.png',
 };
 
-/* Fallback si el tenant no tiene imagen propia — el testimonial habla de Ferraza. */
-const DEFAULT_LOGIN_IMAGE = '/loginferraza.webp';
+/* El banner del panel izquierdo se resuelve dinámicamente por tenant:
+   tenant.banner → LOGIN_IMAGE[id] → /{slug}/banner.webp, y si todo falla (404)
+   el onError cae a un fondo oscuro SynapTech. NUNCA a la foto de otro local. */
 
 /* Manifiesto de marca — se rota cada 6s en el panel izquierdo del login. */
 const MANIFIESTO_MARCA = [
@@ -112,6 +113,7 @@ export default function LoginPage() {
   const [loading,    setLoading]    = useState(false);
   const [resetSent,    setResetSent]    = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [bannerFailed, setBannerFailed] = useState(false);
 
   /* Carrusel del manifiesto de marca (panel izquierdo). */
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -140,7 +142,9 @@ export default function LoginPage() {
 
   const manifiesto = MANIFIESTO_MARCA[currentIndex];
 
-  const bgImage = LOGIN_IMAGE[tenant.id] || DEFAULT_LOGIN_IMAGE;
+  /* Banner del panel izquierdo — prioridad: config del tenant → mapa curado →
+     convención /{slug}/banner.webp. onError cae a fondo oscuro SynapTech. */
+  const bannerSrc = tenant.banner || LOGIN_IMAGE[tenant.id] || `/${tenant.id}/banner.webp`;
 
   const validateEmail = mail => {
     if (!mail) { setError('Ingresa tu correo electrónico.'); return false; }
@@ -224,11 +228,20 @@ export default function LoginPage() {
     <div className="min-h-[100dvh] w-full grid grid-cols-1 lg:grid-cols-2 bg-[#050505]">
 
       {/* ── PANEL IZQUIERDO — manifiesto de marca (solo desktop) ───── */}
-      <div
-        className="hidden lg:block bg-cover bg-center bg-no-repeat relative"
-        style={{ backgroundImage: `url(${bgImage})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      {/* Fondo oscuro SynapTech SIEMPRE detrás: si el banner del tenant falla
+          (404), queda este degradado — jamás la foto de otro local. */}
+      <div className="hidden lg:block relative overflow-hidden bg-gradient-to-br from-neutral-950 via-black to-neutral-900">
+        {!bannerFailed && (
+          <img
+            src={bannerSrc}
+            alt=""
+            aria-hidden="true"
+            onError={() => setBannerFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        {/* Overlay de contraste: mantiene legible el testimonial sobre cualquier foto */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/25" />
 
         {/* Branding SynapTech esquina superior */}
         <div className="absolute top-8 left-8 sm:left-12 z-20 flex items-center gap-3">
@@ -267,13 +280,7 @@ export default function LoginPage() {
 
         <div className="flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 relative z-10">
 
-          {tenant.logo && (
-            <img
-              src={tenant.logo}
-              alt={tenant.name}
-              className="h-14 w-14 object-contain rounded-lg mb-8"
-            />
-          )}
+          <TenantLogo logo={tenant.logo} name={tenant.name} />
 
           <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">
             Bienvenido de vuelta.
@@ -364,6 +371,39 @@ export default function LoginPage() {
           Engineered by SynapTech SpA — Conexión cifrada TLS
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ── Logo del tenant con fallback a iniciales ──────────────────────
+   Si el tenant no tiene logo (o falla la carga), renderiza un círculo con la
+   inicial del local en ámbar sobre gris oscuro — nunca un ícono roto ni vacío. */
+function tenantInitials(name) {
+  const stop = new Set(['y', 'de', 'la', 'el', 'los', 'las', 'del', 'and', '&']);
+  const words = String(name || '').split(/\s+/).filter(w => w && !stop.has(w.toLowerCase()));
+  const letters = words.slice(0, 2).map(w => w[0]).join('');
+  return (letters || String(name || '?').trim()[0] || '?').toUpperCase();
+}
+
+function TenantLogo({ logo, name }) {
+  const [failed, setFailed] = useState(false);
+  if (logo && !failed) {
+    return (
+      <img
+        src={logo}
+        alt={name}
+        onError={() => setFailed(true)}
+        className="h-14 w-14 object-contain rounded-full mb-8 bg-neutral-900/40 ring-1 ring-white/10"
+      />
+    );
+  }
+  return (
+    <div
+      role="img"
+      aria-label={name}
+      className="h-14 w-14 rounded-full mb-8 flex items-center justify-center bg-neutral-800 text-amber-500 font-bold text-xl select-none ring-1 ring-white/10"
+    >
+      {tenantInitials(name)}
     </div>
   );
 }

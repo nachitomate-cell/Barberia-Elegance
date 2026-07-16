@@ -25,7 +25,8 @@ const TENANT_META = {
   kronnos_woman:      { name: 'Kronnos Woman',             accent: 'pink',   emoji: '💅', logo: '/kronnos/woman.jpg',  brand: { hex: '#ec4899', sede: 'Woman',      tagline: 'Beauty & Nails'      } },
   barbersclub:        { name: 'Barbers Club',              accent: 'amber',  emoji: '✂️', logo: '/barbersclub/barber12.jpg' },
   elbarberomoderno:   { name: 'El Barbero Moderno',        accent: 'zinc',   emoji: '✂️', logo: '/elbarberomoderno/barbero2.jpg', brand: { hex: '#E0E0E0', sede: 'Serrano 73', tagline: 'Master Barber' } },
-  estudioluxury:      { name: 'Studio Luxury',             accent: 'amber',  emoji: '💈', logo: '/luxury/luxury.jpg', brand: { sede: 'Talagante', tagline: 'Barbería' } },
+  estudioluxury:      { name: 'Studio Luxury',             accent: 'amber',  emoji: '💈', logo: '/luxury/luxury.jpg', banner: '/luxury/banner.webp', brand: { sede: 'Talagante', tagline: 'Barbería' } },
+  renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
 };
 
 const TenantContext = createContext(null);
