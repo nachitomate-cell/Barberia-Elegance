@@ -1280,6 +1280,10 @@ exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
 
+// Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
+const opsMetricsModule = require('./ops-metrics');
+exports.opsMetrics = opsMetricsModule.opsMetrics;
+
 // ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users

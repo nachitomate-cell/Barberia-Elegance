@@ -26,6 +26,7 @@ const admin             = require('firebase-admin');
 const { FieldValue }    = require('firebase-admin/firestore');
 const { crearCliente }  = require('./client');
 const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
+const { logWaSend }               = require('../lib/metrics');
 
 const db = admin.firestore();
 
@@ -79,7 +80,8 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
     '¿La confirmas? Responde *CONFIRMAR* para asistir o *CANCELAR* si no podrás. 🙌',
   ].filter(Boolean).join('\n');
 
-  await evoClient.enviarTexto(`instance_${tid}`, tel, msg);
+  const sent = await evoClient.enviarTexto(`instance_${tid}`, tel, msg);
+  const sentId = sent && sent.key && sent.key.id ? String(sent.key.id) : null;
 
   await citasCol(tid).doc(citaId).update({
     waConfirmSolicitada:   true,
@@ -96,9 +98,13 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
       servicio: cita.servicioNombre || '',
     },
     remoteJid: `${tel}@s.whatsapp.net`,
+    // Registra el eco de este envío para que la anti-colisión NO lo lea como
+    // "el dueño escribió" (ver cerebro.js: botMsgIds).
+    ...(sentId ? { botMsgIds: FieldValue.arrayUnion(sentId) } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 
+  await logWaSend(tid, 'confirmacion', !!sentId).catch(() => {}); // métrica para el dashboard ops
   logger.info(`[confirm] ${tid}/${citaId} → confirmación enviada a ${tel}`);
 }
 

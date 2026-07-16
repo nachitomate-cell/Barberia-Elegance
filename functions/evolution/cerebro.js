@@ -26,7 +26,7 @@
 
 const { logger }     = require('firebase-functions');
 const admin          = require('firebase-admin');
-const { FieldValue } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const Anthropic      = require('@anthropic-ai/sdk');
 
 const {
@@ -34,6 +34,7 @@ const {
   _barberoLibreParaSlot: barberoLibreParaSlot,
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
+const { logWaSend, logAiUsage } = require('../lib/metrics');
 
 const db = admin.firestore();
 
@@ -41,6 +42,9 @@ const MODEL       = 'claude-haiku-4-5-20251001'; // el más barato + rápido, id
 const MAX_TOKENS  = 900;                 // respuestas de WhatsApp: cortas
 const MAX_ROUNDS  = 5;                   // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 20;                 // turnos de texto que recordamos (10 pares)
+const SILENCIO_MS  = 2 * 60 * 60 * 1000; // anti-colisión: silencio del bot tras toma-de-control (2h)
+
+const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
 
 /* ─────────────────────────── Helpers de datos ─────────────────────────── */
 
@@ -290,6 +294,7 @@ async function pensarYResponder({ anthropicKey, system, historia, texto, ctx, to
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
     });
+    logAiUsage(MODEL, resp.usage?.input_tokens || 0, resp.usage?.output_tokens || 0).catch(() => {}); // métrica ops
     messages.push({ role: 'assistant', content: resp.content });
 
     if (resp.stop_reason === 'tool_use') {
@@ -330,16 +335,12 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
   // ── Filtros de seguridad ──
   if (!remoteJid) return;
-  if (fromMe) return;                                   // ecos propios / dueño → Sprint 4
   if (remoteJid.endsWith('@g.us')) return;              // grupos: no
   if (remoteJid === 'status@broadcast') return;         // estados: no
 
-  const texto = String(
-    data.message?.conversation ??
-    data.message?.extendedTextMessage?.text ??
-    '',
-  ).trim();
-  if (!texto) return;                                   // por ahora solo texto
+  const telefono = remoteJid.replace(/[:@].*$/, '');    // dígitos para responder/guardar
+  const chatId   = telefono;                            // doc id de la conversación
+  const ref      = convRef(tid, chatId);
 
   // ── Gating: conectado siempre; luego bot conversacional Y/O confirmaciones ──
   const waCfg = (await waCfgRef(tid).get()).data() || {};
@@ -348,10 +349,31 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const confOn = waCfg.confirmacionesEnabled === true;
   if (!botOn && !confOn) return;
 
-  const telefono = remoteJid.replace(/[:@].*$/, '');    // dígitos para responder/guardar
-  const chatId   = telefono;                            // doc id de la conversación
+  // ── ANTI-COLISIÓN (Sprint 4): mensajes SALIENTES (fromMe) ──
+  //   · Eco de un mensaje que enviamos NOSOTROS (bot/confirmación) → ignorar.
+  //   · Si no, el DUEÑO escribió a mano desde su celular → "efecto fantasma":
+  //     silenciamos el bot 2h en ESE chat para no pisarle la conversación.
+  if (fromMe) {
+    const conv = (await ref.get()).data() || {};
+    const botIds = Array.isArray(conv.botMsgIds) ? conv.botMsgIds : [];
+    if (msgId && botIds.includes(msgId)) return;         // eco propio → nada
+    await ref.set({
+      botSilencedUntil: Timestamp.fromMillis(Date.now() + SILENCIO_MS),
+      remoteJid,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true }).catch(() => {});
+    logger.info(`[cerebro] ${tid} chat=${chatId}: el dueño tomó el control → bot en silencio 2h`);
+    return;
+  }
+
+  // ── Mensaje ENTRANTE del cliente (fromMe:false) ──
+  const texto = String(
+    data.message?.conversation ??
+    data.message?.extendedTextMessage?.text ??
+    '',
+  ).trim();
+  if (!texto) return;                                   // por ahora solo texto
   const pushName = String(data.pushName || '').trim();
-  const ref      = convRef(tid, chatId);
 
   // ── Dedup transaccional: reclama el mensaje antes del trabajo lento ──
   const claimed = await db.runTransaction(async (tx) => {
@@ -363,15 +385,24 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   });
   if (!claimed) return;
 
-  // ── Estado de la conversación (memoria + cita pendiente de confirmar) ──
+  // ── Estado de la conversación (memoria + cita pendiente + silencio del bot) ──
   const convSnap = await ref.get();
   const convData = convSnap.data() || {};
   const historia = Array.isArray(convData.messages) ? convData.messages : [];
   const citaPendiente = convData.citaPendiente || null;
+  const silenciado = millis(convData.botSilencedUntil) > Date.now();
+  const botActivo = botOn && !silenciado;               // ¿responde el bot conversacional?
 
+  const sentIds = [];
   const responder = async (txt) => {
-    try { await evoClient.enviarTexto(`instance_${tid}`, telefono, txt); }
-    catch (e) { logger.error(`[cerebro] ${tid} enviar:`, e.message); }
+    let ok = false;
+    try {
+      const r = await evoClient.enviarTexto(`instance_${tid}`, telefono, txt);
+      const id = r && r.key && r.key.id;
+      if (id) sentIds.push(String(id));                 // registrar nuestro eco (anti-colisión)
+      ok = true;
+    } catch (e) { logger.error(`[cerebro] ${tid} enviar:`, e.message); }
+    await logWaSend(tid, 'bot', ok).catch(() => {});    // métrica para el dashboard ops
   };
   const persistir = async (respuesta) => {
     const nuevaHistoria = [
@@ -379,15 +410,17 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       { role: 'user', content: texto },
       { role: 'assistant', content: respuesta },
     ].slice(-MAX_HISTORIA);
+    const botMsgIds = [...(Array.isArray(convData.botMsgIds) ? convData.botMsgIds : []), ...sentIds].slice(-20);
     await ref.set({
       messages:      nuevaHistoria,
+      botMsgIds,
       clienteNombre: pushName || convData.clienteNombre || '',
       remoteJid,
       updatedAt:     FieldValue.serverTimestamp(),
     }, { merge: true }).catch(() => {});
   };
 
-  // ── FAST-PATH de confirmación: CONFIRMAR / CANCELAR sin gastar el modelo ──
+  // ── FAST-PATH de confirmación: CONFIRMAR / CANCELAR (aplica aunque el bot esté silenciado) ──
   if (confOn && citaPendiente) {
     const decision = detectarDecision(texto);
     if (decision) {
@@ -400,17 +433,19 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       logger.info(`[cerebro] ${tid} chat=${chatId} confirmación=${decision} (fast-path)`);
       return;
     }
-    // Ambiguo: sin bot conversacional pedimos la palabra clave y cortamos.
-    if (!botOn) {
-      const reply = 'Para tu cita, por favor responde *CONFIRMAR* o *CANCELAR* 🙏';
-      await responder(reply);
-      await persistir(reply);
+    // Ambiguo: si el bot conversacional NO está activo, nudge (solo si no está silenciado) y cortar.
+    if (!botActivo) {
+      if (!silenciado) {
+        const reply = 'Para tu cita, por favor responde *CONFIRMAR* o *CANCELAR* 🙏';
+        await responder(reply);
+        await persistir(reply);
+      }
       return;
     }
-    // Con bot conversacional seguimos: Claude maneja la respuesta ambigua con contexto.
+    // Con bot conversacional activo seguimos: Claude maneja la respuesta ambigua con contexto.
   }
 
-  if (!botOn) return;   // solo confirmaciones y sin cita pendiente → no respondemos
+  if (!botActivo) return;   // bot apagado o silenciado (dueño al mando) → no respondemos
 
   // ── Contexto del local (nombre/dirección/teléfono viven en el doc del tenant) ──
   const [tenantSnap, confSnap] = await Promise.all([

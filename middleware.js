@@ -1643,6 +1643,18 @@ export default async function middleware(request) {
     return;
   }
 
+  // ── Dashboard interno de Operaciones (ops.synaptechspa.cl) ──
+  // No es un tenant: la raíz sirve ops.html (métricas unificadas barbería +
+  // conexion). Los assets externos (gstatic) los carga el navegador directo.
+  if (hostname === 'ops.synaptechspa.cl') {
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      const rw  = new URL('/ops.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    return;
+  }
+
   // ── SynapTech Links (producto self-serve, bioo.cl) ────────────────────────────
   // No es un tenant: las páginas de /links sirven su propio <head>, íconos y
   // manifest dinámico, así que NO inyectamos el SEO de ningún tenant aquí.

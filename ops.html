@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Operaciones · SynapTech</title>
+<style>
+  :root{ --bg:#0d1117; --card:#161b22; --line:#232a33; --ink:#e6edf3; --soft:#8b949e; --green:#3fb950; --amber:#d29922; --red:#f85149; --accent:#58a6ff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .tnum{ font-variant-numeric:tabular-nums; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; }
+  header h1{ font-size:16px; margin:0; font-weight:800; letter-spacing:-.01em; }
+  header .sub{ font-size:11px; color:var(--soft); }
+  header .acts{ display:flex; gap:8px; }
+  button{ font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:7px 13px; font-size:13px; font-weight:600; }
+  button:hover{ border-color:#3d444d; }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:#04101f; }
+  .wrap{ max-width:1040px; margin:0 auto; padding:22px; }
+  .login{ max-width:340px; margin:14vh auto; text-align:center; }
+  .login h2{ font-size:20px; }
+  .login p{ color:var(--soft); font-size:14px; }
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media(max-width:720px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
+  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .kpi .n{ font-size:28px; font-weight:800; letter-spacing:-.02em; }
+  .kpi .k{ font-size:12px; color:var(--soft); margin-top:3px; }
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
+  @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
+  .panel{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h3{ margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); display:flex; align-items:center; gap:8px; }
+  .row{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .row:last-child{ border-bottom:0; }
+  .row .v{ font-weight:700; }
+  .loc{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .loc:last-child{ border-bottom:0; }
+  .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  .dot.on{ background:var(--green); } .dot.off{ background:#484f58; }
+  .tag{ font-size:10px; padding:1px 6px; border-radius:999px; border:1px solid var(--line); color:var(--soft); }
+  .tag.g{ color:var(--green); border-color:#1f4028; }
+  .muted{ color:var(--soft); font-size:12px; }
+  .warn{ background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.3); color:var(--amber); border-radius:10px; padding:10px 14px; font-size:13px; margin-top:14px; }
+  #err{ color:var(--red); font-size:13px; margin-top:10px; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
+      authDomain: "barberia-elegance.firebaseapp.com",
+      projectId: "barberia-elegance",
+      storageBucket: "barberia-elegance.firebasestorage.app",
+      messagingSenderId: "515311607907",
+      appId: "1:515311607907:web:8add6005144015c5e85856",
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+    const app = document.getElementById('app');
+    const clp = n => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
+    const usd = n => 'US$' + (Number(n)||0).toFixed(2);
+    const num = n => (Number(n)||0).toLocaleString('es-CL');
+
+    function loginView(msg){
+      app.innerHTML = `<div class="login">
+        <h2>Operaciones · SynapTech</h2>
+        <p>Panel interno. Ingresa con tu cuenta de operador.</p>
+        <button class="primary" id="gbtn" style="width:100%;margin-top:8px">Entrar con Google</button>
+        ${msg ? `<div id="err">${msg}</div>` : ''}
+      </div>`;
+      document.getElementById('gbtn').onclick = async () => {
+        try { await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+        catch(e){ loginView(e.message); }
+      };
+    }
+
+    function proyectoPanel(nombre, d){
+      if(!d) return `<div class="panel"><h3>${nombre}</h3><p class="muted">Sin datos disponibles.</p></div>`;
+      const locs = (d.locales||[]).map(l => `<div class="loc">
+        <span class="dot ${l.estado==='connected'?'on':'off'}"></span>
+        <span style="flex:1">${l.id}${l.numero?` · +${l.numero}`:''}</span>
+        ${l.bot?'<span class="tag g">bot</span>':''}
+        ${l.conf||l.reactivacion?'<span class="tag g">'+(l.reactivacion?'react':'confirm')+'</span>':''}
+      </div>`).join('') || '<p class="muted">Sin locales con canal.</p>';
+      return `<div class="panel">
+        <h3>${nombre}</h3>
+        <div class="row"><span>Locales activos</span><span class="v tnum">${d.localesActivos||0}</span></div>
+        <div class="row"><span>Mensajes (30d)</span><span class="v tnum">${num(d.mensajes?.total)}</span></div>
+        <div class="row"><span>Costo Claude (30d)</span><span class="v tnum">${usd(d.claude?.costoUsd)}</span></div>
+        <div class="row"><span>Llamadas IA</span><span class="v tnum">${num(d.claude?.llamadas)}</span></div>
+        <div style="margin-top:12px">${locs}</div>
+      </div>`;
+    }
+
+    function render(data){
+      const t = data.total || {};
+      app.innerHTML = `
+        <header>
+          <div><h1>Operaciones · SynapTech</h1><div class="sub">últimos 30 días · ${new Date(data.generadoEn).toLocaleString('es-CL')}</div></div>
+          <div class="acts"><button id="refresh">Actualizar</button><button id="out">Salir</button></div>
+        </header>
+        <div class="wrap">
+          <div class="kpis">
+            <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">Locales activos</div></div>
+            <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">Mensajes WhatsApp (30d)</div></div>
+            <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">Costo Claude (30d)</div></div>
+            <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">Llamadas a la IA</div></div>
+          </div>
+          <div class="cols">
+            ${proyectoPanel('💈 Barbería', data.barberia)}
+            ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro)}
+          </div>
+          ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
+        </div>`;
+      document.getElementById('refresh').onclick = cargar;
+      document.getElementById('out').onclick = () => firebase.auth().signOut();
+    }
+
+    async function cargar(){
+      app.innerHTML = `<div class="login"><p class="muted">Cargando métricas…</p></div>`;
+      try {
+        const fn = firebase.app().functions('us-central1').httpsCallable('opsMetrics');
+        const r = await fn({});
+        render(r.data);
+      } catch(e){
+        app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
+        const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();
+      }
+    }
+
+    firebase.auth().onAuthStateChanged(u => { if(u) cargar(); else loginView(); });
+  </script>
+</body>
+</html>
