@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { onSnapshot, setDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import {
   Receipt, Store, UserSquare2, Percent, KeyRound, CheckCircle2, AlertCircle,
   Loader2, FlaskConical, Save, ShieldCheck, FileText, Info,
+  Clock, MessageCircle, Sparkles,
 } from 'lucide-react';
+import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +19,17 @@ import { useAuth } from '../contexts/AuthContext';
 
    Config no sensible → configuracion/facturacion (write: if esAdmin).
    API Key OpenFactura → facturacion_secrets/{tid} vía callable (cerrado).
+
+   GATING: el módulo todavía no está listo para los locales, así que la
+   llave vive en _system/{tid}.facturacion y SOLO la enciende SynapTech
+   (reglas: _system write = esBootstrap). Sin ella, el local ve la pantalla
+   "Próximamente" con el CTA a WhatsApp — no la configuración.
+
+   Se gatea la VISTA, no el item del sidebar: esconder el item deja la ruta
+   accesible escribiendo la URL (es lo que pasa hoy con Integraciones).
    ────────────────────────────────────────────────────────────────── */
+
+const WA_SYNAPTECH = '56983568212';
 
 const EMISOR_VACIO = { rut: '', razonSocial: '', giro: 'Servicios de peluquería y barbería', direccion: '', comuna: '', cdgSiiSucur: '' };
 
@@ -29,10 +41,11 @@ function fmtDate(ts) {
 function fmtCLP(n) { return `$${Math.round(Number(n) || 0).toLocaleString('es-CL')}`; }
 
 export default function Facturacion() {
-  const { id: tenantId } = useTenant();
+  const { id: tenantId, name: tenantName } = useTenant();
   const { role } = useAuth();
   const isAdmin = role === 'admin' || role === 'jefe';
 
+  const [sys, setSys]         = useState(null);   // _system/{tid} → llave del módulo (null = cargando)
   const [cfg, setCfg]         = useState(null);   // doc configuracion/facturacion
   const [form, setForm]       = useState(null);   // copia editable
   const [dirty, setDirty]     = useState(false);
@@ -42,6 +55,21 @@ export default function Facturacion() {
   const [msg, setMsg]         = useState(null);   // { ok, text }
 
   const fns = () => getFunctions(getApp(), 'us-central1');
+
+  // ── Llave del módulo ─────────────────────────────────────────────
+  // _system/{tid} es lectura pública / escritura solo bootstrap, así que el
+  // local puede leer si lo tiene habilitado pero no puede encendérselo.
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsub = onSnapshot(
+      doc(db, '_system', tenantId),
+      snap => setSys(snap.exists() ? snap.data() : {}),
+      () => setSys({}),   // sin permiso o sin red → tratar como no habilitado
+    );
+    return () => unsub();
+  }, [tenantId]);
+
+  const habilitado = sys?.facturacion === true;
 
   // ── Cargar config ────────────────────────────────────────────────
   // Siempre reflejamos el doc en `cfg` (para el flag openfacturaConfigurada
@@ -149,6 +177,17 @@ export default function Facturacion() {
       </div>
     );
   }
+  // Esperamos la llave antes de decidir: sin esto, el local vería parpadear
+  // la pantalla de "Próximamente" cada vez que entra, aunque la tenga activa.
+  if (sys === null) {
+    return (
+      <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
+        <Loader2 size={16} className="animate-spin mr-2" /> Cargando…
+      </div>
+    );
+  }
+  if (!habilitado) return <FacturacionProximamente tenantName={tenantName} />;
+
   if (!form) {
     return (
       <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
@@ -377,6 +416,77 @@ export default function Facturacion() {
 }
 
 /* ── Subcomponentes ────────────────────────────────────────────── */
+
+// Lo que ve el local mientras el módulo no está habilitado (_system/{tid}.facturacion).
+// Tono "todavía no", no venta: el módulo no está listo, no es que cueste extra.
+// Sin variantes [html.light_&]: — los tokens (text-primary, bg-slate-900,
+// text-indigo-400) ya voltean solos con el tema.
+function FacturacionProximamente({ tenantName }) {
+  const waMsg = encodeURIComponent(
+    `Hola SynapTech, quiero saber sobre la Facturación automática (boletas al completar cada cita) para mi local ${tenantName || ''}.`.trim(),
+  );
+  const waUrl = `https://wa.me/${WA_SYNAPTECH}?text=${waMsg}`;
+
+  const LISTO = [
+    { Icon: Receipt,     t: 'Boleta al cerrar la cita',  d: 'Completas la atención y el documento se emite solo. Sin planillas ni subir nada a mano.' },
+    { Icon: Store,       t: 'Arriendo de sillón',        d: 'El local emite su boleta afecta por el arriendo y los productos; el barbero, su honorario.' },
+    { Icon: FileText,    t: 'Todo queda registrado',     d: 'Cada documento emitido con su folio y monto, listo para tu contador.' },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-16">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-7 sm:p-10">
+        <div className="text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-indigo-400 ring-1 ring-indigo-500/25">
+            <Clock size={12} /> Próximamente
+          </span>
+
+          <div className="mx-auto my-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10">
+            <Receipt size={30} className="text-indigo-400" />
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">
+            Facturación automática
+          </h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-400">
+            Estamos terminando la integración para emitir tus boletas solas, cada vez
+            que completas una cita. La activamos local por local para dejarla andando
+            bien desde el primer día.
+          </p>
+        </div>
+
+        <ul className="my-8 space-y-3">
+          {LISTO.map(({ Icon, t, d }) => (
+            <li key={t} className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-800/30 p-3.5">
+              <div className="mt-0.5 shrink-0 rounded-lg bg-indigo-500/10 p-1.5">
+                <Icon size={15} className="text-indigo-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-primary">{t}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-400">{d}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="text-center">
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-2xl bg-indigo-500 px-7 py-3.5 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(99,102,241,0.6)] transition-transform hover:bg-indigo-400 active:scale-95"
+          >
+            <MessageCircle size={17} /> Consultar activación
+          </a>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+            <Sparkles size={11} /> Te contamos cómo queda para tu local y cuándo lo encendemos.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function mensajeBanner(msg) {
   if (!msg) return null;
   return (
