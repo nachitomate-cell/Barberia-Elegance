@@ -2144,7 +2144,8 @@
         const _stripInFlight = new Set();
 
         function _countActivas(arr) {
-            return (arr || []).filter(c => c.estado !== 'Cancelada').length;
+            // Un no-show no es una cita activa (el cliente no vino) — como la cancelada.
+            return (arr || []).filter(c => c.estado !== 'Cancelada' && c.estado !== 'NoAsistio').length;
         }
 
         async function _ensureStripCount(fechaStr) {
@@ -2242,7 +2243,9 @@
                 snap.docs.forEach(doc => {
                     const c = doc.data();
                     if (c.barberoId !== barberId) return;
-                    if (c.estado === 'Cancelada') return;
+                    // Cancelada y No asistió no son ingreso. Ojo con el fallback
+                    // `|| 15000` de abajo: sin excluir, un no-show sumaría $15.000 fantasma.
+                    if (c.estado === 'Cancelada' || c.estado === 'NoAsistio') return;
                     const monto = Number(c.precio) || 15000;
                     const f = c.fecha;
                     if (f === hoyStr) { diaTot += monto; diaCnt++; }
@@ -2385,7 +2388,8 @@
             const statC = todayCitas.filter(c => c.estado === 'Completada').length;
             const statP = todayCitas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada').length;
             const totalGanancia = todayCitas.reduce((acc, c) => {
-                if (c.estado === 'Cancelada') return acc;
+                // Igual que arriba: no-show no suma (y el fallback |15000 lo inflaría).
+                if (c.estado === 'Cancelada' || c.estado === 'NoAsistio') return acc;
                 return acc + (Number(c.precio) || 15000);
             }, 0);
             
@@ -2621,6 +2625,9 @@
             if (isPending && !isCancelled) {
                 chips.push(_citaChip('<i class="ph-bold ph-clock text-[10px]"></i>', 'Sin confirmar', 'bg-yellow-500/10 text-yellow-300'));
             }
+            if (cita.estado === 'NoAsistio') {
+                chips.push(_citaChip('<i class="ph-bold ph-user-minus text-[10px]"></i>', 'No asistió', 'bg-rose-500/15 text-rose-300'));
+            }
             // Pack: "Prepagado X/Y" (consume una sesión) o "Nuevo pack" (activación).
             // Antes el barbero no veía si una cita gastaba un pack — pisaba un $0 sin
             // contexto. Los campos los denormaliza el CF de packs sobre la cita al
@@ -2700,15 +2707,16 @@
             const isConfirmed = cita.estado === 'Confirmada';
             const isCompleted = cita.estado === 'Completada';
             const isCancelled = cita.estado === 'Cancelada';
+            const isNoShow    = cita.estado === 'NoAsistio';
             const isPending   = cita.estado === 'Pendiente';
-            
+
             // Colores mejorados
-            // Convención unificada con el admin: Confirmada=verde, Completada=azul.
-            // Antes estaba al revés (Confirmada azul / Completada verde) → el dueño
+            // Convención unificada con el admin: Confirmada=verde, Completada=azul,
+            // No asistió=rose. Antes Confirmada/Completada estaban al revés → el dueño
             // que mira las dos pantallas veía el verde con dos significados. El tinte
             // de fondo lo pone el CSS por hex (más abajo), así que al intercambiar
             // los hex el borde y el tinte siguen calzando solos.
-            const leftBorderColor = isCompleted ? '#6CABDD' : isCancelled ? 'rgba(239,68,68,0.3)' : isConfirmed ? '#10b981' : '#eab308';
+            const leftBorderColor = isCompleted ? '#6CABDD' : isCancelled ? 'rgba(239,68,68,0.3)' : isNoShow ? '#f43f5e' : isConfirmed ? '#10b981' : '#eab308';
             
             const isNew = newlyAddedCitas.has(cita.id);
             const extraClass = isNew ? 'cita-nueva-highlight' : '';
@@ -2717,13 +2725,14 @@
             const waLink = telLimpio && !_ocultaTelefono() ? `https://wa.me/${telLimpio}` : null;
             const chipsHtml = _buildCitaChips(cita, isPending, isConfirmed, isCompleted, isCancelled);
             const precioNum = Number(cita.precio) || 0;
-            const montoStr  = (precioNum > 0 && !isCancelled) ? fmtCLPagenda(precioNum) : '';
+            // No-show tampoco muestra monto: no se cobró.
+            const montoStr  = (precioNum > 0 && !isCancelled && !isNoShow) ? fmtCLPagenda(precioNum) : '';
 
             // Layout jerárquico:
             //   [HORA 22px tabular / dur min]  [CLIENTE 16px bold + servicio 13px muted]  [$monto + acciones]
             // Fuera: avatar iniciales (poco valor por px consumidos), divider vertical, caret final.
             return `
-            <div class="cita-card bg-[#1c1c24] rounded-none sm:rounded-2xl p-4 cursor-pointer hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : ''} ${extraClass}"
+            <div class="cita-card bg-[#1c1c24] rounded-none sm:rounded-2xl p-4 cursor-pointer hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : ''} ${isNoShow ? 'opacity-60' : ''} ${extraClass}"
                  data-cita-id="${cita.id}"
                  style="border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid ${leftBorderColor};"
                  onclick="abrirDetalleCita('${cita.id}')">
@@ -3113,15 +3122,17 @@
                     const citaId = c.dataset.citaId;
                     const cita = todayCitas.find(cc => cc.id === citaId);
                     if (!cita) { c.style.transform = ''; return; }
+                    // NoAsistio es terminal: no se cambia por swipe accidental
+                    // (solo desde el modal, para corregir un no-show mal marcado).
                     if (dx > 0) {
-                        if (cita.estado === 'Completada' || cita.estado === 'Cancelada') {
+                        if (cita.estado === 'Completada' || cita.estado === 'Cancelada' || cita.estado === 'NoAsistio') {
                             c.style.transform = '';
                         } else {
                             c.style.transform = 'translateX(100%)';
                             cambiarEstadoCita(citaId, 'Completada');
                         }
                     } else {
-                        if (cita.estado === 'Cancelada') {
+                        if (cita.estado === 'Cancelada' || cita.estado === 'NoAsistio') {
                             c.style.transform = '';
                         } else {
                             c.style.transform = 'translateX(-100%)';
@@ -3175,9 +3186,12 @@
             const estadoMap = {
                 'Completada': ['text-emerald-400 border-emerald-500/30 bg-emerald-500/10', 'Completada'],
                 'Cancelada':  ['text-red-400 border-red-500/30 bg-red-500/10', 'Cancelada'],
+                'NoAsistio':  ['text-rose-300 border-rose-500/30 bg-rose-500/10', 'No asistió'],
                 'Confirmada': ['text-white border-white/20 bg-white/5', 'Confirmada'],
                 'Pendiente':  ['text-yellow-400 border-yellow-500/30 bg-yellow-500/10', 'Pendiente'],
             };
+            // Sin la entrada NoAsistio, un no-show caía al fallback 'Pendiente' y el
+            // badge del detalle lo mostraba amarillo "Pendiente" — engañoso.
             const [cls, label] = estadoMap[cita.estado] || estadoMap['Pendiente'];
 
             // El badge de estado es interactivo: al tocarlo avanza el estado de la cita.
@@ -4101,10 +4115,11 @@
 
                     const isCompleted = cita.estado === 'Completada';
                     const isConfirmed = cita.estado === 'Confirmada';
-                    // Confirmada=verde, Completada=azul (unificado con el admin). Acá el
-                    // color va inline en JS, así que se intercambian borde Y fondo.
-                    const leftColor   = isCompleted ? '#6CABDD' : isConfirmed ? '#10b981' : '#eab308';
-                    const bgColor     = isCompleted ? 'rgba(108,171,221,0.20)' : isConfirmed ? 'rgba(16,185,129,0.20)' : 'rgba(234,179,8,0.20)';
+                    const isNoShow    = cita.estado === 'NoAsistio';
+                    // Confirmada=verde, Completada=azul, No asistió=rose (unificado con el
+                    // admin). Acá el color va inline en JS, así que se intercambian borde Y fondo.
+                    const leftColor   = isCompleted ? '#6CABDD' : isNoShow ? '#f43f5e' : isConfirmed ? '#10b981' : '#eab308';
+                    const bgColor     = isCompleted ? 'rgba(108,171,221,0.20)' : isNoShow ? 'rgba(244,63,94,0.18)' : isConfirmed ? 'rgba(16,185,129,0.20)' : 'rgba(234,179,8,0.20)';
                     const citaH       = hOf(ve - vs);
                     const showService = citaH >= 34;
 
@@ -5147,6 +5162,7 @@
           <select id="ecEstado" onchange="_onEcEstadoChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
             <option value="Confirmada" style="background:#111">Confirmada</option>
             <option value="Completada" style="background:#111">Completada</option>
+            <option value="NoAsistio"  style="background:#111">No asistió</option>
             <option value="Cancelada"  style="background:#111">Cancelada</option>
           </select>
         </div>
