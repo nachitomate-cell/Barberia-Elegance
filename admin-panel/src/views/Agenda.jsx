@@ -309,6 +309,27 @@ function getWeekDates(d) {
   return out;
 }
 
+/* Grilla del mes: 42 celdas (6 semanas) empezando el LUNES de la semana que
+   contiene el día 1. Se muestran los días de relleno del mes anterior/siguiente
+   para que la grilla no quede coja, igual que cualquier calendario.
+   42 fijo (y no 35 según el mes) evita que la grilla salte de alto al navegar. */
+function getMonthGrid(d) {
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const start = getWeekDates(first)[0];
+  return Array.from({ length: 42 }, (_, i) => {
+    const x = new Date(start);
+    x.setDate(start.getDate() + i);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  });
+}
+
+/* Etiqueta del mes para el toolbar: "Julio 2026" */
+function formatMonthLabel(d) {
+  const s = d.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /* Etiqueta del rango semanal para el toolbar. Formatos:
      misma-mes: "6 — 12 Jul 2025"
      cambia-mes: "28 Jun — 4 Jul 2025" */
@@ -2218,6 +2239,136 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
   );
 }
 
+/* ── Vistas Semana / Mes "de todos" ───────────────────────────────
+   Ni Semana ni Mes usan grilla horaria a propósito: 7 días × N barberos de
+   ancho no entra en pantalla (por eso la Semana estaba limitada a un solo
+   profesional). Son listas ordenadas por hora, que es lo que las hace escalar
+   a cualquier cantidad de gente.
+
+   El punto de color de cada fila es el del barbero (barberos/{id}.color); el
+   fondo sigue siendo el del estado, igual que en la vista Día.
+   ──────────────────────────────────────────────────────────────── */
+
+// Fila compacta de una cita. Se usa en Semana y en Mes.
+function CitaRow({ cita, barbero, onClick, dense = false }) {
+  const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
+  return (
+    <button
+      onClick={() => onClick(cita)}
+      title={`${cita.hora} · ${cita.clienteNombre || 'Cliente'}${cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}${barbero?.nombre ? ` · ${barbero.nombre}` : ''}`}
+      className={`w-full flex items-center gap-1.5 rounded-md border border-l-4 text-left transition-colors hover:brightness-125 ${color} ${
+        dense ? 'px-1.5 py-1' : 'px-2 py-1.5'
+      }`}
+      // Mismo motivo que en AppointmentBlock: en claro los overrides pintan el
+      // borde de las clases de estado con !important, y eso le gana a un style
+      // inline normal. Solo un !important inline lo supera.
+      ref={(el) => {
+        if (!el) return;
+        if (barbero?.color) el.style.setProperty('border-left-color', barbero.color, 'important');
+        else el.style.removeProperty('border-left-color');
+      }}
+    >
+      <span className="text-[10px] font-bold tabular-nums shrink-0 opacity-80">{cita.hora}</span>
+      <span className={`truncate font-semibold ${dense ? 'text-[10px]' : 'text-[11px]'}`}>
+        {cita.clienteNombre || 'Cliente'}
+      </span>
+    </button>
+  );
+}
+
+/* Semana de todos: 7 columnas (lun→dom), cada una con las citas del día
+   ordenadas por hora, de todos los profesionales visibles. */
+function SemanaTodos({ weekDates, citas, barberosById, onOpen }) {
+  const hoy = fmt(new Date());
+  return (
+    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px bg-slate-800 overflow-auto">
+      {weekDates.map(d => {
+        const diaStr = fmt(d);
+        const esHoy  = diaStr === hoy;
+        const delDia = citas
+          .filter(c => c.fecha === diaStr)
+          .sort((a, b) => toMins(a.hora) - toMins(b.hora));
+        return (
+          <div key={diaStr} className="bg-slate-900 min-h-[220px] flex flex-col">
+            <div className={`sticky top-0 z-10 px-2 py-2 border-b bg-slate-900 ${esHoy ? 'border-emerald-500/50' : 'border-slate-800'}`}>
+              <p className={`text-[11px] font-bold capitalize ${esHoy ? 'text-emerald-400' : 'text-slate-400'}`}>
+                {d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '')}
+              </p>
+              <p className="text-[10px] text-slate-500">
+                {delDia.length === 0 ? 'Sin citas' : `${delDia.length} cita${delDia.length === 1 ? '' : 's'}`}
+              </p>
+            </div>
+            <div className="p-1.5 space-y-1 flex-1">
+              {delDia.map(c => (
+                <CitaRow key={c.id} cita={c} barbero={barberosById[c.barberoId]} onClick={onOpen} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Mes: grilla de calendario de 6 semanas. Cada celda muestra hasta MAX_CELDA
+   citas y un "+N más" que salta a la vista Día de ese día — igual que WeiBook.
+   Sin el corte, un día con 12 citas estiraría toda la fila de la grilla. */
+const MAX_CELDA = 3;
+function MesTodos({ monthDates, mesActual, citas, barberosById, onOpen, onVerDia }) {
+  const hoy = fmt(new Date());
+  const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  return (
+    <div className="flex-1 flex flex-col overflow-auto">
+      <div className="grid grid-cols-7 gap-px bg-slate-800 sticky top-0 z-10">
+        {DIAS.map(d => (
+          <div key={d} className="bg-slate-900 px-2 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-slate-500">
+            {d}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-px bg-slate-800 flex-1">
+        {monthDates.map(d => {
+          const diaStr  = fmt(d);
+          const esHoy   = diaStr === hoy;
+          const delMes  = d.getMonth() === mesActual;
+          const delDia  = citas
+            .filter(c => c.fecha === diaStr)
+            .sort((a, b) => toMins(a.hora) - toMins(b.hora));
+          const extra   = delDia.length - MAX_CELDA;
+          return (
+            <div
+              key={diaStr}
+              className={`bg-slate-900 min-h-[104px] p-1 flex flex-col gap-0.5 ${delMes ? '' : 'opacity-40'}`}
+            >
+              <div className="flex items-center justify-between px-0.5">
+                <span className={`text-[11px] font-bold tabular-nums ${
+                  esHoy ? 'w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center' : 'text-slate-400'
+                }`}>
+                  {d.getDate()}
+                </span>
+                {delDia.length > 0 && (
+                  <span className="text-[9px] font-bold text-slate-500 tabular-nums">{delDia.length}</span>
+                )}
+              </div>
+              {delDia.slice(0, MAX_CELDA).map(c => (
+                <CitaRow key={c.id} cita={c} barbero={barberosById[c.barberoId]} onClick={onOpen} dense />
+              ))}
+              {extra > 0 && (
+                <button
+                  onClick={() => onVerDia(d)}
+                  className="text-[9px] font-semibold text-slate-500 hover:text-primary text-left px-1 transition-colors"
+                >
+                  +{extra} más
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── SlotRow (clickable empty slot) ─────────────────────────── */
 function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop, dragActive }) {
   const { timeLabels } = useContext(AgendaCtx);
@@ -3359,11 +3510,18 @@ export default function Agenda() {
   const [histModal,     setHistModal]     = useState(null);  // cita seleccionada para ver historial/notas
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
-  // Modo de vista de la agenda: 'day' (columnas por barbero) o 'week' (7 columnas del barbero focus).
-  // La vista semanal solo tiene sentido con un profesional filtrado — el efecto de abajo la reset a 'day'
-  // si el usuario quita el filtro.
+  // Modo de vista de la agenda:
+  //   'day'   → grilla horaria, una columna por barbero
+  //   'week'  → con un barbero filtrado: grilla horaria de sus 7 días.
+  //             sin filtro: lista compacta por día, con las citas de TODOS.
+  //   'month' → grilla de calendario, citas de todos, con "+N más"
+  //
+  // Semana y Mes "de todos" no usan grilla horaria a propósito: 7 días × N
+  // barberos de ancho no entra en pantalla. Por eso son listas ordenadas por
+  // hora — es lo mismo que hace WeiBook, y es lo que las hace escalar.
   const [viewMode,      setViewMode]      = useState(() => {
-    return (localStorage.getItem('agenda_admin_view') === 'week') ? 'week' : 'day';
+    const v = localStorage.getItem('agenda_admin_view');
+    return (v === 'week' || v === 'month') ? v : 'day';
   });
   const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
   const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
@@ -3379,11 +3537,9 @@ export default function Agenda() {
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  // Guardrail: la vista semanal solo existe con un profesional focus. Si el
-  // usuario quita el filtro (X en la píldora del barbero), volvemos a 'day'.
-  useEffect(() => {
-    if (viewMode === 'week' && !soloBarbero) setViewMode('day');
-  }, [viewMode, soloBarbero]);
+  // (El guardrail que forzaba 'day' al quitar el filtro de barbero se fue: la
+  //  semana sin filtro ya no rompe el layout porque no es una grilla horaria,
+  //  es una lista por día.)
 
   // Reloj en vivo: refresca cada 30s para mover la línea "ahora".
   useEffect(() => {
@@ -3462,15 +3618,17 @@ export default function Agenda() {
 
   const dateStr = fmt(date);
 
-  // Semana visible (lunes-domingo) y fechas string para las queries:
-  //   day  → [dateStr]
-  //   week → 7 strings YYYY-MM-DD lunes → domingo
-  // Firestore soporta hasta 30 valores por 'in' → 7 fechas están holgadas.
+  // Fechas visibles según el modo:
+  //   day   → [dateStr]
+  //   week  → 7 strings YYYY-MM-DD lunes → domingo
+  //   month → 42 (6 semanas, con relleno de los meses vecinos)
   const weekDates    = useMemo(() => getWeekDates(date), [date]);
-  const visibleDates = useMemo(
-    () => (viewMode === 'week' ? weekDates.map(fmt) : [dateStr]),
-    [viewMode, weekDates, dateStr],
-  );
+  const monthDates   = useMemo(() => getMonthGrid(date), [date]);
+  const visibleDates = useMemo(() => {
+    if (viewMode === 'month') return monthDates.map(fmt);
+    if (viewMode === 'week')  return weekDates.map(fmt);
+    return [dateStr];
+  }, [viewMode, weekDates, monthDates, dateStr]);
 
   const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
 
@@ -3496,13 +3654,21 @@ export default function Agenda() {
     if (propia && propia.inicio && propia.fin) return propia;
     return colacionGlobal;
   }, [colacionesBarbero, colacionGlobal]);
-  // Query multi-fecha:
-  //   day  → 1 fecha  → equivale al where(==, dateStr) previo
-  //   week → 7 fechas → where('fecha', 'in', [...]) (Firestore acepta hasta 30 valores)
-  // dep-key: string estable derivada del array, evita re-suscribir en render sin cambio real.
-  const _visibleDatesKey = visibleDates.join(',');
-  const { data: citas }       = useCollection('citas',    [where('fecha', 'in', visibleDates)], [_visibleDatesKey]);
-  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', 'in', visibleDates)], [_visibleDatesKey]);
+  // Query por RANGO, no por 'in'. El 'in' de Firestore topea en 30 valores y la
+  // grilla del mes son 42 días — no entra. Como `fecha` es 'YYYY-MM-DD', el
+  // orden lexicográfico ES el cronológico, así que un >= / <= sobre el string
+  // funciona y no tiene tope. Para day (1 día) y week (7) da exactamente lo
+  // mismo que el 'in' que había antes.
+  // dep-key: string estable, evita re-suscribir en render sin cambio real.
+  const rangeStart = visibleDates[0];
+  const rangeEnd   = visibleDates[visibleDates.length - 1];
+  const _visibleDatesKey = `${rangeStart}..${rangeEnd}`;
+  const dateRange = useMemo(
+    () => [where('fecha', '>=', rangeStart), where('fecha', '<=', rangeEnd)],
+    [rangeStart, rangeEnd],
+  );
+  const { data: citas }       = useCollection('citas',    dateRange, [_visibleDatesKey]);
+  const { data: bloqueos }    = useCollection('bloqueos', dateRange, [_visibleDatesKey]);
   const { data: servicios }   = useCollection('servicios');
   const { data: productos }   = useCollection('productos');
 
@@ -3612,11 +3778,38 @@ export default function Agenda() {
   const focusBarbero    = soloBarbero ? barberos.find(b => b.id === soloBarbero) : null;
   const barberosVisibles = focusBarbero ? [focusBarbero] : orderedBarberos;
 
-  // Navegación: en modo día avanza 1, en modo semana avanza 7 (misma flecha,
-  // salto acorde a la vista).
+  // ¿Estamos en una vista de LISTA (semana de todos / mes) en vez de la grilla
+  // horaria? Las de lista no llevan eje de horas ni min-w-max: se dibujan sobre
+  // el ancho disponible, no sobre una escala de tiempo.
+  const modoLista = viewMode === 'month' || (viewMode === 'week' && !focusBarbero);
+
+  // Para las vistas Semana/Mes, que listan citas de todos y necesitan resolver
+  // el barbero de cada una (su color y su nombre para el tooltip).
+  const barberosById = useMemo(
+    () => Object.fromEntries(barberos.map(b => [b.id, b])),
+    [barberos],
+  );
+  // Citas de los profesionales visibles. La query trae todo el rango sin filtrar
+  // por barbero, así que acá se respeta el filtro de la píldora y se descartan
+  // las citas de barberos que ya no están en la lista (borrados, de otra sede).
+  const _visiblesKey = barberosVisibles.map(b => b.id).join(',');
+  const citasVisibles = useMemo(() => {
+    const ids = new Set(_visiblesKey ? _visiblesKey.split(',') : []);
+    return citas.filter(c => ids.has(c.barberoId));
+  }, [citas, _visiblesKey]);
+
+  // Navegación: misma flecha, salto acorde a la vista — 1 día, 7 días o 1 mes.
   const moveDay = delta => {
-    const step = viewMode === 'week' ? delta * 7 : delta;
-    const d = new Date(date); d.setDate(d.getDate() + step); setDate(d);
+    const d = new Date(date);
+    if (viewMode === 'month') {
+      // setDate(1) antes de mover el mes: si no, saltar desde un 31 a un mes de
+      // 30 días desborda al siguiente (31 mar → 1 may en vez de 30 abr).
+      d.setDate(1);
+      d.setMonth(d.getMonth() + delta);
+    } else {
+      d.setDate(d.getDate() + (viewMode === 'week' ? delta * 7 : delta));
+    }
+    setDate(d);
   };
 
   const handleDeleteBloqueo = useCallback(async bloqueo => {
@@ -3810,7 +4003,9 @@ export default function Agenda() {
             <ChevronLeft size={16} />
           </button>
           <span className="flex-1 md:flex-none text-sm font-semibold text-primary text-center capitalize whitespace-nowrap tabular-nums px-2 truncate">
-            {viewMode === 'week' ? formatWeekLabel(date) : formatDateLabel(date)}
+            {viewMode === 'month' ? formatMonthLabel(date)
+              : viewMode === 'week' ? formatWeekLabel(date)
+              : formatDateLabel(date)}
           </span>
           <button
             onClick={() => moveDay(1)}
@@ -3823,9 +4018,8 @@ export default function Agenda() {
 
         {/* ── Fila 2 (móvil) / Derecha (desktop): controles y acciones ── */}
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
-        {/* Segmented control estilo iOS: Hoy · Día · Semana
-            "Semana" queda deshabilitado si no hay un profesional filtrado
-            (7 días × N barberos rompe el layout). */}
+        {/* Segmented control estilo iOS: Hoy · Día · Semana · Mes.
+            Los tres modos andan con o sin profesional filtrado. */}
         <div
           className="flex items-center bg-neutral-900 border border-neutral-800 p-1 rounded-xl gap-1 shrink-0"
           role="tablist"
@@ -3838,29 +4032,25 @@ export default function Agenda() {
             Hoy
           </button>
           {[
-            { key: 'day',  label: 'Día',    enabled: true },
-            { key: 'week', label: 'Semana', enabled: !!soloBarbero },
+            { key: 'day',   label: 'Día'    },
+            { key: 'week',  label: 'Semana' },
+            { key: 'month', label: 'Mes'    },
           ].map(opt => {
             const active = viewMode === opt.key;
-            const disabled = !opt.enabled;
             return (
               <button
                 key={opt.key}
                 role="tab"
                 aria-selected={active}
-                disabled={disabled}
-                title={disabled ? 'Filtra a un solo profesional para ver la semana' : opt.label}
+                title={opt.label}
                 onClick={() => {
-                  if (disabled) return;
                   setViewMode(opt.key);
                   try { localStorage.setItem('agenda_admin_view', opt.key); } catch { /* noop */ }
                 }}
                 className={`h-8 px-3 text-xs font-semibold rounded-md transition-colors ${
                   active
                     ? 'bg-slate-800 text-primary shadow-sm'
-                    : disabled
-                      ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-primary hover:bg-slate-800'
+                    : 'text-slate-400 hover:text-primary hover:bg-slate-800'
                 }`}
               >
                 {opt.label}
@@ -4045,10 +4235,13 @@ export default function Agenda() {
 
       {/* Swimlane */}
       <div ref={swimRef} className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
-        <div className="flex min-w-max">
+        {/* min-w-max hace que la grilla horaria sea tan ancha como sus columnas
+            (y scrollee). Las vistas de lista, en cambio, se reparten el ancho
+            disponible: con min-w-max la grilla del mes no llenaría la caja. */}
+        <div className={modoLista ? 'flex' : 'flex min-w-max'}>
 
-          {/* Time axis */}
-          {(() => {
+          {/* Time axis — solo en las vistas de grilla horaria. */}
+          {!modoLista && (() => {
             // El corner del eje de horas debe calzar con la cabecera de cada
             // columna: en vista día es alta (avatar+nombre+contador ≈ 104 px),
             // en vista semana el header vuelve a h-9 (36 px). Sin esto, las
@@ -4119,6 +4312,24 @@ export default function Agenda() {
             <div className="flex-1 flex items-center justify-center py-20 text-slate-600 text-sm">
               Sin barberos activos
             </div>
+          ) : viewMode === 'month' ? (
+            /* ── Vista MES: calendario de todos ── */
+            <MesTodos
+              monthDates={monthDates}
+              mesActual={date.getMonth()}
+              citas={citasVisibles}
+              barberosById={barberosById}
+              onOpen={openEditCita}
+              onVerDia={(d) => { setDate(d); setViewMode('day'); }}
+            />
+          ) : viewMode === 'week' && !focusBarbero ? (
+            /* ── Vista SEMANA sin filtro: lista por día, todos ── */
+            <SemanaTodos
+              weekDates={weekDates}
+              citas={citasVisibles}
+              barberosById={barberosById}
+              onOpen={openEditCita}
+            />
           ) : viewMode === 'week' && focusBarbero ? (
             /* ── Vista SEMANA: 7 columnas del barbero focus ─────────────
                El eje X ya no es "barbero" sino "día". Sin SortableContext
