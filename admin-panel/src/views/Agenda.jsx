@@ -1886,14 +1886,38 @@ function BloqueoBlock({ bloqueo, onDelete }) {
   );
 }
 
+/* Descansos del barbero para un día concreto, desde barberos/{id}.horario.
+   ───────────────────────────────────────────────────────────────
+   Son los que se configuran en Equipo → "Horario semanal" (uno o más por día).
+   Hasta ahora la agenda NO los leía: se guardaban y no se veían en ningún lado,
+   así que el local los configuraba y le seguían cayendo citas encima.
+
+   Ojo, es distinto de `colacion` (barberos/{id}/configuracion/main.colacion),
+   que es UNA sola franja igual para todos los días. Conviven: un barbero puede
+   tener su colación fija + descansos puntuales de un día. */
+function descansosDe(barbero, dateObj) {
+  // horario está indexado por getDay(): '0'=Dom … '6'=Sáb.
+  const dia = barbero?.horario?.[String(dateObj.getDay())];
+  if (!dia || dia.activo === false) return [];
+  return (dia.descansos || []).filter(d =>
+    typeof d?.inicio === 'string' && d.inicio.includes(':') &&
+    typeof d?.fin === 'string' && d.fin.includes(':'));
+}
+
 /* ── ColacionBlock ───────────────────────────────────────────────
    Franja informativa de colación/descanso del barbero en la grilla
    del admin (la agenda del profesional ya la pinta). Es solo visual:
    pointer-events-none para que el admin pueda igualmente agendar en
    ese rango si lo necesita (sobrecupo consciente). La colación viene
    de barberos/{id}/configuracion/main.colacion con fallback a la
-   colación global de configuracion/main. */
-function ColacionBlock({ colacion }) {
+   colación global de configuracion/main.
+
+   `label` permite reusar el mismo bloque para los descansos del horario
+   semanal — misma franja ámbar y mismo ícono, distinta palabra. Se buscó a
+   propósito que NO se parezca a un bloqueo (rayado gris, candado): un bloqueo
+   es "no disponible", un descanso es "está almorzando" y el admin igual puede
+   agendar encima si hace falta. */
+function ColacionBlock({ colacion, label = 'Colación' }) {
   const { slotIdx, totalSlots } = useContext(AgendaCtx);
   const valid = colacion
     && typeof colacion.inicio === 'string' && colacion.inicio.includes(':')
@@ -1911,7 +1935,7 @@ function ColacionBlock({ colacion }) {
     >
       <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-950/70 px-2 py-0.5 text-[10px] font-bold text-amber-400/90">
         <Coffee size={10} />
-        <span className="truncate">Colación {colacion.inicio}–{colacion.fin}</span>
+        <span className="truncate">{label} {colacion.inicio}–{colacion.fin}</span>
       </span>
     </div>
   );
@@ -4380,6 +4404,11 @@ export default function Agenda() {
                       />
                     ))}
                     <ColacionBlock colacion={colacionDe(focusBarbero.id)} />
+                    {/* `d` es la fecha de ESTA columna: cada día de la semana
+                        puede tener sus propios descansos. */}
+                    {descansosDe(focusBarbero, d).map((desc, i) => (
+                      <ColacionBlock key={`desc-${i}`} colacion={desc} label="Descanso" />
+                    ))}
                     <SinHoraTray citas={sinHoraDe(dayCitas)} onOpen={openEditCita} />
                     {dayBloqueos.map(blq => (
                       <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
@@ -4508,6 +4537,9 @@ export default function Agenda() {
                               />
                             ))}
                             <ColacionBlock colacion={colacionDe(b.id)} />
+                            {descansosDe(b, date).map((desc, i) => (
+                              <ColacionBlock key={`desc-${i}`} colacion={desc} label="Descanso" />
+                            ))}
                             <SinHoraTray citas={sinHoraDe(barberCitas)} onOpen={openEditCita} />
                             {barberBloqueos.map(blq => (
                               <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
-  CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
+  CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical, Coffee,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
   Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle,
 } from 'lucide-react';
@@ -194,6 +194,10 @@ function DayRow({ diaKey, config, onChange }) {
   });
 
   const sel = 'bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-emerald-500';
+  // Los selects del descanso viven sobre el fondo ámbar: mismo tamaño que los
+  // del día (eran más chicos y por eso el descanso se leía como una nota al pie
+  // en vez de como parte de la jornada).
+  const selDescanso = 'bg-slate-900 border border-amber-500/25 rounded px-1.5 py-1 text-xs text-primary focus:outline-none focus:border-amber-500';
 
   return (
     <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
@@ -223,24 +227,33 @@ function DayRow({ diaKey, config, onChange }) {
 
       {config.activo && (
         <div className="px-3 pb-2.5 space-y-1.5 border-t border-slate-800/60 pt-2">
+          {/* El descanso se pinta ámbar con ícono de café: es el MISMO lenguaje
+              visual que la franja de la agenda, así se reconoce sin leer. */}
           {config.descansos.map((d, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-500 w-14 shrink-0">Descanso</span>
-              <select value={d.inicio} onChange={e => upDescanso(i,'inicio',e.target.value)} className={sel}>
-                {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-              </select>
-              <span className="text-slate-600 text-xs">–</span>
-              <select value={d.fin} onChange={e => upDescanso(i,'fin',e.target.value)} className={sel}>
-                {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-              </select>
-              <button type="button" onClick={() => rmDescanso(i)} className="text-red-400/50 hover:text-red-400 transition-colors ml-0.5">
-                <X size={12} />
+            <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-2">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 shrink-0">
+                <Coffee size={12} /> Descanso
+              </span>
+              <div className="flex items-center gap-1.5">
+                <select value={d.inicio} onChange={e => upDescanso(i,'inicio',e.target.value)} className={selDescanso} aria-label="Inicio del descanso">
+                  {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+                </select>
+                <span className="text-slate-500 text-xs">–</span>
+                <select value={d.fin} onChange={e => upDescanso(i,'fin',e.target.value)} className={selDescanso} aria-label="Fin del descanso">
+                  {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              {/* ml-auto + p-1.5: el target táctil era de 12px, imposible de
+                  acertar en el celular sin borrar el descanso de al lado. */}
+              <button type="button" onClick={() => rmDescanso(i)} aria-label="Quitar descanso"
+                className="ml-auto p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                <X size={14} />
               </button>
             </div>
           ))}
           <button type="button" onClick={addDescanso}
-            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-emerald-400 transition-colors">
-            <Plus size={10} /> Añadir descanso
+            className="flex items-center gap-1.5 px-1 py-1 text-[11px] font-medium text-slate-500 hover:text-amber-400 transition-colors">
+            <Plus size={12} /> Añadir descanso
           </button>
         </div>
       )}
