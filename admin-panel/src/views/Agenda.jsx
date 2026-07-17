@@ -1303,7 +1303,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         <div>
           <label className={lbl}>Servicio</label>
           <select className={field} value={form.servicioId} onChange={e => onServicioChange(e.target.value)}>
-            {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            {servicios.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.nombre}{s.soloStaff ? ' · 🔒 interno' : ''}
+              </option>
+            ))}
             {servicios.length === 0 && <option value="">Sin servicios</option>}
           </select>
         </div>

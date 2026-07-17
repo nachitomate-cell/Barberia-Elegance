@@ -1642,6 +1642,10 @@
 
     <!-- PANEL REGISTRO -->
     <div id="panelRegister">
+      <!-- Banner "¡ya te conocemos!" — se muestra al detectar match
+           con un cliente migrado desde AgendaPro/Weibook. Ver
+           _wireClienteMigradoLookup() abajo. -->
+      <p id="matchClienteMsg" class="hidden mb-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[12px] leading-relaxed"></p>
       <div class="space-y-3">
         <input type="text" id="regNombre" placeholder="Nombre completo" autocomplete="name" class="field">
         <input type="email" id="regEmail" placeholder="Correo electrónico" autocomplete="email" class="field">
@@ -2518,6 +2522,77 @@
     return /^\+56\s?9\s?\d{4}\s?\d{4}$/.test(value.trim());
   }
 
+  // ── Auto-fill de clientes migrados (AgendaPro/Weibook) ─────────────
+  // El dueño importa su base histórica a tenants/{tid}/clientes/. Cuando
+  // el cliente entra al registro, buscamos por email o teléfono contra
+  // ese pool y prellenamos los campos vacíos con sus datos. Reduce la
+  // fricción del "tengo que rellenar todo aunque ya soy cliente".
+  //
+  // La lectura pasa por la CF `lookupClienteMigrado` porque las reglas
+  // de Firestore no permiten leer clientes/ a un anónimo.
+  const _lookedUp = new Set(); // keys ya consultados (email/tel)
+  let  _lookupInFlight = false;
+
+  async function _lookupClienteMigrado({ email, telefono }) {
+    try {
+      const call = firebase.functions().httpsCallable('lookupClienteMigrado');
+      const res  = await call({
+        tenantId: window.CURRENT_TENANT_ID || 'elegance',
+        email:    email    || '',
+        telefono: telefono || '',
+      });
+      return res?.data?.cliente || null;
+    } catch (err) {
+      console.warn('[registro] lookupClienteMigrado:', err.code || err.message);
+      return null;
+    }
+  }
+
+  function _applyClienteMigradoPrefill(c) {
+    if (!c) return;
+    const $n = document.getElementById('regNombre');
+    const $e = document.getElementById('regEmail');
+    const $t = document.getElementById('regTelefono');
+    const $m = document.getElementById('matchClienteMsg');
+    // No sobreescribir lo que el user ya escribió — solo prellenar vacíos.
+    if ($n && !$n.value.trim() && c.nombre)   $n.value = c.nombre;
+    if ($e && !$e.value.trim() && c.email)    $e.value = c.email;
+    if ($t && !$t.value.trim() && c.telefono) $t.value = c.telefono;
+    if ($m) {
+      const primerNombre = String(c.nombre || '').split(/\s+/)[0] || '';
+      $m.textContent = primerNombre
+        ? `¡Hola ${primerNombre}! Ya te teníamos registrado — confirma tus datos y crea tu cuenta.`
+        : 'Ya te teníamos registrado — confirma tus datos y crea tu cuenta.';
+      $m.classList.remove('hidden');
+    }
+  }
+
+  async function _tryLookup({ email, telefono }) {
+    const key = email ? `e:${email}` : `t:${telefono}`;
+    if (_lookedUp.has(key) || _lookupInFlight) return;
+    _lookupInFlight = true;
+    try {
+      const c = await _lookupClienteMigrado({ email, telefono });
+      _lookedUp.add(key);
+      if (c) _applyClienteMigradoPrefill(c);
+    } finally {
+      _lookupInFlight = false;
+    }
+  }
+
+  function _wireClienteMigradoLookup() {
+    const $e = document.getElementById('regEmail');
+    const $t = document.getElementById('regTelefono');
+    if ($e) $e.addEventListener('blur', () => {
+      const em = $e.value.trim().toLowerCase();
+      if (em.includes('@') && em.length >= 5) _tryLookup({ email: em });
+    });
+    if ($t) $t.addEventListener('blur', () => {
+      const digits = $t.value.replace(/\D/g, '');
+      if (digits.length >= 8) _tryLookup({ telefono: digits });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     document.title = `${/^comunidad/i.test(SHOP.club || '') ? 'Únete a la' : 'Únete al'} ${SHOP.club} | ${SHOP.nombre}`;
     document.getElementById('shopLogo').src = SHOP.logo;
@@ -2528,6 +2603,7 @@
         ? 'Acumula sellos · Canjea servicios'
         : 'Acumula sellos · Gana premios';
     initPhonePrefix('regTelefono');
+    _wireClienteMigradoLookup();
 
     // Priorizar registro por defecto al cargar
     switchTab('register');

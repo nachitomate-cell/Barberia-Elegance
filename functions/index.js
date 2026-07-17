@@ -843,6 +843,14 @@ const gestionCitaCodigo = require('./gestion-cita-codigo');
 exports.gestionarCitaPorCodigo = gestionCitaCodigo.gestionarCitaPorCodigo;
 
 // ─────────────────────────────────────────────────────────────────
+//  LOOKUP CLIENTE MIGRADO — prefill de registro.html cuando el
+//  cliente ya fue importado desde AgendaPro/Weibook al pool
+//  tenants/{tid}/clientes/. Ver lookup-cliente-migrado.js.
+// ─────────────────────────────────────────────────────────────────
+const lookupClienteMigrado = require('./lookup-cliente-migrado');
+exports.lookupClienteMigrado = lookupClienteMigrado.lookupClienteMigrado;
+
+// ─────────────────────────────────────────────────────────────────
 //  ALERTAS FINANCIERAS — ver alertas-financieras.js para detalles
 // ─────────────────────────────────────────────────────────────────
 const alertasFinancieras = require('./alertas-financieras');

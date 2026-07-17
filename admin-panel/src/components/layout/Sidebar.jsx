@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -111,6 +111,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'inicio',         label: 'Inicio',         Icon: Home          },
       { to: 'agenda',         label: 'Agenda',         Icon: CalendarDays  },
+      { to: 'pizarra',        label: 'Pizarra (walk-in)', Icon: Radar      },
       { to: 'por-cerrar',     label: 'Por cerrar',     Icon: CalendarClock },
       { to: 'reserva-online', label: 'Reserva online', Icon: Globe         },
       { to: 'mensajes',       label: 'Mensajes',       Icon: MessageCircle },

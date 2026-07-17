@@ -11153,6 +11153,10 @@
       _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
       _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
       _fsBarberos = rBarberos.status === 'fulfilled' ? rBarberos.value : SHOP.barberos;
+      // Servicios internos (soloStaff:true) — ocultos en la reserva pública.
+      // Solo el staff los agenda desde el panel/agenda del barbero. Ver
+      // Servicios.jsx (toggle "Servicio interno").
+      _fsServices = (_fsServices || []).filter(s => !s.soloStaff);
       if (!_fsServices.length) _fsServices = DB.getServices();
       if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
       _activeBarberos = _fsBarberos;

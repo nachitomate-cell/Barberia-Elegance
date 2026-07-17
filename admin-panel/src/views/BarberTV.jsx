@@ -103,7 +103,7 @@ function BottomTicker({ servicios }) {
   const ref = useRef(null);
   const [offset, setOffset] = useState(null);
 
-  const items  = servicios.filter(s => s.nombre && s.activo !== false);
+  const items  = servicios.filter(s => s.nombre && s.activo !== false && !s.soloStaff);
   const content = items
     .map(s => `${s.nombre}${s.precio ? ` · $${Number(s.precio).toLocaleString('es-CL')}` : ''}`)
     .join('    ✦    ');

@@ -5586,7 +5586,7 @@
         // Servicio: poblar select y seleccionar
         const svcSel = document.getElementById('ecServicio');
         svcSel.innerHTML = (_servicios || []).map(s =>
-            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" style="background:#111">${s.nombre}</option>`
+            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" style="background:#111">${s.nombre}${s.soloStaff ? ' · 🔒 interno' : ''}</option>`
         ).join('');
         // Match por id O por nombre (fix de Agenda.jsx para citas viejas sin serviceId)
         let matched = (_servicios || []).find(s => s.id === cita.servicioId);

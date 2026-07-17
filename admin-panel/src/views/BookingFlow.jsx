@@ -50,7 +50,12 @@ export default function BookingFlow() {
     ),
     [rawBarberos, id],
   );
-  const servicios = useMemo(() => rawServicios ?? [], [rawServicios]);
+  // Los servicios soloStaff (marcados como "interno" en /gestion-interna/servicios)
+  // no se muestran en la reserva pública — solo el staff los agenda desde el panel.
+  const servicios = useMemo(
+    () => (rawServicios ?? []).filter(s => !s.soloStaff),
+    [rawServicios],
+  );
   const loading = loadingBarberos || loadingServicios;
 
   if (loading) return <LoadingFlow accent={accent} />;

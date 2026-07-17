@@ -45,6 +45,11 @@ const EMPTY = {
   icono: 'ph-scissors', descripcion: '', varPrecios: false,
   ppd: { ...EMPTY_PPD }, imagen: null,
   recargoSobrecupoDefault: '',
+  // Servicio interno: solo el staff puede agendarlo desde el panel.
+  // La reserva online pública (index.html) lo oculta. Útil para walk-ins,
+  // cortesías, retoques o bloqueos con nombre que no queremos que el cliente
+  // reserve por su cuenta.
+  soloStaff: false,
   // Motor de cuponeras/packs de sesiones.
   //   isPack:              true si el servicio agrupa N visitas prepagas
   //   sesionesTotales:     cantidad total de visitas del pack (ej. 4)
@@ -219,6 +224,7 @@ export default function Servicios() {
       serviciosIncluidos: Array.isArray(s.serviciosIncluidos) ? [...s.serviciosIncluidos] : [],
       recomendar:         Array.isArray(s.recomendados) && s.recomendados.length > 0,
       recomendados:       Array.isArray(s.recomendados) ? [...s.recomendados] : [],
+      soloStaff:          !!s.soloStaff,
     });
     resetImageState();
     setSlide(true);
@@ -287,6 +293,7 @@ export default function Servicios() {
         // Pack / cuponera. isPack=false explícito para que el filtro
         // "servicios normales" siga funcionando sin tocar los existentes.
         isPack,
+        soloStaff: !!form.soloStaff,
       };
       if (isPack) {
         base.sesionesTotales = sesionesTotales;
@@ -609,6 +616,33 @@ export default function Servicios() {
             <p className={help}>
               Monto adicional cuando la cita es sobrecupo o fuera de turno. El barbero puede ajustarlo por cita.
             </p>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Servicio interno (solo staff)
+              Se oculta en la reserva online del cliente pero sigue
+              disponible al agendar desde el panel / agenda del barbero.
+              ══════════════════════════════════════════════════════════ */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, soloStaff: !f.soloStaff }))}
+              className={`flex items-center justify-between gap-4 w-full p-4 border rounded-xl transition-colors ${
+                form.soloStaff
+                  ? 'bg-amber-500/10 border-amber-500/40'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <span aria-hidden="true">🔒</span> Servicio interno (solo staff)
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Oculto en la reserva online. Solo ustedes pueden agendarlo desde el panel.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.soloStaff ? 'bg-amber-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.soloStaff ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
           </div>
 
           {/* ── Categoría + Ícono ── */}
@@ -979,6 +1013,11 @@ function ServicioCardBody({ s, topServicio }) {
           {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (
             <span className="bg-sky-400/10 text-sky-400 border border-sky-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
               ✨ recomienda {s.recomendados.length}
+            </span>
+          )}
+          {s.soloStaff && (
+            <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              🔒 solo staff
             </span>
           )}
         </div>
