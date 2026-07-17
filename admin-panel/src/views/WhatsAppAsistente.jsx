@@ -4,43 +4,79 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { useTenant } from '../contexts/TenantContext';
 import {
   QrCode, ShieldAlert, Loader2, CheckCircle2, Power, Clock,
-  Smartphone, Unlink, Sparkles, X,
+  Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, ExternalLink, Bot,
 } from 'lucide-react';
 
-// Vista del add-on premium "Asistente IA 24/7 + Confirmaciones" — vinculación del
-// número PROPIO del local vía Evolution API (sesión/QR), 100% autogestionable.
-// Backend: functions/evolution/gateway.js. Aislado del número oficial de Meta.
+// Módulo premium "Asistente IA 24/7" — el bot responde y agenda solo sobre el
+// número PROPIO del local (Evolution API, sesión/QR). Backend: functions/evolution/gateway.js.
+//
+// GATING (lo que cambió): la "llave" del módulo vive en _system/{tid}.waAsistente,
+// que SOLO SynapTech puede escribir (reglas: _system write = esBootstrap). El
+// cliente NO lo auto-activa: si no está habilitado, solo ve la tarjeta bloqueada
+// con "Solicitar activación". Fallback: si ya está conectado, se respeta (no se
+// bloquea a quien ya lo tenía andando).
+
+const WA_SYNAPTECH = '56983568212';
 
 const TYC_TEXT =
   'Comprendo que al vincular mi línea particular a un asistente automatizado de terceros, ' +
   'asumo las políticas de uso responsable de WhatsApp y de la plataforma.';
+
+const card = 'bg-slate-800/30 border border-slate-700/50 rounded-2xl';
 
 function callFn(name, payload) {
   const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), name);
   return fn(payload).then((r) => r.data);
 }
 
-export default function WhatsAppAsistente() {
-  const tid = resolveTenantId();
-  const [cfg, setCfg]           = useState(null);
+// Cabecera común del módulo (ícono + título + badge de estado).
+function ModuleHeader({ statusBadge }) {
+  return (
+    <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Sparkles size={17} className="text-violet-400 shrink-0" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-base font-bold text-white leading-tight">Asistente IA 24/7</h2>
+            <span className="bg-violet-500/10 text-violet-300 border border-violet-500/30 rounded-full text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Premium</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
+            El bot responde y agenda solo en <strong className="text-slate-300">tu propio WhatsApp</strong> — sin perder tu app ni tu número.
+          </p>
+        </div>
+      </div>
+      {statusBadge}
+    </div>
+  );
+}
+
+export default function WhatsAppAsistente({ embedded = false }) {
+  const tid    = resolveTenantId();
+  const tenant = useTenant();
+
+  const [sys, setSys]           = useState(null);   // _system/{tid} → entitlement
+  const [cfg, setCfg]           = useState(null);   // configuracion/whatsapp → operativo
   const [tyc, setTyc]           = useState(false);
   const [modal, setModal]       = useState(false);
   const [qr, setQr]             = useState(null);
   const [pairing, setPairing]   = useState(null);
   const [vinculando, setVinc]   = useState(false);
-  const [conectado, setConectado] = useState(false); // pantalla de éxito
+  const [conectado, setConectado] = useState(false);
   const [err, setErr]           = useState('');
 
-  /* ── Suscripción al doc de config ── */
+  /* ── Entitlement: _system/{tid}.waAsistente (solo SynapTech lo escribe) ── */
+  useEffect(() => {
+    const ref = doc(db, '_system', tid);
+    return onSnapshot(ref, (s) => setSys(s.exists() ? s.data() : {}), () => setSys({}));
+  }, [tid]);
+
+  /* ── Config operativa del local ── */
   useEffect(() => {
     const ref = doc(db, 'tenants', tid, 'configuracion', 'whatsapp');
-    return onSnapshot(
-      ref,
-      (snap) => setCfg(snap.exists() ? snap.data() : {}),
-      () => setCfg({}),
-    );
+    return onSnapshot(ref, (snap) => setCfg(snap.exists() ? snap.data() : {}), () => setCfg({}));
   }, [tid]);
 
   const estado      = cfg?.estadoConexion || 'disconnected';
@@ -50,12 +86,18 @@ export default function WhatsAppAsistente() {
   const confirmOn   = cfg?.confirmacionesEnabled === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
 
-  /* ── Escritura directa de switches (admin) ── */
+  // Habilitado = la llave de SynapTech, o (fallback) ya estaba conectado.
+  const habilitado = sys?.waAsistente === true || isConnected;
+
+  const solicitarUrl = `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(
+    `Hola SynapTech, soy de *${tenant?.name || tid}* y quiero activar el *Asistente IA 24/7* por WhatsApp (el bot que responde y agenda solo). ¿Cómo lo activamos?`,
+  )}`;
+
+  /* ── Escritura de switches operativos (solo si está habilitado) ── */
   function patchCfg(patch) {
     setDoc(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'), patch, { merge: true }).catch(() => {});
   }
 
-  /* ── Vincular ── */
   async function vincular() {
     setErr(''); setVinc(true); setQr(null); setConectado(false);
     try {
@@ -68,7 +110,6 @@ export default function WhatsAppAsistente() {
     }
   }
 
-  /* ── Polling del modal: refresca QR y detecta la conexión ── */
   useEffect(() => {
     if (!modal || conectado) return;
     let alive = true;
@@ -94,131 +135,192 @@ export default function WhatsAppAsistente() {
     catch (e) { setErr(e?.message || 'No se pudo desvincular.'); }
   }
 
-  return (
-    <div className="space-y-5">
-      {/* ── Sub-header ── */}
-      <div className="flex items-center gap-2.5">
-        <Sparkles size={18} className="text-amber-400" />
-        <div>
-          <h2 className="text-sm font-bold text-white">Asistente IA 24/7 sobre tu número</h2>
-          <p className="text-xs text-slate-400">
-            El bot responde y agenda solo, en <strong className="text-slate-300">tu propio WhatsApp</strong> — sin perder tu app ni tu número.
+  /* ── Cargando el estado del entitlement ── */
+  if (sys === null || cfg === null) {
+    return (
+      <div className={`${card} p-6 flex items-center justify-center`}>
+        <Loader2 size={20} className="animate-spin text-slate-500" />
+      </div>
+    );
+  }
+
+  /* ══ BLOQUEADO — no habilitado por SynapTech ══ */
+  if (!habilitado) {
+    return (
+      <div className={`${card} p-6 relative overflow-hidden`}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(70% 60% at 100% 0%, rgba(139,92,246,0.08), transparent 70%)' }} />
+        <div className="relative">
+          <ModuleHeader
+            statusBadge={
+              <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 bg-slate-700/50 border border-slate-600/60 rounded-full px-2.5 py-1">
+                <Lock size={12} /> Bajo activación
+              </span>
+            }
+          />
+
+          {/* Beneficios rápidos */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+            {[
+              { Icon: Bot,    t: 'Responde solo',   d: 'Precios, horarios, disponibilidad — al instante, 24/7.' },
+              { Icon: Clock,  t: 'Agenda por ti',   d: 'El cliente pide hora y el bot la reserva en tu agenda.' },
+              { Icon: Sparkles, t: 'Anti no-show',  d: 'Confirma las citas para reducir las inasistencias.' },
+            ].map((f, i) => (
+              <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-3">
+                <f.Icon size={15} className="text-violet-400 mb-1.5" />
+                <p className="text-xs font-bold text-white leading-tight">{f.t}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{f.d}</p>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href={solicitarUrl}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
+          >
+            <MessageCircle size={16} /> Solicitar activación <ExternalLink size={13} />
+          </a>
+          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+            Es un módulo premium que activa el equipo de SynapTech por ti. Toca el botón y coordinamos la puesta en marcha sobre tu número.
           </p>
         </div>
       </div>
+    );
+  }
 
-      {err && (
-        <div role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">{err}</div>
-      )}
+  /* ══ HABILITADO — módulo operativo ══ */
+  return (
+    <div className={`${card} p-6 relative overflow-hidden`}>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(70% 60% at 100% 0%, rgba(139,92,246,0.06), transparent 70%)' }} />
+      <div className="relative space-y-4">
 
-      {!isConnected ? (
-        /* ── No vinculado: T&C + botón ── */
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-5 space-y-4">
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3.5">
-            <ShieldAlert size={18} className="text-amber-400 shrink-0 mt-0.5" />
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={tyc}
-                onChange={(e) => setTyc(e.target.checked)}
-                className="mt-0.5 accent-amber-500 h-4 w-4 shrink-0"
-              />
-              <span className="text-xs text-amber-200/90 leading-relaxed">{TYC_TEXT}</span>
-            </label>
-          </div>
+        <ModuleHeader
+          statusBadge={
+            isConnected ? (
+              <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2.5 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Conectado
+              </span>
+            ) : (
+              <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/25 rounded-full px-2.5 py-1">
+                Listo para vincular
+              </span>
+            )
+          }
+        />
 
-          <button
-            type="button"
-            onClick={vincular}
-            disabled={!tyc || vinculando}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold py-3 transition-all"
-          >
-            {vinculando ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
-            {vinculando ? 'Generando QR…' : 'Vincular WhatsApp'}
-          </button>
-          <p className="text-[11px] text-slate-500 text-center">
-            Vas a escanear un QR desde tu celular (WhatsApp → Dispositivos vinculados). Tu número sigue funcionando normal.
-          </p>
-        </div>
-      ) : (
-        /* ── Vinculado: estado + switches ── */
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
-              <Smartphone size={18} className="text-emerald-400" />
+        {err && (
+          <div role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">{err}</div>
+        )}
+
+        {!isConnected ? (
+          /* ── No vinculado: T&C + botón ── */
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-5 space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3.5">
+              <ShieldAlert size={18} className="text-amber-400 shrink-0 mt-0.5" />
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={tyc}
+                  onChange={(e) => setTyc(e.target.checked)}
+                  className="mt-0.5 accent-amber-500 h-4 w-4 shrink-0"
+                />
+                <span className="text-xs text-amber-200/90 leading-relaxed">{TYC_TEXT}</span>
+              </label>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Conectado
-              </p>
-              <p className="text-xs text-slate-400 truncate">{numero ? `+${numero}` : 'Tu número está vinculado'}</p>
-            </div>
-            <button onClick={desvincular} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-300 transition-colors">
-              <Unlink size={14} /> Desvincular
-            </button>
-          </div>
 
-          {/* Switch maestro del bot */}
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Power size={18} className={botOn ? 'text-emerald-400' : 'text-slate-500'} />
-              <div>
-                <p className="text-sm font-semibold text-white">Asistente IA</p>
-                <p className="text-xs text-slate-400">{botOn ? 'Encendido — responde y agenda solo' : 'Apagado — nadie responde por ti (útil en feriados)'}</p>
-              </div>
-            </div>
             <button
               type="button"
-              role="switch"
-              aria-checked={botOn}
-              onClick={() => patchCfg({ botEnabled: !botOn })}
-              className={`relative w-12 h-7 rounded-full transition-colors ${botOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
+              onClick={vincular}
+              disabled={!tyc || vinculando}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold py-3 transition-all"
             >
-              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${botOn ? 'left-6' : 'left-1'}`} />
+              {vinculando ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
+              {vinculando ? 'Generando QR…' : 'Vincular WhatsApp'}
             </button>
+            <p className="text-[11px] text-slate-500 text-center">
+              Vas a escanear un QR desde tu celular (WhatsApp → Dispositivos vinculados). Tu número sigue funcionando normal.
+            </p>
           </div>
+        ) : (
+          /* ── Vinculado: estado + switches ── */
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
+                <Smartphone size={18} className="text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Conectado
+                </p>
+                <p className="text-xs text-slate-400 truncate">{numero ? `+${numero}` : 'Tu número está vinculado'}</p>
+              </div>
+              <button onClick={desvincular} className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-300 transition-colors">
+                <Unlink size={14} /> Desvincular
+              </button>
+            </div>
 
-          {/* Confirmaciones anti-no-show */}
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4 space-y-4">
-            <div className="flex items-center justify-between gap-3">
+            {/* Switch maestro del bot */}
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Clock size={18} className={confirmOn ? 'text-emerald-400' : 'text-slate-500'} />
+                <Power size={18} className={botOn ? 'text-emerald-400' : 'text-slate-500'} />
                 <div>
-                  <p className="text-sm font-semibold text-white">Confirmación de cita</p>
-                  <p className="text-xs text-slate-400">
-                    {confirmOn
-                      ? 'Le pedimos al cliente confirmar por WhatsApp antes de su hora'
-                      : 'Apagado — no se piden confirmaciones (útil para no molestar)'}
-                  </p>
+                  <p className="text-sm font-semibold text-white">Asistente encendido</p>
+                  <p className="text-xs text-slate-400">{botOn ? 'Responde y agenda solo' : 'Apagado — nadie responde por ti (útil en feriados)'}</p>
                 </div>
               </div>
               <button
                 type="button"
                 role="switch"
-                aria-checked={confirmOn}
-                onClick={() => patchCfg({ confirmacionesEnabled: !confirmOn })}
-                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${confirmOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                aria-checked={botOn}
+                onClick={() => patchCfg({ botEnabled: !botOn })}
+                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${botOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
               >
-                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${confirmOn ? 'left-6' : 'left-1'}`} />
+                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${botOn ? 'left-6' : 'left-1'}`} />
               </button>
             </div>
-            {confirmOn && (
-              <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-700/40">
-                <p className="text-xs text-slate-400">¿Cuántas horas antes se le pide confirmar?</p>
-                <select
-                  value={ventana}
-                  onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
-                  className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+
+            {/* Confirmaciones anti-no-show */}
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Clock size={18} className={confirmOn ? 'text-emerald-400' : 'text-slate-500'} />
+                  <div>
+                    <p className="text-sm font-semibold text-white">Confirmación de cita</p>
+                    <p className="text-xs text-slate-400">
+                      {confirmOn
+                        ? 'Le pedimos al cliente confirmar por WhatsApp antes de su hora'
+                        : 'Apagado — no se piden confirmaciones (útil para no molestar)'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={confirmOn}
+                  onClick={() => patchCfg({ confirmacionesEnabled: !confirmOn })}
+                  className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${confirmOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
                 >
-                  <option value={12}>12 horas antes</option>
-                  <option value={24}>24 horas antes</option>
-                  <option value={48}>48 horas antes</option>
-                </select>
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${confirmOn ? 'left-6' : 'left-1'}`} />
+                </button>
               </div>
-            )}
+              {confirmOn && (
+                <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-700/40">
+                  <p className="text-xs text-slate-400">¿Cuántas horas antes se le pide confirmar?</p>
+                  <select
+                    value={ventana}
+                    onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
+                    className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value={12}>12 horas antes</option>
+                    <option value={24}>24 horas antes</option>
+                    <option value={48}>48 horas antes</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Modal de escaneo QR ── */}
       {modal && (
@@ -229,7 +331,6 @@ export default function WhatsAppAsistente() {
             </button>
 
             {conectado ? (
-              /* Éxito */
               <div className="flex flex-col items-center text-center py-6">
                 <CheckCircle2 size={64} className="text-emerald-400 mb-4 animate-[pulse_1s_ease-in-out]" />
                 <h3 className="text-lg font-bold text-white">¡Vinculado! 🎉</h3>

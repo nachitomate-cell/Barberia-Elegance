@@ -72,6 +72,16 @@ exports.evolutionVincular = onCall({ region: 'us-central1', cors: true, secrets:
   if (req.data?.tycAceptado !== true) {
     throw new HttpsError('failed-precondition', 'Debes aceptar los términos de uso responsable de WhatsApp.');
   }
+  // Barrera de entitlement: el módulo premium lo activa SynapTech en
+  // _system/{tid}.waAsistente. El cliente NO se auto-activa. Bootstrap
+  // (SynapTech) puede vincular siempre — para configurar o demostrar.
+  const esBootstrap = BOOTSTRAP_EMAILS.includes(String(req.auth.token.email || '').toLowerCase());
+  if (!esBootstrap) {
+    const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
+    if (sys.waAsistente !== true) {
+      throw new HttpsError('permission-denied', 'El Asistente IA aún no está activado para tu local. Solicítalo a SynapTech.');
+    }
+  }
   const instanceName = `instance_${tid}`;
   const c = cliente();
   const opts = { webhookUrl: WEBHOOK_URL, webhookToken: EVOLUTION_WEBHOOK_TOKEN.value() };

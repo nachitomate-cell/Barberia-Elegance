@@ -3233,6 +3233,9 @@
           </div>
           <p id="bf-feedback" style="font-size:0.8rem;text-align:center;margin:0;"></p>
 
+          <!-- ── Módulos WhatsApp (entitlements que solo SynapTech activa) ── -->
+          <div id="wa-modules-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
+
           <!-- ── Suspender / Reactivar cuenta (Kill Switch) ── -->
           <div id="suspension-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
         </div>`;
@@ -3240,6 +3243,7 @@
       renderPlanBtns();
       renderCuotasList();
       loadSuspensionState();
+      loadWaModules();
     }
 
     // ── Kill Switch: suspender/reactivar (escribe en _system/{tenant}) ──
@@ -3276,6 +3280,45 @@
           { merge: true },
         );
         loadSuspensionState();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // ── Módulos WhatsApp: la "llave" premium vive en _system/{tid} (solo bootstrap
+    //    la escribe; el panel del cliente la lee para mostrar activo/bloqueado). ──
+    async function loadWaModules() {
+      const el = document.getElementById('wa-modules-control');
+      if (!el || !_activeTenant) return;
+      let asistente = false;
+      try {
+        const s = await db.collection('_system').doc(_activeTenant).get();
+        asistente = s.exists && s.data().waAsistente === true;
+      } catch (e) {}
+      const sw = (on, fn) => `<button onclick="${fn}" role="switch" aria-checked="${on}" style="
+          position:relative;width:46px;height:26px;border-radius:999px;border:none;cursor:pointer;flex-shrink:0;
+          background:${on ? '#22c55e' : '#475569'};transition:background 0.2s;">
+          <span style="position:absolute;top:3px;left:${on ? '23px' : '3px'};width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;"></span>
+        </button>`;
+      el.innerHTML = `
+        <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.5rem;">
+          <i class="ph-bold ph-sparkle"></i> Módulos WhatsApp
+        </p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.22);border-radius:0.625rem;padding:0.7rem 0.85rem;">
+          <div style="min-width:0;">
+            <p style="font-size:0.82rem;font-weight:700;color:#fff;margin:0;">Asistente IA 24/7 <span style="font-size:0.6rem;color:#a78bfa;font-weight:800;letter-spacing:0.05em;">PREMIUM</span></p>
+            <p style="font-size:0.7rem;color:#64748b;margin:0.1rem 0 0;">Bot que responde y agenda solo sobre el número del local.</p>
+          </div>
+          ${sw(asistente, `toggleWaAsistente(${!asistente})`)}
+        </div>
+        <p style="font-size:0.68rem;color:#64748b;margin:0.5rem 0 0;line-height:1.4;">
+          Encendido → el local puede vincular su WhatsApp y usar el bot. Apagado → el módulo aparece bloqueado en su panel (solo "Solicitar activación").
+        </p>`;
+    }
+
+    async function toggleWaAsistente(val) {
+      if (!_activeTenant) return;
+      try {
+        await db.collection('_system').doc(_activeTenant).set({ waAsistente: val }, { merge: true });
+        loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }
 
