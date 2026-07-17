@@ -1889,12 +1889,18 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 /* Descansos del barbero para un día concreto, desde barberos/{id}.horario.
    ───────────────────────────────────────────────────────────────
    Son los que se configuran en Equipo → "Horario semanal" (uno o más por día).
-   Hasta ahora la agenda NO los leía: se guardaban y no se veían en ningún lado,
-   así que el local los configuraba y le seguían cayendo citas encima.
+   La agenda del admin no los leía: se guardaban y no se veían acá.
+
+   Que quede claro para el próximo que pase: la RESERVA PÚBLICA sí los respeta
+   desde siempre — firebaseUtils.js:1039 saltea todo slot que pise un descanso,
+   y getHorasDisponiblesMulti hace lo mismo por barbero. O sea que el agujero
+   nunca fue de disponibilidad (nadie podía reservar encima), era solo que el
+   local no los veía en su propia grilla.
 
    Ojo, es distinto de `colacion` (barberos/{id}/configuracion/main.colacion),
    que es UNA sola franja igual para todos los días. Conviven: un barbero puede
-   tener su colación fija + descansos puntuales de un día. */
+   tener su colación fija + descansos puntuales de un día. Si hay descansos del
+   día, esos mandan y la colación global se ignora (firebaseUtils.js:1006). */
 function descansosDe(barbero, dateObj) {
   // horario está indexado por getDay(): '0'=Dom … '6'=Sáb.
   const dia = barbero?.horario?.[String(dateObj.getDay())];
