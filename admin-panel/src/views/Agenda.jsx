@@ -1960,6 +1960,15 @@ function descansosDe(barbero, dateObj) {
     typeof d?.fin === 'string' && d.fin.includes(':'));
 }
 
+/* ¿El barbero tiene DÍA LIBRE en esta fecha? El horario semanal (Equipo →
+   "Horario semanal") marca cada día con `activo`. activo === false = día libre.
+   Sin `horario` configurado, o sin entrada para ese día → asumimos que trabaja
+   (retrocompat: barberos viejos sin horario NO se marcan como libres). */
+function esDiaLibre(barbero, dateObj) {
+  const dia = barbero?.horario?.[String(dateObj.getDay())];
+  return !!dia && dia.activo === false;
+}
+
 /* ── ColacionBlock ───────────────────────────────────────────────
    Franja informativa de colación/descanso del barbero en la grilla
    del admin (la agenda del profesional ya la pinta). Es solo visual:
@@ -4514,6 +4523,7 @@ export default function Agenda() {
 
                   // Layout en columnas por solapamiento real de horarios (no solo misma hora)
                   const layoutCitas = computeOverlapLayout(conHoraEstimada(barberCitas));
+                  const diaLibre    = esDiaLibre(b, date);
 
                   return (
                     <SortableCol key={b.id} id={b.id}>
@@ -4568,16 +4578,34 @@ export default function Agenda() {
                                   </span>}
                             </div>
                             {/* Nombre */}
-                            <span className="font-semibold text-sm text-primary mt-1 truncate max-w-full">{b.nombre}</span>
-                            {/* Citas del día */}
-                            <span className="text-xs text-neutral-500">
-                              {barberCitas.length === 0
-                                ? 'Sin citas'
-                                : `${barberCitas.length} cita${barberCitas.length === 1 ? '' : 's'}`}
-                            </span>
+                            <span className={`font-semibold text-sm mt-1 truncate max-w-full ${diaLibre ? 'text-slate-500' : 'text-primary'}`}>{b.nombre}</span>
+                            {/* Citas del día — o "Día libre" si no atiende hoy */}
+                            {diaLibre ? (
+                              <span className="text-xs font-semibold text-amber-500/90 flex items-center gap-1">
+                                <CalendarOff size={11} /> Día libre
+                              </span>
+                            ) : (
+                              <span className="text-xs text-neutral-500">
+                                {barberCitas.length === 0
+                                  ? 'Sin citas'
+                                  : `${barberCitas.length} cita${barberCitas.length === 1 ? '' : 's'}`}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
+                          <div className={`relative ${diaLibre ? 'opacity-60' : ''}`} style={{ height: `${totalSlots * 40}px` }}>
+                            {/* Día libre: rayado + chip. pointer-events-none → el admin
+                                igual puede agendar una excepción encima si lo necesita. */}
+                            {diaLibre && (
+                              <div
+                                className="absolute inset-0 z-[15] flex items-start justify-center pt-8 pointer-events-none"
+                                style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(148,163,184,0.05) 0 10px, transparent 10px 20px)' }}
+                              >
+                                <span className="text-[11px] font-semibold text-amber-500/90 bg-slate-900/85 border border-amber-500/30 rounded-full px-3 py-1 flex items-center gap-1.5">
+                                  <CalendarOff size={11} /> Día libre — no atiende hoy
+                                </span>
+                              </div>
+                            )}
                             {timeLabels.map((_, i) => (
                               <SlotRow
                                 key={i}
