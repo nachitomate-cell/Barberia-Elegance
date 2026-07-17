@@ -1008,6 +1008,7 @@ exports.googleReviewsSyncManual    = googleReviews.googleReviewsSyncManual;
 // Autoservicio: el propio local busca su negocio y vincula su Place ID.
 exports.googlePlacesBuscar         = googleReviews.googlePlacesBuscar;
 exports.googleReviewsVincular      = googleReviews.googleReviewsVincular;
+exports.googleReviewsSetBaseline   = googleReviews.googleReviewsSetBaseline;
 
 // ─────────────────────────────────────────────────────────────────
 //  DEDUP CLIENTE — ver dedupe-cliente-onCreate.js

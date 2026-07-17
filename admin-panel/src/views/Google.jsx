@@ -210,6 +210,31 @@ function TabResumen() {
   const [syncMsg, setSyncMsg] = useState('');
   const isSuperadmin = SUPERADMINS.has((user?.email || '').toLowerCase());
 
+  // Editor superadmin del baseline (reseñas con las que empezó el local).
+  const [editBaseline, setEditBaseline] = useState(false);
+  const [baselineInput, setBaselineInput] = useState('');
+  const [dateInput, setDateInput] = useState('');
+  const [savingBaseline, setSavingBaseline] = useState(false);
+  const [baselineMsg, setBaselineMsg] = useState('');
+
+  async function handleSetBaseline() {
+    const n = Number(baselineInput);
+    if (!Number.isFinite(n) || n < 0) { setBaselineMsg('Número inválido'); return; }
+    setSavingBaseline(true);
+    setBaselineMsg('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'googleReviewsSetBaseline');
+      await fn({ tenantId: tenant.id, baseline: n, date: dateInput || undefined });
+      setBaselineMsg('✓ Guardado');
+      setEditBaseline(false);
+    } catch (e) {
+      setBaselineMsg(e?.message || 'No se pudo guardar');
+    } finally {
+      setSavingBaseline(false);
+      setTimeout(() => setBaselineMsg(''), 4000);
+    }
+  }
+
   async function handleForceSync() {
     if (syncing) return;
     setSyncing(true);
@@ -314,6 +339,101 @@ function TabResumen() {
           {syncMsg && <p className="text-[10.5px] text-slate-400 mt-2 leading-snug">{syncMsg}</p>}
         </div>
       </div>
+
+      {/* ── Crecimiento con SynapTech (hook de valor) ── */}
+      {(() => {
+        const baseline    = typeof data.reviewsBaseline === 'number' ? data.reviewsBaseline : null;
+        const current     = typeof data.totalReviews === 'number' ? data.totalReviews : null;
+        const ganadas     = (baseline != null && current != null) ? current - baseline : null;
+        const pct         = (baseline > 0 && ganadas != null) ? (ganadas / baseline) * 100 : null;
+        const hasGrowth   = ganadas != null && ganadas > 0;
+        const baselineStr = data.baselineDate?.toDate
+          ? data.baselineDate.toDate().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })
+          : null;
+
+        if (baseline == null && !isSuperadmin) return null;
+
+        return (
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900 border border-emerald-500/25 rounded-2xl p-6">
+            <div aria-hidden className="absolute -top-16 -right-10 w-56 h-56 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25">
+                  <TrendingUp size={15} className="text-emerald-400" />
+                </div>
+                <h3 className="text-sm font-bold text-primary">Tu crecimiento con SynapTech</h3>
+                {isSuperadmin && (
+                  <button
+                    onClick={() => { setEditBaseline(v => !v); setBaselineInput(baseline != null ? String(baseline) : ''); }}
+                    className="ml-auto text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    {editBaseline ? 'Cerrar' : 'Ajustar inicio'}
+                  </button>
+                )}
+              </div>
+
+              {hasGrowth ? (
+                <div className="flex items-center flex-wrap gap-x-6 gap-y-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Empezaste con</p>
+                    <p className="text-2xl font-black text-slate-300 tabular-nums leading-none">{baseline.toLocaleString('es-CL')}</p>
+                    {baselineStr && <p className="text-[10px] text-slate-600 mt-1 capitalize">{baselineStr}</p>}
+                  </div>
+                  <span className="text-2xl text-emerald-500/60 font-black">→</span>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-400/80 font-bold mb-0.5">Hoy tienes</p>
+                    <p className="text-2xl font-black text-primary tabular-nums leading-none">{current.toLocaleString('es-CL')}</p>
+                    <p className="text-[10px] text-slate-600 mt-1">reseñas en Google</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-3xl md:text-4xl font-black text-emerald-400 tabular-nums leading-none">
+                      +{ganadas.toLocaleString('es-CL')}
+                    </p>
+                    <p className="text-xs font-bold text-emerald-400/90 mt-1.5">
+                      {pct != null ? `▲ ${pct.toFixed(0)}% más reseñas` : 'reseñas nuevas'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Estamos midiendo tu crecimiento{baselineStr ? ` desde ${baselineStr}` : ' desde que empezaste'}.
+                  Cada reseña nueva que sumes con el sistema aparecerá acá. 🚀
+                </p>
+              )}
+
+              {isSuperadmin && editBaseline && (
+                <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-end gap-3">
+                  <label className="text-[11px] font-semibold text-slate-400 flex flex-col gap-1">
+                    Reseñas al empezar
+                    <input
+                      type="number" min="0" value={baselineInput}
+                      onChange={e => setBaselineInput(e.target.value)}
+                      placeholder="ej: 45"
+                      className="w-28 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                    />
+                  </label>
+                  <label className="text-[11px] font-semibold text-slate-400 flex flex-col gap-1">
+                    Fecha inicio (opcional)
+                    <input
+                      type="date" value={dateInput}
+                      onChange={e => setDateInput(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
+                    />
+                  </label>
+                  <button
+                    onClick={handleSetBaseline}
+                    disabled={savingBaseline}
+                    className="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 transition-colors disabled:opacity-50"
+                  >
+                    {savingBaseline ? 'Guardando…' : 'Guardar inicio'}
+                  </button>
+                  {baselineMsg && <span className="text-[11px] text-slate-400">{baselineMsg}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Últimas reseñas */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">

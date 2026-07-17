@@ -116,10 +116,60 @@ async function pickSpanishText(review) {
   return translateToSpanish(originalStr, src);
 }
 
-// Consulta Google Places (New) por un placeId y devuelve { rating,
-// totalReviews, reviews[] } ya normalizado y en español. Lo usan syncTenant
-// (cron) y googleReviewsVincular (autoservicio). Tira si el placeId es inválido.
+// ⚠️ IMPORTANTE (2026-07-17): Google entrega máximo 5 reseñas por CUALQUIER API,
+// PERO la API "New" (v1) las devuelve ordenadas por RELEVANCIA y NO permite
+// pedirlas por fecha → el panel mostraba reseñas de meses atrás en vez de las
+// últimas. Para las MÁS RECIENTES la única vía es la API LEGACY con
+// `reviews_sort=newest`. Estrategia: intentar legacy(newest) primero; si la key
+// no tiene habilitada la Places API legacy (REQUEST_DENIED) o falla, caer a la
+// API nueva (mismo resultado que antes, sin regresión).
 async function fetchPlaceReviews(placeId, apiKey) {
+  try {
+    const legacy = await fetchPlaceReviewsLegacy(placeId, apiKey);
+    if (legacy.reviews.length) return legacy;
+    // status OK pero 0 reseñas → probar la nueva por si acaso.
+  } catch (e) {
+    logger.warn(`[GoogleReviews] legacy(newest) no disponible, uso API nueva: ${e.message}`);
+  }
+  return fetchPlaceReviewsNew(placeId, apiKey);
+}
+
+// API LEGACY (Place Details) con reviews_sort=newest → las 5 MÁS RECIENTES.
+// `language=es` hace que Google entregue el texto ya traducido al español.
+async function fetchPlaceReviewsLegacy(placeId, apiKey) {
+  const url = 'https://maps.googleapis.com/maps/api/place/details/json'
+    + `?place_id=${encodeURIComponent(placeId)}`
+    + '&reviews_sort=newest'
+    + '&language=es'
+    + '&fields=rating,user_ratings_total,reviews'
+    + `&key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Places(legacy) HTTP ${res.status}`);
+  const data = await res.json();
+  // La legacy NO usa HTTP status para errores de negocio: van en data.status.
+  if (data.status !== 'OK') {
+    throw new Error(`Places(legacy) ${data.status}: ${(data.error_message || '').slice(0, 200)}`);
+  }
+  const result = data.result || {};
+  // Aunque pedimos newest, ordenamos por `time` (unix) desc para garantizarlo.
+  const raw = (Array.isArray(result.reviews) ? result.reviews : [])
+    .slice()
+    .sort((a, b) => (b.time || 0) - (a.time || 0));
+  const reviews = raw.map((r) => ({
+    author: r.author_name || 'Cliente',
+    rating: r.rating || 5,
+    text:   String(r.text || '').trim(),
+    time:   localizeTimeString(r.relative_time_description || ''),
+  }));
+  return {
+    rating:       typeof result.rating === 'number' ? result.rating : null,
+    totalReviews: typeof result.user_ratings_total === 'number' ? result.user_ratings_total : null,
+    reviews,
+  };
+}
+
+// API NUEVA (Places v1) — fallback. Entrega las 5 por RELEVANCIA (no por fecha).
+async function fetchPlaceReviewsNew(placeId, apiKey) {
   // X-Goog-Language-Code: 'es' es una pista para Places API pero NO garantiza
   // traduccion — Google es inconsistente. Lo dejamos por si algun placeId lo
   // respeta, pero fallbackeamos a MyMemory abajo para los que no.
@@ -156,16 +206,28 @@ async function fetchPlaceReviews(placeId, apiKey) {
 async function syncTenant(tenantId, apiKey) {
   const ref  = reviewsDocRef(tenantId);
   const snap = await ref.get();
-  const placeId = snap.exists ? (snap.data().placeId || '') : '';
+  const existing = snap.exists ? snap.data() : {};
+  const placeId = existing.placeId || '';
   if (!placeId) return { tenantId, skipped: 'sin placeId' };
 
   const { rating, totalReviews, reviews } = await fetchPlaceReviews(placeId, apiKey);
 
-  await ref.set({
+  const patch = {
     rating, totalReviews, reviews,
     source:    'google-places',
     updatedAt: Timestamp.now(),
-  }, { merge: true }); // merge: conserva el placeId existente
+  };
+
+  // ── Crecimiento: guardamos cuántas reseñas tenía el local al EMPEZAR con
+  // SynapTech. Se captura la primera vez que sincronizamos con éxito y NUNCA se
+  // sobrescribe (el superadmin sí puede fijar el histórico real a mano). Sirve
+  // para mostrarle al cliente "empezaste con X → hoy Y" en el panel.
+  if (existing.reviewsBaseline == null && typeof totalReviews === 'number') {
+    patch.reviewsBaseline = totalReviews;
+    patch.baselineDate    = Timestamp.now();
+  }
+
+  await ref.set(patch, { merge: true }); // merge: conserva placeId + baseline
 
   logger.info(`[GoogleReviews] ${tenantId}: ${rating} · ${totalReviews} opiniones (${reviews.length} reseñas)`);
   return { tenantId, rating, totalReviews, reviews: reviews.length };
@@ -304,8 +366,9 @@ exports.googleReviewsVincular = onCall(
       throw new HttpsError('invalid-argument', 'No pudimos verificar ese lugar en Google. Elige otro de la lista.');
     }
 
-    const ref = reviewsDocRef(tid);
-    await ref.set({
+    const ref  = reviewsDocRef(tid);
+    const prev = await ref.get();
+    const patch = {
       placeId,
       rating:       datos.rating,
       totalReviews: datos.totalReviews,
@@ -314,12 +377,55 @@ exports.googleReviewsVincular = onCall(
       vinculadoPor: (request.auth.token?.email || '').toLowerCase() || null,
       vinculadoEn:  Timestamp.now(),
       updatedAt:    Timestamp.now(),
-    }, { merge: true });
+    };
+    // Vincular = "empezar con SynapTech". Capturamos el punto de partida real
+    // (si aún no había baseline) para poder mostrar el crecimiento después.
+    if ((!prev.exists || prev.data().reviewsBaseline == null) && typeof datos.totalReviews === 'number') {
+      patch.reviewsBaseline = datos.totalReviews;
+      patch.baselineDate    = Timestamp.now();
+    }
+    await ref.set(patch, { merge: true });
 
     logger.info(`[GoogleReviewsVincular] ${tid} ← ${placeId} (${datos.rating} · ${datos.totalReviews})`);
     return {
       ok: true, tenantId: tid, placeId,
       rating: datos.rating, totalReviews: datos.totalReviews, reviews: datos.reviews.length,
     };
+  }
+);
+
+// ── Callable: fijar el baseline histórico (SOLO superadmin) ─────────
+//  Para locales que empezaron con SynapTech hace tiempo, el baseline
+//  auto-capturado sería "hoy". Este callable deja que el operador ponga el
+//  número REAL con el que arrancó el local (y opcionalmente la fecha), para que
+//  el panel muestre el crecimiento verdadero. Solo lo puede llamar SynapTech.
+exports.googleReviewsSetBaseline = onCall(
+  { region: 'us-central1', cors: true },
+  async (request) => {
+    const email = String(request.auth?.token?.email || '').toLowerCase();
+    if (!request.auth || !BOOTSTRAP_ADMINS.includes(email)) {
+      throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+    }
+    const tid = String(request.data?.tenantId || '');
+    if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
+
+    const baseline = Number(request.data?.baseline);
+    if (!Number.isFinite(baseline) || baseline < 0 || baseline > 100000) {
+      throw new HttpsError('invalid-argument', 'Cantidad de reseñas inicial inválida.');
+    }
+
+    // Fecha opcional YYYY-MM-DD (cuándo empezó con SynapTech).
+    const dateStr = String(request.data?.date || '');
+    let baselineDate = Timestamp.now();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      baselineDate = Timestamp.fromDate(new Date(`${dateStr}T12:00:00`));
+    }
+
+    await reviewsDocRef(tid).set(
+      { reviewsBaseline: Math.round(baseline), baselineDate },
+      { merge: true },
+    );
+    logger.info(`[GoogleReviewsSetBaseline] ${tid} baseline=${Math.round(baseline)} por ${email}`);
+    return { ok: true, tenantId: tid, reviewsBaseline: Math.round(baseline) };
   }
 );
