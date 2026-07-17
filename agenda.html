@@ -5307,10 +5307,24 @@
         document.getElementById('blockRangeEnd').value   = endTime;
         document.getElementById('blockRangeMotivo').value = '';
         document.getElementById('blockRangeError').classList.add('hidden');
+        // Resetear el botón en cada apertura: en el camino de ÉXITO no se
+        // reseteaba (solo el catch lo hacía), así que tras el primer bloqueo
+        // quedaba disabled + "Bloqueando…". La 2ª vez el modal reabría con ese
+        // estado pegado → el botón muerto, parecía colgado. Bug del reporte.
+        const _bBtn = document.getElementById('blockRangeSaveBtn');
+        const _bLbl = document.getElementById('blockRangeSaveLabel');
+        if (_bBtn) _bBtn.disabled = false;
+        if (_bLbl) _bLbl.textContent = 'Bloquear';
         document.getElementById('blockRangeModal').classList.remove('hidden');
     }
 
     function cerrarBlockRange() {
+        // Dejar el botón listo para el próximo bloqueo. El éxito cierra por acá
+        // sin pasar por el catch, así que sin esto quedaba "Bloqueando…" pegado.
+        const _bBtn = document.getElementById('blockRangeSaveBtn');
+        const _bLbl = document.getElementById('blockRangeSaveLabel');
+        if (_bBtn) _bBtn.disabled = false;
+        if (_bLbl) _bLbl.textContent = 'Bloquear';
         document.getElementById('blockRangeModal').classList.add('hidden');
     }
 
