@@ -399,7 +399,13 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
     setServicioSel('');
     setVenderMsg('');
     withTimeout(
-      getDocs(query(tenantCol('services'), where('isPack', '==', true))),
+      // 'servicios', no 'services'. La colección real es la castellana: la
+      // escribe Servicios.jsx y la lee la Agenda. Con 'services' esto apuntaba
+      // a una colección inexistente que además las reglas no declaran → deny
+      // por defecto → permission-denied → el catch de abajo. Por eso el diálogo
+      // mostraba a la vez "No pudimos cargar" (el error) y "No hay servicios con
+      // isPack: true" (la lista vacía), que es lo que lo hacía confuso.
+      getDocs(query(tenantCol('servicios'), where('isPack', '==', true))),
       12000, 'clientes/servicios-pack'
     ).then(snap => {
       const items = snap.docs
@@ -455,8 +461,15 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         let snapshotServicios = [];
         if (idsCubiertos.length) {
           try {
+            // Mismo typo que arriba: 'services' no existe → permission-denied →
+            // caía siempre en el catch de abajo, que deja los IDs crudos de
+            // Firestore como "nombre" del servicio. O sea que el snapshot de
+            // nombres nunca funcionó, y en silencio.
+            // El slice era 10 (el viejo tope del operador `in`); hoy Firestore
+            // acepta 30. Con 10, un pack que cubriera más servicios perdía los
+            // nombres del resto sin avisar.
             const snapSvcs = await withTimeout(
-              getDocs(query(tenantCol('services'), where('__name__', 'in', idsCubiertos.slice(0, 10)))),
+              getDocs(query(tenantCol('servicios'), where('__name__', 'in', idsCubiertos.slice(0, 30)))),
               8000, 'clientes/servicios-snapshot',
             );
             const nombres = new Map();
