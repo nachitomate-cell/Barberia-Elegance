@@ -7060,10 +7060,12 @@
       --accent-r: 0; --accent-g: 0; --accent-b: 0;
       --neon-clr: #000000;
       --neon-r:   0; --neon-g:   0; --neon-b:   0;
-      --body-bg:  #FAFAFA;
+      --body-bg:  #F4F4F5;
 
       /* Tokens Monochrome Premium — solo blanco/negro/grises */
-      --brand-bg: #FAFAFA !important;
+      /* zinc-100. Va junto con .tenant-infinity body: si quedan distintos, lo
+         que derive de la var se despega del fondo real de la página. */
+      --brand-bg: #F4F4F5 !important;
       --brand-surface: #FFFFFF !important;
       --brand-surface-alt: #FFFFFF !important;
       --brand-primary: #000000 !important;
@@ -7089,34 +7091,23 @@
     .tenant-infinity .text-white\/80 { color: rgba(0, 0, 0, 0.8) !important; }
     .tenant-infinity .text-white\/90 { color: rgba(0, 0, 0, 0.9) !important; }
 
-    .tenant-infinity::before {
-      content: "∞" !important;
-      position: fixed !important;
-      top: 12% !important;
-      left: -8% !important;
-      font-size: 22rem !important;
-      color: rgba(0, 0, 0, 0.02) !important;
-      font-weight: 300 !important;
-      z-index: 0 !important;
-      pointer-events: none !important;
-      will-change: transform !important;
-      animation: float-infinity-slow 22s ease-in-out infinite alternate !important;
-    }
+    /* Las marcas de agua ∞ (dos glifos de 22rem/28rem en ::before/::after,
+       animados en loop infinito) se apagaron a pedido del local: "el fondo
+       distorsiona la información". Eran fijas y se movían todo el tiempo
+       detrás de las tarjetas — a rgba(0,0,0,0.02) casi no se ven quietas,
+       pero el movimiento continuo sí se percibe y cansa al leer.
+       Se dejan las reglas (con content:none) y no se borra el keyframe por si
+       el local las quiere de vuelta: revivirlas es cambiar esta línea. */
+    .tenant-infinity::before,
     .tenant-infinity::after {
-      content: "∞" !important;
-      position: fixed !important;
-      bottom: 8% !important;
-      right: -10% !important;
-      font-size: 28rem !important;
-      color: rgba(0, 0, 0, 0.025) !important;
-      font-weight: 300 !important;
-      z-index: 0 !important;
-      pointer-events: none !important;
-      will-change: transform !important;
-      animation: float-infinity-fast 28s ease-in-out infinite alternate !important;
+      content: none !important;
     }
     .tenant-infinity body {
-      background-color: #FAFAFA !important;
+      /* Gris de marca (zinc-100). Antes #FAFAFA: como las tarjetas están
+         fijadas en #FFFFFF, el contraste era de 2 puntos y todo se leía plano
+         — "el fondo distorsiona la información". Con zinc-100 la tarjeta
+         blanca se despega del fondo y la jerarquía vuelve. */
+      background-color: #F4F4F5 !important;
       background-image: none !important;
       color: #000000 !important;
       position: relative;
@@ -7580,25 +7571,20 @@
       box-shadow: none !important;
     }
 
-    /* ── Paso 2 - Cards de barberos COMPACTAS (patrón Aura light) ──
-       El JS renderea las cards con layout vertical grande (flex-col,
-       p-6, foto 80x80, texto centrado). En light minimalista queda
-       demasiado pesado. Forzamos layout horizontal compacto:
-       - flex-direction: row (horizontal, foto izquierda + texto derecha)
-       - padding compacto 12px 16px
-       - foto 48px x 48px (era 80px)
-       - texto alineado a la izquierda
-       - nombre text-base (no text-lg)
-       Estructura visual final ~64px de alto (era ~200px). */
-    .tenant-infinity .barber-option {
-      flex-direction: row !important;
-      align-items: center !important;
-      justify-content: flex-start !important;
-      gap: 12px !important;
-      padding: 12px 16px !important;
-      text-align: left !important;
-      min-height: 64px !important;
-    }
+    /* ── Paso 2 - Cards de barberos ──
+       Acá vivía un hack que forzaba flex-direction:row sobre las cards, para
+       imitar el layout compacto de Aura. Funcionaba a medias y por eso los
+       nombres se partían en dos líneas: el render default (flex-col) deja el
+       nombre, la especialidad, los días y la disponibilidad como HERMANOS
+       sueltos del flex. Al voltear el eje a row, los cuatro pasaban a competir
+       por el ancho y wrappeaban todos.
+
+       La solución no era CSS: ahora `infinity` entra en la rama _isElegance
+       del render (_renderBarberos), que es la MISMA que usa Aura y que sí anida
+       el texto en un .flex-1.min-w-0 con truncate. Con eso el nombre ocupa el
+       ancho que sobra y corta con "…" en vez de romper la card.
+       Las reglas de img.w-20 de acá abajo quedaron muertas (esa rama usa w-12,
+       cubierto más abajo); se dejan por si algún día vuelve el render default. */
     /* Foto grande (w-20 h-20) del render default → 48x48 compacto. Aplico
        a IMG y a DIV (placeholder cuando no hay foto). */
     .tenant-infinity .barber-option img.w-20,
@@ -10645,7 +10631,12 @@
       // si alguna vez alguien llama a _renderBarberos con datos crudos (ej. desde
       // consola o parche futuro), aquí volvemos a bloquear los inactivos.
       barberos = barberos.filter(b => b.disponible !== false && b.activo !== false);
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
+      // `infinity` entró acá a pedido del local ("vi la estética de aura y me
+      // gustó"). No es solo estética: esta rama anida el texto en un
+      // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
+      // líneas. La rama default (abajo) los deja como hermanos sueltos del
+      // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
