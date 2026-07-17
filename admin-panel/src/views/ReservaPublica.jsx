@@ -230,7 +230,7 @@ export default function ReservaPublica() {
   const channels = [
     {
       key: 'instagram', Icon: Instagram,
-      iconBg: 'bg-gradient-to-tr from-fuchsia-500 via-pink-500 to-amber-400 text-white',
+      iconBg: 'bg-gradient-to-tr from-fuchsia-500 via-pink-500 to-amber-400 text-primary',
       label: 'Instagram', action: 'copy',
       desc: 'Editar perfil → Sitio web → pega el link. También puedes fijarlo en tus historias destacadas.',
     },
@@ -248,11 +248,11 @@ export default function ReservaPublica() {
     },
   ];
 
-  const ghostBtn = 'flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm border border-slate-700 transition-colors';
-  const primaryBtn = 'flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all';
+  const ghostBtn = 'flex items-center gap-1.5 text-slate-400 hover:text-primary hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm border border-slate-700 transition-colors';
+  const primaryBtn = 'flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-primary text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all';
   const primaryCopied = 'flex items-center gap-2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all';
-  const secondaryBtn = 'flex items-center gap-2 text-slate-300 hover:text-white bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors';
-  const smallCopyBtn = 'flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-md transition-colors shrink-0';
+  const secondaryBtn = 'flex items-center gap-2 text-slate-300 hover:text-primary bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors';
+  const smallCopyBtn = 'flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-md transition-colors shrink-0';
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -261,7 +261,7 @@ export default function ReservaPublica() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Globe size={20} className="text-emerald-400" />
-          <h1 className="text-xl font-bold text-white">Reserva Online</h1>
+          <h1 className="text-xl font-bold text-primary">Reserva Online</h1>
         </div>
         <p className="text-sm text-slate-400">
           Comparte este link para que tus clientes reserven 24/7 sin necesidad de llamar.
@@ -276,7 +276,7 @@ export default function ReservaPublica() {
               <CalendarCheck size={22} className="text-emerald-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-4xl font-extrabold text-white leading-none tracking-tight">{onlineCount}</p>
+              <p className="text-4xl font-extrabold text-primary leading-none tracking-tight">{onlineCount}</p>
               <p className="text-xs text-slate-400 mt-2">
                 reserva{onlineCount !== 1 ? 's' : ''} online este mes · cada una cae sola en tu agenda
               </p>
@@ -343,7 +343,7 @@ export default function ReservaPublica() {
       <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <div>
-            <p className="text-sm font-bold text-white">Código QR</p>
+            <p className="text-sm font-bold text-primary">Código QR</p>
             <p className="text-xs text-slate-500 mt-0.5">Imprime y pega en tu local o compártelo en redes</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -375,14 +375,14 @@ export default function ReservaPublica() {
             />
           </div>
           <p className="text-xs text-slate-500 text-center">
-            Escanea con la cámara del celular para reservar en <span className="text-white font-semibold">{name}</span>
+            Escanea con la cámara del celular para reservar en <span className="text-primary font-semibold">{name}</span>
           </p>
         </div>
       </div>
 
       {/* Dónde compartir */}
       <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
-        <p className="text-sm font-bold text-white mb-4">Dónde compartir</p>
+        <p className="text-sm font-bold text-primary mb-4">Dónde compartir</p>
         <div>
           {channels.map(({ Icon, iconBg, label, desc, key, action }) => (
             <div
@@ -394,7 +394,7 @@ export default function ReservaPublica() {
                   <Icon size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white">{label}</p>
+                  <p className="text-sm font-semibold text-primary">{label}</p>
                   <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
                 </div>
               </div>

@@ -163,7 +163,7 @@ export default function ReferidosBoca() {
             <Share2 size={18} className={programaActivo ? 'text-emerald-400' : 'text-slate-400'} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-white">
+            <h2 className="text-base font-bold text-primary">
               Boca a boca {programaActivo
                 ? <span className="text-emerald-400">· Activo</span>
                 : <span className="text-slate-500">· Apagado</span>}
@@ -176,10 +176,10 @@ export default function ReferidosBoca() {
             {programaActivo && (
               <div className="mt-3 flex flex-wrap gap-3 text-xs">
                 <span className="px-2.5 py-1 rounded-full bg-slate-800/70 border border-slate-700/60 text-slate-300">
-                  <b className="text-white">Referidor:</b> {describeRecompensa(rp?.recompensaReferidor)}
+                  <b className="text-primary">Referidor:</b> {describeRecompensa(rp?.recompensaReferidor)}
                 </span>
                 <span className="px-2.5 py-1 rounded-full bg-slate-800/70 border border-slate-700/60 text-slate-300">
-                  <b className="text-white">Referido:</b> {describeRecompensa(rp?.recompensaReferido)}
+                  <b className="text-primary">Referido:</b> {describeRecompensa(rp?.recompensaReferido)}
                 </span>
               </div>
             )}
@@ -198,7 +198,7 @@ export default function ReferidosBoca() {
       {/* ── Top referidores ─────────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 overflow-hidden">
         <header className="px-5 py-4 border-b border-slate-800">
-          <h3 className="text-sm font-bold text-white">Top referidores</h3>
+          <h3 className="text-sm font-bold text-primary">Top referidores</h3>
           <p className="text-xs text-slate-500 mt-0.5">Ranking por cantidad de amigos que completaron su primera cita.</p>
         </header>
         {topReferidores.length === 0 ? (
@@ -213,7 +213,7 @@ export default function ReferidosBoca() {
               <li key={u.id} className="px-5 py-3 flex items-center gap-3">
                 <div className="w-6 text-center text-xs font-bold text-slate-500">{i + 1}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-white truncate">{u.nombre || '(Sin nombre)'}</div>
+                  <div className="text-sm text-primary truncate">{u.nombre || '(Sin nombre)'}</div>
                   <div className="text-[11px] text-slate-500 truncate">
                     {u.referralCode || '—'} · {u.telefono || 'sin tel'}
                   </div>
@@ -232,7 +232,7 @@ export default function ReferidosBoca() {
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 overflow-hidden">
         <header className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white">Recompensas otorgadas</h3>
+            <h3 className="text-sm font-bold text-primary">Recompensas otorgadas</h3>
             <p className="text-xs text-slate-500 mt-0.5">Últimas 50 · útil para revisar cuánto está costando el programa.</p>
           </div>
         </header>
@@ -249,7 +249,7 @@ export default function ReferidosBoca() {
                     <ArrowUpRight size={12} className="text-amber-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white truncate">
+                    <div className="text-sm text-primary truncate">
                       <b>{a.referidoNombre || '(cliente)'}</b>
                       {' '}
                       <span className="text-slate-400">completó su primera cita usando código</span>
@@ -298,7 +298,7 @@ function MetricCard({ Icon, label, value, accent = 'slate' }) {
       <div className={`inline-flex p-1.5 rounded-md ${s.bg}`}>
         <Icon size={14} className={s.text} />
       </div>
-      <div className="mt-2 text-2xl font-bold text-white leading-none">{value}</div>
+      <div className="mt-2 text-2xl font-bold text-primary leading-none">{value}</div>
       <div className="mt-1 text-[11px] text-slate-500">{label}</div>
     </div>
   );

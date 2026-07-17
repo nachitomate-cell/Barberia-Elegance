@@ -21,15 +21,15 @@ export default function ReviewModal({ cita, onClose }) {
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
             <CheckCircle size={22} className="text-emerald-400" />
           </div>
-          <h3 className="text-white font-bold text-lg leading-tight">
+          <h3 className="text-primary font-bold text-lg leading-tight">
             ¡Cita finalizada!
           </h3>
           <p className="text-slate-400 text-sm mt-1">
-            Cita de <span className="text-white font-semibold">{clienteNombre}</span> completada
+            Cita de <span className="text-primary font-semibold">{clienteNombre}</span> completada
           </p>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-600 hover:text-white hover:bg-slate-800 transition-all"
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-600 hover:text-primary hover:bg-slate-800 transition-all"
           >
             <X size={16} />
           </button>
@@ -38,7 +38,7 @@ export default function ReviewModal({ cita, onClose }) {
         {/* Body */}
         <div className="px-6 py-6 space-y-5">
           <p className="text-center text-sm text-slate-300">
-            Al presionar <span className="text-white font-semibold">Completar</span> se le entregó el sello al cliente y se le enviará el mensaje para reseñarnos en Google.
+            Al presionar <span className="text-primary font-semibold">Completar</span> se le entregó el sello al cliente y se le enviará el mensaje para reseñarnos en Google.
           </p>
 
           <div className="space-y-3">
@@ -47,7 +47,7 @@ export default function ReviewModal({ cita, onClose }) {
                 <Stamp size={16} className="text-amber-400" />
               </div>
               <div className="text-sm">
-                <p className="text-white font-semibold">Sello entregado</p>
+                <p className="text-primary font-semibold">Sello entregado</p>
                 <p className="text-slate-400 text-xs mt-0.5">Se sumó +1 sello al cliente (o se descontó su uso de membresía).</p>
               </div>
             </div>
@@ -57,7 +57,7 @@ export default function ReviewModal({ cita, onClose }) {
                 <MessageCircle size={16} className="text-emerald-400" />
               </div>
               <div className="text-sm">
-                <p className="text-white font-semibold">Reseña en Google</p>
+                <p className="text-primary font-semibold">Reseña en Google</p>
                 <p className="text-slate-400 text-xs mt-0.5">Se le enviará el mensaje para que nos reseñe en Google.</p>
               </div>
             </div>
@@ -66,7 +66,7 @@ export default function ReviewModal({ cita, onClose }) {
           <button
             onClick={onClose}
             className="w-full py-3 rounded-xl font-semibold text-sm transition-all
-              bg-emerald-600 hover:bg-emerald-500 text-white"
+              bg-emerald-600 hover:bg-emerald-500 text-primary"
           >
             Entendido
           </button>

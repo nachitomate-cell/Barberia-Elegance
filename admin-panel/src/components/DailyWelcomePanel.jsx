@@ -282,7 +282,7 @@ export default function DailyWelcomePanel() {
             {/* Cerrar */}
             <button
               onClick={dismiss}
-              className="absolute top-3.5 right-3.5 z-10 w-8 h-8 flex items-center justify-center rounded-full text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+              className="absolute top-3.5 right-3.5 z-10 w-8 h-8 flex items-center justify-center rounded-full text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors"
               aria-label="Cerrar"
             >
               <X size={16} />
@@ -293,7 +293,7 @@ export default function DailyWelcomePanel() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 mb-1">
                 {saludo()} · {fechaLarga()}
               </p>
-              <h3 className="text-white font-bold text-[22px] leading-tight tracking-tight">
+              <h3 className="text-primary font-bold text-[22px] leading-tight tracking-tight">
                 {shopName ? `Buen día en ${salonCorto}.` : 'Buen día.'}
               </h3>
             </div>
@@ -333,7 +333,7 @@ export default function DailyWelcomePanel() {
                           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/25 hover:bg-amber-500/[0.10] hover:border-amber-500/40 text-left transition-colors"
                         >
                           <AlertTriangle size={14} className="text-amber-400 shrink-0" />
-                          <span className="flex-1 text-[13.5px] font-medium text-white">{a.titulo}</span>
+                          <span className="flex-1 text-[13.5px] font-medium text-primary">{a.titulo}</span>
                           <span className="text-[11.5px] font-semibold text-amber-300 flex items-center gap-1">
                             {a.accion} <ArrowRight size={12} />
                           </span>
@@ -354,7 +354,7 @@ export default function DailyWelcomePanel() {
                             <span className="w-6 h-6 rounded-full bg-pink-500/15 border border-pink-500/25 grid place-items-center text-[10px] font-bold text-pink-300 shrink-0">
                               {(c.nombre?.[0] || '?').toUpperCase()}
                             </span>
-                            <span className="flex-1 text-[13.5px] text-white truncate">{c.nombre}</span>
+                            <span className="flex-1 text-[13.5px] text-primary truncate">{c.nombre}</span>
                             <span className="text-[11px] tabular-nums text-pink-300/80">
                               {formatCumpleCorto(c.cumpleDia)}
                             </span>
@@ -381,12 +381,12 @@ export default function DailyWelcomePanel() {
                             onClick={() => irA(`/ayuda/${f.categoriaSlug || 'general'}/${f.slug || f.id}`)}
                             className="w-full flex items-start gap-3 px-3.5 py-2.5 rounded-lg bg-white/[0.02] border border-slate-800 hover:bg-white/[0.04] hover:border-slate-700 text-left transition-colors"
                           >
-                            <span className="w-6 h-6 rounded-full grid place-items-center shrink-0 text-white mt-0.5"
+                            <span className="w-6 h-6 rounded-full grid place-items-center shrink-0 text-primary mt-0.5"
                                   style={{ background: 'linear-gradient(135deg, #171412 0%, #3A3A3A 100%)' }}>
                               <span style={{ fontFamily: 'Charter, Georgia, serif', fontStyle: 'italic', fontWeight: 500, fontSize: 12 }}>S</span>
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13.5px] font-semibold text-white leading-tight truncate">{f.titulo}</p>
+                              <p className="text-[13.5px] font-semibold text-primary leading-tight truncate">{f.titulo}</p>
                               <p className="text-[11.5px] text-slate-500 mt-0.5 leading-tight">
                                 Pedido por <span className="text-slate-300">{f.pedidoPor?.etiqueta || 'un cliente'}</span>
                                 {' · '}
@@ -399,7 +399,7 @@ export default function DailyWelcomePanel() {
                       </div>
                       <button
                         onClick={() => irA('/ayuda')}
-                        className="text-[11.5px] text-slate-400 hover:text-white font-medium pt-1 transition-colors inline-flex items-center gap-1"
+                        className="text-[11.5px] text-slate-400 hover:text-primary font-medium pt-1 transition-colors inline-flex items-center gap-1"
                       >
                         Ver changelog y todas las guías <ArrowRight size={11} />
                       </button>
@@ -413,13 +413,13 @@ export default function DailyWelcomePanel() {
             <div className="px-6 pb-5 pt-1 flex items-center gap-2">
               <button
                 onClick={() => irA('/agenda')}
-                className="flex-1 py-2.5 rounded-lg bg-white text-slate-950 font-semibold text-[13.5px] hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-white text-ink-950 font-semibold text-[13.5px] hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
               >
                 Ir a la agenda <ArrowRight size={14} />
               </button>
               <button
                 onClick={dismiss}
-                className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-white text-[13.5px] font-medium transition-colors"
+                className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-primary text-[13.5px] font-medium transition-colors"
               >
                 Después
               </button>
@@ -448,7 +448,7 @@ function StatBlock({ label, valor, subtitulo }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3">
       <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">{label}</div>
-      <div className="text-white font-bold text-[22px] tabular-nums leading-none">{valor}</div>
+      <div className="text-primary font-bold text-[22px] tabular-nums leading-none">{valor}</div>
       {subtitulo && <div className="text-[11.5px] text-slate-400 mt-1.5 leading-tight">{subtitulo}</div>}
     </div>
   );

@@ -148,7 +148,7 @@ function FaqItem({ q, a, open, onToggle }) {
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-800/40 transition-colors"
       >
-        <span className="flex-1 text-sm font-semibold text-white">{q}</span>
+        <span className="flex-1 text-sm font-semibold text-primary">{q}</span>
         <ChevronDown
           size={16}
           className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180 text-emerald-400' : ''}`}
@@ -195,14 +195,14 @@ function TabFAQs() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Busca una duda… (ej: precios, horario, mensualidad)"
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
         />
       </div>
 
       {/* FAQs */}
       {sinResultados ? (
         <div className="text-center py-10 px-4 bg-slate-900 border border-slate-800 rounded-xl">
-          <p className="text-sm text-slate-400">No encontramos una pregunta con <span className="text-white font-semibold">“{search}”</span>.</p>
+          <p className="text-sm text-slate-400">No encontramos una pregunta con <span className="text-primary font-semibold">“{search}”</span>.</p>
           <p className="text-xs text-slate-600 mt-1">Prueba con otra palabra o escríbenos por WhatsApp aquí abajo.</p>
         </div>
       ) : (
@@ -233,13 +233,13 @@ function TabFAQs() {
       {/* Contacto WhatsApp */}
       <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/25 rounded-xl px-5 py-5 text-center">
         <LifeBuoy size={26} className="mx-auto text-emerald-400 mb-2" />
-        <h2 className="text-sm font-bold text-white">¿No resolviste tu duda?</h2>
+        <h2 className="text-sm font-bold text-primary">¿No resolviste tu duda?</h2>
         <p className="text-xs text-slate-400 mt-1 mb-4">Escríbenos por WhatsApp y te ayudamos directo.</p>
         <a
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-all active:scale-[0.98]"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold rounded-lg transition-all active:scale-[0.98]"
         >
           <MessageCircle size={16} />
           Contactar por WhatsApp
@@ -270,14 +270,14 @@ function TabAcademia() {
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full uppercase tracking-wider mb-1.5">
               <Lock size={9} /> En construcción · próximamente
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-primary leading-tight">
               Academia SynapTech
             </h2>
           </div>
         </div>
 
         <p className="text-sm sm:text-[15px] text-slate-300 leading-relaxed max-w-2xl">
-          Estamos empaquetando el <strong className="text-white">know-how de las barberías que más facturan</strong> en
+          Estamos empaquetando el <strong className="text-primary">know-how de las barberías que más facturan</strong> en
           lecciones cortas de 2–5 minutos: agenda, retención, marketing y finanzas.
           Todo aplicable el mismo día que lo ves.
         </p>
@@ -307,7 +307,7 @@ function TabAcademia() {
                     <span className="text-[10px] text-slate-600">·</span>
                     <span className="text-[10px] text-slate-500">{l.duracion}</span>
                   </div>
-                  <p className="text-sm font-bold text-white leading-tight">{l.titulo}</p>
+                  <p className="text-sm font-bold text-primary leading-tight">{l.titulo}</p>
                   <p className="text-xs text-slate-500 mt-1 leading-snug">{l.hint}</p>
                 </div>
                 <span className="hidden sm:inline text-[10px] text-slate-600 shrink-0 mt-1">Próximamente</span>
@@ -320,7 +320,7 @@ function TabAcademia() {
       {/* CTA: avísame */}
       <div className="bg-gradient-to-br from-amber-500/10 to-rose-500/10 border border-amber-500/25 rounded-xl px-5 py-6 text-center">
         <Bell size={22} className="mx-auto text-amber-300 mb-2" />
-        <h3 className="text-sm font-bold text-white">¿Quieres ser el primero en verla?</h3>
+        <h3 className="text-sm font-bold text-primary">¿Quieres ser el primero en verla?</h3>
         <p className="text-xs text-slate-400 mt-1 mb-4">
           Te avisamos por WhatsApp apenas la primera tanda de lecciones esté lista.
         </p>
@@ -328,7 +328,7 @@ function TabAcademia() {
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white text-sm font-bold rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-primary text-sm font-bold rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
         >
           <MessageCircle size={16} />
           Avísame cuando esté lista
@@ -350,7 +350,7 @@ export default function Consultas() {
     <div className="max-w-2xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-xl font-bold text-primary flex items-center gap-2">
           <HelpCircle size={20} className="text-emerald-400" />
           Consultas
         </h1>

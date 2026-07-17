@@ -244,7 +244,7 @@ function ChatList({ selectedId, onSelect, chats, filter }) {
 
                 {/* Fila 3: último mensaje */}
                 <span className={`text-sm truncate w-full block ${
-                  chat.hasUnread ? 'font-semibold text-white' : 'text-slate-400'
+                  chat.hasUnread ? 'font-semibold text-primary' : 'text-slate-400'
                 }`}>{chat.lastMessage || '...'}</span>
               </div>
 
@@ -279,7 +279,7 @@ function SourceFilterTabs({ value, onChange, counts }) {
               onClick={() => onChange(t.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 active
-                  ? 'bg-slate-700 text-white shadow-sm'
+                  ? 'bg-slate-700 text-primary shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -412,7 +412,7 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-white truncate">{userName || 'Cliente'}</p>
+            <p className="text-sm font-semibold text-primary truncate">{userName || 'Cliente'}</p>
             <SourcePill source={source} compact />
           </div>
           {contact ? (
@@ -490,7 +490,7 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
                       ? 'rounded-tr-none font-medium'
                       : isBot
                         ? 'rounded-tl-none text-cyan-50 bg-cyan-900/40 border border-cyan-500/20'
-                        : 'rounded-tl-none text-white bg-slate-800'
+                        : 'rounded-tl-none text-primary bg-slate-800'
                   }`}
                   style={isAdmin ? { background: accent.hex, color: accent.text, whiteSpace: 'pre-wrap' } : { whiteSpace: 'pre-wrap' }}
                 >
@@ -539,7 +539,7 @@ function ChatConversation({ userId, userName, chatMeta, onBack, onDeleted }) {
           enterKeyHint="send"
           autoComplete="off"
           autoCapitalize="sentences"
-          className="flex-1 min-h-[44px] bg-slate-800 border border-slate-700 rounded-2xl px-4 py-2.5 text-[15px] sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--accent-tenant)] focus:ring-1 focus:ring-[var(--accent-tenant)] transition-colors"
+          className="flex-1 min-h-[44px] bg-slate-800 border border-slate-700 rounded-2xl px-4 py-2.5 text-[15px] sm:text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-[var(--accent-tenant)] focus:ring-1 focus:ring-[var(--accent-tenant)] transition-colors"
         />
         <button
           onClick={send}
@@ -631,7 +631,7 @@ function PublicLinkBanner({ onOpenQR }) {
         <button
           type="button"
           onClick={copy}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
+          className="bg-indigo-600 hover:bg-indigo-700 text-primary rounded-xl px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
           aria-label={copied ? 'Link copiado' : 'Copiar link'}
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -640,7 +640,7 @@ function PublicLinkBanner({ onOpenQR }) {
         <button
           type="button"
           onClick={onOpenQR}
-          className="text-slate-400 hover:text-white p-2 rounded-lg transition-colors shrink-0"
+          className="text-slate-400 hover:text-primary p-2 rounded-lg transition-colors shrink-0"
           aria-label="Ver código QR"
           title="Ver QR para imprimir"
         >
@@ -681,7 +681,7 @@ function QRModal({ open, onClose }) {
         <div className="sm:hidden h-1 w-10 rounded-full bg-slate-700 mx-auto mb-4" />
 
         <div className="text-center mb-3">
-          <h3 className="text-base font-bold text-white">QR para tu link de chat</h3>
+          <h3 className="text-base font-bold text-primary">QR para tu link de chat</h3>
           <p className="text-[12px] text-slate-400 mt-0.5 leading-relaxed">
             Imprime y pega este código en tu local. Tus clientes escanean y entran a chatear.
           </p>
@@ -755,7 +755,7 @@ function MensajesGuide() {
             <Sparkles size={11} style={{ color: accent.hex }} />
             Guía rápida
           </div>
-          <h2 className="text-2xl font-black tracking-tight text-white sm:text-[26px]">
+          <h2 className="text-2xl font-black tracking-tight text-primary sm:text-[26px]">
             Cómo funcionan los <span style={{ color: accent.hex }}>Mensajes</span>
           </h2>
           <p className="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
@@ -769,7 +769,7 @@ function MensajesGuide() {
           <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] p-4">
             <div className="flex items-center gap-2 mb-2">
               <Crown size={16} className="text-amber-300" />
-              <h3 className="text-sm font-bold text-white">Club</h3>
+              <h3 className="text-sm font-bold text-primary">Club</h3>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               Clientes <b className="text-amber-200">ya registrados</b> que te escriben desde
@@ -780,7 +780,7 @@ function MensajesGuide() {
           <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.05] p-4">
             <div className="flex items-center gap-2 mb-2">
               <Globe size={16} className="text-emerald-300" />
-              <h3 className="text-sm font-bold text-white">Chat público</h3>
+              <h3 className="text-sm font-bold text-primary">Chat público</h3>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               Visitantes <b className="text-emerald-200">anónimos</b> que entran al link
@@ -797,7 +797,7 @@ function MensajesGuide() {
               <Instagram size={16} style={{ color: accent.hex }} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-white">Tu link para Instagram</h3>
+              <h3 className="text-sm font-bold text-primary">Tu link para Instagram</h3>
               <p className="text-[11.5px] text-slate-400 mt-0.5">
                 Pégalo en tu bio o en tus Stories. Cuando un cliente lo toque,
                 entrará a chatear contigo directo.
@@ -814,7 +814,7 @@ function MensajesGuide() {
               href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors"
               title="Abrir en nueva pestaña"
             >
               <ExternalLink size={13} />
@@ -881,31 +881,31 @@ function MensajesGuide() {
             <li className="flex gap-2.5">
               <Bell size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-white">Activá las notificaciones push</b> del panel para que te avise apenas llega un mensaje, sin tener que estar mirando.
+                <b className="text-primary">Activá las notificaciones push</b> del panel para que te avise apenas llega un mensaje, sin tener que estar mirando.
               </span>
             </li>
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-white">Filtrá por origen</b> con los tabs de arriba si querés enfocarte solo en clientes del Club o solo en chat público.
+                <b className="text-primary">Filtrá por origen</b> con los tabs de arriba si querés enfocarte solo en clientes del Club o solo en chat público.
               </span>
             </li>
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-white">El punto del color del local</b> al lado del nombre indica que ese chat tiene mensajes <i>sin leer</i>.
+                <b className="text-primary">El punto del color del local</b> al lado del nombre indica que ese chat tiene mensajes <i>sin leer</i>.
               </span>
             </li>
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-white">El cliente del Chat público</b> puede dejar su teléfono opcional — si lo hace, lo ves al lado del nombre y podés contactarlo después por WhatsApp.
+                <b className="text-primary">El cliente del Chat público</b> puede dejar su teléfono opcional — si lo hace, lo ves al lado del nombre y podés contactarlo después por WhatsApp.
               </span>
             </li>
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                Si entrás a un chat, <b className="text-white">se marca como leído automáticamente</b> en cuanto la conversación se abre.
+                Si entrás a un chat, <b className="text-primary">se marca como leído automáticamente</b> en cuanto la conversación se abre.
               </span>
             </li>
           </ul>
@@ -976,7 +976,7 @@ export default function Chat() {
           style={{ paddingTop: 'max(env(safe-area-inset-top), 0.75rem)' }}
         >
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-white">Mensajes</h2>
+            <h2 className="text-sm font-bold text-primary">Mensajes</h2>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-xs text-slate-500 mt-0.5">Club + chat público en una sola bandeja</p>
@@ -1016,17 +1016,17 @@ export default function Chat() {
       <QRModal open={showQR} onClose={() => setShowQR(false)} />
       {showHelp && (
         <HelpModal title="Ayuda — Mensajes" onClose={() => setShowHelp(false)}>
-          <p><strong className="text-white">Mensajes</strong> centraliza dos canales en una sola bandeja:</p>
+          <p><strong className="text-primary">Mensajes</strong> centraliza dos canales en una sola bandeja:</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>
-              <SourcePill source="club" compact /> <span className="text-white">Club</span>: clientes registrados que te escriben desde su dashboard.
+              <SourcePill source="club" compact /> <span className="text-primary">Club</span>: clientes registrados que te escriben desde su dashboard.
             </li>
             <li>
-              <SourcePill source="public_chat" compact /> <span className="text-white">Chat público</span>: visitantes anónimos que entran por el link <code className="text-slate-300">/chat</code> (típicamente desde Instagram).
+              <SourcePill source="public_chat" compact /> <span className="text-primary">Chat público</span>: visitantes anónimos que entran por el link <code className="text-slate-300">/chat</code> (típicamente desde Instagram).
             </li>
             <li>Los tabs arriba filtran por origen.</li>
             <li>El punto al lado del avatar indica el canal: <span className="text-amber-300 font-bold">amarillo</span> = Club, <span className="text-emerald-300 font-bold">verde</span> = Chat público.</li>
-            <li>El punto del color del local indica que hay <span className="text-white">mensajes sin leer</span>.</li>
+            <li>El punto del color del local indica que hay <span className="text-primary">mensajes sin leer</span>.</li>
           </ul>
         </HelpModal>
       )}

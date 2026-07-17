@@ -215,7 +215,7 @@ function Hero({ referral, loadingRef, generating, onEnsureCode, onCopy, onShare,
           </span>
         </div>
 
-        <h1 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-white sm:text-[34px] sm:leading-[1.1]">
+        <h1 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-primary sm:text-[34px] sm:leading-[1.1]">
           Gana{' '}
           <span
             style={{
@@ -231,7 +231,7 @@ function Hero({ referral, loadingRef, generating, onEnsureCode, onCopy, onShare,
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-emerald-50/80">
           Comparte tu link único. Cuando una barbería invitada activa su agenda,
-          te abonamos <b className="text-white">1 mes gratis</b> automáticamente — y
+          te abonamos <b className="text-primary">1 mes gratis</b> automáticamente — y
           otro a quien invitaste. Sin límite.
         </p>
 
@@ -265,7 +265,7 @@ function Hero({ referral, loadingRef, generating, onEnsureCode, onCopy, onShare,
                   Tu link único
                 </p>
               </div>
-              <p className="px-5 py-4 font-mono text-base font-extrabold tracking-tight break-all text-white sm:text-xl">
+              <p className="px-5 py-4 font-mono text-base font-extrabold tracking-tight break-all text-primary sm:text-xl">
                 bioo.cl/refiere/
                 <span
                   style={{
@@ -316,8 +316,8 @@ function ShareBtn({ onClick, href, icon: Icon, label, tone, active }) {
   const base = 'flex items-center justify-center gap-1.5 rounded-xl px-3 py-3 text-[13px] font-bold transition-all active:scale-95';
   const tones = {
     white: `bg-white text-emerald-950 hover:bg-emerald-50 ${active ? 'ring-2 ring-emerald-300' : ''}`,
-    whatsapp: 'bg-[#25D366] text-white hover:brightness-110 shadow-[0_4px_18px_-4px_rgba(37,211,102,0.5)]',
-    ghost: 'bg-white/10 text-white ring-1 ring-white/15 backdrop-blur hover:bg-white/15',
+    whatsapp: 'bg-[#25D366] text-primary hover:brightness-110 shadow-[0_4px_18px_-4px_rgba(37,211,102,0.5)]',
+    ghost: 'bg-white/10 text-primary ring-1 ring-white/15 backdrop-blur hover:bg-white/15',
   };
   const cls = `${base} ${tones[tone] || tones.ghost}`;
   if (href) {
@@ -356,7 +356,7 @@ function StatCard({ icon: Icon, label, value, ring, text, bg, glow }) {
         <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] ${text}`}>
           <Icon size={13} /> <span>{label}</span>
         </div>
-        <p className="mt-2 text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
+        <p className="mt-2 text-3xl font-black tabular-nums tracking-tight text-primary sm:text-4xl">
           {value}
         </p>
       </div>
@@ -405,7 +405,7 @@ function ComoFunciona() {
             <div className={`mb-2.5 inline-flex h-9 w-9 items-center justify-center rounded-xl ${p.bg} ring-1 ${p.ring} ${p.color}`}>
               <p.Icon size={17} />
             </div>
-            <p className="text-sm font-bold text-white">{p.title}</p>
+            <p className="text-sm font-bold text-primary">{p.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-400">{p.body}</p>
             {i < pasos.length - 1 && (
               <ArrowRight
@@ -455,7 +455,7 @@ function BonusAnual({ conversiones = 0 }) {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200 ring-1 ring-amber-400/25">
             <Rocket size={11} /> Bonus plan anual
           </span>
-          <h2 className="mt-3 text-xl font-black tracking-tight text-white sm:text-2xl">
+          <h2 className="mt-3 text-xl font-black tracking-tight text-primary sm:text-2xl">
             Con plan anual recibes{' '}
             <span
               style={{
@@ -471,7 +471,7 @@ function BonusAnual({ conversiones = 0 }) {
           </h2>
           <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-amber-50/75">
             Los clientes en plan mensual reciben 1 mes. Si tienes el plan anual,
-            cada barbería que actives te suma <b className="text-white">el doble</b>{' '}
+            cada barbería que actives te suma <b className="text-primary">el doble</b>{' '}
             — acumulable a tu próxima renovación.
           </p>
         </div>
@@ -528,7 +528,7 @@ function BonusAnual({ conversiones = 0 }) {
                     <h.Icon size={14} className={
                       desbloqueado ? 'text-emerald-300' : proximo ? 'text-amber-300' : 'text-slate-500'
                     } />
-                    <p className={`text-sm font-bold ${desbloqueado ? 'text-white' : 'text-slate-200'}`}>
+                    <p className={`text-sm font-bold ${desbloqueado ? 'text-primary' : 'text-slate-200'}`}>
                       {h.premio}
                     </p>
                     {desbloqueado && (
@@ -568,7 +568,7 @@ function SignupsSection({ signups, isSuperAdmin }) {
     <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm">
       <header className="flex items-center gap-2 border-b border-slate-800 px-5 py-4">
         <Inbox size={16} className="text-slate-400" />
-        <h2 className="text-sm font-bold text-white">Quiénes llegaron por tu link</h2>
+        <h2 className="text-sm font-bold text-primary">Quiénes llegaron por tu link</h2>
         <span className="ml-auto rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-bold text-slate-300 ring-1 ring-slate-700">
           {signups.length}
         </span>
@@ -662,7 +662,7 @@ function SignupRow({ signup, isSuperAdmin, index }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className="truncate text-sm font-bold text-white">{signup.prospectName}</p>
+          <p className="truncate text-sm font-bold text-primary">{signup.prospectName}</p>
           <p className="truncate text-xs text-slate-400">· {signup.prospectBarberia}</p>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">

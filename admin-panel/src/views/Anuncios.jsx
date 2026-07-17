@@ -38,10 +38,10 @@ export default function Anuncios() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600">
-            <BellRing size={22} className="text-white" />
+            <BellRing size={22} className="text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Anuncios</h1>
+            <h1 className="text-2xl font-bold text-primary">Anuncios</h1>
             <p className="text-sm text-slate-400">Push publicitario a tus clientes del Club — {shopName}</p>
           </div>
         </div>
@@ -54,7 +54,7 @@ export default function Anuncios() {
               onClick={() => setTab(t.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all ${
                 tab === t.id
-                  ? 'bg-slate-800 text-white shadow-inner'
+                  ? 'bg-slate-800 text-primary shadow-inner'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -161,7 +161,7 @@ function TabNuevo({ tenantId, shopName, user }) {
         <input
           type="text" value={titulo} onChange={e => setTitulo(e.target.value.slice(0, 60))}
           placeholder="¡Ven este viernes!"
-          className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm mb-1 focus:outline-none focus:border-violet-500"
+          className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-primary text-sm mb-1 focus:outline-none focus:border-violet-500"
         />
         <div className="flex justify-between text-[10px] text-slate-500 mb-4">
           <span>Aparece como negrita en la notificación</span>
@@ -173,7 +173,7 @@ function TabNuevo({ tenantId, shopName, user }) {
           value={mensaje} onChange={e => setMensaje(e.target.value.slice(0, 240))}
           rows={3}
           placeholder="2x1 en cortes hasta el domingo. Reserva ya con tu barbero de siempre."
-          className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm mb-1 focus:outline-none focus:border-violet-500 resize-none"
+          className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-primary text-sm mb-1 focus:outline-none focus:border-violet-500 resize-none"
         />
         <div className="flex justify-between text-[10px] text-slate-500 mb-4">
           <span>Aparece como cuerpo de la notificación</span>
@@ -185,7 +185,7 @@ function TabNuevo({ tenantId, shopName, user }) {
             <label className="block text-xs font-semibold text-slate-400 mb-1.5">Texto del botón</label>
             <input
               type="text" value={ctaTexto} onChange={e => setCtaTexto(e.target.value.slice(0, 24))}
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-violet-500"
             />
           </div>
           <div>
@@ -193,7 +193,7 @@ function TabNuevo({ tenantId, shopName, user }) {
             <input
               type="text" value={ctaUrl} onChange={e => setCtaUrl(e.target.value)}
               placeholder="/agenda"
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-violet-500"
             />
           </div>
         </div>
@@ -211,7 +211,7 @@ function TabNuevo({ tenantId, shopName, user }) {
                   <span className="text-[11px] font-bold text-slate-300 truncate">{shopName}</span>
                   <span className="text-[10px] text-slate-500">ahora</span>
                 </div>
-                <p className="text-[13px] font-bold text-white mt-0.5 leading-tight">{titulo || 'Título'}</p>
+                <p className="text-[13px] font-bold text-primary mt-0.5 leading-tight">{titulo || 'Título'}</p>
                 <p className="text-[12px] text-slate-300 mt-0.5 leading-snug break-words">{mensaje || 'Mensaje del anuncio'}</p>
               </div>
             </div>
@@ -232,7 +232,7 @@ function TabNuevo({ tenantId, shopName, user }) {
           <button
             onClick={() => setRangoMin('')}
             className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all ${
-              !rangoMin ? 'bg-violet-600 text-white' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
+              !rangoMin ? 'bg-violet-600 text-primary' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
             }`}
           >
             Todos
@@ -242,7 +242,7 @@ function TabNuevo({ tenantId, shopName, user }) {
               key={r.id}
               onClick={() => setRangoMin(r.id)}
               className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all ${
-                rangoMin === r.id ? 'bg-violet-600 text-white' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
+                rangoMin === r.id ? 'bg-violet-600 text-primary' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
               }`}
             >
               {r.emoji} {r.label.split(' ')[0]}
@@ -260,7 +260,7 @@ function TabNuevo({ tenantId, shopName, user }) {
               <button
                 onClick={() => setSedeCanjeEn('')}
                 className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  !sedeCanjeEn ? 'bg-violet-600 text-white' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
+                  !sedeCanjeEn ? 'bg-violet-600 text-primary' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
                 }`}
               >
                 Cualquiera
@@ -270,7 +270,7 @@ function TabNuevo({ tenantId, shopName, user }) {
                   key={s}
                   onClick={() => setSedeCanjeEn(s)}
                   className={`py-2 rounded-lg text-xs font-semibold capitalize transition-all ${
-                    sedeCanjeEn === s ? 'bg-violet-600 text-white' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
+                    sedeCanjeEn === s ? 'bg-violet-600 text-primary' : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
                   }`}
                 >
                   {s}
@@ -286,12 +286,12 @@ function TabNuevo({ tenantId, shopName, user }) {
           <div>
             <label className="text-[10px] text-slate-500">Desde</label>
             <input type="date" value={ultimaVisitaDesde} onChange={e => setUltimaVisitaDesde(e.target.value)}
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-violet-500" />
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1.5 text-primary text-xs focus:outline-none focus:border-violet-500" />
           </div>
           <div>
             <label className="text-[10px] text-slate-500">Hasta</label>
             <input type="date" value={ultimaVisitaHasta} onChange={e => setUltimaVisitaHasta(e.target.value)}
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-violet-500" />
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1.5 text-primary text-xs focus:outline-none focus:border-violet-500" />
           </div>
         </div>
 
@@ -375,7 +375,7 @@ function TabNuevo({ tenantId, shopName, user }) {
         <button
           onClick={() => setConfirmando(true)}
           disabled={!puedeEnviar || enviando}
-          className="flex-[2] bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-lg shadow-violet-500/30"
+          className="flex-[2] bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-primary py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-lg shadow-violet-500/30"
         >
           <Send size={15} />
           Enviar broadcast
@@ -390,10 +390,10 @@ function TabNuevo({ tenantId, shopName, user }) {
               <div className="p-2 rounded-lg bg-amber-500/20">
                 <AlertTriangle size={18} className="text-amber-400" />
               </div>
-              <h3 className="text-lg font-bold text-white">¿Confirmar envío?</h3>
+              <h3 className="text-lg font-bold text-primary">¿Confirmar envío?</h3>
             </div>
             <p className="text-sm text-slate-300 mb-2">
-              Se enviará a <span className="font-bold text-white">{preview?.enviables ?? '?'}</span> clientes del Club.
+              Se enviará a <span className="font-bold text-primary">{preview?.enviables ?? '?'}</span> clientes del Club.
             </p>
             <p className="text-xs text-slate-500 mb-6">
               Recuerda: máx 2 pushes por cliente al mes, cooldown 7 días. Los que exceden se saltan automáticamente.
@@ -404,7 +404,7 @@ function TabNuevo({ tenantId, shopName, user }) {
                 Cancelar
               </button>
               <button onClick={enviarBroadcast}
-                className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-2.5 rounded-lg text-sm font-bold">
+                className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-primary py-2.5 rounded-lg text-sm font-bold">
                 Sí, enviar
               </button>
             </div>
@@ -461,7 +461,7 @@ function TabHistorial({ tenantId }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {a.isTest && <span className="text-[9px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded uppercase">Test</span>}
-                  <p className="text-sm font-bold text-white truncate">{a.titulo}</p>
+                  <p className="text-sm font-bold text-primary truncate">{a.titulo}</p>
                 </div>
                 <p className="text-xs text-slate-400 truncate mb-2">{a.mensaje}</p>
                 <div className="flex items-center gap-4 text-[11px]">
@@ -500,7 +500,7 @@ function TabHistorial({ tenantId }) {
 }
 
 function Stat({ label, value, tone = 'white', small }) {
-  const color = { white: 'text-white', emerald: 'text-emerald-400', red: 'text-red-400', slate: 'text-slate-400' }[tone];
+  const color = { white: 'text-primary', emerald: 'text-emerald-400', red: 'text-red-400', slate: 'text-slate-400' }[tone];
   return (
     <div className={`${small ? 'p-2' : 'p-3'} bg-slate-800/40 rounded-lg`}>
       <p className={`${small ? 'text-sm' : 'text-lg'} font-bold ${color}`}>{value}</p>
@@ -570,7 +570,7 @@ function TabAjustes({ tenantId }) {
 
         <div className="mt-4 flex items-center gap-3">
           <button onClick={guardar}
-            className="bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+            className="bg-violet-600 hover:bg-violet-500 text-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
             <Check size={14} /> Guardar
           </button>
           {saved && <span className="text-xs text-emerald-400">Guardado ✓</span>}
@@ -583,7 +583,7 @@ function TabAjustes({ tenantId }) {
           <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Opt-out</h2>
         </div>
         <p className="text-sm text-slate-300">
-          <span className="text-2xl font-bold text-white">{optOutCount}</span> clientes se dieron de baja
+          <span className="text-2xl font-bold text-primary">{optOutCount}</span> clientes se dieron de baja
         </p>
         <p className="text-xs text-slate-500 mt-1">Se excluyen automáticamente de todos los broadcasts.</p>
       </div>
@@ -596,7 +596,7 @@ function NumberField({ label, value, onChange, hint }) {
     <div>
       <label className="block text-xs font-semibold text-slate-400 mb-1.5">{label}</label>
       <input type="number" value={value} onChange={e => onChange(parseInt(e.target.value, 10) || 0)}
-        className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500" />
+        className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-primary text-sm focus:outline-none focus:border-violet-500" />
       {hint && <p className="text-[10px] text-slate-500 mt-1">{hint}</p>}
     </div>
   );

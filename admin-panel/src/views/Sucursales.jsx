@@ -33,33 +33,33 @@ function SucursalModal({ initial, onSave, onClose }) {
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-slate-800">
-          <p className="text-sm font-bold text-white">{editing ? 'Editar sucursal' : 'Nueva sucursal'}</p>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+          <p className="text-sm font-bold text-primary">{editing ? 'Editar sucursal' : 'Nueva sucursal'}</p>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nombre <span className="text-red-400">*</span></label>
             <input type="text" value={form.nombre} onChange={e => set('nombre', e.target.value)} required
               placeholder="Ej: Sucursal Centro"
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Dirección</label>
             <input type="text" value={form.direccion} onChange={e => set('direccion', e.target.value)}
               placeholder="Ej: Av. Principal 123, Viña del Mar"
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Teléfono</label>
             <input type="tel" value={form.telefono} onChange={e => set('telefono', e.target.value)}
               placeholder="+56912345678"
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Horario</label>
             <input type="text" value={form.horario} onChange={e => set('horario', e.target.value)}
               placeholder="Ej: Lun–Sáb: 10:00–20:00"
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Color de identificación</label>
@@ -89,13 +89,13 @@ function SucursalCard({ suc, onEdit, onDelete }) {
             <Building2 size={18} style={{ color: suc.color }} />
           </div>
           <div>
-            <p className="text-sm font-bold text-white">{suc.nombre}</p>
+            <p className="text-sm font-bold text-primary">{suc.nombre}</p>
             <div className="w-2 h-0.5 rounded-full mt-1" style={{ background: suc.color }} />
           </div>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(suc)} title="Editar"
-            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+            className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all">
             <Pencil size={13} />
           </button>
           <button onClick={() => onDelete(suc)} title="Eliminar"
@@ -172,7 +172,7 @@ export default function Sucursales() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Building2 size={20} className="text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">Sucursales</h1>
+            <h1 className="text-xl font-bold text-primary">Sucursales</h1>
           </div>
           <p className="text-sm text-slate-400">Gestiona tus locales. Cada sucursal puede tener barberos y servicios asignados.</p>
         </div>

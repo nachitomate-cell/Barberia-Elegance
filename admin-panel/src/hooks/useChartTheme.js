@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * useChartTheme
  * ─────────────────────────────────────────────────────────────────
- *  Devuelve la paleta correcta para Recharts según el modo actual
- *  (dark/light). Los SVG generados por Recharts no leen CSS Tailwind
- *  ni los overrides html.light — necesitan colores en atributos
- *  stroke=/fill= directos, así que este hook los pasa como valores.
- *
- *  Escucha cambios de la clase `.light` en <html> (useTheme del Sidebar
- *  la toggle) y re-renderiza los charts para que se re-pinten.
+ *  Devuelve la paleta correcta para Recharts según el modo actual.
+ *  Recharts pinta stroke=/fill= como atributos SVG, así que no lo
+ *  alcanza ningún selector CSS: los colores tienen que llegarle como
+ *  valores JS. Por eso este hook existe.
  *
  *  Uso:
  *    const t = useChartTheme();
@@ -21,6 +18,10 @@ import { useEffect, useState } from 'react';
 
 // Filosofía: en un dashboard FINANCIERO, menos colores = más señal.
 // Solo 3 categorías semánticas + 1 acento amber para agenda.
+//
+// Estos valores son un espejo en JS de los tokens de _tokens.css. No se leen
+// con getComputedStyle porque Recharts los necesita en el primer render, antes
+// de que haya nodo montado del cual leer. Si cambia la paleta, cambian los dos.
 const DARK = {
   positive:   '#10b981',  // emerald-500 — ingresos, ocupación alta, utilidad
   negative:   '#f43f5e',  // rose-500 — egresos, cancelados, bajo equilibrio
@@ -47,23 +48,11 @@ const LIGHT = {
   sparklineFilled: '#059669',
 };
 
-function detectLight() {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.classList.contains('light');
-}
-
 export function useChartTheme() {
-  const [isLight, setIsLight] = useState(detectLight);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    // MutationObserver sobre el <html> — el useTheme del Sidebar toggle
-    // la clase 'light' ahí. Con esto, cambiar el tema re-renderiza los
-    // gráficos sin necesidad de key= ni forceUpdate.
-    const obs = new MutationObserver(() => setIsLight(detectLight()));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, []);
+  // Antes esto era un MutationObserver sobre el <html>: el estado del tema
+  // vivía dentro de Sidebar.jsx y no había forma de importarlo. Con
+  // ThemeContext se lee directo y los charts se re-pintan solos.
+  const { light: isLight } = useTheme();
 
   const t = isLight ? LIGHT : DARK;
   return {

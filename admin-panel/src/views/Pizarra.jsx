@@ -148,12 +148,12 @@ function BarberoCard({ b, estado }) {
           <img src={b.foto} alt={b.nombre}
             className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover ring-2 ring-white/10 shrink-0" />
         ) : (
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-700 text-white text-xl font-bold flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-700 text-primary text-xl font-bold flex items-center justify-center shrink-0">
             {iniciales || '?'}
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg md:text-xl font-bold text-white truncate">{b.nombre}</h3>
+          <h3 className="text-lg md:text-xl font-bold text-primary truncate">{b.nombre}</h3>
           {isLibre && (
             <p className="text-emerald-400 text-xs md:text-sm font-semibold uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
               <Zap size={14} /> Libre ahora
@@ -189,7 +189,7 @@ function BarberoCard({ b, estado }) {
           )
         ) : (
           <>
-            <span className={`text-4xl md:text-5xl font-black leading-none tabular-nums ${isColacion ? 'text-amber-300' : 'text-white'}`}>
+            <span className={`text-4xl md:text-5xl font-black leading-none tabular-nums ${isColacion ? 'text-amber-300' : 'text-primary'}`}>
               {formatWait(estado.faltaMin)}
             </span>
             <span className="text-sm text-slate-400">hasta {minToHhmm(estado.hastaMin)}</span>
@@ -283,7 +283,7 @@ export default function Pizarra() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl md:text-2xl font-bold text-white">Pizarra walk-in</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-primary">Pizarra walk-in</h1>
             <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
               en vivo
             </span>
@@ -292,7 +292,7 @@ export default function Pizarra() {
             {libres > 0
               ? <>Hay <span className="text-emerald-400 font-bold">{libres}</span> {libres === 1 ? 'persona libre ahora' : 'personas libres ahora'} para tomar un cliente de paso.</>
               : proximoOcupado
-                ? <>Nadie libre. Próximo desocupado: <span className="text-white font-semibold">{proximoOcupado.b.nombre}</span> en <span className="text-white font-semibold">{formatWait(proximoOcupado.estado.faltaMin)}</span>.</>
+                ? <>Nadie libre. Próximo desocupado: <span className="text-primary font-semibold">{proximoOcupado.b.nombre}</span> en <span className="text-primary font-semibold">{formatWait(proximoOcupado.estado.faltaMin)}</span>.</>
                 : <>Nadie en agenda hoy.</>
             }
           </p>

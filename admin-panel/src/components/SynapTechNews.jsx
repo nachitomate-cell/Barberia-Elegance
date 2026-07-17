@@ -386,9 +386,9 @@ function DetailModal({ news, onClose }) {
               <Tag size={9} />
               {cat.label}
             </span>
-            <h3 className="text-white font-bold text-base leading-snug">{news.title}</h3>
+            <h3 className="text-primary font-bold text-base leading-snug">{news.title}</h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors ml-4 shrink-0 mt-1">
+          <button onClick={onClose} className="text-slate-500 hover:text-primary transition-colors ml-4 shrink-0 mt-1">
             <X size={18} />
           </button>
         </div>
@@ -440,7 +440,7 @@ export default function SynapTechNews() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-800/30">
           <div className="flex items-center gap-2.5">
             <Sparkles size={15} style={{ color: '#D4AF37' }} className="shrink-0" />
-            <h2 className="text-sm font-semibold text-white">Novedades de SynapTech</h2>
+            <h2 className="text-sm font-semibold text-primary">Novedades de SynapTech</h2>
             {hasUnread && (
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
             )}
@@ -479,7 +479,7 @@ export default function SynapTechNews() {
                       </span>
                       <span className="text-[10px] text-slate-600">{formatDate(item.date)}</span>
                     </div>
-                    <p className="text-sm font-semibold text-white leading-tight">{item.title}</p>
+                    <p className="text-sm font-semibold text-primary leading-tight">{item.title}</p>
                     <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{item.summary}</p>
                   </div>
                   <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0 mt-1" />

@@ -78,11 +78,11 @@ function PlanCard({ nombre, sub, mes, anual, pop }) {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-bold text-white">{nombre}</p>
+          <p className="text-sm font-bold text-primary">{nombre}</p>
           <p className="text-[11px] text-slate-500">{sub}</p>
         </div>
         <div className="text-right">
-          <p className={`text-lg font-black ${pop ? 'text-lime-300' : 'text-white'}`}>
+          <p className={`text-lg font-black ${pop ? 'text-lime-300' : 'text-primary'}`}>
             ${mes}<span className="text-[11px] font-medium text-slate-500">/mes</span>
           </p>
           <p className="text-[10px] text-slate-500">anual ${anual}/mes</p>
@@ -111,10 +111,10 @@ function TarifasModal({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3.5">
-          <h3 className="text-base font-bold text-white">Planes y tarifas</h3>
+          <h3 className="text-base font-bold text-primary">Planes y tarifas</h3>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-primary"
             aria-label="Cerrar"
           >
             ✕
@@ -124,15 +124,15 @@ function TarifasModal({ onClose }) {
           <PlanCard nombre="Individual" sub="1 barbero · trabajas solo" mes="14.900" anual="11.900" />
           <PlanCard nombre="Local" sub="Barberos ilimitados · por local" mes="29.900" anual="24.900" pop />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
-            <p className="mb-1.5 text-sm font-bold text-white">
+            <p className="mb-1.5 text-sm font-bold text-primary">
               Cadena <span className="text-[11px] font-medium text-slate-500">· 3 o más locales</span>
             </p>
             <div className="space-y-0.5">
               <div className="flex items-center justify-between text-[13px] text-slate-300">
-                <span>1 local</span><b className="text-white">$29.900 c/u</b>
+                <span>1 local</span><b className="text-primary">$29.900 c/u</b>
               </div>
               <div className="flex items-center justify-between text-[13px] text-slate-300">
-                <span>2 locales</span><b className="text-white">$25.900 c/u</b>
+                <span>2 locales</span><b className="text-primary">$25.900 c/u</b>
               </div>
               <div className="flex items-center justify-between text-[13px] text-lime-300">
                 <span>3 a 5 locales</span><b>$22.900 c/u</b>
@@ -265,7 +265,7 @@ export default function Mensualidad() {
                   <Sparkles size={14} />
                 </span>
                 <span>
-                  <p className="text-sm font-bold text-white">Ver planes y tarifas</p>
+                  <p className="text-sm font-bold text-primary">Ver planes y tarifas</p>
                   <p className="text-[11px] text-slate-500">Compara Individual, Local y Cadena.</p>
                 </span>
               </span>
@@ -327,7 +327,7 @@ export default function Mensualidad() {
               <span className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-400/25">
                 <CheckCircle2 size={26} className="text-emerald-300" />
               </span>
-              <p className="text-base font-bold text-white">Todo al día</p>
+              <p className="text-base font-bold text-primary">Todo al día</p>
               <p className="text-xs text-slate-500">No hay mensajes de facturación pendientes.</p>
             </div>
           )}
@@ -354,7 +354,7 @@ export default function Mensualidad() {
           </div>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">¿Quieres cambiar de plan?</p>
-            <p>Escríbenos por <strong className="text-white">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
+            <p>Escríbenos por <strong className="text-primary">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
           </div>
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si ves "Vencida" pero ya pagaste, esperá unos minutos a que el banco procese y refresca. Si persiste, escríbenos.</p>
         </HelpModal>
@@ -381,7 +381,7 @@ function Hero({ plan, estado, onHelp }) {
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">Mensualidad</h1>
+            <h1 className="text-xl font-black tracking-tight text-primary sm:text-2xl">Mensualidad</h1>
             <HelpButton onClick={onHelp} />
           </div>
           <p className="text-[11px] text-slate-500">Tu suscripción con SynapTech</p>
@@ -455,7 +455,7 @@ function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasPara
           <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Monto mensual</p>
-              <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
+              <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-primary sm:text-4xl">
                 ${Number(monto).toLocaleString('es-CL')}
               </p>
             </div>
@@ -517,10 +517,10 @@ function ThanksCard() {
           />
         </div>
         <div>
-          <p className="text-sm font-black uppercase tracking-[0.25em] text-white">SynapTech</p>
+          <p className="text-sm font-black uppercase tracking-[0.25em] text-primary">SynapTech</p>
           <p className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400/80">S P A</p>
         </div>
-        <h3 className="text-lg font-extrabold tracking-tight text-white">¡Suscripción al día!</h3>
+        <h3 className="text-lg font-extrabold tracking-tight text-primary">¡Suscripción al día!</h3>
         <p className="text-base font-bold italic text-emerald-300">"Gracias por confiar en el futuro"</p>
         <p className="max-w-sm text-xs leading-relaxed text-slate-400">
           Tu cuenta se encuentra totalmente al día y todos nuestros servicios están activos.
@@ -553,7 +553,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
       <div className="relative">
         <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <p className="flex items-center gap-1.5 text-sm font-bold tracking-tight text-white">
+            <p className="flex items-center gap-1.5 text-sm font-bold tracking-tight text-primary">
               <Building2 size={14} className="text-emerald-300" /> Datos bancarios
             </p>
             <p className="mt-0.5 text-[11px] text-slate-500">
@@ -566,7 +566,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all active:scale-95 ${
               copiado
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-white'
+                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-primary'
             }`}
           >
             {copiado ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar todo</>}
@@ -602,7 +602,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3.5 text-sm font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(37,211,102,0.5)] transition-transform hover:scale-[1.01] active:scale-[0.98]"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3.5 text-sm font-extrabold text-primary shadow-[0_8px_22px_-6px_rgba(37,211,102,0.5)] transition-transform hover:scale-[1.01] active:scale-[0.98]"
         >
           <Send size={15} /> Enviar comprobante por WhatsApp
         </a>
@@ -623,7 +623,7 @@ function CuotasCard({ cuotas, claseCuota, pagadas, pendientes, proximas, progres
             Historial de cuotas
           </p>
           <p className="text-[11px] tabular-nums text-slate-500">
-            <b className="text-white">{pagadas}</b>/{cuotas.length} pagadas
+            <b className="text-primary">{pagadas}</b>/{cuotas.length} pagadas
           </p>
         </div>
         {/* Progress bar */}

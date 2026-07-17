@@ -29,7 +29,7 @@ const LEVELS = [
     accent: '#c0c0e0',
     text: '#eeeef8',
     badge: 'bg-slate-800/60 border-slate-400/50 text-slate-200',
-    progressCls: 'bg-slate-400',
+    progressCls: 'bg-ink-400',
     benefits: ['10% descuento en servicios', 'Producto trimestral de regalo', 'Reserva prioritaria'],
   },
   {
@@ -261,7 +261,7 @@ function LevelProgress({ visits, level }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between text-xs">
         <span className="text-slate-400 font-semibold">{level.name}</span>
-        <span className="text-slate-500">{remaining} visita{remaining !== 1 ? 's' : ''} para <span className="text-white font-bold">{nextLevel.name}</span></span>
+        <span className="text-slate-500">{remaining} visita{remaining !== 1 ? 's' : ''} para <span className="text-primary font-bold">{nextLevel.name}</span></span>
       </div>
       <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-700 ${level.progressCls}`} style={{ width: `${pct}%` }} />
@@ -347,7 +347,7 @@ export default function VIPDashboard() {
       {/* Header */}
       <div className="text-center">
         <p className="text-xs font-black tracking-[0.5em] uppercase text-slate-500 mb-1">{tenantName}</p>
-        <h1 className="text-2xl font-black text-white">Tarjeta VIP</h1>
+        <h1 className="text-2xl font-black text-primary">Tarjeta VIP</h1>
         <p className="text-sm text-slate-400 mt-1">Descubre tu nivel y beneficios exclusivos</p>
       </div>
 
@@ -361,7 +361,7 @@ export default function VIPDashboard() {
               onChange={e => { setPhone(e.target.value); setErr(''); }}
               onKeyDown={e => e.key === 'Enter' && buscar()}
               placeholder="Ej: 912345678"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
             />
             <button
               onClick={buscar}
@@ -432,7 +432,7 @@ export default function VIPDashboard() {
                   <Scissors size={12} style={{ color: level.accent }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white truncate">{c.servicio}</p>
+                  <p className="text-sm text-primary truncate">{c.servicio}</p>
                   <p className="text-xs text-slate-500">{c.fecha} · {c.barbero}</p>
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function VIPDashboard() {
                   </div>
                 )}
                 <div className="p-3">
-                  <p className="text-white text-xs font-semibold leading-snug">{s.nombre}</p>
+                  <p className="text-primary text-xs font-semibold leading-snug">{s.nombre}</p>
                   {s.descripcion && (
                     <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-2 leading-snug">{s.descripcion}</p>
                   )}

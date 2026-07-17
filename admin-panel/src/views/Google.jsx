@@ -113,7 +113,7 @@ function ConectarGoogle() {
         <div className="w-11 h-11 rounded-xl bg-white/95 shadow border border-slate-200 flex items-center justify-center mx-auto mb-3">
           <GoogleG size={22} />
         </div>
-        <h3 className="text-sm font-bold text-white">Conecta tu ficha de Google</h3>
+        <h3 className="text-sm font-bold text-primary">Conecta tu ficha de Google</h3>
         <p className="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-sm mx-auto">
           Busca tu barbería como aparece en Google Maps y selecciónala. Con eso
           activamos tus reseñas y el enlace para que tus clientes te califiquen.
@@ -131,13 +131,13 @@ function ConectarGoogle() {
             onKeyDown={e => { if (e.key === 'Enter') buscar(); }}
             placeholder="Ej: Infinity Studio, Santiago"
             autoComplete="off"
-            className="flex-1 bg-transparent py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none"
           />
         </div>
         <button
           onClick={buscar}
           disabled={buscando || query.trim().length < 3}
-          className="px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center gap-2 shrink-0"
+          className="px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-bold transition-colors flex items-center gap-2 shrink-0"
         >
           {buscando
             ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -174,7 +174,7 @@ function ConectarGoogle() {
                     <MapPin size={15} className="text-blue-400" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white truncate">{c.nombre}</p>
+                    <p className="text-sm font-semibold text-primary truncate">{c.nombre}</p>
                     <p className="text-[11px] text-slate-500 truncate">{c.direccion}</p>
                     {c.rating != null && (
                       <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
@@ -269,7 +269,7 @@ function TabResumen() {
             </div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Rating</span>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-white tracking-tight">
+          <p className="text-4xl md:text-5xl font-black text-primary tracking-tight">
             {data.rating != null ? data.rating.toFixed(1) : '—'}
           </p>
           <p className="text-xs text-slate-500 mt-1">Promedio en Google</p>
@@ -282,7 +282,7 @@ function TabResumen() {
             </div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total reseñas</span>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-white tracking-tight">
+          <p className="text-4xl md:text-5xl font-black text-primary tracking-tight">
             {data.totalReviews != null ? data.totalReviews.toLocaleString('es-CL') : '—'}
           </p>
           <p className="text-xs text-slate-500 mt-1">En Google Maps</p>
@@ -295,7 +295,7 @@ function TabResumen() {
             </div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Actualizado</span>
           </div>
-          <p className="text-lg font-bold text-white mt-2 leading-tight">
+          <p className="text-lg font-bold text-primary mt-2 leading-tight">
             {data.updatedAt?.toDate
               ? data.updatedAt.toDate().toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
               : '—'}
@@ -319,7 +319,7 @@ function TabResumen() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
           <Star size={16} className="text-yellow-400" fill="currentColor" />
-          <h3 className="text-sm font-bold text-white">Últimas reseñas de Google</h3>
+          <h3 className="text-sm font-bold text-primary">Últimas reseñas de Google</h3>
           <span className="text-xs text-slate-500 ml-auto">Google devuelve solo las 5 más recientes</span>
         </div>
         {(!data.reviews || data.reviews.length === 0) ? (
@@ -333,7 +333,7 @@ function TabResumen() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-white truncate">{r.author}</p>
+                    <p className="text-sm font-semibold text-primary truncate">{r.author}</p>
                     <div className="flex items-center gap-0.5">
                       {[1,2,3,4,5].map(n => (
                         <Star key={n} size={11} className={n <= (r.rating || 5) ? 'text-yellow-400' : 'text-slate-700'} fill="currentColor" />
@@ -415,14 +415,14 @@ function TabSolicitar() {
     openWhatsAppNative(generated.phone, msg);
   }
 
-  const field = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const field = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
 
   return (
     <div className="max-w-2xl space-y-6">
       {!generated ? (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-1">
+            <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
               <Send size={14} className="text-blue-400" />
               Solicitar reseña a un cliente
             </h3>
@@ -477,7 +477,7 @@ function TabSolicitar() {
           <button
             onClick={handleGenerate}
             disabled={!canSubmit || status === 'saving'}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-bold transition-colors"
           >
             {status === 'saving'
               ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -492,8 +492,8 @@ function TabSolicitar() {
               <CheckCircle2 size={16} className="text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Link generado</p>
-              <p className="text-xs text-slate-400">Para <strong className="text-white">{form.clienteNombre}</strong> · válido 30 días</p>
+              <p className="text-sm font-bold text-primary">Link generado</p>
+              <p className="text-xs text-slate-400">Para <strong className="text-primary">{form.clienteNombre}</strong> · válido 30 días</p>
             </div>
           </div>
 
@@ -507,7 +507,7 @@ function TabSolicitar() {
             />
             <button
               onClick={copyLink}
-              className="shrink-0 text-slate-400 hover:text-white transition-colors"
+              className="shrink-0 text-slate-400 hover:text-primary transition-colors"
               title="Copiar link"
             >
               {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
@@ -517,7 +517,7 @@ function TabSolicitar() {
           <div className="flex gap-2 flex-col sm:flex-row">
             <button
               onClick={sendWhatsApp}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-ink-950 text-sm font-bold transition-colors"
             >
               <Send size={14} /> Enviar por WhatsApp
             </button>
@@ -610,7 +610,7 @@ function TabEnviadas() {
                     {(i.clienteNombre || '?').slice(0, 1).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{i.clienteNombre}</p>
+                    <p className="text-sm font-medium text-primary truncate">{i.clienteNombre}</p>
                     <p className="text-[11px] text-slate-500 truncate">
                       +{i.clientePhone} · {i.createdAt?.toDate?.().toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
                       {i.rating != null && ` · ${i.rating}⭐`}
@@ -642,7 +642,7 @@ function StatMini({ label, value, color = 'slate' }) {
       <p className={`text-xl font-black mt-1 ${
         color === 'emerald' ? 'text-emerald-400' :
         color === 'blue'    ? 'text-blue-400' :
-                              'text-white'
+                              'text-primary'
       }`}>{value}</p>
     </div>
   );
@@ -693,7 +693,7 @@ function LivePreviewResenas() {
       {/* Pantalla A — el cliente valora */}
       <div className={`absolute inset-0 flex flex-col items-center justify-center px-6 transition-all duration-500 ${enGoogle ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100'}`}>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{nombre}</p>
-        <p className="text-[15px] font-bold text-slate-800 mb-6 text-center">¿Cómo estuvo tu experiencia?</p>
+        <p className="text-[15px] font-bold text-ink-800 mb-6 text-center">¿Cómo estuvo tu experiencia?</p>
         <div className={`flex gap-2 ${tapped ? '' : 'animate-pulse'}`}>
           {[1, 2, 3, 4, 5].map(n => (
             <Star
@@ -715,14 +715,14 @@ function LivePreviewResenas() {
       <div className={`absolute inset-0 flex items-center justify-center p-5 transition-all duration-500 ${enGoogle ? 'opacity-100' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         <div className="w-full max-w-[300px] bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)] border border-slate-200 p-4 relative">
           {/* Toast */}
-          <div className={`absolute -top-3 right-3 bg-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 transition-all duration-300 ${published ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+          <div className={`absolute -top-3 right-3 bg-slate-900 text-primary text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 transition-all duration-300 ${published ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             ¡Reseña publicada en Google!
           </div>
           <GoogleWord />
-          <p className="text-[15px] font-bold text-slate-800 mt-2">{nombre}</p>
+          <p className="text-[15px] font-bold text-ink-800 mt-2">{nombre}</p>
           <div className="flex items-center gap-1.5 mt-0.5 mb-3">
-            <span className="text-lg font-black text-slate-800 leading-none">4.9</span>
+            <span className="text-lg font-black text-ink-800 leading-none">4.9</span>
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map(n => <Star key={n} size={12} className="text-yellow-400" fill="currentColor" />)}
             </div>
@@ -730,7 +730,7 @@ function LivePreviewResenas() {
           </div>
           <div className={`bg-slate-50 border border-slate-200 rounded-xl p-3 transition-all duration-500 ${published ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-blue-500 text-white text-[11px] font-bold flex items-center justify-center shrink-0">C</div>
+              <div className="w-7 h-7 rounded-full bg-blue-500 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">C</div>
               <div className="min-w-0">
                 <p className="text-[12px] font-bold text-slate-700 leading-none">Carolina R.</p>
                 <p className="text-[9px] text-slate-400 mt-1">hace un momento · vía {nombre}</p>
@@ -749,7 +749,7 @@ function LivePreviewResenas() {
       {/* Indicador de fase */}
       <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
         {[0, 1, 2, 3].map(i => (
-          <span key={i} className={`h-1 rounded-full transition-all duration-300 ${i === phase ? 'w-5 bg-blue-500' : 'w-1.5 bg-slate-300'}`} />
+          <span key={i} className={`h-1 rounded-full transition-all duration-300 ${i === phase ? 'w-5 bg-blue-500' : 'w-1.5 bg-ink-300'}`} />
         ))}
       </div>
     </div>
@@ -787,7 +787,7 @@ function TabComoFunciona() {
         {/* Izquierda: intro + pasos */}
         <div className="space-y-4 order-2 lg:order-1">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
               <Info size={14} className="text-blue-400" />
               Reseñas con Google Maps
             </h3>
@@ -799,11 +799,11 @@ function TabComoFunciona() {
 
           {COMO_FUNCIONA_STEPS.map(step => (
             <div key={step.n} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shrink-0 text-white text-sm font-black">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shrink-0 text-primary text-sm font-black">
                 {step.n}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-white leading-tight">{step.title}</p>
+                <p className="text-sm font-bold text-primary leading-tight">{step.title}</p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.desc}</p>
               </div>
             </div>
@@ -864,7 +864,7 @@ export default function Google() {
           <GoogleG size={22} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-white truncate">Google</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-primary truncate">Google</h1>
           <p className="text-xs text-slate-500 truncate">Solicita reseñas · protege tu rating · trackea la conversión</p>
         </div>
       </header>

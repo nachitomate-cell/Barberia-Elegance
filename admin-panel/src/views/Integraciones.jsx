@@ -143,7 +143,7 @@ export default function Integraciones() {
           <Plug size={22} className="text-blue-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">Integraciones · Conversión &amp; CRM</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-primary leading-tight">Integraciones · Conversión &amp; CRM</h1>
           <p className="text-sm text-slate-400 leading-relaxed mt-1 max-w-2xl">
             Cada vez que un cliente reserva, tu agenda le puede avisar a <b className="text-slate-200">Meta</b> (para
             que tus anuncios optimicen sobre reservas reales) y a tu <b className="text-slate-200">GoHighLevel</b> (para
@@ -193,7 +193,7 @@ export default function Integraciones() {
           <div className="flex items-center gap-3 min-w-0">
             <MetaLogo size={26} />
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white">Meta · Conversions API (CAPI)</h2>
+              <h2 className="text-sm font-bold text-primary">Meta · Conversions API (CAPI)</h2>
               <p className="text-[11.5px] text-slate-500">Envía cada reserva a Meta para atribución y optimización de anuncios.</p>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function Integraciones() {
                   >
                     <ev.Icon size={16} className={active ? 'text-blue-400 mt-0.5 shrink-0' : 'text-slate-500 mt-0.5 shrink-0'} />
                     <div className="min-w-0">
-                      <p className={`text-[13px] font-bold leading-tight ${active ? 'text-white' : 'text-slate-300'}`}>{ev.label}</p>
+                      <p className={`text-[13px] font-bold leading-tight ${active ? 'text-primary' : 'text-slate-300'}`}>{ev.label}</p>
                       <p className="text-[11px] text-slate-500 leading-tight mt-0.5">{ev.desc}</p>
                     </div>
                   </button>
@@ -254,7 +254,7 @@ export default function Integraciones() {
           <div className="flex items-center gap-3 min-w-0">
             <GhlLogo size={26} />
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white">GoHighLevel · CRM</h2>
+              <h2 className="text-sm font-bold text-primary">GoHighLevel · CRM</h2>
               <p className="text-[11.5px] text-slate-500">Sincroniza cada reserva como contacto/oportunidad en tu CRM.</p>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function Integraciones() {
               <button
                 type="button"
                 onClick={copiarWebhook}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-white transition-colors"
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-primary transition-colors"
               >
                 {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                 {copied ? 'Copiado' : 'Copiar'}
@@ -308,14 +308,14 @@ export default function Integraciones() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Zap size={15} className="text-amber-400" />
-            <h3 className="text-sm font-bold text-white">Probar evento</h3>
+            <h3 className="text-sm font-bold text-primary">Probar evento</h3>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-800 px-2 py-0.5 rounded-full">Simulación</span>
           </div>
           <button
             type="button"
             onClick={probar}
             disabled={testing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-60 text-white text-sm font-bold transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 disabled:opacity-60 text-primary text-sm font-bold transition-all active:scale-[0.98]"
           >
             {testing ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
             {testing ? 'Enviando…' : 'Simular una reserva'}
@@ -335,7 +335,7 @@ export default function Integraciones() {
                 : <RefreshCw size={16} className="text-slate-500 shrink-0 animate-spin" />}
               <MetaLogo size={16} />
               <span className="text-[13px] text-slate-300 flex-1">
-                Meta CAPI — evento <b className="text-white">{meta.evento}</b>
+                Meta CAPI — evento <b className="text-primary">{meta.evento}</b>
               </span>
               <span className={`text-[11px] font-bold ${testDone ? 'text-blue-400' : 'text-slate-500'}`}>
                 {testDone ? 'Recibido ✓' : 'enviando…'}

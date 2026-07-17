@@ -288,7 +288,7 @@ export default function Lookbook() {
                 <Loader2 size={13} className="animate-spin text-emerald-300" />
                 {progressLabel || 'Procesando…'}
               </span>
-              <span className="tabular-nums font-bold text-white">{progress}%</span>
+              <span className="tabular-nums font-bold text-primary">{progress}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-emerald-500/15">
               <motion.div
@@ -376,7 +376,7 @@ export default function Lookbook() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Lookbook" onClose={() => setShowHelp(false)}>
-          <p>El <strong className="text-white">Lookbook</strong> es la galería de fotos que ven los clientes en la app pública.</p>
+          <p>El <strong className="text-primary">Lookbook</strong> es la galería de fotos que ven los clientes en la app pública.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>Sube fotos de cortes reales (máx. {MAX_PHOTOS}).</li>
             <li>Puedes subir múltiples imágenes a la vez.</li>
@@ -439,14 +439,14 @@ function Hero({ onUpload, uploading, disabled, onHelp, totalFotos, totalLikes, c
                   Galería visual
                 </p>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight text-white sm:text-[28px]">Lookbook</h1>
+                  <h1 className="text-2xl font-black tracking-tight text-primary sm:text-[28px]">Lookbook</h1>
                   <HelpButton onClick={onHelp} />
                 </div>
               </div>
             </div>
             <p className="mt-2 max-w-md text-xs leading-relaxed text-emerald-50/75">
               Fotos de cortes reales que tus clientes ven en la pestaña{' '}
-              <b className="text-white">Lookbook</b> de su perfil. Hasta {max} imágenes.
+              <b className="text-primary">Lookbook</b> de su perfil. Hasta {max} imágenes.
             </p>
           </div>
 
@@ -481,7 +481,7 @@ function StatPill({ label, value, icon: Icon, accent }) {
       <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] ${accent}`}>
         <Icon size={11} /> <span>{label}</span>
       </div>
-      <p className="mt-1 text-xl font-black tabular-nums text-white">{value}</p>
+      <p className="mt-1 text-xl font-black tabular-nums text-primary">{value}</p>
     </div>
   );
 }
@@ -512,7 +512,7 @@ function ActivationCard({ activo, onTurnOff, onTurnOnAsk }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-white">Sección Lookbook</p>
+              <p className="text-sm font-bold text-primary">Sección Lookbook</p>
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                   activo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30' : 'bg-slate-800 text-slate-400'
@@ -577,7 +577,7 @@ function InstagramConnectCard() {
         {/* Icono IG con gradient brand */}
         <div className="relative shrink-0">
           <div
-            className="grid h-12 w-12 place-items-center rounded-2xl text-white shadow-lg"
+            className="grid h-12 w-12 place-items-center rounded-2xl text-primary shadow-lg"
             style={{
               background: 'linear-gradient(135deg, #feda75 0%, #fa7e1e 25%, #d62976 50%, #962fbf 75%, #4f5bd5 100%)',
               boxShadow: '0 8px 22px -6px rgba(214, 41, 118, 0.55)',
@@ -597,7 +597,7 @@ function InstagramConnectCard() {
         {/* Copy */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-black text-white sm:text-base">
+            <p className="text-sm font-black text-primary sm:text-base">
               Conecta tu Instagram
             </p>
             <span className="inline-flex items-center gap-1 rounded-full bg-lime-400/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-lime-300 ring-1 ring-lime-400/30">
@@ -614,7 +614,7 @@ function InstagramConnectCard() {
         <button
           type="button"
           onClick={() => alert('Próximamente — conexión OAuth con Instagram.')}
-          className="group inline-flex shrink-0 items-center gap-1.5 self-stretch rounded-xl px-4 py-2.5 text-xs font-extrabold text-white shadow-md transition-all hover:scale-[1.02] active:scale-95 sm:self-center"
+          className="group inline-flex shrink-0 items-center gap-1.5 self-stretch rounded-xl px-4 py-2.5 text-xs font-extrabold text-primary shadow-md transition-all hover:scale-[1.02] active:scale-95 sm:self-center"
           style={{
             background: 'linear-gradient(135deg, #d62976 0%, #962fbf 100%)',
             boxShadow: '0 6px 18px -6px rgba(214, 41, 118, 0.55)',
@@ -659,9 +659,9 @@ function ConfirmActivationModal({ onCancel, onConfirm }) {
             <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">
               <AlertTriangle size={22} />
             </span>
-            <h3 className="text-lg font-bold text-white">Activar el Lookbook</h3>
+            <h3 className="text-lg font-bold text-primary">Activar el Lookbook</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              Tus clientes verán la pestaña <b className="text-white">Lookbook</b> de su perfil con
+              Tus clientes verán la pestaña <b className="text-primary">Lookbook</b> de su perfil con
               las fotos publicadas. <span className="text-amber-300">Revisa que estén listas antes
               de activar.</span>
             </p>
@@ -722,13 +722,13 @@ function PhotoCard({
       />
 
       {/* Badge índice (top-left siempre visible) */}
-      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
-        <GripVertical size={10} className="text-white/60" /> {idx + 1}
+      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-primary backdrop-blur-sm">
+        <GripVertical size={10} className="text-primary/60" /> {idx + 1}
       </span>
 
       {/* Likes */}
       {(foto.likes || 0) > 0 && (
-        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-primary backdrop-blur-sm">
           <Heart size={10} className="text-rose-400 fill-rose-400" /> {foto.likes}
         </span>
       )}
@@ -752,7 +752,7 @@ function PhotoCard({
         </button>
         <button
           onClick={() => onDelete(foto)}
-          className="inline-flex items-center gap-1 rounded-lg bg-red-500/95 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-md backdrop-blur transition-transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-1 rounded-lg bg-red-500/95 px-2.5 py-1.5 text-[11px] font-bold text-primary shadow-md backdrop-blur transition-transform hover:scale-105 active:scale-95"
           title="Eliminar"
         >
           <Trash2 size={11} /> Borrar
@@ -793,7 +793,7 @@ function EmptyState({ onClick }) {
         </span>
       </div>
       <div className="relative max-w-xs">
-        <p className="text-base font-bold text-white">Sube tu primera foto</p>
+        <p className="text-base font-bold text-primary">Sube tu primera foto</p>
         <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
           Las fotos de cortes reales <span className="text-slate-200">generan reservas</span> —
           los clientes deciden por lo que ven, no por lo que leen.
@@ -856,7 +856,7 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
           type="button"
           onClick={onCancel}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/5 text-white/70 ring-1 ring-white/10 backdrop-blur transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/5 text-primary/70 ring-1 ring-white/10 backdrop-blur transition-colors hover:bg-white/10 hover:text-primary"
         >
           <X size={14} />
         </button>
@@ -867,7 +867,7 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
               <Crosshair size={18} />
             </span>
             <div>
-              <h3 className="text-base font-bold text-white">Ajustar punto focal</h3>
+              <h3 className="text-base font-bold text-primary">Ajustar punto focal</h3>
               <p className="text-[11px] text-slate-400">
                 Define qué parte de la foto permanece siempre visible.
               </p>

@@ -12,6 +12,7 @@ import { doc, onSnapshot, where } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth, getBrandTenants } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useCollection } from '../../hooks/useCollection';
 import { useBillingRestriction } from '../BillingGate';
 
@@ -248,26 +249,8 @@ const NAV_GROUPS_DELUXE = [
 ];
 
 /* ── Hooks auxiliares ────────────────────────────────────────────── */
-function useTheme() {
-  const [light, setLight] = useState(() => {
-    try { return localStorage.getItem('gestion-theme') === 'light'; } catch { return false; }
-  });
-  useEffect(() => {
-    const html = document.documentElement;
-    // Si no congelamos las transiciones durante el switch, cada elemento del
-    // panel (cientos con transition-colors) anima su nuevo color a la vez y
-    // el browser se traba 1-2s. Activamos .theme-switching → reset global de
-    // transitions vía CSS → cambiamos la clase → la removemos en el siguiente
-    // frame para que las animaciones normales vuelvan a funcionar.
-    html.classList.add('theme-switching');
-    html.classList.toggle('light', light);
-    try { localStorage.setItem('gestion-theme', light ? 'light' : 'dark'); } catch {}
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => html.classList.remove('theme-switching'));
-    });
-  }, [light]);
-  return [light, setLight];
-}
+// useTheme() vive ahora en contexts/ThemeContext.jsx — estaba encerrado acá
+// y por eso el tema solo existía donde hubiera Sidebar montado.
 
 function useBillingAlert() {
   const { id: tenantId } = useTenant();
@@ -462,7 +445,7 @@ const SIDEBAR_VARIANTS = {
     hover:     'hover:bg-blue-500/10',
     bg:        'bg-blue-500/15',
     border:    'border-blue-400',
-    lightText: '[html.light_&]:text-slate-800',
+    lightText: '[html.light_&]:text-ink-800',
     lightIcon: '',
   },
   // Recibir Pagos — variante AMARILLO/DORADO destacada para configuración de
@@ -519,7 +502,7 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
         // heredan (no tienen color propio). Las variantes de marca traen su
         // propio lightText y usan otra rama, así que no se ven afectadas.
         return `${base} ${isActive
-          ? `${accent.active} ${accent.border} border-l-2 pl-[10px] [html.light_&]:text-slate-900`
+          ? `${accent.active} ${accent.border} border-l-2 pl-[10px] [html.light_&]:text-ink-900`
           : 'text-slate-400 hover:text-slate-50 hover:bg-white/5'}`;
       }}
     >
@@ -573,7 +556,7 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
             </span>
           )}
           {isActive && !hasBadge && !dot && !variant && (
-            <ChevronRight size={14} className={`${accent.chevron} opacity-60 [html.light_&]:text-slate-500`} />
+            <ChevronRight size={14} className={`${accent.chevron} opacity-60 [html.light_&]:text-ink-500`} />
           )}
         </>
       )}
@@ -619,7 +602,7 @@ function SedeSwitcher() {
               title={`Ir a Kronnos ${s.label}`}
               aria-current={active ? 'true' : undefined}
               className={`text-[10px] font-bold py-1.5 px-1 rounded-lg truncate transition-all active:scale-95 ${
-                active ? 'text-white shadow-sm' : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white'
+                active ? 'text-primary shadow-sm' : 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-primary'
               }`}
               style={active ? { background: s.color } : undefined}
             >
@@ -638,7 +621,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
-  const [light, setLight] = useTheme();
+  const { light, toggle: toggleTheme } = useTheme();
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
   const hasAcademia     = useAcademiaEnabled();
@@ -760,12 +743,12 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           )}
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Panel Admin</p>
-            <h1 className="text-sm font-bold text-white leading-tight truncate">{tenant.name}</h1>
+            <h1 className="text-sm font-bold text-primary leading-tight truncate">{tenant.name}</h1>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center shrink-0 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 active:scale-95 transition-all mt-0.5"
+              className="w-8 h-8 flex items-center justify-center shrink-0 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-700 active:scale-95 transition-all mt-0.5"
               aria-label="Cerrar menú"
             >
               <X size={16} />
@@ -817,7 +800,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                                      isProductos ? pendingReservasCount :
                                      isPorCerrar ? porCerrarCount : 0;
 
-                  const badgeColorClass = isMensajes  ? 'bg-red-500 text-white' :
+                  const badgeColorClass = isMensajes  ? 'bg-red-500 text-primary' :
                                           isAgenda    ? 'bg-amber-500 text-amber-950 font-bold' :
                                           isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' :
                                           isPorCerrar ? 'bg-amber-500 text-amber-950 font-bold' : '';
@@ -871,7 +854,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         <div className="flex gap-2">
           {/* Ghost button — sin borde ni fondo en reposo */}
           <button
-            onClick={() => setLight(v => !v)}
+            onClick={toggleTheme}
             title={light ? 'Activar modo oscuro' : 'Activar modo claro'}
             className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-slate-400 hover:text-slate-50 hover:bg-white/5 transition-all duration-200 active:scale-95"
           >

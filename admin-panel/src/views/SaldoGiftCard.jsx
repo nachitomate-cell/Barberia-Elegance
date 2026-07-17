@@ -70,7 +70,7 @@ export default function SaldoGiftCard() {
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
             <Gift size={24} className="text-emerald-400" />
           </div>
-          <h1 className="text-xl font-bold text-white">Consultar Saldo</h1>
+          <h1 className="text-xl font-bold text-primary">Consultar Saldo</h1>
           <p className="text-sm text-slate-400 mt-1">Ingresa el código de tu Gift Card</p>
         </div>
 
@@ -81,7 +81,7 @@ export default function SaldoGiftCard() {
             onChange={e => { setCodigo(e.target.value.toUpperCase()); setErr(''); setResult(null); }}
             onKeyDown={e => e.key === 'Enter' && buscar()}
             placeholder="XXXX-XXXX-XXXX"
-            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none uppercase"
+            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none uppercase"
           />
           <button
             onClick={buscar}
@@ -111,7 +111,7 @@ export default function SaldoGiftCard() {
                                           'bg-slate-800    border-slate-700'
           }`}>
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold text-white">{result.nombre}</p>
+              <p className="text-sm font-bold text-primary">{result.nombre}</p>
               <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
                 result.estado === 'activa'  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
                 result.estado === 'parcial' ? 'bg-amber-500/20   border-amber-500/30   text-amber-400'  :
@@ -123,7 +123,7 @@ export default function SaldoGiftCard() {
             </div>
 
             <div className="text-center py-2">
-              <p className="text-5xl font-black text-white">{formatCLP(result.saldo)}</p>
+              <p className="text-5xl font-black text-primary">{formatCLP(result.saldo)}</p>
               <p className="text-sm text-slate-400 mt-1.5">saldo disponible</p>
               {result.valor !== result.saldo && (
                 <p className="text-xs text-slate-500 mt-0.5">de {formatCLP(result.valor)} original</p>

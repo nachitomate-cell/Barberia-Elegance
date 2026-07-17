@@ -165,7 +165,7 @@ export default function Facturacion() {
           <Receipt size={22} className="text-indigo-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-white">Facturación automática</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-primary">Facturación automática</h1>
           <p className="text-sm text-slate-400 mt-0.5 max-w-2xl leading-relaxed">
             Emite boletas al completar cada cita. En modo <b>arriendo de sillón</b>, el local
             emite su boleta afecta por el arriendo y los productos; el barbero emitirá su boleta
@@ -190,7 +190,7 @@ export default function Facturacion() {
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-white">Emisión automática</h2>
+            <h2 className="text-sm font-bold text-primary">Emisión automática</h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Al activar, cada cita <b>Completada</b> genera su boleta automáticamente.
             </p>
@@ -207,7 +207,7 @@ export default function Facturacion() {
 
       {/* ── Modo de facturación ─────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2"><UserSquare2 size={15} className="text-indigo-400" /> Modelo de facturación</h2>
+        <h2 className="text-sm font-bold text-primary flex items-center gap-2"><UserSquare2 size={15} className="text-indigo-400" /> Modelo de facturación</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <ModoCard
             active={form.modo === 'arriendo_sillon'}
@@ -233,7 +233,7 @@ export default function Facturacion() {
                 type="number" min="0" max="100" inputMode="numeric"
                 value={form.arriendoPct}
                 onChange={e => set('arriendoPct', e.target.value)}
-                className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-indigo-500 focus:outline-none"
               />
               <span className="text-xs text-slate-500">
                 Del precio del servicio, el <b className="text-slate-300">{Number(form.arriendoPct) || 0}%</b> va a la boleta afecta del local;
@@ -246,7 +246,7 @@ export default function Facturacion() {
 
       {/* ── Datos del emisor (local) ────────────────────────────── */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
-        <h2 className="text-sm font-bold text-white flex items-center gap-2"><Store size={15} className="text-indigo-400" /> Datos del local (emisor de la boleta afecta)</h2>
+        <h2 className="text-sm font-bold text-primary flex items-center gap-2"><Store size={15} className="text-indigo-400" /> Datos del local (emisor de la boleta afecta)</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="RUT del local" placeholder="76.123.456-7" value={form.emisorLocal.rut} onChange={v => setEm('rut', v)} />
           <Field label="Razón social" placeholder="Barbería XYZ SpA" value={form.emisorLocal.razonSocial} onChange={v => setEm('razonSocial', v)} />
@@ -260,7 +260,7 @@ export default function Facturacion() {
       {/* ── OpenFactura (API) ───────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2"><KeyRound size={15} className="text-indigo-400" /> Conexión con OpenFactura</h2>
+          <h2 className="text-sm font-bold text-primary flex items-center gap-2"><KeyRound size={15} className="text-indigo-400" /> Conexión con OpenFactura</h2>
           <span className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold ${configurada
             ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
             : 'bg-slate-700/40 border-slate-600/40 text-slate-400'}`}>
@@ -295,7 +295,7 @@ export default function Facturacion() {
               placeholder={configurada ? '•••••••••••• (guardada)' : 'Pega tu API Key'}
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none font-mono"
+              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-indigo-500 focus:outline-none font-mono"
             />
             <button
               type="button" onClick={guardarApiKey} disabled={busy === 'key' || !apiKey.trim()}
@@ -321,7 +321,7 @@ export default function Facturacion() {
       <div className="sticky bottom-4 flex justify-end">
         <button
           type="button" onClick={guardarConfig} disabled={busy === 'save' || !dirty}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-500 text-primary hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 transition-colors"
         >
           {busy === 'save' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           {dirty ? 'Guardar cambios' : 'Guardado'}
@@ -332,7 +332,7 @@ export default function Facturacion() {
       <section className="rounded-2xl border border-slate-800 bg-slate-900/40 overflow-hidden">
         <header className="px-5 py-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2"><FileText size={14} className="text-indigo-400" /> Últimas emisiones</h3>
+            <h3 className="text-sm font-bold text-primary flex items-center gap-2"><FileText size={14} className="text-indigo-400" /> Últimas emisiones</h3>
             <p className="text-xs text-slate-500 mt-0.5">
               {stats.emitidas} emitidas · {stats.errores} con error · {fmtCLP(stats.total)} facturado (afecta)
             </p>
@@ -352,7 +352,7 @@ export default function Facturacion() {
                   {l.ok ? <CheckCircle2 size={13} className="text-emerald-400" /> : <AlertCircle size={13} className="text-rose-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-white truncate">
+                  <div className="text-sm text-primary truncate">
                     {l.ok ? `Folio ${l.documento?.folio}` : 'Error de emisión'}
                     {l.clienteNombre ? <span className="text-slate-500"> · {l.clienteNombre}</span> : null}
                   </div>
@@ -399,7 +399,7 @@ function ModoCard({ active, onClick, title, desc }) {
     >
       <div className="flex items-center gap-2">
         <span className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 ${active ? 'border-indigo-400 bg-indigo-400' : 'border-slate-600'}`} />
-        <span className="text-sm font-bold text-white">{title}</span>
+        <span className="text-sm font-bold text-primary">{title}</span>
       </div>
       <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{desc}</p>
     </button>
@@ -413,7 +413,7 @@ function Field({ label, value, onChange, placeholder }) {
       <input
         type="text" autoComplete="off" placeholder={placeholder}
         value={value || ''} onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-indigo-500 focus:outline-none"
       />
     </div>
   );

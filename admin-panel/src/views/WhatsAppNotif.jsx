@@ -93,7 +93,7 @@ export default function WhatsAppNotif({ embedded = false }) {
           {/* ── Header ── */}
           <div className="flex items-center gap-3 mb-1">
             <WaLogo size={30} />
-            <h1 className="text-xl font-bold text-white">Avisos WhatsApp</h1>
+            <h1 className="text-xl font-bold text-primary">Avisos WhatsApp</h1>
           </div>
           <p className="text-sm text-slate-400 mb-6">
             Recibe cada reserva nueva directo en tu WhatsApp — y si quieres, confirma
@@ -109,7 +109,7 @@ export default function WhatsAppNotif({ embedded = false }) {
       ) : error ? (
         <div className={`${card} p-5 text-sm text-red-400 flex items-center justify-between gap-3`}>
           <span>{error}</span>
-          <button onClick={cargar} className="shrink-0 text-slate-300 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors" aria-label="Reintentar">
+          <button onClick={cargar} className="shrink-0 text-slate-300 hover:text-primary p-2 rounded-lg hover:bg-slate-700 transition-colors" aria-label="Reintentar">
             <RefreshCw size={15} />
           </button>
         </div>
@@ -124,16 +124,16 @@ export default function WhatsAppNotif({ embedded = false }) {
                 <div>
                   <div className="flex items-center gap-2">
                     <BellRing size={16} className="text-emerald-400" />
-                    <h2 className="text-base font-bold text-white">Aviso de reservas al local</h2>
+                    <h2 className="text-base font-bold text-primary">Aviso de reservas al local</h2>
                     <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-full text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Gratis</span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-md">
                     Cada vez que un cliente reserve, te llega un WhatsApp al instante con
-                    el detalle de la cita. Respondes <span className="text-white font-semibold">1</span> y
+                    el detalle de la cita. Respondes <span className="text-primary font-semibold">1</span> y
                     queda confirmada como vista.
                   </p>
                 </div>
-                <button onClick={cargar} className="shrink-0 text-slate-500 hover:text-white p-2 rounded-lg hover:bg-slate-700/60 transition-colors" title="Actualizar estado">
+                <button onClick={cargar} className="shrink-0 text-slate-500 hover:text-primary p-2 rounded-lg hover:bg-slate-700/60 transition-colors" title="Actualizar estado">
                   <RefreshCw size={15} />
                 </button>
               </div>
@@ -147,7 +147,7 @@ export default function WhatsAppNotif({ embedded = false }) {
                 <div className="space-y-3">
                   <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-4">
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      <span className="text-white font-semibold">Actívalo en 10 segundos:</span> toca
+                      <span className="text-primary font-semibold">Actívalo en 10 segundos:</span> toca
                       el botón, se abrirá WhatsApp con el mensaje listo — solo envíalo desde el
                       número donde quieres recibir los avisos.
                     </p>
@@ -172,7 +172,7 @@ export default function WhatsAppNotif({ embedded = false }) {
                     </div>
                     <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-3.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Número vinculado</p>
-                      <p className="text-sm font-bold text-white">{estado?.telefono || '—'}</p>
+                      <p className="text-sm font-bold text-primary">{estado?.telefono || '—'}</p>
                     </div>
                     <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-3.5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Canal WhatsApp</p>
@@ -193,7 +193,7 @@ export default function WhatsAppNotif({ embedded = false }) {
                   )}
                   {pausado && (
                     <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-3.5 text-xs text-slate-400">
-                      Pausaste los avisos. Escribe <span className="text-white font-bold">REANUDAR</span> al
+                      Pausaste los avisos. Escribe <span className="text-primary font-bold">REANUDAR</span> al
                       número de avisos para retomarlos.
                     </div>
                   )}
@@ -219,7 +219,7 @@ export default function WhatsAppNotif({ embedded = false }) {
             <div className="relative">
               <div className="flex items-center gap-2 mb-1.5">
                 <Sparkles size={16} className="text-violet-400" />
-                <h2 className="text-base font-bold text-white">Confirmación automática a tus clientes</h2>
+                <h2 className="text-base font-bold text-primary">Confirmación automática a tus clientes</h2>
                 {planCliente ? (
                   <span className="bg-violet-500/10 text-violet-300 border border-violet-500/30 rounded-full text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Activo</span>
                 ) : (
@@ -230,7 +230,7 @@ export default function WhatsAppNotif({ embedded = false }) {
                 {/* Izquierda: descripción + estado/CTA */}
                 <div className="order-2 lg:order-1">
                   <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                    Al reservar, tu <span className="text-white font-semibold">cliente</span> recibe un WhatsApp
+                    Al reservar, tu <span className="text-primary font-semibold">cliente</span> recibe un WhatsApp
                     oficial a nombre de tu local con el detalle de su cita — menos inasistencias, imagen más
                     profesional. Usa plantillas verificadas por WhatsApp (mensajería con costo, por eso es parte
                     del plan pagado).
@@ -244,7 +244,7 @@ export default function WhatsAppNotif({ embedded = false }) {
                     <a
                       href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(upgradeMsg)}`}
                       target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
+                      className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-primary text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
                     >
                       <MessageCircle size={16} /> Solicitar activación
                     </a>

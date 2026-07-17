@@ -1,9 +1,22 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Panel Admin | Barbería SaaS</title>
+
+  <!-- Anti-FOUC. Debe ir inline y antes del CSS: aplica el tema guardado en el
+       mismo tick en que el parser llega acá, o sea antes del primer paint. Si
+       esto lo hiciera React (al montar el Sidebar), el usuario en modo claro
+       vería el panel oscuro un instante en cada carga. Duplica a propósito la
+       key de ThemeContext.jsx — no se puede importar sin volverse asíncrono. -->
+  <script>
+    try {
+      if (localStorage.getItem('gestion-theme') === 'light') {
+        document.documentElement.classList.add('light');
+      }
+    } catch (_) {}
+  </script>
 
   <!-- PWA -->
   <meta name="theme-color" content="#0f172a" />
@@ -22,7 +35,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <script defer src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 </head>
-<body class="bg-slate-900 text-white antialiased">
+<body class="bg-slate-900 text-primary antialiased">
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

@@ -46,6 +46,76 @@
               0 20px 40px -12px rgba(0, 0, 0, 0.15);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   COLOR · la rampa slate es un token, no un color literal
+   ───────────────────────────────────────────────────────────────────
+   El panel está escrito dark-first: `bg-slate-900` no quiere decir
+   "azul oscuro #0f172a", quiere decir "superficie de tarjeta". Medido
+   sobre las 4814 ocurrencias de slate-* en el JSX, esa convención se
+   respeta en el 99% de los casos.
+
+   Así que en vez de reescribir 4814 call sites a nombres semánticos,
+   metemos los tokens DEBAJO de la rampa: tailwind.config.js apunta
+   `slate` a estas vars, y acá las redefinimos bajo `html.light`. El
+   JSX no se entera y el modo claro deja de necesitar overrides.
+
+   ── Cómo elegir un color, de acá en adelante ──
+     slate-*   → superficie/texto. VOLTEA con el tema. Es el default.
+     ink-*     → gris CONGELADO, idéntico en ambos modos. Solo para
+                 lo que ya vive sobre un fondo claro fijo (texto sobre
+                 un chip blanco, sobre un botón emerald…).
+     white     → blanco literal congelado (`bg-white` de un botón).
+     primary   → el texto principal. Reemplaza a `text-white`.
+     glass     → velo translúcido sobre la superficie (`bg-glass/5`).
+                 En oscuro aclara, en claro oscurece.
+
+   Los valores en tripletes de canales, sin rgb(), porque Tailwind 3
+   necesita ese formato para inyectar alpha: `bg-slate-800/40` compila
+   a rgb(var(--slate-800) / 0.4). Con hex, los ~600 modificadores de
+   opacidad del panel dejarían de funcionar.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Modo oscuro = los valores nativos de Tailwind. Nada cambia. */
+  --slate-50:  248 250 252;
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+  --slate-700: 51 65 85;
+  --slate-800: 30 41 59;
+  --slate-900: 15 23 42;
+  --slate-950: 2 6 23;
+
+  --primary: 255 255 255;   /* texto principal → blanco */
+  --glass:   255 255 255;   /* velo → aclara */
+}
+
+/* Modo claro. Estos valores NO son un espejo aritmético de la rampa: son
+   exactamente los que ya estaban afinados a mano en los overrides
+   `html.light` de index.css, trasplantados acá. La rampa se dobla sobre
+   sí misma en el medio (400 y 600 aterrizan los dos en #475569, y 500 ni
+   se mueve) porque los grises medios ya se leen bien contra los dos
+   fondos. Se ve raro escrito, pero es lo que hay hoy en pantalla. */
+html.light {
+  --slate-50:  248 250 252;  /* sin override hoy → sin cambio */
+  --slate-100: 241 245 249;  /* sin override hoy → sin cambio */
+  --slate-200: 30 41 59;     /* texto — el agujero histórico, ahora cubierto */
+  --slate-300: 51 65 85;     /* texto secundario */
+  --slate-400: 71 85 105;    /* texto terciario */
+  --slate-500: 100 116 139;  /* muted — sin cambio, ya era neutro */
+  --slate-600: 71 85 105;    /* sin cambio */
+  --slate-700: 203 213 225;  /* borde fuerte / superficie 3 */
+  --slate-800: 226 232 240;  /* superficie elevada, inputs, hover, bordes */
+  --slate-900: 255 255 255;  /* tarjetas → blanco puro, se elevan del canvas */
+  --slate-950: 255 255 255;  /* el canvas gris lo pone [data-app-canvas] */
+
+  --primary: 15 23 42;       /* texto principal → casi negro */
+  --glass:   15 23 42;       /* velo → oscurece */
+}
+
 /* ── Aplicación tipográfica global ───────────────────────────────── */
 html, body {
   font-family: var(--font-sans);

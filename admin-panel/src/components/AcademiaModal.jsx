@@ -12,7 +12,7 @@ function SeccionCard({ icon: Icon, titulo, descripcion }) {
         <Icon size={18} style={{ color: ORO }} strokeWidth={1.8} />
       </div>
       <div>
-        <p className="text-sm font-bold text-white mb-1">{titulo}</p>
+        <p className="text-sm font-bold text-primary mb-1">{titulo}</p>
         <p className="text-sm text-slate-400 leading-relaxed">{descripcion}</p>
       </div>
     </div>
@@ -41,7 +41,7 @@ export default function AcademiaModal({ onClose }) {
 
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all"
             aria-label="Cerrar"
           >
             <X size={16} />
@@ -58,7 +58,7 @@ export default function AcademiaModal({ onClose }) {
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ORO }}>
                 Formación de Excelencia
               </p>
-              <h2 className="text-lg font-bold text-white leading-tight">
+              <h2 className="text-lg font-bold text-primary leading-tight">
                 Academia Elegance
               </h2>
             </div>
@@ -75,7 +75,7 @@ export default function AcademiaModal({ onClose }) {
           {/* Intro */}
           <p className="text-sm text-slate-300 leading-relaxed">
             Todo nuestro equipo en Viña del Mar está respaldado por el programa intensivo de{' '}
-            <span className="font-bold text-white">240 horas de Barbería Profesional</span>,
+            <span className="font-bold text-primary">240 horas de Barbería Profesional</span>,
             asegurando que cada servicio cumpla con la promesa:
           </p>
           <p

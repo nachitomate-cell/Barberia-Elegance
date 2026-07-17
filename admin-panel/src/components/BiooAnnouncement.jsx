@@ -45,7 +45,7 @@ export default function BiooAnnouncement() {
         {/* Cerrar (X) */}
         <button
           onClick={dismiss}
-          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full text-white/80 hover:text-white transition-colors"
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full text-primary/80 hover:text-primary transition-colors"
           style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
           aria-label="Cerrar"
         >
@@ -63,7 +63,7 @@ export default function BiooAnnouncement() {
         {/* Contenido */}
         <div className="px-6 py-5 space-y-4">
           <div className="space-y-1.5 text-center">
-            <h3 className="text-white font-bold text-lg leading-snug">
+            <h3 className="text-primary font-bold text-lg leading-snug">
               Conoce <span style={{ color: '#D4AF37' }}>Bioo</span>
             </h3>
             <p className="text-slate-400 text-sm leading-relaxed">
@@ -83,7 +83,7 @@ export default function BiooAnnouncement() {
             </button>
             <button
               onClick={dismiss}
-              className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-primary transition-colors"
             >
               Ahora no
             </button>

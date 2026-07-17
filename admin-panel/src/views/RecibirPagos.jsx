@@ -74,8 +74,8 @@ export default function RecibirPagos() {
           <CircleDollarSign size={22} className="text-yellow-400 [html.light_&]:text-yellow-700" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-white [html.light_&]:text-slate-900">Recibir Pagos</h1>
-          <p className="text-sm text-slate-400 [html.light_&]:text-slate-600 mt-1">
+          <h1 className="text-2xl font-bold text-primary [html.light_&]:text-ink-900">Recibir Pagos</h1>
+          <p className="text-sm text-slate-400 [html.light_&]:text-ink-600 mt-1">
             Conecta tus pasarelas para cobrar servicios y productos online (reservas, Gift Cards, propinas).
           </p>
         </div>
@@ -99,14 +99,14 @@ export default function RecibirPagos() {
             <div
               key={id}
               className={`rounded-2xl border bg-slate-900/40 [html.light_&]:bg-white p-5 transition-colors duration-200 ${
-                connected ? 'border-emerald-500/40' : 'border-slate-800 [html.light_&]:border-slate-200 hover:border-yellow-400/40'
+                connected ? 'border-emerald-500/40' : 'border-slate-800 [html.light_&]:border-ink-200 hover:border-yellow-400/40'
               }`}
             >
               <div className="flex items-center gap-3 mb-3">
                 <Icon size={20} className="text-yellow-400 [html.light_&]:text-yellow-700" />
-                <h3 className="font-semibold text-white [html.light_&]:text-slate-900">{nombre}</h3>
+                <h3 className="font-semibold text-primary [html.light_&]:text-ink-900">{nombre}</h3>
               </div>
-              <p className="text-xs text-slate-400 [html.light_&]:text-slate-600 leading-relaxed mb-4">{descripcion}</p>
+              <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 leading-relaxed mb-4">{descripcion}</p>
 
               <div className="flex items-center justify-between gap-2">
                 <span className={`text-[11px] uppercase tracking-wider flex items-center gap-1 ${
@@ -138,7 +138,7 @@ export default function RecibirPagos() {
                       <button
                         onClick={connectMp}
                         disabled={connecting}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg text-white transition-transform active:scale-95 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg text-primary transition-transform active:scale-95 disabled:opacity-60"
                         style={{ background: '#009ee3' }}
                       >
                         {connecting ? <><Loader2 size={13} className="animate-spin" /> …</> : 'Conectar'}
@@ -154,7 +154,7 @@ export default function RecibirPagos() {
         })}
       </div>
 
-      <p className="text-xs text-slate-500 [html.light_&]:text-slate-500 text-center mt-8">
+      <p className="text-xs text-slate-500 [html.light_&]:text-ink-500 text-center mt-8">
         Mercado Pago ya disponible. Flow y Stripe se habilitarán próximamente.
       </p>
     </div>

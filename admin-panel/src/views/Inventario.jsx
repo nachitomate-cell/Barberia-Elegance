@@ -25,7 +25,7 @@ function KpiCard({ Icon, label, value, sub, color = 'emerald' }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-2xl font-bold text-white mt-0.5 truncate">{value}</p>
+        <p className="text-2xl font-bold text-primary mt-0.5 truncate">{value}</p>
         {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
@@ -134,7 +134,7 @@ export default function Inventario() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold text-primary flex items-center gap-2">
             <Layers className="text-emerald-500" size={20} />
             Rentabilidad de Inventario
             <HelpButton onClick={() => setShowHelp(true)} />
@@ -146,7 +146,7 @@ export default function Inventario() {
         <button
           onClick={fetchData}
           disabled={fetching}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-40 transition-all self-start sm:self-center"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-primary hover:border-slate-700 disabled:opacity-40 transition-all self-start sm:self-center"
         >
           <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
           Actualizar
@@ -179,7 +179,7 @@ export default function Inventario() {
           <div className="flex items-center gap-2">
             <Flame size={16} className="text-rose-400" />
             <div>
-              <p className="text-sm font-semibold text-white">Más vendidos · últimos {SALES_WINDOW_DAYS} días</p>
+              <p className="text-sm font-semibold text-primary">Más vendidos · últimos {SALES_WINDOW_DAYS} días</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 Velocidad de rotación y proyección de días hasta agotarse.
               </p>
@@ -188,7 +188,7 @@ export default function Inventario() {
           {ventasStats.totalUnidades > 0 && (
             <div className="text-right">
               <p className="text-xs text-slate-500">Total</p>
-              <p className="text-sm font-bold text-white">{ventasStats.totalUnidades} u · ${Math.round(ventasStats.totalIngresos).toLocaleString('es-CL')}</p>
+              <p className="text-sm font-bold text-primary">{ventasStats.totalUnidades} u · ${Math.round(ventasStats.totalIngresos).toLocaleString('es-CL')}</p>
             </div>
           )}
         </div>
@@ -209,7 +209,7 @@ export default function Inventario() {
                 <div key={r.productId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/3 transition-colors">
                   <span className="w-6 text-xs font-bold text-slate-500 shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{r.nombre}</p>
+                    <p className="text-sm font-semibold text-primary truncate">{r.nombre}</p>
                     <p className="text-[11px] text-slate-500">
                       {r.unidades} vendido{r.unidades !== 1 ? 's' : ''} · ${Math.round(r.ingresos).toLocaleString('es-CL')}
                     </p>
@@ -245,7 +245,7 @@ export default function Inventario() {
         <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
           <Layers size={16} className="text-slate-400" />
           <div>
-            <p className="text-sm font-semibold text-white">Análisis de Rentabilidad por Producto</p>
+            <p className="text-sm font-semibold text-primary">Análisis de Rentabilidad por Producto</p>
             <p className="text-xs text-slate-500 mt-0.5">Ordenados de mayor a menor margen bruto absoluto de ganancia unitaria</p>
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function Inventario() {
                   const isMissingCost = p.costo === 0;
                   return (
                     <tr key={p.id} className="hover:bg-slate-800/10 text-slate-350 transition-colors">
-                      <td className="py-3 pr-3 font-medium text-white">
+                      <td className="py-3 pr-3 font-medium text-primary">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
                           <span className="truncate max-w-[240px]">{p.nombre}</span>
                           <div className="flex flex-wrap items-center gap-1">
@@ -293,7 +293,7 @@ export default function Inventario() {
                       <td className={`py-3 text-right ${isMissingCost ? 'text-slate-600 italic' : 'text-slate-350'}`}>
                         {isMissingCost ? '$0' : fmtCLP(p.costo)}
                       </td>
-                      <td className="py-3 text-right text-white font-medium">{fmtCLP(p.precio)}</td>
+                      <td className="py-3 text-right text-primary font-medium">{fmtCLP(p.precio)}</td>
                       <td className={`py-3 text-right font-bold ${p.margenAbs > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
                         {fmtCLP(p.margenAbs)}
                       </td>
@@ -316,15 +316,15 @@ export default function Inventario() {
       {/* Modal de ayuda */}
       {showHelp && (
         <HelpModal title="Cómo leer este inventario" onClose={() => setShowHelp(false)}>
-          <p>Esta vista te dice <strong className="text-white">qué tan rentable es tu stock de productos</strong>. No es para editar precios ni cargar productos (eso es en <em>/productos</em>), sino para tomar decisiones de compra y precio.</p>
+          <p>Esta vista te dice <strong className="text-primary">qué tan rentable es tu stock de productos</strong>. No es para editar precios ni cargar productos (eso es en <em>/productos</em>), sino para tomar decisiones de compra y precio.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">KPIs superiores</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li><strong className="text-white">Valor del stock</strong>: lo que vale tu inventario al precio de venta.</li>
-              <li><strong className="text-white">Costo del stock</strong>: lo que pagaste por todo ese stock.</li>
-              <li><strong className="text-white">Margen total</strong>: la ganancia potencial si vendieras TODO. Si es muy bajo, estás vendiendo demasiado barato.</li>
-              <li><strong className="text-white">% margen promedio</strong>: salud financiera global. Saludable: 40–60% en productos de barbería.</li>
+              <li><strong className="text-primary">Valor del stock</strong>: lo que vale tu inventario al precio de venta.</li>
+              <li><strong className="text-primary">Costo del stock</strong>: lo que pagaste por todo ese stock.</li>
+              <li><strong className="text-primary">Margen total</strong>: la ganancia potencial si vendieras TODO. Si es muy bajo, estás vendiendo demasiado barato.</li>
+              <li><strong className="text-primary">% margen promedio</strong>: salud financiera global. Saludable: 40–60% en productos de barbería.</li>
             </ul>
           </div>
 
@@ -340,7 +340,7 @@ export default function Inventario() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Ranking por rentabilidad</p>
-            <p>Ordenado por <strong className="text-white">margen unitario</strong> ($) y <strong className="text-white">% de margen</strong>. Los de arriba son los que más plata te dejan por unidad — promocionarlos primero.</p>
+            <p>Ordenado por <strong className="text-primary">margen unitario</strong> ($) y <strong className="text-primary">% de margen</strong>. Los de arriba son los que más plata te dejan por unidad — promocionarlos primero.</p>
           </div>
 
           <div>

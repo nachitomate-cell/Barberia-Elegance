@@ -42,7 +42,7 @@ function ServiceCard({ servicio, selected, onSelect, clr }) {
 
         <div className="flex-1 min-w-0 pr-4">
           <p className={`font-semibold text-[15px] leading-snug transition-colors ${
-            selected ? 'text-white' : 'text-gray-200'
+            selected ? 'text-primary' : 'text-gray-200'
           }`}>
             {servicio.nombre}
           </p>
@@ -156,7 +156,7 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
           </p>
         </div>
 
-        <h1 className="text-[26px] font-black text-white tracking-tight leading-tight">
+        <h1 className="text-[26px] font-black text-primary tracking-tight leading-tight">
           Elige tu servicio
         </h1>
         <p className="text-gray-500 text-[13px] mt-1.5">
@@ -238,7 +238,7 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
             >
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider">Seleccionado</p>
-                <p className="text-sm font-semibold text-white mt-0.5">{servicioActual.nombre}</p>
+                <p className="text-sm font-semibold text-primary mt-0.5">{servicioActual.nombre}</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-base" style={{ color: clr.A }}>

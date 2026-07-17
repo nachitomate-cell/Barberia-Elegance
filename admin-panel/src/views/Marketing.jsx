@@ -166,7 +166,7 @@ function HeroStat({ label, value, Icon, tone, small }) {
       <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
         <Icon size={11} /> <span>{label}</span>
       </div>
-      <p className={`mt-1 truncate font-black tabular-nums text-white ${small ? 'text-sm' : 'text-xl'}`}>
+      <p className={`mt-1 truncate font-black tabular-nums text-primary ${small ? 'text-sm' : 'text-xl'}`}>
         {value}
       </p>
     </div>
@@ -178,7 +178,7 @@ function renderMd(text) {
   return text.split('\n').map((line, li, arr) => {
     const parts = line.split(/(\*\*[^*]+\*\*)/g).map((chunk, ci) => {
       if (chunk.startsWith('**') && chunk.endsWith('**'))
-        return <strong key={ci} className="text-white font-semibold">{chunk.slice(2, -2)}</strong>;
+        return <strong key={ci} className="text-primary font-semibold">{chunk.slice(2, -2)}</strong>;
       return chunk;
     });
     return (
@@ -281,7 +281,7 @@ function AsistenteIA({ stats, statsLoading }) {
           <img src="/logo1.png" alt="SynapTech" className="h-5 w-5 object-contain" />
         </div>
         <div className="relative min-w-0">
-          <p className="text-sm font-bold text-white leading-none">Asistente SynapTech IA</p>
+          <p className="text-sm font-bold text-primary leading-none">Asistente SynapTech IA</p>
           <p className="mt-0.5 text-[10px] text-slate-500">Captions e ideas listas para copiar</p>
         </div>
         <div className="relative ml-auto flex items-center gap-1.5 rounded-full bg-slate-800/60 px-2 py-1 ring-1 ring-slate-700">
@@ -349,7 +349,7 @@ function AsistenteIA({ stats, statsLoading }) {
                 {[0, 150, 300].map(delay => (
                   <span
                     key={delay}
-                    className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
+                    className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce"
                     style={{ animationDelay: `${delay}ms` }}
                   />
                 ))}
@@ -370,7 +370,7 @@ function AsistenteIA({ stats, statsLoading }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !typing && input.trim() && (sendAI(input.trim()), setInput(''))}
             disabled={typing}
-            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50"
+            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-primary placeholder-slate-600 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50"
           />
           <button
             onClick={() => { if (input.trim() && !typing) { sendAI(input.trim()); setInput(''); } }}
@@ -488,7 +488,7 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
             <Wand2 size={15} style={{ color: '#D4AF37' }} />
           </div>
           <div>
-            <h3 className="text-xs font-black tracking-[0.18em] text-white uppercase">SynapTech IA™</h3>
+            <h3 className="text-xs font-black tracking-[0.18em] text-primary uppercase">SynapTech IA™</h3>
             <p className="font-mono text-[9px] font-bold tracking-[0.22em]" style={{ color: '#D4AF37' }}>
               BANNER ADVISOR v1.2
             </p>
@@ -515,7 +515,7 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
                 Analizando agendas
               </p>
               <p className="max-w-[220px] text-[10px] leading-relaxed text-slate-500 animate-pulse">
@@ -557,7 +557,7 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
                     </div>
 
                     <div className="space-y-1 pr-8">
-                      <h5 className="truncate text-sm font-black tracking-tight text-white transition-colors group-hover:text-[#D4AF37]">
+                      <h5 className="truncate text-sm font-black tracking-tight text-primary transition-colors group-hover:text-[#D4AF37]">
                         {camp.titulo}
                       </h5>
                       <p className="line-clamp-2 text-[11px] leading-snug text-slate-400">{camp.descripcion}</p>
@@ -726,12 +726,12 @@ function CampaignStoryGenerator({ campaign, shopName, logoUrl, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg transition-colors">
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary bg-slate-800 border border-slate-700 rounded-lg transition-colors">
           <X size={16} />
         </button>
 
         <div className="p-5 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Share2 size={18} className="text-[#D4AF37]" /> Imagen para Historia</h3>
+          <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Share2 size={18} className="text-[#D4AF37]" /> Imagen para Historia</h3>
           <p className="text-xs text-slate-500 mt-0.5">Genera una imagen 9:16 de tu campaña para subir a Instagram.</p>
         </div>
 
@@ -745,11 +745,11 @@ function CampaignStoryGenerator({ campaign, shopName, logoUrl, onClose }) {
               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Mostrar</p>
               <div className="space-y-2">
                 <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
-                  <span className="text-sm text-white flex items-center gap-2"><AlignLeft size={14} className="text-[#D4AF37]" /> Descripción</span>
+                  <span className="text-sm text-primary flex items-center gap-2"><AlignLeft size={14} className="text-[#D4AF37]" /> Descripción</span>
                   <input type="checkbox" checked={showDesc} onChange={e => setShowDesc(e.target.checked)} className="w-4 h-4 accent-[#D4AF37]" />
                 </label>
                 <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
-                  <span className="text-sm text-white flex items-center gap-2"><Link2 size={14} className="text-[#D4AF37]" /> Botón (CTA)</span>
+                  <span className="text-sm text-primary flex items-center gap-2"><Link2 size={14} className="text-[#D4AF37]" /> Botón (CTA)</span>
                   <input type="checkbox" checked={showCta} onChange={e => setShowCta(e.target.checked)} className="w-4 h-4 accent-[#D4AF37]" />
                 </label>
               </div>
@@ -950,7 +950,7 @@ export default function Marketing() {
   };
 
   // Inputs seamless con anillo gold al focus.
-  const field = 'w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:bg-slate-950 transition-all';
+  const field = 'w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:bg-slate-950 transition-all';
   const lbl   = 'block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em] mb-1.5';
 
   if (loading) {
@@ -976,7 +976,7 @@ export default function Marketing() {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Marketing</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">Marketing</h1>
                 <HelpButton onClick={() => setShowHelp(true)} />
               </div>
               <p className="text-xs text-slate-500 leading-snug">
@@ -1139,7 +1139,7 @@ export default function Marketing() {
                 : 'border-slate-800 bg-slate-950/40'
             }`}>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-white flex items-center gap-2">
+                <p className="text-sm font-bold text-primary flex items-center gap-2">
                   Publicar anuncio en la app
                   {form.activo && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] ring-1 ring-[#D4AF37]/30">
@@ -1209,7 +1209,7 @@ export default function Marketing() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-300 hover:text-white hover:border-slate-600 transition-colors disabled:opacity-50 shrink-0"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-300 hover:text-primary hover:border-slate-600 transition-colors disabled:opacity-50 shrink-0"
                 >
                   {uploading
                     ? <span className="w-3.5 h-3.5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
@@ -1252,7 +1252,7 @@ export default function Marketing() {
                         : 'border-slate-700 hover:border-slate-600'
                     }`}
                   >
-                    <span className={`block text-xs font-bold ${(form.estilo || 'panel') === s.id ? 'text-white' : 'text-slate-300'}`}>{s.label}</span>
+                    <span className={`block text-xs font-bold ${(form.estilo || 'panel') === s.id ? 'text-primary' : 'text-slate-300'}`}>{s.label}</span>
                     <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">{s.desc}</span>
                   </button>
                 ))}
@@ -1351,12 +1351,12 @@ export default function Marketing() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Marketing" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Marketing</strong> configuras el banner que aparece en la app de tus clientes.</p>
+          <p>En <strong className="text-primary">Marketing</strong> configuras el banner que aparece en la app de tus clientes.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>El <span className="text-white">Asistente Synaptech IA</span> lee tus datos reales (reservas, clientes, servicios) y genera captions listos para copiar en tus publicaciones.</li>
-            <li>El <span className="text-white">Synaptech IA™ Banner Advisor</span> analiza las reservas de tu local y propone estrategias promocionales y de nivelación de tráfico de alta conversión.</li>
+            <li>El <span className="text-primary">Asistente Synaptech IA</span> lee tus datos reales (reservas, clientes, servicios) y genera captions listos para copiar en tus publicaciones.</li>
+            <li>El <span className="text-primary">Synaptech IA™ Banner Advisor</span> analiza las reservas de tu local y propone estrategias promocionales y de nivelación de tráfico de alta conversión.</li>
             <li>Haz clic en <span className="text-[#D4AF37] font-semibold">auto-completar</span> sobre cualquier recomendación de campaña para rellenar los datos de tu anuncio de forma instantánea.</li>
-            <li>Configura un <span className="text-white">anuncio activo</span> con imagen, título y enlace para captar la atención de tus clientes.</li>
+            <li>Configura un <span className="text-primary">anuncio activo</span> con imagen, título y enlace para captar la atención de tus clientes.</li>
           </ul>
         </HelpModal>
       )}

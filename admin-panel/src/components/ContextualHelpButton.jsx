@@ -70,7 +70,7 @@ export default function ContextualHelpButton() {
                 try { localStorage.setItem(LS_KEY, '1'); } catch {}
                 setHidden(true);
               }}
-              className="w-6 h-6 grid place-items-center rounded-full text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+              className="w-6 h-6 grid place-items-center rounded-full text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors"
               aria-label="Ocultar botón de ayuda"
               title="Ocultar botón de ayuda"
             >
@@ -82,7 +82,7 @@ export default function ContextualHelpButton() {
         {/* Botón circular principal */}
         <button
           onClick={() => navigate(url)}
-          className="w-11 h-11 grid place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-lg active:scale-95 transition-all"
+          className="w-11 h-11 grid place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-primary shadow-lg active:scale-95 transition-all"
           aria-label={`Ver guía: ${titulo}`}
           title={titulo}
           style={{ boxShadow: '0 6px 24px -8px rgba(16,185,129,0.5)' }}

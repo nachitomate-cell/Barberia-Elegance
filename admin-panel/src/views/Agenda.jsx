@@ -229,7 +229,7 @@ const PACK_URGENCY_STYLE = {
   proximo:   'bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/50',
   urgente:   'bg-amber-500/25 text-amber-200 ring-1 ring-amber-400/60',
   critico:   'bg-red-500/25 text-red-200 ring-1 ring-red-400/60',
-  expirado:  'bg-red-500/40 text-white ring-1 ring-red-500/80',
+  expirado:  'bg-red-500/40 text-primary ring-1 ring-red-500/80',
   neutro:    'bg-violet-500/25 text-violet-100 ring-1 ring-violet-400/50',
 };
 
@@ -443,8 +443,8 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
       <div className={`w-full ${maxW} bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-confirm-pop`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <h3 className="font-semibold text-white">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"><X size={16} /></button>
+          <h3 className="font-semibold text-primary">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all"><X size={16} /></button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">{children}</div>
         {footer && <div className="px-5 py-4 border-t border-slate-800">{footer}</div>}
@@ -1145,7 +1145,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     onClose();
   };
 
-  const field = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
+  const field = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
   const lbl   = 'block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5';
   const section     = 'bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 space-y-3';
   const sectionHead = 'text-[10px] font-bold uppercase tracking-widest text-slate-500';
@@ -1162,9 +1162,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             </button>
           )}
           <div className="hidden sm:block sm:flex-1" />
-          <button onClick={onClose} className="shrink-0 px-4 py-2.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+          <button onClick={onClose} className="shrink-0 px-4 py-2.5 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
           <button onClick={handleSave} disabled={saving || !form.clienteNombre || !form.hora}
-            className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
+            className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {isNew ? 'Crear cita' : 'Guardar'}
           </button>
@@ -1208,7 +1208,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     <User size={12} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-white font-medium truncate">{c.nombre}</p>
+                    <p className="text-sm text-primary font-medium truncate">{c.nombre}</p>
                     {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
                   </div>
                   {(() => {
@@ -1250,7 +1250,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               href={fotoFavorita}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors border border-slate-700 shrink-0"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-primary rounded-lg transition-colors border border-slate-700 shrink-0"
             >
               Ver grande
             </a>
@@ -1266,7 +1266,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             </label>
             <div className={`flex rounded-lg border ${telError ? 'border-red-500 focus-within:border-red-400' : 'border-slate-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500'} overflow-hidden bg-slate-900 transition-colors`}>
               <input
-                className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none"
                 type="tel"
                 inputMode="tel"
                 placeholder="+569..."
@@ -1279,7 +1279,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Enviar confirmación por WhatsApp"
-                  className="flex items-center justify-center px-3 bg-emerald-600 hover:bg-emerald-500 text-white transition-colors border-l border-emerald-700 shrink-0"
+                  className="flex items-center justify-center px-3 bg-emerald-600 hover:bg-emerald-500 text-primary transition-colors border-l border-emerald-700 shrink-0"
                 >
                   <MessageSquare size={15} />
                 </a>
@@ -1384,7 +1384,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         {rangoDesc && !form.cortesia && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">
             <BadgeCheck size={13} className="shrink-0" />
-            <span>Rango <b className="text-white">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
+            <span>Rango <b className="text-primary">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
           </div>
         )}
 
@@ -1461,7 +1461,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 className="mt-0.5 w-4 h-4 shrink-0 accent-emerald-500 cursor-pointer"
               />
               <div>
-                <span className="text-sm font-semibold text-white">Atención de cortesía (gratis)</span>
+                <span className="text-sm font-semibold text-primary">Atención de cortesía (gratis)</span>
                 <p className="text-[11px] text-slate-500 mt-0.5">No se cobra el servicio, pero la visita y el sello se registran igual. Usar solo en casos puntuales.</p>
               </div>
             </label>
@@ -1476,7 +1476,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   className="mt-0.5 w-4 h-4 shrink-0 accent-amber-500 cursor-pointer"
                 />
                 <div>
-                  <span className="text-sm font-semibold text-white">Cobrar a Corte al Lápiz (pago a fin de mes)</span>
+                  <span className="text-sm font-semibold text-primary">Cobrar a Corte al Lápiz (pago a fin de mes)</span>
                   <p className="text-[11px] text-slate-500 mt-0.5">No se cobra ahora. Se suma el servicio + recargo a su cuenta corriente.</p>
                 </div>
               </label>
@@ -1490,7 +1490,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             <>
             {usarCorteLapiz ? (
               <div className="p-3 bg-amber-400/5 border border-amber-400/30 rounded-xl text-[12px] text-amber-300/90 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
-                Se cargará a la cuenta de <b className="text-white">{form.clienteNombre || 'el cliente'}</b>: {clFmt(Number(form.precio) || 0)} + {clFmt(clRecargo)} de recargo = <b className="text-white">{clFmt((Number(form.precio) || 0) + clRecargo)}</b>. No se cobra ahora; lo paga a fin de mes.
+                Se cargará a la cuenta de <b className="text-primary">{form.clienteNombre || 'el cliente'}</b>: {clFmt(Number(form.precio) || 0)} + {clFmt(clRecargo)} de recargo = <b className="text-primary">{clFmt((Number(form.precio) || 0) + clRecargo)}</b>. No se cobra ahora; lo paga a fin de mes.
               </div>
             ) : (
             <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1588,7 +1588,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               <div className="space-y-1">
                 {ticketNuevos.map((p, i) => (
                   <div key={`new-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-xs">
-                    <span className="text-white truncate flex-1">
+                    <span className="text-primary truncate flex-1">
                       <span className="text-emerald-400/80 mr-1.5">×{p.cantidad}</span>
                       {p.nombre}
                       {p.descuento > 0 && (
@@ -1669,14 +1669,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     type="button"
                     onClick={addProductoAlTicket}
                     disabled={!newProductId}
-                    className="flex-1 px-3 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-primary disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-all flex items-center justify-center gap-1.5"
                   >
                     <ShoppingBag size={14} /> Agregar
                   </button>
                   <button
                     type="button"
                     onClick={() => { setAddingProducto(false); setNewProductId(''); setNewProductQty(1); setNewProductDesc(0); }}
-                    className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-colors"
+                    className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-primary hover:bg-slate-800 text-sm font-medium transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1769,7 +1769,7 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
     } finally { setSaving(false); }
   };
 
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1';
 
   return (
@@ -1778,9 +1778,9 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
       onClose={onClose}
       footer={
         <div className="flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
+            className="flex items-center gap-2 px-5 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             Bloquear
           </button>
@@ -1791,7 +1791,7 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
       <div className="flex gap-2">
         {[{ v: 'parcial', l: 'Rango de horas' }, { v: 'dia', l: 'Día completo' }].map(({ v, l }) => (
           <button key={v} onClick={() => { setTipo(v); setHoraError(''); }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${tipo === v ? 'border-red-500/60 bg-red-500/10 text-red-400' : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${tipo === v ? 'border-red-500/60 bg-red-500/10 text-red-400' : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'}`}>
             {l}
           </button>
         ))}
@@ -2130,7 +2130,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
       }}
     >
       {arrastrable && (
-        <GripVertical size={12} className="absolute top-1 right-1 text-white/45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <GripVertical size={12} className="absolute top-1 right-1 text-primary/45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       )}
       <p className="font-semibold truncate leading-tight">
         {cita.sobrecupo && (() => {
@@ -2259,7 +2259,7 @@ function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, on
         style={{ left: pos.left, top: pos.top }}
       >
         <div className="px-3 py-2 border-b border-slate-800 mb-1">
-          <p className="text-xs font-semibold text-white truncate">{cita.clienteNombre || 'Cliente'}</p>
+          <p className="text-xs font-semibold text-primary truncate">{cita.clienteNombre || 'Cliente'}</p>
           <p className="text-[10px] text-slate-500 truncate">{cita.hora}{cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}</p>
         </div>
         <button
@@ -2332,7 +2332,7 @@ function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
   // La advertencia de sobrecupo solo aplica al día visible (no conocemos la ocupación de otros días).
   const ocupada = data.ocupada && !otroDia;
   const handle  = async () => { setLoading(true); await onConfirm(fecha); setLoading(false); };
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors';
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -2343,14 +2343,14 @@ function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
               <CalendarDays size={20} className={ocupada ? 'text-amber-400' : 'text-emerald-400'} />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Mover cita</p>
+              <p className="text-sm font-bold text-primary">Mover cita</p>
               <p className="text-xs text-slate-500">{data.cita.clienteNombre || 'Cliente'}</p>
             </div>
           </div>
 
           <p className="text-sm text-slate-300">
-            Mover a las <span className="font-bold text-white">{data.hora}</span> con <span className="font-bold text-white">{data.barberoNombre}</span>
-            {otroDia && <> el <span className="font-bold text-white">{fecha}</span></>}.
+            Mover a las <span className="font-bold text-primary">{data.hora}</span> con <span className="font-bold text-primary">{data.barberoNombre}</span>
+            {otroDia && <> el <span className="font-bold text-primary">{fecha}</span></>}.
           </p>
 
           <div>
@@ -2462,7 +2462,7 @@ function HistorialNotasModal({ cita, onClose }) {
 
   const dirty       = nota.trim() !== notaOrig.trim();
   const completadas = (visitas || []).filter(v => v.estado === 'Completada').length;
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
 
   return (
     <Modal
@@ -2478,7 +2478,7 @@ function HistorialNotasModal({ cita, onClose }) {
       {/* Cabecera del cliente */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-base font-bold text-white truncate">{cita.clienteNombre || 'Cliente'}</p>
+          <p className="text-base font-bold text-primary truncate">{cita.clienteNombre || 'Cliente'}</p>
           <p className="text-xs text-slate-500 truncate">
             {cita.clienteTelefono || cita.clienteEmail || 'Sin contacto'}
           </p>
@@ -2486,7 +2486,7 @@ function HistorialNotasModal({ cita, onClose }) {
         {visitas && (
           <div className="flex gap-2 shrink-0">
             <span className="text-center px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700">
-              <span className="block text-sm font-black text-white leading-none">{visitas.length}</span>
+              <span className="block text-sm font-black text-primary leading-none">{visitas.length}</span>
               <span className="block text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">visitas</span>
             </span>
             <span className="text-center px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30">
@@ -2521,7 +2521,7 @@ function HistorialNotasModal({ cita, onClose }) {
               <button
                 onClick={guardarNota}
                 disabled={saving || !dirty}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-xs font-bold rounded-lg transition-all"
               >
                 {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {saving ? 'Guardando…' : 'Guardar nota'}
@@ -2556,7 +2556,7 @@ function HistorialNotasModal({ cita, onClose }) {
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ESTADO_BADGE_HN[v.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
                     {v.estado || '—'}
                   </span>
-                  <span className="text-xs text-white truncate ml-auto text-right">{v.servicioNombre || '—'}</span>
+                  <span className="text-xs text-primary truncate ml-auto text-right">{v.servicioNombre || '—'}</span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">
                   {v.hora}{v.barbero ? ` · ${v.barbero}` : ''}
@@ -2603,7 +2603,7 @@ function Row({ icon: Icon, label, value }) {
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-0.5">{label}</p>
-        <p className="text-sm text-white break-words">{value}</p>
+        <p className="text-sm text-primary break-words">{value}</p>
       </div>
     </div>
   );
@@ -2726,15 +2726,15 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                      <p className="text-lg font-bold text-white leading-none">{clientHistory.total}</p>
+                      <p className="text-lg font-bold text-primary leading-none">{clientHistory.total}</p>
                       <p className="text-[9px] text-slate-500 mt-1">citas totales</p>
                     </div>
                     <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                      <p className="text-xs font-bold text-white truncate leading-tight">{clientHistory.favSvc || '—'}</p>
+                      <p className="text-xs font-bold text-primary truncate leading-tight">{clientHistory.favSvc || '—'}</p>
                       <p className="text-[9px] text-slate-500 mt-1">servicio fav.</p>
                     </div>
                     <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                      <p className="text-xs font-bold text-white leading-tight">{clientHistory.lastVisit || '—'}</p>
+                      <p className="text-xs font-bold text-primary leading-tight">{clientHistory.lastVisit || '—'}</p>
                       <p className="text-[9px] text-slate-500 mt-1">última visita</p>
                     </div>
                   </div>
@@ -2802,7 +2802,7 @@ function HistorialModal({ onClose }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por cliente, servicio o barbero…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
             />
           </div>
           <div className="relative">
@@ -2810,7 +2810,7 @@ function HistorialModal({ onClose }) {
             <select
               value={estado}
               onChange={e => setEstado(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500 transition-colors appearance-none"
+              className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-primary focus:outline-none focus:border-slate-500 transition-colors appearance-none"
             >
               <option value="">Todos</option>
               {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{STATUS_LABEL[e] || e}</option>)}
@@ -2853,7 +2853,7 @@ function HistorialModal({ onClose }) {
                 {/* Info principal */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <p className="text-sm font-semibold text-white truncate">{c.clienteNombre || 'Sin nombre'}</p>
+                    <p className="text-sm font-semibold text-primary truncate">{c.clienteNombre || 'Sin nombre'}</p>
                     <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${ESTADO_BADGE[c.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
                       {c.estado ?? '—'}
                     </span>
@@ -2933,7 +2933,7 @@ function UltimasCitasModal({ citas, loading, onClose }) {
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{c.clienteNombre || '—'}</p>
+                <p className="text-sm font-semibold text-primary truncate">{c.clienteNombre || '—'}</p>
                 <p className="text-xs text-slate-500">{c.servicioNombre || '—'} · {c.fecha} {c.hora}</p>
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ESTADO_BADGE[c.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
@@ -3229,7 +3229,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
             <Send size={13} className="text-slate-400" />
           </div>
           <div>
-            <p className="text-xs font-bold text-white tracking-wide">Canal de difusión</p>
+            <p className="text-xs font-bold text-primary tracking-wide">Canal de difusión</p>
             <p className="text-[10px] text-slate-500">
               {freeSlots.length} hora{freeSlots.length !== 1 ? 's' : ''} libre{freeSlots.length !== 1 ? 's' : ''} · {fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}
             </p>
@@ -3239,7 +3239,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
           <button
             onClick={handleExport}
             title="Exportar imagen PNG"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600 transition-all"
           >
             <Download size={12} /> Imagen PNG
           </button>
@@ -3249,7 +3249,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
               copied
                 ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
             }`}
           >
             {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
@@ -3299,7 +3299,7 @@ function MenuItem({ icon: Icon, label, onClick, active, badge, accent }) {
     ? 'text-amber-400 hover:bg-amber-500/10'
     : active
       ? 'text-red-400 bg-red-500/10'
-      : 'text-slate-300 hover:bg-slate-800 hover:text-white';
+      : 'text-slate-300 hover:bg-slate-800 hover:text-primary';
   return (
     <button
       onClick={onClick}
@@ -3784,17 +3784,17 @@ export default function Agenda() {
           <button
             onClick={() => moveDay(-1)}
             aria-label="Día anterior"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="flex-1 md:flex-none text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-2 truncate">
+          <span className="flex-1 md:flex-none text-sm font-semibold text-primary text-center capitalize whitespace-nowrap tabular-nums px-2 truncate">
             {viewMode === 'week' ? formatWeekLabel(date) : formatDateLabel(date)}
           </span>
           <button
             onClick={() => moveDay(1)}
             aria-label="Día siguiente"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
           >
             <ChevronRight size={16} />
           </button>
@@ -3812,7 +3812,7 @@ export default function Agenda() {
         >
           <button
             onClick={() => setDate(new Date())}
-            className="h-8 px-3 text-xs font-semibold rounded-md transition-colors text-slate-400 hover:text-white hover:bg-slate-800 shrink-0"
+            className="h-8 px-3 text-xs font-semibold rounded-md transition-colors text-slate-400 hover:text-primary hover:bg-slate-800 shrink-0"
           >
             Hoy
           </button>
@@ -3836,10 +3836,10 @@ export default function Agenda() {
                 }}
                 className={`h-8 px-3 text-xs font-semibold rounded-md transition-colors ${
                   active
-                    ? 'bg-slate-800 text-white shadow-sm'
+                    ? 'bg-slate-800 text-primary shadow-sm'
                     : disabled
                       ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      : 'text-slate-400 hover:text-primary hover:bg-slate-800'
                 }`}
               >
                 {opt.label}
@@ -3863,8 +3863,8 @@ export default function Agenda() {
             onClick={() => setShowMenu(v => !v)}
             className={`relative flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
               showMenu || blockMode
-                ? 'border-slate-600 bg-slate-800 text-white'
-                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                ? 'border-slate-600 bg-slate-800 text-primary'
+                : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
             }`}
             title="Más acciones"
           >
@@ -3936,7 +3936,7 @@ export default function Agenda() {
               {showNowLine && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />}
               <Clock size={12} className="text-emerald-400 -m-0.5" />
             </span>
-            <span className="text-[11px] font-mono font-semibold text-slate-200 tabular-nums group-hover:text-white">{nowLabel}</span>
+            <span className="text-[11px] font-mono font-semibold text-slate-200 tabular-nums group-hover:text-primary">{nowLabel}</span>
           </button>
           <span className="w-px h-4 bg-neutral-800" aria-hidden />
           <div className="relative flex items-center gap-0.5" title="Resolución de la grilla">
@@ -3947,7 +3947,7 @@ export default function Agenda() {
                   key={step}
                   onClick={() => { setSlotMins(step); setLabelStep(step); try { localStorage.setItem(SLOT_KEY, String(step)); } catch { /* noop */ } }}
                   className={`relative h-7 min-w-[28px] px-1.5 rounded-md text-[10px] font-mono font-semibold transition-colors ${
-                    active ? 'text-white' : 'text-slate-500 hover:text-slate-200'
+                    active ? 'text-primary' : 'text-slate-500 hover:text-slate-200'
                   }`}
                 >
                   {active && (
@@ -4005,7 +4005,7 @@ export default function Agenda() {
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar rounded-xl shadow-2xl border border-slate-800 bg-[#0F0F0F]">
             <button
               onClick={() => setShowDifusionModal(false)}
-              className="absolute top-3 right-3 px-2.5 py-1 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg text-xs font-black transition-all z-50 shadow-md animate-pulse"
+              className="absolute top-3 right-3 px-2.5 py-1 text-slate-400 hover:text-primary bg-slate-900 border border-slate-800 rounded-lg text-xs font-black transition-all z-50 shadow-md animate-pulse"
             >
               ✕
             </button>
@@ -4044,7 +4044,7 @@ export default function Agenda() {
                     className="absolute right-0 z-30 flex justify-end pr-1 pointer-events-none"
                     style={{ top: `${headerH + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
                   >
-                    <span className="text-[9px] font-sans font-bold text-white bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                    <span className="text-[9px] font-sans font-bold text-primary bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
                       {nowLabel}
                     </span>
                   </div>
@@ -4125,7 +4125,7 @@ export default function Agenda() {
                       {diasCorto[d.getDay()]}
                     </span>
                     <span className={`text-sm font-semibold tabular-nums ${
-                      isTodayCol ? 'text-white' : 'text-slate-300'
+                      isTodayCol ? 'text-primary' : 'text-slate-300'
                     }`}>
                       {d.getDate()}
                     </span>
@@ -4235,7 +4235,7 @@ export default function Agenda() {
                                 : <span className="text-sm font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
                             </div>
                             {/* Nombre */}
-                            <span className="font-semibold text-sm text-white mt-1 truncate max-w-full">{b.nombre}</span>
+                            <span className="font-semibold text-sm text-primary mt-1 truncate max-w-full">{b.nombre}</span>
                             {/* Citas del día */}
                             <span className="text-xs text-neutral-500">
                               {barberCitas.length === 0
@@ -4390,31 +4390,31 @@ export default function Agenda() {
       )}
       {showHelp && (
         <HelpModal title="Cómo usar la Agenda" onClose={() => setShowHelp(false)}>
-          <p>La <strong className="text-white">Agenda</strong> muestra las citas del día por barbero en columnas. Es tu pantalla central de operación.</p>
+          <p>La <strong className="text-primary">Agenda</strong> muestra las citas del día por barbero en columnas. Es tu pantalla central de operación.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Navegación</p>
             <ul className="list-disc ml-4 space-y-1">
               <li>Flechas ◀ ▶ o botón <em>Hoy</em> para cambiar de día.</li>
               <li>En móvil, los barberos quedan en pestañas; en desktop ves columnas paralelas.</li>
-              <li>Toca la <strong className="text-white">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
-              <li>Arrastrá la <strong className="text-white">manija ⠿</strong> (a la izquierda del nombre) para <strong className="text-white">reordenar las columnas</strong>. El orden se guarda en este dispositivo.</li>
+              <li>Toca la <strong className="text-primary">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
+              <li>Arrastrá la <strong className="text-primary">manija ⠿</strong> (a la izquierda del nombre) para <strong className="text-primary">reordenar las columnas</strong>. El orden se guarda en este dispositivo.</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Crear cita</p>
-            <p>Toca un horario vacío. Si escribes un nombre con coincidencia, autocompleta. Si el cliente es <strong className="text-white">"Migrado"</strong>, autocompleta datos pero NO se marca como "Vinculado" al Club (no se ha registrado aún).</p>
+            <p>Toca un horario vacío. Si escribes un nombre con coincidencia, autocompleta. Si el cliente es <strong className="text-primary">"Migrado"</strong>, autocompleta datos pero NO se marca como "Vinculado" al Club (no se ha registrado aún).</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Editar cita</p>
-            <p>Toca una cita existente para cambiar barbero, hora, estado, etc. <strong className="text-white">Cambios de barbero u hora también actualizan el bloqueo del slot</strong> automáticamente (no queda el slot viejo bloqueado).</p>
+            <p>Toca una cita existente para cambiar barbero, hora, estado, etc. <strong className="text-primary">Cambios de barbero u hora también actualizan el bloqueo del slot</strong> automáticamente (no queda el slot viejo bloqueado).</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Productos del Ticket</p>
-            <p>En el modal de edición, abajo del Estado, hay una sección <strong className="text-white">"Productos del Ticket"</strong> para sumar productos vendidos junto al servicio. Descuenta stock y se cuentan en Caja/Métricas como ventas reales.</p>
+            <p>En el modal de edición, abajo del Estado, hay una sección <strong className="text-primary">"Productos del Ticket"</strong> para sumar productos vendidos junto al servicio. Descuenta stock y se cuentan en Caja/Métricas como ventas reales.</p>
           </div>
 
           <div>
@@ -4422,7 +4422,7 @@ export default function Agenda() {
             <p>Cambiá el estado a <em>Completada</em> al final de la atención. Esto dispara:</p>
             <ul className="list-disc ml-4 space-y-1 mt-1">
               <li>+1 sello al cliente (o descuenta uso de membresía).</li>
-              <li>Modal de <strong className="text-white">calificación Google</strong> al cliente cuando entre a su dashboard.</li>
+              <li>Modal de <strong className="text-primary">calificación Google</strong> al cliente cuando entre a su dashboard.</li>
               <li>Cita pasa al historial y al cierre del día en Caja.</li>
             </ul>
           </div>

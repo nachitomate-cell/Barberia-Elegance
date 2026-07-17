@@ -169,7 +169,7 @@ function DigitalClock({ compact = false }) {
   return (
     <div className="text-right">
       <div className="flex items-end justify-end gap-1">
-        <span className="font-mono font-black text-white leading-none" style={{ fontSize: compact ? 'clamp(1.4rem,2.6vw,2.1rem)' : 'clamp(2.5rem,5vw,4rem)' }}>
+        <span className="font-mono font-black text-primary leading-none" style={{ fontSize: compact ? 'clamp(1.4rem,2.6vw,2.1rem)' : 'clamp(2.5rem,5vw,4rem)' }}>
           {hora}
         </span>
         <motion.span
@@ -211,7 +211,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
         <div className="grid grid-cols-2 gap-2">
           <div className={`rounded-xl ${statsPad} text-center`}
             style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.1)' }}>
-            <p className={`font-black ${statsNumSize} text-white leading-none`}>{totalHoy}</p>
+            <p className={`font-black ${statsNumSize} text-primary leading-none`}>{totalHoy}</p>
             <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Total</p>
           </div>
           <div className={`rounded-xl ${statsPad} text-center`}
@@ -317,7 +317,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none mb-0.5">Barbero</span>
-                          <span className="text-xs sm:text-sm font-black truncate text-white leading-tight">
+                          <span className="text-xs sm:text-sm font-black truncate text-primary leading-tight">
                             {name}
                           </span>
                         </div>
@@ -325,7 +325,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                     );
                   })()}
 
-                  <p className={`text-white font-black ${sillonTextSize} leading-tight truncate`}>
+                  <p className={`text-primary font-black ${sillonTextSize} leading-tight truncate`}>
                     {enSillon.clienteNombre || enSillon.nombre}
                   </p>
                   <p className="text-gray-500 text-xs truncate mt-0.5">
@@ -380,7 +380,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-white font-semibold ${nextItemText} truncate`}>
+                      <p className={`text-primary font-semibold ${nextItemText} truncate`}>
                         {c.clienteNombre || c.nombre}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -469,7 +469,7 @@ function SlidePublicidad({ oferta }) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <span className="text-white">{o.titulo1}</span>
+          <span className="text-primary">{o.titulo1}</span>
           <br />
           <span style={{ color: GOLD }}>{o.titulo2}</span>
         </motion.h2>
@@ -657,7 +657,7 @@ function SlideEquipo({ barberos, imageCache, cardsFondo, skipAnimation }) {
                 )}
               </div>
               <div>
-                <p className="text-white font-bold text-base leading-tight">{b.nombre}</p>
+                <p className="text-primary font-bold text-base leading-tight">{b.nombre}</p>
                 <p className="text-sm mt-1 capitalize" style={{ color: GOLD }}>
                   {b.especialidad || (b.rol === 'jefe' ? 'Jefe de Sala' : 'Barbero')}
                 </p>
@@ -729,7 +729,7 @@ function SlideProductos({ productos, cardsFondo, skipAnimation }) {
                 )}
               </div>
               <div className="px-4 py-3 flex flex-col gap-1">
-                <p className="text-white font-bold text-sm leading-tight truncate">{p.nombre}</p>
+                <p className="text-primary font-bold text-sm leading-tight truncate">{p.nombre}</p>
                 {p.precio ? (
                   <p className="font-black text-base" style={{ color: GOLD }}>
                     ${Number(p.precio).toLocaleString('es-CL')}
@@ -814,7 +814,7 @@ function SlideMarcas({ marcas, skipAnimation }) {
               )}
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <p className="text-white font-bold text-lg tracking-[0.15em] text-center uppercase">{m.nombre}</p>
+              <p className="text-primary font-bold text-lg tracking-[0.15em] text-center uppercase">{m.nombre}</p>
               {m.descripcion && (
                 <p className="text-slate-300 text-sm text-center max-w-xs leading-snug">{m.descripcion}</p>
               )}
@@ -1246,7 +1246,7 @@ export default function BarberTV() {
               <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
             </div>
             <div>
-              <div className={`text-white font-black tracking-tight leading-none ${headerSize === 'sm' ? 'text-base' : 'text-xl'}`}>{tenantName}</div>
+              <div className={`text-primary font-black tracking-tight leading-none ${headerSize === 'sm' ? 'text-base' : 'text-xl'}`}>{tenantName}</div>
             </div>
           </div>
 

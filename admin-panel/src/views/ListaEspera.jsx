@@ -71,8 +71,8 @@ function AddModal({ onClose }) {
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-slate-800">
-          <p className="text-sm font-bold text-white">Agregar a lista de espera</p>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+          <p className="text-sm font-bold text-primary">Agregar a lista de espera</p>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
 
@@ -84,7 +84,7 @@ function AddModal({ onClose }) {
               </label>
               <input type="text" value={form.clienteNombre} onChange={e => set('clienteNombre', e.target.value)}
                 placeholder="Juan Pérez" required autoFocus
-                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
             </div>
             <div className="col-span-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
@@ -95,7 +95,7 @@ function AddModal({ onClose }) {
                 onChange={e => { set('clienteTelefono', e.target.value); if (telError) validateTel(e.target.value); }}
                 onBlur={e => validateTel(e.target.value)}
                 placeholder="+569 1234 5678"
-                className={`mt-1 w-full bg-slate-800 border rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                className={`mt-1 w-full bg-slate-800 border rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none transition-colors ${
                   telError ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-500'
                 }`}
               />
@@ -134,12 +134,12 @@ function AddModal({ onClose }) {
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fecha</label>
                 <input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} min={today()}
-                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Hora pref.</label>
                 <select value={form.horaPreferida} onChange={e => set('horaPreferida', e.target.value)}
-                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
+                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none">
                   <option value="">Sin pref.</option>
                   <option value="mañana">Mañana</option>
                   <option value="tarde">Tarde</option>
@@ -152,7 +152,7 @@ function AddModal({ onClose }) {
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Barbero</label>
             <select value={form.barberoId} onChange={e => set('barberoId', e.target.value)}
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none">
               <option value="">Cualquiera</option>
               {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
             </select>
@@ -163,7 +163,7 @@ function AddModal({ onClose }) {
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Notas</label>
             <input type="text" value={form.notas} onChange={e => set('notas', e.target.value)}
               placeholder="Ej: cliente VIP, lleva tiempo sin venir..."
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
           </div>
 
           <button type="submit" disabled={loading}
@@ -200,7 +200,7 @@ function EntryCard({ entry, tenantId, onUpdate }) {
       <div className="flex items-start gap-3 flex-wrap">
         <div className="flex-1 min-w-[180px] space-y-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-white">{entry.clienteNombre}</p>
+            <p className="text-sm font-bold text-primary">{entry.clienteNombre}</p>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-flex items-center gap-1 ${cfg.color}`}>
               <Icon size={10} />
               {cfg.label}
@@ -286,7 +286,7 @@ export default function ListaEspera() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ClipboardList size={20} className="text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">Lista de Espera</h1>
+            <h1 className="text-xl font-bold text-primary">Lista de Espera</h1>
           </div>
           <p className="text-sm text-slate-400">Clientes que esperan una hora disponible. Se notifican cuando se libera un slot.</p>
         </div>
@@ -322,7 +322,7 @@ export default function ListaEspera() {
             { key: 'cancelo', label: 'Cancelaron' },
           ].map(({ key, label }) => (
             <button key={key} onClick={() => setFiltroEstado(key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${filtroEstado === key ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${filtroEstado === key ? 'bg-slate-700 text-primary' : 'text-slate-500 hover:text-slate-300'}`}>
               {label}
             </button>
           ))}
@@ -330,7 +330,7 @@ export default function ListaEspera() {
         <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-2">
           <Search size={13} className="text-slate-500 shrink-0" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente..."
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none" />
+            className="flex-1 bg-transparent text-sm text-primary placeholder-slate-500 focus:outline-none" />
         </div>
       </div>
 

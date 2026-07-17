@@ -15,7 +15,7 @@ import {
 
 const RECARGO_DEFAULT = 5000;
 
-const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500/80 transition-all shadow-inner placeholder:text-slate-500';
+const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-primary text-sm focus:outline-none focus:border-amber-500/80 transition-all shadow-inner placeholder:text-slate-500';
 
 const fmt = n => `$${(Number(n) || 0).toLocaleString('es-CL')}`;
 const normalizePhone = p => (p || '').replace(/\D/g, '');
@@ -218,7 +218,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
         <div className="block md:hidden w-12 h-1.5 bg-slate-600 rounded-full mx-auto mt-2 mb-4" />
 
         <div className="space-y-4">
-        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+        <h3 className="text-primary font-bold text-lg flex items-center gap-2">
           <ShieldCheck className="text-amber-400" size={20} />
           Activar Corte al Lápiz
         </h3>
@@ -259,7 +259,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setSelectedUser(u); setSearchVal(u.nombre); }}
                   className="w-full text-left py-4 px-2 text-sm text-slate-300 flex flex-col border-b border-slate-800 last:border-0 active:bg-slate-800/50 md:hover:bg-slate-800/50 rounded-lg transition-colors">
-                  <span className="font-semibold text-white">{u.nombre}</span>
+                  <span className="font-semibold text-primary">{u.nombre}</span>
                   <span className="text-[10px] text-slate-500 mt-0.5">{u.telefono ? `Tel: ${u.telefono}` : `UID: ${u.uid.slice(0, 10)}…`}</span>
                 </button>
               ))}
@@ -280,7 +280,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
               <UserCheck size={17} className="text-amber-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{selectedUser.nombre}</p>
+              <p className="text-sm font-semibold text-primary truncate">{selectedUser.nombre}</p>
               <p className="text-[11px] text-slate-400 truncate">{selectedUser.telefono ? `Tel: ${selectedUser.telefono}` : 'Cliente registrado'}</p>
             </div>
             <Check size={16} className="text-amber-400 shrink-0" />
@@ -288,11 +288,11 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
         )}
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button onClick={activar} disabled={loading || !selectedUser}
-            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-amber-950/20">
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-primary text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-amber-950/20">
             {loading ? 'Activando…' : 'Activar'}
           </button>
         </div>
@@ -342,11 +342,11 @@ function ModalSaldar({ cuenta, tenantId, onClose }) {
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="space-y-1">
-          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+          <h3 className="text-primary font-bold text-lg flex items-center gap-2">
             <HandCoins size={18} className="text-amber-400" />
             Saldar cuota
           </h3>
-          <p className="text-xs text-slate-400">Cliente: <strong className="text-white">{cuenta.nombre || '—'}</strong></p>
+          <p className="text-xs text-slate-400">Cliente: <strong className="text-primary">{cuenta.nombre || '—'}</strong></p>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-700/40 rounded-xl p-4 space-y-2.5">
@@ -356,7 +356,7 @@ function ModalSaldar({ cuenta, tenantId, onClose }) {
           </div>
           <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
             <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Total a cobrar:</span>
-            <span className="font-black text-white text-lg">{fmt(saldo)}</span>
+            <span className="font-black text-primary text-lg">{fmt(saldo)}</span>
           </div>
         </div>
 
@@ -386,11 +386,11 @@ function ModalSaldar({ cuenta, tenantId, onClose }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button onClick={saldar} disabled={loading || saldo <= 0}
-            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all shadow-lg shadow-amber-950/20 disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-primary text-sm font-bold transition-all shadow-lg shadow-amber-950/20 disabled:opacity-50">
             {loading ? 'Procesando…' : 'Confirmar pago'}
           </button>
         </div>
@@ -422,7 +422,7 @@ function ModalRecargo({ tenantId, recargoActual, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
       <div className="w-full max-w-sm bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl">
-        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+        <h3 className="text-primary font-bold text-lg flex items-center gap-2">
           <Pencil size={17} className="text-amber-400" /> Recargo por servicio
         </h3>
         <p className="text-xs text-slate-400">Se suma al <strong className="text-slate-200">precio del servicio</strong> cada vez que el miembro completa una cita. La cuota acumula <strong className="text-slate-200">precio + recargo</strong>.</p>
@@ -434,11 +434,11 @@ function ModalRecargo({ tenantId, recargoActual, onClose }) {
             className={INPUT_CLS} />
         </div>
         <div className="flex gap-3 pt-1">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button onClick={guardar} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-primary text-sm font-bold transition-all disabled:opacity-50">
             {loading ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
@@ -520,14 +520,14 @@ export default function CorteAlLapiz() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-black text-primary tracking-tight flex items-center gap-2">
             Corte al Lápiz
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
           <p className="text-xs text-slate-500 mt-1">Membresía a cuenta corriente · precio del servicio + {fmt(recargo)}</p>
         </div>
         <button onClick={() => setModalRecargo(true)}
-          className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-white hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm shrink-0">
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-primary hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm shrink-0">
           <Pencil size={15} /> Recargo por servicio
         </button>
       </div>
@@ -548,19 +548,19 @@ export default function CorteAlLapiz() {
           <div className="flex items-center gap-2 text-amber-400 mb-1">
             <Wallet size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Total por cobrar</span>
           </div>
-          <p className="text-xl md:text-2xl font-black text-white">{fmt(totalPorCobrar)}</p>
+          <p className="text-xl md:text-2xl font-black text-primary">{fmt(totalPorCobrar)}</p>
         </div>
         <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
           <div className="flex items-center gap-2 text-emerald-400 mb-1">
             <UserCheck size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Miembros</span>
           </div>
-          <p className="text-2xl font-black text-white">{activas.length}</p>
+          <p className="text-2xl font-black text-primary">{activas.length}</p>
         </div>
         <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
           <div className="flex items-center gap-2 text-indigo-400 mb-1">
             <Receipt size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Servicios sin saldar</span>
           </div>
-          <p className="text-2xl font-black text-white">{serviciosMes}</p>
+          <p className="text-2xl font-black text-primary">{serviciosMes}</p>
         </div>
       </div>
 
@@ -570,10 +570,10 @@ export default function CorteAlLapiz() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-slate-400" />
-              <span className="text-sm font-bold text-white">Miembros Corte al Lápiz</span>
+              <span className="text-sm font-bold text-primary">Miembros Corte al Lápiz</span>
             </div>
             <button onClick={() => setModalActivar(true)}
-              className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 md:py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-950/20 active:scale-95">
+              className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 md:py-2 bg-amber-600 hover:bg-amber-500 text-primary text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-950/20 active:scale-95">
               <Plus size={14} /> Activar membresía
             </button>
           </div>
@@ -615,7 +615,7 @@ export default function CorteAlLapiz() {
                     >
                       {/* Cliente (nombre + tel) */}
                       <td className="block md:table-cell md:px-4 md:py-3.5">
-                        <p className="text-base md:text-sm font-semibold text-white">{c.nombre || '—'}</p>
+                        <p className="text-base md:text-sm font-semibold text-primary">{c.nombre || '—'}</p>
                         <p className="text-[11px] md:text-[10px] text-slate-500 mt-0.5">{c.telefono || c.uid.slice(0, 12) + '…'}</p>
                       </td>
 
@@ -642,7 +642,7 @@ export default function CorteAlLapiz() {
                             onClick={() => setCuentaSaldar(c)}
                             disabled={saldo <= 0}
                             title="Saldar cuota"
-                            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 md:px-2.5 py-2.5 md:py-1.5 rounded-xl md:rounded-lg text-sm md:text-xs font-bold text-amber-400 bg-amber-500/10 md:bg-transparent hover:text-white hover:bg-amber-600 transition-all disabled:opacity-30 disabled:hover:bg-amber-500/10 md:disabled:hover:bg-transparent disabled:hover:text-amber-400 active:scale-95"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 md:px-2.5 py-2.5 md:py-1.5 rounded-xl md:rounded-lg text-sm md:text-xs font-bold text-amber-400 bg-amber-500/10 md:bg-transparent hover:text-primary hover:bg-amber-600 transition-all disabled:opacity-30 disabled:hover:bg-amber-500/10 md:disabled:hover:bg-transparent disabled:hover:text-amber-400 active:scale-95"
                           >
                             <HandCoins size={15} /> Saldar
                           </button>
@@ -671,7 +671,7 @@ export default function CorteAlLapiz() {
 
       {showHelp && (
         <HelpModal title="Cómo funciona Corte al Lápiz" onClose={() => setShowHelp(false)}>
-          <p>Es una membresía <strong className="text-white">a cuenta corriente</strong> (tipo crédito). El cliente miembro agenda sin pagar en el momento y cada servicio que completa se le suma a una cuota que paga a fin de mes.</p>
+          <p>Es una membresía <strong className="text-primary">a cuenta corriente</strong> (tipo crédito). El cliente miembro agenda sin pagar en el momento y cada servicio que completa se le suma a una cuota que paga a fin de mes.</p>
 
           <div>
             <p className="font-semibold text-amber-400 mb-1">1. Activar la membresía</p>
@@ -685,7 +685,7 @@ export default function CorteAlLapiz() {
 
           <div>
             <p className="font-semibold text-amber-400 mb-1">3. Acumulación automática</p>
-            <p>Cuando marcas la cita como <strong className="text-white">Completada</strong>, el sistema le suma a su cuota el <strong className="text-white">precio del servicio + {fmt(recargo)}</strong> de recargo, automáticamente. Puedes cambiar el recargo con el botón <em>"Recargo por servicio"</em>.</p>
+            <p>Cuando marcas la cita como <strong className="text-primary">Completada</strong>, el sistema le suma a su cuota el <strong className="text-primary">precio del servicio + {fmt(recargo)}</strong> de recargo, automáticamente. Puedes cambiar el recargo con el botón <em>"Recargo por servicio"</em>.</p>
           </div>
 
           <div>

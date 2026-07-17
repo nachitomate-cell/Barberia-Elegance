@@ -30,7 +30,7 @@ export default function WhatsApp() {
           <WaLogo size={26} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">WhatsApp</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-primary leading-tight">WhatsApp</h1>
           <p className="text-sm text-slate-400 mt-0.5 leading-snug">
             Todo el canal de tu local en un solo lugar: avisos, confirmaciones y el asistente que responde por ti.
           </p>

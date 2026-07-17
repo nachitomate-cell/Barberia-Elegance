@@ -41,27 +41,28 @@ html.theme-switching *::after {
 
 /* ── Light mode ─────────────────────────────────────────────── */
 html.light body { background-color: #e9eef4; }
-/* Tarjetas sólidas → BLANCO puro para que se eleven sobre el canvas gris.
-   (antes #f8fafc, que quedaba MÁS gris que el canvas blanco → plano). */
-html.light .bg-slate-900  { background-color: #ffffff !important; }
-html.light .bg-slate-800  { background-color: #e2e8f0 !important; }
-html.light .bg-slate-950  { background-color: #ffffff !important; }
-html.light .bg-slate-700  { background-color: #cbd5e1 !important; }
-html.light .border-slate-800 { border-color: #e2e8f0 !important; }
-html.light .border-slate-700 { border-color: #cbd5e1 !important; }
-html.light .text-white    { color: #0f172a !important; }
-html.light .text-slate-400 { color: #475569 !important; }
-html.light .text-slate-500 { color: #64748b !important; }
-html.light .text-slate-600 { color: #475569 !important; }
-html.light .text-slate-300 { color: #334155 !important; }
-html.light .hover\:bg-slate-800:hover { background-color: #e2e8f0 !important; }
-html.light .hover\:bg-slate-700:hover { background-color: #cbd5e1 !important; }
+
+/* ── El mapeo global de clases vivía acá. Lo reemplazó la rampa ──────
+   Eran 14 reglas !important remapeando .bg-slate-900 → #ffffff,
+   .text-slate-400 → #475569, etc. Ahora eso lo hace el token: la rampa
+   de _tokens.css se construyó copiando EXACTAMENTE estos valores, así
+   que borrarlas es un no-op — cada clase resuelve al mismo color, solo
+   que por herencia de var en vez de por !important.
+
+   Lo que se gana además de las 14 líneas: el fallo dejó de ser silencioso.
+   Antes, una clase sin mapear (el caso clásico: text-slate-200, 91 usos)
+   simplemente se quedaba oscura sobre fondo blanco y nadie se enteraba
+   hasta mirar. Ahora TODA la rampa voltea, incluidos los tonos y las
+   opacidades que nadie mapeó nunca (bg-slate-900/40 y compañía).
+
+   Sobrevive solo lo que un token NO puede expresar: reglas sobre
+   selectores de elemento (input/textarea/select), y placeholders +
+   divide-y, que piden un color distinto al de su lugar en la rampa. */
 html.light .placeholder-slate-500::placeholder { color: #94a3b8 !important; }
 html.light .placeholder-slate-600::placeholder { color: #94a3b8 !important; }
 html.light input,
 html.light textarea,
 html.light select { background-color: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
-html.light .divide-slate-800 > * + * { border-color: #e2e8f0 !important; }
 html.light .divide-y > * + * { border-color: #e2e8f0 !important; }
 
 /* ── Light mode · jerarquía de superficie (canvas de contenido) ──────
@@ -110,8 +111,6 @@ html.light .text-slate-700 { color: #94a3b8 !important; }
 html.light .bg-red-950\/20,
 html.light .hover\:bg-red-950\/20:hover { background-color: rgba(254, 226, 226, 0.7) !important; }
 html.light .bg-red-950\/40 { background-color: rgba(254, 202, 202, 0.8) !important; }
-html.light .bg-red-950\/60,
-html.light .hover\:bg-red-950\/60:hover { background-color: rgba(252, 165, 165, 0.55) !important; }
 html.light .bg-amber-950\/30 { background-color: rgba(254, 243, 199, 0.8) !important; }
 html.light .bg-emerald-900\/10,
 html.light .hover\:bg-emerald-900\/10:hover { background-color: rgba(209, 250, 229, 0.7) !important; }
@@ -151,7 +150,6 @@ html.light .border-slate-700\/50 { border-color: #e2e8f0 !important; }
    border-slate-800, bg-slate-800, text-slate-400, text-white) ya están
    cubiertos por los overrides globales de arriba. */
 html.light [data-toast-card]                       { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important; }
-html.light [data-toast-card] .text-slate-200       { color: #1e293b !important; }
 html.light [data-toast-card] .text-amber-500       { color: #d97706 !important; }
 html.light [data-toast-card] .text-emerald-500     { color: #059669 !important; }
 html.light [data-toast-card] .border-l-amber-500   { border-left-color: #d97706 !important; }
@@ -218,8 +216,6 @@ html.light .bg-lime-400\/\[0\.04\],
 html.light .bg-lime-400\/\[0\.06\],
 html.light .bg-lime-400\/10,
 html.light .bg-lime-400\/15              { background-color: rgba(132, 204, 22, 0.10) !important; }
-html.light .bg-lime-400\/20,
-html.light .bg-lime-400\/25              { background-color: rgba(132, 204, 22, 0.15) !important; }
 
 html.light .bg-amber-500\/\[0\.06\],
 html.light .bg-amber-500\/10,
@@ -255,7 +251,6 @@ html.light .bg-\[\#D4AF37\]\/\[0\.05\],
 html.light .bg-\[\#D4AF37\]\/\[0\.06\],
 html.light .bg-\[\#D4AF37\]\/10,
 html.light .bg-\[\#D4AF37\]\/15          { background-color: rgba(212, 175, 55, 0.12) !important; }
-html.light .bg-\[\#D4AF37\]\/20          { background-color: rgba(212, 175, 55, 0.18) !important; }
 html.light .border-\[\#D4AF37\]\/30,
 html.light .border-\[\#D4AF37\]\/35,
 html.light .border-\[\#D4AF37\]\/40      { border-color: rgba(212, 175, 55, 0.6) !important; }
@@ -301,8 +296,6 @@ html.light .ring-violet-400\/30          { --tw-ring-color: rgba(139, 92, 246, 0
 html.light .border-red-500\/20,
 html.light .border-red-500\/25,
 html.light .border-red-500\/30           { border-color: rgba(239, 68, 68, 0.5) !important; }
-html.light .ring-red-500\/20,
-html.light .ring-red-500\/25             { --tw-ring-color: rgba(239, 68, 68, 0.5) !important; }
 
 html.light .border-sky-500\/20,
 html.light .border-sky-500\/25           { border-color: rgba(14, 165, 233, 0.5) !important; }
@@ -333,8 +326,6 @@ html.light .text-amber-50\/75            { color: #92400e !important; }
 html.light .text-violet-200,
 html.light .text-violet-100,
 html.light .text-violet-50               { color: #6d28d9 !important; }
-html.light .text-violet-200\/80,
-html.light .text-violet-100\/85          { color: #5b21b6 !important; }
 
 html.light .text-rose-200,
 html.light .text-rose-300                { color: #be123c !important; }
@@ -355,7 +346,6 @@ html.light .shadow-red-500\/20           { --tw-shadow-color: rgba(15, 23, 42, 0
 /* ── Hover acentos en light ── */
 html.light .hover\:bg-emerald-500\/\[0\.04\]:hover,
 html.light .hover\:bg-emerald-500\/\[0\.06\]:hover { background-color: rgba(16, 185, 129, 0.08) !important; }
-html.light .hover\:bg-amber-500\/\[0\.06\]:hover   { background-color: rgba(245, 158, 11, 0.08) !important; }
 html.light .hover\:bg-violet-500\/\[0\.06\]:hover  { background-color: rgba(139, 92, 246, 0.08) !important; }
 html.light .hover\:bg-red-500\/10:hover            { background-color: rgba(239, 68, 68, 0.12) !important; }
 
@@ -367,12 +357,9 @@ html.light .hover\:bg-red-500\/10:hover            { background-color: rgba(239,
    abajo se aplican a esos elementos y los pintan claros en light mode.
    ═══════════════════════════════════════════════════════════════════ */
 html.light .hero-card-emerald  { background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(16,185,129,0.08), transparent 60%) !important; border-color: rgba(16,185,129,0.20) !important; }
-html.light .hero-card-lime     { background: linear-gradient(135deg, #f7fee7 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(132,204,22,0.10), transparent 60%) !important; border-color: rgba(132,204,22,0.25) !important; }
 html.light .hero-card-gold     { background: linear-gradient(135deg, #fefce8 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(212,175,55,0.10), transparent 60%) !important; border-color: rgba(212,175,55,0.30) !important; }
 html.light .hero-card-amber    { background: linear-gradient(135deg, #fffbeb 0%, #ffffff 60%) !important; border-color: rgba(245,158,11,0.25) !important; }
 html.light .hero-card-red      { background: linear-gradient(135deg, #fef2f2 0%, #ffffff 60%) !important; border-color: rgba(239,68,68,0.25) !important; }
-html.light .hero-card-violet   { background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 60%) !important; border-color: rgba(139,92,246,0.20) !important; }
-html.light .hero-card-slate    { background: #ffffff !important; border-color: #e2e8f0 !important; }
 
 /* Halos decorativos (radial-gradient blur con color) — bajar opacidad en light */
 html.light .hero-halo          { opacity: 0.45 !important; }
@@ -410,7 +397,6 @@ html.light [data-view="agenda"] .border-slate-800\/40    { border-color: rgba(71
 html.light [data-view="agenda"] .border-slate-800\/50    { border-color: rgba(71, 85, 105, 0.38) !important; }
 html.light [data-view="agenda"] .border-slate-800\/60    { border-color: rgba(71, 85, 105, 0.45) !important; }
 html.light [data-view="agenda"] .border-slate-800\/80    { border-color: rgba(71, 85, 105, 0.55) !important; }
-html.light [data-view="agenda"] .border-slate-750\/70    { border-color: rgba(71, 85, 105, 0.50) !important; }
 html.light [data-view="agenda"] .border-slate-700\/60    { border-color: rgba(71, 85, 105, 0.55) !important; }
 html.light [data-view="agenda"] .border-slate-700\/50    { border-color: rgba(71, 85, 105, 0.50) !important; }
 html.light [data-view="agenda"] .border-white\/5,
@@ -647,7 +633,6 @@ html.light [data-view="link-bio"] .text-amber-950            { color: #451a03 !i
 /* Botón "Abrir Editor Premium" — bg-lime-400 sólido con texto slate-900 */
 html.light [data-view="link-bio"] .bg-lime-400               { background-color: #a3e635 !important; }
 html.light [data-view="link-bio"] .hover\:bg-lime-300:hover  { background-color: #bef264 !important; }
-html.light [data-view="link-bio"] .text-slate-900            { color: #0f172a !important; }
 
 /* Cabecera del UpsellPanel — fondo crema con halo amber visible */
 html.light [data-view="link-bio"] .from-amber-500\/10        { --tw-gradient-from: #fef3c7 !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
@@ -858,13 +843,38 @@ html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="g
 html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-800\/50 { background-color: rgba(71, 85, 105, 0.10) !important; }
 
 /* Phone preview de LinkBio: revertir a slate-950 real para que se vea como
-   una pantalla de celular oscura — es la maqueta del bio público. */
-html.light [data-keep-dark="phone-preview"] { background-color: #020617 !important; border-color: #1e293b !important; }
-html.light [data-keep-dark="phone-preview"] .bg-slate-800 { background-color: #1e293b !important; }
-html.light [data-keep-dark="phone-preview"] .text-white { color: #ffffff !important; }
-html.light [data-keep-dark="phone-preview"] .text-slate-400 { color: #94a3b8 !important; }
-html.light [data-keep-dark="phone-preview"] .text-slate-500,
-html.light [data-keep-dark="phone-preview"] .text-slate-600 { color: #64748b !important; }
+   una pantalla de celular oscura — es la maqueta del bio público.
+   ───────────────────────────────────────────────────────────────────
+   Esta es una ISLA: un pedazo que sigue oscuro aunque el panel esté claro.
+   Con tokens, una isla se declara volviendo a poner los valores oscuros en
+   las vars: como las custom properties heredan, TODO lo de adentro vuelve a
+   oscuro solo — no solo las 4 clases que alguien se acordó de mapear a mano.
+   Hoy esto ya manda sobre --primary (clase nueva, sin override que la pise);
+   las líneas !important de abajo siguen haciendo falta únicamente porque el
+   mapeo global de .bg-slate-* todavía existe y le gana a la var. Cuando ese
+   bloque se borre (fin de Fase 2), estas 4 líneas se van y queda solo el
+   bloque de vars. */
+html.light [data-keep-dark] {
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+  --slate-700: 51 65 85;
+  --slate-800: 30 41 59;
+  --slate-900: 15 23 42;
+  --slate-950: 2 6 23;
+  --primary:   255 255 255;
+  --glass:     255 255 255;
+}
+/* Acá vivían 5 reglas !important más (el fondo del contenedor, .bg-slate-800,
+   .text-slate-400, .text-slate-500/600). Ya no hacen falta: como el bloque de
+   vars de arriba se declara SOBRE el contenedor, lo cubre a él y a todo lo que
+   tenga dentro. La isla completa es ahora ese bloque y nada más.
+
+   Se fue con ellas un bug silencioso: .text-slate-600 estaba forzado a #64748b,
+   que no es lo que vale en modo oscuro (#475569). El preview simula la pantalla
+   real del cliente, así que ahora es más fiel, no menos. */
 
 /* Bordes — slate-azulado coherente */
 html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-800 { border-color: #cbd5e1 !important; }
@@ -914,7 +924,6 @@ html.light [data-view="marketing"] .bg-slate-950,
 html.light [data-view="marketing"] .bg-slate-950\/30,
 html.light [data-view="marketing"] .bg-slate-950\/50,
 html.light [data-view="marketing"] .bg-slate-950\/70         { background-color: #f1f5f9 !important; }
-html.light [data-view="marketing"] .bg-slate-800             { background-color: #e2e8f0 !important; }
 html.light [data-view="marketing"] .bg-slate-800\/60,
 html.light [data-view="marketing"] .bg-slate-800\/70         { background-color: rgba(71, 85, 105, 0.10) !important; }
 
@@ -924,7 +933,6 @@ html.light [data-view="marketing"] .border-slate-700         { border-color: #cb
 html.light [data-view="marketing"] .border-slate-800\/40,
 html.light [data-view="marketing"] .border-slate-800\/60,
 html.light [data-view="marketing"] .border-slate-700\/60     { border-color: rgba(71, 85, 105, 0.30) !important; }
-html.light [data-view="marketing"] .ring-slate-700           { --tw-ring-color: #cbd5e1 !important; }
 
 /* Hovers + animaciones de chips/cards */
 html.light [data-view="marketing"] .hover\:bg-slate-800:hover { background-color: rgba(71, 85, 105, 0.12) !important; }
@@ -1048,7 +1056,6 @@ html.light [data-view="mensajes"] [class*="ring-slate-700"]  { --tw-ring-color: 
 /* Cards principales (stats, rows, public link, template uploader, modal
    shell) — blanco puro con sombra iOS-style en vez de borde casi invisible */
 html.light [data-view="gift-cards"] .bg-slate-900            { background-color: #ffffff !important; }
-html.light [data-view="gift-cards"] .border-slate-800        { border-color: #e2e8f0 !important; }
 html.light [data-view="gift-cards"] .border.border-slate-800,
 html.light [data-view="gift-cards"] .border.border-slate-700 {
   box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04),
@@ -1350,7 +1357,7 @@ html.light [data-view="agenda"] .bg-slate-800\/10 {
   body { background: white !important; color: black !important; }
   aside, .print\:hidden { display: none !important; }
   .bg-slate-900, .bg-slate-950, .bg-slate-800 { background: white !important; border-color: #cbd5e1 !important; }
-  .text-white, .text-slate-300, .text-slate-400 { color: #0f172a !important; }
+  .text-primary, .text-slate-300, .text-slate-400 { color: #0f172a !important; }
   .text-slate-500, .text-slate-600 { color: #475569 !important; }
   .border-slate-800, .border-slate-700 { border-color: #cbd5e1 !important; }
   .shadow-lg, .shadow-2xl { box-shadow: none !important; }

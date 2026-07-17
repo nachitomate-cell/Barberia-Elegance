@@ -136,7 +136,7 @@ export default function Publicidad() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Megaphone size={20} className="text-amber-400" />
-            <h1 className="text-xl font-bold text-white">Publicidad</h1>
+            <h1 className="text-xl font-bold text-primary">Publicidad</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-sm text-slate-400">
@@ -161,7 +161,7 @@ export default function Publicidad() {
           <Power size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white">
+          <p className="text-sm font-bold text-primary">
             {activo ? 'Módulo activo' : 'Módulo desactivado'}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -188,7 +188,7 @@ export default function Publicidad() {
       {/* Header de la lista */}
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-bold text-white">Marcas asociadas</p>
+          <p className="text-sm font-bold text-primary">Marcas asociadas</p>
           <p className="text-xs text-slate-500 mt-0.5">{marcas.length} de {MAX_BRANDS} configuradas</p>
         </div>
         <button
@@ -256,7 +256,7 @@ export default function Publicidad() {
                   onChange={e => updateField(idx, 'nombre', e.target.value)}
                   onBlur={commitTextChange}
                   placeholder="Nombre marca (opcional)"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary placeholder-slate-500 focus:border-amber-500 focus:outline-none"
                 />
                 <div className="relative">
                   <ExternalLink size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -266,7 +266,7 @@ export default function Publicidad() {
                     onChange={e => updateField(idx, 'url', e.target.value)}
                     onBlur={commitTextChange}
                     placeholder="https://… (opcional)"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-7 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-7 pr-3 py-2 text-xs text-primary placeholder-slate-500 focus:border-amber-500 focus:outline-none"
                   />
                 </div>
                 <button
@@ -292,9 +292,9 @@ export default function Publicidad() {
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Tips de diseño</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li>Sube logos en <strong className="text-white">PNG con fondo transparente</strong> para que se vean bien sobre el fondo oscuro.</li>
+              <li>Sube logos en <strong className="text-primary">PNG con fondo transparente</strong> para que se vean bien sobre el fondo oscuro.</li>
               <li>Tamaño recomendado: cuadrado o casi cuadrado (1:1).</li>
-              <li>Máximo <strong className="text-white">10 marcas</strong> y <strong className="text-white">5 MB</strong> por imagen.</li>
+              <li>Máximo <strong className="text-primary">10 marcas</strong> y <strong className="text-primary">5 MB</strong> por imagen.</li>
               <li>Para esconder todo sin perder la configuración, apaga el toggle de arriba.</li>
             </ul>
           </div>

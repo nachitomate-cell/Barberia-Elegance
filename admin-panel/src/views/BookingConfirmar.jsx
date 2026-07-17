@@ -134,7 +134,7 @@ export default function BookingConfirmar({
           </div>
         </div>
 
-        <h1 className="text-[26px] font-black text-white tracking-tight leading-tight">
+        <h1 className="text-[26px] font-black text-primary tracking-tight leading-tight">
           Tus datos
         </h1>
         <p className="text-[13px] mt-1" style={{ color: '#555' }}>
@@ -250,7 +250,7 @@ export default function BookingConfirmar({
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-white leading-tight">
+              <p className="text-[14px] font-bold text-primary leading-tight">
                 Unirme al Club de {tenantName.split(' ').slice(0, 2).join(' ')}
               </p>
               <p className="text-[11px] mt-1" style={{ color: '#888' }}>

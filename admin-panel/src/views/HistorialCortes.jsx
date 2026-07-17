@@ -100,7 +100,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
           <div className="relative">
             <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               placeholder="Nombre del cliente *"
               value={form.clienteNombre}
               onChange={e => set('clienteNombre', e.target.value)}
@@ -109,7 +109,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
           <div className="relative">
             <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               placeholder="Teléfono (para que el cliente vea en historial)"
               type="tel"
               value={form.clienteTelefono}
@@ -126,7 +126,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
           <Scissors size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           {servicios.length > 0 ? (
             <select
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500 appearance-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary outline-none focus:border-emerald-500 appearance-none"
               value={form.servicio}
               onChange={e => set('servicio', e.target.value)}
             >
@@ -137,7 +137,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
             </select>
           ) : (
             <input
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               placeholder="Nombre del servicio *"
               value={form.servicio}
               onChange={e => set('servicio', e.target.value)}
@@ -153,7 +153,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
           <div className="relative">
             <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <select
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500 appearance-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary outline-none focus:border-emerald-500 appearance-none"
               value={form.barberoId}
               onChange={e => onBarberoChange(e.target.value)}
             >
@@ -174,7 +174,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
             <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="datetime-local"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-2 py-2.5 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-2 py-2.5 text-sm text-primary outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               value={form.fecha}
               onChange={e => set('fecha', e.target.value)}
             />
@@ -186,7 +186,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
             <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="number"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               placeholder="$ opcional"
               value={form.precio}
               onChange={e => set('precio', e.target.value)}
@@ -201,7 +201,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
         <div className="relative">
           <Image size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
             placeholder="URL de la foto (opcional)"
             value={form.foto}
             onChange={e => set('foto', e.target.value)}
@@ -223,7 +223,7 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
         <div className="relative">
           <FileText size={14} className="absolute left-3 top-3.5 text-slate-500" />
           <textarea
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 resize-none"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 resize-none"
             placeholder="Estilo, preferencias del cliente, referencias… (opcional)"
             rows={3}
             value={form.notas}
@@ -240,14 +240,14 @@ function NuevaVisitaForm({ servicios, barberos, onSave, onClose }) {
       <div className="flex gap-3 pt-1">
         <button
           onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
+          className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:text-primary hover:border-slate-600 transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving
             ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando…</>
@@ -276,7 +276,7 @@ function VisitCard({ v }) {
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-bold text-white truncate">{v.clienteNombre || '—'}</p>
+          <p className="text-sm font-bold text-primary truncate">{v.clienteNombre || '—'}</p>
           {v.clienteTelefono && (
             <span className="text-[10px] text-slate-500 font-medium shrink-0">
               +{v.clienteTelefono}
@@ -348,7 +348,7 @@ export default function HistorialCortes() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold text-primary flex items-center gap-2">
             Historial de cortes
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
@@ -358,7 +358,7 @@ export default function HistorialCortes() {
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold transition-colors shrink-0"
         >
           <Plus size={16} /> Registrar visita
         </button>
@@ -368,7 +368,7 @@ export default function HistorialCortes() {
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
         <input
-          className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
           placeholder="Buscar por nombre, teléfono o servicio…"
           value={q}
           onChange={e => setQ(e.target.value)}
@@ -423,14 +423,14 @@ export default function HistorialCortes() {
 
       {showHelp && (
         <HelpModal title="Cómo leer el historial de cortes" onClose={() => setShowHelp(false)}>
-          <p>Esta vista muestra <strong className="text-white">todas las visitas completadas</strong> de la barbería en orden cronológico. Es el registro auditable del trabajo realizado.</p>
+          <p>Esta vista muestra <strong className="text-primary">todas las visitas completadas</strong> de la barbería en orden cronológico. Es el registro auditable del trabajo realizado.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Qué ves en cada fila</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li><strong className="text-white">Cliente, servicio, barbero</strong>, fecha y hora exacta.</li>
-              <li><strong className="text-white">Precio cobrado</strong> y método de pago.</li>
-              <li><strong className="text-white">Propina</strong> y productos vendidos en el ticket, si los hubo.</li>
+              <li><strong className="text-primary">Cliente, servicio, barbero</strong>, fecha y hora exacta.</li>
+              <li><strong className="text-primary">Precio cobrado</strong> y método de pago.</li>
+              <li><strong className="text-primary">Propina</strong> y productos vendidos en el ticket, si los hubo.</li>
             </ul>
           </div>
 

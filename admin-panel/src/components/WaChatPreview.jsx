@@ -27,7 +27,7 @@ export function ClaudeBadge({ className = '' }) {
     <div className={`inline-flex items-center gap-2 rounded-full bg-slate-900/70 border border-slate-700/60 px-3 py-1.5 ${className}`}>
       <ClaudeLogo size={14} />
       <span className="text-[11px] font-semibold text-slate-300 whitespace-nowrap">
-        Con la inteligencia de <span className="text-white">Claude</span>
+        Con la inteligencia de <span className="text-primary">Claude</span>
       </span>
     </div>
   );
@@ -39,7 +39,7 @@ function TypingDots() {
       {[0, 1, 2].map(i => (
         <span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-slate-400"
+          className="w-1.5 h-1.5 rounded-full bg-ink-400"
           style={{ animation: 'waDot 1.2s infinite', animationDelay: `${i * 0.16}s` }}
         />
       ))}
@@ -78,11 +78,11 @@ export function WaChatPreview({ headerName = 'Tu Local', avatar = 'B', messages 
 
       {/* Header WhatsApp */}
       <div className="flex items-center gap-2.5 px-3 py-2.5 shrink-0" style={{ background: '#075e54' }}>
-        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-[13px] font-bold text-white shrink-0">
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-[13px] font-bold text-primary shrink-0">
           {avatar}
         </div>
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-white leading-tight truncate">{headerName}</p>
+          <p className="text-[13px] font-semibold text-primary leading-tight truncate">{headerName}</p>
           <p className="text-[10px] leading-tight" style={{ color: 'rgba(220,248,198,0.8)' }}>en línea</p>
         </div>
       </div>

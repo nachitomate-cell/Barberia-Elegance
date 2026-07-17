@@ -77,7 +77,7 @@ function seedDefault() {
   ];
 }
 
-const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-lime-500 transition-colors';
+const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-lime-500 transition-colors';
 const lbl   = 'block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1';
 
 export default function LinkBio() {
@@ -252,7 +252,7 @@ export default function LinkBio() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
           <Link2 className="text-lime-400" size={20} />
-          <h1 className="text-lg font-bold text-white">Link in Bio</h1>
+          <h1 className="text-lg font-bold text-primary">Link in Bio</h1>
           <HelpButton onClick={() => setShowHelp(true)} />
           <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
             plan === 'studio' ? 'bg-amber-500/15 text-amber-400'
@@ -281,7 +281,7 @@ export default function LinkBio() {
             <Sparkles size={18} className="text-lime-300" />
           </div>
           <div className="min-w-0">
-            <p className="text-base font-bold text-white">✨ Sube de nivel con bioo.cl PRO</p>
+            <p className="text-base font-bold text-primary">✨ Sube de nivel con bioo.cl PRO</p>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
               Desbloquea fondos animados, temas premium, captura de correos y pagos directos. Todo en un diseño nivel Apple.
             </p>
@@ -291,7 +291,7 @@ export default function LinkBio() {
           type="button"
           onClick={handleUpgradeToBioo}
           disabled={bridging}
-          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-lime-400 hover:bg-lime-300 disabled:opacity-60 disabled:cursor-default text-slate-900 text-sm font-bold py-3 transition-all active:scale-[0.99]"
+          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-lime-400 hover:bg-lime-300 disabled:opacity-60 disabled:cursor-default text-ink-900 text-sm font-bold py-3 transition-all active:scale-[0.99]"
         >
           {bridging
             ? <><Loader2 size={16} className="animate-spin" /> Conectando…</>
@@ -305,7 +305,7 @@ export default function LinkBio() {
         <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 focus-within:border-lime-500 transition-colors">
           <span className="text-sm text-slate-500 select-none">bioo.cl/</span>
           <input
-            className="flex-1 bg-transparent py-2.5 pl-0.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent py-2.5 pl-0.5 text-sm text-primary placeholder-slate-500 focus:outline-none"
             value={cfg.handle || ''}
             placeholder="tunegocio"
             maxLength={30}
@@ -365,11 +365,11 @@ export default function LinkBio() {
                     onChange={e => update({ perfil: { ...cfg.perfil, colorAccent: e.target.value } })}
                     className="w-10 h-10 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">Color de acento</p>
+                    <p className="text-sm font-semibold text-primary">Color de acento</p>
                     <p className="text-[11px] text-slate-500 truncate">Botones destacados, íconos y enlaces.</p>
                   </div>
                   {cfg.perfil.colorAccent && (
-                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorAccent: '' } })} className="text-[11px] text-slate-500 hover:text-white shrink-0">Quitar</button>
+                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorAccent: '' } })} className="text-[11px] text-slate-500 hover:text-primary shrink-0">Quitar</button>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
@@ -377,11 +377,11 @@ export default function LinkBio() {
                     onChange={e => update({ perfil: { ...cfg.perfil, colorBg: e.target.value } })}
                     className="w-10 h-10 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white">Color de fondo</p>
+                    <p className="text-sm font-semibold text-primary">Color de fondo</p>
                     <p className="text-[11px] text-slate-500 truncate">Fondo de tu página de enlaces.</p>
                   </div>
                   {cfg.perfil.colorBg && (
-                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorBg: '' } })} className="text-[11px] text-slate-500 hover:text-white shrink-0">Quitar</button>
+                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorBg: '' } })} className="text-[11px] text-slate-500 hover:text-primary shrink-0">Quitar</button>
                   )}
                 </div>
               </>
@@ -404,7 +404,7 @@ export default function LinkBio() {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <h3 className="text-sm font-bold text-white">Chat con Syna en tu bio</h3>
+                  <h3 className="text-sm font-bold text-primary">Chat con Syna en tu bio</h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300 ring-1 ring-cyan-400/30">
                     Add-on
                   </span>
@@ -475,7 +475,7 @@ export default function LinkBio() {
               {limiteAlcanzado && (
                 <p className="mt-2 text-[11px] text-amber-400 flex items-center gap-1"><Lock size={11} /> Plan free: máximo 6 bloques. Mejora tu plan para bloques ilimitados.</p>
               )}
-              <button onClick={() => setAddOpen(false)} className="mt-2 text-xs text-slate-500 hover:text-white">Cerrar</button>
+              <button onClick={() => setAddOpen(false)} className="mt-2 text-xs text-slate-500 hover:text-primary">Cerrar</button>
             </div>
           ) : (
             <button onClick={() => setAddOpen(true)} disabled={limiteAlcanzado}
@@ -496,7 +496,7 @@ export default function LinkBio() {
       <div className="fixed bottom-0 inset-x-0 lg:left-64 bg-slate-950/95 backdrop-blur border-t border-slate-800 px-4 py-3 flex items-center justify-between gap-3 z-20">
         <span className="text-xs text-slate-500">{dirty ? 'Cambios sin guardar' : 'Todo guardado'}</span>
         <button onClick={save} disabled={saving || !dirty}
-          className="px-6 py-2.5 bg-lime-600 hover:bg-lime-500 disabled:opacity-40 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2">
+          className="px-6 py-2.5 bg-lime-600 hover:bg-lime-500 disabled:opacity-40 text-primary text-sm font-bold rounded-lg transition-all flex items-center gap-2">
           {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           Guardar cambios
         </button>
@@ -504,7 +504,7 @@ export default function LinkBio() {
 
       {showHelp && (
         <HelpModal title="Link in Bio" onClose={() => setShowHelp(false)}>
-          <p>Arma una mini-página con todos tus enlaces (reservar, WhatsApp, Instagram, reseñas…) para poner en tu bio de Instagram. Tu link es <strong className="text-white">{bioUrl}</strong>.</p>
+          <p>Arma una mini-página con todos tus enlaces (reservar, WhatsApp, Instagram, reseñas…) para poner en tu bio de Instagram. Tu link es <strong className="text-primary">{bioUrl}</strong>.</p>
           <p>Activa/desactiva y reordena los botones. Cada clic se cuenta para que veas qué usan más tus clientes.</p>
         </HelpModal>
       )}
@@ -540,7 +540,7 @@ function UpsellPanel() {
           <Crown size={18} className="text-amber-400 shrink-0" />
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Estás en Plan Free</p>
-            <p className="text-sm font-bold text-white truncate">Mejora tu Link in Bio</p>
+            <p className="text-sm font-bold text-primary truncate">Mejora tu Link in Bio</p>
           </div>
         </div>
         <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 shrink-0">
@@ -558,10 +558,10 @@ function UpsellPanel() {
                 className={`relative rounded-xl border p-4 flex flex-col ${p.destacado ? 'border-amber-500/50 bg-amber-500/5' : 'border-slate-800 bg-slate-900/60'}`}>
                 {p.destacado && <span className="absolute -top-2 left-4 text-[9px] font-black uppercase tracking-wide bg-amber-500 text-amber-950 px-2 py-0.5 rounded-full">Recomendado</span>}
                 <div className="flex items-baseline justify-between">
-                  <p className="text-sm font-bold text-white">{p.nombre}</p>
+                  <p className="text-sm font-bold text-primary">{p.nombre}</p>
                   {p.actual && <span className="text-[9px] font-bold text-lime-400 bg-lime-500/10 px-1.5 py-0.5 rounded">Actual</span>}
                 </div>
-                <p className="mt-1 mb-3"><span className="text-2xl font-black text-white">{p.precio}</span><span className="text-xs text-slate-500">{p.periodo || ''}</span></p>
+                <p className="mt-1 mb-3"><span className="text-2xl font-black text-primary">{p.precio}</span><span className="text-xs text-slate-500">{p.periodo || ''}</span></p>
                 <ul className="space-y-1.5 flex-1">
                   {p.beneficios.map((b, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300">
@@ -590,7 +590,7 @@ function Stat({ icon: Icon, label, value }) {
     <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
       <Icon size={18} className="text-lime-400 shrink-0" />
       <div className="min-w-0">
-        <p className="text-lg font-black text-white leading-none">{Number(value).toLocaleString('es-CL')}</p>
+        <p className="text-lg font-black text-primary leading-none">{Number(value).toLocaleString('es-CL')}</p>
         <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5 truncate">{label}</p>
       </div>
     </div>
@@ -606,18 +606,18 @@ function BlockCard({ blk, index, total, isPro, clicks, onChange, onMove, onRemov
     <div className={`bg-slate-900 border rounded-xl p-3 transition-all ${off ? 'border-slate-850 opacity-60' : 'border-slate-800'}`}>
       <div className="flex items-center gap-2">
         <div className="flex flex-col">
-          <button onClick={() => onMove(-1)} disabled={index === 0} className="text-slate-600 hover:text-white disabled:opacity-30 p-0.5"><ArrowUp size={14} /></button>
-          <button onClick={() => onMove(1)} disabled={index === total - 1} className="text-slate-600 hover:text-white disabled:opacity-30 p-0.5"><ArrowDown size={14} /></button>
+          <button onClick={() => onMove(-1)} disabled={index === 0} className="text-slate-600 hover:text-primary disabled:opacity-30 p-0.5"><ArrowUp size={14} /></button>
+          <button onClick={() => onMove(1)} disabled={index === total - 1} className="text-slate-600 hover:text-primary disabled:opacity-30 p-0.5"><ArrowDown size={14} /></button>
         </div>
         <div className="w-8 h-8 rounded-lg bg-lime-500/10 border border-lime-500/20 flex items-center justify-center shrink-0">
           <Icon size={15} className="text-lime-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white truncate">{blk.label || blk.texto || T.nombre}</p>
+          <p className="text-sm font-semibold text-primary truncate">{blk.label || blk.texto || T.nombre}</p>
           <p className="text-[10px] text-slate-500">{T.nombre} · {clicks} clic{clicks !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => onChange({ activo: !off ? false : true })} title={off ? 'Activar' : 'Desactivar'}
-          className={`p-1.5 rounded-lg transition-colors ${off ? 'text-slate-500 hover:text-white' : 'text-lime-400 hover:bg-slate-800'}`}>
+          className={`p-1.5 rounded-lg transition-colors ${off ? 'text-slate-500 hover:text-primary' : 'text-lime-400 hover:bg-slate-800'}`}>
           {off ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
         <button onClick={onRemove} className="p-1.5 rounded-lg text-rose-400/70 hover:text-rose-400 hover:bg-slate-800 transition-colors"><Trash2 size={15} /></button>
@@ -709,7 +709,7 @@ function Preview({ perfil, bloques }) {
         style={{ background: `radial-gradient(ellipse 80% 35% at 50% 0%, ${glow}, transparent 70%), ${bg}` }}>
         <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-xs"
           style={{ border: `2px solid ${accBdr}`, color: accent || 'rgba(146,200,58,0.6)' }}>logo</div>
-        <p className="mt-2 text-white font-black text-center text-sm leading-tight">{perfil.titulo || 'Tu local'}</p>
+        <p className="mt-2 text-primary font-black text-center text-sm leading-tight">{perfil.titulo || 'Tu local'}</p>
         {perfil.subtitulo && <p className="text-[10px] text-slate-400 text-center mt-0.5">{perfil.subtitulo}</p>}
         <div className="w-full mt-4 space-y-2">
           {visibles.length === 0 && <p className="text-center text-[11px] text-slate-600 mt-6">Sin bloques activos</p>}
@@ -724,7 +724,7 @@ function Preview({ perfil, bloques }) {
             const Icon = ICON[b.tipo] || Link2;
             return (
               <div key={b.id} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11px] font-semibold border
-                ${b.featured ? '' : 'bg-white/5 text-white border-white/10'}`}
+                ${b.featured ? '' : 'bg-white/5 text-primary border-white/10'}`}
                 style={b.featured ? { background: accent || '#84cc16', borderColor: accent || '#84cc16', color: '#0a0a0d' } : undefined}>
                 <span className="w-6 h-6 rounded-md flex items-center justify-center"
                   style={{ background: b.featured ? 'rgba(0,0,0,0.15)' : accSoft }}>

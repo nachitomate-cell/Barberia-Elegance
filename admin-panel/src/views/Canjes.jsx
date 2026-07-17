@@ -295,12 +295,12 @@ export default function Canjes() {
             <ScanLine size={18} className="text-amber-400" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">Validar Canje</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-primary leading-tight">Validar Canje</h1>
             <p className="text-[11px] sm:text-xs text-slate-500 leading-snug">Aprueba y entrega premios del club de fidelidad</p>
           </div>
         </div>
         <p className="text-[13px] sm:text-sm text-slate-400 leading-relaxed mt-3 max-w-3xl">
-          Un miembro del club quiere reclamar su premio. Pídele el <strong className="text-white">PIN de 4 dígitos</strong> que
+          Un miembro del club quiere reclamar su premio. Pídele el <strong className="text-primary">PIN de 4 dígitos</strong> que
           generó en su app y confírmalo acá: se descuentan sellos automáticamente,
           se actualiza el stock (si aplica) y queda registro en el historial del cliente.
         </p>
@@ -319,9 +319,9 @@ export default function Canjes() {
                 {n}
               </span>
               <Icon size={14} className="text-slate-400 shrink-0" />
-              <p className="text-sm font-bold text-white leading-tight sm:hidden">{title}</p>
+              <p className="text-sm font-bold text-primary leading-tight sm:hidden">{title}</p>
             </div>
-            <p className="text-sm font-bold text-white leading-tight hidden sm:block">{title}</p>
+            <p className="text-sm font-bold text-primary leading-tight hidden sm:block">{title}</p>
             <p className="text-[11px] text-slate-500 mt-1 leading-snug">{desc}</p>
             {i < arr.length - 1 && (
               <ArrowRight size={14} className="hidden sm:block absolute top-1/2 -right-3 -translate-y-1/2 text-slate-700 z-10 bg-slate-950 rounded-full" />
@@ -359,7 +359,7 @@ export default function Canjes() {
                 }}
                 onKeyDown={e => e.key === 'Enter' && buscarPorPin(pin)}
                 placeholder="0000"
-                className="w-full sm:flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 sm:px-4 py-3 sm:py-4 text-2xl sm:text-3xl font-black text-center text-white tracking-[0.4em] sm:tracking-[0.6em] focus:border-amber-400 focus:outline-none"
+                className="w-full sm:flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 sm:px-4 py-3 sm:py-4 text-2xl sm:text-3xl font-black text-center text-primary tracking-[0.4em] sm:tracking-[0.6em] focus:border-amber-400 focus:outline-none"
               />
               <button
                 onClick={() => buscarPorPin(pin)}
@@ -409,7 +409,7 @@ export default function Canjes() {
                       : <User size={22} className="text-slate-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">
+                    <p className="text-sm font-bold text-primary truncate">
                       {cliente?.nombre || candidato.userName || 'Cliente'}
                     </p>
                     <p className="text-[11px] text-slate-500 truncate">
@@ -441,7 +441,7 @@ export default function Canjes() {
               <div className="p-4 sm:p-5 space-y-4">
                 <div>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Premio a entregar</span>
-                  <h2 className="text-lg font-black text-white leading-tight mt-0.5">
+                  <h2 className="text-lg font-black text-primary leading-tight mt-0.5">
                     {candidato.prizeName || 'Premio'}
                   </h2>
                   <p className="text-xs text-amber-400 font-semibold mt-1">
@@ -484,7 +484,7 @@ export default function Canjes() {
               <div className="p-3 sm:p-4 bg-slate-950/40 border-t border-slate-800 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={resetear}
-                  className="px-4 py-3 sm:py-2.5 text-sm text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
+                  className="px-4 py-3 sm:py-2.5 text-sm text-slate-300 hover:text-primary rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -544,7 +544,7 @@ export default function Canjes() {
                         <meta.Icon size={14} className="text-slate-300" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">
+                        <p className="text-xs font-semibold text-primary truncate">
                           {r.prizeName || '—'}
                         </p>
                         <p className="text-[10px] text-slate-500 flex items-center gap-2">
@@ -621,7 +621,7 @@ export default function Canjes() {
         <div className={`fixed left-1/2 -translate-x-1/2 bottom-8 z-50 px-5 py-3 rounded-xl font-semibold text-sm shadow-2xl border ${
           msg.type === 'ok'
             ? 'bg-emerald-500/95 text-black border-emerald-400'
-            : 'bg-rose-500/95 text-white border-rose-400'
+            : 'bg-rose-500/95 text-primary border-rose-400'
         }`}>
           {msg.text}
         </div>

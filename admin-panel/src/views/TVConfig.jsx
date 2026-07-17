@@ -90,7 +90,7 @@ function Card({ icon: Icon, title, badge, children }) {
         <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 shrink-0">
           <Icon size={14} className="text-emerald-400" />
         </div>
-        <h2 className="text-base font-bold text-white flex-1 tracking-tight">{title}</h2>
+        <h2 className="text-base font-bold text-primary flex-1 tracking-tight">{title}</h2>
         {badge}
       </div>
       <div className="px-6 py-6 space-y-5">{children}</div>
@@ -147,7 +147,7 @@ function SlideToggle({ checked, onChange, label, sublabel }) {
         />
       </div>
       <div>
-        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-sm font-medium text-primary">{label}</p>
         {sublabel && <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>}
       </div>
     </button>
@@ -188,7 +188,7 @@ function AnuncioPreview({ oferta, accentColor }) {
             ✦ {o.etiqueta} ✦
           </p>
           <p
-            className="font-black text-white leading-tight"
+            className="font-black text-primary leading-tight"
             style={{ fontSize: 'clamp(1.1rem, 2.8vw, 1.8rem)' }}
           >
             {o.titulo1}
@@ -335,10 +335,10 @@ function TVSimulator({ config, bgUrl, tenantId }) {
           <header className={`border-b border-white/5 bg-[#070809] flex items-center justify-between px-3 shrink-0 relative z-10 ${config.headerSize === 'sm' ? 'h-[8%]' : 'h-[12%]'}`}>
           <div className="flex items-center gap-1.5">
             <div className={`rounded-md overflow-hidden bg-slate-800 border border-white/10 shrink-0 ${config.headerSize === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`}>
-              <span className="text-[6px] font-black text-white flex items-center justify-center h-full">B</span>
+              <span className="text-[6px] font-black text-primary flex items-center justify-center h-full">B</span>
             </div>
             <div>
-              <div className={`text-white font-extrabold tracking-tight leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[7.5px]'}`}>
+              <div className={`text-primary font-extrabold tracking-tight leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[7.5px]'}`}>
                 {tenantId === 'elegance' ? 'Barber Elegance' : 'Barber Ferraza'}
               </div>
               {config.headerSize !== 'sm' && (
@@ -349,7 +349,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
             </div>
           </div>
           <div className="text-right">
-            <div className={`font-mono font-black text-white leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[8px]'}`}>
+            <div className={`font-mono font-black text-primary leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[8px]'}`}>
               {clockText}
             </div>
             <div className="text-[5px] text-slate-500 font-medium tracking-wide uppercase mt-0.5">
@@ -376,7 +376,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
               </div>
               <div className="grid grid-cols-2 gap-1 mb-1.5">
                 <div className="bg-white/[0.02] border border-white/5 rounded p-0.5 text-center">
-                  <p className="font-extrabold text-[8px] text-white leading-none">12</p>
+                  <p className="font-extrabold text-[8px] text-primary leading-none">12</p>
                   <p className="text-[3.5px] text-slate-500 uppercase tracking-wider">Total</p>
                 </div>
                 <div className="bg-emerald-500/[0.02] border border-emerald-500/10 rounded p-0.5 text-center">
@@ -395,12 +395,12 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                   style={{ animation: 'sim-glow-pulse 3s infinite ease-in-out' }}
                 >
                   <div className="flex items-center gap-1 mb-1">
-                    <div className="w-3 h-3 rounded-full bg-slate-700 flex items-center justify-center text-[5px] font-black text-white shrink-0 overflow-hidden">
+                    <div className="w-3 h-3 rounded-full bg-slate-700 flex items-center justify-center text-[5px] font-black text-primary shrink-0 overflow-hidden">
                       <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50&q=80" alt="" className="w-full h-full object-cover" />
                     </div>
                     <span className="text-[4px] font-bold text-slate-400 truncate">Claudio</span>
                   </div>
-                  <p className="text-white font-extrabold text-[7px] leading-tight truncate">Matías Orozco</p>
+                  <p className="text-primary font-extrabold text-[7px] leading-tight truncate">Matías Orozco</p>
                   <p className="text-slate-500 text-[5px] truncate">Degradado + Barba</p>
                   <p className="font-mono text-[7px] font-bold mt-0.5 text-right" style={{ color: gold }}>15:15</p>
                 </div>
@@ -413,7 +413,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                 {SIM_CITAS.slice(1, 3).map((c) => (
                   <div key={c.id} className="bg-white/[0.01] border border-white/5 rounded px-1 py-0.5 flex items-center justify-between gap-1">
                     <div className="min-w-0 flex-1">
-                      <p className="text-white font-bold text-[5.5px] truncate leading-tight">{c.clienteNombre}</p>
+                      <p className="text-primary font-bold text-[5.5px] truncate leading-tight">{c.clienteNombre}</p>
                       <p className="text-slate-500 text-[4px] truncate leading-none mt-0.5">{c.servicioNombre}</p>
                     </div>
                     <span className="font-mono text-[5px] text-slate-400 shrink-0">{c.hora}</span>
@@ -466,7 +466,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                       <p className="text-[5.5px] font-black tracking-[0.4em] uppercase mb-1" style={{ color: gold }}>
                         ✦ {o.etiqueta} ✦
                       </p>
-                      <h2 className="font-black text-white text-[12px] leading-tight tracking-tight">
+                      <h2 className="font-black text-primary text-[12px] leading-tight tracking-tight">
                         {o.titulo1}
                       </h2>
                       <h2 className="font-black text-[12px] leading-tight tracking-tight" style={{ color: gold }}>
@@ -501,7 +501,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                         <div className="absolute bottom-1 right-2">
-                          <span className="font-mono text-[6px] font-black text-white/80">1 / 9</span>
+                          <span className="font-mono text-[6px] font-black text-primary/80">1 / 9</span>
                         </div>
                       </div>
                     </div>
@@ -519,7 +519,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                               <img src={b.foto} alt="" className="w-full h-full object-cover" />
                             </div>
                             <div className="min-w-0 w-full">
-                              <p className="text-white font-bold text-[5.5px] truncate leading-none">{b.nombre}</p>
+                              <p className="text-primary font-bold text-[5.5px] truncate leading-none">{b.nombre}</p>
                               <p className="text-slate-500 text-[4px] truncate mt-0.5 leading-none">{b.specialty}</p>
                             </div>
                           </div>
@@ -540,7 +540,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                               <img src={p.imagen} alt="" className="w-full h-full object-cover" />
                             </div>
                             <div className="p-1 min-w-0 flex flex-col gap-0.5">
-                              <p className="text-white font-bold text-[5px] truncate leading-tight">{p.nombre}</p>
+                              <p className="text-primary font-bold text-[5px] truncate leading-tight">{p.nombre}</p>
                               <p className="text-[5px] font-black" style={{ color: gold }}>${Number(p.precio).toLocaleString('es-CL')}</p>
                               <div className="flex items-center gap-0.5 mt-0.5">
                                 <div className={`w-0.8 h-0.8 rounded-full ${p.stock > 0 ? 'bg-emerald-400' : 'bg-red-400'}`} />
@@ -666,8 +666,8 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                   onClick={() => setActiveTab(t.id)}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${
                     activeTab === t.id
-                      ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-950/20'
-                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                      ? 'bg-emerald-600 border-emerald-500 text-primary shadow-lg shadow-emerald-950/20'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                   }`}
                 >
                   <span className={`w-1 h-1 rounded-full ${active ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
@@ -1040,7 +1040,7 @@ export default function TVConfig() {
     setDirty(true);
   };
 
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const gold = config.accentColor || '#D4AF37';
   const qrColor = config.qr.color || gold;
 
@@ -1065,7 +1065,7 @@ export default function TVConfig() {
             <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 shrink-0 shadow-[0_0_20px_-8px_rgba(16,185,129,0.5)]">
               <Monitor className="text-emerald-400" size={20} />
             </div>
-            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            <h1 className="text-2xl lg:text-3xl font-black text-primary tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
               Pantalla TV
             </h1>
             <HelpButton onClick={() => setShowHelp(true)} />
@@ -1077,7 +1077,7 @@ export default function TVConfig() {
         <div className="relative flex items-center gap-2 shrink-0 flex-wrap">
           <button
             onClick={() => setShowConnect(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/40 hover:text-white hover:bg-emerald-600 hover:border-emerald-500 transition-all bg-emerald-500/10"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/40 hover:text-primary hover:bg-emerald-600 hover:border-emerald-500 transition-all bg-emerald-500/10"
           >
             <Cable size={13} /> ¿Cómo lo conecto?
           </button>
@@ -1085,7 +1085,7 @@ export default function TVConfig() {
             href="/gestion-interna/tv"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500 hover:bg-slate-800/50 transition-all bg-slate-800/40"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 border border-slate-700 hover:text-primary hover:border-slate-500 hover:bg-slate-800/50 transition-all bg-slate-800/40"
           >
             <ExternalLink size={13} /> Ver TV en vivo
           </a>
@@ -1094,7 +1094,7 @@ export default function TVConfig() {
             <button
               onClick={handleUndo}
               title="Restaura la configuración a como estaba en el último guardado"
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-amber-400 border border-amber-500/40 hover:text-white hover:bg-amber-600 hover:border-amber-500 transition-all bg-amber-500/10"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-amber-400 border border-amber-500/40 hover:text-primary hover:bg-amber-600 hover:border-amber-500 transition-all bg-amber-500/10"
             >
               <RotateCcw size={13} /> Descartar
             </button>
@@ -1102,7 +1102,7 @@ export default function TVConfig() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-sm font-bold rounded-xl transition-all shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)]"
+            className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-ink-950 text-sm font-bold rounded-xl transition-all shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)]"
           >
             {saving
               ? <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -1172,7 +1172,7 @@ export default function TVConfig() {
                     onClick={() => setMediaMode(m.key)}
                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
                       active
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+                        ? 'bg-emerald-600 text-primary shadow-md shadow-emerald-950/20'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1235,7 +1235,7 @@ export default function TVConfig() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-600 cursor-pointer transition-all">
+                  <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-primary hover:border-slate-600 cursor-pointer transition-all">
                     <Upload size={13} />
                     Cambiar archivo
                     <input ref={bgInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
@@ -1423,8 +1423,8 @@ export default function TVConfig() {
                     onClick={() => update('sidebarSize', opt.value)}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
                       config.sidebarSize === opt.value
-                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-950/20'
-                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                        ? 'bg-emerald-600 border-emerald-500 text-primary shadow-md shadow-emerald-950/20'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                     }`}
                   >
                     {opt.label}
@@ -1449,8 +1449,8 @@ export default function TVConfig() {
                     disabled={config.hideHeader === true}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                       config.headerSize === opt.value
-                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-950/20'
-                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                        ? 'bg-emerald-600 border-emerald-500 text-primary shadow-md shadow-emerald-950/20'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                     }`}
                   >
                     {opt.label}
@@ -1485,7 +1485,7 @@ export default function TVConfig() {
                     <span>60s</span>
                   </div>
                 </div>
-                <span className="text-white font-mono font-black tabular-nums w-14 text-center bg-emerald-500/10 text-emerald-400 rounded-xl py-2 text-sm border border-emerald-500/20 shadow-lg">
+                <span className="text-primary font-mono font-black tabular-nums w-14 text-center bg-emerald-500/10 text-emerald-400 rounded-xl py-2 text-sm border border-emerald-500/20 shadow-lg">
                   {config.duracionSlide}s
                 </span>
               </div>
@@ -1559,7 +1559,7 @@ export default function TVConfig() {
                       className="w-6 h-6 rounded-lg border border-white/10 shadow-sm"
                       style={{ background: p.accent }}
                     />
-                    <p className="text-sm font-bold text-white">{p.label}</p>
+                    <p className="text-sm font-bold text-primary">{p.label}</p>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-snug">{p.desc}</p>
                   <p className="text-[10px] text-emerald-400 font-semibold mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1592,7 +1592,7 @@ export default function TVConfig() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vista previa real</p>
-                <p className="text-sm font-bold text-white truncate">Escanealo con tu celu para probar</p>
+                <p className="text-sm font-bold text-primary truncate">Escanealo con tu celu para probar</p>
                 <p className="text-[11px] text-slate-500 leading-relaxed mt-1 truncate">
                   <span className="opacity-60">→</span> /registro.html?local={tenantId}
                 </p>
@@ -1655,7 +1655,7 @@ export default function TVConfig() {
                       className="w-7 h-7 rounded-lg flex items-center justify-center"
                       style={{ background: qrColor, border: '1.5px dashed rgba(255,255,255,0.45)' }}
                     >
-                      <Palette size={11} className="text-white opacity-80" />
+                      <Palette size={11} className="text-primary opacity-80" />
                     </div>
                   </label>
                 </div>
@@ -1698,7 +1698,7 @@ export default function TVConfig() {
                     <span>240px</span>
                   </div>
                 </div>
-                <span className="text-white font-mono font-black tabular-nums w-20 text-center bg-emerald-500/10 text-emerald-400 rounded-xl py-2 text-sm border border-emerald-500/20 shadow-lg">
+                <span className="text-primary font-mono font-black tabular-nums w-20 text-center bg-emerald-500/10 text-emerald-400 rounded-xl py-2 text-sm border border-emerald-500/20 shadow-lg">
                   {config.qr.size}px
                 </span>
               </div>
@@ -1821,7 +1821,7 @@ export default function TVConfig() {
                       className="w-7 h-7 rounded-lg flex items-center justify-center"
                       style={{ background: gold, border: '1.5px dashed rgba(255,255,255,0.45)' }}
                     >
-                      <Palette size={11} className="text-white opacity-80" />
+                      <Palette size={11} className="text-primary opacity-80" />
                     </div>
                   </label>
                 </div>
@@ -1850,7 +1850,7 @@ export default function TVConfig() {
           >
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-primary">
                   {lookbookCount === null
                     ? <span className="text-slate-500 animate-pulse font-bold">Cargando…</span>
                     : `${lookbookCount} foto${lookbookCount !== 1 ? 's' : ''} publicada${lookbookCount !== 1 ? 's' : ''}`}
@@ -1878,7 +1878,7 @@ export default function TVConfig() {
           >
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-primary">
                   {barberoCount === null
                     ? <span className="text-slate-500 animate-pulse font-bold">Cargando…</span>
                     : `${barberoCount} barbero${barberoCount !== 1 ? 's' : ''} activo${barberoCount !== 1 ? 's' : ''}`}
@@ -1906,7 +1906,7 @@ export default function TVConfig() {
           >
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-primary">
                   {productosCount === null
                     ? <span className="text-slate-500 animate-pulse font-bold">Cargando…</span>
                     : `${productosCount} producto${productosCount !== 1 ? 's' : ''} cargado${productosCount !== 1 ? 's' : ''}`}
@@ -1950,12 +1950,12 @@ export default function TVConfig() {
                   <input
                     type="text"
                     placeholder="Nombre de la marca"
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500"
                     value={marcaNombre}
                     onChange={e => setMarcaNombre(e.target.value)}
                   />
                   <div className="flex gap-2">
-                    <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-600 cursor-pointer transition-all bg-slate-900 shrink-0">
+                    <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-primary hover:border-slate-600 cursor-pointer transition-all bg-slate-900 shrink-0">
                       <Upload size={14} />
                       <span className="truncate max-w-[80px]">{marcaImg ? marcaImg.name : 'Logo'}</span>
                       <input ref={marcaInputRef} type="file" accept="image/*" className="hidden" onChange={handleMarcaUpload} />
@@ -1963,7 +1963,7 @@ export default function TVConfig() {
                     <button
                       onClick={handleAddMarca}
                       disabled={!marcaNombre || !marcaImg || marcaUploading}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all shrink-0 shadow-md"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-primary text-sm font-semibold rounded-lg transition-all shrink-0 shadow-md"
                     >
                       {marcaUploading ? 'Guardando...' : 'Añadir'}
                     </button>
@@ -1973,7 +1973,7 @@ export default function TVConfig() {
                   type="text"
                   placeholder="Descripción (opcional) — ej: Productos premium para barba"
                   maxLength={80}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500"
                   value={marcaDesc}
                   onChange={e => setMarcaDesc(e.target.value)}
                 />
@@ -1987,7 +1987,7 @@ export default function TVConfig() {
                       <div className="w-full h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden border border-slate-800/50 p-2">
                         <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" />
                       </div>
-                      <p className="text-xs font-semibold text-white text-center truncate w-full">{m.nombre}</p>
+                      <p className="text-xs font-semibold text-primary text-center truncate w-full">{m.nombre}</p>
                       <input
                         type="text"
                         defaultValue={m.descripcion || ''}
@@ -2056,14 +2056,14 @@ export default function TVConfig() {
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-white leading-tight">Cambios sin guardar</p>
+            <p className="text-xs font-bold text-primary leading-tight">Cambios sin guardar</p>
             <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Tienes modificaciones pendientes en la configuración.</p>
           </div>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+          className="flex items-center gap-2 px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-primary text-xs font-bold rounded-xl transition-all shadow-md shrink-0 active:scale-95"
         >
           {saving
             ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -2084,16 +2084,16 @@ export default function TVConfig() {
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Bloques de contenido</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li><strong className="text-white">Lookbook</strong>: rota tus mejores fotos cada N segundos.</li>
-              <li><strong className="text-white">Promos / Publicidad</strong>: subí imágenes propias con duración custom.</li>
-              <li><strong className="text-white">QR de reservas</strong>: link a tu booking público, escaneable desde el celular.</li>
-              <li><strong className="text-white">Próximas citas</strong>: cola del día (cuándo entra cada cliente, opcional).</li>
+              <li><strong className="text-primary">Lookbook</strong>: rota tus mejores fotos cada N segundos.</li>
+              <li><strong className="text-primary">Promos / Publicidad</strong>: subí imágenes propias con duración custom.</li>
+              <li><strong className="text-primary">QR de reservas</strong>: link a tu booking público, escaneable desde el celular.</li>
+              <li><strong className="text-primary">Próximas citas</strong>: cola del día (cuándo entra cada cliente, opcional).</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Cambios en vivo</p>
-            <p>Todo cambio que hagas acá se refleja en la TV <strong className="text-white">sin reiniciar</strong>. La pantalla escucha Firestore en tiempo real.</p>
+            <p>Todo cambio que hagas acá se refleja en la TV <strong className="text-primary">sin reiniciar</strong>. La pantalla escucha Firestore en tiempo real.</p>
           </div>
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si la TV es vieja, abrí el navegador en kiosk mode (Chrome: <code>--kiosk</code>) para que ocupe la pantalla completa sin barra de URL.</p>
@@ -2117,7 +2117,7 @@ function ConnectModal({ tab, setTab, onClose }) {
     <div className="flex gap-3">
       <span className="shrink-0 w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-black flex items-center justify-center mt-0.5">{n}</span>
       <div className="flex-1 space-y-1">
-        <p className="font-semibold text-white">{title}</p>
+        <p className="font-semibold text-primary">{title}</p>
         <div className="text-slate-300 space-y-1.5 leading-relaxed">{children}</div>
       </div>
     </div>
@@ -2140,9 +2140,9 @@ function ConnectModal({ tab, setTab, onClose }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Monitor size={16} className="text-emerald-400 shrink-0" />
-            <h3 className="font-semibold text-white">¿Cómo conecto el PC a la TV?</h3>
+            <h3 className="font-semibold text-primary">¿Cómo conecto el PC a la TV?</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all">
             <X size={16} />
           </button>
         </div>
@@ -2151,13 +2151,13 @@ function ConnectModal({ tab, setTab, onClose }) {
         <div className="flex gap-2 px-5 pt-4">
           <button
             onClick={() => setTab('cable')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'cable' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'cable' ? 'bg-emerald-600 text-primary shadow-md' : 'bg-slate-800 text-slate-400 hover:text-primary'}`}
           >
             <Cable size={14} /> Por cable (HDMI)
           </button>
           <button
             onClick={() => setTab('wifi')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'wifi' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'wifi' ? 'bg-emerald-600 text-primary shadow-md' : 'bg-slate-800 text-slate-400 hover:text-primary'}`}
           >
             <Wifi size={14} /> Por Wi-Fi
           </button>
@@ -2175,17 +2175,17 @@ function ConnectModal({ tab, setTab, onClose }) {
               </Step>
 
               <Step n="2" title="Selecciona la entrada en la TV">
-                <p>Con el control remoto, busca el botón <strong className="text-white">Source</strong> o <strong className="text-white">Input</strong> (ícono de un cuadrado con una flecha hacia adentro) y elige el puerto HDMI donde conectaste el cable (HDMI 1, HDMI 2, etc.).</p>
+                <p>Con el control remoto, busca el botón <strong className="text-primary">Source</strong> o <strong className="text-primary">Input</strong> (ícono de un cuadrado con una flecha hacia adentro) y elige el puerto HDMI donde conectaste el cable (HDMI 1, HDMI 2, etc.).</p>
               </Step>
 
               <Step n="3" title="Configura la pantalla en tu PC">
-                <p><strong className="text-white">En Windows:</strong> normalmente la imagen aparece sola. Si no, presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-white">Windows + P</kbd> y elige:</p>
+                <p><strong className="text-primary">En Windows:</strong> normalmente la imagen aparece sola. Si no, presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-primary">Windows + P</kbd> y elige:</p>
                 <ul className="list-disc ml-4 space-y-1">
-                  <li><strong className="text-white">Duplicar:</strong> lo mismo en el PC y la TV.</li>
-                  <li><strong className="text-white">Ampliar:</strong> la TV como segundo monitor independiente.</li>
-                  <li><strong className="text-white">Solo segunda pantalla:</strong> se apaga el PC y solo usas la TV.</li>
+                  <li><strong className="text-primary">Duplicar:</strong> lo mismo en el PC y la TV.</li>
+                  <li><strong className="text-primary">Ampliar:</strong> la TV como segundo monitor independiente.</li>
+                  <li><strong className="text-primary">Solo segunda pantalla:</strong> se apaga el PC y solo usas la TV.</li>
                 </ul>
-                <p className="mt-1"><strong className="text-white">En Mac:</strong> menú Apple () › Configuración del Sistema › <strong className="text-white">Pantallas</strong>. El Mac detecta la TV automáticamente y puedes duplicar o extender.</p>
+                <p className="mt-1"><strong className="text-primary">En Mac:</strong> menú Apple () › Configuración del Sistema › <strong className="text-primary">Pantallas</strong>. El Mac detecta la TV automáticamente y puedes duplicar o extender.</p>
               </Step>
 
               <Note>💡 ¿Hay imagen pero no sonido? <strong>Windows:</strong> clic en el ícono del parlante (abajo a la derecha) y selecciona la TV como dispositivo de salida. <strong>Mac:</strong> Centro de control › Sonido › elige tu TV.</Note>
@@ -2197,10 +2197,10 @@ function ConnectModal({ tab, setTab, onClose }) {
               <Step n="1" title="Windows 10 u 11 (Miracast)">
                 <p>Opción nativa para la mayoría de PCs con Windows y Smart TVs modernas (Samsung, LG, Sony…).</p>
                 <ul className="list-disc ml-4 space-y-1">
-                  <li>Verifica que el PC y la TV estén en la <strong className="text-white">misma red Wi-Fi</strong>.</li>
-                  <li>Presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-white">Windows + K</kbd> para abrir el panel "Transmitir".</li>
+                  <li>Verifica que el PC y la TV estén en la <strong className="text-primary">misma red Wi-Fi</strong>.</li>
+                  <li>Presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-primary">Windows + K</kbd> para abrir el panel "Transmitir".</li>
                   <li>Haz clic en el nombre de tu TV y acepta en la TV si pide permiso.</li>
-                  <li>Elige <strong className="text-white">Duplicar</strong> o <strong className="text-white">Ampliar</strong> desde el mismo panel.</li>
+                  <li>Elige <strong className="text-primary">Duplicar</strong> o <strong className="text-primary">Ampliar</strong> desde el mismo panel.</li>
                 </ul>
               </Step>
 
@@ -2208,8 +2208,8 @@ function ConnectModal({ tab, setTab, onClose }) {
                 <p>Ideal si tienes un Chromecast o TV con Google TV / Android TV.</p>
                 <ul className="list-disc ml-4 space-y-1">
                   <li>Ambos equipos en la misma red Wi-Fi.</li>
-                  <li>En Chrome, clic en los <strong className="text-white">tres puntos</strong> (arriba a la derecha) › Guardar y compartir › <strong className="text-white">Transmitir…</strong></li>
-                  <li>En "Fuentes" cambia de <em>Transmitir pestaña</em> a <strong className="text-white">Transmitir pantalla</strong>.</li>
+                  <li>En Chrome, clic en los <strong className="text-primary">tres puntos</strong> (arriba a la derecha) › Guardar y compartir › <strong className="text-primary">Transmitir…</strong></li>
+                  <li>En "Fuentes" cambia de <em>Transmitir pestaña</em> a <strong className="text-primary">Transmitir pantalla</strong>.</li>
                   <li>Haz clic en el nombre de tu TV o Chromecast.</li>
                 </ul>
               </Step>
@@ -2218,7 +2218,7 @@ function ConnectModal({ tab, setTab, onClose }) {
                 <p>Para Mac con Apple TV o Smart TV compatible con AirPlay 2 (LG, Samsung, Roku recientes).</p>
                 <ul className="list-disc ml-4 space-y-1">
                   <li>Mac y TV en la misma red Wi-Fi.</li>
-                  <li>Abre el <strong className="text-white">Centro de control</strong> (arriba a la derecha) › <strong className="text-white">Duplicar pantalla</strong>.</li>
+                  <li>Abre el <strong className="text-primary">Centro de control</strong> (arriba a la derecha) › <strong className="text-primary">Duplicar pantalla</strong>.</li>
                   <li>Selecciona tu TV. La primera vez puede mostrar un código de 4 dígitos para ingresar en el Mac.</li>
                 </ul>
               </Step>

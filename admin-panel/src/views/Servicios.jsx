@@ -397,7 +397,7 @@ export default function Servicios() {
   };
 
   // Estilos base unificados (SaaS premium dark). Todo el form los reutiliza.
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
   const lbl   = 'block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5';
   const help  = 'text-xs text-slate-500 mt-1';
 
@@ -411,12 +411,12 @@ export default function Servicios() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">Servicios</h1>
+              <h1 className="text-xl font-bold text-primary">Servicios</h1>
               <HelpButton onClick={() => setShowHelp(true)} />
             </div>
             <p className="text-xs text-slate-500 mt-0.5">Arrastra para reordenar. El orden se guarda en Firestore.</p>
           </div>
-          <button onClick={openNew} className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+          <button onClick={openNew} className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={16} /> Nuevo servicio
           </button>
         </div>
@@ -474,7 +474,7 @@ export default function Servicios() {
       {/* ── Sidebar: categorías ── */}
       <div className="w-full lg:w-64 shrink-0">
         <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <Tag size={14} className="text-slate-400" />
             Categorías
           </h2>
@@ -496,14 +496,14 @@ export default function Servicios() {
 
           <div className="flex gap-2">
             <input
-              className="flex-1 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm px-3 py-2 text-white placeholder-slate-500 focus:outline-none transition-colors"
+              className="flex-1 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm px-3 py-2 text-primary placeholder-slate-500 focus:outline-none transition-colors"
               placeholder="Nueva categoría..." value={newCat} onChange={e => setNewCat(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addCategoria()}
             />
             <button
               onClick={addCategoria}
               disabled={!newCat.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg w-9 h-9 flex items-center justify-center transition-colors shrink-0"
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary rounded-lg w-9 h-9 flex items-center justify-center transition-colors shrink-0"
               aria-label="Añadir categoría"
             >
               <Plus size={16} strokeWidth={2.5} />
@@ -516,7 +516,7 @@ export default function Servicios() {
           recsOn ? 'bg-sky-500/5 border-sky-500/30' : 'bg-slate-800/30 border-slate-700/50'
         }`}>
           <div className="flex items-center justify-between gap-3 mb-3">
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
               <Sparkles size={14} className={recsOn ? 'text-sky-400' : 'text-slate-400'} />
               Recomendaciones
             </h2>
@@ -548,7 +548,7 @@ export default function Servicios() {
       {/* FAB móvil — acción primaria fija en la esquina inferior derecha */}
       <button
         onClick={openNew}
-        className="fixed bottom-6 right-6 md:hidden bg-emerald-600 hover:bg-emerald-500 text-white rounded-full p-4 shadow-lg shadow-emerald-900/50 z-50 transition-colors"
+        className="fixed bottom-6 right-6 md:hidden bg-emerald-600 hover:bg-emerald-500 text-primary rounded-full p-4 shadow-lg shadow-emerald-900/50 z-50 transition-colors"
         aria-label="Nuevo servicio"
       >
         <Plus size={24} strokeWidth={2.5} />
@@ -566,14 +566,14 @@ export default function Servicios() {
           <div className="flex gap-3 justify-end -mx-6 -mt-4 px-6 pt-4 pb-1 bg-slate-900/80 backdrop-blur-md">
             <button
               onClick={() => { resetImageState(); setSlide(false); }}
-              className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 transition-all"
+              className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800/60 transition-all"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !form.nombre || !form.precio || !form.duracion}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
             >
               {(saving || imgUploading) && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : 'Crear servicio')}
@@ -634,7 +634,7 @@ export default function Servicios() {
               }`}
             >
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <span aria-hidden="true">🔒</span> Servicio interno (solo staff)
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">Oculto en la reserva online. Solo ustedes pueden agendarlo desde el panel.</p>
@@ -683,7 +683,7 @@ export default function Servicios() {
             <button
               type="button"
               onClick={() => imgRef.current?.click()}
-              className="w-full py-6 border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-white transition-all group"
+              className="w-full py-6 border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-primary transition-all group"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -727,7 +727,7 @@ export default function Servicios() {
               }`}
             >
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-semibold text-white">Precios variables por día</p>
+                <p className="text-sm font-semibold text-primary">Precios variables por día</p>
                 <p className="text-xs text-slate-500 mt-0.5">Ajusta el precio según el día de la semana.</p>
               </div>
               <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.varPrecios ? 'bg-indigo-500' : 'bg-slate-600'}`}>
@@ -747,7 +747,7 @@ export default function Servicios() {
                         placeholder={form.precio || '–'}
                         value={form.ppd[key]}
                         onChange={e => setForm(f => ({ ...f, ppd: { ...f.ppd, [key]: e.target.value.replace(/[^\d]/g, '') } }))}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-primary placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                       />
                     </div>
                   ))}
@@ -771,7 +771,7 @@ export default function Servicios() {
               }`}
             >
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <span aria-hidden="true">📦</span> Este servicio es un Pack / Combo
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">Múltiples visitas prepagas dentro de una vigencia.</p>
@@ -783,7 +783,7 @@ export default function Servicios() {
             {form.isPack && (
               <div className="bg-slate-900/50 border-x border-b border-violet-500/40 rounded-b-xl p-4 space-y-4">
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  El cliente paga <span className="text-white font-semibold">${form.precio || '?'}</span> una vez y consume N visitas dentro de la vigencia. Las citas de consumo se cobran <span className="text-white font-semibold">$0</span>.
+                  El cliente paga <span className="text-primary font-semibold">${form.precio || '?'}</span> una vez y consume N visitas dentro de la vigencia. Las citas de consumo se cobran <span className="text-primary font-semibold">$0</span>.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -844,7 +844,7 @@ export default function Servicios() {
                                 className="w-4 h-4 bg-slate-900 border-slate-600 rounded accent-violet-500 cursor-pointer shrink-0"
                               />
                               <i className={`ph ${s.icono || 'ph-scissors'} text-base ${checked ? 'text-violet-300' : 'text-slate-500'}`} />
-                              <span className={`text-sm truncate flex-1 ${checked ? 'text-white font-medium' : 'text-slate-300'}`}>
+                              <span className={`text-sm truncate flex-1 ${checked ? 'text-primary font-medium' : 'text-slate-300'}`}>
                                 {s.nombre}
                               </span>
                               <span className="text-[10px] text-slate-500 shrink-0 uppercase tracking-wider">
@@ -880,7 +880,7 @@ export default function Servicios() {
               }`}
             >
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <span aria-hidden="true">✨</span> Recomendar servicios al reservar
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">Sugiere complementos cuando el cliente elige este servicio.</p>
@@ -892,7 +892,7 @@ export default function Servicios() {
             {form.recomendar && (
               <div className="bg-slate-900/50 border-x border-b border-sky-500/40 rounded-b-xl p-4 space-y-4">
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Al elegir <span className="text-white font-semibold">{form.nombre || 'este servicio'}</span> en la reserva online, se le ofrecerán estos complementos (ej: corte → perfilado de cejas). El precio y la duración se suman a la cita.
+                  Al elegir <span className="text-primary font-semibold">{form.nombre || 'este servicio'}</span> en la reserva online, se le ofrecerán estos complementos (ej: corte → perfilado de cejas). El precio y la duración se suman a la cita.
                 </p>
 
                 <div>
@@ -927,7 +927,7 @@ export default function Servicios() {
                                 className="w-4 h-4 bg-slate-900 border-slate-600 rounded accent-sky-500 cursor-pointer shrink-0"
                               />
                               <i className={`ph ${s.icono || 'ph-scissors'} text-base ${checked ? 'text-sky-300' : 'text-slate-500'}`} />
-                              <span className={`text-sm truncate flex-1 ${checked ? 'text-white font-medium' : 'text-slate-300'}`}>
+                              <span className={`text-sm truncate flex-1 ${checked ? 'text-primary font-medium' : 'text-slate-300'}`}>
                                 {s.nombre}
                               </span>
                               <span className="text-[10px] text-slate-500 shrink-0">
@@ -951,13 +951,13 @@ export default function Servicios() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Servicios" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Servicios</strong> defines los cortes y tratamientos que ofrece el local.</p>
+          <p>En <strong className="text-primary">Servicios</strong> defines los cortes y tratamientos que ofrece el local.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Crea servicios con nombre, categoría, <span className="text-white">precio</span> y <span className="text-white">duración</span> en minutos.</li>
-            <li><span className="text-white">Mantén presionado el ícono de puntos</span> y arrastra para reordenar (en móvil requiere long-press de ~¼ seg).</li>
-            <li>Agrega <span className="text-white">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
-            <li>Sube una <span className="text-white">imagen</span> a cada servicio para que aparezca en el portal VIP del cliente.</li>
-            <li>Con el módulo <span className="text-white">Recomendaciones</span> encendido (panel derecho), puedes marcar en cada servicio qué complementos sugerir al cliente cuando reserva (ej: corte → perfilado de cejas). El precio y la duración del complemento se suman a la cita.</li>
+            <li>Crea servicios con nombre, categoría, <span className="text-primary">precio</span> y <span className="text-primary">duración</span> en minutos.</li>
+            <li><span className="text-primary">Mantén presionado el ícono de puntos</span> y arrastra para reordenar (en móvil requiere long-press de ~¼ seg).</li>
+            <li>Agrega <span className="text-primary">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
+            <li>Sube una <span className="text-primary">imagen</span> a cada servicio para que aparezca en el portal VIP del cliente.</li>
+            <li>Con el módulo <span className="text-primary">Recomendaciones</span> encendido (panel derecho), puedes marcar en cada servicio qué complementos sugerir al cliente cuando reserva (ej: corte → perfilado de cejas). El precio y la duración del complemento se suman a la cita.</li>
           </ul>
         </HelpModal>
       )}
@@ -990,7 +990,7 @@ function ServicioCardBody({ s, topServicio }) {
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <span className="text-sm md:text-base font-bold text-white truncate w-full block">{s.nombre}</span>
+        <span className="text-sm md:text-base font-bold text-primary truncate w-full block">{s.nombre}</span>
         <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5">
           <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
           <span className="mx-1.5 text-slate-600">·</span>
@@ -1078,7 +1078,7 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
       >
         <button
           onClick={() => openEdit(s)}
-          className="text-slate-400 hover:bg-slate-700 hover:text-white p-2 rounded-lg transition-colors"
+          className="text-slate-400 hover:bg-slate-700 hover:text-primary p-2 rounded-lg transition-colors"
           title="Editar"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>

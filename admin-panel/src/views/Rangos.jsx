@@ -8,7 +8,7 @@ import {
   Zap, Info, Stamp, Minus,
 } from 'lucide-react';
 
-const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/80 transition-all shadow-inner placeholder:text-slate-500';
+const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-primary text-sm focus:outline-none focus:border-emerald-500/80 transition-all shadow-inner placeholder:text-slate-500';
 
 const DESCUENTO_PCT = 10; // % de descuento en servicios del beneficio automático.
 
@@ -34,7 +34,7 @@ const RANGO_STYLE = {
   silver: {
     Icon: Medal, color: '#cbd5e1', text: 'text-slate-200',
     borderTop: 'border-t-4 border-t-slate-400',
-    iconBg:    'bg-slate-400/10 text-slate-300',
+    iconBg:    'bg-ink-400/10 text-slate-300',
     shadow:    'shadow-[0_0_15px_rgba(148,163,184,0.06)]',
     checkedBg: '#94a3b8',  // slate-400
   },
@@ -150,7 +150,7 @@ export default function Rangos() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-black text-primary tracking-tight flex items-center gap-2">
             Rangos
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
@@ -160,8 +160,8 @@ export default function Rangos() {
           onClick={guardar}
           disabled={!dirty || saving}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shrink-0 ${
-            savedOk ? 'bg-emerald-600 text-white'
-              : dirty ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/20'
+            savedOk ? 'bg-emerald-600 text-primary'
+              : dirty ? 'bg-emerald-600 hover:bg-emerald-500 text-primary shadow-emerald-950/20'
               : 'bg-slate-800 text-slate-500 cursor-not-allowed'
           }`}
         >
@@ -194,7 +194,7 @@ export default function Rangos() {
                         maxLength={24}
                         placeholder={r.id}
                         aria-label={`Nombre del rango ${r.id}`}
-                        className="w-full bg-transparent border border-transparent hover:border-slate-700/60 focus:border-slate-600 rounded-lg pl-1.5 pr-7 py-0.5 text-2xl font-bold text-white leading-tight focus:outline-none focus:bg-slate-900/40 transition-all"
+                        className="w-full bg-transparent border border-transparent hover:border-slate-700/60 focus:border-slate-600 rounded-lg pl-1.5 pr-7 py-0.5 text-2xl font-bold text-primary leading-tight focus:outline-none focus:bg-slate-900/40 transition-all"
                       />
                       <Pencil size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
                     </div>
@@ -226,7 +226,7 @@ export default function Rangos() {
                         type="number" min="0" max="99" inputMode="numeric"
                         value={r.sellosPorVisita}
                         onChange={e => setSellos(ri, parseInt(e.target.value, 10) || 0)}
-                        className="w-10 h-8 text-center bg-transparent text-sm font-bold text-white focus:outline-none tabular-nums appearance-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-10 h-8 text-center bg-transparent text-sm font-bold text-primary focus:outline-none tabular-nums appearance-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <div className="w-px h-5 bg-slate-700 self-center" aria-hidden />
                       <button
@@ -248,7 +248,7 @@ export default function Rangos() {
                       {r.descuentoServicios && <Check size={10} strokeWidth={3.5} />}
                     </span>
                     <span className={`flex-1 leading-tight transition-colors ${
-                      r.descuentoServicios ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                      r.descuentoServicios ? 'text-primary' : 'text-slate-400 group-hover:text-slate-200'
                     }`}>
                       {DESCUENTO_PCT}% de descuento en servicios
                     </span>
@@ -277,7 +277,7 @@ export default function Rangos() {
                           {active && <Check size={10} strokeWidth={3.5} />}
                         </span>
                         <span className={`flex-1 leading-tight transition-colors ${
-                          active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                          active ? 'text-primary' : 'text-slate-400 group-hover:text-slate-200'
                         }`}>
                           {b.nombre}
                         </span>
@@ -294,7 +294,7 @@ export default function Rangos() {
                       </span>
                       <input value={c} onChange={e => updateCustom(ri, ci, e.target.value)}
                         placeholder="Beneficio personalizado…"
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors" />
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors" />
                       <button onClick={() => removeCustom(ri, ci)}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                         title="Quitar">
@@ -305,7 +305,7 @@ export default function Rangos() {
 
                   {/* Ghost CTA */}
                   <button onClick={() => addCustom(ri)}
-                    className="text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 py-2 px-3 rounded-lg w-full transition-colors flex items-center gap-2 mt-2">
+                    className="text-sm text-slate-400 hover:text-primary hover:bg-slate-700/50 py-2 px-3 rounded-lg w-full transition-colors flex items-center gap-2 mt-2">
                     <Plus size={14} strokeWidth={2.5} /> Agregar beneficio personalizado
                   </button>
                 </div>
@@ -317,7 +317,7 @@ export default function Rangos() {
 
       {showHelp && (
         <HelpModal title="Cómo funcionan los Rangos" onClose={() => setShowHelp(false)}>
-          <p>Cada cliente sube de rango automáticamente según los <strong className="text-white">sellos históricos</strong> que acumula (no bajan al canjear premios).</p>
+          <p>Cada cliente sube de rango automáticamente según los <strong className="text-primary">sellos históricos</strong> que acumula (no bajan al canjear premios).</p>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Niveles</p>
             <ul className="list-disc ml-4 space-y-1">
@@ -328,11 +328,11 @@ export default function Rangos() {
           </div>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Automáticos (se aplican solos)</p>
-            <p>Solo estos dos los ejecuta el sistema: los <strong className="text-white">sellos por visita</strong> (eliges cuántos gana cada rango) y el <strong className="text-white">{DESCUENTO_PCT}% de descuento en servicios</strong>.</p>
+            <p>Solo estos dos los ejecuta el sistema: los <strong className="text-primary">sellos por visita</strong> (eliges cuántos gana cada rango) y el <strong className="text-primary">{DESCUENTO_PCT}% de descuento en servicios</strong>.</p>
           </div>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Informativos</p>
-            <p>El resto son <strong className="text-white">solo informativos</strong>: se le muestran al cliente como beneficios de su rango, pero no se aplican automáticamente. Puedes activar los del catálogo o <strong className="text-white">agregar beneficios personalizados</strong>.</p>
+            <p>El resto son <strong className="text-primary">solo informativos</strong>: se le muestran al cliente como beneficios de su rango, pero no se aplican automáticamente. Puedes activar los del catálogo o <strong className="text-primary">agregar beneficios personalizados</strong>.</p>
           </div>
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 El nombre de cada rango es editable (toca el nombre). Los cambios se guardan con "Guardar cambios".</p>
         </HelpModal>

@@ -62,7 +62,7 @@ function IconPicker({ value, onChange }) {
             className={`shrink-0 snap-start w-11 h-11 flex items-center justify-center rounded-full border transition-all ${
               active
                 ? 'border-[#D4AF37] bg-[#D4AF37]/15 text-[#D4AF37] shadow-[0_0_0_1px_#D4AF37]'
-                : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:text-white'
+                : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:text-primary'
             }`}>
             <i className={`ph ${ic} text-lg`} />
           </button>
@@ -637,7 +637,7 @@ export default function Premios() {
     try { document.body.style.overflow = 'hidden'; } catch (_) {}
   };
 
-  const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
+  const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
   return (
@@ -652,7 +652,7 @@ export default function Premios() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Premios del Club</h1>
+            <h1 className="text-xl font-bold text-primary">Premios del Club</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Define los premios que obtienen los clientes por acumular sellos.</p>
@@ -669,7 +669,7 @@ export default function Premios() {
             {canjeAuto ? <Smartphone size={18} /> : <Lock size={18} />}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-primary">
               Autoservicio de canje desde el móvil
             </p>
             <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
@@ -739,7 +739,7 @@ export default function Premios() {
                       </div>
                       {/* Nombre + "Categoría · N sellos" (descripción oculta en lista) */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
+                        <p className="text-sm font-semibold text-primary truncate">{p.nombre}</p>
                         <p className="text-xs text-neutral-400 truncate">
                           {meta.label} · {p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}
                           {restrict && <span className="text-amber-400/80"> · aplica en {restrict}</span>}
@@ -805,11 +805,11 @@ export default function Premios() {
 
                 <div className="p-5 pb-8 md:pb-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
                       {editing ? 'Editar premio' : 'Nuevo premio'}
                     </h2>
-                    <button onClick={cancelEdit} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+                    <button onClick={cancelEdit} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
@@ -895,7 +895,7 @@ export default function Premios() {
                   )}
 
                   <div className="flex gap-2 pt-1">
-                    <button onClick={cancelEdit} className="flex-1 py-3 text-sm text-slate-300 hover:text-white rounded-xl border border-slate-700 hover:bg-slate-800 transition-all">
+                    <button onClick={cancelEdit} className="flex-1 py-3 text-sm text-slate-300 hover:text-primary rounded-xl border border-slate-700 hover:bg-slate-800 transition-all">
                       Cancelar
                     </button>
                     <button onClick={handleSave}
@@ -918,7 +918,7 @@ export default function Premios() {
             onClick={() => setAiOpen(v => !v)}
             className="lg:hidden w-full flex items-center justify-between px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl mb-3 text-left"
           >
-            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
               <Sparkles size={13} className="text-[#D4AF37]" /> Ver diagnóstico IA
             </span>
             <ChevronDown size={14} className={`text-slate-400 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
@@ -932,7 +932,7 @@ export default function Premios() {
                   <img src="/logo1.png" alt="SynapTech" className="w-4 h-4 object-contain" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-white tracking-wide">SYNAPTECH IA™</h3>
+                  <h3 className="text-xs font-bold text-primary tracking-wide">SYNAPTECH IA™</h3>
                   <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">PREDICTIVE ADVISOR v1.4</p>
                 </div>
               </div>
@@ -957,7 +957,7 @@ export default function Premios() {
                     <Cpu size={24} className="text-[#D4AF37] animate-bounce" />
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-xs font-bold text-white tracking-wide">Escaneando parámetros...</p>
+                    <p className="text-xs font-bold text-primary tracking-wide">Escaneando parámetros...</p>
                     <p className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed animate-pulse">
                       {stepsAI[aiStep]}
                     </p>
@@ -970,7 +970,7 @@ export default function Premios() {
                   <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Retención Proyectada</span>
-                      <span className="text-2xl font-black text-white tracking-tight">{aiAnalysis.finalScore}%</span>
+                      <span className="text-2xl font-black text-primary tracking-tight">{aiAnalysis.finalScore}%</span>
                     </div>
                     <div className="text-right">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${
@@ -1042,7 +1042,7 @@ export default function Premios() {
                           <i className={`ph ${sug.icono} text-sm shrink-0 text-[#D4AF37] bg-[#D4AF37]/5 w-8 h-8 flex items-center justify-center rounded-lg border border-[#D4AF37]/10 group-hover:border-[#D4AF37]/30 transition-all`} />
                           <div className="flex-1 min-w-0 pr-2">
                             <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wide block mb-0.5">{sug.label}</span>
-                            <h5 className="text-xs font-semibold text-white truncate group-hover:text-[#D4AF37] transition-colors">{sug.nombre}</h5>
+                            <h5 className="text-xs font-semibold text-primary truncate group-hover:text-[#D4AF37] transition-colors">{sug.nombre}</h5>
                             <p className="text-[10px] text-slate-500 leading-normal line-clamp-2 mt-0.5">{sug.descripcion}</p>
                           </div>
                           <div className="shrink-0 flex items-center self-center p-1 rounded-full bg-slate-800 border border-slate-700/60 group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] transition-all">
@@ -1068,13 +1068,13 @@ export default function Premios() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Premios del Club" onClose={() => setShowHelp(false)}>
-          <p><strong className="text-white">Premios</strong> define las recompensas del programa de fidelización.</p>
+          <p><strong className="text-primary">Premios</strong> define las recompensas del programa de fidelización.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Crea premios con nombre, descripción, ícono y el <span className="text-white">costo en sellos</span> para canjearlos.</li>
+            <li>Crea premios con nombre, descripción, ícono y el <span className="text-primary">costo en sellos</span> para canjearlos.</li>
             <li>Los clientes ven los premios disponibles y cuántos sellos les faltan en su app.</li>
             <li>Al alcanzar el umbral, el sistema notifica al cliente que tiene un premio disponible.</li>
             <li>Edita o elimina premios existentes según las promociones del local.</li>
-            <li><span className="text-white">Synaptech IA™ Advisor</span> analiza tu catálogo en tiempo real para recomendarte la mejor estructura de incentivos basándose en la fidelización de enganche rápido, intermedia y VIP.</li>
+            <li><span className="text-primary">Synaptech IA™ Advisor</span> analiza tu catálogo en tiempo real para recomendarte la mejor estructura de incentivos basándose en la fidelización de enganche rápido, intermedia y VIP.</li>
           </ul>
         </HelpModal>
       )}

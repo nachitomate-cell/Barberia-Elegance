@@ -49,7 +49,7 @@ function KpiCard({ Icon, label, value, sub, color = 'gold', trend }) {
           </span>
         )}
       </div>
-      <div className="text-2xl font-black text-white tracking-tight">{value}</div>
+      <div className="text-2xl font-black text-primary tracking-tight">{value}</div>
       <div className="text-xs font-semibold text-slate-500 mt-0.5">{label}</div>
       {sub && <div className="text-xs text-slate-600 mt-1">{sub}</div>}
     </div>
@@ -63,7 +63,7 @@ function CustomTooltip({ active, payload, label }) {
     <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 shadow-xl">
       <p className="text-slate-400 text-xs mb-1">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} className="text-white text-sm font-bold" style={{ color: p.color }}>
+        <p key={i} className="text-primary text-sm font-bold" style={{ color: p.color }}>
           {formatPrecio(p.value)}
         </p>
       ))}
@@ -122,7 +122,7 @@ function SubscriberRow({ user, tenantId, onCancel }) {
         {(user.nombre || user.email || '?')[0]?.toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold truncate">{user.nombre || user.email || user.uid}</p>
+        <p className="text-primary text-sm font-semibold truncate">{user.nombre || user.email || user.uid}</p>
         <p className="text-slate-500 text-xs">{plan.nombre} · {diasRestantes}d restantes</p>
       </div>
       <div className="text-right shrink-0">
@@ -161,7 +161,7 @@ function GestionPanel({ users, tenantId, onActivar }) {
             {(u.nombre || u.email || '?')[0]?.toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold truncate">{u.nombre || u.email}</p>
+            <p className="text-primary text-sm font-semibold truncate">{u.nombre || u.email}</p>
             <p className="text-slate-500 text-xs">{u.telefono || 'Sin teléfono'}</p>
           </div>
           <div className="flex gap-2">
@@ -257,7 +257,7 @@ export default function Finanzas() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
+          <h1 className="text-xl font-black text-primary flex items-center gap-2">
             Finanzas · MRR
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
@@ -269,7 +269,7 @@ export default function Finanzas() {
               key={v}
               onClick={() => setTab(v)}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                tab === v ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-white'
+                tab === v ? 'bg-slate-700 text-primary' : 'text-slate-500 hover:text-primary'
               }`}
             >
               {l}
@@ -316,7 +316,7 @@ export default function Finanzas() {
             <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-5">
                 <BarChart2 size={16} className="text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Evolución del MRR</h3>
+                <h3 className="text-sm font-bold text-primary">Evolución del MRR</h3>
               </div>
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={mrrSeries} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
@@ -352,7 +352,7 @@ export default function Finanzas() {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-5">
                 <Crown size={16} className="text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Por Plan</h3>
+                <h3 className="text-sm font-bold text-primary">Por Plan</h3>
               </div>
               {porPlan.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-slate-600">
@@ -378,7 +378,7 @@ export default function Finanzas() {
                           <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color }} />
                           <span className="text-xs text-slate-400">{p.name}</span>
                         </div>
-                        <span className="text-xs font-bold text-white">{p.value}</span>
+                        <span className="text-xs font-bold text-primary">{p.value}</span>
                       </div>
                     ))}
                   </div>
@@ -391,7 +391,7 @@ export default function Finanzas() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <ShieldCheck size={16} className="text-emerald-400" />
-              <h3 className="text-sm font-bold text-white">Suscriptores Activos</h3>
+              <h3 className="text-sm font-bold text-primary">Suscriptores Activos</h3>
               <span className="ml-auto text-xs text-slate-500">{activos.length} total</span>
             </div>
             {activos.length === 0 ? (
@@ -415,7 +415,7 @@ export default function Finanzas() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <RefreshCcw size={16} className="text-slate-400" />
-            <h3 className="text-sm font-bold text-white">Activar suscripción</h3>
+            <h3 className="text-sm font-bold text-primary">Activar suscripción</h3>
             <span className="ml-auto text-xs text-slate-500">
               {users.filter(u => !u.subscription?.status || u.subscription?.status !== 'active').length} sin plan
             </span>
@@ -426,16 +426,16 @@ export default function Finanzas() {
 
       {showHelp && (
         <HelpModal title="Cómo leer Finanzas · MRR" onClose={() => setShowHelp(false)}>
-          <p>Esta vista mide la salud de tu <strong className="text-white">recurrencia</strong>: cuánto te entra cada mes de forma predecible por las membresías activas. No incluye cortes sueltos (eso es en <em>/metricas</em>).</p>
+          <p>Esta vista mide la salud de tu <strong className="text-primary">recurrencia</strong>: cuánto te entra cada mes de forma predecible por las membresías activas. No incluye cortes sueltos (eso es en <em>/metricas</em>).</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">MRR</p>
-            <p><strong className="text-white">Monthly Recurring Revenue</strong>: la suma de las cuotas mensuales de todos los clientes con suscripción activa. Es tu "piso garantizado" de ingresos.</p>
+            <p><strong className="text-primary">Monthly Recurring Revenue</strong>: la suma de las cuotas mensuales de todos los clientes con suscripción activa. Es tu "piso garantizado" de ingresos.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">ARPU</p>
-            <p><strong className="text-white">Average Revenue Per User</strong>: MRR dividido por número de suscriptores. Te dice cuánto vale en promedio cada cliente. Subirlo = vender planes más caros u ofrecer add-ons.</p>
+            <p><strong className="text-primary">Average Revenue Per User</strong>: MRR dividido por número de suscriptores. Te dice cuánto vale en promedio cada cliente. Subirlo = vender planes más caros u ofrecer add-ons.</p>
           </div>
 
           <div>

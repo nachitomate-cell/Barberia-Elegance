@@ -202,7 +202,7 @@ export default function ChatbotConfig() {
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 mb-0.5">
               Asistente · Syna
             </p>
-            <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+            <h1 className="text-xl font-black tracking-tight text-primary sm:text-2xl">
               Chatbot del chat público
             </h1>
             <p className="text-sm text-slate-400 mt-1 leading-relaxed max-w-xl">
@@ -245,7 +245,7 @@ export default function ChatbotConfig() {
           value={config.greeting}
           onChange={e => setConfig(c => ({ ...c, greeting: e.target.value }))}
           rows={3}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 transition-colors resize-none"
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder-slate-600 focus:outline-none focus:ring-1 transition-colors resize-none"
           style={{ '--tw-ring-color': accent }}
           placeholder="Hola {nombre}! 👋 Soy el asistente de {local}…"
         />
@@ -285,7 +285,7 @@ export default function ChatbotConfig() {
         </div>
         <p className="text-[11.5px] text-slate-500 mb-4 leading-relaxed">
           Cada opción es un botón que el cliente toca y dispara una respuesta.
-          Marcá <b className="text-white">"Escalar a humano"</b> si esa opción
+          Marcá <b className="text-primary">"Escalar a humano"</b> si esa opción
           requiere atención del dueño (ej. precios, hablar con alguien).
         </p>
 
@@ -301,7 +301,7 @@ export default function ChatbotConfig() {
                   <input
                     value={opt.label}
                     onChange={e => updateOption(idx, { label: e.target.value })}
-                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors"
+                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors"
                     style={{ '--tw-ring-color': accent }}
                     placeholder="Ej: 📅 Quiero reservar"
                   />
@@ -325,7 +325,7 @@ export default function ChatbotConfig() {
                     value={opt.response}
                     onChange={e => updateOption(idx, { response: e.target.value })}
                     rows={2}
-                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors resize-none"
+                    className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors resize-none"
                     style={{ '--tw-ring-color': accent }}
                     placeholder="Lo que el bot responde al tocar este botón"
                   />
@@ -338,7 +338,7 @@ export default function ChatbotConfig() {
                     <select
                       value={opt.action || 'reply'}
                       onChange={e => updateOption(idx, { action: e.target.value, escalate: e.target.value === 'escalate' })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors appearance-none"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-8 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors appearance-none"
                       style={{ '--tw-ring-color': accent }}
                     >
                       <option value="reply">💬 Solo respuesta</option>
@@ -385,7 +385,7 @@ export default function ChatbotConfig() {
           </button>
         </div>
         <p className="text-[11.5px] text-slate-500 mb-4 leading-relaxed">
-          Cuando el cliente <b className="text-white">escribe libre</b>, el bot
+          Cuando el cliente <b className="text-primary">escribe libre</b>, el bot
           busca estas palabras y, si encuentra alguna, responde con la opción
           asociada. Si no encuentra nada, manda el mensaje de despedida y avisa
           al dueño.
@@ -401,7 +401,7 @@ export default function ChatbotConfig() {
                 <input
                   value={kw.words}
                   onChange={e => updateKeyword(idx, { words: e.target.value })}
-                  className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors"
+                  className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors"
                   style={{ '--tw-ring-color': accent }}
                   placeholder="horario, abren, abierto, cierran"
                 />
@@ -415,7 +415,7 @@ export default function ChatbotConfig() {
                   <select
                     value={kw.optionId}
                     onChange={e => updateKeyword(idx, { optionId: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors appearance-none"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-8 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors appearance-none"
                     style={{ '--tw-ring-color': accent }}
                   >
                     <option value="">— elegir —</option>
@@ -459,7 +459,7 @@ export default function ChatbotConfig() {
           value={config.fallback}
           onChange={e => setConfig(c => ({ ...c, fallback: e.target.value }))}
           rows={2}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 transition-colors resize-none"
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:ring-1 transition-colors resize-none"
           style={{ '--tw-ring-color': accent }}
         />
       </section>
@@ -561,7 +561,7 @@ function ReactivacionSection({ accent }) {
           <Megaphone size={18} style={{ color: accent }} />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold text-white">Campaña de reactivación</h2>
+          <h2 className="text-sm font-bold text-primary">Campaña de reactivación</h2>
           <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
             Manda un push automático a clientes que no vienen hace tiempo.
             Corre cada día a las 10:00 AM.
@@ -593,7 +593,7 @@ function ReactivacionSection({ accent }) {
             max={365}
             value={cfg.diasInactivo}
             onChange={e => setCfg(c => ({ ...c, diasInactivo: e.target.value }))}
-            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors"
+            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors"
             style={{ '--tw-ring-color': accent }}
           />
           <p className="text-[10.5px] text-slate-500 mt-1">A partir de cuántos días sin venir mandamos.</p>
@@ -608,7 +608,7 @@ function ReactivacionSection({ accent }) {
             max={365}
             value={cfg.throttleDias}
             onChange={e => setCfg(c => ({ ...c, throttleDias: e.target.value }))}
-            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors"
+            className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors"
             style={{ '--tw-ring-color': accent }}
           />
           <p className="text-[10.5px] text-slate-500 mt-1">Throttle por cliente (días). Evita spam.</p>
@@ -622,7 +622,7 @@ function ReactivacionSection({ accent }) {
         <input
           value={cfg.titulo}
           onChange={e => setCfg(c => ({ ...c, titulo: e.target.value }))}
-          className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors"
+          className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors"
           style={{ '--tw-ring-color': accent }}
           placeholder="Te extrañamos 💈"
         />
@@ -636,7 +636,7 @@ function ReactivacionSection({ accent }) {
           value={cfg.mensaje}
           onChange={e => setCfg(c => ({ ...c, mensaje: e.target.value }))}
           rows={3}
-          className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 transition-colors resize-none"
+          className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 transition-colors resize-none"
           style={{ '--tw-ring-color': accent }}
           placeholder="Hola {nombre}! Ya pasaron {dias} días…"
         />
@@ -709,7 +709,7 @@ function UpgradesSection({ tenantName }) {
                 <span className="inline-flex items-center gap-1 rounded-full bg-violet-400/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-300 ring-1 ring-violet-400/30">
                   <Zap size={9} /> Add-on
                 </span>
-                <h3 className="mt-1 text-lg font-black tracking-tight text-white">
+                <h3 className="mt-1 text-lg font-black tracking-tight text-primary">
                   IA conversacional
                 </h3>
                 <p className="text-[12.5px] text-violet-100/70 mt-0.5">
@@ -737,7 +737,7 @@ function UpgradesSection({ tenantName }) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-violet-200/70">
                   Inversión mensual
                 </p>
-                <p className="text-2xl font-black text-white leading-tight">
+                <p className="text-2xl font-black text-primary leading-tight">
                   $9.900 <span className="text-[12px] font-medium text-violet-200/60">+ IVA / mes</span>
                 </p>
                 <p className="text-[10.5px] text-violet-200/55 mt-0.5">
@@ -748,7 +748,7 @@ function UpgradesSection({ tenantName }) {
                 href={buildWaLink(tenantName, 'IA conversacional')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 hover:bg-violet-400 text-white px-3.5 py-2.5 text-[12.5px] font-bold transition-all active:scale-95 shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-violet-500 hover:bg-violet-400 text-primary px-3.5 py-2.5 text-[12.5px] font-bold transition-all active:scale-95 shrink-0"
               >
                 <span>Activar</span>
                 <ArrowRight size={13} />
@@ -780,7 +780,7 @@ function UpgradesSection({ tenantName }) {
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 ring-1 ring-emerald-400/30">
                   <Zap size={9} /> Add-on
                 </span>
-                <h3 className="mt-1 text-lg font-black tracking-tight text-white">
+                <h3 className="mt-1 text-lg font-black tracking-tight text-primary">
                   Integración WhatsApp
                 </h3>
                 <p className="text-[12.5px] text-emerald-100/70 mt-0.5">
@@ -808,7 +808,7 @@ function UpgradesSection({ tenantName }) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70">
                   Inversión mensual
                 </p>
-                <p className="text-2xl font-black text-white leading-tight">
+                <p className="text-2xl font-black text-primary leading-tight">
                   $14.900 <span className="text-[12px] font-medium text-emerald-200/60">+ IVA / mes</span>
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
@@ -819,7 +819,7 @@ function UpgradesSection({ tenantName }) {
                 href={buildWaLink(tenantName, 'WhatsApp Business')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white px-3.5 py-2.5 text-[12.5px] font-bold transition-all active:scale-95 shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-primary px-3.5 py-2.5 text-[12.5px] font-bold transition-all active:scale-95 shrink-0"
               >
                 <span>Activar</span>
                 <ArrowRight size={13} />

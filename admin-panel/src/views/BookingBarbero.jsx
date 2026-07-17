@@ -42,7 +42,7 @@ function BarberRow({ barbero, selected, onSelect, clr }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-white leading-snug truncate">
+          <p className="text-[14px] font-semibold text-primary leading-snug truncate">
             {barbero.nombre}
           </p>
           <p className="text-[11px] text-gray-500 uppercase tracking-wider mt-0.5 truncate">
@@ -88,7 +88,7 @@ function SinPreferenciaRow({ selected, onSelect, clr }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-white leading-snug">
+          <p className="text-[14px] font-semibold text-primary leading-snug">
             Sin preferencia
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: clr.A, opacity: 0.8 }}>
@@ -195,7 +195,7 @@ export default function BookingBarbero({
           </div>
         </div>
 
-        <h1 className="text-[26px] font-black text-white tracking-tight leading-tight mb-2">
+        <h1 className="text-[26px] font-black text-primary tracking-tight leading-tight mb-2">
           Elige tu barbero
         </h1>
         <ChipServicio />

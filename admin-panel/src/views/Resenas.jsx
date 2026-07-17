@@ -26,7 +26,7 @@ function StatCard({ label, value, sub }) {
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
       <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-2xl font-bold text-primary">{value}</p>
       {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
     </div>
   );
@@ -102,7 +102,7 @@ export default function Resenas() {
           <Star size={18} className="text-amber-400" fill="#D4AF37" stroke="#D4AF37" strokeWidth={1.5} />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white leading-tight">Reseñas</h1>
+          <h1 className="text-lg font-bold text-primary leading-tight">Reseñas</h1>
           <p className="text-xs text-slate-500">Calificaciones de clientes al finalizar su cita</p>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function Resenas() {
         {(filtroBarbero || filtroRating) && (
           <button
             onClick={() => { setFiltroBarbero(''); setFiltroRating(''); }}
-            className="text-xs text-slate-500 hover:text-white underline transition-colors"
+            className="text-xs text-slate-500 hover:text-primary underline transition-colors"
           >
             Limpiar filtros
           </button>
@@ -235,7 +235,7 @@ export default function Resenas() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-primary truncate">
                     {r.clienteNombre || 'Cliente'}
                     {r.clienteTelefono && (
                       <span className="text-slate-500 font-normal ml-2 text-xs">{r.clienteTelefono}</span>
@@ -266,7 +266,7 @@ export default function Resenas() {
                     </button>
                     <button
                       onClick={() => setConfirmId('')}
-                      className="text-[11px] text-slate-400 hover:text-white px-1.5 py-1 transition-colors"
+                      className="text-[11px] text-slate-400 hover:text-primary px-1.5 py-1 transition-colors"
                     >
                       Cancelar
                     </button>

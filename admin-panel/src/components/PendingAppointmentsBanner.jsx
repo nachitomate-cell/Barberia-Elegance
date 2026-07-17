@@ -63,7 +63,7 @@ function PendingAppointmentsModal({ citas, onClose }) {
                   </span>
                   <span className="text-xs text-slate-500 truncate">{cita.barbero}</span>
                 </div>
-                <p className="text-sm font-medium text-white truncate">{cita.clienteNombre}</p>
+                <p className="text-sm font-medium text-primary truncate">{cita.clienteNombre}</p>
                 <p className="text-xs text-slate-400 truncate">{cita.servicioNombre}</p>
               </div>
 

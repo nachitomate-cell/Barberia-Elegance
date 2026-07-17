@@ -63,7 +63,7 @@ function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
         <button
           onClick={() => onDismiss(id)}
           data-toast-close
-          className="text-slate-400 hover:text-white transition-colors p-0.5 rounded"
+          className="text-slate-400 hover:text-primary transition-colors p-0.5 rounded"
         >
           <X size={14} />
         </button>
@@ -79,7 +79,7 @@ function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
         <button
           onClick={handleAction}
           data-toast-action
-          className="flex items-center gap-1 text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition-colors border border-slate-700"
+          className="flex items-center gap-1 text-sm font-semibold text-primary px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition-colors border border-slate-700"
         >
           <span>Ver detalles</span>
           <ChevronRight size={14} />
@@ -169,7 +169,7 @@ export default function AdminLayout({ children }) {
             derecha del botón "asoma" 14px en el main area (siempre clickeable). */}
         <button
           onClick={() => setCollapsed(v => !v)}
-          className="hidden lg:flex absolute top-10 -right-3.5 z-50 h-7 w-7 items-center justify-center rounded-full bg-slate-800 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 shadow-md transition-colors cursor-pointer"
+          className="hidden lg:flex absolute top-10 -right-3.5 z-50 h-7 w-7 items-center justify-center rounded-full bg-slate-800 border border-slate-600 text-slate-400 hover:text-primary hover:bg-slate-700 hover:border-slate-400 shadow-md transition-colors cursor-pointer"
           aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
         >
@@ -218,13 +218,13 @@ export default function AdminLayout({ children }) {
           {/* Hamburger — 44×44px touch target */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="w-11 h-11 flex items-center justify-center -ml-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white transition-all"
+            className="w-11 h-11 flex items-center justify-center -ml-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-primary transition-all"
             aria-label="Abrir menú"
           >
             <Menu size={22} />
           </button>
 
-          <span className="text-sm font-bold text-white tracking-wide">Panel Admin</span>
+          <span className="text-sm font-bold text-primary tracking-wide">Panel Admin</span>
 
           {/* Spacer espejo para centrar el título */}
           <div className="w-11" />

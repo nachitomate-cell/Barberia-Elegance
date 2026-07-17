@@ -106,7 +106,7 @@ export default function InstagramPage() {
 
       {/* Título */}
       <div>
-        <h1 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-primary mb-1 flex items-center gap-2">
           <IgIcon size={22} className="text-pink-400" />
           Instagram
           <HelpButton onClick={() => setShowHelp(true)} />
@@ -123,7 +123,7 @@ export default function InstagramPage() {
             <IgIcon size={20} className={connected ? 'text-pink-400' : 'text-slate-500'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white truncate">
+            <p className="text-sm font-semibold text-primary truncate">
               {connected ? `@${igConfig.instagramUsername || 'Instagram conectado'}` : 'No conectado'}
             </p>
             <p className="text-xs text-slate-400">
@@ -142,7 +142,7 @@ export default function InstagramPage() {
           <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700">
             <div>
               <p className="text-[11px] text-slate-500 mb-0.5">Última sincronización</p>
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-primary">
                 {igConfig.lastSync
                   ? new Date(igConfig.lastSync.toDate()).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })
                   : 'Nunca'}
@@ -150,11 +150,11 @@ export default function InstagramPage() {
             </div>
             <div>
               <p className="text-[11px] text-slate-500 mb-0.5">Fotos importadas</p>
-              <p className="text-sm font-medium text-white">{igConfig.postCount ?? 0}</p>
+              <p className="text-sm font-medium text-primary">{igConfig.postCount ?? 0}</p>
             </div>
             <div className="col-span-2">
               <p className="text-[11px] text-slate-500 mb-0.5">Token expira</p>
-              <p className={`text-sm font-medium ${expiringSoon ? 'text-amber-400' : 'text-white'}`}>
+              <p className={`text-sm font-medium ${expiringSoon ? 'text-amber-400' : 'text-primary'}`}>
                 {expiresDate
                   ? expiresDate.toLocaleDateString('es-CL')
                   : '—'}
@@ -177,7 +177,7 @@ export default function InstagramPage() {
         {!connected && oauthUrl && (
           <a
             href={oauthUrl}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-primary active:scale-95 transition-all"
             style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
           >
             <IgIcon size={16} />
@@ -200,7 +200,7 @@ export default function InstagramPage() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 active:scale-95 rounded-xl text-sm font-bold text-white transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 active:scale-95 rounded-xl text-sm font-bold text-primary transition-all"
             >
               <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Sincronizando…' : 'Sincronizar ahora'}
@@ -267,7 +267,7 @@ export default function InstagramPage() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Sincronización automática</p>
-            <p>Cada 6 horas un cron baja tus <strong className="text-white">últimos 30 posts</strong> (fotos, álbumes y reels). También puedes tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata. Los posts anteriores a los últimos 30 no se importan.</p>
+            <p>Cada 6 horas un cron baja tus <strong className="text-primary">últimos 30 posts</strong> (fotos, álbumes y reels). También puedes tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata. Los posts anteriores a los últimos 30 no se importan.</p>
           </div>
 
           <div>

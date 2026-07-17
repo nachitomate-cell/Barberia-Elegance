@@ -101,7 +101,7 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
   const montoNum = parseFloat(monto);
   const montoPorCuota = montoNum > 0 && cuotas > 1 ? Math.round(montoNum / cuotas) : null;
 
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors';
   const lbl = 'block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5';
 
   return (
@@ -113,7 +113,7 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
               <Wallet size={20} className="text-orange-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Registrar adelanto</p>
+              <p className="text-sm font-bold text-primary">Registrar adelanto</p>
               <p className="text-xs text-slate-500">{barbero.nombre}</p>
             </div>
           </div>
@@ -203,18 +203,18 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
               <CheckCircle2 size={20} className="text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Registrar pago</p>
+              <p className="text-sm font-bold text-primary">Registrar pago</p>
               <p className="text-xs text-slate-500">{barbero.nombre}</p>
             </div>
           </div>
           <div className="bg-slate-800/60 rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between text-slate-400">
               <span>Sueldo base</span>
-              <span className="text-white font-medium">{formatCLP(barbero.sueldoBase)}</span>
+              <span className="text-primary font-medium">{formatCLP(barbero.sueldoBase)}</span>
             </div>
             <div className="flex justify-between text-slate-400">
               <span>Comisiones ({barbero.comisionPct}%)</span>
-              <span className="text-white font-medium">{formatCLP(barbero.montoComision)}</span>
+              <span className="text-primary font-medium">{formatCLP(barbero.montoComision)}</span>
             </div>
             {barbero.adelantos > 0 && (
               <div className="flex justify-between text-slate-400">
@@ -901,7 +901,7 @@ export default function Comisiones() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Banknote size={20} className="text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">Comisiones</h1>
+            <h1 className="text-xl font-bold text-primary">Comisiones</h1>
           </div>
           <p className="text-sm text-slate-400">Desglose de pagos por barbero según período seleccionado.</p>
         </div>
@@ -931,12 +931,12 @@ export default function Comisiones() {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Desde</label>
             <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hasta</label>
             <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
           </div>
           <div className="relative">
             <button
@@ -951,7 +951,7 @@ export default function Comisiones() {
               <div className="absolute left-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20 w-44 py-1">
                 {PRESETS.map(p => (
                   <button key={p.label} onClick={() => { const [i, f] = p.fn(); setFechaInicio(i); setFechaFin(f); setShowPresets(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
+                    className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-primary transition-colors">
                     {p.label}
                   </button>
                 ))}
@@ -970,23 +970,23 @@ export default function Comisiones() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <DollarSign size={15} className="text-emerald-400" />
-          <p className="text-sm font-bold text-white">Cálculo del neto (para exportar)</p>
+          <p className="text-sm font-bold text-primary">Cálculo del neto (para exportar)</p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">IVA %</label>
             <input type="number" min="0" step="0.01" value={ivaPct} onChange={e => setIvaPct(e.target.value)}
-              className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Débito %</label>
             <input type="number" min="0" step="0.01" value={comDebPct} onChange={e => setComDebPct(e.target.value)}
-              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Crédito %</label>
             <input type="number" min="0" step="0.01" value={comCredPct} onChange={e => setComCredPct(e.target.value)}
-              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
           </div>
         </div>
         <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
@@ -1010,7 +1010,7 @@ export default function Comisiones() {
                 <Icon size={16} className={color} />
               </div>
               <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">{label}</p>
-              <p className="text-xl font-bold text-white mt-0.5">{value}</p>
+              <p className="text-xl font-bold text-primary mt-0.5">{value}</p>
             </div>
           ))}
         </div>
@@ -1035,7 +1035,7 @@ export default function Comisiones() {
                 <div className="flex items-center gap-3 min-w-[160px]">
                   <BarberAvatar foto={barbero.foto} nombre={barbero.nombre} />
                   <div>
-                    <p className="text-sm font-bold text-white">{barbero.nombre}</p>
+                    <p className="text-sm font-bold text-primary">{barbero.nombre}</p>
                     <p className="text-xs text-slate-500">{barbero.citas} cita{barbero.citas !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
@@ -1092,7 +1092,7 @@ export default function Comisiones() {
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Banknote size={16} className="text-pink-400" />
-              <h2 className="text-sm font-bold text-white">Propinas del período</h2>
+              <h2 className="text-sm font-bold text-primary">Propinas del período</h2>
               <span className="text-[10px] text-slate-500 bg-slate-800 rounded-full px-2 py-0.5">no son ingreso del local</span>
             </div>
             <button
@@ -1133,7 +1133,7 @@ export default function Comisiones() {
               <tbody className="divide-y divide-slate-800/60">
                 {data.filter(b => b.propinas > 0).map(b => (
                   <tr key={b.id}>
-                    <td className="py-2 text-white font-medium">{b.nombre}</td>
+                    <td className="py-2 text-primary font-medium">{b.nombre}</td>
                     <td className="py-2 text-right text-slate-400 tabular-nums">{b.propinasCount}</td>
                     <td className="py-2 text-right font-bold text-pink-400 tabular-nums">{formatCLP(b.propinas)}</td>
                     <td className="py-2 text-right text-slate-400 tabular-nums hidden sm:table-cell">
@@ -1144,7 +1144,7 @@ export default function Comisiones() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-700">
-                  <td className="py-2 font-bold text-white">Total</td>
+                  <td className="py-2 font-bold text-primary">Total</td>
                   <td className="py-2 text-right text-slate-400 tabular-nums">{data.reduce((s, b) => s + b.propinasCount, 0)}</td>
                   <td className="py-2 text-right font-black text-pink-300 tabular-nums">{formatCLP(totals.propinas)}</td>
                   <td className="py-2 text-right hidden sm:table-cell" />
@@ -1176,7 +1176,7 @@ export default function Comisiones() {
   );
 }
 
-function StatItem({ label, value, valueClass = 'text-white' }) {
+function StatItem({ label, value, valueClass = 'text-primary' }) {
   return (
     <div className="min-w-[100px]">
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>

@@ -28,12 +28,12 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
           style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
         >
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-white truncate">{title}</h2>
+            <h2 className="text-base font-semibold text-primary truncate">{title}</h2>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 active:scale-95 transition-all shrink-0"
             aria-label="Cerrar"
           >
             <X size={18} />

@@ -281,9 +281,9 @@ function CreateSorteoModal({ onClose, user }) {
       >
         {/* Header fijo */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800/80 flex-shrink-0">
-          <p className="text-sm font-bold text-white">Nuevo sorteo</p>
+          <p className="text-sm font-bold text-primary">Nuevo sorteo</p>
           <button onClick={onClose} disabled={submitting}
-            className="text-slate-500 hover:text-white disabled:opacity-30 transition-colors">
+            className="text-slate-500 hover:text-primary disabled:opacity-30 transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -307,8 +307,8 @@ function CreateSorteoModal({ onClose, user }) {
                       disabled={submitting}
                       className={`flex items-center justify-center gap-1.5 h-9 text-sm transition-all disabled:opacity-50 ${
                         active
-                          ? 'bg-neutral-800 text-white font-semibold shadow-sm border border-neutral-700/60 rounded-lg'
-                          : 'text-neutral-400 hover:text-white font-medium bg-transparent border border-transparent'
+                          ? 'bg-neutral-800 text-primary font-semibold shadow-sm border border-neutral-700/60 rounded-lg'
+                          : 'text-neutral-400 hover:text-primary font-medium bg-transparent border border-transparent'
                       }`}
                     >
                       <span className="text-base leading-none">{opt.emoji}</span>
@@ -330,7 +330,7 @@ function CreateSorteoModal({ onClose, user }) {
               <input
                 type="text" value={nombre} onChange={e => setNombre(e.target.value)}
                 placeholder={tipo === 'FUTBOL' ? 'Ej: Pronóstico Chile vs Argentina' : 'Ej: Kit de Cuidado Premium'}
-                className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-primary placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 disabled={submitting}
                 required
               />
@@ -351,14 +351,14 @@ function CreateSorteoModal({ onClose, user }) {
                   <input
                     type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
                     placeholder="Chile"
-                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   />
                   <span className="text-[10px] font-black tracking-widest text-neutral-400 bg-neutral-800 px-1.5 py-1 rounded-full border border-neutral-700 leading-none select-none">VS</span>
                   <input
                     type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
                     placeholder="Argentina"
-                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   />
                 </div>
@@ -366,7 +366,7 @@ function CreateSorteoModal({ onClose, user }) {
                   <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase mb-1 block">Fecha y hora del partido</label>
                   <input
                     type="datetime-local" lang="es-CL" value={fechaPartido} onChange={e => setFechaPartido(e.target.value)}
-                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-primary focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   />
                 </div>
@@ -387,8 +387,8 @@ function CreateSorteoModal({ onClose, user }) {
                       disabled={submitting}
                       className={`flex items-center justify-center gap-1.5 h-10 text-xs rounded-lg border transition-all disabled:opacity-50 ${
                         active
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-white font-semibold shadow-sm shadow-emerald-500/5'
-                          : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 font-medium'
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-primary font-semibold shadow-sm shadow-emerald-500/5'
+                          : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-primary hover:border-neutral-700 font-medium'
                       }`}
                     >
                       <span className="text-sm leading-none">{cat.emoji}</span>
@@ -403,7 +403,7 @@ function CreateSorteoModal({ onClose, user }) {
                 productos.length > 0 ? (
                   <select
                     value={premioProductoId} onChange={e => setPremioProductoId(e.target.value)}
-                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-primary focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   >
                     <option value="">Selecciona un producto del inventario…</option>
@@ -415,7 +415,7 @@ function CreateSorteoModal({ onClose, user }) {
                   <input
                     type="text" value={premioProductoTexto} onChange={e => setPremioProductoTexto(e.target.value)}
                     placeholder="Sin catálogo — escribe el nombre del producto"
-                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   />
                 )
@@ -425,7 +425,7 @@ function CreateSorteoModal({ onClose, user }) {
                 servicios.length > 0 ? (
                   <select
                     value={premioServicioId} onChange={e => setPremioServicioId(e.target.value)}
-                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-primary focus:outline-none focus:border-emerald-500"
                     disabled={submitting}
                   >
                     <option value="">Selecciona el servicio a regalar…</option>
@@ -452,8 +452,8 @@ function CreateSorteoModal({ onClose, user }) {
                           disabled={submitting}
                           className={`text-sm font-bold rounded-md transition-all ${
                             descTipo === t
-                              ? 'bg-neutral-800 text-white shadow-sm'
-                              : 'text-neutral-500 hover:text-white'
+                              ? 'bg-neutral-800 text-primary shadow-sm'
+                              : 'text-neutral-500 hover:text-primary'
                           }`}
                         >{t}</button>
                       ))}
@@ -461,7 +461,7 @@ function CreateSorteoModal({ onClose, user }) {
                     <input
                       type="number" min="1" value={descValor} onChange={e => setDescValor(e.target.value)}
                       placeholder={descTipo === '%' ? 'Ej: 20' : 'Ej: 5000'}
-                      className="w-full h-10 text-sm bg-neutral-950 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                      className="w-full h-10 text-sm bg-neutral-950 border border-neutral-800 rounded-lg px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
                       disabled={submitting}
                     />
                   </div>
@@ -478,8 +478,8 @@ function CreateSorteoModal({ onClose, user }) {
                           disabled={submitting}
                           className={`text-xs font-medium rounded-md transition-all ${
                             descAplicaA === a.k
-                              ? 'bg-neutral-800 text-white'
-                              : 'text-neutral-500 hover:text-white'
+                              ? 'bg-neutral-800 text-primary'
+                              : 'text-neutral-500 hover:text-primary'
                           }`}
                         >{a.label}</button>
                       ))}
@@ -492,7 +492,7 @@ function CreateSorteoModal({ onClose, user }) {
                 <input
                   type="text" value={premioOtro} onChange={e => setPremioOtro(e.target.value)}
                   placeholder="Ej: Camiseta oficial de Chile, Cena para 2, etc."
-                  className="h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                  className="h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
                   disabled={submitting}
                 />
               )}
@@ -504,7 +504,7 @@ function CreateSorteoModal({ onClose, user }) {
                 <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Inicio</label>
                 <input
                   type="date" lang="es-CL" value={inicio} onChange={e => setInicio(e.target.value)}
-                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   disabled={submitting}
                   required
                 />
@@ -514,7 +514,7 @@ function CreateSorteoModal({ onClose, user }) {
                 <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Cierre</label>
                 <input
                   type="date" lang="es-CL" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
-                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   disabled={submitting}
                   required
                 />
@@ -567,8 +567,8 @@ function DetailModal({ sorteo, onClose }) {
   return (
     <ModalShell onClose={onClose}>
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
-        <p className="text-sm font-bold text-white">Detalles del sorteo</p>
-        <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+        <p className="text-sm font-bold text-primary">Detalles del sorteo</p>
+        <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
       </div>
 
       <div className="p-5 space-y-4">
@@ -577,7 +577,7 @@ function DetailModal({ sorteo, onClose }) {
             <Trophy size={20} className="text-emerald-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-base font-bold text-white truncate">{sorteo.nombre}</p>
+            <p className="text-base font-bold text-primary truncate">{sorteo.nombre}</p>
             {/* ID muy tenue — para depuración/soporte, no ruido visual. */}
             <p className="text-[10px] font-mono text-slate-700 mt-0.5 truncate select-all">{sorteo.id}</p>
           </div>
@@ -589,14 +589,14 @@ function DetailModal({ sorteo, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Participantes</p>
-            <p className="text-base font-bold text-white mt-0.5 flex items-center gap-1.5">
+            <p className="text-base font-bold text-primary mt-0.5 flex items-center gap-1.5">
               <Users size={13} className="text-slate-400" />
               {sorteo.participantes_count ?? 0}
             </p>
           </div>
           <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Periodo</p>
-            <p className="text-xs font-bold text-white mt-0.5 flex items-center gap-1.5">
+            <p className="text-xs font-bold text-primary mt-0.5 flex items-center gap-1.5">
               <Calendar size={13} className="text-slate-400" />
               {formatRange(sorteo.fecha_inicio, sorteo.fecha_fin)}
             </p>
@@ -616,7 +616,7 @@ function DetailModal({ sorteo, onClose }) {
               <PartyPopper size={15} className="text-emerald-400" />
               <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-300">Ganador</p>
             </div>
-            <p className="text-sm font-bold text-white">{sorteo.ganador_nombre}</p>
+            <p className="text-sm font-bold text-primary">{sorteo.ganador_nombre}</p>
           </div>
         )}
 
@@ -644,7 +644,7 @@ function DetailModal({ sorteo, onClose }) {
           </div>
         )}
 
-        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-primary transition-colors">
           Cerrar
         </button>
       </div>
@@ -694,12 +694,12 @@ function ParticipantesModal({ sorteo, onClose }) {
     <ModalShell onClose={onClose} maxW="max-w-lg">
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-white truncate">Participantes</p>
+          <p className="text-sm font-bold text-primary truncate">Participantes</p>
           <p className="text-[11px] text-slate-500 mt-0.5 truncate">
             {sorteo.nombre} · <span className="text-slate-400 tabular-nums">{items.length}</span> {items.length === 1 ? 'inscrito' : 'inscritos'}
           </p>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0"><X size={16} /></button>
+        <button onClick={onClose} className="text-slate-500 hover:text-primary shrink-0"><X size={16} /></button>
       </div>
 
       <div className="max-h-[70vh] overflow-y-auto">
@@ -729,7 +729,7 @@ function ParticipantesModal({ sorteo, onClose }) {
                   {idx + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white truncate">{p.nombre || 'Sin nombre'}</p>
+                  <p className="text-sm font-semibold text-primary truncate">{p.nombre || 'Sin nombre'}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-400">
                     {p.telefono && (
                       <span className="inline-flex items-center gap-1 min-w-0">
@@ -756,7 +756,7 @@ function ParticipantesModal({ sorteo, onClose }) {
       </div>
 
       <div className="p-4 border-t border-slate-800">
-        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-primary transition-colors">
           Cerrar
         </button>
       </div>
@@ -1013,7 +1013,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         onClick={locked ? undefined : onClose}
         disabled={locked}
         aria-label="Cerrar"
-        className="absolute right-4 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 border border-slate-700/70 backdrop-blur-md hover:bg-slate-700/60 hover:border-slate-600 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all z-20"
+        className="absolute right-4 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center text-slate-300 hover:text-primary bg-slate-800/50 border border-slate-700/70 backdrop-blur-md hover:bg-slate-700/60 hover:border-slate-600 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all z-20"
         style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.5rem, 1.25rem)' }}
       >
         <X size={18} strokeWidth={2.5} />
@@ -1088,7 +1088,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
 
       {isEmpty && (
         <div className="relative z-10 w-full max-w-md text-center px-4">
-          <p className="text-lg sm:text-2xl font-bold text-white/90 leading-snug">
+          <p className="text-lg sm:text-2xl font-bold text-primary/90 leading-snug">
             Aún no hay inscritos en este sorteo
           </p>
           <p className="mt-3 text-sm text-slate-400 leading-relaxed">
@@ -1115,11 +1115,11 @@ function ElegirGanadorModal({ sorteo, onClose }) {
                 { key: 'visita', team: sorteo.partido?.equipoVisita || 'Visita', value: marcadorVisita, set: setMarcadorVisita },
               ].map(col => (
                 <div key={col.key} className="flex flex-col items-center gap-2">
-                  <p className="text-xs font-bold text-white text-center truncate max-w-full">{col.team}</p>
+                  <p className="text-xs font-bold text-primary text-center truncate max-w-full">{col.team}</p>
                   <div className="flex items-center gap-2">
                     <button type="button"
                       onClick={() => col.set(v => Math.max(0, Number(v) - 1))}
-                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-primary text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
                       −
                     </button>
                     <span className="w-10 text-center text-3xl font-black text-emerald-300 tabular-nums">
@@ -1127,7 +1127,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
                     </span>
                     <button type="button"
                       onClick={() => col.set(v => Math.min(20, Number(v) + 1))}
-                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-primary text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
                       +
                     </button>
                   </div>
@@ -1151,7 +1151,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
               {noAcertantesShown && (
                 <button
                   onClick={() => filtrarAcertantes({ sortearEntreTodos: true })}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-transparent border border-slate-700 hover:bg-slate-800/60 transition-colors"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-primary bg-transparent border border-slate-700 hover:bg-slate-800/60 transition-colors"
                 >
                   Sortear entre todos los inscritos igualmente
                 </button>
@@ -1177,7 +1177,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
               transition={{ duration: spinning ? 0.09 : 0.65, ease: [0.16, 1, 0.3, 1] }}
               className={
                 (spinning
-                  ? 'text-white/85 text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
+                  ? 'text-primary/85 text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
                   : 'text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-4xl sm:text-7xl md:text-8xl lg:text-9xl'
                 ) + ' font-black leading-[1.05] tracking-tight break-words hyphens-auto max-w-full'
               }
@@ -1234,7 +1234,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
           >
             <button
               onClick={onClose}
-              className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 active:scale-[0.98] transition-all"
+              className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-transparent text-slate-300 hover:text-primary hover:bg-white/5 border border-slate-700 active:scale-[0.98] transition-all"
             >
               Cerrar
             </button>
@@ -1262,7 +1262,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
             <button
               onClick={repetir}
               disabled={confirming || participantes.length < 2}
-              className="order-2 sm:order-1 flex items-center justify-center gap-2 py-3.5 sm:py-3.5 rounded-2xl sm:rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="order-2 sm:order-1 flex items-center justify-center gap-2 py-3.5 sm:py-3.5 rounded-2xl sm:rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-primary hover:bg-white/5 border border-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Repetir
             </button>
@@ -1345,7 +1345,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
 
         {/* Info principal */}
         <div className="flex-1 min-w-[180px]">
-          <p className="text-lg font-bold text-white truncate leading-tight">{sorteo.nombre}</p>
+          <p className="text-lg font-bold text-primary truncate leading-tight">{sorteo.nombre}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-slate-400 flex-wrap">
             <span className="inline-flex items-center gap-1.5">
               <Calendar size={13} className="text-slate-500" />
@@ -1385,7 +1385,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
           {cerrado && (
             <button
               onClick={() => onElegirGanador(sorteo)}
-              className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-slate-950 font-bold px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
+              className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-ink-950 font-bold px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
               title="Elegir ganador"
             >
               <Sparkles size={14} /> Elegir ganador
@@ -1396,7 +1396,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
           {isActivo && (
             <button
               onClick={copy}
-              className={`text-slate-500 hover:text-white transition-colors p-2 ${copied ? 'text-emerald-400' : ''}`}
+              className={`text-slate-500 hover:text-primary transition-colors p-2 ${copied ? 'text-emerald-400' : ''}`}
               title="Copiar link público"
             >
               {copied ? <CheckCheck size={16} /> : <Link2 size={16} />}
@@ -1406,7 +1406,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
           {/* Ver participantes reales (subcolección) */}
           <button
             onClick={() => onVerParticipantes(sorteo)}
-            className="text-slate-500 hover:text-white transition-colors p-2"
+            className="text-slate-500 hover:text-primary transition-colors p-2"
             title="Ver participantes"
           >
             <UsersRound size={16} />
@@ -1415,7 +1415,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
           {/* Ver detalles */}
           <button
             onClick={() => onView(sorteo)}
-            className="text-slate-500 hover:text-white transition-colors p-2"
+            className="text-slate-500 hover:text-primary transition-colors p-2"
             title="Ver detalles"
           >
             <Eye size={16} />
@@ -1425,7 +1425,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(v => !v)}
-              className="text-slate-500 hover:text-white transition-colors p-2"
+              className="text-slate-500 hover:text-primary transition-colors p-2"
               title="Más acciones"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -1464,7 +1464,7 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
         {cerrado && (
           <button
             onClick={() => onElegirGanador(sorteo)}
-            className="sm:hidden w-full mt-1 inline-flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-slate-950 font-bold px-4 py-2.5 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
+            className="sm:hidden w-full mt-1 inline-flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-ink-950 font-bold px-4 py-2.5 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
           >
             <Sparkles size={14} /> Elegir ganador
           </button>
@@ -1570,7 +1570,7 @@ export default function Sorteos() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Trophy size={20} className="text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">Sorteos</h1>
+            <h1 className="text-xl font-bold text-primary">Sorteos</h1>
           </div>
           <p className="text-sm text-slate-400">Crea dinámicas y fideliza a tus clientes.</p>
         </div>
@@ -1600,7 +1600,7 @@ export default function Sorteos() {
               <Icon size={16} className={color} />
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mt-4">{label}</p>
-            <p className="text-4xl md:text-5xl font-black text-white tracking-tight mt-2">{value}</p>
+            <p className="text-4xl md:text-5xl font-black text-primary tracking-tight mt-2">{value}</p>
           </div>
         ))}
       </div>
@@ -1619,7 +1619,7 @@ export default function Sorteos() {
               onClick={() => setFilter(t.id)}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === t.id
-                  ? 'bg-slate-700/80 text-white shadow-sm'
+                  ? 'bg-slate-700/80 text-primary shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -1633,7 +1633,7 @@ export default function Sorteos() {
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre del sorteo..."
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-primary placeholder-slate-500 focus:outline-none"
           />
         </div>
       </div>

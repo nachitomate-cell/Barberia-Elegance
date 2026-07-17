@@ -39,7 +39,7 @@ export default function Academia() {
       {/* ── Cabecera ── */}
       <div className="shrink-0 mb-6">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-primary flex items-center gap-3">
             <GraduationCap className="text-emerald-500" size={28} />
             Academia
             <HelpButton onClick={() => setShowHelp(true)} />
@@ -70,7 +70,7 @@ export default function Academia() {
               flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all
               ${activeTab === id
                 ? 'bg-emerald-500/10 text-emerald-400 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-800'
               }
             `}
           >
@@ -93,7 +93,7 @@ export default function Academia() {
 
       {showHelp && (
         <HelpModal title="Cómo usar la Academia" onClose={() => setShowHelp(false)}>
-          <p>Acá organizas los <strong className="text-white">cursos que impartes</strong> en tu barbería: alumnos inscritos, material de estudio y seguimiento de avance.</p>
+          <p>Acá organizas los <strong className="text-primary">cursos que impartes</strong> en tu barbería: alumnos inscritos, material de estudio y seguimiento de avance.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Pestaña "Cursos"</p>
@@ -172,7 +172,7 @@ function TabCursos() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setEditing({ title: '', description: '', price: '', dates: '', capacity: '' })}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold rounded-lg transition-all"
         >
           <Plus size={16} /> Nuevo Curso
         </button>
@@ -180,48 +180,48 @@ function TabCursos() {
 
       {editing && (
         <Card className="p-5 border-emerald-500/30">
-          <h3 className="text-white font-bold mb-4">{editing.id ? 'Editar Curso' : 'Nuevo Curso'}</h3>
+          <h3 className="text-primary font-bold mb-4">{editing.id ? 'Editar Curso' : 'Nuevo Curso'}</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <input
               placeholder="Nombre del curso"
               value={editing.title}
               onChange={e => setEditing(p => ({ ...p, title: e.target.value }))}
-              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <input
               placeholder="Fechas (Ej: 12 al 15 de Octubre)"
               value={editing.dates}
               onChange={e => setEditing(p => ({ ...p, dates: e.target.value }))}
-              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <input
               placeholder="Precio"
               type="number"
               value={editing.price}
               onChange={e => setEditing(p => ({ ...p, price: e.target.value }))}
-              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <input
               placeholder="Cupos Máximos"
               type="number"
               value={editing.capacity}
               onChange={e => setEditing(p => ({ ...p, capacity: e.target.value }))}
-              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <textarea
               placeholder="Descripción"
               value={editing.description}
               onChange={e => setEditing(p => ({ ...p, description: e.target.value }))}
-              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none resize-none"
+              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none resize-none"
               rows={2}
             />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-white text-sm font-semibold transition-all">Cancelar</button>
+            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-primary text-sm font-semibold transition-all">Cancelar</button>
             <button
               onClick={() => handleSave(editing)}
               disabled={!editing.title}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-primary text-sm font-semibold rounded-lg transition-all"
             >
               Guardar
             </button>
@@ -237,7 +237,7 @@ function TabCursos() {
         {cursos.map(c => (
           <Card key={c.id} className="p-4 flex flex-col">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-white text-lg">{c.title}</h3>
+              <h3 className="font-bold text-primary text-lg">{c.title}</h3>
               <div className="flex gap-2">
                 <button onClick={() => setEditing(c)} className="text-slate-400 hover:text-emerald-400 transition-colors p-1"><Edit2 size={14} /></button>
                 <button onClick={() => handleDelete(c.id)} className="text-slate-400 hover:text-red-400 transition-colors p-1"><Trash2 size={14} /></button>
@@ -313,7 +313,7 @@ function TabAlumnos() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setEditing({ name: '', phone: '', courseId: '', status: 'Pendiente' })}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold rounded-lg transition-all"
         >
           <Plus size={16} /> Añadir Alumno
         </button>
@@ -321,24 +321,24 @@ function TabAlumnos() {
 
       {editing && (
         <Card className="p-5 border-emerald-500/30">
-          <h3 className="text-white font-bold mb-4">{editing.id ? 'Editar Alumno' : 'Añadir Alumno'}</h3>
+          <h3 className="text-primary font-bold mb-4">{editing.id ? 'Editar Alumno' : 'Añadir Alumno'}</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <input
               placeholder="Nombre del alumno"
               value={editing.name}
               onChange={e => setEditing(p => ({ ...p, name: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <input
               placeholder="Teléfono (Ej: +569...)"
               value={editing.phone}
               onChange={e => setEditing(p => ({ ...p, phone: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <select
               value={editing.courseId}
               onChange={e => setEditing(p => ({ ...p, courseId: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             >
               <option value="">Seleccione un Curso</option>
               {cursos.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -346,7 +346,7 @@ function TabAlumnos() {
             <select
               value={editing.status}
               onChange={e => setEditing(p => ({ ...p, status: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             >
               <option value="Pendiente">Pago Pendiente</option>
               <option value="Abono">Abonado</option>
@@ -354,11 +354,11 @@ function TabAlumnos() {
             </select>
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-white text-sm font-semibold transition-all">Cancelar</button>
+            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-primary text-sm font-semibold transition-all">Cancelar</button>
             <button
               onClick={() => handleSave(editing)}
               disabled={!editing.name || !editing.courseId}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-primary text-sm font-semibold rounded-lg transition-all"
             >
               Guardar
             </button>
@@ -393,7 +393,7 @@ function TabAlumnos() {
                   };
                   return (
                     <tr key={a.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-white">{a.name}</td>
+                      <td className="px-4 py-3 font-semibold text-primary">{a.name}</td>
                       <td className="px-4 py-3">
                         <a href={`https://wa.me/${(a.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">
                           {a.phone || '-'}
@@ -476,7 +476,7 @@ function TabMaterial() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setEditing({ title: '', url: '', type: 'Video' })}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold rounded-lg transition-all"
         >
           <Plus size={16} /> Añadir Material
         </button>
@@ -484,18 +484,18 @@ function TabMaterial() {
 
       {editing && (
         <Card className="p-5 border-emerald-500/30">
-          <h3 className="text-white font-bold mb-4">{editing.id ? 'Editar Material' : 'Añadir Material'}</h3>
+          <h3 className="text-primary font-bold mb-4">{editing.id ? 'Editar Material' : 'Añadir Material'}</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <input
               placeholder="Título del recurso (Ej: Clase 1 - Introducción al Fade)"
               value={editing.title}
               onChange={e => setEditing(p => ({ ...p, title: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
             <select
               value={editing.type}
               onChange={e => setEditing(p => ({ ...p, type: e.target.value }))}
-              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 md:col-span-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             >
               <option value="Video">Video (YouTube/Vimeo)</option>
               <option value="Documento">Documento / PDF</option>
@@ -505,15 +505,15 @@ function TabMaterial() {
               placeholder="Enlace URL (https://...)"
               value={editing.url}
               onChange={e => setEditing(p => ({ ...p, url: e.target.value }))}
-              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 outline-none"
             />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-white text-sm font-semibold transition-all">Cancelar</button>
+            <button onClick={() => setEditing(null)} className="px-4 py-2 text-slate-400 hover:text-primary text-sm font-semibold transition-all">Cancelar</button>
             <button
               onClick={() => handleSave(editing)}
               disabled={!editing.title || !editing.url}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-primary text-sm font-semibold rounded-lg transition-all"
             >
               Guardar
             </button>
@@ -537,7 +537,7 @@ function TabMaterial() {
                 <button onClick={() => handleDelete(m.id)} className="text-slate-400 hover:text-red-400 transition-colors p-1"><Trash2 size={13} /></button>
               </div>
             </div>
-            <h3 className="font-bold text-white text-sm mb-3 flex-1">{m.title}</h3>
+            <h3 className="font-bold text-primary text-sm mb-3 flex-1">{m.title}</h3>
             <a
               href={m.url}
               target="_blank"

@@ -135,7 +135,7 @@ export default function ListaNegra() {
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold text-primary flex items-center gap-2">
             <UserX size={20} className="text-red-400" />
             Lista Negra
           </h1>
@@ -153,7 +153,7 @@ export default function ListaNegra() {
           value={term}
           onChange={e => setTerm(e.target.value)}
           placeholder="Buscar por nombre, teléfono o email…"
-          className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition-colors"
+          className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-red-500 transition-colors"
         />
       </div>
 
@@ -167,7 +167,7 @@ export default function ListaNegra() {
             <p className="text-sm text-slate-500">Ningún cliente coincide con la búsqueda.</p>
           ) : (
             <>
-              <p className="text-sm font-semibold text-white mb-1">Sin reincidentes por ahora</p>
+              <p className="text-sm font-semibold text-primary mb-1">Sin reincidentes por ahora</p>
               <p className="text-xs text-slate-500">Aparecerán aquí los clientes con 2 o más cancelaciones registradas.</p>
             </>
           )}
@@ -215,11 +215,11 @@ export default function ListaNegra() {
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg border flex flex-col items-center justify-center shrink-0 ${ringClass}`}>
-                        <p className="text-sm font-black text-white leading-none">{g.count}</p>
+                        <p className="text-sm font-black text-primary leading-none">{g.count}</p>
                         <p className="text-[8px] text-slate-500 uppercase tracking-wider leading-none mt-0.5">canc</p>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
+                        <p className="text-sm font-semibold text-primary truncate">
                           {idx < 3 && <span className="text-amber-400 mr-1">#{idx + 1}</span>}
                           {g.nombre}
                         </p>
@@ -293,11 +293,11 @@ export default function ListaNegra() {
       {showHelp && (
         <HelpModal title="Cómo usar la Lista Negra" onClose={() => setShowHelp(false)}>
           <p>
-            Esta vista muestra a los clientes con <strong className="text-white">2 o más cancelaciones</strong> registradas en tu sistema, ordenados del más reincidente al menos.
+            Esta vista muestra a los clientes con <strong className="text-primary">2 o más cancelaciones</strong> registradas en tu sistema, ordenados del más reincidente al menos.
           </p>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Cómo se calcula</p>
-            <p>Contamos cualquier cita con estado <strong className="text-white">Cancelada</strong> agrupada por cliente (uid del club o nombre). Al expandir la fila se calcula también la tasa de cancelación sobre el total de citas del cliente.</p>
+            <p>Contamos cualquier cita con estado <strong className="text-primary">Cancelada</strong> agrupada por cliente (uid del club o nombre). Al expandir la fila se calcula también la tasa de cancelación sobre el total de citas del cliente.</p>
           </div>
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Acciones recomendadas</p>

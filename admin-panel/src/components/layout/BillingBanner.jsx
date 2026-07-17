@@ -84,7 +84,7 @@ export default function BillingBanner() {
         {isRed ? 'Pagar ahora' : 'Pagar'} <ChevronRight size={13} />
       </button>
       {level === 'proximo' && (
-        <button onClick={dismiss} className="shrink-0 text-slate-500 hover:text-white transition-colors p-1" aria-label="Descartar">
+        <button onClick={dismiss} className="shrink-0 text-slate-500 hover:text-primary transition-colors p-1" aria-label="Descartar">
           <X size={16} />
         </button>
       )}

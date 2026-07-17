@@ -43,7 +43,7 @@ export default function WhatsAppBot({ embedded = false }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">WhatsApp Bot</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-primary leading-tight">WhatsApp Bot</h1>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 <Sparkles size={9} /> Requiere activación
               </span>
@@ -63,7 +63,7 @@ export default function WhatsAppBot({ embedded = false }) {
           className="absolute -top-16 -right-16 w-64 h-64 bg-[#25D366]/15 blur-[80px] rounded-full pointer-events-none"
         />
         <div className="relative">
-          <h2 className="text-2xl md:text-3xl font-black text-white leading-tight max-w-xl">
+          <h2 className="text-2xl md:text-3xl font-black text-primary leading-tight max-w-xl">
             Tu barbería <span className="text-[#25D366]">responde sola</span>. Recupera horas de tu día.
           </h2>
           <p className="text-sm text-slate-300 mt-3 leading-relaxed max-w-2xl">
@@ -77,7 +77,7 @@ export default function WhatsAppBot({ embedded = false }) {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-bold transition-all shadow-[0_0_25px_-5px_rgba(37,211,102,0.6)] active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-primary text-sm font-bold transition-all shadow-[0_0_25px_-5px_rgba(37,211,102,0.6)] active:scale-[0.98]"
             >
               <MessageCircle size={16} />
               Contactar para activar
@@ -86,7 +86,7 @@ export default function WhatsAppBot({ embedded = false }) {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-primary transition-colors"
             >
               <ExternalLink size={12} />
               +56 9 8356 8212
@@ -157,7 +157,7 @@ export default function WhatsAppBot({ embedded = false }) {
                 <f.Icon size={16} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-white leading-tight">{f.title}</p>
+                <p className="text-sm font-bold text-primary leading-tight">{f.title}</p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">{f.desc}</p>
               </div>
             </div>
@@ -169,7 +169,7 @@ export default function WhatsAppBot({ embedded = false }) {
       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 md:p-6">
         <div className="flex items-center gap-2 mb-4">
           <Send size={14} className="text-[#25D366]" />
-          <h3 className="text-sm font-bold text-white">Cómo activamos el bot en tu barbería</h3>
+          <h3 className="text-sm font-bold text-primary">Cómo activamos el bot en tu barbería</h3>
         </div>
         <div className="space-y-3">
           {[
@@ -200,11 +200,11 @@ export default function WhatsAppBot({ embedded = false }) {
             },
           ].map(step => (
             <div key={step.n} className="flex gap-3 items-start">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#25D366] to-emerald-600 flex items-center justify-center shrink-0 text-white text-xs font-black shadow-md">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#25D366] to-emerald-600 flex items-center justify-center shrink-0 text-primary text-xs font-black shadow-md">
                 {step.n}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-white leading-tight">{step.title}</p>
+                <p className="text-sm font-bold text-primary leading-tight">{step.title}</p>
                 <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{step.desc}</p>
               </div>
             </div>
@@ -216,12 +216,12 @@ export default function WhatsAppBot({ embedded = false }) {
       <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <DollarSign size={14} className="text-emerald-400" />
-          <h3 className="text-sm font-bold text-white">Inversión</h3>
+          <h3 className="text-sm font-bold text-primary">Inversión</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tier Básico</p>
-            <p className="text-3xl font-black text-white mt-1">
+            <p className="text-3xl font-black text-primary mt-1">
               $15 <span className="text-sm text-slate-500 font-semibold">USD/mes</span>
             </p>
             <ul className="mt-3 space-y-1.5">
@@ -240,7 +240,7 @@ export default function WhatsAppBot({ embedded = false }) {
           </div>
           <div className="bg-[#25D366]/5 border border-[#25D366]/30 rounded-xl p-5 shadow-[0_0_25px_-10px_rgba(37,211,102,0.4)]">
             <p className="text-[10px] font-bold text-[#25D366] uppercase tracking-wider">Tier PRO</p>
-            <p className="text-3xl font-black text-white mt-1">
+            <p className="text-3xl font-black text-primary mt-1">
               $25 <span className="text-sm text-slate-500 font-semibold">USD/mes</span>
             </p>
             <ul className="mt-3 space-y-1.5">
@@ -266,7 +266,7 @@ export default function WhatsAppBot({ embedded = false }) {
       {/* ── CTA final ─────────────────────────────────────────── */}
       <div className="bg-gradient-to-r from-[#25D366]/10 via-emerald-500/5 to-transparent border border-[#25D366]/25 rounded-2xl p-6 text-center">
         <WhatsAppLogo size={40} />
-        <h3 className="text-lg font-bold text-white mt-3">¿Listo para dejar de responder mensajes a mano?</h3>
+        <h3 className="text-lg font-bold text-primary mt-3">¿Listo para dejar de responder mensajes a mano?</h3>
         <p className="text-sm text-slate-400 mt-1 max-w-lg mx-auto">
           En 30 min entendemos tu caso y te decimos si te sirve. Sin compromiso.
         </p>
@@ -274,7 +274,7 @@ export default function WhatsAppBot({ embedded = false }) {
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-5 px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-bold transition-all shadow-[0_0_25px_-5px_rgba(37,211,102,0.6)] active:scale-[0.98]"
+          className="inline-flex items-center gap-2 mt-5 px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-primary text-sm font-bold transition-all shadow-[0_0_25px_-5px_rgba(37,211,102,0.6)] active:scale-[0.98]"
         >
           <MessageCircle size={16} />
           Escríbenos ahora al WhatsApp de SynapTech

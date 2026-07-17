@@ -18,7 +18,7 @@ export default function DropdownMenu({ items, align = 'right' }) {
     <div ref={containerRef} className="relative">
       <button
         onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
-        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-all"
+        className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-700 transition-all"
       >
         <MoreHorizontal size={16} />
       </button>
@@ -39,7 +39,7 @@ export default function DropdownMenu({ items, align = 'right' }) {
                 className={`flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-left transition-colors ${
                   item.danger
                     ? 'text-red-400 hover:bg-red-950/40'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                    : 'text-slate-300 hover:text-primary hover:bg-slate-700'
                 }`}
               >
                 {item.Icon && <item.Icon size={15} />}

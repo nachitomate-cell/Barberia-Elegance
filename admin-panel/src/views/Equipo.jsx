@@ -90,7 +90,7 @@ function PersonalAgendaButton() {
         <span className="truncate">/agenda.html</span>
       </a>
       <button onClick={copyUrl}
-        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors"
         title="Copiar enlace de agenda personal">
         {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
       </button>
@@ -159,7 +159,7 @@ function Section({ title, Icon, children, defaultOpen = false }) {
       <button type="button" onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 w-full px-4 py-3 bg-slate-800/40 hover:bg-slate-800/60 transition-colors text-left">
         {Icon && <Icon size={14} className="text-slate-400 shrink-0" />}
-        <span className="flex-1 text-sm font-semibold text-white">{title}</span>
+        <span className="flex-1 text-sm font-semibold text-primary">{title}</span>
         <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="px-4 pb-4 pt-3 space-y-3 border-t border-slate-800">{children}</div>}
@@ -175,7 +175,7 @@ function DayRow({ diaKey, config, onChange }) {
     ...config, descansos: config.descansos.map((d, x) => x === i ? { ...d, [k]: v } : d),
   });
 
-  const sel = 'bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-emerald-500';
+  const sel = 'bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-emerald-500';
 
   return (
     <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
@@ -183,9 +183,9 @@ function DayRow({ diaKey, config, onChange }) {
         <button type="button" onClick={() => onChange({ ...config, activo: !config.activo })}
           className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
             config.activo ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'}`}>
-          {config.activo && <Check size={10} className="text-white" strokeWidth={3} />}
+          {config.activo && <Check size={10} className="text-primary" strokeWidth={3} />}
         </button>
-        <span className={`text-xs font-semibold w-20 shrink-0 ${config.activo ? 'text-white' : 'text-slate-600'}`}>
+        <span className={`text-xs font-semibold w-20 shrink-0 ${config.activo ? 'text-primary' : 'text-slate-600'}`}>
           {DIAS_LABELS[diaKey]}
         </span>
         {config.activo ? (
@@ -253,7 +253,7 @@ function BookingUrlButton({ nombre }) {
         <span className="truncate">/{slugify(nombre)}</span>
       </a>
       <button onClick={copyUrl}
-        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors"
         title="Copiar enlace">
         {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
       </button>
@@ -330,13 +330,13 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
             <span className="truncate">bioo.cl/{handle}</span>
           </a>
           <button onClick={copy}
-            className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
+            className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors"
             title="Copiar enlace">
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           </button>
         </div>
         <button onClick={openEditor} disabled={openBusy}
-          className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-primary hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60"
           title="Abrir editor del bioo como este barbero (SSO)">
           {openBusy
             ? <><Loader2 size={14} className="animate-spin" /> Abriendo…</>
@@ -350,7 +350,7 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
   return (
     <div className="w-full">
       <button onClick={create} disabled={busy}
-        className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60">
+        className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-primary hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60">
         {busy
           ? <><Loader2 size={14} className="animate-spin" /> Creando bioo…</>
           : <><Sparkles size={14} /> Crear su bioo.cl</>}
@@ -388,7 +388,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
   return (
     <div className={`relative bg-slate-800 border rounded-2xl p-5 flex flex-col items-center gap-4 transition-all duration-200 ${isDragging ? 'border-emerald-500/40 opacity-60 shadow-xl' : 'border-slate-700/50 hover:border-slate-500 hover:-translate-y-0.5'}`}>
       {dragHandleProps && (
-        <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-500 hover:text-white transition-colors" title="Arrastrar para reordenar">
+        <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-500 hover:text-primary transition-colors" title="Arrastrar para reordenar">
           <GripVertical size={14} />
         </div>
       )}
@@ -402,7 +402,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
       </div>
 
       <div className="text-center">
-        <p className="text-lg font-bold text-white leading-tight">{barber.nombre}</p>
+        <p className="text-lg font-bold text-primary leading-tight">{barber.nombre}</p>
         {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
         {!isAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
         {barber.sucursalId && (() => {
@@ -468,12 +468,12 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
       {isSupportAdmin ? (
         <a href={waUrl} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 w-full justify-center bg-green-600 hover:bg-green-700 text-white rounded-xl py-2 font-medium text-sm transition-colors">
+          className="flex items-center gap-1.5 w-full justify-center bg-green-600 hover:bg-green-700 text-primary rounded-xl py-2 font-medium text-sm transition-colors">
           <MessageCircle size={15} /> Soporte vía WhatsApp
         </a>
       ) : (
         <button onClick={onVerAgenda}
-          className="flex items-center gap-1.5 w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2 font-medium text-sm transition-colors">
+          className="flex items-center gap-1.5 w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-primary rounded-xl py-2 font-medium text-sm transition-colors">
           <Calendar size={15} /> Ver Agenda
         </button>
       )}
@@ -1155,7 +1155,7 @@ export default function Equipo() {
     set('ausencias', form.ausencias.map(a => a.id === id ? { ...a, [k]: v } : a));
 
   /* ── Shared styles ── */
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
   // Barbero editado ya tiene cuenta Firebase Auth (authUid nuevo o uid legacy).
@@ -1201,7 +1201,7 @@ export default function Equipo() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Equipo</h1>
+            <h1 className="text-xl font-bold text-primary">Equipo</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -1210,7 +1210,7 @@ export default function Equipo() {
         </div>
         {activeTab === 'miembros' && (
           <button onClick={openNew}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors self-start sm:self-auto">
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors self-start sm:self-auto">
             <Plus size={16} /> Nuevo {memberLabel}
           </button>
         )}
@@ -1222,8 +1222,8 @@ export default function Equipo() {
             onClick={() => { setActiveTab('miembros'); setSueldoBarberoId(''); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
               activeTab === 'miembros'
-                ? 'bg-emerald-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-emerald-600 text-primary shadow-lg'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-800'
             }`}
           >
             <Users size={16} /> Miembros del Equipo
@@ -1237,8 +1237,8 @@ export default function Equipo() {
             }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
               activeTab === 'sueldos'
-                ? 'bg-emerald-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-emerald-600 text-primary shadow-lg'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-800'
             }`}
           >
             <Percent size={16} /> Liquidación de Sueldos
@@ -1258,7 +1258,7 @@ export default function Equipo() {
               <Sparkles size={14} className="text-emerald-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-white leading-tight">
+              <p className="text-sm font-bold text-primary leading-tight">
                 En SynapTech creemos que crecer <span className="text-emerald-400">no debería costarte más</span>.
               </p>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
@@ -1278,7 +1278,7 @@ export default function Equipo() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold text-white leading-tight">Aleatorizar orden de {memberLabel}s</p>
+                  <p className="text-sm font-bold text-primary leading-tight">Aleatorizar orden de {memberLabel}s</p>
                   <button
                     type="button"
                     onClick={() => setShowRandomHelp(true)}
@@ -1332,21 +1332,21 @@ export default function Equipo() {
                       <Shuffle size={16} className="text-emerald-400" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white leading-tight">¿Qué hace el orden aleatorio?</h3>
+                      <h3 className="text-base font-bold text-primary leading-tight">¿Qué hace el orden aleatorio?</h3>
                       <p className="text-[11px] text-slate-500">Distribuye las oportunidades de forma justa</p>
                     </div>
                   </div>
-                  <button onClick={() => setShowRandomHelp(false)} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+                  <button onClick={() => setShowRandomHelp(false)} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors">
                     <X size={16} />
                   </button>
                 </div>
                 <div className="p-5 space-y-4 text-sm text-slate-300 leading-relaxed">
                   <p>
-                    Cuando <strong className="text-white">está apagado</strong>, tus clientes ven los {memberLabel}s siempre en el orden manual que armaste con el drag-and-drop.
+                    Cuando <strong className="text-primary">está apagado</strong>, tus clientes ven los {memberLabel}s siempre en el orden manual que armaste con el drag-and-drop.
                     Los que están arriba tienden a recibir más reservas porque los clientes eligen sin scrollear.
                   </p>
                   <p>
-                    Cuando <strong className="text-white">está encendido</strong>, cada vez que un cliente abre tu página pública ve el orden <strong className="text-emerald-400">aleatorio</strong>. Ningún {memberLabel} queda pegado arriba, todos tienen la misma probabilidad de aparecer primero.
+                    Cuando <strong className="text-primary">está encendido</strong>, cada vez que un cliente abre tu página pública ve el orden <strong className="text-emerald-400">aleatorio</strong>. Ningún {memberLabel} queda pegado arriba, todos tienen la misma probabilidad de aparecer primero.
                   </p>
                   <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-3">
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cuándo activarlo</p>
@@ -1406,7 +1406,7 @@ export default function Equipo() {
         <div className="space-y-6">
           {/* SECTOR DE SELECCIÓN DE BARBERO */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <h2 className="text-sm font-bold text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
               <Users size={16} className="text-emerald-500" /> Selecciona un Miembro del Equipo
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -1431,7 +1431,7 @@ export default function Equipo() {
                         </div>
                       )}
                     </div>
-                    <span className="text-xs font-semibold text-white truncate max-w-full">{b.nombre}</span>
+                    <span className="text-xs font-semibold text-primary truncate max-w-full">{b.nombre}</span>
                     <span className="text-[10px] text-slate-500 truncate mt-0.5">{b.especialidad || memberLabelCap}</span>
                   </button>
                 );
@@ -1444,7 +1444,7 @@ export default function Equipo() {
               {/* FILTROS Y RESUMEN */}
               <div className="lg:col-span-1 space-y-6">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-                  <h3 className="text-sm font-bold text-white mb-4">Rango de Fechas</h3>
+                  <h3 className="text-sm font-bold text-primary mb-4">Rango de Fechas</h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -1453,7 +1453,7 @@ export default function Equipo() {
                           type="date"
                           value={fechaInicio}
                           onChange={e => setFechaInicio(e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                       <div>
@@ -1462,7 +1462,7 @@ export default function Equipo() {
                           type="date"
                           value={fechaFin}
                           onChange={e => setFechaFin(e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                     </div>
@@ -1477,24 +1477,24 @@ export default function Equipo() {
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-                  <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-2">Resumen de Liquidación</h3>
+                  <h3 className="text-sm font-bold text-primary border-b border-slate-800 pb-2">Resumen de Liquidación</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-slate-400">
                       <span>Sueldo Base:</span>
-                      <span className="font-semibold text-white">{fmtCurrency(sueldoBaseMonto)}</span>
+                      <span className="font-semibold text-primary">{fmtCurrency(sueldoBaseMonto)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
                       <span>Comisión Servicios ({comisionServicioPorc}%):</span>
-                      <span className="font-semibold text-white">{fmtCurrency(serviciosComision)}</span>
+                      <span className="font-semibold text-primary">{fmtCurrency(serviciosComision)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
                       <span>
                         Comisión Productos ({comisionProductoPorc}%
                         {comisionProductoMonto > 0 && ` + ${fmtCurrency(comisionProductoMonto)}/venta`}):
                       </span>
-                      <span className="font-semibold text-white">{fmtCurrency(productosComision)}</span>
+                      <span className="font-semibold text-primary">{fmtCurrency(productosComision)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400 border-t border-slate-800 pt-2 font-bold text-white text-base">
+                    <div className="flex justify-between text-slate-400 border-t border-slate-800 pt-2 font-bold text-primary text-base">
                       <span>Total a Pagar:</span>
                       <span className="text-emerald-400">{fmtCurrency(totalPagarCalculado)}</span>
                     </div>
@@ -1525,7 +1525,7 @@ export default function Equipo() {
                     <button
                       onClick={() => handleOpenPayoutModal(totalPagarCalculado, selectedBarber.nombre)}
                       disabled={totalPagarCalculado <= 0}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-primary text-xs font-semibold rounded-lg transition-colors"
                     >
                       <Wallet size={14} /> Pagar Sueldo
                     </button>
@@ -1538,10 +1538,10 @@ export default function Equipo() {
                 {/* TABLA SERVICIOS */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-primary flex items-center gap-2">
                       <Scissors size={16} className="text-emerald-500" /> Servicios Realizados ({citasSueldos.length})
                     </h3>
-                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-white">{fmtCurrency(serviciosBruto)}</strong></span>
+                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-primary">{fmtCurrency(serviciosBruto)}</strong></span>
                   </div>
 
                   {loadingData ? (
@@ -1561,11 +1561,11 @@ export default function Equipo() {
                         return (
                           <div key={c.id} className="flex justify-between items-center p-2.5 rounded-lg bg-slate-800/40 border border-slate-800/80 text-xs text-slate-300">
                             <div>
-                              <p className="font-semibold text-white">{c.clienteNombre || 'Cliente sin nombre'}</p>
+                              <p className="font-semibold text-primary">{c.clienteNombre || 'Cliente sin nombre'}</p>
                               <p className="text-[10px] text-slate-500 mt-0.5">{c.servicioNombre} • {c.fecha} {c.hora}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-white">{fmtCurrency(precioEfectivo)}</p>
+                              <p className="font-bold text-primary">{fmtCurrency(precioEfectivo)}</p>
                               <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
                               {c.propina > 0 && <p className="text-[9px] text-yellow-500 mt-0.5">Propina: {fmtCurrency(c.propina)}</p>}
                             </div>
@@ -1579,10 +1579,10 @@ export default function Equipo() {
                 {/* TABLA PRODUCTOS */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-primary flex items-center gap-2">
                       <Percent size={16} className="text-emerald-500" /> Productos Vendidos ({ventasSueldos.length})
                     </h3>
-                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-white">{fmtCurrency(productosBruto)}</strong></span>
+                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-primary">{fmtCurrency(productosBruto)}</strong></span>
                   </div>
 
                   {loadingData ? (
@@ -1604,11 +1604,11 @@ export default function Equipo() {
                         return (
                           <div key={v.id} className="flex justify-between items-center p-2.5 rounded-lg bg-slate-800/40 border border-slate-800/80 text-xs text-slate-300">
                             <div>
-                              <p className="font-semibold text-white">{v.productName || v.productoNombre || 'Producto'}</p>
+                              <p className="font-semibold text-primary">{v.productName || v.productoNombre || 'Producto'}</p>
                               <p className="text-[10px] text-slate-500 mt-0.5">Cant: {v.cantidad || 1} • {dateStr}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-white">{fmtCurrency(precioVenta)}</p>
+                              <p className="font-bold text-primary">{fmtCurrency(precioVenta)}</p>
                               <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
                             </div>
                           </div>
@@ -1635,9 +1635,9 @@ export default function Equipo() {
         maxWidth="max-w-lg"
         footer={
           <div className="flex gap-3 justify-end">
-            <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+            <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
             <button onClick={handleSave} disabled={saving || uploading || !form.nombre.trim()}
-              className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
+              className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {editing ? 'Guardar cambios' : `Crear ${memberLabel}`}
             </button>
@@ -1739,14 +1739,14 @@ export default function Equipo() {
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={handlePasswordReset}
                       disabled={resetSending || !(form.email.trim() || editing.email)}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-primary text-xs font-semibold rounded-lg transition-all">
                       {resetSending
                         ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
                         : <KeyRound size={13} />}
                       Enviar enlace por email
                     </button>
                     <button type="button" onClick={() => { setShowSetPass(v => !v); setSetPassMsg(''); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-primary text-xs font-semibold rounded-lg transition-all">
                       <KeyRound size={13} />
                       Fijar contraseña
                     </button>
@@ -1771,7 +1771,7 @@ export default function Equipo() {
                         value={newPass}
                         onChange={e => setNewPass(e.target.value)}
                         placeholder="mínimo 6 caracteres"
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary font-mono focus:outline-none focus:border-emerald-500"
                         autoComplete="off"
                         autoFocus
                       />
@@ -1780,7 +1780,7 @@ export default function Equipo() {
                           type="button"
                           onClick={handleSetPassword}
                           disabled={setPassSaving || newPass.length < 6}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-bold transition-colors"
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-ink-950 text-xs font-bold transition-colors"
                         >
                           {setPassSaving
                             ? <span className="w-3 h-3 border border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -1789,7 +1789,7 @@ export default function Equipo() {
                         <button
                           type="button"
                           onClick={() => { setShowSetPass(false); setNewPass(''); setSetPassMsg(''); }}
-                          className="px-3 py-2 rounded-lg text-slate-400 hover:text-white text-xs font-semibold transition-colors"
+                          className="px-3 py-2 rounded-lg text-slate-400 hover:text-primary text-xs font-semibold transition-colors"
                         >
                           Cancelar
                         </button>
@@ -1929,7 +1929,7 @@ export default function Equipo() {
                     <label key={s.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-slate-800 cursor-pointer hover:bg-slate-700 transition-colors">
                       <input type="checkbox" checked={checked} onChange={() => toggleServicio(s.id)}
                         className="w-4 h-4 accent-emerald-500 shrink-0" />
-                      <span className="text-sm text-white flex-1">{s.nombre}</span>
+                      <span className="text-sm text-primary flex-1">{s.nombre}</span>
                       {s.duracion && <span className="text-[10px] text-slate-500">{s.duracion}min</span>}
                     </label>
                   );
@@ -1976,7 +1976,7 @@ export default function Equipo() {
                       <select
                         value={t.inicio || ''}
                         onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, inicio: e.target.value } : x))}
-                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500"
                       >
                         <option value="">--:--</option>
                         {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
@@ -1985,7 +1985,7 @@ export default function Equipo() {
                       <select
                         value={t.fin || ''}
                         onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, fin: e.target.value } : x))}
-                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500"
                       >
                         <option value="">--:--</option>
                         {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
@@ -2050,7 +2050,7 @@ export default function Equipo() {
                 </div>
               ))}
               <button type="button" onClick={addAusencia}
-                className="flex items-center gap-1.5 px-3 py-2 w-full justify-center border border-dashed border-slate-700 text-slate-500 hover:text-white hover:border-slate-500 rounded-lg text-xs font-medium transition-all">
+                className="flex items-center gap-1.5 px-3 py-2 w-full justify-center border border-dashed border-slate-700 text-slate-500 hover:text-primary hover:border-slate-500 rounded-lg text-xs font-medium transition-all">
                 <Plus size={13} /> Añadir ausencia
               </button>
             </div>
@@ -2063,11 +2063,11 @@ export default function Equipo() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-emerald-400">
               <ArrowDownCircle size={24} />
-              <h3 className="text-base font-bold text-white">Confirmar Registro de Pago</h3>
+              <h3 className="text-base font-bold text-primary">Confirmar Registro de Pago</h3>
             </div>
 
             <p className="text-sm text-slate-400 leading-normal">
-              Se registrará un egreso de <strong className="text-white">{fmtCurrency(payoutModal.amount)}</strong> en el sistema bajo la categoría <strong className="text-white">Sueldos</strong> para <strong className="text-white">{payoutModal.barberName}</strong>.
+              Se registrará un egreso de <strong className="text-primary">{fmtCurrency(payoutModal.amount)}</strong> en el sistema bajo la categoría <strong className="text-primary">Sueldos</strong> para <strong className="text-primary">{payoutModal.barberName}</strong>.
             </p>
 
             <div className="space-y-3 bg-slate-950/40 p-4 rounded-lg border border-slate-800/60 text-sm">
@@ -2076,7 +2076,7 @@ export default function Equipo() {
                 <select
                   value={payoutMetodo}
                   onChange={e => setPayoutMetodo(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500"
                 >
                   <option value="Efectivo">Efectivo</option>
                   <option value="Transferencia">Transferencia</option>
@@ -2101,14 +2101,14 @@ export default function Equipo() {
               <button
                 onClick={() => setPayoutModal(null)}
                 disabled={payoutSaving}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmPayout}
                 disabled={payoutSaving}
-                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-colors"
               >
                 {payoutSaving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Confirmar Pago
@@ -2120,12 +2120,12 @@ export default function Equipo() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Equipo" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Equipo</strong> administras los barberos y sus configuraciones.</p>
+          <p>En <strong className="text-primary">Equipo</strong> administras los barberos y sus configuraciones.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>Agrega barberos con nombre, foto, teléfono y correo.</li>
-            <li>Define los <span className="text-white">días hábiles</span> y el <span className="text-white">horario</span> de cada barbero.</li>
-            <li>Registra <span className="text-white">ausencias programadas</span> para bloquear su disponibilidad en fechas concretas.</li>
-            <li>Asigna el rol <span className="text-white">Admin</span> para dar acceso completo al panel, o <span className="text-white">Barbero</span> para acceso limitado.</li>
+            <li>Define los <span className="text-primary">días hábiles</span> y el <span className="text-primary">horario</span> de cada barbero.</li>
+            <li>Registra <span className="text-primary">ausencias programadas</span> para bloquear su disponibilidad en fechas concretas.</li>
+            <li>Asigna el rol <span className="text-primary">Admin</span> para dar acceso completo al panel, o <span className="text-primary">Barbero</span> para acceso limitado.</li>
             <li>Usa el botón de restablecimiento para enviar un correo de cambio de contraseña.</li>
           </ul>
         </HelpModal>

@@ -56,7 +56,7 @@ export default function BillingGate({ children }) {
       <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center mb-5">
         <Lock size={28} className="text-red-400" />
       </div>
-      <h2 className="text-xl font-bold text-white mb-2">Sección bloqueada</h2>
+      <h2 className="text-xl font-bold text-primary mb-2">Sección bloqueada</h2>
       <p className="text-sm text-slate-400 leading-relaxed mb-6">
         Tu cuenta tiene un pago atrasado hace <span className="font-bold text-red-400">{diasAtraso} días</span>.
         Regulariza tu mensualidad para reactivar esta sección.

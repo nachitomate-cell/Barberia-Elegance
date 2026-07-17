@@ -57,7 +57,7 @@ function ModuleHeader({ statusBadge }) {
         <Sparkles size={17} className="text-violet-400 shrink-0" />
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-base font-bold text-white leading-tight">Asistente IA 24/7</h2>
+            <h2 className="text-base font-bold text-primary leading-tight">Asistente IA 24/7</h2>
             <span className="bg-violet-500/10 text-violet-300 border border-violet-500/30 rounded-full text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Premium</span>
           </div>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-md">
@@ -192,7 +192,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                       <f.Icon size={14} className="text-violet-400" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-white leading-tight">{f.t}</p>
+                      <p className="text-[13px] font-bold text-primary leading-tight">{f.t}</p>
                       <p className="text-[11px] text-slate-400 leading-snug">{f.d}</p>
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 <a
                   href={solicitarUrl}
                   target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
+                  className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-primary text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
                 >
                   <MessageCircle size={16} /> Solicitar activación <ExternalLink size={13} />
                 </a>
@@ -281,7 +281,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
               type="button"
               onClick={vincular}
               disabled={!tyc || vinculando}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold py-3 transition-all"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed text-ink-950 font-bold py-3 transition-all"
             >
               {vinculando ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
               {vinculando ? 'Generando QR…' : 'Vincular WhatsApp'}
@@ -298,7 +298,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 <Smartphone size={18} className="text-emerald-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Conectado
                 </p>
                 <p className="text-xs text-slate-400 truncate">{numero ? `+${numero}` : 'Tu número está vinculado'}</p>
@@ -313,7 +313,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
               <div className="flex items-center gap-3">
                 <Power size={18} className={botOn ? 'text-emerald-400' : 'text-slate-500'} />
                 <div>
-                  <p className="text-sm font-semibold text-white">Asistente encendido</p>
+                  <p className="text-sm font-semibold text-primary">Asistente encendido</p>
                   <p className="text-xs text-slate-400">{botOn ? 'Responde y agenda solo' : 'Apagado — nadie responde por ti (útil en feriados)'}</p>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 <div className="flex items-center gap-3">
                   <Clock size={18} className={confirmOn ? 'text-emerald-400' : 'text-slate-500'} />
                   <div>
-                    <p className="text-sm font-semibold text-white">Confirmación de cita</p>
+                    <p className="text-sm font-semibold text-primary">Confirmación de cita</p>
                     <p className="text-xs text-slate-400">
                       {confirmOn
                         ? 'Le pedimos al cliente confirmar por WhatsApp antes de su hora'
@@ -358,7 +358,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                   <select
                     value={ventana}
                     onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
-                    className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
                   >
                     <option value={12}>12 horas antes</option>
                     <option value={24}>24 horas antes</option>
@@ -375,19 +375,19 @@ export default function WhatsAppAsistente({ embedded = false }) {
       {modal && (
         <div className="fixed inset-0 z-[9000] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-3xl border border-slate-700/60 bg-[#0e0e12] p-6 shadow-2xl relative">
-            <button onClick={() => setModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white" aria-label="Cerrar">
+            <button onClick={() => setModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-primary" aria-label="Cerrar">
               <X size={18} />
             </button>
 
             {conectado ? (
               <div className="flex flex-col items-center text-center py-6">
                 <CheckCircle2 size={64} className="text-emerald-400 mb-4 animate-[pulse_1s_ease-in-out]" />
-                <h3 className="text-lg font-bold text-white">¡Vinculado! 🎉</h3>
+                <h3 className="text-lg font-bold text-primary">¡Vinculado! 🎉</h3>
                 <p className="text-sm text-slate-400 mt-1">Tu WhatsApp ya está conectado al Asistente.</p>
               </div>
             ) : (
               <>
-                <h3 className="text-base font-bold text-white text-center mb-1">Escanea con tu WhatsApp</h3>
+                <h3 className="text-base font-bold text-primary text-center mb-1">Escanea con tu WhatsApp</h3>
                 <p className="text-xs text-slate-400 text-center mb-4 leading-relaxed">
                   En tu celular: <strong className="text-slate-200">WhatsApp → Ajustes → Dispositivos vinculados → Vincular un dispositivo</strong>
                 </p>

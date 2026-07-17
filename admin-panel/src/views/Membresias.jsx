@@ -19,7 +19,7 @@ function diasRestantes(fecha) {
   return Math.ceil((fecha.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/80 transition-all shadow-inner placeholder:text-slate-500';
+const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-primary text-sm focus:outline-none focus:border-emerald-500/80 transition-all shadow-inner placeholder:text-slate-500';
 
 /* ── Modal: Confirmar y Registrar Extensión de Membresía ─────────── */
 function ModalConfirmarExtender({ miembro, tenantId, planes, onClose, onConfirm }) {
@@ -71,11 +71,11 @@ function ModalConfirmarExtender({ miembro, tenantId, planes, onClose, onConfirm 
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="space-y-1">
-          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+          <h3 className="text-primary font-bold text-lg flex items-center gap-2">
             <RefreshCw size={18} className="text-emerald-400 animate-spin-slow" />
             Extender membresía
           </h3>
-          <p className="text-xs text-slate-400">Cliente: <strong className="text-white">{miembro.nombre || '—'}</strong></p>
+          <p className="text-xs text-slate-400">Cliente: <strong className="text-primary">{miembro.nombre || '—'}</strong></p>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-700/40 rounded-xl p-4 space-y-2.5 text-sm text-slate-300">
@@ -92,7 +92,7 @@ function ModalConfirmarExtender({ miembro, tenantId, planes, onClose, onConfirm 
           {montoPlan > 0 && (
             <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
               <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Monto a cobrar:</span>
-              <span className="font-black text-white text-base">${montoPlan.toLocaleString('es-CL')}</span>
+              <span className="font-black text-primary text-base">${montoPlan.toLocaleString('es-CL')}</span>
             </div>
           )}
         </div>
@@ -108,11 +108,11 @@ function ModalConfirmarExtender({ miembro, tenantId, planes, onClose, onConfirm 
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button onClick={procesar} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all shadow-lg shadow-emerald-950/20 disabled:opacity-50">
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold transition-all shadow-lg shadow-emerald-950/20 disabled:opacity-50">
             {loading ? 'Procesando…' : 'Confirmar'}
           </button>
         </div>
@@ -195,10 +195,10 @@ function ModalPlanes({ tenantId, planesIniciales, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-750">
           <div>
-            <h3 className="text-white font-bold text-lg">Definir planes de membresía</h3>
+            <h3 className="text-primary font-bold text-lg">Definir planes de membresía</h3>
             <p className="text-xs text-slate-500 mt-0.5">Los cambios se guardan en Firestore y aplican de inmediato.</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-all">
+          <button onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-700 transition-all">
             <XCircle size={18} />
           </button>
         </div>
@@ -284,13 +284,13 @@ function ModalPlanes({ tenantId, planesIniciales, onClose }) {
 
         {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-slate-750">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button
             onClick={guardar}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-all disabled:opacity-50 shadow-lg shadow-emerald-950/20"
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-primary text-sm font-bold hover:bg-emerald-500 transition-all disabled:opacity-50 shadow-lg shadow-emerald-950/20"
           >
             {loading ? 'Guardando…' : 'Guardar planes'}
           </button>
@@ -399,7 +399,7 @@ function ModalActivar({ tenantId, planes, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl relative">
-        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+        <h3 className="text-primary font-bold text-lg flex items-center gap-2">
           <ShieldCheck className="text-emerald-400" size={20} />
           Activar membresía
         </h3>
@@ -441,7 +441,7 @@ function ModalActivar({ tenantId, planes, onClose }) {
                     onClick={() => handleSelectUser(u)}
                     className="w-full text-left px-4 py-2.5 hover:bg-slate-800 text-sm text-slate-300 flex flex-col transition-colors border-b border-slate-800/40"
                   >
-                    <span className="font-semibold text-white">{u.nombre}</span>
+                    <span className="font-semibold text-primary">{u.nombre}</span>
                     <span className="text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
                       <span>UID: {u.uid.slice(0, 10)}...</span>
                       {u.telefono && <span>• Tel: {u.telefono}</span>}
@@ -463,7 +463,7 @@ function ModalActivar({ tenantId, planes, onClose }) {
                 <UserCheck size={17} className="text-emerald-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white truncate">{nombre}</p>
+                <p className="text-sm font-semibold text-primary truncate">{nombre}</p>
                 <p className="text-[11px] text-slate-400 truncate">
                   {selectedUser.telefono ? `Tel: ${selectedUser.telefono}` : 'Cliente registrado'}
                 </p>
@@ -494,11 +494,11 @@ function ModalActivar({ tenantId, planes, onClose }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
             Cancelar
           </button>
           <button onClick={activar} disabled={loading || !planes.length || !selectedUser}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-emerald-950/20">
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-emerald-950/20">
             {loading ? 'Activando…' : 'Activar'}
           </button>
         </div>
@@ -520,7 +520,7 @@ function FilaMiembro({ miembro, planes, onExtenderClick, onDesactivarClick }) {
       <td className="px-4 py-3.5">
         <div className="flex items-center gap-2">
           <div>
-            <p className="text-sm font-semibold text-white">{miembro.nombre || '—'}</p>
+            <p className="text-sm font-semibold text-primary">{miembro.nombre || '—'}</p>
             <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate max-w-[150px]">{miembro.uid}</p>
           </div>
         </div>
@@ -676,14 +676,14 @@ export default function Membresias() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-black text-primary tracking-tight flex items-center gap-2">
             Membresías
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
         </div>
         <button
           onClick={() => setModalPlanes(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-white hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-primary hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm"
         >
           <Settings size={15} /> Definir planes
         </button>
@@ -695,7 +695,7 @@ export default function Membresias() {
           {planes.map(p => (
             <div key={p.id} className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:border-slate-600 transition-all">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{p.nombre}</span>
+                <span className="text-sm font-bold text-slate-200 group-hover:text-primary transition-colors">{p.nombre}</span>
                 <span className="text-emerald-400 font-extrabold text-sm flex items-center">
                   ${(p.precio ?? 0).toLocaleString('es-CL')}<span className="text-slate-500 text-xs font-normal ml-0.5">/mes</span>
                 </span>
@@ -723,7 +723,7 @@ export default function Membresias() {
           <div className="flex items-center gap-2 text-emerald-400 mb-1">
             <DollarSign size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">MRR Recurrente</span>
           </div>
-          <p className="text-xl md:text-2xl font-black text-white">${mrrProyectado.toLocaleString('es-CL')}</p>
+          <p className="text-xl md:text-2xl font-black text-primary">${mrrProyectado.toLocaleString('es-CL')}</p>
         </div>
 
         {/* Miembros Activos */}
@@ -731,7 +731,7 @@ export default function Membresias() {
           <div className="flex items-center gap-2 text-indigo-400 mb-1">
             <UserCheck size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Activos</span>
           </div>
-          <p className="text-2xl font-black text-white">{activos.length}</p>
+          <p className="text-2xl font-black text-primary">{activos.length}</p>
         </div>
 
         {/* Por vencer */}
@@ -739,7 +739,7 @@ export default function Membresias() {
           <div className="flex items-center gap-2 text-amber-400 mb-1">
             <AlertTriangle size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Por vencer</span>
           </div>
-          <p className="text-2xl font-black text-white">{porVencer.length}</p>
+          <p className="text-2xl font-black text-primary">{porVencer.length}</p>
         </div>
 
         {/* Vencidos */}
@@ -747,7 +747,7 @@ export default function Membresias() {
           <div className="flex items-center gap-2 text-red-400 mb-1">
             <XCircle size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Vencidos</span>
           </div>
-          <p className="text-2xl font-black text-white">{vencidos.length}</p>
+          <p className="text-2xl font-black text-primary">{vencidos.length}</p>
         </div>
       </div>
 
@@ -759,11 +759,11 @@ export default function Membresias() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-slate-400" />
-              <span className="text-sm font-bold text-white">Listado de Miembros</span>
+              <span className="text-sm font-bold text-primary">Listado de Miembros</span>
             </div>
             <button
               onClick={() => setModalActivar(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-950/20 active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-950/20 active:scale-95"
             >
               <Plus size={14} /> Activar Membresía
             </button>
@@ -785,7 +785,7 @@ export default function Membresias() {
             <div className="flex bg-slate-900 border border-slate-750 p-1 rounded-xl text-xs overflow-x-auto shrink-0">
               <button
                 onClick={() => setStatusFilter('todos')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${statusFilter === 'todos' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${statusFilter === 'todos' ? 'bg-slate-800 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
               >
                 Todos ({miembros.length})
               </button>
@@ -867,7 +867,7 @@ export default function Membresias() {
 
       {showHelp && (
         <HelpModal title="Cómo funcionan las Membresías" onClose={() => setShowHelp(false)}>
-          <p>Vendes <strong className="text-white">planes mensuales</strong> (ej. "3 cortes al mes por $X") y los clientes pagan una cuota fija. Sus visitas se descuentan automáticamente al marcar la cita como Completada.</p>
+          <p>Vendes <strong className="text-primary">planes mensuales</strong> (ej. "3 cortes al mes por $X") y los clientes pagan una cuota fija. Sus visitas se descuentan automáticamente al marcar la cita como Completada.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Crear planes</p>
@@ -881,7 +881,7 @@ export default function Membresias() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Uso automático</p>
-            <p>Cuando el cliente complete una cita en /agenda, la Cloud Function <em>sello-automatico</em> detecta su membresía activa y <strong className="text-white">descuenta 1 uso</strong> del servicio correspondiente (en lugar de sumar un sello de fidelidad).</p>
+            <p>Cuando el cliente complete una cita en /agenda, la Cloud Function <em>sello-automatico</em> detecta su membresía activa y <strong className="text-primary">descuenta 1 uso</strong> del servicio correspondiente (en lugar de sumar un sello de fidelidad).</p>
           </div>
 
           <div>

@@ -186,7 +186,7 @@ function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelt
         </div>
         {/* title con el valor original completo para hover — accesibilidad
             y para que el dueño vea la cifra exacta cuando pasa el mouse. */}
-        <p className={`${valueClass} font-bold text-white mt-0.5 tracking-tight break-words`} title={rawStr}>
+        <p className={`${valueClass} font-bold text-primary mt-0.5 tracking-tight break-words`} title={rawStr}>
           {displayValue}
         </p>
         {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
@@ -221,10 +221,10 @@ function DrillDownModal({ open, title, subtitle, rows, columns, onClose, emptyMs
       <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between p-5 border-b border-slate-800">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-white">{title}</h3>
+            <h3 className="text-base font-bold text-primary">{title}</h3>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -245,7 +245,7 @@ function DrillDownModal({ open, title, subtitle, rows, columns, onClose, emptyMs
                   {rows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-800/20 text-slate-300">
                       {columns.map(c => (
-                        <td key={c.key} className={`py-2 pr-3 ${c.align === 'right' ? 'text-right' : ''} ${c.bold ? 'font-bold text-white' : ''}`}>
+                        <td key={c.key} className={`py-2 pr-3 ${c.align === 'right' ? 'text-right' : ''} ${c.bold ? 'font-bold text-primary' : ''}`}>
                           {c.render ? c.render(r) : r[c.key]}
                         </td>
                       ))}
@@ -268,7 +268,7 @@ function DrillDownModal({ open, title, subtitle, rows, columns, onClose, emptyMs
 function ChartCard({ title, subtitle, children, fullWidth = false }) {
   return (
     <div className={`bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-750 transition-all ${fullWidth ? 'lg:col-span-2' : ''}`}>
-      <p className="text-sm font-semibold text-white mb-0.5">{title}</p>
+      <p className="text-sm font-semibold text-primary mb-0.5">{title}</p>
       {subtitle && <p className="text-xs text-slate-500 mb-4">{subtitle}</p>}
       {children}
     </div>
@@ -283,7 +283,7 @@ function DarkTooltip({ active, payload, label, fmt }) {
       {label && <p className="text-slate-400 font-semibold mb-1.5 border-b border-slate-800 pb-1">{label}</p>}
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="leading-5 font-medium">
-          {p.name}: <span className="text-white font-bold">{fmt ? fmt(p.value) : p.value}</span>
+          {p.name}: <span className="text-primary font-bold">{fmt ? fmt(p.value) : p.value}</span>
         </p>
       ))}
     </div>
@@ -1384,7 +1384,7 @@ export default function Metricas() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl font-bold text-primary flex items-center gap-2">
               <Activity className="text-emerald-500" size={20} />
               Métricas & P&L
             </h1>
@@ -1405,7 +1405,7 @@ export default function Metricas() {
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-primary hover:border-slate-700 transition-all"
             title="Imprimir o guardar como PDF"
           >
             <Printer size={12} />
@@ -1414,7 +1414,7 @@ export default function Metricas() {
           <button
             onClick={fetchData}
             disabled={fetching}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-primary hover:border-slate-700 disabled:opacity-40 transition-all"
           >
             <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
             Actualizar
@@ -1431,14 +1431,14 @@ export default function Metricas() {
               type="date"
               value={fechaInicio}
               onChange={e => setFechaInicio(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500"
+              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-primary focus:outline-none focus:border-emerald-500"
             />
             <span className="text-slate-650 text-xs">—</span>
             <input
               type="date"
               value={fechaFin}
               onChange={e => setFechaFin(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500"
+              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-primary focus:outline-none focus:border-emerald-500"
             />
           </div>
           {(() => {
@@ -1463,7 +1463,7 @@ export default function Metricas() {
                     className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${
                       activePreset === p.id
                         ? 'bg-emerald-500/10 text-emerald-400'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                        : 'text-slate-400 hover:text-primary hover:bg-slate-900'
                     }`}
                   >{p.label}</button>
                 ))}
@@ -1491,7 +1491,7 @@ export default function Metricas() {
                   Ingresos totales del período
                 </p>
                 <div className="flex flex-wrap items-baseline gap-3">
-                  <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+                  <h2 className="text-4xl sm:text-5xl font-bold text-primary tracking-tight">
                     {fmtCLP(ingresosTotales)}
                   </h2>
                   <DeltaBadge delta={delta} />
@@ -1528,8 +1528,8 @@ export default function Metricas() {
             onClick={() => setActiveTab('comercial')}
             className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'comercial'
-                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+                ? 'bg-slate-900 text-primary border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-900/30'
             }`}
           >
             <BarChart3 size={13} />
@@ -1539,8 +1539,8 @@ export default function Metricas() {
             onClick={() => setActiveTab('pnl')}
             className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'pnl'
-                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+                ? 'bg-slate-900 text-primary border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-900/30'
             }`}
           >
             <DollarSign size={13} />
@@ -1550,8 +1550,8 @@ export default function Metricas() {
             onClick={() => { setActiveTab('equipo'); setSelectedBarberoId(null); }}
             className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'equipo'
-                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+                ? 'bg-slate-900 text-primary border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-900/30'
             }`}
           >
             <Users size={13} />
@@ -1561,8 +1561,8 @@ export default function Metricas() {
             onClick={() => setActiveTab('insights')}
             className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'insights'
-                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+                ? 'bg-slate-900 text-primary border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-primary hover:bg-slate-900/30'
             }`}
           >
             <Brain size={13} />
@@ -1604,7 +1604,7 @@ export default function Metricas() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs">
                       <DeltaBadge delta={delta} size="lg" compLabel={compLabel} />
                       <span className="text-slate-400">
-                        Ingresos brutos: <span className="text-white font-semibold">{fmtCLP(pnl.ingresosBrutos)}</span>
+                        Ingresos brutos: <span className="text-primary font-semibold">{fmtCLP(pnl.ingresosBrutos)}</span>
                       </span>
                       <span className="text-slate-400">
                         Margen: <span className={`font-semibold ${pnl.margenNeto >= 15 ? 'text-emerald-400' : pnl.margenNeto >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
@@ -1662,7 +1662,7 @@ export default function Metricas() {
           <div>
             <button
               onClick={() => setShowMoreKpis(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-primary hover:bg-slate-800/40 transition-colors"
             >
               {showMoreKpis ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               {showMoreKpis ? 'Ocultar métricas adicionales' : 'Ver métricas adicionales'}
@@ -1703,7 +1703,7 @@ export default function Metricas() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Crown size={16} className="text-amber-400" />
-                <p className="text-sm font-semibold text-white">Top 10 Clientes</p>
+                <p className="text-sm font-semibold text-primary">Top 10 Clientes</p>
                 <span className="text-xs text-slate-500 ml-auto">En el rango seleccionado</span>
               </div>
               {stats.top10.length === 0 ? (
@@ -1717,9 +1717,9 @@ export default function Metricas() {
                       <div className="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center shrink-0 border border-slate-750">
                         <User size={13} className="text-slate-500" />
                       </div>
-                      <p className="text-sm text-white flex-1 truncate">{c.nombre}</p>
+                      <p className="text-sm text-primary flex-1 truncate">{c.nombre}</p>
                       <div className="text-right shrink-0">
-                        <p className="text-xs font-semibold text-white">
+                        <p className="text-xs font-semibold text-primary">
                           {c.citas} {c.citas === 1 ? 'cita' : 'citas'}
                         </p>
                         {c.gasto > 0 && (
@@ -1736,7 +1736,7 @@ export default function Metricas() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Star size={16} className="text-emerald-400" />
-                <p className="text-sm font-semibold text-white">Ranking de Barberos</p>
+                <p className="text-sm font-semibold text-primary">Ranking de Barberos</p>
                 <span className="text-xs text-slate-500 ml-auto">En el rango seleccionado</span>
               </div>
               {stats.barberRanking.length === 0 ? (
@@ -1753,9 +1753,9 @@ export default function Metricas() {
                         className="px-3 py-2 rounded-lg hover:bg-slate-800/40 transition-colors space-y-1.5 border border-transparent hover:border-slate-800">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
-                          <p className="text-sm text-white flex-1 truncate">{b.nombre}</p>
+                          <p className="text-sm text-primary flex-1 truncate">{b.nombre}</p>
                           <div className="text-right shrink-0">
-                            <p className="text-xs font-semibold text-white">{b.citas} citas</p>
+                            <p className="text-xs font-semibold text-primary">{b.citas} citas</p>
                             {b.ingresos > 0 && (
                               <p className="text-[10px] text-slate-500">${Math.round(b.ingresos).toLocaleString('es-CL')}</p>
                             )}
@@ -1875,14 +1875,14 @@ export default function Metricas() {
                     <div className="flex items-start gap-3">
                       <span className="mt-1 w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
                       <div>
-                        <p className="text-2xl font-bold text-white">{retention.pct}%</p>
+                        <p className="text-2xl font-bold text-primary">{retention.pct}%</p>
                         <p className="text-xs text-slate-500">En el club de fidelidad ({retention.conSellos})</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="mt-1 w-3 h-3 rounded-full bg-slate-700 shrink-0" />
                       <div>
-                        <p className="text-2xl font-bold text-white">{100 - retention.pct}%</p>
+                        <p className="text-2xl font-bold text-primary">{100 - retention.pct}%</p>
                         <p className="text-xs text-slate-500">Sin sellos acumulados ({retention.sinSellos})</p>
                       </div>
                     </div>
@@ -2010,7 +2010,7 @@ export default function Metricas() {
               <div className="flex items-center gap-2">
                 <Wallet size={16} className="text-emerald-400" />
                 <div>
-                  <p className="text-sm font-semibold text-white">Desglose por Método de Pago</p>
+                  <p className="text-sm font-semibold text-primary">Desglose por Método de Pago</p>
                   <p className="text-xs text-slate-500 mt-0.5">Ingresos cobrados en el período según forma de pago</p>
                 </div>
               </div>
@@ -2058,10 +2058,10 @@ export default function Metricas() {
                     <tr><td colSpan={5} className="py-6 text-center text-xs text-slate-650 italic">Sin cobros registrados en el período</td></tr>
                   ) : paymentBreakdown.rows.map(r => (
                     <tr key={r.nombre} className="hover:bg-slate-800/10 text-slate-300 transition-colors">
-                      <td className="py-2.5 pr-3 font-medium text-white">{r.nombre}</td>
+                      <td className="py-2.5 pr-3 font-medium text-primary">{r.nombre}</td>
                       <td className="py-2.5 text-right text-slate-400">{fmtCLP(r.servicios)}</td>
                       <td className="py-2.5 text-right text-slate-400">{fmtCLP(r.productos)}</td>
-                      <td className="py-2.5 text-right font-bold text-white">{fmtCLP(r.total)}</td>
+                      <td className="py-2.5 text-right font-bold text-primary">{fmtCLP(r.total)}</td>
                       <td className="py-2.5 text-right">
                         <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded">
                           {r.pct.toFixed(1)}%
@@ -2081,7 +2081,7 @@ export default function Metricas() {
                 <Sparkles size={16} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-white">Flujo de Propinas del Período</p>
+                <p className="text-xs font-semibold text-primary">Flujo de Propinas del Período</p>
                 <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">
                   Las propinas son de libre asignación directa a los barberos. Se excluyen del P&L neto del negocio por ser pasajes de caja neutrales.
                 </p>
@@ -2158,7 +2158,7 @@ export default function Metricas() {
                         <div className="min-w-0 flex-1">
                           <div className="flex justify-between font-medium">
                             <span className="text-slate-350 truncate pr-2">{item.name}</span>
-                            <span className="text-white font-semibold">{fmtCLP(item.value)}</span>
+                            <span className="text-primary font-semibold">{fmtCLP(item.value)}</span>
                           </div>
                           <p className="text-[10px] text-slate-550 mt-0.5">
                             {Math.round((item.value / pnl.totalOpex) * 100)}% del egreso general
@@ -2175,7 +2175,7 @@ export default function Metricas() {
           {/* Auditoría de Egresos */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
                 <Layers size={14} className="text-slate-400" />
                 Auditoría de Gastos Operativos (OPEX en el período)
               </h3>
@@ -2200,7 +2200,7 @@ export default function Metricas() {
                   <tbody className="divide-y divide-slate-800/50">
                     {pnl.rangeGastos.map(g => (
                       <tr key={g.id} className="hover:bg-slate-800/10 text-slate-300 transition-colors">
-                        <td className="py-2.5 pr-3 font-medium text-white">{g.descripcion}</td>
+                        <td className="py-2.5 pr-3 font-medium text-primary">{g.descripcion}</td>
                         <td className="py-2.5 pr-2">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                             g.categoria === 'Sueldos' ? 'bg-purple-500/10 text-purple-400' : 'bg-slate-800 text-slate-400'
@@ -2210,7 +2210,7 @@ export default function Metricas() {
                         </td>
                         <td className="py-2.5 text-slate-400">{g.metodoPago || 'Efectivo'}</td>
                         <td className="py-2.5 text-slate-450">{parseDateStr(g.fecha)}</td>
-                        <td className="py-2.5 text-right font-bold text-white">{fmtCLP(g.monto)}</td>
+                        <td className="py-2.5 text-right font-bold text-primary">{fmtCLP(g.monto)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2245,12 +2245,12 @@ export default function Metricas() {
                           <BarberAvatar foto={b.foto} nombre={b.nombre} size="md" />
                           {i < 3 && (
                             <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-slate-900 ${
-                              i === 0 ? 'bg-amber-400 text-slate-900' : i === 1 ? 'bg-slate-400 text-slate-900' : 'bg-amber-700 text-white'
+                              i === 0 ? 'bg-amber-400 text-ink-900' : i === 1 ? 'bg-ink-400 text-ink-900' : 'bg-amber-700 text-primary'
                             }`}>{i + 1}</span>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-white truncate">{b.nombre}</p>
+                          <p className="text-sm font-bold text-primary truncate">{b.nombre}</p>
                           {b.especialidad && (
                             <p className="text-xs text-slate-500 truncate mt-0.5">{b.especialidad}</p>
                           )}
@@ -2270,7 +2270,7 @@ export default function Metricas() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
                           <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Citas</p>
-                          <p className="text-xl font-bold text-white">{b.completadas}</p>
+                          <p className="text-xl font-bold text-primary">{b.completadas}</p>
                           <p className="text-[10px] text-slate-600">{b.canceladas} canceladas</p>
                         </div>
                         <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
@@ -2280,7 +2280,7 @@ export default function Metricas() {
                         </div>
                         <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
                           <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Cancelaciones</p>
-                          <p className={`text-xl font-bold ${b.pctCancelacion >= 20 ? 'text-red-400' : 'text-white'}`}>{b.pctCancelacion}%</p>
+                          <p className={`text-xl font-bold ${b.pctCancelacion >= 20 ? 'text-red-400' : 'text-primary'}`}>{b.pctCancelacion}%</p>
                           <p className="text-[10px] text-slate-600">del total</p>
                         </div>
                         <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
@@ -2307,7 +2307,7 @@ export default function Metricas() {
                 {/* Back */}
                 <button
                   onClick={() => setSelectedBarberoId(null)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-primary transition-colors"
                 >
                   <ChevronLeft size={14} />
                   Volver al equipo
@@ -2318,7 +2318,7 @@ export default function Metricas() {
                   <div className="flex items-center gap-5">
                     <BarberAvatar foto={b.foto} nombre={b.nombre} size="lg" />
                     <div>
-                      <h2 className="text-xl font-bold text-white">{b.nombre}</h2>
+                      <h2 className="text-xl font-bold text-primary">{b.nombre}</h2>
                       {b.especialidad && <p className="text-sm text-slate-400 mt-0.5">{b.especialidad}</p>}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {b.comisionPct > 0 && (
@@ -2395,7 +2395,7 @@ export default function Metricas() {
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <Crown size={16} className="text-amber-400" />
-                    <p className="text-sm font-semibold text-white">Top Clientes</p>
+                    <p className="text-sm font-semibold text-primary">Top Clientes</p>
                     <span className="text-xs text-slate-500 ml-auto">
                       Más visitas con {b.nombre.split(' ')[0]} · en el rango
                     </span>
@@ -2410,7 +2410,7 @@ export default function Metricas() {
                           <div className="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center shrink-0 border border-slate-750">
                             <User size={13} className="text-slate-500" />
                           </div>
-                          <p className="text-sm text-white flex-1 truncate">{c.nombre}</p>
+                          <p className="text-sm text-primary flex-1 truncate">{c.nombre}</p>
                           <p className="text-xs font-semibold text-slate-400">{c.citas} {c.citas === 1 ? 'cita' : 'citas'}</p>
                         </div>
                       ))}
@@ -2441,7 +2441,7 @@ export default function Metricas() {
               Bienvenido al centro de control analítico y financiero. Este módulo integra tus datos de servicios, caja e inventario para brindarte un panel detallado de rentabilidad:
             </p>
             <div className="space-y-2.5">
-              <p className="font-bold text-white flex items-center gap-1">
+              <p className="font-bold text-primary flex items-center gap-1">
                 <BarChart3 size={12} className="text-emerald-400" />
                 Rendimiento Comercial:
               </p>
@@ -2449,24 +2449,24 @@ export default function Metricas() {
                 Muestra la cantidad de citas, cancelaciones, ticket promedio e ingresos de servicios y productos acumulados estrictamente en el período de fechas seleccionado.
               </p>
               
-              <p className="font-bold text-white flex items-center gap-1">
+              <p className="font-bold text-primary flex items-center gap-1">
                 <DollarSign size={12} className="text-emerald-450" />
                 Pérdidas y Ganancias (P&L):
               </p>
               <p className="pl-4">
                 Calcula la salud financiera real del negocio:
-                <br />• <strong className="text-white">Ingresos Brutos</strong> = Servicios completados + Productos entregados.
-                <br />• <strong className="text-white">COGS</strong> = Costo de adquisición mayorista de los productos vendidos.
-                <br />• <strong className="text-white">OPEX</strong> = Suma de gastos operativos + comisiones calculadas de barberos + sueldo base proporcional en el período.
-                <br />• <strong className="text-white">Utilidad Neta</strong> = Utilidad Bruta - OPEX.
+                <br />• <strong className="text-primary">Ingresos Brutos</strong> = Servicios completados + Productos entregados.
+                <br />• <strong className="text-primary">COGS</strong> = Costo de adquisición mayorista de los productos vendidos.
+                <br />• <strong className="text-primary">OPEX</strong> = Suma de gastos operativos + comisiones calculadas de barberos + sueldo base proporcional en el período.
+                <br />• <strong className="text-primary">Utilidad Neta</strong> = Utilidad Bruta - OPEX.
               </p>
 
-              <p className="font-bold text-white flex items-center gap-1">
+              <p className="font-bold text-primary flex items-center gap-1">
                 <Wallet size={12} className="text-emerald-400" />
                 Desglose por Método de Pago:
               </p>
               <p className="pl-4">
-                Dentro del P&L verás cuánto dinero entró según forma de cobro: <strong className="text-white">Efectivo</strong>, <strong className="text-white">Débito</strong>, <strong className="text-white">Crédito</strong> y <strong className="text-white">Transferencia</strong>. Suma servicios completados y productos vendidos en el período.
+                Dentro del P&L verás cuánto dinero entró según forma de cobro: <strong className="text-primary">Efectivo</strong>, <strong className="text-primary">Débito</strong>, <strong className="text-primary">Crédito</strong> y <strong className="text-primary">Transferencia</strong>. Suma servicios completados y productos vendidos en el período.
                 <br />La rentabilidad de inventario ahora vive en su propia sección del sidebar.
               </p>
             </div>

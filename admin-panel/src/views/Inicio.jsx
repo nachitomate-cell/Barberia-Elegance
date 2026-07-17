@@ -78,7 +78,7 @@ const ACCENT = {
   lime:    { text: 'text-lime-400',    tile: 'bg-lime-500/10 text-lime-400',       dot: 'bg-lime-400',    hex: '#a3e635' },
   pink:    { text: 'text-pink-400',    tile: 'bg-pink-500/10 text-pink-400',       dot: 'bg-pink-400',    hex: '#f472b6' },
   purple:  { text: 'text-purple-400',  tile: 'bg-purple-500/10 text-purple-400',   dot: 'bg-purple-400',  hex: '#c084fc' },
-  slate:   { text: 'text-slate-300',   tile: 'bg-slate-500/10 text-slate-300',     dot: 'bg-slate-300',   hex: '#cbd5e1' },
+  slate:   { text: 'text-slate-300',   tile: 'bg-slate-500/10 text-slate-300',     dot: 'bg-ink-300',   hex: '#cbd5e1' },
   zinc:    { text: 'text-zinc-200',    tile: 'bg-zinc-400/10 text-zinc-200',       dot: 'bg-zinc-200',    hex: '#e4e4e7' },
   red:     { text: 'text-red-400',     tile: 'bg-red-500/10 text-red-400',         dot: 'bg-red-400',     hex: '#f87171' },
   orange:  { text: 'text-orange-400',  tile: 'bg-orange-500/10 text-orange-400',   dot: 'bg-orange-400',  hex: '#fb923c' },
@@ -142,7 +142,7 @@ function DayKpiCard({ Icon, label, value, sub, delta, invertDelta, accent, index
           <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
           <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={15} /></div>
         </div>
-        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white mt-2 md:mt-3 tabular-nums">{value}</p>
+        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-primary mt-2 md:mt-3 tabular-nums">{value}</p>
         <div className="flex items-center gap-2 mt-1 md:mt-1.5 min-h-[16px]">
           {delta !== undefined && <Delta value={delta} invert={invertDelta} />}
           {sub && <p className="text-[9px] md:text-xs text-slate-500 truncate">{sub}</p>}
@@ -163,7 +163,7 @@ function Panel({ title, action, children, className = '', index = 0 }) {
       className={`bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-5 ${className}`}
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-white">{title}</h2>
+        <h2 className="text-sm font-bold text-primary">{title}</h2>
         {action}
       </div>
       {children}
@@ -177,7 +177,7 @@ function ChartTooltip({ active, payload, label }) {
   return (
     <div className="bg-slate-900/95 backdrop-blur border border-slate-700 rounded-lg px-3 py-2 shadow-xl">
       <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-sm font-bold text-white tabular-nums">{fmtCLP(payload[0].value)}</p>
+      <p className="text-sm font-bold text-primary tabular-nums">{fmtCLP(payload[0].value)}</p>
     </div>
   );
 }
@@ -495,7 +495,7 @@ export default function Inicio() {
         <div className="flex items-center gap-3">
           {tenant.logo && <img src={tenant.logo} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />}
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">
               {greeting()}{userName ? `, ${userName}` : ''} 👋
             </h1>
             <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-0.5">
@@ -511,7 +511,7 @@ export default function Inicio() {
         <button
           onClick={fetchData}
           disabled={fetching}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:text-white hover:border-slate-600 disabled:opacity-40 transition-all self-start"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:text-primary hover:border-slate-600 disabled:opacity-40 transition-all self-start"
         >
           <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
           Actualizar
@@ -573,7 +573,7 @@ export default function Inicio() {
           index={6}
           className="lg:col-span-2"
           title="Ingresos de la semana"
-          action={<span className="text-sm font-bold text-white tabular-nums">{fmtCLP(semanaTotal)}</span>}
+          action={<span className="text-sm font-bold text-primary tabular-nums">{fmtCLP(semanaTotal)}</span>}
         >
           <div className="h-[230px] -ml-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -628,12 +628,12 @@ export default function Inicio() {
                       title="Ver en la agenda"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-white tabular-nums">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-primary tabular-nums">
                           <Clock size={11} className={A.text} />{c.hora || '--:--'}
                         </span>
                         <ChevronRight size={14} className="text-slate-600 group-hover/cita:text-slate-300 transition-colors" />
                       </div>
-                      <p className="text-sm font-semibold text-white truncate mt-0.5">{c.clienteNombre || 'Cliente'}</p>
+                      <p className="text-sm font-semibold text-primary truncate mt-0.5">{c.clienteNombre || 'Cliente'}</p>
                       <p className="text-xs text-slate-500 truncate">
                         {c.servicioNombre || 'Servicio'}{c.barbero ? ` · ${c.barbero}` : ''}
                       </p>
@@ -682,18 +682,18 @@ export default function Inicio() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-bold text-white">{fidelizacion.pct}%</span>
+                  <span className="text-2xl font-bold text-primary">{fidelizacion.pct}%</span>
                   <span className="text-[10px] text-slate-500 uppercase tracking-wide">con sellos</span>
                 </div>
               </div>
               <div className="space-y-1.5 mt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />Con sellos</span>
-                  <span className="font-bold text-white">{fidelizacion.con}</span>
+                  <span className="font-bold text-primary">{fidelizacion.con}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-slate-600" />Sin sellos</span>
-                  <span className="font-bold text-white">{fidelizacion.sin}</span>
+                  <span className="font-bold text-primary">{fidelizacion.sin}</span>
                 </div>
               </div>
             </>
@@ -728,7 +728,7 @@ export default function Inicio() {
                 <tbody className="divide-y divide-slate-800/60 [&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
                   {ultimasVisitas.map((c, i) => (
                     <tr key={c.id || i} className="hover:bg-slate-800/20">
-                      <td className="py-2.5 font-semibold text-white">{c.clienteNombre || 'Cliente'}</td>
+                      <td className="py-2.5 font-semibold text-primary">{c.clienteNombre || 'Cliente'}</td>
                       <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.servicioNombre || '—'}</td>
                       <td className="py-2.5 text-slate-400">{c.fecha}{c.hora ? `, ${c.hora}` : ''}</td>
                       <td className={`py-2.5 text-right font-bold ${A.text}`}>{fmtCLP(getPrice(c))}</td>
@@ -771,7 +771,7 @@ export default function Inicio() {
                     return (
                       <tr key={c.id || i} className="hover:bg-slate-800/20">
                         <td className="py-2.5 text-slate-400">{c._dia < 99 ? String(c._dia).padStart(2, '0') : '—'}</td>
-                        <td className="py-2.5 font-semibold text-white">{c.nombre || 'Cliente'}</td>
+                        <td className="py-2.5 font-semibold text-primary">{c.nombre || 'Cliente'}</td>
                         <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.telefono || '—'}</td>
                         <td className="py-2.5 text-right">
                           {wa ? (
@@ -844,7 +844,7 @@ function MetaMesPanel({ index, accent, finanzas, ventasMes, configurada, onConfi
     >
       {/* Cifra principal: lo facturado / meta */}
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{fmtCLP(ventasMes)}</span>
+        <span className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">{fmtCLP(ventasMes)}</span>
         <span className="text-sm text-slate-500 tabular-nums">/ {fmtCLP(meta)}</span>
         <span className={`text-xs font-bold ml-auto ${rumboCls} inline-flex items-center gap-1`}>
           <TrendingUp size={12} /> {rumboTxt}
@@ -865,12 +865,12 @@ function MetaMesPanel({ index, accent, finanzas, ventasMes, configurada, onConfi
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Proyección de cierre</p>
-          <p className="text-base font-bold text-white tabular-nums mt-1">{fmtCLP(proyeccion)}</p>
+          <p className="text-base font-bold text-primary tabular-nums mt-1">{fmtCLP(proyeccion)}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">si seguimos al mismo ritmo</p>
         </div>
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Necesario por día</p>
-          <p className={`text-base font-bold tabular-nums mt-1 ${faltaPorDia > 0 ? 'text-white' : 'text-emerald-400'}`}>
+          <p className={`text-base font-bold tabular-nums mt-1 ${faltaPorDia > 0 ? 'text-primary' : 'text-emerald-400'}`}>
             {faltaPorDia > 0 ? fmtCLP(faltaPorDia) : '¡Meta cubierta!'}
           </p>
           <p className="text-[10px] text-slate-500 mt-0.5">
@@ -912,13 +912,13 @@ function BreakEvenPanel({ index, accent, finanzas, ingresosHoy }) {
               {cubierto ? (
                 <>
                   <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Día cubierto</p>
-                  <p className="text-xl font-bold text-white tabular-nums mt-0.5">+{fmtCLP(ingresosHoy - costoDiario)}</p>
+                  <p className="text-xl font-bold text-primary tabular-nums mt-0.5">+{fmtCLP(ingresosHoy - costoDiario)}</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">sobre el break-even</p>
                 </>
               ) : (
                 <>
                   <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide">Te faltan</p>
-                  <p className="text-xl font-bold text-white tabular-nums mt-0.5">{fmtCLP(faltaHoy)}</p>
+                  <p className="text-xl font-bold text-primary tabular-nums mt-0.5">{fmtCLP(faltaHoy)}</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">para cubrir el día</p>
                 </>
               )}
@@ -957,7 +957,7 @@ function MonthStat({ Icon, label, value, delta, invertDelta, accent }) {
         <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={14} /></div>
         <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
       </div>
-      <p className="text-xl md:text-2xl font-bold text-white tabular-nums">{value}</p>
+      <p className="text-xl md:text-2xl font-bold text-primary tabular-nums">{value}</p>
       {delta !== undefined && <div className="mt-1"><Delta value={delta} invert={invertDelta} /></div>}
     </div>
   );

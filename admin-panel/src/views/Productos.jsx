@@ -168,8 +168,8 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
         )}
         {isCriticalStock && (
           <div className="flex items-center gap-1 bg-amber-500 border border-amber-400/30 rounded-full px-2 py-0.5 w-max animate-pulse shadow-lg text-black">
-            <AlertTriangle size={10} className="text-slate-950" />
-            <span className="text-[9px] font-extrabold tracking-wide text-slate-950">STOCK CRÍTICO ({producto.stock})</span>
+            <AlertTriangle size={10} className="text-ink-950" />
+            <span className="text-[9px] font-extrabold tracking-wide text-ink-950">STOCK CRÍTICO ({producto.stock})</span>
           </div>
         )}
       </div>
@@ -183,7 +183,7 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
 
       {/* Info */}
       <div className="p-4 bg-slate-900">
-        <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2 min-h-[2.5rem]">{producto.nombre}</h3>
+        <h3 className="font-semibold text-primary text-sm leading-tight line-clamp-2 min-h-[2.5rem]">{producto.nombre}</h3>
         <div className="flex items-baseline gap-2 mt-2">
           {producto.precio ? (
             <span className="text-lg font-bold text-emerald-400">${Number(producto.precio).toLocaleString('es-CL')}</span>
@@ -393,12 +393,12 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg transition-colors">
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary bg-slate-800 border border-slate-700 rounded-lg transition-colors">
           <X size={16} />
         </button>
 
         <div className="p-5 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Share2 size={18} className="text-emerald-400" /> Imagen para Historia</h3>
+          <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Share2 size={18} className="text-emerald-400" /> Imagen para Historia</h3>
           <p className="text-xs text-slate-500 mt-0.5">Genera una imagen 9:16 con tus productos disponibles para subir a Instagram.</p>
         </div>
 
@@ -418,15 +418,15 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Mostrar</p>
               <div className="space-y-2">
                 <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
-                  <span className="text-sm text-white flex items-center gap-2"><Tag size={14} className="text-emerald-400" /> Precio</span>
+                  <span className="text-sm text-primary flex items-center gap-2"><Tag size={14} className="text-emerald-400" /> Precio</span>
                   <input type="checkbox" checked={showPrice} onChange={e => setShowPrice(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
                 </label>
                 <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
-                  <span className="text-sm text-white flex items-center gap-2"><Package size={14} className="text-emerald-400" /> Stock</span>
+                  <span className="text-sm text-primary flex items-center gap-2"><Package size={14} className="text-emerald-400" /> Stock</span>
                   <input type="checkbox" checked={showStock} onChange={e => setShowStock(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
                 </label>
                 <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
-                  <span className="text-sm text-white flex items-center gap-2"><ImageOff size={14} className="text-emerald-400" /> Fotos de productos</span>
+                  <span className="text-sm text-primary flex items-center gap-2"><ImageOff size={14} className="text-emerald-400" /> Fotos de productos</span>
                   <input type="checkbox" checked={showPhotos} onChange={e => setShowPhotos(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
                 </label>
               </div>
@@ -464,7 +464,7 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
             <button
               onClick={descargar}
               disabled={disponibles.length === 0}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
             >
               <Download size={16} /> Descargar imagen (PNG)
             </button>
@@ -831,7 +831,7 @@ export default function Productos() {
     }
   };
 
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
   return (
@@ -839,7 +839,7 @@ export default function Productos() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Productos</h1>
+            <h1 className="text-xl font-bold text-primary">Productos</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           {!loading && productos.length > 0 && (
@@ -853,21 +853,21 @@ export default function Productos() {
             onClick={() => setStoryOpen(true)}
             disabled={loading}
             title="Generar imagen para historia de Instagram"
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-primary text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
           >
             <Share2 size={16} className="text-emerald-400" /> Imagen historia
           </button>
           <button
             onClick={openVentaRapida}
             disabled={loading}
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-primary text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
           >
             <ShoppingBag size={16} className="text-emerald-400" /> Venta Rápida
           </button>
           <button
             onClick={openNew}
             disabled={loading}
-            className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             <Plus size={16} /> Agregar producto
           </button>
@@ -879,7 +879,7 @@ export default function Productos() {
         <div className="mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border border-amber-500/30 bg-amber-500/5 animate-pulse shadow-md">
           <AlertTriangle size={20} className="shrink-0 mt-0.5 text-amber-400" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-primary">
               Alerta de Inventario: <span className="text-amber-400">{criticalProductsCount} {criticalProductsCount === 1 ? 'producto requiere' : 'productos requieren'} reposición urgente.</span>
             </p>
             <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
@@ -896,7 +896,7 @@ export default function Productos() {
         }`}>
           <Power size={20} className={`shrink-0 mt-0.5 ${activo ? 'text-emerald-400' : 'text-slate-500'}`} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-primary">
               Sección de productos: <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>{activo ? 'Activa' : 'Inactiva'}</span>
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -924,15 +924,15 @@ export default function Productos() {
           <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle size={22} className="text-amber-400 shrink-0" />
-              <h3 className="font-semibold text-white">Activar sección Productos</h3>
+              <h3 className="font-semibold text-primary">Activar sección Productos</h3>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-5">
               Los clientes verán directamente los productos publicados en su perfil del club.<br /><br />
               <strong className="text-amber-400">Revisa los precios y el stock antes de activar.</strong> Esta sección es pública para todos los clientes registrados.
             </p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setConfirmOn(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
-              <button onClick={() => toggleActivo(true)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all">
+              <button onClick={() => setConfirmOn(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+              <button onClick={() => toggleActivo(true)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold rounded-lg transition-all">
                 Entendido, activar
               </button>
             </div>
@@ -991,7 +991,7 @@ export default function Productos() {
               >
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{r.userName || '—'}</p>
+                  <p className="text-sm font-semibold text-primary truncate">{r.userName || '—'}</p>
                   <p className="text-xs text-slate-400 mt-0.5 truncate">{r.productName}</p>
                   <p className="text-xs text-slate-600 mt-0.5 whitespace-nowrap">{fmtDate(r.createdAt)}</p>
                 </div>
@@ -1113,11 +1113,11 @@ export default function Productos() {
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Unidades</p>
-                  <p className="text-3xl font-black text-white mt-1 tracking-tight">{totalUnidades}</p>
+                  <p className="text-3xl font-black text-primary mt-1 tracking-tight">{totalUnidades}</p>
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 min-w-0">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Más vendido</p>
-                  <p className="text-3xl font-black text-white mt-1 tracking-tight break-words">
+                  <p className="text-3xl font-black text-primary mt-1 tracking-tight break-words">
                     {topProd ? topProd[0] : '—'}
                   </p>
                   {topProd && <p className="text-xs text-slate-500 mt-1">×{topProd[1]} unidades</p>}
@@ -1164,7 +1164,7 @@ export default function Productos() {
                                 : <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Package size={12} className="text-slate-600" /></div>
                               }
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-white truncate">{v.productName || '—'}</p>
+                                <p className="text-sm font-medium text-primary truncate">{v.productName || '—'}</p>
                                 {qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>}
                               </div>
                             </div>
@@ -1216,9 +1216,9 @@ export default function Productos() {
         title={editing ? 'Editar producto' : 'Nuevo producto'}
         footer={
           <div className="flex gap-3 justify-end">
-            <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+            <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
             <button onClick={handleSave} disabled={saving || !form.nombre || uploading}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2">
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all flex items-center gap-2">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {editing ? 'Guardar' : 'Crear producto'}
             </button>
@@ -1337,7 +1337,7 @@ export default function Productos() {
           {isDeluxe && (
             <div className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-xl">
               <div>
-                <p className="text-sm font-semibold text-white">Visible en catálogo</p>
+                <p className="text-sm font-semibold text-primary">Visible en catálogo</p>
                 <p className="text-xs text-slate-500 mt-0.5">Los clientes pueden ver este producto</p>
               </div>
               <button
@@ -1358,11 +1358,11 @@ export default function Productos() {
       </SlideOver>
       {showHelp && (
         <HelpModal title="Ayuda — Productos" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Productos</strong> gestionas los artículos disponibles para reserva o venta en el local.</p>
+          <p>En <strong className="text-primary">Productos</strong> gestionas los artículos disponibles para reserva o venta en el local.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>Agrega productos con nombre, descripción, precio, stock e imagen.</li>
             <li>Activa o desactiva la tienda con el interruptor — cuando está desactivada los clientes no ven los productos.</li>
-            <li>Revisa las <span className="text-white">reservas pendientes</span> al final de la página y aprueba o rechaza cada solicitud.</li>
+            <li>Revisa las <span className="text-primary">reservas pendientes</span> al final de la página y aprueba o rechaza cada solicitud.</li>
             <li>El stock se reduce automáticamente al aprobar una reserva.</li>
           </ul>
         </HelpModal>
@@ -1384,9 +1384,9 @@ export default function Productos() {
             <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag size={18} className="text-emerald-400 animate-bounce" />
-                <h3 className="font-bold text-white text-base">Venta Rápida de Producto</h3>
+                <h3 className="font-bold text-primary text-base">Venta Rápida de Producto</h3>
               </div>
-              <button onClick={() => setVentaRapidaOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => setVentaRapidaOpen(false)} className="text-slate-400 hover:text-primary transition-colors">
                 <XCircle size={20} />
               </button>
             </div>
@@ -1509,17 +1509,17 @@ export default function Productos() {
                   <div className="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-2 text-xs">
                     <div className="flex justify-between items-center text-slate-400">
                       <span>Precio Unitario:</span>
-                      <span className="font-semibold text-white">${Number(prod.precio || 0).toLocaleString('es-CL')}</span>
+                      <span className="font-semibold text-primary">${Number(prod.precio || 0).toLocaleString('es-CL')}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-400">
                       <span>Cantidad:</span>
-                      <span className="font-semibold text-white">{vrForm.cantidad}</span>
+                      <span className="font-semibold text-primary">{vrForm.cantidad}</span>
                     </div>
                     {descuento > 0 && (
                       <>
                         <div className="flex justify-between items-center text-slate-400">
                           <span>Subtotal:</span>
-                          <span className="font-semibold text-white">${subtotal.toLocaleString('es-CL')}</span>
+                          <span className="font-semibold text-primary">${subtotal.toLocaleString('es-CL')}</span>
                         </div>
                         <div className="flex justify-between items-center text-amber-400">
                           <span>Descuento ({descuento}%):</span>
@@ -1527,7 +1527,7 @@ export default function Productos() {
                         </div>
                       </>
                     )}
-                    <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-white">
+                    <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-primary">
                       <span>Total Venta:</span>
                       <span className="text-emerald-400">${total.toLocaleString('es-CL')}</span>
                     </div>
@@ -1545,14 +1545,14 @@ export default function Productos() {
             <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex gap-3 justify-end">
               <button 
                 onClick={() => setVentaRapidaOpen(false)} 
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all"
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleVentaRapidaSave} 
                 disabled={vrSaving || !vrForm.productId || !vrForm.barberoId}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
               >
                 {vrSaving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Registrar Venta
@@ -1567,14 +1567,14 @@ export default function Productos() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEntregaModal(null)}>
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Confirmar Entrega</h3>
-              <button onClick={() => setEntregaModal(null)} className="text-slate-500 hover:text-white transition-colors">
+              <h3 className="text-lg font-bold text-primary">Confirmar Entrega</h3>
+              <button onClick={() => setEntregaModal(null)} className="text-slate-500 hover:text-primary transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
-              <p className="text-sm text-white font-semibold">{entregaModal.productName || 'Producto'}</p>
+              <p className="text-sm text-primary font-semibold">{entregaModal.productName || 'Producto'}</p>
               <p className="text-xs text-slate-400 mt-0.5">Cliente: {entregaModal.userName || '—'}</p>
               {entregaModal.precio && (
                 <p className="text-sm font-bold text-emerald-400 mt-1">${Number(entregaModal.precio).toLocaleString('es-CL')}</p>
@@ -1584,7 +1584,7 @@ export default function Productos() {
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Método de Pago *</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
                 value={entregaForm.metodoPago}
                 onChange={e => setEntregaForm(f => ({ ...f, metodoPago: e.target.value }))}
               >
@@ -1601,7 +1601,7 @@ export default function Productos() {
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Barbero Vendedor *</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
                 value={entregaForm.barberoId}
                 onChange={e => setEntregaForm(f => ({ ...f, barberoId: e.target.value }))}
               >
@@ -1615,7 +1615,7 @@ export default function Productos() {
             <div className="flex gap-3 pt-1">
               <button
                 onClick={() => setEntregaModal(null)}
-                className="flex-1 px-4 py-2.5 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 border border-slate-700 transition-all"
+                className="flex-1 px-4 py-2.5 text-sm text-slate-400 hover:text-primary rounded-xl hover:bg-slate-800 border border-slate-700 transition-all"
               >
                 Cancelar
               </button>

@@ -10,7 +10,7 @@ const LOGO = '/logo1.png';
  * apertura y el logo revelándose con un anillo pulsante.
  *
  * Colores de texto van inline para no ser pisados por los overrides de
- * modo claro en index.css (que invierten text-white / text-slate-*).
+ * modo claro en index.css (que invierten text-primary / text-slate-*).
  */
 export default function ConfirmHost() {
   const state = useSyncExternalStore(subscribe, getState, getState);

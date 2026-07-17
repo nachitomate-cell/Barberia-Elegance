@@ -227,7 +227,7 @@ export default function ServicioFavorito() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Servicio Favorito</h1>
+            <h1 className="text-xl font-bold text-primary">Servicio Favorito</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -248,7 +248,7 @@ export default function ServicioFavorito() {
               <Power size={18} className={activo ? 'text-emerald-400' : 'text-slate-500'} />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-primary">
                 Sección en dashboard:{' '}
                 <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>
                   {activo ? 'Activa' : 'Inactiva'}
@@ -283,7 +283,7 @@ export default function ServicioFavorito() {
           <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle size={22} className="text-amber-400 shrink-0" />
-              <h3 className="font-semibold text-white">Activar Servicio Favorito</h3>
+              <h3 className="font-semibold text-primary">Activar Servicio Favorito</h3>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-5">
               Los clientes con foto asignada la verán en su panel de fidelización.<br /><br />
@@ -292,13 +292,13 @@ export default function ServicioFavorito() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmOn(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => toggleActivo(true)}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold rounded-lg transition-all"
               >
                 Activar
               </button>
@@ -309,7 +309,7 @@ export default function ServicioFavorito() {
 
       {/* Upload form — dropzone horizontal + CTA indigo */}
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 mt-4 mb-6">
-        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
           <Plus size={15} className="text-indigo-400" />
           Asignar foto a un cliente
         </h2>
@@ -324,7 +324,7 @@ export default function ServicioFavorito() {
           {addPreview ? (
             <>
               <img src={addPreview} alt="Preview" className="w-24 h-24 rounded-lg object-cover border border-slate-600 mb-3" />
-              <span className="text-xs font-semibold text-white">Foto lista para subir</span>
+              <span className="text-xs font-semibold text-primary">Foto lista para subir</span>
               <span className="text-[10px] text-slate-500 mt-0.5">Toca para cambiarla</span>
             </>
           ) : (
@@ -352,7 +352,7 @@ export default function ServicioFavorito() {
           onChange={e => setAddEmail(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleUpload()}
           placeholder="correo@cliente.com"
-          className="bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl p-3 w-full text-white placeholder-slate-500 focus:outline-none transition-colors mt-4"
+          className="bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl p-3 w-full text-primary placeholder-slate-500 focus:outline-none transition-colors mt-4"
         />
         {addErr && <p className="text-xs text-rose-400 mt-2">{addErr}</p>}
 
@@ -361,14 +361,14 @@ export default function ServicioFavorito() {
           <button
             onClick={handleUpload}
             disabled={uploading || !addEmail.trim() || !addFile}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary rounded-xl py-3 font-medium shadow-lg shadow-indigo-500/20 transition-colors"
           >
             {uploading ? `${progressLabel} ${progress}%` : 'Guardar'}
           </button>
           {(addEmail || addFile) && !uploading && (
             <button
               onClick={clearForm}
-              className="p-3 rounded-xl text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+              className="p-3 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors shrink-0"
               title="Limpiar"
             >
               <X size={16} />
@@ -400,7 +400,7 @@ export default function ServicioFavorito() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por correo…"
-            className="w-full pl-9 pr-3 py-3 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-colors"
+            className="w-full pl-9 pr-3 py-3 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-primary placeholder-slate-500 focus:outline-none transition-colors"
           />
         </div>
       </div>
@@ -449,7 +449,7 @@ export default function ServicioFavorito() {
 
                 {/* Info — flex-1 min-w-0 para truncate robusto */}
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-white truncate block">{entrada.email}</span>
+                  <span className="text-sm font-bold text-primary truncate block">{entrada.email}</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {entrada.adminUrl && (
                       <span className="inline-block text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md mt-1">
@@ -469,7 +469,7 @@ export default function ServicioFavorito() {
                   {displayUrl && (
                     <button
                       onClick={e => handleOpenFocalModal(e, entrada)}
-                      className="text-slate-500 p-2 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+                      className="text-slate-500 p-2 rounded-lg hover:bg-slate-700 hover:text-primary transition-colors"
                       title="Ajustar enfoque"
                     >
                       <Crosshair size={16} />
@@ -492,14 +492,14 @@ export default function ServicioFavorito() {
       {showHelp && (
         <HelpModal title="Ayuda — Servicio Favorito" onClose={() => setShowHelp(false)}>
           <p>
-            Asignale a cada cliente una <strong className="text-white">foto personalizada</strong> que
+            Asignale a cada cliente una <strong className="text-primary">foto personalizada</strong> que
             aparecerá en su panel de fidelización.
           </p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Ingresa el <span className="text-white">correo del cliente</span> y elige una foto.</li>
-            <li>Si ya tiene foto asignada, se <span className="text-white">reemplaza</span>.</li>
+            <li>Ingresa el <span className="text-primary">correo del cliente</span> y elige una foto.</li>
+            <li>Si ya tiene foto asignada, se <span className="text-primary">reemplaza</span>.</li>
             <li>
-              Los clientes también pueden <span className="text-white">subir su propia foto</span> si
+              Los clientes también pueden <span className="text-primary">subir su propia foto</span> si
               no tienen ninguna asignada por el local.
             </li>
             <li>Activa la sección para que sea visible en el dashboard de fidelización.</li>
@@ -516,7 +516,7 @@ export default function ServicioFavorito() {
           <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-2 mb-2">
               <Crosshair className="text-amber-400 shrink-0" size={20} />
-              <h3 className="font-semibold text-white text-lg">
+              <h3 className="font-semibold text-primary text-lg">
                 Ajustar Punto Focal
               </h3>
             </div>
@@ -551,14 +551,14 @@ export default function ServicioFavorito() {
                 <button
                   onClick={() => setFocalTarget(null)}
                   disabled={savingFocal}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSaveFocal}
                   disabled={savingFocal}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-40"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-ink-950 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-40"
                 >
                   {savingFocal ? 'Guardando...' : 'Guardar Enfoque'}
                 </button>

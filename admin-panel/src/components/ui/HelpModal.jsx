@@ -4,7 +4,7 @@ export function HelpButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-all shrink-0"
+      className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-primary border border-slate-700 transition-all shrink-0"
       aria-label="Ayuda"
       title="Ayuda"
     >
@@ -23,11 +23,11 @@ export default function HelpModal({ title, onClose, children }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <HelpCircle size={16} className="text-emerald-400 shrink-0" />
-            <h3 className="font-semibold text-white">{title}</h3>
+            <h3 className="font-semibold text-primary">{title}</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all"
           >
             <X size={16} />
           </button>

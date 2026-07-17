@@ -66,7 +66,7 @@ function calcTier(historicos) {
 }
 
 const TIER_STYLE = {
-  SILVER:   { label: 'Silver',   Icon: Medal, color: '#94a3b8', text: 'text-slate-300', bar: 'bg-slate-400' },
+  SILVER:   { label: 'Silver',   Icon: Medal, color: '#94a3b8', text: 'text-slate-300', bar: 'bg-ink-400' },
   GOLD:     { label: 'Gold',     Icon: Crown, color: '#eab308', text: 'text-yellow-400', bar: 'bg-yellow-500' },
   PLATINUM: { label: 'Platinum', Icon: Gem,   color: '#a855f7', text: 'text-purple-400', bar: 'bg-purple-500' },
 };
@@ -495,7 +495,7 @@ function ResumenFidelizacion() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
           <Crown size={16} className="text-purple-400" />
-          <h3 className="text-sm font-bold text-white">Distribución del club por rango</h3>
+          <h3 className="text-sm font-bold text-primary">Distribución del club por rango</h3>
           <span className="ml-auto text-xs text-slate-500">
             {stats.baseRangos} miembros con historial
           </span>
@@ -535,7 +535,7 @@ function ResumenFidelizacion() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className={`text-xs font-bold uppercase tracking-wider ${style.text}`}>{style.label}</p>
-                      <p className="text-lg font-bold text-white leading-tight">{count.toLocaleString('es-CL')}</p>
+                      <p className="text-lg font-bold text-primary leading-tight">{count.toLocaleString('es-CL')}</p>
                       <p className="text-[11px] text-slate-500">{pct.toFixed(1)}% del club</p>
                     </div>
                   </div>
@@ -552,7 +552,7 @@ function ResumenFidelizacion() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
             <Gift size={16} className="text-amber-400" />
-            <h3 className="text-sm font-bold text-white">Premios más canjeados</h3>
+            <h3 className="text-sm font-bold text-primary">Premios más canjeados</h3>
             <span className="ml-auto text-xs text-slate-500 truncate">{periodoLabel.toLowerCase()}</span>
           </div>
           {stats.topPremios.length === 0 ? (
@@ -569,7 +569,7 @@ function ResumenFidelizacion() {
                     #{i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{p.nombre}</p>
+                    <p className="text-sm font-medium text-primary truncate">{p.nombre}</p>
                     <p className="text-xs text-slate-500">{p.costo || '—'} sellos</p>
                   </div>
                   <span className="text-sm font-bold text-amber-400 shrink-0">{p.count}</span>
@@ -583,7 +583,7 @@ function ResumenFidelizacion() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
             <Clock size={16} className="text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Últimos canjes validados</h3>
+            <h3 className="text-sm font-bold text-primary">Últimos canjes validados</h3>
             {stats.todosLosCanjes.length > 5 && (
               <button
                 onClick={() => setShowAllCanjes(true)}
@@ -603,7 +603,7 @@ function ResumenFidelizacion() {
                     <CheckCircle2 size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{c.premio}</p>
+                    <p className="text-sm font-medium text-primary truncate">{c.premio}</p>
                     <p className="text-xs text-slate-500 truncate">{c.cliente}</p>
                   </div>
                   <span className="text-xs text-slate-500 shrink-0">
@@ -653,7 +653,7 @@ function StatCard({ Icon, label, value, sub, color = 'emerald', action = null })
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
-          <p className="text-2xl font-bold text-white mt-0.5 tracking-tight break-words">{value}</p>
+          <p className="text-2xl font-bold text-primary mt-0.5 tracking-tight break-words">{value}</p>
           {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
         </div>
       </div>
@@ -713,7 +713,7 @@ function TrendCard({ Icon, label, color = 'blue', data, buckets }) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
-            <p className="text-lg font-bold text-white leading-tight">{data.actual}</p>
+            <p className="text-lg font-bold text-primary leading-tight">{data.actual}</p>
           </div>
         </div>
         <div className={`flex items-center gap-0.5 text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded ${
@@ -758,10 +758,10 @@ function AllCanjesModal({ open, onClose, canjes, periodoLabel }) {
       >
         <div className="flex items-start justify-between p-5 border-b border-slate-800 shrink-0">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-white">Canjes validados</h3>
+            <h3 className="text-base font-bold text-primary">Canjes validados</h3>
             <p className="text-xs text-slate-500 mt-0.5">{total} canjes en {periodoLabel.toLowerCase()}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -777,7 +777,7 @@ function AllCanjesModal({ open, onClose, canjes, periodoLabel }) {
                     <CheckCircle2 size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{c.premio}</p>
+                    <p className="text-sm font-medium text-primary truncate">{c.premio}</p>
                     <p className="text-xs text-slate-500 truncate">{c.cliente}</p>
                   </div>
                   <span className="text-xs text-slate-500 shrink-0">
@@ -796,14 +796,14 @@ function AllCanjesModal({ open, onClose, canjes, periodoLabel }) {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Anterior
               </button>
               <button
                 onClick={() => setPage(p => Math.min(pages, p + 1))}
                 disabled={page === pages}
-                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Siguiente
               </button>
@@ -871,13 +871,13 @@ function BroadcastModal({ open, onClose, type, clients, tenant, menorCosto }) {
         {/* Header */}
         <div className="flex items-start justify-between p-5 border-b border-slate-800 shrink-0">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-white">{title}</h3>
+            <h3 className="text-base font-bold text-primary">{title}</h3>
             <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
             <p className="text-[11px] text-slate-600 mt-2">
               Cada envío abre WhatsApp con el mensaje pre-llenado — presiona <kbd className="px-1 py-0.5 bg-slate-800 rounded text-[10px] font-mono">Enter</kbd> para mandarlo y vuelve acá para el siguiente.
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -909,7 +909,7 @@ function BroadcastModal({ open, onClose, type, clients, tenant, menorCosto }) {
                       {(c.nombre || '?').slice(0, 1).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-white truncate">{c.nombre || 'Sin nombre'}</p>
+                      <p className="text-sm font-medium text-primary truncate">{c.nombre || 'Sin nombre'}</p>
                       <p className="text-xs text-slate-500 truncate">{phone ? `+${phone}` : 'Sin teléfono'} · {detalle}</p>
                     </div>
                     <button
@@ -937,7 +937,7 @@ function BroadcastModal({ open, onClose, type, clients, tenant, menorCosto }) {
         <div className="p-4 border-t border-slate-800 flex items-center justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors"
           >
             Cerrar
           </button>
@@ -986,10 +986,10 @@ function PreviewDashboard() {
             <Smartphone size={16} className="text-amber-400" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-white">Así ve tu cliente el dashboard</h3>
+            <h3 className="text-sm font-bold text-primary">Así ve tu cliente el dashboard</h3>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-              Vista previa real del <strong className="text-white">/dashboard.html</strong> que abre cada cliente cuando entra al club.
-              Los <strong className="text-white">rangos, premios, colores y logo son los tuyos</strong>; solo los sellos e historial son datos de prueba
+              Vista previa real del <strong className="text-primary">/dashboard.html</strong> que abre cada cliente cuando entra al club.
+              Los <strong className="text-primary">rangos, premios, colores y logo son los tuyos</strong>; solo los sellos e historial son datos de prueba
               para que puedas ver cómo se ve en cada estado.
             </p>
           </div>
@@ -1015,7 +1015,7 @@ function PreviewDashboard() {
                     : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/60'
                 }`}
               >
-                <p className={`text-sm font-bold leading-tight ${active ? 'text-amber-300' : 'text-white'}`}>
+                <p className={`text-sm font-bold leading-tight ${active ? 'text-amber-300' : 'text-primary'}`}>
                   {s.label}
                 </p>
                 <p className={`text-[11px] mt-0.5 leading-snug ${active ? 'text-amber-400/70' : 'text-slate-500'}`}>
@@ -1034,7 +1034,7 @@ function PreviewDashboard() {
           <button
             onClick={() => setRefreshKey(k => k + 1)}
             title="Recargar la vista previa"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-primary hover:border-slate-700 transition-colors"
           >
             <RefreshCw size={12} />
             Recargar
@@ -1042,7 +1042,7 @@ function PreviewDashboard() {
           <button
             onClick={openExternal}
             title="Abrir en pestaña nueva"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-primary hover:border-slate-700 transition-colors"
           >
             <ExternalLink size={12} />
             Abrir en pestaña
@@ -1190,7 +1190,7 @@ function QrClienteFidelizacion() {
             <QrCode size={20} className="text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-white font-bold text-lg leading-tight">QR del Club</h2>
+            <h2 className="text-primary font-bold text-lg leading-tight">QR del Club</h2>
             <p className="text-sm text-slate-400 mt-1 leading-relaxed">
               Imprime este QR y ponlo en el local. Cuando un cliente lo escanea, entra directo a su tarjeta de fidelidad.
             </p>
@@ -1232,9 +1232,9 @@ function QrClienteFidelizacion() {
                   <Sparkles size={11} className="text-emerald-400" />
                 </span>
                 <div>
-                  <p className="font-semibold text-white">Cliente nuevo</p>
+                  <p className="font-semibold text-primary">Cliente nuevo</p>
                   <p className="text-slate-400 text-[13px] leading-snug">
-                    El sistema lo lleva al <span className="text-white font-medium">registro rápido</span> (30 segundos).
+                    El sistema lo lleva al <span className="text-primary font-medium">registro rápido</span> (30 segundos).
                     Al terminar, ya tiene su tarjeta digital lista y su primer sello.
                   </p>
                 </div>
@@ -1244,9 +1244,9 @@ function QrClienteFidelizacion() {
                   <Trophy size={11} className="text-amber-400" />
                 </span>
                 <div>
-                  <p className="font-semibold text-white">Cliente ya registrado</p>
+                  <p className="font-semibold text-primary">Cliente ya registrado</p>
                   <p className="text-slate-400 text-[13px] leading-snug">
-                    Ve directamente su <span className="text-white font-medium">tarjeta de fidelidad</span>:
+                    Ve directamente su <span className="text-primary font-medium">tarjeta de fidelidad</span>:
                     cuántos sellos tiene, cuánto le falta para el próximo premio, y su historial de visitas.
                   </p>
                 </div>
@@ -1258,7 +1258,7 @@ function QrClienteFidelizacion() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={imprimir}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-ink-950 text-sm font-bold rounded-lg transition-colors"
             >
               <Printer size={14} /> Imprimir
             </button>
@@ -1276,7 +1276,7 @@ function QrClienteFidelizacion() {
             </button>
             <a
               href={dashboardUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-sm font-semibold rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-primary text-sm font-semibold rounded-lg transition-colors"
             >
               <ExternalLink size={14} /> Abrir en nueva pestaña
             </a>
@@ -1332,7 +1332,7 @@ export default function Fidelizacion() {
           <Trophy size={20} className="text-amber-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-white truncate">Fidelización</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-primary truncate">Fidelización</h1>
           <p className="text-xs text-slate-500 truncate">Club, premios, canjes y rangos — todo en un solo lugar</p>
         </div>
         <button

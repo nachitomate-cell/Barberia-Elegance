@@ -63,14 +63,14 @@ export default function Soporte() {
     }
   }
 
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none';
 
   return (
     <div data-view="soporte" className="max-w-2xl mx-auto space-y-6 pb-10">
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-xl font-bold text-primary flex items-center gap-2">
           Soporte
           <HelpButton onClick={() => setShowHelp(true)} />
         </h1>
@@ -83,7 +83,7 @@ export default function Soporte() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800 bg-slate-800/30">
           <MessageSquare size={15} className="text-slate-400 shrink-0" />
-          <h2 className="text-sm font-semibold text-white">Nuevo mensaje</h2>
+          <h2 className="text-sm font-semibold text-primary">Nuevo mensaje</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
@@ -130,7 +130,7 @@ export default function Soporte() {
           <button
             type="submit"
             disabled={!mensaje.trim() || sending}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all"
           >
             {sending
               ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -145,7 +145,7 @@ export default function Soporte() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800 bg-slate-800/30">
             <Headphones size={15} className="text-slate-400 shrink-0" />
-            <h2 className="text-sm font-semibold text-white">Mensajes enviados</h2>
+            <h2 className="text-sm font-semibold text-primary">Mensajes enviados</h2>
           </div>
           <div className="divide-y divide-slate-800/60">
             {historial.map(m => {
@@ -184,20 +184,20 @@ export default function Soporte() {
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Tipos de mensaje</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li><strong className="text-white">Sugerencia</strong>: idea o mejora que se te ocurra.</li>
-              <li><strong className="text-white">Reclamo</strong>: algo no funciona o no te gusta cómo está hecho.</li>
-              <li><strong className="text-white">Consulta</strong>: pregunta operativa o de configuración.</li>
+              <li><strong className="text-primary">Sugerencia</strong>: idea o mejora que se te ocurra.</li>
+              <li><strong className="text-primary">Reclamo</strong>: algo no funciona o no te gusta cómo está hecho.</li>
+              <li><strong className="text-primary">Consulta</strong>: pregunta operativa o de configuración.</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Tiempos de respuesta</p>
-            <p>Reportes urgentes: respuesta en <strong className="text-white">horas</strong>. Mejoras y sugerencias: las priorizamos según impacto y volumen. Si es bloqueante, marcalo como reclamo.</p>
+            <p>Reportes urgentes: respuesta en <strong className="text-primary">horas</strong>. Mejoras y sugerencias: las priorizamos según impacto y volumen. Si es bloqueante, marcalo como reclamo.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Más rápido por WhatsApp</p>
-            <p>Para algo urgente: <strong className="text-white">+56 9 8356 8212</strong>. El mismo número aparece en el botón verde de WA en /agenda.html.</p>
+            <p>Para algo urgente: <strong className="text-primary">+56 9 8356 8212</strong>. El mismo número aparece en el botón verde de WA en /agenda.html.</p>
           </div>
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Abajo puedes ver el feed de novedades (SynapTech News) — actualizaciones, features nuevas y avisos importantes del producto.</p>

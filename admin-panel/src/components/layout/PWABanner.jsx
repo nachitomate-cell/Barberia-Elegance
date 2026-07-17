@@ -72,7 +72,7 @@ export default function PWABanner() {
 
         {/* Texto */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white leading-tight">
+          <p className="text-sm font-semibold text-primary leading-tight">
             Instala el Panel Admin
           </p>
           {isIOS ? (
@@ -92,7 +92,7 @@ export default function PWABanner() {
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="flex items-center gap-1.5 mt-2.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-all"
+              className="flex items-center gap-1.5 mt-2.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-primary text-xs font-semibold rounded-lg transition-all"
             >
               {installing ? (
                 <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

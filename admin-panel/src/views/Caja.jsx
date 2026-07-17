@@ -111,8 +111,8 @@ function MiniModal({ title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
+          <h3 className="text-lg font-bold text-primary">{title}</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary transition-colors"><X size={18} /></button>
         </div>
         {children}
       </div>
@@ -441,7 +441,7 @@ function ReporteContadorModal({ tenantName, onClose }) {
         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Mes</label>
         <input type="month" value={mesKey} max={defaultKey}
           onChange={e => setMesKey(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500"
         />
       </div>
       {err && (
@@ -455,7 +455,7 @@ function ReporteContadorModal({ tenantName, onClose }) {
           Cancelar
         </button>
         <button onClick={handleGenerar} disabled={generando}
-          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-primary text-sm font-bold transition-colors flex items-center justify-center gap-2">
           {generando ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Printer size={14} />}
           {generando ? 'Generando...' : 'Generar e imprimir'}
         </button>
@@ -683,9 +683,9 @@ function ConciliacionModal({ onClose }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <ListChecks size={16} className="text-cyan-400" />
-            <h3 className="text-base font-bold text-white">Conciliación bancaria</h3>
+            <h3 className="text-base font-bold text-primary">Conciliación bancaria</h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary transition-colors"><X size={18} /></button>
         </div>
 
         <div className="overflow-y-auto p-5 space-y-4">
@@ -698,7 +698,7 @@ function ConciliacionModal({ onClose }) {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Mes a conciliar</label>
                 <input type="month" value={mesKey} max={defaultKey}
                   onChange={e => setMesKey(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-cyan-500"
                 />
               </div>
               <div>
@@ -707,7 +707,7 @@ function ConciliacionModal({ onClose }) {
                   value={texto}
                   onChange={e => setTexto(e.target.value)}
                   placeholder={"Fecha;Descripción;Monto\n2026-06-12;Pago tarjeta;-25000\n2026-06-13;Transferencia Pedro;15990"}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 resize-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-xs font-mono text-primary placeholder-slate-600 focus:outline-none focus:border-cyan-500 resize-none"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
                   Acepta separador `,` o `;`. Montos negativos = gastos, positivos = ingresos. Fechas en YYYY-MM-DD o DD/MM/YYYY.
@@ -724,7 +724,7 @@ function ConciliacionModal({ onClose }) {
                   Cancelar
                 </button>
                 <button onClick={handleConciliar} disabled={procesando || !texto.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-primary text-sm font-bold transition-colors flex items-center justify-center gap-2">
                   {procesando ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <ListChecks size={14} />}
                   {procesando ? 'Conciliando…' : 'Conciliar'}
                 </button>
@@ -851,7 +851,7 @@ function ArqueoDenominaciones({ conteo, setConteo, total }) {
                   placeholder="0"
                   value={q}
                   onChange={e => setQty(d.valor, e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-sm text-white text-center focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-sm text-primary text-center focus:outline-none focus:border-emerald-500"
                 />
               </div>
               {subtotal > 0 && (
@@ -1377,7 +1377,7 @@ export default function Caja() {
   };
 
   /* ── Render helpers ─────────────────────────────────────── */
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1';
 
   /* ── Loading ────────────────────────────────────────────── */
@@ -1401,17 +1401,17 @@ export default function Caja() {
             <Wallet size={36} className="text-emerald-400" />
           </div>
           <div className="flex items-center justify-center gap-2 mb-1">
-            <h1 className="text-2xl font-black text-white">Control de Caja</h1>
+            <h1 className="text-2xl font-black text-primary">Control de Caja</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-slate-400 text-sm">Abre la caja para comenzar a registrar las transacciones del día.</p>
           <div className="flex flex-wrap gap-2 justify-center mt-4">
             <button onClick={() => setShowReporteContador(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-lg text-xs font-semibold transition-colors">
               <FileText size={13} /> Reporte para contador
             </button>
             <button onClick={() => setShowConciliacion(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-lg text-xs font-semibold transition-colors">
               <ListChecks size={13} /> Conciliar cartola
             </button>
           </div>
@@ -1448,7 +1448,7 @@ export default function Caja() {
           <button
             onClick={handleAbrirCaja}
             disabled={abriendo || !montoApertura}
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors flex items-center justify-center gap-2"
           >
             {abriendo ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Lock size={16} />}
             {abriendo ? 'Abriendo...' : 'Abrir Caja'}
@@ -1468,12 +1468,12 @@ export default function Caja() {
                   <div key={h.id} className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                        <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
                         <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}</p>
                       </div>
                       <div className="flex items-center gap-4 text-xs">
-                        <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                        <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                        <span className="text-slate-400">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                        <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
                         <span className={`font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {diff >= 0 ? '+' : ''}{fmtCurrency(diff)}
                         </span>
@@ -1508,7 +1508,7 @@ export default function Caja() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
+          <h1 className="text-xl font-black text-primary flex items-center gap-2">
             <Wallet size={22} className="text-emerald-400" /> Caja Activa
             <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
@@ -1517,7 +1517,7 @@ export default function Caja() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setShowReporteContador(true)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors">
+          <button onClick={() => setShowReporteContador(true)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-xl text-xs font-bold transition-colors">
             <FileText size={14} /> Contador
           </button>
           <button onClick={() => setShowConciliacion(true)} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-xl text-xs font-bold transition-colors">
@@ -1557,7 +1557,7 @@ export default function Caja() {
           </div>
           <button
             onClick={() => setShowCierre(true)}
-            className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+            className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-primary font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
           >
             <Lock size={14} /> Cerrar ahora
           </button>
@@ -1593,9 +1593,9 @@ export default function Caja() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cash flow summary */}
         <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
-          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Banknote size={15} className="text-emerald-400" /> Flujo de Efectivo</h2>
+          <h2 className="text-sm font-bold text-primary mb-4 flex items-center gap-2"><Banknote size={15} className="text-emerald-400" /> Flujo de Efectivo</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-slate-400">Apertura</span><span className="text-white font-semibold">{fmtCurrency(kpis.apertura)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-400">Apertura</span><span className="text-primary font-semibold">{fmtCurrency(kpis.apertura)}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">+ Servicios (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.serviciosEfectivo)}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">+ Productos (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.productosEfectivo)}</span></div>
             {kpis.propinasEfectivo > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Propinas efectivo <span className="text-[10px] text-amber-400">(para equipo)</span></span><span className="text-amber-400 font-semibold">+{fmtCurrency(kpis.propinasEfectivo)}</span></div>}
@@ -1603,7 +1603,7 @@ export default function Caja() {
             <div className="flex justify-between"><span className="text-slate-400">− Gastos (efectivo)</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.gastosEfectivo)}</span></div>
             {kpis.egrManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">− Egresos manuales</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.egrManuales)}</span></div>}
             <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between">
-              <span className="text-white font-bold">Saldo Esperado</span>
+              <span className="text-primary font-bold">Saldo Esperado</span>
               <span className="text-emerald-400 font-black text-lg">{fmtCurrency(kpis.saldoEsperado)}</span>
             </div>
           </div>
@@ -1611,7 +1611,7 @@ export default function Caja() {
 
         {/* Other methods */}
         <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
-          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><CreditCard size={15} className="text-purple-400" /> Otros Métodos</h2>
+          <h2 className="text-sm font-bold text-primary mb-4 flex items-center gap-2"><CreditCard size={15} className="text-purple-400" /> Otros Métodos</h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl">
               <div className="flex items-center gap-2 text-sm text-purple-300"><CreditCard size={14} /> Tarjeta</div>
@@ -1645,7 +1645,7 @@ export default function Caja() {
 
       {/* Timeline */}
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
-        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Clock size={15} className="text-blue-400" /> Transacciones del Día ({timeline.length})</h2>
+        <h2 className="text-sm font-bold text-primary mb-4 flex items-center gap-2"><Clock size={15} className="text-blue-400" /> Transacciones del Día ({timeline.length})</h2>
         {timeline.length === 0 ? (
           <p className="text-center text-slate-500 text-sm py-6">Aún no hay transacciones registradas hoy.</p>
         ) : (
@@ -1665,7 +1665,7 @@ export default function Caja() {
                 <div key={i} className={`flex items-center gap-3 px-3 py-2.5 bg-slate-900/40 border border-slate-700/30 border-l-2 ${typeColors[t.type] || 'border-l-slate-500'} rounded-lg ${revertido ? 'opacity-50' : ''}`}>
                   <span className="text-xs text-slate-500 font-mono w-12 shrink-0">{t.time}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm text-white truncate ${revertido ? 'line-through' : ''}`}>{t.label}</p>
+                    <p className={`text-sm text-primary truncate ${revertido ? 'line-through' : ''}`}>{t.label}</p>
                     <p className="text-[11px] text-slate-500 truncate">
                       {t.sub}
                       {revertido && t.motivoReverso ? (
@@ -1706,12 +1706,12 @@ export default function Caja() {
                 <div key={h.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                      <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
                       <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}{h.observaciones ? ` · ${h.observaciones}` : ''}</p>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="text-slate-400">Esperado: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                      <span className="text-slate-400">Real: <span className="text-white font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                      <span className="text-slate-400">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                      <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
                       <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${diff >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                         {diff >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(diff))}
                       </span>
@@ -1794,7 +1794,7 @@ export default function Caja() {
             <button
               onClick={handleCerrarCaja}
               disabled={cerrando || cierreEfectivo === ''}
-              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors"
+              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors"
             >
               {cerrando ? 'Cerrando...' : 'Confirmar Cierre de Caja'}
             </button>
@@ -1817,7 +1817,7 @@ export default function Caja() {
             <button
               onClick={() => handleAjuste('ingreso')}
               disabled={adjSaving || !adjDesc.trim() || !adjMonto}
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors"
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors"
             >
               {adjSaving ? 'Guardando...' : 'Registrar Ingreso'}
             </button>
@@ -1840,7 +1840,7 @@ export default function Caja() {
             <button
               onClick={() => handleAjuste('egreso')}
               disabled={adjSaving || !adjDesc.trim() || !adjMonto}
-              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors"
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors"
             >
               {adjSaving ? 'Guardando...' : 'Registrar Egreso'}
             </button>
@@ -1894,7 +1894,7 @@ export default function Caja() {
             <button
               onClick={handleCorteX}
               disabled={corteXSaving}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors flex items-center justify-center gap-2"
             >
               {corteXSaving ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Printer size={14} />}
               {corteXSaving ? 'Generando...' : 'Imprimir corte X'}
@@ -1914,7 +1914,7 @@ export default function Caja() {
               </p>
             </div>
             <p className="text-xs text-slate-400">
-              El movimiento queda en el registro como <strong className="text-white">revertido</strong> (no se borra), con tu usuario y el motivo. El saldo esperado se recalcula sin este monto.
+              El movimiento queda en el registro como <strong className="text-primary">revertido</strong> (no se borra), con tu usuario y el motivo. El saldo esperado se recalcula sin este monto.
             </p>
             <div>
               <label className={lbl}>Motivo del reverso</label>
@@ -1931,7 +1931,7 @@ export default function Caja() {
             <button
               onClick={handleRevertir}
               disabled={revirtiendo || !motivoReverso.trim()}
-              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-white font-bold text-sm transition-colors"
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 text-primary font-bold text-sm transition-colors"
             >
               {revirtiendo ? 'Revirtiendo...' : 'Confirmar reverso'}
             </button>
@@ -1942,25 +1942,25 @@ export default function Caja() {
       {/* Modal de ayuda */}
       {showHelp && (
         <HelpModal title="Cómo usar la Caja" onClose={() => setShowHelp(false)}>
-          <p><strong className="text-white">La caja</strong> centraliza todo el dinero del día: cierres, propinas, productos, gastos y retiros — todo en un solo sitio.</p>
+          <p><strong className="text-primary">La caja</strong> centraliza todo el dinero del día: cierres, propinas, productos, gastos y retiros — todo en un solo sitio.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Abrir la caja</p>
-            <p>Al inicio del día toca <em>"Abrir Caja"</em> e ingresa el <strong className="text-white">monto inicial en efectivo</strong> (lo que tienes físico en el cajón). Sin caja abierta no se registran transacciones del día.</p>
+            <p>Al inicio del día toca <em>"Abrir Caja"</em> e ingresa el <strong className="text-primary">monto inicial en efectivo</strong> (lo que tienes físico en el cajón). Sin caja abierta no se registran transacciones del día.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Durante el día</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li>Las <strong className="text-white">citas completadas</strong> en /agenda suman automáticamente.</li>
-              <li>Las <strong className="text-white">ventas de productos</strong> (rápidas o en el ticket de cita) también se cuentan solas.</li>
+              <li>Las <strong className="text-primary">citas completadas</strong> en /agenda suman automáticamente.</li>
+              <li>Las <strong className="text-primary">ventas de productos</strong> (rápidas o en el ticket de cita) también se cuentan solas.</li>
               <li>Si retiras efectivo (banco, gasto urgente, etc.), toca <em>"Egreso / Retiro"</em> para dejarlo registrado.</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Cerrar la caja</p>
-            <p>Al final del día, toca <em>"Cerrar Caja"</em> e ingresa lo que <strong className="text-white">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-white">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
+            <p>Al final del día, toca <em>"Cerrar Caja"</em> e ingresa lo que <strong className="text-primary">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-primary">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
             <p className="text-xs text-amber-400 mt-1">Las propinas en efectivo cuentan en el saldo esperado porque están en el cajón. Cuando cierres, separa esa plata para el equipo antes de guardar la caja.</p>
           </div>
 

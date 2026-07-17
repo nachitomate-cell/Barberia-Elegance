@@ -9,6 +9,52 @@ export default {
         display: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       colors: {
+        // ── La rampa slate ahora sale de tokens (ver styles/_tokens.css) ──
+        // `bg-slate-900` significa "superficie de tarjeta", no "#0f172a": el
+        // valor lo decide el tema. Esto es lo que hace nativo al modo claro —
+        // sin esto haría falta un override !important por cada clase.
+        // El formato rgb(var(...) / <alpha-value>) es obligatorio: es lo que
+        // mantiene vivos los ~600 modificadores de opacidad (bg-slate-800/40).
+        slate: {
+          50:  'rgb(var(--slate-50)  / <alpha-value>)',
+          100: 'rgb(var(--slate-100) / <alpha-value>)',
+          200: 'rgb(var(--slate-200) / <alpha-value>)',
+          300: 'rgb(var(--slate-300) / <alpha-value>)',
+          400: 'rgb(var(--slate-400) / <alpha-value>)',
+          500: 'rgb(var(--slate-500) / <alpha-value>)',
+          600: 'rgb(var(--slate-600) / <alpha-value>)',
+          700: 'rgb(var(--slate-700) / <alpha-value>)',
+          800: 'rgb(var(--slate-800) / <alpha-value>)',
+          900: 'rgb(var(--slate-900) / <alpha-value>)',
+          950: 'rgb(var(--slate-950) / <alpha-value>)',
+        },
+
+        // Texto principal. Reemplaza a `text-white`, que no podía ser token
+        // porque `white` también significa "blanco literal" en bg-white.
+        primary: 'rgb(var(--primary) / <alpha-value>)',
+
+        // Velo translúcido sobre la superficie: aclara en oscuro, oscurece
+        // en claro. Para `bg-glass/5`, `border-glass/10`.
+        glass: 'rgb(var(--glass) / <alpha-value>)',
+
+        // Gris CONGELADO — mismos valores que el slate nativo de Tailwind,
+        // pero inmune al tema. Es la válvula de escape para lo que ya vive
+        // sobre fondo claro fijo y por lo tanto no debe voltear: texto sobre
+        // un chip blanco, o los valores dentro de `[html.light_&]:`.
+        ink: {
+          50:  '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
+
         brand: {
           50:  '#ecfdf5',
           100: '#d1fae5',

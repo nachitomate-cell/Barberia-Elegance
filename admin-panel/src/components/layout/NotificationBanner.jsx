@@ -56,7 +56,7 @@ export default function NotificationBanner() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white leading-tight">
+          <p className="text-sm font-semibold text-primary leading-tight">
             Notificaciones de citas
           </p>
           <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
@@ -70,7 +70,7 @@ export default function NotificationBanner() {
           <button
             onClick={handleActivar}
             disabled={status === 'loading'}
-            className="flex items-center gap-1.5 mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-all"
+            className="flex items-center gap-1.5 mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-primary text-xs font-semibold rounded-lg transition-all"
           >
             {status === 'loading' ? (
               <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -116,7 +116,7 @@ function Card({ Icon, title, children }) {
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800 bg-slate-800/30">
         <Icon size={15} className="text-slate-400 shrink-0" />
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <h2 className="text-sm font-semibold text-primary">{title}</h2>
       </div>
       <div className="px-5 py-5 space-y-4">{children}</div>
     </div>
@@ -152,7 +152,7 @@ function DailyWelcomeToggleCard() {
     <Card Icon={Sparkles} title="Panel de bienvenida diaria">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <span className="text-sm font-semibold text-white">Mostrar al abrir el panel</span>
+          <span className="text-sm font-semibold text-primary">Mostrar al abrir el panel</span>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
             Es el saludo con accesos rapidos (agenda, metricas, marketing). Se muestra una vez al dia.
             Si lo apagaste con &quot;No volver a mostrar&quot;, lo puedes reactivar desde aqui.
@@ -190,7 +190,7 @@ function IosToggle({ checked, onChange, size = 'md' }) {
 
 /* Fila de día compacta (h-12) — toggle + nombre + selects h-8 o "Cerrado". */
 function DayRow({ diaKey, config, onChange }) {
-  const sel = 'h-8 text-xs bg-neutral-900 border border-neutral-700 rounded px-1.5 text-white focus:outline-none focus:border-emerald-500';
+  const sel = 'h-8 text-xs bg-neutral-900 border border-neutral-700 rounded px-1.5 text-primary focus:outline-none focus:border-emerald-500';
   return (
     <div className="h-12 flex items-center justify-between border-b border-neutral-800/50 py-1.5">
       <div className="flex items-center gap-3 min-w-0">
@@ -199,7 +199,7 @@ function DayRow({ diaKey, config, onChange }) {
           onChange={v => onChange({ ...config, activo: v })}
           size="sm"
         />
-        <span className={`text-sm font-semibold ${config.activo ? 'text-white' : 'text-neutral-500'}`}>
+        <span className={`text-sm font-semibold ${config.activo ? 'text-primary' : 'text-neutral-500'}`}>
           {DIAS_LABELS[diaKey]}
         </span>
       </div>
@@ -244,7 +244,7 @@ function ReferralComoFunciona() {
           <div key={p.n} className="flex gap-2.5 sm:flex-col sm:gap-1.5">
             <span className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black flex items-center justify-center shrink-0">{p.n}</span>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-white leading-tight">{p.emoji} {p.t}</p>
+              <p className="text-xs font-bold text-primary leading-tight">{p.emoji} {p.t}</p>
               <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{p.d}</p>
             </div>
           </div>
@@ -310,12 +310,12 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
             {/* ── 0 · Comparte ── */}
             {phase === 0 && (
               <div className="h-full bg-black p-3.5 pt-8 flex flex-col justify-center">
-                <p className="text-center text-[10px] text-white/40 font-bold tracking-widest mb-3">{nombre.toUpperCase()}</p>
+                <p className="text-center text-[10px] text-primary/40 font-bold tracking-widest mb-3">{nombre.toUpperCase()}</p>
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 text-center">
                   <div className="text-2xl mb-1">🎁</div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Invita y gana</p>
-                  <p className="text-[11px] text-white mt-1.5 leading-snug">Comparte <b>{nombre}</b> y gana <b className="text-emerald-300">{rDor}</b> por cada amigo.</p>
-                  <div className="mt-2.5 bg-black/50 border border-neutral-700 rounded-lg py-1.5 text-sm font-black tracking-widest text-white">IGNA-6072</div>
+                  <p className="text-[11px] text-primary mt-1.5 leading-snug">Comparte <b>{nombre}</b> y gana <b className="text-emerald-300">{rDor}</b> por cada amigo.</p>
+                  <div className="mt-2.5 bg-black/50 border border-neutral-700 rounded-lg py-1.5 text-sm font-black tracking-widest text-primary">IGNA-6072</div>
                   <div className="flex gap-1.5 mt-2.5">
                     <div className="flex-1 bg-neutral-800 rounded-md py-1.5 text-[9px] text-neutral-300 font-bold">📋 Copiar</div>
                     <div className="flex-1 bg-emerald-500 rounded-md py-1.5 text-[9px] text-black font-black">📱 WhatsApp</div>
@@ -327,7 +327,7 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
             {/* ── 1 · El amigo se registra ── */}
             {phase === 1 && (
               <div className="h-full bg-black p-4 pt-9 flex flex-col">
-                <p className="text-sm font-bold text-white text-center mb-3">Crear cuenta</p>
+                <p className="text-sm font-bold text-primary text-center mb-3">Crear cuenta</p>
                 <div className="space-y-2">
                   <div className="h-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center px-2.5 text-[11px] text-neutral-500">Nombre del amigo</div>
                   <div className="h-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center px-2.5 text-[11px] text-neutral-500">+56 9 ····</div>
@@ -346,7 +346,7 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
               <div className="h-full bg-neutral-950 p-4 pt-9 flex flex-col">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-2.5">Agenda del barbero</p>
                 <div className="rounded-xl border-l-4 border-emerald-500 bg-neutral-900 p-3">
-                  <p className="text-[12px] font-bold text-white">Amigo nuevo</p>
+                  <p className="text-[12px] font-bold text-primary">Amigo nuevo</p>
                   <p className="text-[10px] text-neutral-400 mt-0.5">Corte · 12:30</p>
                   <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 text-[10px] font-bold text-emerald-400">
                     <span className="animate-pulse">✓</span> Completada
@@ -360,7 +360,7 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
             {phase === 3 && (
               <div className="h-full bg-gradient-to-b from-emerald-500/10 to-black p-4 pt-9 flex flex-col items-center text-center">
                 <div className="text-3xl mb-1.5">🎉</div>
-                <p className="text-sm font-black text-white">¡Recompensa automática!</p>
+                <p className="text-sm font-black text-primary">¡Recompensa automática!</p>
                 <div className="w-full space-y-2 mt-3">
                   <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-2">
                     <p className="text-[9px] text-emerald-400/70 uppercase font-bold tracking-wide">Referidor · tu cliente</p>
@@ -379,16 +379,16 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
             {phase === 4 && (
               <div className="h-full bg-black p-4 pt-9 flex flex-col">
                 <div className="flex items-center gap-2 mb-3">
-                  <p className="text-sm font-bold text-white">Recompensas</p>
+                  <p className="text-sm font-bold text-primary">Recompensas</p>
                   <span className="text-[9px] font-black bg-amber-500 text-black rounded-full px-1.5 py-0.5">1</span>
                 </div>
                 <div className="rounded-2xl p-3 flex items-center gap-2.5" style={{ background: 'linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04))', border: '1px solid rgba(251,191,36,.25)' }}>
                   <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-base">🎁</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold text-white">Corte gratis</p>
-                    <p className="text-[9px] text-white/50">Por invitar a un amigo</p>
+                    <p className="text-[12px] font-bold text-primary">Corte gratis</p>
+                    <p className="text-[9px] text-primary/50">Por invitar a un amigo</p>
                   </div>
-                  <span className="text-[9px] font-bold text-white/70 bg-white/10 rounded-full px-2 py-1">Canjear →</span>
+                  <span className="text-[9px] font-bold text-primary/70 bg-white/10 rounded-full px-2 py-1">Canjear →</span>
                 </div>
                 <p className="text-[9px] text-neutral-500 mt-3.5 text-center">El cliente ve su premio en la app y toca “Canjear”.</p>
               </div>
@@ -397,12 +397,12 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
             {/* ── 5 · QR + PIN ── */}
             {phase === 5 && (
               <div className="h-full bg-black p-4 pt-9 flex flex-col items-center">
-                <p className="text-[12px] font-bold text-white">Corte gratis</p>
+                <p className="text-[12px] font-bold text-primary">Corte gratis</p>
                 <p className="text-[9px] text-neutral-500 mb-3">Muéstralo en el local</p>
                 <FakeQR />
                 <div className="mt-3 text-center">
                   <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">PIN</p>
-                  <p className="text-2xl font-black tracking-[0.35em] text-white">4821</p>
+                  <p className="text-2xl font-black tracking-[0.35em] text-primary">4821</p>
                 </div>
                 <div className="mt-2 text-[9px] text-red-400/80 font-bold">Expira en 04:58 ⏳</div>
               </div>
@@ -413,13 +413,13 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
               <div className="h-full bg-neutral-950 p-4 pt-9 flex flex-col">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-emerald-400 text-sm">🔍</span>
-                  <p className="text-sm font-bold text-white">Canjes · Panel</p>
+                  <p className="text-sm font-bold text-primary">Canjes · Panel</p>
                 </div>
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-black text-lg font-black">✓</div>
                     <div>
-                      <p className="text-[12px] font-bold text-white">Corte gratis</p>
+                      <p className="text-[12px] font-bold text-primary">Corte gratis</p>
                       <p className="text-[10px] text-emerald-400">Validado · PIN 4821</p>
                     </div>
                   </div>
@@ -433,7 +433,7 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
         </div>
 
         {/* Caption + progreso */}
-        <p className="text-xs font-semibold text-white text-center min-h-[2.5rem] flex items-center">{CAPTIONS[phase]}</p>
+        <p className="text-xs font-semibold text-primary text-center min-h-[2.5rem] flex items-center">{CAPTIONS[phase]}</p>
         <div className="flex gap-1.5">
           {Array.from({ length: N }).map((_, i) => (
             <span key={i} className={`h-1 rounded-full transition-all duration-300 ${i === phase ? 'w-5 bg-emerald-400' : 'w-1.5 bg-neutral-700'}`} />
@@ -445,7 +445,7 @@ function ReferralSystemPreview({ nombreLocal, referidor, referido }) {
 }
 
 function RecompensaEstructurada({ title, subtitle, value, onChange, productos, servicios }) {
-  const inp = 'h-9 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500';
+  const inp = 'h-9 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-primary placeholder-neutral-500 focus:outline-none focus:border-emerald-500';
   const cat = value?.categoria || null;
 
   const applyCat = (newCat) => {
@@ -464,7 +464,7 @@ function RecompensaEstructurada({ title, subtitle, value, onChange, productos, s
   return (
     <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-3.5 space-y-2.5">
       <div>
-        <p className="text-sm font-semibold text-white">{title}</p>
+        <p className="text-sm font-semibold text-primary">{title}</p>
         {subtitle && <p className="text-[11px] text-neutral-500 mt-0.5">{subtitle}</p>}
       </div>
 
@@ -477,8 +477,8 @@ function RecompensaEstructurada({ title, subtitle, value, onChange, productos, s
               onClick={() => applyCat(c.key)}
               className={`flex items-center justify-center gap-1 h-10 text-xs rounded-lg border transition-all ${
                 active
-                  ? 'bg-emerald-500/10 border-emerald-500/40 text-white font-semibold'
-                  : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-white'
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-primary font-semibold'
+                  : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-primary'
               }`}
             >
               <span className="text-sm leading-none">{c.emoji}</span>
@@ -554,7 +554,7 @@ function RecompensaEstructurada({ title, subtitle, value, onChange, productos, s
                 key={t} type="button"
                 onClick={() => setDetalle({ tipo: t })}
                 className={`text-sm font-bold rounded-md transition-all ${
-                  (value?.detalle?.tipo || '%') === t ? 'bg-neutral-800 text-white' : 'text-neutral-500 hover:text-white'
+                  (value?.detalle?.tipo || '%') === t ? 'bg-neutral-800 text-primary' : 'text-neutral-500 hover:text-primary'
                 }`}
               >{t}</button>
             ))}
@@ -819,7 +819,7 @@ export default function Configuracion() {
     }
   };
 
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -836,7 +836,7 @@ export default function Configuracion() {
 
       {/* Header sticky con "Guardar" siempre visible */}
       <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 mb-4 bg-slate-950/95 backdrop-blur flex items-center justify-between gap-3 border-b border-slate-800 sm:border-none">
-        <h1 className="text-lg sm:text-xl font-bold text-white flex items-center gap-1.5">
+        <h1 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-1.5">
           Configuración
           <HelpButton onClick={() => setShowHelp(true)} />
         </h1>
@@ -844,7 +844,7 @@ export default function Configuracion() {
           onClick={handleSave}
           disabled={saving || customErr}
           title={customErr ? `Duración entre ${INTERVALO_MIN} y ${INTERVALO_MAX} min.` : undefined}
-          className="relative h-9 px-4 text-sm font-semibold rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-900/20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all"
+          className="relative h-9 px-4 text-sm font-semibold rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-900/20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-primary transition-all"
         >
           {saving
             ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -872,8 +872,8 @@ export default function Configuracion() {
               onClick={() => setTab(t.key)}
               className={`flex-1 h-9 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                 active
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-neutral-800 text-primary shadow-sm'
+                  : 'text-neutral-400 hover:text-primary'
               }`}
             >
               {t.label}
@@ -971,7 +971,7 @@ export default function Configuracion() {
                 className={`h-11 rounded-lg text-sm font-semibold transition-all border ${
                   active
                     ? 'border-emerald-500 bg-emerald-500/12 text-emerald-300 shadow-[0_2px_10px_rgba(16,185,129,0.18)]'
-                    : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white hover:border-neutral-500'
+                    : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-primary hover:border-neutral-500'
                 }`}
               >
                 {mins} min
@@ -984,7 +984,7 @@ export default function Configuracion() {
             className={`h-11 rounded-lg text-sm font-semibold transition-all border col-span-3 sm:col-span-1 ${
               customMode
                 ? 'border-emerald-500 bg-emerald-500/12 text-emerald-300 shadow-[0_2px_10px_rgba(16,185,129,0.18)]'
-                : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white hover:border-neutral-500'
+                : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-primary hover:border-neutral-500'
             }`}
           >
             Personalizado
@@ -1003,7 +1003,7 @@ export default function Configuracion() {
                 onChange={e => onCustomChange(e.target.value)}
                 onBlur={onCustomBlur}
                 placeholder="ej. 20"
-                className={`w-32 h-11 rounded-lg border bg-neutral-900 text-white text-sm font-semibold text-center focus:outline-none transition-colors ${
+                className={`w-32 h-11 rounded-lg border bg-neutral-900 text-primary text-sm font-semibold text-center focus:outline-none transition-colors ${
                   customErr
                     ? 'border-rose-500 focus:border-rose-500'
                     : 'border-neutral-700 focus:border-emerald-500'
@@ -1047,7 +1047,7 @@ export default function Configuracion() {
                 className={`flex flex-col items-center py-2.5 px-2 rounded-lg border transition-all ${
                   minutosLimite === mins
                     ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                    : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                 }`}
               >
                 <span className="text-sm font-semibold">{label}</span>
@@ -1064,7 +1064,7 @@ export default function Configuracion() {
 
           <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">Permitir cancelar</p>
+              <p className="text-sm font-semibold text-primary">Permitir cancelar</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Si está apagado, el bot dice "para cancelar contactanos" en vez de cancelar la cita.
               </p>
@@ -1081,7 +1081,7 @@ export default function Configuracion() {
 
           <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">Permitir reagendar</p>
+              <p className="text-sm font-semibold text-primary">Permitir reagendar</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Si está apagado, el bot no ofrece el botón "Reagendar" — solo cancelar (si está activo).
               </p>
@@ -1111,7 +1111,7 @@ export default function Configuracion() {
             onChange={e => { setPoliticaMensaje(e.target.value.slice(0, 500)); setDirty(true); }}
             rows={3}
             placeholder="Ej: Las cancelaciones con menos de 2 horas de anticipación tienen un cargo de $5.000…"
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
           />
           <p className="text-[10.5px] text-slate-600 mt-1 text-right">
             {politicaMensaje.length}/500
@@ -1147,7 +1147,7 @@ export default function Configuracion() {
                   className={`py-2 px-2 rounded-lg border text-xs font-semibold transition-all ${
                     Number(reservaCooldownMin) === mins
                       ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                      : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                      : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                   }`}
                 >{label}</button>
               ))}
@@ -1172,7 +1172,7 @@ export default function Configuracion() {
                   className={`py-2 px-2 rounded-lg border text-xs font-semibold transition-all ${
                     Number(reservaMaxPorDia) === n
                       ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                      : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                      : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
                   }`}
                 >{n === 0 ? 'Sin tope' : n}</button>
               ))}
@@ -1201,7 +1201,7 @@ export default function Configuracion() {
           <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
             <div className="flex items-center gap-2.5">
               <GraduationCap size={15} className="text-slate-400" />
-              <span className="text-sm font-semibold text-white">Cursos de Barbería</span>
+              <span className="text-sm font-semibold text-primary">Cursos de Barbería</span>
             </div>
             <button type="button" onClick={() => setFeat('hasCourses', !form.features.hasCourses)}
               className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasCourses ? 'bg-emerald-500' : 'bg-slate-700'}`}>
@@ -1232,7 +1232,7 @@ export default function Configuracion() {
           <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
             <div className="flex items-center gap-2.5">
               <Scissors size={15} className="text-slate-400" />
-              <span className="text-sm font-semibold text-white">Arriendo de Sillones</span>
+              <span className="text-sm font-semibold text-primary">Arriendo de Sillones</span>
             </div>
             <button type="button" onClick={() => setFeat('hasChairRental', !form.features.hasChairRental)}
               className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasChairRental ? 'bg-emerald-500' : 'bg-slate-700'}`}>
@@ -1265,7 +1265,7 @@ export default function Configuracion() {
             <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
               <div className="flex items-center gap-2.5">
                 <GraduationCap size={15} className="text-slate-400" />
-                <span className="text-sm font-semibold text-white">Módulo Academia (Panel Interno)</span>
+                <span className="text-sm font-semibold text-primary">Módulo Academia (Panel Interno)</span>
               </div>
               <button type="button" onClick={() => setFeat('hasAcademiaInternal', !form.features.hasAcademiaInternal)}
                 className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasAcademiaInternal ? 'bg-emerald-500' : 'bg-slate-700'}`}>
@@ -1288,7 +1288,7 @@ export default function Configuracion() {
       <Card Icon={Layers} title="Selección de varios servicios por reserva">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-semibold text-white">Permitir agendar más de un servicio</span>
+            <span className="text-sm font-semibold text-primary">Permitir agendar más de un servicio</span>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
               Activa la selección múltiple en la agenda pública. El cliente puede marcar varios servicios y la
               cita queda con todos sumados: el nombre se concatena (<code>Corte + Barba</code>),
@@ -1309,7 +1309,7 @@ export default function Configuracion() {
       <Card Icon={Info} title="Quiénes somos">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-sm font-semibold text-white">Mostrar en la agenda pública</span>
+            <span className="text-sm font-semibold text-primary">Mostrar en la agenda pública</span>
             <p className="text-xs text-slate-500 mt-0.5">Agrega un botón “Quiénes somos” que muestra este texto a tus clientes.</p>
           </div>
           <button type="button" onClick={() => setQS('activo', !form.quienesSomos.activo)}
@@ -1330,7 +1330,7 @@ export default function Configuracion() {
       <Card Icon={Sparkles} title="🎁 Programa de Referidos (Boca a Boca)">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-sm font-semibold text-white">Activar programa de referidos</span>
+            <span className="text-sm font-semibold text-primary">Activar programa de referidos</span>
             <p className="text-xs text-slate-500 mt-0.5">
               Convierte a tus clientes en promotores: cada uno recibe un código para invitar amigos, y cuando el amigo completa su primer corte, premias a los dos automáticamente.
             </p>
@@ -1434,13 +1434,13 @@ export default function Configuracion() {
       >
         <div className="flex items-center gap-2.5 px-5 py-4 border-b" style={{ borderColor: 'rgba(212,175,55,0.12)', background: 'rgba(212,175,55,0.04)' }}>
           <HelpCircle size={15} style={{ color: '#D4AF37' }} className="shrink-0" />
-          <h2 className="text-sm font-semibold text-white">Soporte Técnico</h2>
+          <h2 className="text-sm font-semibold text-primary">Soporte Técnico</h2>
         </div>
         <div className="px-5 py-5 space-y-4">
           <div className="flex items-start gap-4">
             <img src="/logo1.png" alt="SynapTech" className="w-10 h-10 rounded-xl object-contain shrink-0" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)', padding: '6px' }} />
             <div>
-              <p className="text-white font-semibold text-sm">SynapTech SpA</p>
+              <p className="text-primary font-semibold text-sm">SynapTech SpA</p>
               <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">
                 ¿Tienes dudas o necesitas ayuda? Nuestro equipo de soporte está disponible para asistirte con la plataforma.
               </p>
@@ -1481,12 +1481,12 @@ export default function Configuracion() {
 
       {showHelp && (
         <HelpModal title="Ayuda — Configuración" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Configuración</strong> gestionas la información pública y las reglas de reserva del local.</p>
+          <p>En <strong className="text-primary">Configuración</strong> gestionas la información pública y las reglas de reserva del local.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Actualiza el <span className="text-white">nombre</span>, dirección, teléfono e Instagram de tu barbería.</li>
-            <li>Define el <span className="text-white">horario de apertura y cierre</span> y los días hábiles del local.</li>
-            <li>Configura con cuántos días de <span className="text-white">anticipación</span> pueden reservar los clientes.</li>
-            <li>Guarda los cambios con <span className="text-white">Guardar cambios</span> — se reflejan en la app pública de inmediato.</li>
+            <li>Actualiza el <span className="text-primary">nombre</span>, dirección, teléfono e Instagram de tu barbería.</li>
+            <li>Define el <span className="text-primary">horario de apertura y cierre</span> y los días hábiles del local.</li>
+            <li>Configura con cuántos días de <span className="text-primary">anticipación</span> pueden reservar los clientes.</li>
+            <li>Guarda los cambios con <span className="text-primary">Guardar cambios</span> — se reflejan en la app pública de inmediato.</li>
           </ul>
         </HelpModal>
       )}

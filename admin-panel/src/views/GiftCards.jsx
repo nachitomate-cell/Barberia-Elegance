@@ -218,10 +218,10 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
   if (value) return (
     <div className="flex items-center justify-between gap-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
       <div className="min-w-0">
-        <p className="text-sm text-white font-medium truncate">{value.nombre || 'Cliente'}</p>
+        <p className="text-sm text-primary font-medium truncate">{value.nombre || 'Cliente'}</p>
         {value.telefono && <p className="text-xs text-slate-400 truncate">{value.telefono}</p>}
       </div>
-      <button type="button" onClick={onClear} className="text-slate-500 hover:text-white shrink-0"><X size={14} /></button>
+      <button type="button" onClick={onClear} className="text-slate-500 hover:text-primary shrink-0"><X size={14} /></button>
     </div>
   );
 
@@ -234,7 +234,7 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
           onChange={e => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder="Buscar cliente por nombre o teléfono..."
-          className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-primary placeholder-slate-500 focus:outline-none"
         />
         {loading && <Loader2 size={13} className="text-slate-500 animate-spin shrink-0" />}
       </div>
@@ -253,7 +253,7 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
                 onClick={() => { onSelect(u); setOpen(false); setQ(''); }}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-slate-700/60 transition-colors"
               >
-                <span className="text-sm text-white truncate">{u.nombre || 'Sin nombre'}</span>
+                <span className="text-sm text-primary truncate">{u.nombre || 'Sin nombre'}</span>
                 {u.telefono && <span className="text-xs text-slate-400 shrink-0">{u.telefono}</span>}
               </button>
             ))}
@@ -354,7 +354,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
           <Palette size={16} className="text-violet-400" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-white">Personalizar diseño</p>
+          <p className="text-sm font-bold text-primary">Personalizar diseño</p>
           <p className="text-xs text-slate-400 mt-0.5">
             Estos ajustes se aplican a <span className="text-slate-300">todas</span> tus Gift Cards (nuevas y existentes).
           </p>
@@ -405,7 +405,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
                     <CheckCircle2 size={12} className="text-violet-300" />
                   </span>
                 )}
-                <span className="absolute bottom-1 left-1.5 text-[9px] font-semibold text-white/80 tracking-wide">
+                <span className="absolute bottom-1 left-1.5 text-[9px] font-semibold text-primary/80 tracking-wide">
                   {BG_PRESET_LABELS[id]}
                 </span>
               </button>
@@ -487,7 +487,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
                 }`}
                 style={{ backgroundColor: c.hex }}
               >
-                {active && <CheckCircle2 size={14} className="text-slate-900 drop-shadow" />}
+                {active && <CheckCircle2 size={14} className="text-ink-900 drop-shadow" />}
               </button>
             );
           })}
@@ -530,7 +530,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
                 {active && (
                   <CheckCircle2
                     size={14}
-                    className={isDark ? 'text-white drop-shadow' : 'text-slate-900 drop-shadow'}
+                    className={isDark ? 'text-primary drop-shadow' : 'text-ink-900 drop-shadow'}
                   />
                 )}
               </button>
@@ -557,7 +557,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
                 }`}
               >
                 <p
-                  className="text-base text-white font-bold truncate leading-tight"
+                  className="text-base text-primary font-bold truncate leading-tight"
                   style={{ fontFamily: TITLE_FONTS[f.id] }}
                 >
                   {tenantName || 'Tu local'}
@@ -581,7 +581,7 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
           maxLength={50}
           onChange={e => setMessageDraft(e.target.value)}
           placeholder='Ej: "Un regalo con estilo"'
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary placeholder-slate-500 focus:border-violet-500 focus:outline-none"
         />
         <p className="text-[10px] text-slate-500 mt-1">
           Aparece como una frase corta sobre el monto. Déjalo vacío para no mostrarlo.
@@ -666,8 +666,8 @@ function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }
   return (
     <ModalShell onClose={onClose}>
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
-        <p className="text-sm font-bold text-white">{created ? 'Gift Card creada' : 'Nueva Gift Card'}</p>
-        <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+        <p className="text-sm font-bold text-primary">{created ? 'Gift Card creada' : 'Nueva Gift Card'}</p>
+        <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -750,7 +750,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }
               </button>
             </div>
 
-            <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+            <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-primary transition-colors">
               Cerrar
             </button>
           </motion.div>
@@ -789,7 +789,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }
               <input
                 type="number" min="1000" step="500" value={valor} onChange={e => setValor(e.target.value)}
                 placeholder="15000"
-                className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
                 required
               />
             </div>
@@ -799,7 +799,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }
               <input
                 type="text" value={nombre} onChange={e => setNombre(e.target.value)}
                 placeholder="Ej: Juan Pérez"
-                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -824,7 +824,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Vencimiento (opcional)</label>
               <input
                 type="date" value={vence} onChange={e => setVence(e.target.value)} min={today()}
-                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -986,8 +986,8 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
     <>
       <ModalShell onClose={onClose}>
         <div className="flex items-center justify-between p-5 border-b border-slate-800">
-          <p className="text-sm font-bold text-white">Canjear Gift Card</p>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+          <p className="text-sm font-bold text-primary">Canjear Gift Card</p>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
@@ -996,7 +996,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
                 type="text" value={codigo}
                 onChange={e => setCodigo(e.target.value.toUpperCase())}
                 placeholder="XXXX-XXXX-XXXX"
-                className="flex-1 bg-transparent py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none uppercase"
+                className="flex-1 bg-transparent py-2.5 text-sm font-mono text-primary placeholder-slate-500 focus:outline-none uppercase"
               />
               {status === 'checking' && <Loader2 size={15} className="text-slate-500 animate-spin shrink-0" />}
               {status === 'valid'    && <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />}
@@ -1032,7 +1032,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
                 <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Destinatario</span>
-                    <span className="text-white font-medium">{found.nombre}</span>
+                    <span className="text-primary font-medium">{found.nombre}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Saldo disponible</span>
@@ -1042,7 +1042,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Monto a descontar ($)</label>
                     <input
                       type="number" min="1" max={found.saldo} value={monto} onChange={e => setMonto(e.target.value)}
-                      className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                      className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
                     />
                   </div>
                   <button onClick={canjear} disabled={loading}
@@ -1099,8 +1099,8 @@ function ViewCardModal({ gc, tenantName, tenantLogo, design, onClose }) {
   return (
     <ModalShell onClose={onClose}>
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
-        <p className="text-sm font-bold text-white">Tarjeta de regalo</p>
-        <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+        <p className="text-sm font-bold text-primary">Tarjeta de regalo</p>
+        <button onClick={onClose} className="text-slate-500 hover:text-primary"><X size={16} /></button>
       </div>
 
       <div className="p-5 space-y-4">
@@ -1152,7 +1152,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, design, onClose }) {
             : <><ImageDown size={15} /> Descargar imagen</>}
         </button>
 
-        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-primary transition-colors">
           Cerrar
         </button>
       </div>
@@ -1179,7 +1179,7 @@ function GiftCardRow({ gc, tenantName, tenantLogo, design }) {
         </div>
         <div className="flex-1 min-w-[140px]">
           <div className="flex items-center gap-2">
-            <p className="font-mono text-sm font-bold text-white">{gc.codigo}</p>
+            <p className="font-mono text-sm font-bold text-primary">{gc.codigo}</p>
             <button onClick={copy} className="text-slate-500 hover:text-slate-300 transition-colors">
               {copied ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
             </button>
@@ -1187,7 +1187,7 @@ function GiftCardRow({ gc, tenantName, tenantLogo, design }) {
           <p className="text-xs text-slate-500 mt-0.5">{gc.nombre}</p>
         </div>
         <div className="text-right min-w-[80px]">
-          <p className="text-sm font-bold text-white">{formatCLP(gc.saldo)}</p>
+          <p className="text-sm font-bold text-primary">{formatCLP(gc.saldo)}</p>
           <p className="text-xs text-slate-500">de {formatCLP(gc.valor)}</p>
         </div>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${cfg.color}`}>
@@ -1235,7 +1235,7 @@ function PublicLinkCard({ icon: Icon, title, desc, url, qrFilename, accent = 'em
         <QRCodeSVG value={url} size={64} level="M" includeMargin={false} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white flex items-center gap-1.5">
+        <p className="text-sm font-bold text-primary flex items-center gap-1.5">
           <Icon size={14} className={`text-${accent}-400`} />
           {title}
         </p>
@@ -1340,7 +1340,7 @@ export default function GiftCards() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Gift size={20} className="text-emerald-400" />
-            <h1 className="text-xl font-bold text-white">Gift Cards</h1>
+            <h1 className="text-xl font-bold text-primary">Gift Cards</h1>
           </div>
           <p className="text-sm text-slate-400">Crea y gestiona tarjetas de regalo para tus clientes.</p>
         </div>
@@ -1371,7 +1371,7 @@ export default function GiftCards() {
               <Icon size={16} className={color} />
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
-            <p className="text-lg font-bold text-white mt-0.5">{value}</p>
+            <p className="text-lg font-bold text-primary mt-0.5">{value}</p>
           </div>
         ))}
       </div>
@@ -1383,7 +1383,7 @@ export default function GiftCards() {
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-md text-xs transition-all capitalize ${
                 filter === f
-                  ? 'bg-slate-700 text-white font-medium shadow-sm'
+                  ? 'bg-slate-700 text-primary font-medium shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 font-medium'
               }`}>
               {f}
@@ -1395,7 +1395,7 @@ export default function GiftCards() {
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar código o nombre..."
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-primary placeholder-slate-500 focus:outline-none"
           />
         </div>
       </div>

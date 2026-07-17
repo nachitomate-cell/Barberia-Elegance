@@ -552,21 +552,21 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
               value={editNombre}
               onChange={e => setEditNombre(e.target.value)}
               placeholder="Nombre completo"
-              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-primary placeholder-slate-500 outline-none transition-colors"
             />
             <input
               type="email"
               value={editEmail}
               onChange={e => setEditEmail(e.target.value)}
               placeholder="Correo electrónico"
-              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-primary placeholder-slate-500 outline-none transition-colors"
             />
             <input
               type="tel"
               value={editTel}
               onChange={e => setEditTel(e.target.value)}
               placeholder="+56 9 1234 5678"
-              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white font-mono placeholder-slate-500 outline-none transition-colors"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-primary font-mono placeholder-slate-500 outline-none transition-colors"
             />
             {editMsg && (
               <p className={`text-xs font-semibold ${editMsg.startsWith('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{editMsg}</p>
@@ -575,13 +575,13 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
               <button
                 onClick={guardarEdicion}
                 disabled={editLoad}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-xs font-bold rounded-lg transition-all"
               >
                 <Check size={12} /> {editLoad ? 'Guardando…' : 'Guardar'}
               </button>
               <button
                 onClick={() => { setEditMode(false); setEditMsg(''); setEditNombre(data.nombre || ''); setEditEmail(data.email || ''); setEditTel(data.telefono || ''); }}
-                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all"
               >
                 Cancelar
               </button>
@@ -590,7 +590,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         ) : (
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-white">{data.nombre || '—'}</p>
+              <p className="font-semibold text-primary">{data.nombre || '—'}</p>
               <button
                 onClick={() => { setEditNombre(data.nombre || ''); setEditEmail(data.email || ''); setEditTel(data.telefono || ''); setEditMsg(''); setEditMode(true); }}
                 className="p-1 rounded-md text-slate-600 hover:text-emerald-400 hover:bg-slate-800 transition-all"
@@ -624,7 +624,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
           </span>
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Miembro del Club</p>
-            <p className="text-sm text-white font-semibold">Se unió el {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
+            <p className="text-sm text-primary font-semibold">Se unió el {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
           </div>
         </div>
       )}
@@ -638,14 +638,14 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
           {data.fechaRegistroOriginal && (
             <p className="text-slate-300">
               <span className="text-slate-500">Cliente desde:</span>{' '}
-              <span className="font-semibold text-white">{data.fechaRegistroOriginal}</span>
+              <span className="font-semibold text-primary">{data.fechaRegistroOriginal}</span>
               <span className="text-slate-600 ml-1">(traído de AgendaPro)</span>
             </p>
           )}
           {data.telefonoAnterior && (
             <p className="text-slate-300">
               <span className="text-slate-500">Teléfono anterior:</span>{' '}
-              <span className="font-mono text-white">{data.telefonoAnterior}</span>
+              <span className="font-mono text-primary">{data.telefonoAnterior}</span>
               <span className="text-slate-600 ml-1">(antes de registrarse en el Club)</span>
             </p>
           )}
@@ -667,13 +667,13 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
             type="date"
             value={fechaCumple}
             onChange={e => setFechaCumple(e.target.value)}
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
             style={{ colorScheme: 'dark' }}
           />
           <button
             onClick={guardarCumple}
             disabled={cumpleLoad}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-xs font-bold rounded-lg transition-all"
           >
             {cumpleLoad ? '…' : 'Guardar'}
           </button>
@@ -723,7 +723,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
             <Minus size={13} /> Quitar sello
           </button>
           <button onClick={() => accionSello(1)} disabled={opLoad}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition-all">
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-xs font-semibold rounded-lg transition-all">
             <Plus size={13} /> Añadir sello
           </button>
         </div>
@@ -740,8 +740,8 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
               return (
                 <button key={p.id} disabled={!puede} onClick={() => setSelPremio(sel ? null : p)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all text-left ${
-                    sel     ? 'border-yellow-400/60 bg-yellow-400/10 text-white' :
-                    puede   ? 'border-slate-700 hover:border-slate-500 bg-slate-800/40 text-white' :
+                    sel     ? 'border-yellow-400/60 bg-yellow-400/10 text-primary' :
+                    puede   ? 'border-slate-700 hover:border-slate-500 bg-slate-800/40 text-primary' :
                               'border-slate-800/40 bg-transparent text-slate-600 cursor-not-allowed opacity-50'
                   }`}>
                   <Trophy size={14} className={puede ? 'text-yellow-400' : 'text-slate-600'} />
@@ -820,7 +820,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                      style={{ background: paleta.bg, border: `1px solid ${paleta.ring}` }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-white truncate">{p.nombrePack || 'Pack'}</p>
+                      <p className="text-sm font-bold text-primary truncate">{p.nombrePack || 'Pack'}</p>
                       <p className="text-[10px] text-slate-500 mt-0.5">
                         {compra && `Comprado: ${compra.toLocaleDateString('es-CL')}`}
                         {venc && ` · Vence: ${venc.toLocaleDateString('es-CL')}`}
@@ -867,7 +867,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                       <button
                         onClick={() => revertirSesionPack(idx)}
                         disabled={packRevertLoad === idx}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white disabled:opacity-40 transition-colors">
+                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-primary disabled:opacity-40 transition-colors">
                         <RotateCcw size={10} />
                         {packRevertLoad === idx ? 'Devolviendo…' : 'Devolver 1 sesión'}
                       </button>
@@ -893,7 +893,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                 <div key={`${h.fecha}-${h.tipo}-${i}`} className="flex items-start gap-2 py-1.5 border-b border-white/4 last:border-0">
                   <i className={`ph-fill ${icon} ${color} text-sm shrink-0 mt-0.5`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{label}</p>
+                    <p className="text-xs font-semibold text-primary truncate">{label}</p>
                     <p className="text-[10px] text-slate-600">{formatFecha(h.fecha)}</p>
                   </div>
                 </div>
@@ -920,7 +920,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
               return (
                 <div key={c.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{c.servicioNombre || '—'}</p>
+                    <p className="text-xs font-semibold text-primary truncate">{c.servicioNombre || '—'}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">{c.fecha} · {c.hora} · {c.barbero || '—'}</p>
                   </div>
                   <span className={`text-[10px] font-bold ${col} shrink-0`}>{c.estado}</span>
@@ -941,8 +941,8 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         ) : (
           <div className="flex items-center gap-2">
             <p className="text-xs text-red-400 flex-1">¿Resetear {stamps} sellos a 0?</p>
-            <button onClick={() => setResetOn(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
-            <button onClick={resetSellos} disabled={opLoad} className="px-3 py-1.5 text-xs font-bold text-red-400 hover:text-white rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-all">Confirmar</button>
+            <button onClick={() => setResetOn(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+            <button onClick={resetSellos} disabled={opLoad} className="px-3 py-1.5 text-xs font-bold text-red-400 hover:text-primary rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-all">Confirmar</button>
           </div>
         )}
       </div>
@@ -972,7 +972,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                 Cancelar
               </button>
               <button onClick={eliminarCliente} disabled={delLoad}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 transition-all">
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-primary rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 transition-all">
                 {delLoad
                   ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Eliminando…</>
                   : <><Trash2 size={13} /> Sí, eliminar</>}
@@ -999,13 +999,13 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-400 mb-1">
                   Nuevo pack · sin cita
                 </p>
-                <h3 className="text-white font-bold text-[17px] tracking-tight leading-tight">
+                <h3 className="text-primary font-bold text-[17px] tracking-tight leading-tight">
                   Vender pack a {(data.nombre || 'este cliente').split(' ')[0]}
                 </h3>
               </div>
               <button
                 onClick={() => !venderSaving && setShowVender(false)}
-                className="w-8 h-8 grid place-items-center rounded-full text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+                className="w-8 h-8 grid place-items-center rounded-full text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors"
                 aria-label="Cerrar"
               >
                 <X size={16} />
@@ -1038,7 +1038,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                           className={`w-full text-left px-3.5 py-2.5 rounded-lg border transition-colors ${sel ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`text-[13.5px] font-semibold truncate ${sel ? 'text-emerald-300' : 'text-white'}`}>{s.nombre}</span>
+                            <span className={`text-[13.5px] font-semibold truncate ${sel ? 'text-emerald-300' : 'text-primary'}`}>{s.nombre}</span>
                             {precio > 0 && (
                               <span className="text-[12px] tabular-nums text-slate-400 shrink-0">${precio.toLocaleString('es-CL')}</span>
                             )}
@@ -1061,7 +1061,7 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                     <button
                       key={m}
                       onClick={() => setMetodoPago(m)}
-                      className={`px-2 py-2 rounded-lg text-[12px] font-semibold transition-colors ${metodoPago === m ? 'bg-white text-slate-950' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-white'}`}
+                      className={`px-2 py-2 rounded-lg text-[12px] font-semibold transition-colors ${metodoPago === m ? 'bg-white text-ink-950' : 'bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-primary'}`}
                     >
                       {m}
                     </button>
@@ -1078,14 +1078,14 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
               <button
                 onClick={() => setShowVender(false)}
                 disabled={venderSaving}
-                className="flex-1 py-2.5 rounded-lg text-slate-400 hover:text-white text-[13.5px] font-medium transition-colors"
+                className="flex-1 py-2.5 rounded-lg text-slate-400 hover:text-primary text-[13.5px] font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={venderPackDirecto}
                 disabled={venderSaving || !servicioSel}
-                className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[13.5px] hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-ink-950 font-bold text-[13.5px] hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
               >
                 {venderSaving ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
                 Vender pack
@@ -1250,9 +1250,9 @@ function NuevoClienteModal({ premios, onClose }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Plus size={16} className="text-emerald-400" />
-            <h3 className="font-semibold text-white">Nuevo Cliente Club de Fidelidad</h3>
+            <h3 className="font-semibold text-primary">Nuevo Cliente Club de Fidelidad</h3>
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all">
             <X size={16} />
           </button>
         </div>
@@ -1278,7 +1278,7 @@ function NuevoClienteModal({ premios, onClose }) {
               placeholder="Nicolás Fabián"
               value={nombre}
               onChange={e => setNombre(e.target.value)}
-              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -1293,7 +1293,7 @@ function NuevoClienteModal({ premios, onClose }) {
                 onFocus={handlePhoneFocus}
                 onChange={handlePhoneChange}
                 onKeyDown={handlePhoneKeyDown}
-                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors font-mono"
+                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors font-mono"
               />
             </div>
             <div>
@@ -1303,7 +1303,7 @@ function NuevoClienteModal({ premios, onClose }) {
                 value={fechaNacimiento}
                 onChange={e => setFechaNacimiento(e.target.value)}
                 style={{ colorScheme: 'dark' }}
-                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
@@ -1315,7 +1315,7 @@ function NuevoClienteModal({ premios, onClose }) {
               placeholder="cliente@correo.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -1328,7 +1328,7 @@ function NuevoClienteModal({ premios, onClose }) {
                 max="50"
                 value={sellosIniciales}
                 onChange={e => setSellosIniciales(parseInt(e.target.value) || 0)}
-                className="w-20 bg-slate-850 border border-slate-750 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-20 bg-slate-850 border border-slate-750 rounded-xl px-3 py-2 text-center text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
               />
               <span className="text-xs text-slate-500">¿Deseas regalarle sellos de cortesía al unirse?</span>
             </div>
@@ -1338,14 +1338,14 @@ function NuevoClienteModal({ premios, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-grow py-3 rounded-xl border border-slate-750 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs font-bold uppercase tracking-wider"
+              className="flex-grow py-3 rounded-xl border border-slate-750 text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors text-xs font-bold uppercase tracking-wider"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-grow py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+              className="flex-grow py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary rounded-xl transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
             >
               {loading && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
               Crear miembro
@@ -1593,7 +1593,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
               ) : (
                 <UserX size={15} className="text-amber-400 shrink-0" />
               )}
-              <h3 className="font-semibold text-white truncate">
+              <h3 className="font-semibold text-primary truncate">
                 {isMigrados ? 'Invitar clientes migrados' : 'Clientes sin registro'}
               </h3>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 shrink-0">
@@ -1606,7 +1606,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                 : 'Han agendado pero no se han unido al club de fidelidad'}
             </p>
           </div>
-          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800 transition-all">
             <X size={16} />
           </button>
         </div>
@@ -1630,7 +1630,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                     onClick={() => aplicarTemplate(t.id)}
                     className={`flex-1 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
                       active
-                        ? 'bg-slate-700 text-white shadow-sm'
+                        ? 'bg-slate-700 text-primary shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1663,7 +1663,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar por nombre o teléfono…"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 p-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 p-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
               />
             </div>
 
@@ -1739,7 +1739,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{c.nombre || 'Sin nombre'}</p>
+                      <p className="text-sm font-semibold text-primary truncate">{c.nombre || 'Sin nombre'}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {c.telefono && <span className="text-[10px] text-slate-500 truncate">{c.telefono}</span>}
                         {!isMigrados && c.count != null && (
@@ -1762,7 +1762,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                       className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
                         yaEnviado
                           ? 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-slate-300'
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-primary'
                       }`}
                       title={yaEnviado ? `Reenviar a ${c.nombre}` : `Enviar invitación a ${c.nombre}`}
                     >
@@ -1925,7 +1925,7 @@ function IAModal({ stats, shopName, onClose }) {
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Synaptech IA</p>
-                <h3 className="text-sm font-bold text-white leading-none">Recomendación para {shopName}</h3>
+                <h3 className="text-sm font-bold text-primary leading-none">Recomendación para {shopName}</h3>
                 <p className="text-[9px] text-slate-500 mt-1.5">
                   Analiza {stats.total} cliente{stats.total !== 1 ? 's' : ''} del Club
                   {(stats.migradosPendientes + stats.migradosInvitados) > 0 && (
@@ -1935,7 +1935,7 @@ function IAModal({ stats, shopName, onClose }) {
               </div>
             </div>
             <button onClick={onClose}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-primary hover:bg-slate-800 transition-colors">
               <X size={14} />
             </button>
           </div>
@@ -1972,14 +1972,14 @@ function IAModal({ stats, shopName, onClose }) {
           <button
             onClick={() => startCycle(idx + 1)}
             disabled={phase === 'loading' || phase === 'typing'}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 hover:bg-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-primary border border-slate-800 hover:border-slate-700 hover:bg-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <RefreshCw size={11} />
             Otro consejo
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition-colors"
+            className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-primary transition-colors"
           >
             Cerrar
           </button>
@@ -2214,7 +2214,7 @@ export default function Clientes() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 w-full mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
+            <h1 className="text-xl font-bold text-primary">Clientes y Fidelización</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
@@ -2222,7 +2222,7 @@ export default function Clientes() {
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
           <button
             onClick={() => setShowNuevoCliente(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 text-white hover:bg-slate-700 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 text-primary hover:bg-slate-700 transition-all shrink-0"
           >
             <Plus size={13} />
             Nuevo Cliente
@@ -2265,7 +2265,7 @@ export default function Clientes() {
       {/* KPIs — 2x2 en movil, 4 en tablet+ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full mb-5">
         {[
-          { label: 'Clientes',    value: total,            color: 'text-white' },
+          { label: 'Clientes',    value: total,            color: 'text-primary' },
           { label: 'Citas totales', value: totalCitasGlobal, color: 'text-blue-400' },
           { label: 'Avg sellos',  value: avg,              color: 'text-emerald-400' },
           { label: 'Con premios', value: conPremio,        color: 'text-yellow-400' },
@@ -2287,7 +2287,7 @@ export default function Clientes() {
               <Sparkles size={11} className="text-orange-400" />
               <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">IA detectó</span>
             </div>
-            <p className="text-xs font-semibold text-white">
+            <p className="text-xs font-semibold text-primary">
               {clientesEnRiesgo.length} cliente{clientesEnRiesgo.length !== 1 ? 's' : ''} en riesgo de abandono
             </p>
             <button
@@ -2310,7 +2310,7 @@ export default function Clientes() {
                     <span className="text-[10px] font-bold text-slate-300">{initials(c.nombre || '?')}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{c.nombre || '—'}</p>
+                    <p className="text-xs font-semibold text-primary truncate">{c.nombre || '—'}</p>
                     <p className="text-[10px] text-slate-500">Sin visita hace {c.diasSinVisita} días</p>
                   </div>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
@@ -2351,9 +2351,9 @@ export default function Clientes() {
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input placeholder="Buscar por nombre, correo o teléfono…"
           value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-600 transition-colors" />
+          className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-primary placeholder-slate-600 focus:outline-none focus:border-slate-600 transition-colors" />
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary">
             <X size={14} />
           </button>
         )}
@@ -2395,9 +2395,9 @@ export default function Clientes() {
       {filtro !== 'todos' && (
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-slate-500">
-            <span className="text-white font-semibold">{filtered.length}</span> cliente{filtered.length !== 1 ? 's' : ''} con este filtro
+            <span className="text-primary font-semibold">{filtered.length}</span> cliente{filtered.length !== 1 ? 's' : ''} con este filtro
           </p>
-          <button onClick={() => setFiltro('todos')} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 transition-colors">
+          <button onClick={() => setFiltro('todos')} className="text-xs text-slate-500 hover:text-primary flex items-center gap-1 transition-colors">
             <X size={11} /> Limpiar filtro
           </button>
         </div>
@@ -2437,7 +2437,7 @@ export default function Clientes() {
 
                 {/* Info — flex-1 min-w-0 es CRÍTICO para el truncate */}
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm md:text-base font-bold text-white truncate block group-hover:text-emerald-400 transition-colors">
+                  <span className="text-sm md:text-base font-bold text-primary truncate block group-hover:text-emerald-400 transition-colors">
                     {c.nombre || '—'}
                   </span>
                   <span className="text-xs text-slate-400 truncate block">
@@ -2478,21 +2478,21 @@ export default function Clientes() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-primary disabled:opacity-30 transition-colors"
           >
             <ChevronLeft size={13} /> Anterior
           </button>
           <p className="text-xs text-slate-500">
             Página{' '}
-            <span className="text-white font-bold">{page}</span>
+            <span className="text-primary font-bold">{page}</span>
             {' '}de{' '}
-            <span className="text-white font-bold">{pageCount}</span>
+            <span className="text-primary font-bold">{pageCount}</span>
             <span className="text-slate-600 ml-1.5 hidden sm:inline">· {filtered.length} clientes</span>
           </p>
           <button
             onClick={() => setPage(p => Math.min(pageCount, p + 1))}
             disabled={page === pageCount}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-primary disabled:opacity-30 transition-colors"
           >
             Siguiente <ChevronRight size={13} />
           </button>
@@ -2554,12 +2554,12 @@ export default function Clientes() {
 
       {showHelp && (
         <HelpModal title="Cómo usar Clientes y Fidelización" onClose={() => setShowHelp(false)}>
-          <p>Acá vives el día a día del <strong className="text-white">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
+          <p>Acá vives el día a día del <strong className="text-primary">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Buscar y filtrar</p>
             <ul className="list-disc ml-4 space-y-1">
-              <li>Buscá por <strong className="text-white">nombre, email o teléfono</strong>.</li>
+              <li>Buscá por <strong className="text-primary">nombre, email o teléfono</strong>.</li>
               <li>Filtros: <em>Registrados Club</em> (azul) vs <em>Migrados</em> (ámbar), tiers SILVER/GOLD/PLATINUM, con premio, cumple en este mes, sin visita 30/60/90 días.</li>
               <li>Toca una fila para abrir el detalle: historial, sellos manuales (suma/resta) y canje de premios.</li>
             </ul>
@@ -2567,12 +2567,12 @@ export default function Clientes() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Sellos automáticos</p>
-            <p>Al marcar una cita como <strong className="text-white">Completada</strong> en /agenda, la Cloud Function suma 1 sello al cliente (o descuenta un uso si tiene membresía activa). El sello de <strong className="text-white">cumpleaños</strong> se otorga automáticamente.</p>
+            <p>Al marcar una cita como <strong className="text-primary">Completada</strong> en /agenda, la Cloud Function suma 1 sello al cliente (o descuenta un uso si tiene membresía activa). El sello de <strong className="text-primary">cumpleaños</strong> se otorga automáticamente.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Badge "MIGRADO" (ámbar)</p>
-            <p>Cliente importado de AgendaPro que <strong className="text-white">aún no se registró en el Club</strong>. Cuando se registre, el badge desaparece y sus datos se fusionan automáticamente (sellos, antigüedad).</p>
+            <p>Cliente importado de AgendaPro que <strong className="text-primary">aún no se registró en el Club</strong>. Cuando se registre, el badge desaparece y sus datos se fusionan automáticamente (sellos, antigüedad).</p>
           </div>
 
           <div>
@@ -2587,7 +2587,7 @@ export default function Clientes() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Synaptech IA</p>
-            <p>Te da recomendaciones accionables (recuperar clientes en riesgo, contactar a los que tienen premio sin canjear, etc.). Analiza <strong className="text-white">solo clientes reales del Club</strong> — excluye migrados para no sesgar promedios.</p>
+            <p>Te da recomendaciones accionables (recuperar clientes en riesgo, contactar a los que tienen premio sin canjear, etc.). Analiza <strong className="text-primary">solo clientes reales del Club</strong> — excluye migrados para no sesgar promedios.</p>
           </div>
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Los <strong>KPIs superiores</strong> (Clientes, Avg sellos) sí incluyen migrados — representan el tamaño total de tu base. Si quieres activarlos, "Invitar migrados" es tu palanca.</p>

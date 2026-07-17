@@ -45,7 +45,7 @@ function JoinCard({ onJoin }) {
             <p className="text-[10px] font-bold tracking-[0.3em] uppercase" style={{ color: '#D4AF37' }}>
               Elegance Pass
             </p>
-            <p className="text-white font-bold text-base leading-tight">Club VIP</p>
+            <p className="text-primary font-bold text-base leading-tight">Club VIP</p>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ function ServiceBar({ label, Icon, restantes, total, badgeColor }) {
           <Icon size={11} style={{ color: badgeColor }} />
           <span className="text-xs font-semibold" style={{ color: badgeColor }}>{label}</span>
         </div>
-        <span className="text-xs font-bold text-white">{restantes}/{total}</span>
+        <span className="text-xs font-bold text-primary">{restantes}/{total}</span>
       </div>
       <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
         <div

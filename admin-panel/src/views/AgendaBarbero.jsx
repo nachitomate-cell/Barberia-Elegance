@@ -157,7 +157,7 @@ function CitaCard({ hora, cita }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         {/* Servicio — jerarquía primaria */}
-        <p className="text-[13px] font-semibold text-white leading-tight truncate">
+        <p className="text-[13px] font-semibold text-primary leading-tight truncate">
           {cita.servicio}
         </p>
         {/* Cliente con avatar — jerarquía secundaria */}
@@ -249,7 +249,7 @@ export default function AgendaBarbero({
   const handleNext = () => setSelectedDate(d => addDays(d, 1));
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-[#0a0a0a] text-white">
+    <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24 bg-[#0a0a0a] text-primary">
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="px-5 pt-10 pb-5 shrink-0">
         <p className="text-[10px] font-bold tracking-[0.25em] uppercase mb-1" style={{ color:'#D4AF37' }}>

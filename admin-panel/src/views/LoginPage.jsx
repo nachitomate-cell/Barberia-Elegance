@@ -220,7 +220,7 @@ export default function LoginPage() {
   // en focus. Se aplica el mismo estilo en mobile y desktop.
   const inputClass =
     'w-full bg-neutral-900/50 border border-neutral-800 rounded-xl px-4 py-3.5 ' +
-    'text-white placeholder-neutral-500 focus:outline-none focus:bg-neutral-900 ' +
+    'text-primary placeholder-neutral-500 focus:outline-none focus:bg-neutral-900 ' +
     'focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ' +
     'transition-all';
 
@@ -250,7 +250,7 @@ export default function LoginPage() {
             alt="SynapTech Logo"
             className="h-8 w-auto drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
           />
-          <span className="text-white font-bold text-xl tracking-tight">SynapTech</span>
+          <span className="text-primary font-bold text-xl tracking-tight">SynapTech</span>
         </div>
 
         <div className="absolute bottom-12 left-12 right-12 z-10">
@@ -259,7 +259,7 @@ export default function LoginPage() {
               isFading ? 'opacity-0' : 'opacity-100'
             }`}
           >
-            <h2 className="text-3xl font-bold text-white tracking-tight mb-3">
+            <h2 className="text-3xl font-bold text-primary tracking-tight mb-3">
               {manifiesto.titulo}
             </h2>
             <p className="text-neutral-400 text-sm font-medium">
@@ -282,7 +282,7 @@ export default function LoginPage() {
 
           <TenantLogo logo={tenant.logo} name={tenant.name} />
 
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">
+          <h1 className="text-3xl font-extrabold text-primary tracking-tight mb-2">
             Bienvenido de vuelta.
           </h1>
           <p className="text-neutral-300 text-sm mb-8">
@@ -341,7 +341,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl py-3.5 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-ink-950 font-bold rounded-xl py-3.5 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -542,7 +542,7 @@ function MemphisLogin({
   const AMBER = '#f59e0b';
 
   const field =
-    'w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white ' +
+    'w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-primary ' +
     'placeholder-white/35 focus:outline-none focus:border-pink-400/70 focus:bg-white/[0.06] ' +
     'transition-colors';
 
@@ -600,10 +600,10 @@ function MemphisLogin({
             </div>
           </div>
 
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className="text-3xl font-black text-primary tracking-tight">
             Memphis <span style={{ background: `linear-gradient(135deg, ${PINK}, ${AMBER})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Salón</span>
           </h1>
-          <p className="text-[13px] text-white/45 mt-2 font-medium tracking-wide uppercase" style={{ letterSpacing: '0.18em' }}>
+          <p className="text-[13px] text-primary/45 mt-2 font-medium tracking-wide uppercase" style={{ letterSpacing: '0.18em' }}>
             Panel de administración
           </p>
         </div>
@@ -634,7 +634,7 @@ function MemphisLogin({
             />
 
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-4 mb-1">
-              <label className="flex items-center gap-2 text-sm text-white/55 select-none cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-primary/55 select-none cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberMe}
@@ -667,7 +667,7 @@ function MemphisLogin({
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full py-3 disabled:opacity-50 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-1 text-white hover:brightness-110 active:scale-[0.99]"
+              className="w-full py-3 disabled:opacity-50 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-1 text-primary hover:brightness-110 active:scale-[0.99]"
               style={{ background: `linear-gradient(135deg, ${PINK}, ${AMBER})`, boxShadow: `0 8px 28px ${PINK}44` }}
             >
               {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
@@ -680,12 +680,12 @@ function MemphisLogin({
           href={whatsappHelpHref({ tenantName, tenantId, email: email.trim() })}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-6 w-full inline-flex items-center justify-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+          className="mt-6 w-full inline-flex items-center justify-center gap-1.5 text-xs text-primary/40 hover:text-primary/70 transition-colors"
         >
           <WhatsappIcon /> ¿Problemas para entrar? Escríbenos
         </a>
 
-        <p className="text-center text-[11px] text-white/25 mt-4">Memphis Salón · Viña del Mar</p>
+        <p className="text-center text-[11px] text-primary/25 mt-4">Memphis Salón · Viña del Mar</p>
       </div>
     </div>
   );

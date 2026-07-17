@@ -130,7 +130,7 @@ export default function BookingFecha({
           </div>
         </div>
 
-        <h1 className="text-[26px] font-black text-white tracking-tight leading-tight mb-3">
+        <h1 className="text-[26px] font-black text-primary tracking-tight leading-tight mb-3">
           Elige fecha y hora
         </h1>
 
