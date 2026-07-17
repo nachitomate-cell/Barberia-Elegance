@@ -1320,7 +1320,23 @@ function mimeFromSrc(src) {
   return 'image/jpeg';
 }
 
-function buildJsonLd(meta, hostname) {
+// Coordenadas reales por tenant (extraídas del Place ID de Google) para el
+// GeoCoordinates del JSON-LD → señal de SEO local. Agregar aquí al conectar
+// un local nuevo a Google (sacar lat/lng de su ficha).
+const GEO_COORDS = {
+  elegance:           { lat: -33.024414, lng: -71.559849 },
+  ferraza:            { lat: -33.021921, lng: -71.551683 },
+  chameleon:          { lat: -33.013664, lng: -71.549411 },
+  lumen:              { lat: -33.025211, lng: -71.557101 },
+  aura:               { lat: -33.021511, lng: -71.548534 },
+  latincaribe:        { lat: -27.361472, lng: -70.335353 },
+  infinity:           { lat: -33.023257, lng: -71.558337 },
+  sionbarberia:       { lat: -33.048783, lng: -71.609610 },
+  kronnos_penablanca: { lat: -33.046860, lng: -71.354013 },
+  kronnos_limache:    { lat: -33.001860, lng: -71.267874 },
+};
+
+function buildJsonLd(meta, hostname, tenantId) {
   const local = meta.local || {};
   const absImage = meta.ogImage.startsWith('http')
     ? meta.ogImage
@@ -1344,6 +1360,11 @@ function buildJsonLd(meta, hostname) {
   if (local.addressLocality) addr.addressLocality = local.addressLocality;
   if (local.postalCode)      addr.postalCode      = local.postalCode;
   schema.address = addr;
+
+  // Coordenadas reales (GeoCoordinates) + ciudad servida → SEO local.
+  const geo = GEO_COORDS[tenantId];
+  if (geo) schema.geo = { '@type': 'GeoCoordinates', latitude: geo.lat, longitude: geo.lng };
+  if (local.addressLocality) schema.areaServed = { '@type': 'City', name: local.addressLocality };
 
   // NOTA: NO se emiten aggregateRating ni review en el JSON-LD. Marcar en tu propio
   // sitio reseñas/notas copiadas de Google es "self-serving review markup", prohibido
@@ -1440,7 +1461,7 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
 
   // 8. Inject dynamic semantic schema JSON-LD before </head> for booking pages
   if (pageType === 'booking') {
-    const jsonLd = buildJsonLd(meta, hostname);
+    const jsonLd = buildJsonLd(meta, hostname, tenantId);
     html = html.replace('</head>', `<script type="application/ld+json">${jsonLd}</script>\n</head>`);
   }
 
