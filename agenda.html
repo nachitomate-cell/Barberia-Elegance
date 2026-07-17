@@ -852,13 +852,14 @@
             /* No hay clase específica de estado en el markup — el fondo se
                ajusta selectivamente por el border-left inline. */
         }
-        /* Tratamos las cita-card cuya línea izquierda es #10b981 (Completada).
-           attribute selector cubre inline "border-left: 4px solid #10b981;". */
+        /* Confirmada (border verde #10b981) — tinte verde muy leve, "activa".
+           El selector keyea por el hex del border-left inline; tras unificar la
+           convención con el admin, verde = Confirmada. */
         html:not(.light-mode) .cita-card[style*="border-left: 4px solid #10b981"],
         html:not(.light-mode) .cita-card[style*="border-left:4px solid #10b981"] {
             background: #14322a !important;
         }
-        /* Confirmada (border azul #6CABDD) — sube el contraste del fondo */
+        /* Completada (border azul #6CABDD) — tinte azul, "cerrada". */
         html:not(.light-mode) .cita-card[style*="#6CABDD"] {
             background: #1c2333 !important;
         }
@@ -2691,7 +2692,12 @@
             const isPending   = cita.estado === 'Pendiente';
             
             // Colores mejorados
-            const leftBorderColor = isCompleted ? '#10b981' : isCancelled ? 'rgba(239,68,68,0.3)' : isConfirmed ? '#6CABDD' : '#eab308';
+            // Convención unificada con el admin: Confirmada=verde, Completada=azul.
+            // Antes estaba al revés (Confirmada azul / Completada verde) → el dueño
+            // que mira las dos pantallas veía el verde con dos significados. El tinte
+            // de fondo lo pone el CSS por hex (más abajo), así que al intercambiar
+            // los hex el borde y el tinte siguen calzando solos.
+            const leftBorderColor = isCompleted ? '#6CABDD' : isCancelled ? 'rgba(239,68,68,0.3)' : isConfirmed ? '#10b981' : '#eab308';
             
             const isNew = newlyAddedCitas.has(cita.id);
             const extraClass = isNew ? 'cita-nueva-highlight' : '';
@@ -4084,8 +4090,10 @@
 
                     const isCompleted = cita.estado === 'Completada';
                     const isConfirmed = cita.estado === 'Confirmada';
-                    const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
-                    const bgColor     = isCompleted ? 'rgba(16,185,129,0.20)' : isConfirmed ? 'rgba(108,171,221,0.20)' : 'rgba(234,179,8,0.20)';
+                    // Confirmada=verde, Completada=azul (unificado con el admin). Acá el
+                    // color va inline en JS, así que se intercambian borde Y fondo.
+                    const leftColor   = isCompleted ? '#6CABDD' : isConfirmed ? '#10b981' : '#eab308';
+                    const bgColor     = isCompleted ? 'rgba(108,171,221,0.20)' : isConfirmed ? 'rgba(16,185,129,0.20)' : 'rgba(234,179,8,0.20)';
                     const citaH       = hOf(ve - vs);
                     const showService = citaH >= 34;
 
