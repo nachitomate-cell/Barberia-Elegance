@@ -52,8 +52,36 @@ import AIWatermark from '../components/ui/AIWatermark';
 
    Errores no bloquean el guardado de la cita: se loguean.
    ════════════════════════════════════════════════════════════════════════ */
+/* Resuelve a qué doc de `users` pertenece una cita.
+   ══════════════════════════════════════════════════════════════════════
+   El teléfono es el último eslabón y es EL QUE FALTABA. Los clientes creados
+   desde el panel son "legacy": su doc es users/{id} con uid === id === teléfono
+   solo-dígitos (Clientes.jsx:1140 y :1219). Y selectCliente les pone
+   clienteId = null a propósito (Agenda.jsx:736) para no confundirlos con
+   cuentas reales; después handleSave borra el campo si viene vacío (:932).
+
+   Resultado: la cita de un cliente creado desde el panel llegaba sin userId,
+   sin clienteUid y sin clienteId → el motor de packs salía por
+   `skip: 'sin-userId'` y no escribía nada. En silencio, y después de que el
+   diálogo ya había prometido "quedarán 3 sesiones".
+
+   La pista de que era esto: sobre la MISMA cita, los sellos sí funcionaban.
+   Porque la CF de sellos resuelve por teléfono (sello-automatico.js:313) y el
+   motor de packs no. Esa asimetría era el bug.
+
+   Se sanitiza antes de sacar los dígitos: si el barbero tipeó "983568212"
+   (9 dígitos), sanitizarTelefonoCL lo lleva a +56983568212 y recién ahí los
+   dígitos calzan con el docId. Ojo: NO sirve `clienteTelefonoSuf9` — son los
+   últimos 9 dígitos, otra cosa. */
+function resolverUserIdCita(cita) {
+  const directo = cita?.userId || cita?.clienteUid || cita?.clienteId;
+  if (directo) return directo;
+  const digs = sanitizarTelefonoCL(cita?.clienteTelefono || '').replace(/\D/g, '');
+  return digs.length >= 11 ? digs : '';
+}
+
 async function procesarPackDeCita({ servicio, cita, tenantId, barberos, servicios = [] }) {
-  const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
+  const userId = resolverUserIdCita(cita);
   if (!userId) return { skip: 'sin-userId' };
 
   const esActivacion = !!(servicio && servicio.isPack);
@@ -877,20 +905,33 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       if (esActivacion) {
         const totalSes = Math.max(1, Number(svc.sesionesTotales) || 1);
         const dias     = Math.max(1, Number(svc.diasValidez)     || 30);
-        const ok = await confirmDialog({
+        // El diálogo prometía "quedarán N sesiones" sin comprobar que el pack
+        // se pudiera acreditar a alguien. Si no hay a quién, se dice — antes
+        // el barbero confirmaba, no pasaba nada, y se enteraba días después.
+        const uidDestino = resolverUserIdCita({ ...cita, ...form });
+        const ok = await confirmDialog(uidDestino ? {
           title: '📦 Activar pack',
           message:
-            `Se activará el pack "${svc.nombre}" para ${cita?.clienteNombre || 'este cliente'}.\n\n` +
+            `Se activará el pack "${svc.nombre}" para ${form.clienteNombre || 'este cliente'}.\n\n` +
             `• ${totalSes} sesiones en total\n` +
             `• Esta cita cuenta como la primera → quedarán ${totalSes - 1} sesiones\n` +
             `• Vence en ${dias} días\n\n` +
             `¿Confirmar activación?`,
           confirmText: 'Activar pack',
           cancelText:  'Volver',
+        } : {
+          title: '📦 Falta el teléfono del cliente',
+          message:
+            `El pack "${svc.nombre}" no se le puede acreditar a ${form.clienteNombre || 'este cliente'}: ` +
+            `la cita no tiene teléfono ni cuenta asociada, así que no hay a quién cargarle las sesiones.\n\n` +
+            `Puedes completar la cita igual, pero el pack NO va a quedar activo.\n\n` +
+            `Para que quede: cancela, agrega el teléfono del cliente y vuelve a completarla.`,
+          confirmText: 'Completar sin pack',
+          cancelText:  'Volver',
         });
         if (!ok) return;
       } else if (esConsumo) {
-        const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
+        const userId = resolverUserIdCita({ ...cita, ...form });
         let antes = null, despues = null, nombrePack = cita?.packNombre || 'Pack';
         if (userId) {
           try {
@@ -1132,13 +1173,22 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           try {
             const svc = servicios.find(s => s.id === form.servicioId)
                      || servicios.find(s => (s.nombre || '') === form.servicioNombre);
-            await procesarPackDeCita({
+            const res = await procesarPackDeCita({
               servicio: svc,
               cita:     { ...cita, ...payload, id: cita.id },
               tenantId,
               barberos,
               servicios,
             });
+            // El motor devuelve {skip:'...'} en vez de tirar: el catch de abajo
+            // nunca se enteraba y el pack moría en silencio. Ahora al menos
+            // queda en consola con el motivo.
+            if (res?.skip && res.skip !== 'ni-activacion-ni-consumo') {
+              console.warn(`[pack] no se procesó (${res.skip}) — cita ${cita.id}`, {
+                clienteNombre: payload.clienteNombre,
+                tieneTelefono: !!payload.clienteTelefono,
+              });
+            }
           } catch (err) {
             console.error('[pack] procesarPackDeCita:', err);
           }
