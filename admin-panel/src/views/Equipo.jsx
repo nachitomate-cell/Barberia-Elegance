@@ -116,8 +116,26 @@ const DEFAULT_HORARIO = () => ({
   '6': { activo: true, inicio: '09:00', fin: '14:00', descansos: [] },
 });
 
+// Colores para identificar al barbero en la agenda. Elegidos para distinguirse
+// entre sí y leerse sobre fondo oscuro y claro.
+// Ojo al elegir: en la agenda el color de FONDO de la cita ya significa estado
+// (verde=Confirmada, ámbar=Pendiente, rojo=Cancelada, azul=Completada). El color
+// del barbero vive en la barra izquierda, así que no lo pisa — pero por eso no
+// hay rojo acá: sería confuso al lado de una cancelada.
+const COLORES_BARBERO = [
+  '#e91e63', // rosa
+  '#8b5cf6', // violeta
+  '#6366f1', // índigo
+  '#0ea5e9', // celeste
+  '#06b6d4', // cian
+  '#10b981', // esmeralda — el look por defecto de la agenda
+  '#f59e0b', // ámbar
+  '#f97316', // naranja
+];
+
 const BARBER_EMPTY = {
   nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
+  color: '',   // hex del barbero en la agenda; '' = verde por defecto de siempre
   comision: 0,
   sueldoBase: 0,
   comisionProductos: 10,
@@ -957,6 +975,7 @@ export default function Equipo() {
       nombre:       b.nombre       || '',
       especialidad: b.especialidad || '',
       foto:         b.foto         || '',
+      color:        b.color        || '',
       email:        b.email        || '',
       whatsapp:     b.whatsapp     || '',
       comision:     b.comision     ?? 0,
@@ -1676,6 +1695,50 @@ export default function Equipo() {
               <label className={lbl}>Especialidad</label>
               <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
                 onChange={e => set('especialidad', e.target.value)} />
+            </div>
+
+            {/* Color en la agenda — se guarda en el perfil (barberos/{id}.color).
+                Sin color, la agenda usa el verde de siempre: nada cambia para
+                quien no lo configure. */}
+            <div>
+              <label className={lbl}>Color en la agenda</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {COLORES_BARBERO.map(c => {
+                  const activo = form.color?.toLowerCase() === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => set('color', activo ? '' : c)}
+                      title={activo ? 'Quitar color' : `Usar ${c}`}
+                      aria-label={`Color ${c}`}
+                      aria-pressed={activo}
+                      className={`relative w-7 h-7 rounded-full transition-transform hover:scale-110 ${activo ? 'scale-110' : ''}`}
+                      style={{ backgroundColor: c }}
+                    >
+                      {/* text-white literal: va sobre el swatch de color, no debe voltear con el tema */}
+                      {activo && <Check size={14} strokeWidth={3} className="absolute inset-0 m-auto text-white drop-shadow" />}
+                    </button>
+                  );
+                })}
+                <input
+                  type="color"
+                  value={form.color || '#10b981'}
+                  onChange={e => set('color', e.target.value)}
+                  title="Elegir otro color"
+                  aria-label="Elegir otro color"
+                  className="w-7 h-7 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0"
+                />
+                {form.color && (
+                  <button type="button" onClick={() => set('color', '')}
+                    className="text-[11px] text-slate-500 hover:text-primary transition-colors">
+                    Quitar
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                Identifica sus citas y su columna en la agenda. Sin color, usa el verde por defecto.
+              </p>
             </div>
 
             {sucursales.length > 0 && (

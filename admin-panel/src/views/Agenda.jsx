@@ -1959,7 +1959,10 @@ function SinHoraTray({ citas, onOpen }) {
 }
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
-function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
+// barberColor (barberos/{id}.color) pinta SOLO la barra izquierda de 4px. El
+// fondo sigue siendo el del estado (verde=Confirmada, ámbar=Pendiente…), que es
+// lo que el local lee de un vistazo. Sin color, la barra queda como siempre.
+function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
   // Defense-in-depth: computeOverlapLayout ya filtra las citas sin hora
   // válida, pero si esta card llega por otra vía (ej. drag) prefiero no
@@ -2099,7 +2102,25 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
 
   return (
     <div
-      ref={cardRef}
+      // El color del barbero va en la barra izquierda de 4px (el border-l-4 que
+      // la card ya tenía); el fondo lo sigue decidiendo el estado de la cita.
+      //
+      // Se aplica con setProperty(...'important') y no con style={{ borderLeftColor }}
+      // porque en modo claro index.css pinta el borde de las clases de estado con
+      // !important (ej. `html.light [data-view="agenda"] .border-emerald-500\/50`),
+      // y un !important de hoja de estilos le gana a un style inline normal —
+      // solo otro !important inline lo supera. Sin esto el color se vería en
+      // oscuro y desaparecería en claro.
+      //
+      // Va en el ref callback y no en un useEffect porque acá arriba hay un
+      // early return (cita sin hora válida): sumar un hook después de él es
+      // pedirle problemas al orden de hooks.
+      ref={(el) => {
+        cardRef.current = el;
+        if (!el) return;
+        if (barberColor) el.style.setProperty('border-left-color', barberColor, 'important');
+        else el.style.removeProperty('border-left-color');
+      }}
       // Data-* para que otras citas puedan tratar este bloque como slot destino durante touch.
       data-cita-barbero={cita.barberoId}
       data-cita-hora={cita.hora}
@@ -4158,6 +4179,7 @@ export default function Agenda() {
                         cita={cita}
                         colIndex={colIndex}
                         colTotal={colTotal}
+                        barberColor={focusBarbero.color}
                         onClick={openEditCita}
                         onContextMenu={(e, c) => setCtxMenu({ x: e.clientX, y: e.clientY, cita: c })}
                         onDragStart={(e, c) => setDraggedCita(c)}
@@ -4228,11 +4250,26 @@ export default function Agenda() {
                                 ? <Users size={13} className="text-emerald-400" />
                                 : <Eye size={13} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />}
                             </span>
-                            {/* Avatar */}
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-500/20 border border-neutral-700 flex items-center justify-center shrink-0">
+                            {/* Avatar — con el color del barbero (barberos/{id}.color) si lo tiene.
+                                El color va en el borde y en un fondo muy tenue, no en el fondo
+                                pleno: así no compite con la foto. El `1f` final es el alpha en
+                                hex (~12%) — el color llega como string desde Firestore, así que
+                                no hay clase Tailwind que valga; va por style inline.
+                                Sin color, queda exactamente el verde de antes. */}
+                            <div
+                              className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 ${
+                                b.color ? 'border-2' : 'border border-neutral-700 bg-emerald-500/20'
+                              }`}
+                              style={b.color ? { borderColor: b.color, backgroundColor: `${b.color}1f` } : undefined}
+                            >
                               {b.foto
                                 ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
-                                : <span className="text-sm font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
+                                : <span
+                                    className={`text-sm font-bold ${b.color ? '' : 'text-emerald-400'}`}
+                                    style={b.color ? { color: b.color } : undefined}
+                                  >
+                                    {b.nombre?.[0] ?? '?'}
+                                  </span>}
                             </div>
                             {/* Nombre */}
                             <span className="font-semibold text-sm text-primary mt-1 truncate max-w-full">{b.nombre}</span>
@@ -4270,6 +4307,7 @@ export default function Agenda() {
                                 cita={cita}
                                 colIndex={colIndex}
                                 colTotal={colTotal}
+                                barberColor={b.color}
                                 onClick={openEditCita}
                                 onContextMenu={(e, c) => setCtxMenu({ x: e.clientX, y: e.clientY, cita: c })}
                                 onDragStart={(e, c) => setDraggedCita(c)}
