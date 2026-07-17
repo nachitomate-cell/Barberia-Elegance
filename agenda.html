@@ -2662,6 +2662,12 @@
                 const label = (esConsumo ? 'Prepagado' : 'Nuevo pack') + sesion;
                 chips.push(_citaChip('<i class="ph-fill ph-package text-[10px]"></i>', label, 'bg-violet-500/15 text-violet-200'));
             }
+            // Sobrecupo: recargo por atender fuera de turno / encima de otra cita.
+            if (!isCancelled && cita.sobrecupo === true) {
+                const rec = Math.max(0, Math.round(Number(cita.recargoSobrecupo) || 0));
+                const label = rec > 0 ? `Sobrecupo +$${rec.toLocaleString('es-CL')}` : 'Sobrecupo';
+                chips.push(_citaChip('<i class="ph-bold ph-lightning text-[10px]"></i>', label, 'bg-amber-500/15 text-amber-300'));
+            }
             // Check-in del cliente. Field ortogonal a estado: la máquina
             // Pendiente→Confirmada→Completada no cambia; checkedInAt captura
             // "el cliente entró por la puerta" para métricas de puntualidad.
@@ -5209,7 +5215,7 @@
         <div class="grid grid-cols-2 gap-2.5">
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Precio ($)</label>
-            <input type="number" id="ecPrecio" min="0" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="number" id="ecPrecio" min="0" oninput="_ecSobrecupoRefresh()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
           </div>
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Descuento (%)</label>
@@ -5238,6 +5244,37 @@
             <option value="NoAsistio"  style="background:#111">No asistió</option>
             <option value="Cancelada"  style="background:#111">Cancelada</option>
           </select>
+        </div>
+
+        <!-- Sobrecupo / Horario especial: recargo por atender fuera de turno o
+             encima de otra cita. precio = base + recargo (Caja lo cobra solo). -->
+        <div>
+          <button type="button" id="ecSobrecupoToggle" onclick="_toggleEcSobrecupo()" class="flex items-center justify-between w-full p-3 rounded-xl transition-colors" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <span class="flex items-center gap-2">
+              <i class="ph-bold ph-lightning text-amber-400 text-sm"></i>
+              <span class="text-sm font-semibold text-white/80">Sobrecupo / Horario especial</span>
+            </span>
+            <span id="ecSobrecupoSwitch" class="relative w-11 h-6 rounded-full shrink-0 transition-colors" style="background:rgba(255,255,255,0.15);">
+              <span id="ecSobrecupoKnob" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"></span>
+            </span>
+          </button>
+          <div id="ecSobrecupoBox" class="hidden mt-2 p-3 rounded-xl space-y-2.5" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);">
+            <p class="text-[11px] text-amber-300/90 flex items-start gap-1.5"><i class="ph-bold ph-warning text-[12px] mt-px shrink-0"></i>Se cobra un recargo extra por atender fuera de tu turno o encima de otra cita.</p>
+            <div class="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <label class="text-[9px] font-bold uppercase tracking-widest text-white/40 block mb-1">Base</label>
+                <div id="ecSobrecupoBase" class="px-2 py-2 rounded-lg text-sm text-white/80 font-mono" style="background:rgba(255,255,255,0.05);">$0</div>
+              </div>
+              <div>
+                <label class="text-[9px] font-bold uppercase tracking-widest text-amber-300/80 block mb-1">Recargo (+$)</label>
+                <input type="number" id="ecRecargo" min="0" step="1" inputmode="numeric" oninput="_onEcRecargoInput()" class="w-full rounded-lg px-2 py-2 text-sm text-amber-200 font-mono outline-none" style="background:rgba(0,0,0,0.25);border:1px solid rgba(245,158,11,0.4);">
+              </div>
+              <div>
+                <label class="text-[9px] font-bold uppercase tracking-widest text-emerald-300/80 block mb-1">Total</label>
+                <div id="ecSobrecupoTotal" class="px-2 py-2 rounded-lg text-sm text-emerald-200 font-mono font-bold" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);">$0</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Pago + propina (solo si Completada) -->
@@ -5684,6 +5721,7 @@
     //  cambiar slot. Idempotente con la CF sello-automatico.
     // ═══════════════════════════════════════════════════════════════
     let _ecCita = null;        // doc de la cita en edición
+    let _ecSobrecupo = false;  // toggle sobrecupo del modal de edición
     let _ecTicketPrev = [];    // productos ya guardados en cita.ticketProductos
     let _ecTicketNuevos = [];  // productos a agregar en este guardado
 
@@ -5708,7 +5746,7 @@
         // Servicio: poblar select y seleccionar
         const svcSel = document.getElementById('ecServicio');
         svcSel.innerHTML = (_servicios || []).map(s =>
-            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" style="background:#111">${s.nombre}${s.soloStaff ? ' · 🔒 interno' : ''}</option>`
+            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" data-recargo="${Number(s.recargoSobrecupoDefault)||0}" style="background:#111">${s.nombre}${s.soloStaff ? ' · 🔒 interno' : ''}</option>`
         ).join('');
         // Match por id O por nombre (fix de Agenda.jsx para citas viejas sin serviceId)
         let matched = (_servicios || []).find(s => s.id === cita.servicioId);
@@ -5719,7 +5757,14 @@
         }
         if (matched) svcSel.value = matched.id;
 
-        document.getElementById('ecPrecio').value   = cita.precio != null ? Number(cita.precio) : (Number(matched?.precio) || 0);
+        // Sobrecupo: si la cita ya lo tenía, el campo de precio muestra la BASE
+        // (no el total), y se pre-carga el recargo. Si no, ecPrecio = precio normal.
+        const teniaSobrecupo = cita.sobrecupo === true;
+        document.getElementById('ecPrecio').value   = teniaSobrecupo && cita.precioBase != null
+            ? Number(cita.precioBase)
+            : (cita.precio != null ? Number(cita.precio) : (Number(matched?.precio) || 0));
+        document.getElementById('ecRecargo').value  = teniaSobrecupo ? (Number(cita.recargoSobrecupo) || 0) : '';
+        _setEcSobrecupo(teniaSobrecupo);  // lee ecPrecio/ecRecargo ya seteados arriba
         document.getElementById('ecDesc').value     = cita.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : 0;
         document.getElementById('ecHora').value     = cita.hora || '09:00';
         document.getElementById('ecDuracion').value = Number(cita.duracion || cita.duracionServicio || matched?.duracion) || 30;
@@ -5761,6 +5806,68 @@
         const base = Number(opt?.getAttribute('data-precio')) || 0;
         const desc = Math.max(0, Math.min(100, Number(document.getElementById('ecDesc').value) || 0));
         document.getElementById('ecPrecio').value = Math.round(base * (1 - desc / 100));
+        _ecSobrecupoRefresh(); // el precio (base del sobrecupo) cambió
+    }
+
+    // ── Sobrecupo del modal de edición ───────────────────────────────
+    // Base = ecPrecio (precio ya con descuento aplicado). Total = base + recargo.
+    // Se persiste precio = total, y como Caja/Comisiones/Métricas leen `precio`,
+    // el recargo se cobra sin tocar nada más. Mismo modelo que el admin.
+    function _ecSobrecupoRefresh() {
+        const base    = Math.max(0, Math.round(Number(document.getElementById('ecPrecio').value) || 0));
+        const recargo = _ecSobrecupo ? Math.max(0, Math.round(Number(document.getElementById('ecRecargo').value) || 0)) : 0;
+        const baseEl  = document.getElementById('ecSobrecupoBase');
+        const totEl   = document.getElementById('ecSobrecupoTotal');
+        if (baseEl) baseEl.textContent = '$' + base.toLocaleString('es-CL');
+        if (totEl)  totEl.textContent  = '$' + (base + recargo).toLocaleString('es-CL');
+    }
+
+    function _onEcRecargoInput() {
+        const el = document.getElementById('ecRecargo');
+        el.value = String(el.value || '').replace(/[^\d]/g, '');
+        _ecSobrecupoRefresh();
+    }
+
+    // Estado del toggle: por código (forzar on/off) o toggle desde el click.
+    function _setEcSobrecupo(on) {
+        _ecSobrecupo = !!on;
+        document.getElementById('ecSobrecupoBox').classList.toggle('hidden', !_ecSobrecupo);
+        const sw = document.getElementById('ecSobrecupoSwitch');
+        const kn = document.getElementById('ecSobrecupoKnob');
+        if (sw) sw.style.background = _ecSobrecupo ? '#f59e0b' : 'rgba(255,255,255,0.15)';
+        if (kn) kn.style.left = _ecSobrecupo ? '22px' : '2px';
+        _ecSobrecupoRefresh();
+    }
+
+    function _toggleEcSobrecupo() {
+        _setEcSobrecupo(!_ecSobrecupo);
+        // Al activar, si no hay recargo cargamos el default del servicio (si tiene).
+        if (_ecSobrecupo) {
+            const rEl = document.getElementById('ecRecargo');
+            if (!Number(rEl.value)) {
+                const sel = document.getElementById('ecServicio');
+                const opt = sel.options[sel.selectedIndex];
+                const def = Math.max(0, Math.round(Number(opt?.getAttribute('data-recargo')) || 0));
+                if (def) { rEl.value = def; _ecSobrecupoRefresh(); }
+            }
+        }
+    }
+
+    // ¿La hora cae fuera del turno del barbero ese día? (informativo, como el admin)
+    function _esHorarioEspecial(hora) {
+        try {
+            const fecha = _ecCita && _ecCita.fecha;
+            if (!fecha || !hora) return false;
+            // toMins local para no depender del scope de otras definiciones.
+            const tm  = t => { const [h, m] = String(t).split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+            const dw  = new Date(fecha + 'T12:00:00').getDay();
+            const cfg = barberConfig || globalConfig || {};
+            const dc  = (cfg.diasConfig || {})[dw] || {};
+            const ini = tm(dc.inicio || cfg.horarioInicio || '09:00');
+            const fin = tm(dc.fin    || cfg.horarioFin    || '20:00');
+            const h   = tm(hora);
+            return h < ini || h >= fin;
+        } catch (_) { return false; }
     }
 
     function _onEcEstadoChange() {
@@ -5871,7 +5978,7 @@
         const svcId    = svcSel.value;
         const svcOpt   = svcSel.options[svcSel.selectedIndex];
         const svcNom   = svcOpt?.text || '';
-        const precio   = Number(document.getElementById('ecPrecio').value) || 0;
+        const precio   = Number(document.getElementById('ecPrecio').value) || 0;   // BASE (sin recargo)
         const desc     = Math.max(0, Math.min(100, Number(document.getElementById('ecDesc').value) || 0));
         const hora     = document.getElementById('ecHora').value;
         const duracion = Math.max(5, Number(document.getElementById('ecDuracion').value) || 30);
@@ -5879,6 +5986,17 @@
         const metodo   = document.getElementById('ecMetodoPago').value;
         const propina  = document.getElementById('ecPropina').value;
         const nota     = document.getElementById('ecNota').value.trim();
+
+        // Sobrecupo: precio final = base + recargo. Se persiste el desglose y
+        // `precio` = total (Caja/Comisiones/Métricas leen `precio`). Mismo modelo
+        // que el admin. Si estaba activo y se apagó, se limpia el desglose.
+        const recargo = _ecSobrecupo ? Math.max(0, Math.round(Number(document.getElementById('ecRecargo').value) || 0)) : 0;
+        const precioFinal = precio + recargo;
+        const sobrecupoFields = _ecSobrecupo
+            ? { sobrecupo: true,  precioBase: precio, recargoSobrecupo: recargo, precioTotal: precioFinal, horarioEspecial: _esHorarioEspecial(hora) }
+            : (_ecCita && _ecCita.sobrecupo === true
+                ? { sobrecupo: false, precioBase: precio, recargoSobrecupo: 0, precioTotal: precio, horarioEspecial: false }
+                : {});
 
         if (!nombre) { err.textContent = 'El nombre es obligatorio.'; err.classList.remove('hidden'); return; }
 
@@ -5904,7 +6022,8 @@
                 clienteEmail:         email,
                 servicioId:           svcId,
                 servicioNombre:       svcNom,
-                precio:               precio,
+                precio:               precioFinal,   // base + recargo (o base si no hay sobrecupo)
+                ...sobrecupoFields,
                 porcentajeDescuento:  desc || 0,
                 hora:                 hora,
                 duracion:             duracion,
