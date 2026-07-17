@@ -128,6 +128,23 @@
   --tx-lime-300:    190 242 100;
   --tx-sky-200:     186 230 253;
   --tx-sky-300:     125 211 252;
+
+  /* Familias huérfanas: nunca tuvieron override en claro, así que su texto se
+     quedaba en el tono claro sobre fondo blanco (el "$0" lavado de Tarjeta y
+     Transferencia en Caja). No es una regresión del refactor — el agujero
+     llevaba ahí desde siempre y se nota ahora que el resto ya se ve bien. */
+  --tx-purple-200:  233 213 255;
+  --tx-purple-300:  216 180 254;
+  --tx-purple-400:  192 132 252;
+  --tx-cyan-300:    103 232 249;
+  --tx-cyan-400:    34 211 238;
+  --tx-indigo-300:  165 180 252;
+  --tx-indigo-400:  129 140 248;
+  --tx-pink-300:    249 168 212;
+  --tx-pink-400:    244 114 182;
+  --tx-teal-300:    94 234 212;
+  --tx-teal-400:    45 212 191;
+  --tx-orange-400:  251 146 60;
 }
 
 /* Modo claro. Estos valores NO son un espejo aritmético de la rampa: son
@@ -180,6 +197,22 @@ html.light {
   --tx-lime-300:    77 124 15;
   --tx-sky-200:     3 105 161;   /* #0369a1 */
   --tx-sky-300:     3 105 161;
+
+  /* Huérfanas — mismo patrón que las de arriba: el tono claro que hace de
+     texto sobre oscuro aterriza en el 700 de su familia. Esto SÍ es un cambio
+     visual (arregla contraste), no una equivalencia como el resto del bloque. */
+  --tx-purple-200:  126 34 206;  /* #7e22ce */
+  --tx-purple-300:  126 34 206;
+  --tx-purple-400:  126 34 206;
+  --tx-cyan-300:    14 116 144;  /* #0e7490 */
+  --tx-cyan-400:    14 116 144;
+  --tx-indigo-300:  67 56 202;   /* #4338ca */
+  --tx-indigo-400:  67 56 202;
+  --tx-pink-300:    190 24 93;   /* #be185d */
+  --tx-pink-400:    190 24 93;
+  --tx-teal-300:    15 118 110;  /* #0f766e */
+  --tx-teal-400:    15 118 110;
+  --tx-orange-400:  194 65 12;   /* #c2410c */
 }
 
 /* ── Aplicación tipográfica global ───────────────────────────────── */

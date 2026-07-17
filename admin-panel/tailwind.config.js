@@ -117,6 +117,33 @@ export default {
           200: 'rgb(var(--tx-sky-200) / <alpha-value>)',
           300: 'rgb(var(--tx-sky-300) / <alpha-value>)',
         },
+
+        // Familias que nunca tuvieron override en claro: su texto quedaba en
+        // el tono claro sobre blanco (el "$0" lavado de Tarjeta en Caja).
+        purple: {
+          200: 'rgb(var(--tx-purple-200) / <alpha-value>)',
+          300: 'rgb(var(--tx-purple-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-purple-400) / <alpha-value>)',
+        },
+        cyan: {
+          300: 'rgb(var(--tx-cyan-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-cyan-400) / <alpha-value>)',
+        },
+        indigo: {
+          300: 'rgb(var(--tx-indigo-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-indigo-400) / <alpha-value>)',
+        },
+        pink: {
+          300: 'rgb(var(--tx-pink-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-pink-400) / <alpha-value>)',
+        },
+        teal: {
+          300: 'rgb(var(--tx-teal-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-teal-400) / <alpha-value>)',
+        },
+        orange: {
+          400: 'rgb(var(--tx-orange-400) / <alpha-value>)',
+        },
       },
       animation: {
         'slide-in-right': 'slideInRight 0.25s cubic-bezier(0.16,1,0.3,1)',
