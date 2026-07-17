@@ -7,6 +7,20 @@ import {
 } from 'lucide-react';
 import { resolveTenantId } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
+import { WaChatPreview, LivePreviewHeader } from '../components/WaChatPreview';
+
+// Guion del chat de la vista previa de confirmación automática al cliente.
+const CONFIRM_MSGS = [
+  { side: 'in',  text: 'Hola Juan 👋 Te recordamos tu cita de mañana 15:00 — Corte + Barba con Vicente. ¿La confirmas? Responde CONFIRMAR o CANCELAR.' },
+  { side: 'out', text: 'CONFIRMAR ✅' },
+  { side: 'in',  text: '¡Gracias! Tu cita quedó confirmada. Te esperamos 🙌' },
+];
+const CONFIRM_TIMELINE = [
+  { count: 1, typing: false, dur: 3400 },
+  { count: 2, typing: false, dur: 1700 },
+  { count: 2, typing: true,  dur: 1000 },
+  { count: 3, typing: false, dur: 3200 },
+];
 
 // Vista "Avisos WhatsApp" — confirmaciones de cita vía WhatsApp oficial.
 //
@@ -63,6 +77,9 @@ export default function WhatsAppNotif({ embedded = false }) {
   const pausado     = estado?.estado === 'pausado';
   const ventanaOk   = !!estado?.ventanaAbierta;
   const planCliente = !!estado?.planCliente;
+
+  const nombreLocal = tenant?.name || tenantId || 'Tu Local';
+  const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
 
   const activarUrl = numero
     ? `https://wa.me/${numero}?text=${encodeURIComponent(`ACTIVAR ${tenantId}`)}`
@@ -209,26 +226,46 @@ export default function WhatsAppNotif({ embedded = false }) {
                   <span className="bg-slate-700/60 text-slate-300 border border-slate-600 rounded-full text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Plan pagado</span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed max-w-lg mb-4">
-                Al reservar, tu <span className="text-white font-semibold">cliente</span> recibe un WhatsApp
-                oficial a nombre de tu local con el detalle de su cita — menos inasistencias, imagen más
-                profesional. Usa plantillas verificadas por WhatsApp (mensajería con costo, por eso es parte
-                del plan pagado).
-              </p>
-              {planCliente ? (
-                <div className="bg-slate-900/60 border border-violet-500/25 rounded-xl p-4 text-sm text-slate-300 flex items-center gap-3">
-                  <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
-                  Activo — tus clientes reciben la confirmación automáticamente al reservar.
+              <div className="grid lg:grid-cols-[1fr_260px] gap-5 items-start">
+                {/* Izquierda: descripción + estado/CTA */}
+                <div className="order-2 lg:order-1">
+                  <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                    Al reservar, tu <span className="text-white font-semibold">cliente</span> recibe un WhatsApp
+                    oficial a nombre de tu local con el detalle de su cita — menos inasistencias, imagen más
+                    profesional. Usa plantillas verificadas por WhatsApp (mensajería con costo, por eso es parte
+                    del plan pagado).
+                  </p>
+                  {planCliente ? (
+                    <div className="bg-slate-900/60 border border-violet-500/25 rounded-xl p-4 text-sm text-slate-300 flex items-center gap-3">
+                      <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
+                      Activo — tus clientes reciben la confirmación automáticamente al reservar.
+                    </div>
+                  ) : (
+                    <a
+                      href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(upgradeMsg)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
+                    >
+                      <MessageCircle size={16} /> Solicitar activación
+                    </a>
+                  )}
                 </div>
-              ) : (
-                <a
-                  href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(upgradeMsg)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
-                >
-                  <MessageCircle size={16} /> Quiero activarlo — hablar con SynapTech
-                </a>
-              )}
+
+                {/* Derecha: vista previa EN VIVO de la confirmación */}
+                <div className="order-1 lg:order-2">
+                  <LivePreviewHeader />
+                  <WaChatPreview
+                    headerName={nombreLocal}
+                    avatar={avatar}
+                    messages={CONFIRM_MSGS}
+                    timeline={CONFIRM_TIMELINE}
+                    height={300}
+                  />
+                  <p className="text-[11px] text-slate-500 text-center mt-2 leading-relaxed px-1">
+                    El cliente confirma su cita con un toque, sin llamadas.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

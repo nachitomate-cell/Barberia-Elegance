@@ -5,6 +5,7 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
+import { WaChatPreview, ClaudeBadge, LivePreviewHeader } from '../components/WaChatPreview';
 import {
   QrCode, ShieldAlert, Loader2, CheckCircle2, Power, Clock,
   Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, ExternalLink, Bot,
@@ -26,6 +27,22 @@ const TYC_TEXT =
   'asumo las políticas de uso responsable de WhatsApp y de la plataforma.';
 
 const card = 'bg-slate-800/30 border border-slate-700/50 rounded-2xl';
+
+// Guion del chat de la vista previa (el bot que responde y agenda solo).
+const ASISTENTE_MSGS = [
+  { side: 'out', text: 'Hola! ¿Tienen hora para hoy? ✂️' },
+  { side: 'in',  text: '¡Hola! 👋 Sí, tengo 16:00 o 17:30 con Vicente. ¿Cuál te acomoda?' },
+  { side: 'out', text: '16:00 porfa 🙌' },
+  { side: 'in',  text: '✅ Listo, te agendé Corte + Barba hoy a las 16:00. ¡Te esperamos!' },
+];
+const ASISTENTE_TIMELINE = [
+  { count: 1, typing: false, dur: 1700 },
+  { count: 1, typing: true,  dur: 1300 },
+  { count: 2, typing: false, dur: 2600 },
+  { count: 3, typing: false, dur: 1500 },
+  { count: 3, typing: true,  dur: 1200 },
+  { count: 4, typing: false, dur: 3200 },
+];
 
 function callFn(name, payload) {
   const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), name);
@@ -93,6 +110,9 @@ export default function WhatsAppAsistente({ embedded = false }) {
     `Hola SynapTech, soy de *${tenant?.name || tid}* y quiero activar el *Asistente IA 24/7* por WhatsApp (el bot que responde y agenda solo). ¿Cómo lo activamos?`,
   )}`;
 
+  const nombreLocal = tenant?.name || tid || 'Tu Local';
+  const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
+
   /* ── Escritura de switches operativos (solo si está habilitado) ── */
   function patchCfg(patch) {
     setDoc(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'), patch, { merge: true }).catch(() => {});
@@ -158,31 +178,58 @@ export default function WhatsAppAsistente({ embedded = false }) {
             }
           />
 
-          {/* Beneficios rápidos */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
-            {[
-              { Icon: Bot,    t: 'Responde solo',   d: 'Precios, horarios, disponibilidad — al instante, 24/7.' },
-              { Icon: Clock,  t: 'Agenda por ti',   d: 'El cliente pide hora y el bot la reserva en tu agenda.' },
-              { Icon: Sparkles, t: 'Anti no-show',  d: 'Confirma las citas para reducir las inasistencias.' },
-            ].map((f, i) => (
-              <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-3">
-                <f.Icon size={15} className="text-violet-400 mb-1.5" />
-                <p className="text-xs font-bold text-white leading-tight">{f.t}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{f.d}</p>
+          <div className="grid lg:grid-cols-[1fr_260px] gap-5 items-start">
+            {/* Izquierda: beneficios + Claude + CTA */}
+            <div className="order-2 lg:order-1 space-y-3.5">
+              <div className="space-y-2">
+                {[
+                  { Icon: Bot,      t: 'Responde solo',  d: 'Precios, horarios y disponibilidad — al instante, 24/7.' },
+                  { Icon: Clock,    t: 'Agenda por ti',  d: 'El cliente pide hora y el bot la reserva en tu agenda.' },
+                  { Icon: Sparkles, t: 'Anti no-show',   d: 'Confirma las citas para reducir las inasistencias.' },
+                ].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 shrink-0">
+                      <f.Icon size={14} className="text-violet-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-bold text-white leading-tight">{f.t}</p>
+                      <p className="text-[11px] text-slate-400 leading-snug">{f.d}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <a
-            href={solicitarUrl}
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
-          >
-            <MessageCircle size={16} /> Solicitar activación <ExternalLink size={13} />
-          </a>
-          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
-            Es un módulo premium que activa el equipo de SynapTech por ti. Toca el botón y coordinamos la puesta en marcha sobre tu número.
-          </p>
+              <ClaudeBadge />
+
+              <div>
+                <a
+                  href={solicitarUrl}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-lg shadow-violet-900/40"
+                >
+                  <MessageCircle size={16} /> Solicitar activación <ExternalLink size={13} />
+                </a>
+                <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed">
+                  Módulo premium que activa el equipo de SynapTech por ti. Toca el botón y coordinamos la puesta en marcha sobre tu número.
+                </p>
+              </div>
+            </div>
+
+            {/* Derecha: vista previa EN VIVO del chat */}
+            <div className="order-1 lg:order-2">
+              <LivePreviewHeader />
+              <WaChatPreview
+                headerName={nombreLocal}
+                avatar={avatar}
+                messages={ASISTENTE_MSGS}
+                timeline={ASISTENTE_TIMELINE}
+                height={320}
+              />
+              <p className="text-[11px] text-slate-500 text-center mt-2 leading-relaxed px-1">
+                Así responde y agenda el bot en tu WhatsApp, solo.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -207,6 +254,8 @@ export default function WhatsAppAsistente({ embedded = false }) {
             )
           }
         />
+
+        <ClaudeBadge />
 
         {err && (
           <div role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">{err}</div>
