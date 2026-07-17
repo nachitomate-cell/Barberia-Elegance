@@ -795,6 +795,15 @@ exports.sellosElegance = selloAutomatico.sellosElegance;
 exports.sellosTenant   = selloAutomatico.sellosTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  MOTOR DE PACKS AL COMPLETAR — ver pack-automatico.js
+//  Movido de client-side (Agenda.jsx) a CF para que el pack se active/
+//  descuente venga de donde venga la cita (admin O agenda.html del barbero).
+// ─────────────────────────────────────────────────────────────────
+const packAutomatico = require('./pack-automatico');
+exports.packsElegance = packAutomatico.packsElegance;
+exports.packsTenant   = packAutomatico.packsTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECOMPENSA POR REFERIDO (B2C) — ver referidos-recompensa.js
 //  Otorga sellos o crea redemptions pendientes al crear la primera
 //  cita de un cliente que se registró con `referredByCode`.
