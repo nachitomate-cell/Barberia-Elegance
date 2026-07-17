@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDocs, getDoc, query, where } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import {
   Users, TrendingDown, DollarSign, RefreshCcw, CalendarCheck, UserPlus,
   ClipboardList, Cake, MessageCircle, ArrowUpRight, ArrowDownRight, Clock,
   ExternalLink, Hourglass, Receipt, Wallet, ChevronRight,
-  Target, TrendingUp, AlertTriangle, CheckCircle2,
+  Target, TrendingUp, AlertTriangle, CheckCircle2, Lock, LogOut,
 } from 'lucide-react';
+import { auth } from '../lib/firebase';
 /* Nota: el banner de "Liquidaciones pendientes de aceptación" se renderiza
    en `agenda.html` (panel del barbero), NO acá. Este panel admin solo lo ve
    admin/jefe y para ellos no aplica. */
@@ -249,7 +251,13 @@ export default function Inicio() {
     } catch (e) {
       if (myId !== fetchIdRef.current) return;
       console.error('Inicio fetchData:', e);
-      setLoadError(e.message || 'No se pudo cargar la información');
+      // permission-denied casi siempre es una cuenta de barbero mirando el
+      // Inicio: éste lee `gastos`, que solo puede leer el admin (esAdmin en las
+      // reglas). El mensaje crudo de Firebase ("Missing or insufficient
+      // permissions") no le dice nada al dueño — se lo traducimos abajo.
+      const esPermiso = e?.code === 'permission-denied'
+        || /insufficient permissions|permission-denied/i.test(e?.message || '');
+      setLoadError(esPermiso ? '__PERMISO__' : (e.message || 'No se pudo cargar la información'));
     } finally {
       if (myId === fetchIdRef.current) {
         setFetching(false);
@@ -469,10 +477,42 @@ export default function Inicio() {
   }
 
   if (loadError && !citas.length && !servicios.length) {
+    // Caso frecuente: el dueño quedó con la sesión de un profesional abierta.
+    // El Inicio muestra finanzas (solo admin), así que da permisos insuficientes.
+    // En vez del mensaje técnico de Firebase, le explicamos qué pasa y le
+    // ponemos el botón de salir acá mismo — el problema real es que no saben
+    // dónde está "Cerrar sesión".
+    if (loadError === '__PERMISO__' && !isAdmin) {
+      return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center px-6 max-w-md mx-auto">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <Lock size={26} className="text-amber-400" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-base font-bold text-primary">Estás en una cuenta de profesional</p>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              El Inicio muestra las finanzas del local, que solo ve la cuenta de
+              administrador. Para entrar con ella, primero cierra esta sesión.
+            </p>
+          </div>
+          <button
+            onClick={() => signOut(auth)}
+            className="mt-1 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-500 hover:bg-amber-400 transition-colors active:scale-95"
+          >
+            <LogOut size={16} /> Cerrar sesión
+          </button>
+          <p className="text-[11px] text-slate-500">
+            Después inicia sesión con el correo de administrador del local.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-center px-4">
         <p className="text-sm text-slate-300">No pudimos cargar el inicio.</p>
-        <p className="text-xs text-slate-500">{loadError}</p>
+        <p className="text-xs text-slate-500">
+          {loadError === '__PERMISO__' ? 'Tu cuenta no tiene permiso para ver el Inicio.' : loadError}
+        </p>
         <button
           onClick={fetchData}
           className="mt-1 px-4 py-2 rounded-lg text-xs font-semibold border transition-all"
