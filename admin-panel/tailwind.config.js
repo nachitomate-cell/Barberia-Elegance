@@ -65,6 +65,59 @@ export default {
           900: '#064e3b',
         },
       },
+
+      // ── Texto de acento ────────────────────────────────────────────
+      // `textColor` es una escala SEPARADA de `colors` (por defecto ambas
+      // derivan de él). Sobrescribirla acá hace que `text-emerald-400` se
+      // oscurezca en modo claro mientras `bg-emerald-400` —el botón verde—
+      // se queda intacto. Con un token en `colors` no se podría: el mismo
+      // tono se usa de texto Y de fondo (medido: 1491 tinta vs 1277 fondo),
+      // así que no hay un único valor correcto para los dos.
+      //
+      // Solo están los tonos cuyo override era sólido, global y con un
+      // destino único → migran con delta cero. Ver styles/_tokens.css.
+      textColor: {
+        emerald: {
+          50:  'rgb(var(--tx-emerald-50)  / <alpha-value>)',
+          100: 'rgb(var(--tx-emerald-100) / <alpha-value>)',
+          200: 'rgb(var(--tx-emerald-200) / <alpha-value>)',
+          300: 'rgb(var(--tx-emerald-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-emerald-400) / <alpha-value>)',
+        },
+        red: {
+          300: 'rgb(var(--tx-red-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-red-400) / <alpha-value>)',
+        },
+        rose: {
+          200: 'rgb(var(--tx-rose-200) / <alpha-value>)',
+          300: 'rgb(var(--tx-rose-300) / <alpha-value>)',
+        },
+        blue: {
+          300: 'rgb(var(--tx-blue-300) / <alpha-value>)',
+          400: 'rgb(var(--tx-blue-400) / <alpha-value>)',
+        },
+        amber: {
+          50:  'rgb(var(--tx-amber-50)  / <alpha-value>)',
+          100: 'rgb(var(--tx-amber-100) / <alpha-value>)',
+          200: 'rgb(var(--tx-amber-200) / <alpha-value>)',
+        },
+        green: {
+          400: 'rgb(var(--tx-green-400) / <alpha-value>)',
+        },
+        violet: {
+          50:  'rgb(var(--tx-violet-50)  / <alpha-value>)',
+          100: 'rgb(var(--tx-violet-100) / <alpha-value>)',
+          200: 'rgb(var(--tx-violet-200) / <alpha-value>)',
+        },
+        lime: {
+          200: 'rgb(var(--tx-lime-200) / <alpha-value>)',
+          300: 'rgb(var(--tx-lime-300) / <alpha-value>)',
+        },
+        sky: {
+          200: 'rgb(var(--tx-sky-200) / <alpha-value>)',
+          300: 'rgb(var(--tx-sky-300) / <alpha-value>)',
+        },
+      },
       animation: {
         'slide-in-right': 'slideInRight 0.25s cubic-bezier(0.16,1,0.3,1)',
         'fade-in':        'fadeIn 0.15s ease',

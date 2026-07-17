@@ -87,23 +87,12 @@ html.light .bg-slate-800\/80 { background-color: rgba(226, 232, 240, 0.9)  !impo
 html.light .border-slate-800\/40,
 html.light .border-slate-800\/60,
 html.light .border-slate-800\/80,
-html.light .border-slate-750\/70 { border-color: #e2e8f0 !important; }
-
-/* Texto de color → tonos más oscuros legibles sobre fondo claro */
-html.light .text-emerald-300,
-html.light .text-emerald-400,
-html.light .text-emerald-500\/80,
-html.light .text-emerald-400\/80 { color: #047857 !important; }
-html.light .text-red-300,
-html.light .text-red-400,
-html.light .text-red-400\/70,
+html.light .border-slate-750\/70 { border-color: #e2e8f0 !important; }html.light .text-emerald-500\/80,
+html.light .text-emerald-400\/80 { color: #047857 !important; }html.light .text-red-400\/70,
 html.light .text-red-400\/60 { color: #b91c1c !important; }
-html.light .text-blue-300,
-html.light .text-blue-400 { color: #1d4ed8 !important; }
 html.light .text-amber-300,
 html.light .text-amber-400,
 html.light .text-amber-400\/80 { color: #b45309 !important; }
-html.light .text-green-400 { color: #15803d !important; }
 /* slate-700 se usa para iconos/ilustraciones tenues: mantener tenue en claro */
 html.light .text-slate-700 { color: #94a3b8 !important; }
 
@@ -300,11 +289,6 @@ html.light .border-red-500\/30           { border-color: rgba(239, 68, 68, 0.5) 
 html.light .border-sky-500\/20,
 html.light .border-sky-500\/25           { border-color: rgba(14, 165, 233, 0.5) !important; }
 html.light .ring-sky-500\/20             { --tw-ring-color: rgba(14, 165, 233, 0.5) !important; }
-
-/* ── Texto de acentos con opacidad (text-emerald-200, etc.) ── */
-html.light .text-emerald-200,
-html.light .text-emerald-100,
-html.light .text-emerald-50              { color: #047857 !important; }
 html.light .text-emerald-200\/80,
 html.light .text-emerald-200\/85,
 html.light .text-emerald-100\/85,
@@ -313,24 +297,9 @@ html.light .text-emerald-50\/75,
 html.light .text-emerald-50\/80,
 html.light .text-emerald-50\/90,
 html.light .text-emerald-400\/85         { color: #065f46 !important; }
-
-html.light .text-lime-200,
-html.light .text-lime-300                { color: #4d7c0f !important; }
-html.light .text-amber-200,
-html.light .text-amber-100,
-html.light .text-amber-50                { color: #b45309 !important; }
 html.light .text-amber-200\/80,
 html.light .text-amber-100\/85,
 html.light .text-amber-50\/75            { color: #92400e !important; }
-
-html.light .text-violet-200,
-html.light .text-violet-100,
-html.light .text-violet-50               { color: #6d28d9 !important; }
-
-html.light .text-rose-200,
-html.light .text-rose-300                { color: #be123c !important; }
-html.light .text-sky-200,
-html.light .text-sky-300                 { color: #0369a1 !important; }
 
 /* Texto gold (Marketing) */
 html.light .text-\[\#D4AF37\]            { color: #92740f !important; }

@@ -91,6 +91,43 @@
 
   --primary: 255 255 255;   /* texto principal → blanco */
   --glass:   255 255 255;   /* velo → aclara */
+
+  /* ── Texto de acento ────────────────────────────────────────────
+     Los acentos NO pueden usar el truco de la rampa. Ahí funcionó
+     porque slate se usaba dark-first con 99% de disciplina; medido,
+     los acentos van 1491 tinta vs 1277 fondo — el MISMO tono es texto
+     y botón a la vez (amber-400: 207 textos, 66 fondos). Voltear el
+     token rompería los fondos; congelarlo, los textos.
+
+     La salida es que Tailwind expone `textColor` como escala separada
+     de `backgroundColor` (las dos derivan de `colors` por defecto).
+     Así que estos tokens los consume SOLO `text-*`: text-emerald-400
+     se oscurece en claro y bg-emerald-400 no se entera.
+
+     Oscuro = el valor nativo de Tailwind (leído de la librería).
+     Claro  = el que ya estaba afinado a mano en los overrides. */
+  --tx-emerald-50:  236 253 245;
+  --tx-emerald-100: 209 250 229;
+  --tx-emerald-200: 167 243 208;
+  --tx-emerald-300: 110 231 183;
+  --tx-emerald-400: 52 211 153;
+  --tx-red-300:     252 165 165;
+  --tx-red-400:     248 113 113;
+  --tx-rose-200:    254 205 211;
+  --tx-rose-300:    253 164 175;
+  --tx-blue-300:    147 197 253;
+  --tx-blue-400:    96 165 250;
+  --tx-amber-50:    255 251 235;
+  --tx-amber-100:   254 243 199;
+  --tx-amber-200:   253 230 138;
+  --tx-green-400:   74 222 128;
+  --tx-violet-50:   245 243 255;
+  --tx-violet-100:  237 233 254;
+  --tx-violet-200:  221 214 254;
+  --tx-lime-200:    217 249 157;
+  --tx-lime-300:    190 242 100;
+  --tx-sky-200:     186 230 253;
+  --tx-sky-300:     125 211 252;
 }
 
 /* Modo claro. Estos valores NO son un espejo aritmético de la rampa: son
@@ -114,6 +151,35 @@ html.light {
 
   --primary: 15 23 42;       /* texto principal → casi negro */
   --glass:   15 23 42;       /* velo → oscurece */
+
+  /* Texto de acento. El patrón que ya seguían los overrides: el tono claro
+     que se usa como texto sobre oscuro aterriza en el 700 de su familia.
+     Solo los tonos SÓLIDOS con un destino global único están acá; las
+     variantes con opacidad siguen en index.css porque su override fija un
+     color sólido y de paso mata el alpha — migrarlas lo reviviría y eso sí
+     se ve. */
+  --tx-emerald-50:  4 120 87;    /* #047857 */
+  --tx-emerald-100: 4 120 87;
+  --tx-emerald-200: 4 120 87;
+  --tx-emerald-300: 4 120 87;
+  --tx-emerald-400: 4 120 87;
+  --tx-red-300:     185 28 28;   /* #b91c1c */
+  --tx-red-400:     185 28 28;
+  --tx-rose-200:    190 18 60;   /* #be123c */
+  --tx-rose-300:    190 18 60;
+  --tx-blue-300:    29 78 216;   /* #1d4ed8 */
+  --tx-blue-400:    29 78 216;
+  --tx-amber-50:    180 83 9;    /* #b45309 */
+  --tx-amber-100:   180 83 9;
+  --tx-amber-200:   180 83 9;
+  --tx-green-400:   21 128 61;   /* #15803d */
+  --tx-violet-50:   109 40 217;  /* #6d28d9 */
+  --tx-violet-100:  109 40 217;
+  --tx-violet-200:  109 40 217;
+  --tx-lime-200:    77 124 15;   /* #4d7c0f */
+  --tx-lime-300:    77 124 15;
+  --tx-sky-200:     3 105 161;   /* #0369a1 */
+  --tx-sky-300:     3 105 161;
 }
 
 /* ── Aplicación tipográfica global ───────────────────────────────── */
