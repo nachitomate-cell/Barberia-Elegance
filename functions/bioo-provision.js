@@ -46,6 +46,11 @@ const BIOO_ADMIN_SA = defineSecret('BIOO_ADMIN_SA');
 
 const BIOO_BASE = 'https://bioo.cl';
 
+// Correos de SynapTech (mismos que firestore.rules). `biooEditorBridge` los
+// rechaza: si el superadmin abre el Editor Premium desde el panel de un local,
+// el puente identificaría por SU email y la página quedaría a su nombre.
+const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
+
 // App secundaria inicializada con la service account → createCustomToken firma
 // con la clave privada (sin llamar a la API de IAM).
 let _signerApp = null;
@@ -786,6 +791,24 @@ exports.biooEditorBridge = onCall(
     const name = String((request.data && request.data.name) || '').trim().slice(0, 80);
     const wantHandle = (request.data && request.data.handle) || '';
 
+    // ⚠️ BLINDAJE (auditoría 2026-07-16). Dos incidentes reales que este guard cierra:
+    //
+    //  1) SLUGS BASURA: el panel pasa `handle: cfg.handle`, que es el MISMO handle
+    //     que ya registró en `bio_handles`. Como handleTaken() mira los dos
+    //     namespaces, freeHandle() lo veía "tomado" y acuñaba `<handle>2`, `<handle>5`…
+    //     en silencio. Ahora: si el handle pedido está tomado por OTRO dueño,
+    //     fallamos explícito en vez de inventar uno nuevo.
+    //
+    //  2) EL SUPERADMIN SE LLEVABA LA BIO DEL CLIENTE: el puente identifica por
+    //     el email del que abre el panel. Si SynapTech abre el panel de un local,
+    //     se auto-creaba/asignaba la bio a su cuenta personal. Ahora se rechaza.
+    if (BOOTSTRAP_EMAILS.includes(email)) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Estás con la cuenta de SynapTech. El Editor Premium se abre con la cuenta del local (si no, la página quedaría a tu nombre).',
+      );
+    }
+
     const now = FieldValue.serverTimestamp();
     const idxRef = db.collection('bio_email_owners').doc(email);
     const idxSnap = await idxRef.get();
@@ -811,7 +834,40 @@ exports.biooEditorBridge = onCall(
     }
 
     if (!handle) {
+      // ── AUTO-SANADO: la bio pedida ya existe y es SUYA (por email), pero el
+      // índice bio_email_owners no la apuntaba (así se produjo el desastre del
+      // 2026-07-16: un seed creó bios/<h> sin índice → el puente creyó que el
+      // handle era ajeno y acuñó <h>2). En vez de inventar otra, la adoptamos.
+      const desired = normHandle(wantHandle || '');
+      if (desired && validHandle(desired)) {
+        const dRef  = db.collection('bios').doc(desired);
+        const dSnap = await dRef.get();
+        if (dSnap.exists) {
+          const d = dSnap.data();
+          if (d.ownerEmail && d.ownerEmail === email) {
+            const adoptedUid = d.uid || callerUid;
+            const b = db.batch();
+            if (!d.uid) b.update(dRef, { uid: adoptedUid, updatedAt: now });
+            b.set(idxRef, { handle: desired, email, source: 'gestion-interna', createdAt: now }, { merge: true });
+            b.set(db.collection('bio_users').doc(adoptedUid), { username: desired, email, createdAt: now }, { merge: true });
+            await b.commit();
+            const tok = await signerAuth().createCustomToken(adoptedUid);
+            logger.info(`[bioo] editor bridge ADOPTA handle=${desired} email=${email}`);
+            return { customToken: tok, handle: desired, publicUrl: BIOO_BASE + '/' + encodeURIComponent(desired) };
+          }
+          // Existe y es de OTRA cuenta → error claro, NO acuñamos <h>2.
+          throw new HttpsError(
+            'already-exists',
+            `El nombre "bioo.cl/${desired}" ya pertenece a otra cuenta. Elige otro nombre en tu panel antes de abrir el Editor Premium.`,
+          );
+        }
+      }
+
       handle = await freeHandle(wantHandle || name || email.split('@')[0]);
+      // freeHandle:110 (último recurso) no valida → lo validamos acá.
+      if (!validHandle(handle)) {
+        throw new HttpsError('internal', 'No se pudo generar un nombre válido para tu página.');
+      }
       const bioDoc = {
         uid: callerUid,
         ownerEmail: email,
@@ -822,8 +878,17 @@ exports.biooEditorBridge = onCall(
         createdAt: now,
         updatedAt: now,
       };
+      // ⚠️ `create()` y NO `set({merge:true})`: entre handleTaken() y este commit
+      // otro flujo puede haber acuñado el mismo handle (TOCTOU). Con merge, este
+      // set le INYECTABA uid+ownerEmail encima = robo de la bio ajena. create()
+      // falla si el doc ya existe.
+      try {
+        await db.collection('bios').doc(handle).create(bioDoc);
+      } catch (e) {
+        logger.warn(`[bioo] carrera al acuñar handle=${handle}: ${e.message}`);
+        throw new HttpsError('aborted', 'Ese nombre se ocupó recién. Reintenta en unos segundos.');
+      }
       const batch = db.batch();
-      batch.set(db.collection('bios').doc(handle), bioDoc, { merge: true });
       batch.set(idxRef, { handle, email, source: 'gestion-interna', createdAt: now }, { merge: true });
       batch.set(db.collection('bio_users').doc(callerUid), { username: handle, email, createdAt: now }, { merge: true });
       await batch.commit();

@@ -471,16 +471,30 @@ service cloud.firestore {
       // Anónimo puede crear su propia bio (viralidad-first). Bloqueamos flags
       // de monetización (proRemoveWatermark, proCustomDomain) en el create
       // del cliente — esos los setea solo el webhook MP/Stripe via Admin SDK.
+      // ⚠️ OJO (auditoría 2026-07-16): la insignia vive en `perfil.verified`
+      // (ANIDADO). keys()/affectedKeys() solo devuelven claves de PRIMER NIVEL,
+      // así que listar 'verified' ahí era código muerto y cualquiera podía
+      // auto-verificarse desde el checkbox del editor. Se mantiene el hasAny
+      // (defensa por si alguien escribe un `verified` top-level) y se agrega el
+      // chequeo anidado real, que es el que de verdad cierra el hueco.
       allow create: if autenticado()
                     && request.resource.data.uid == uid()
                     && request.resource.data.username is string
                     && !request.resource.data.keys().hasAny(['proRemoveWatermark', 'proCustomDomain', 'verified'])
+                    && request.resource.data.get('perfil', {}).get('verified', false) == false
                     && !exists(/databases/$(database)/documents/bio_handles/$(username));
       // Update del dueño: NO puede tocar flags Pro (cierre del loophole de
-      // quitarse la marca de agua editando directo en Firestore).
+      // quitarse la marca de agua editando directo en Firestore) ni la insignia.
       allow update: if (autenticado() && resource.data.uid == uid()
-                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['proRemoveWatermark', 'proCustomDomain', 'verified']))
-                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['proRemoveWatermark', 'proCustomDomain', 'verified'])
+                        && request.resource.data.get('perfil', {}).get('verified', false)
+                           == resource.data.get('perfil', {}).get('verified', false))
+                    // Analítica pública: acotada para que un bucle anónimo no
+                    // pueda fijar `views` arbitrario (antes: sin validación).
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks'])
+                        && request.resource.data.get('views', 0) is int
+                        && request.resource.data.get('views', 0) >= resource.data.get('views', 0)
+                        && request.resource.data.get('views', 0) <= resource.data.get('views', 0) + 1);
       allow delete: if autenticado() && resource.data.uid == uid();
 
       // ── /bios/{username}/leads — captura de correos (newsletter) ──

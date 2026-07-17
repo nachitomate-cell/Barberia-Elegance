@@ -36,9 +36,13 @@ const db = admin.firestore();
 const TS = admin.firestore.FieldValue.serverTimestamp;
 
 const USERNAME     = 'studiodieciseis';
-const FALLBACK_UID = 'bioo-studiodieciseis';   // solo si el doc aún no existe
 const SITE         = 'https://studiodieciseis.synaptechspa.cl';
 const WA           = { prefijo: '56', telefono: '937179177' };
+
+// Dueño = la cuenta con la que el LOCAL entra a su panel. Es lo que hace que
+// "Abrir Editor Premium" (biooEditorBridge) abra ESTA página y no cree una basura.
+const OWNER_UID   = 'H1ahfD7yrHejPOMjtI6gpiBsq0l1';
+const OWNER_EMAIL = 'studiodieciseis5@gmail.com';
 
 /* ── Helpers de bloques ─────────────────────────────────────────── */
 let _seq = 0;
@@ -58,38 +62,51 @@ const bio = {
     avatar:    `${SITE}/dieciseis/logo.png`,
     // Fachada A COLOR: el neón verde SOLO vive acá (foto), nunca en la UI.
     cover:     `${SITE}/dieciseis/banner16.webp`,
-    verified:  true,
+    // ⚠️ B&N: la insignia de verificado es un PNG raster VERDE fijo
+    // (/ic-verified.png, no se puede teñir) → apagada.
+    verified:  false,
   },
 
+  // ⚠️ DOS REGLAS APRENDIDAS (auditoría 2026-07-16), no romper:
+  //  1. `icon` NO acepta emojis: solo claves de BUTTON_ICONS (SVG inline con
+  //     stroke="currentColor" → heredan el color del botón = B&N). Un emoji cae
+  //     al fallback /ic-{tipo}.png, que es VERDE.
+  //  2. Un bloque SIN `url` se descarta EN SILENCIO en la página pública
+  //     (links/u.html: `if (!url) return;`), aunque el editor sí lo muestre.
+  //     → todo bloque de enlace lleva `url` explícita.
   blocks: [
     /* CTA principal — reservar */
     blk('enlace', {
       label: 'Reservar hora',
       url: SITE,
       featured: true,
-      icon: '✂️',
+      icon: 'scissors',
     }),
 
     /* Club de fidelidad (passwordless · sellos → premios) */
     blk('enlace', {
       label: 'Club · junta sellos y canjea',
       url: `${SITE}/dashboard`,
-      icon: '★',
+      icon: 'star',
     }),
 
     /* Contacto directo */
     blk('whatsapp', {
       label: 'Escríbenos por WhatsApp',
+      url: `https://wa.me/${WA.prefijo}${WA.telefono}?text=${encodeURIComponent('Hola Studio Dieciséis 👋 Quiero reservar una hora.')}`,
       prefijo: WA.prefijo,
       telefono: WA.telefono,
       mensaje: 'Hola Studio Dieciséis 👋 Quiero reservar una hora.',
+      icon: 'phone-m',
       layoutSize: 'half',
     }),
 
     /* Instagram */
     blk('instagram', {
       label: '@studio.dieciseis_',
+      url: 'https://instagram.com/studio.dieciseis_',
       usuario: 'studio.dieciseis_',
+      icon: 'instagram',
       layoutSize: 'half',
     }),
 
@@ -97,7 +114,7 @@ const bio = {
     blk('enlace', {
       label: 'Cómo llegar · Galería Beye',
       url: 'https://www.google.com/maps/search/?api=1&query=Condell+1525,+Valpara%C3%ADso',
-      icon: '📍',
+      icon: 'pin',
     }),
 
     blk('separador', {}),
@@ -159,16 +176,30 @@ const bio = {
 };
 
 /* ── Escritura ──────────────────────────────────────────────────── */
+//
+// ⚠️ BLINDAJE (lección del enredo del 2026-07-16): una bio NO vive sola. Para
+// que el puente `biooEditorBridge` la abra (botón "Abrir Editor Premium" del
+// panel) hay que escribir SIEMPRE las 3 piezas coherentes entre sí:
+//   1. bios/{handle}.uid + .ownerEmail   → el dueño
+//   2. bio_email_owners/{email}.handle   → índice que usa el puente
+//   3. bio_users/{uid}.username          → índice inverso
+// Si falta (2), el puente NO encuentra la página, cree que el handle está
+// tomado por otro y genera basura (studiodieciseis2, studiodieciseis5…).
 async function seed() {
   const ref  = db.doc(`bios/${USERNAME}`);
   const snap = await ref.get();
 
-  // Preservar el dueño si la página ya fue reclamada desde el editor.
-  const uid = (snap.exists && snap.data().uid) ? snap.data().uid : FALLBACK_UID;
-  if (snap.exists) console.log(`ℹ️  Doc existente — se conserva uid="${uid}"`);
+  // Nunca le robamos la página a un dueño existente.
+  const uid   = (snap.exists && snap.data().uid) ? snap.data().uid : OWNER_UID;
+  const email = (snap.exists && snap.data().ownerEmail) ? snap.data().ownerEmail : OWNER_EMAIL;
+  if (snap.exists) console.log(`ℹ️  Doc existente — se conserva uid="${uid}" ownerEmail="${email}"`);
 
-  await ref.set({
+  const batch = db.batch();
+
+  batch.set(ref, {
     uid,
+    ownerEmail: email,
+    source:    'gestion-interna',
     username:  bio.username,
     perfil:    bio.perfil,
     bloques:   bio.blocks,
@@ -178,13 +209,34 @@ async function seed() {
     updatedAt: TS(),
   }, { merge: true });
 
+  // Índices que hacen que el puente abra ESTA página (y no cree una nueva).
+  batch.set(db.doc(`bio_email_owners/${email}`), {
+    handle: USERNAME, email, source: 'gestion-interna', createdAt: TS(),
+  }, { merge: true });
+
+  batch.set(db.doc(`bio_users/${uid}`), {
+    username: USERNAME, email, createdAt: TS(),
+  }, { merge: true });
+
+  await batch.commit();
+
   console.log(`✅ bioo.cl/${USERNAME}  (${bio.blocks.length} bloques · tema B&N)`);
-  console.log(`\n🎉 Listo. Verifica en https://bioo.cl/${USERNAME}`);
+  console.log(`   dueño: ${email}  ·  índices bio_email_owners + bio_users OK`);
+  console.log(`\n🎉 Listo. El local lo abre desde su panel → Link in Bio → "Abrir Editor Premium".`);
 }
 
 async function undo() {
-  await db.doc(`bios/${USERNAME}`).delete();
-  console.log(`🗑️  eliminado bioo.cl/${USERNAME}`);
+  const snap  = await db.doc(`bios/${USERNAME}`).get();
+  const email = snap.exists ? snap.data().ownerEmail : null;
+  const uid   = snap.exists ? snap.data().uid : null;
+
+  const batch = db.batch();
+  batch.delete(db.doc(`bios/${USERNAME}`));
+  if (email) batch.delete(db.doc(`bio_email_owners/${email}`));
+  if (uid)   batch.delete(db.doc(`bio_users/${uid}`));
+  await batch.commit();
+
+  console.log(`🗑️  eliminado bioo.cl/${USERNAME} + sus índices`);
 }
 
 (async () => {
