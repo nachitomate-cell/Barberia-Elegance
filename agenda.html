@@ -1612,6 +1612,11 @@
         let currentDate = new Date();
         let barberConfig = null;
         let globalConfig = null;
+        // barbero.horario[dw] = { activo, inicio, fin, descansos:[{inicio,fin}] }.
+        // Vive en el doc del barbero (lo escribe Equipo → "Horario semanal"), NO en
+        // configuracion/main (que es diasConfig/colacion). Se carga aparte para
+        // poder dibujar los descansos del día en la agenda.
+        let barberHorario = null;
         let todayCitas = [];
         // Vista activa (día/semana) e intervalo de la grilla del día (0 = usa config)
         let _agendaView   = (localStorage.getItem('agenda_view') === 'semana') ? 'semana' : 'dia';
@@ -2013,14 +2018,13 @@
             }
         }
 
-        // nombrePrecargado: si ya lo tenemos del snap inicial, evitamos una lectura extra
+        // nombrePrecargado: si ya lo tenemos del snap inicial, evitamos usar el nombre
+        // del doc — pero igual leemos el doc del barbero para el `horario` (los
+        // descansos viven ahí, y no vienen precargados). Una sola lectura del doc.
         async function loadBarberData(nombrePrecargado = null) {
-            // Parallelizar las 3 lecturas independientes
-            const fetchNombre = nombrePrecargado
-                ? Promise.resolve(nombrePrecargado)
-                : tenantCol('barberos').doc(barberId).get()
-                    .then(doc => (doc.exists && doc.data().nombre) ? doc.data().nombre : null)
-                    .catch(() => null);
+            const fetchBarberDoc = tenantCol('barberos').doc(barberId).get()
+                .then(doc => doc.exists ? doc.data() : null)
+                .catch(() => null);
 
             // Leer config por barbero directamente para saber si el doc existe.
             // FDB.getConfigBarbero() siempre retorna defaults, nunca null,
@@ -2030,15 +2034,17 @@
                 .then(snap => snap.exists ? snap.data() : null)
                 .catch(() => null);
 
-            const [cfg, rawBarberCfg, nombre] = await Promise.all([
+            const [cfg, rawBarberCfg, barberDoc] = await Promise.all([
                 FDB.getConfig(),
                 fetchBarberConfig,
-                fetchNombre,
+                fetchBarberDoc,
             ]);
 
             globalConfig = cfg;
             barberConfig = rawBarberCfg; // null → renderSlots usa globalConfig
+            barberHorario = (barberDoc && barberDoc.horario) || null;
 
+            const nombre = nombrePrecargado || (barberDoc && barberDoc.nombre) || null;
             if (nombre) {
                 barberNombre = nombre;
                 document.getElementById('barberNameHeader').textContent = 'Agenda ' + nombre;
@@ -2470,6 +2476,10 @@
                 .filter(c => c.estado !== 'Cancelada')
                 .sort((a, b) => toMins(a.hora) - toMins(b.hora));
 
+            // Descansos del día (barbero.horario[dw].descansos) para pintarlos como
+            // banda ámbar, igual que el admin. Antes no se veían en ningún lado.
+            const descansosDia = descansosDelDia(currentDate.getDay());
+
             // Current time indicator
             const nowDate = new Date();
             const isViewingToday = (
@@ -2540,11 +2550,24 @@
                     continue;
                 }
 
-                // 2. Colación
+                // 2. Colación — ahora se PINTA (antes se ocultaba con un continue).
+                //    Una sola banda por rango: se salta al fin de la colación.
                 if (cfg.colacion) {
                     const colS = toMins(cfg.colacion.inicio);
                     const colE = toMins(cfg.colacion.fin);
-                    if (cur >= colS && cur < colE) { cur += interval; continue; }
+                    if (cur >= colS && cur < colE) {
+                        appendSlot(isAfternoon, buildBreakSlot(fromMin(cur), 'Colación', cfg.colacion.inicio, cfg.colacion.fin));
+                        cur = Math.max(cur + interval, Math.ceil(colE / interval) * interval);
+                        continue;
+                    }
+                }
+
+                // 2b. Descansos del horario semanal (barbero.horario[dw].descansos)
+                const descanso = descansosDia.find(d => cur >= toMins(d.inicio) && cur < toMins(d.fin));
+                if (descanso) {
+                    appendSlot(isAfternoon, buildBreakSlot(fromMin(cur), 'Descanso', descanso.inicio, descanso.fin));
+                    cur = Math.max(cur + interval, Math.ceil(toMins(descanso.fin) / interval) * interval);
+                    continue;
                 }
 
                 // 3. Bloqueo
@@ -3501,6 +3524,29 @@
             </div>`;
         }
 
+        // Descansos del día del barbero: barbero.horario[dw].descansos.
+        function descansosDelDia(dw) {
+            const dia = barberHorario && barberHorario[String(dw)];
+            if (!dia || dia.activo === false) return [];
+            return (dia.descansos || []).filter(d => d && d.inicio && d.fin);
+        }
+
+        // Banda de descanso/colación en la vista día. A propósito NO se parece a un
+        // bloqueo (rojo + candado): un bloqueo es "no disponible", un descanso es
+        // "está almorzando". Ámbar + café, no clickeable. Mismo lenguaje que el admin.
+        function buildBreakSlot(time, label, ini, fin) {
+            return `
+            <div class="flex items-center gap-4 px-4 sm:px-0 py-2.5 border-b border-white/[0.06]">
+                <div class="text-center min-w-[50px] shrink-0">
+                    <p class="text-sm font-bold text-amber-400/50 tabular-nums">${time}</p>
+                </div>
+                <div class="h-6 w-[1px] bg-white/5 shrink-0"></div>
+                <p class="flex-1 text-xs font-medium text-amber-400/60 flex items-center gap-1.5">
+                    <i class="ph-bold ph-coffee text-[11px]"></i> ${label} ${ini}–${fin}
+                </p>
+            </div>`;
+        }
+
         async function agregarBloqueoRapido(time) {
             if (!window.confirm(`¿Deseas bloquear el horario de las ${time}?`)) return;
 
@@ -4014,6 +4060,31 @@
                     }
                 }
 
+                // ── Layer 0b: descansos del horario semanal (por día) ──
+                // Mismo estilo ámbar que la colación. dw es el día de ESTA columna,
+                // así que cada día muestra sus propios descansos.
+                if (isLaboral) {
+                    descansosDelDia(dw).forEach(desc => {
+                        const dS = toMins(desc.inicio), dE = toMins(desc.fin);
+                        if (dE > dS && dE > iniMins && dS < finMins) {
+                            const ds = Math.max(dS, iniMins);
+                            const de = Math.min(dE, finMins);
+                            const el = document.createElement('div');
+                            el.style.cssText = [
+                                'position:absolute', `top:${yOf(ds)}px`, 'left:0', 'right:0',
+                                `height:${hOf(de - ds)}px`,
+                                'background:rgba(255,174,0,0.06)',
+                                'border-top:1px dashed rgba(255,174,0,0.18)',
+                                'border-bottom:1px dashed rgba(255,174,0,0.18)',
+                                'z-index:0', 'display:flex', 'align-items:center',
+                                'justify-content:center', 'pointer-events:none',
+                            ].join(';');
+                            el.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:11px;color:rgba(255,174,0,0.45);"></i>`;
+                            dayCol.appendChild(el);
+                        }
+                    });
+                }
+
                 // ── Layer 1: slots libres clickeables (empty click zones) ──
                 // Uno cada `interval` minutos dentro del día laboral. Se pintan como
                 // banda transparente; el hover resalta. Van BAJO bloqueos y citas,
@@ -4023,6 +4094,8 @@
                     for (let m = dayIni; m + interval <= dayFin; m += interval) {
                         // No mostrar '+' en colación (visualmente confunde)
                         const inColacion = cfg.colacion && m >= toMins(cfg.colacion.inicio) && m < toMins(cfg.colacion.fin);
+                        // Igual que la colación: no mostrar "+" sobre un descanso (confunde).
+                        const inDescanso = descansosDelDia(dw).some(d => m >= toMins(d.inicio) && m < toMins(d.fin));
                         const horaStr = fromMin(m);
                         const slot = document.createElement('div');
                         // El onclick va en el CONTENEDOR (el <span> del "+" es
@@ -4044,7 +4117,7 @@
                         slot.setAttribute('role', 'button');
                         slot.setAttribute('aria-label', `Agendar cita a las ${horaStr}`);
                         slot.onclick = () => { if (isScrollingWeek) return; abrirOpcionesSlotSemana(fechaStr, horaStr); };
-                        slot.innerHTML = inColacion
+                        slot.innerHTML = (inColacion || inDescanso)
                             ? ''
                             : '<span class="week-empty-slot__plus">+</span>';
                         dayCol.appendChild(slot);
