@@ -2621,6 +2621,17 @@
             if (isPending && !isCancelled) {
                 chips.push(_citaChip('<i class="ph-bold ph-clock text-[10px]"></i>', 'Sin confirmar', 'bg-yellow-500/10 text-yellow-300'));
             }
+            // Pack: "Prepagado X/Y" (consume una sesión) o "Nuevo pack" (activación).
+            // Antes el barbero no veía si una cita gastaba un pack — pisaba un $0 sin
+            // contexto. Los campos los denormaliza el CF de packs sobre la cita al
+            // completar, y la reserva pública en el consumo.
+            if (!isCancelled && (cita.consumeSesionPack || cita.esActivacionPack)) {
+                const esConsumo = !!cita.consumeSesionPack;
+                const sesion = (esConsumo && cita.packSesionIndex && cita.packSesionTotal)
+                    ? ` ${cita.packSesionIndex}/${cita.packSesionTotal}` : '';
+                const label = (esConsumo ? 'Prepagado' : 'Nuevo pack') + sesion;
+                chips.push(_citaChip('<i class="ph-fill ph-package text-[10px]"></i>', label, 'bg-violet-500/15 text-violet-200'));
+            }
             // Check-in del cliente. Field ortogonal a estado: la máquina
             // Pendiente→Confirmada→Completada no cambia; checkedInAt captura
             // "el cliente entró por la puerta" para métricas de puntualidad.
