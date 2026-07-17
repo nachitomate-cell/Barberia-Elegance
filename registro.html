@@ -2201,6 +2201,11 @@
             switchTab('register');
             document.getElementById('regEmail').value = email;
             document.getElementById('regEmail').dispatchEvent(new Event('input'));
+            // Cliente migrado: intenta prellenar nombre/teléfono desde
+            // tenants/{tid}/clientes/ antes de decirle "primera vez".
+            // Si hay match, el banner verde de _applyClienteMigradoPrefill
+            // reemplaza al alert de abajo en la práctica visual.
+            try { _tryLookup({ email: String(email || '').toLowerCase() }); } catch(_) {}
             showAlert('Parece que es tu primera vez. Completa tu nombre y teléfono para unirte al Club.', false);
             setTimeout(() => document.getElementById('regNombre')?.focus(), 100);
             return;
@@ -2583,14 +2588,31 @@
   function _wireClienteMigradoLookup() {
     const $e = document.getElementById('regEmail');
     const $t = document.getElementById('regTelefono');
-    if ($e) $e.addEventListener('blur', () => {
-      const em = $e.value.trim().toLowerCase();
+    // Debounce compartido: el listener input dispara muchas veces mientras
+    // el usuario escribe. Sin este freno, se dispararían N calls al CF.
+    let _tid;
+    const debounced = (fn) => {
+      clearTimeout(_tid);
+      _tid = setTimeout(fn, 450);
+    };
+    const runEmail = () => {
+      const em = String($e?.value || '').trim().toLowerCase();
       if (em.includes('@') && em.length >= 5) _tryLookup({ email: em });
-    });
-    if ($t) $t.addEventListener('blur', () => {
-      const digits = $t.value.replace(/\D/g, '');
+    };
+    const runTel = () => {
+      const digits = String($t?.value || '').replace(/\D/g, '');
       if (digits.length >= 8) _tryLookup({ telefono: digits });
-    });
+    };
+    if ($e) {
+      // blur = usuario tab-a al siguiente campo; input = escritura y también
+      // autocompletado del navegador o prefills programáticos (dispatchEvent).
+      $e.addEventListener('blur', runEmail);
+      $e.addEventListener('input', () => debounced(runEmail));
+    }
+    if ($t) {
+      $t.addEventListener('blur', runTel);
+      $t.addEventListener('input', () => debounced(runTel));
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
