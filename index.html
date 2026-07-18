@@ -349,21 +349,22 @@
       box-shadow: 0 0 0 3px rgba(156,163,175,0.15);
     }
 
-    /* ── Renacer: variante obsidiana premium con acento ámbar ──
-       Scoping vía .tenant-renacer para no filtrar a otros tenants. */
+    /* ── Renacer: buscador tema claro, foco azul ──
+       Scoping vía .tenant-renacer para no filtrar a otros tenants.
+       (Migrado de obsidiana/ámbar → claro/azul, rediseño 2026.) */
     .tenant-renacer input.svc-search {
-      background-color: #120e0c !important;
-      color: #f5f5f5 !important;
-      border-color: #262626;
-      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
-      caret-color: #f59e0b;
+      background-color: #f8fafc !important;          /* slate-50 */
+      color: #0f172a !important;                     /* slate-900 */
+      border-color: #e2e8f0;                         /* slate-200 */
+      box-shadow: none;
+      caret-color: #2563eb;                          /* blue-600 */
     }
-    .tenant-renacer input.svc-search::placeholder { color: #737373 !important; }
-    .tenant-renacer input.svc-search:hover { border-color: #404040; }
+    .tenant-renacer input.svc-search::placeholder { color: #94a3b8 !important; }  /* slate-400 */
+    .tenant-renacer input.svc-search:hover { border-color: #cbd5e1; }            /* slate-300 */
     .tenant-renacer input.svc-search:focus {
-      background-color: #18120f !important;
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+      background-color: #ffffff !important;
+      border-color: #2563eb;                         /* blue-600 */
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
     }
     /* Botón nativo 'x' — gris neutro por defecto, blanco al hover. */
     input.svc-search::-webkit-search-cancel-button {
@@ -375,14 +376,8 @@
     input.svc-search:focus::-webkit-search-cancel-button {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%231f2937'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
     }
-    /* Renacer: 'x' claro sobre el input obsidiana. */
-    .tenant-renacer input.svc-search::-webkit-search-cancel-button {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
-    }
-    .tenant-renacer input.svc-search:hover::-webkit-search-cancel-button,
-    .tenant-renacer input.svc-search:focus::-webkit-search-cancel-button {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
-    }
+    /* Renacer: 'x' del buscador — hereda el estilo claro base (gris→oscuro).
+       (Ya no necesita override propio; su input pasó a claro.) */
 
     /* Autofill: tema claro por defecto, override obsidiana en Renacer. */
     input.svc-search:-webkit-autofill,
@@ -396,9 +391,9 @@
     .tenant-renacer input.svc-search:-webkit-autofill,
     .tenant-renacer input.svc-search:-webkit-autofill:hover,
     .tenant-renacer input.svc-search:-webkit-autofill:focus {
-      -webkit-text-fill-color: #f5f5f5 !important;
-      -webkit-box-shadow: 0 0 0 1000px #120e0c inset !important;
-      caret-color: #f5f5f5 !important;
+      -webkit-text-fill-color: #0f172a !important;
+      -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
+      caret-color: #2563eb !important;
     }
 
     .text-neon {
@@ -3564,13 +3559,13 @@
       background-color: #0b0a09 !important;
     }
 
-    /* Renacer: hero propio (tenant hereda tema Elegance vía _themeAlias,
-       pisando /elegance.png con banner propio) */
+    /* Renacer: hero blanco limpio (rediseño tema claro 2026). El resto del tema
+       claro/morado/azul vive en el bloque grande .tenant-renacer (ver más abajo,
+       después del bloque de Infinity). */
     .tenant-renacer .booking-hero {
-      background-image: url('/renacer/banner.webp') !important;
-      background-size: cover !important;
-      background-position: center !important;
-      background-color: #0a0806 !important;
+      background-image: none !important;
+      background-color: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
     }
 
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
@@ -8215,6 +8210,282 @@
         transform: rotate(360deg) scale(1);
         text-shadow: 0 0 5px rgba(255,255,255,0.5);
       }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       RENACER — tema claro, morado (primario) + azul (secundario)
+       ──────────────────────────────────────────────────────────
+       renacer hereda el tema base OSCURO de elegance vía _themeAlias
+       (html lleva `tenant-renacer tenant-elegance`). Este bloque —el
+       último por orden de fuente— invierte esa base a un tema claro,
+       igual que hace .tenant-infinity. Va con !important porque muchas
+       reglas base doradas lo usan. Scoping estricto a .tenant-renacer:
+       ningún otro tenant se entera.
+         · Morado #7C3AED → botón principal, progreso, pill activa, selección
+         · Azul   #2563EB → bordes de tarjeta, foco, hover
+         · Texto  #0F172A (slate-900) / #64748B (slate-500)
+       ══════════════════════════════════════════════════════════ */
+    .tenant-renacer {
+      --accent:   #7C3AED;  --accent-r: 124; --accent-g: 58; --accent-b: 237;
+      --neon-clr: #7C3AED;  --neon-r:   124; --neon-g:   58; --neon-b:   237;
+      --body-bg:  #FFFFFF;
+      --brand-bg: #FFFFFF !important;
+      --brand-surface: #FFFFFF !important;
+      --brand-surface-alt: #F8FAFC !important;
+      --brand-primary: #7C3AED !important;
+      --brand-accent: #2563EB !important;
+      --brand-text: #0F172A !important;
+      --brand-muted: #64748B !important;
+      --brand-border: #E2E8F0 !important;
+      --brand-progress-track: #E2E8F0 !important;
+      position: relative;
+    }
+
+    /* Utilidades text-white de Tailwind → slate oscuro (mantiene la jerarquía). */
+    .tenant-renacer .text-white\/50 { color: rgba(15,23,42,0.50) !important; }
+    .tenant-renacer .text-white\/40 { color: rgba(15,23,42,0.45) !important; }
+    .tenant-renacer .text-white\/30 { color: rgba(15,23,42,0.38) !important; }
+    .tenant-renacer .text-white\/20 { color: rgba(15,23,42,0.28) !important; }
+    .tenant-renacer .text-white\/10 { color: rgba(15,23,42,0.14) !important; }
+    .tenant-renacer .text-white\/70 { color: rgba(15,23,42,0.70) !important; }
+    .tenant-renacer .text-white\/80 { color: rgba(15,23,42,0.80) !important; }
+    .tenant-renacer .text-white\/90 { color: rgba(15,23,42,0.90) !important; }
+    /* .text-white SÓLIDO sin !important: deja ganar al botón/pills con color inline blanco. */
+    .tenant-renacer .text-white { color: #0F172A; }
+    .tenant-renacer .text-gray-400 { color: #64748B !important; }
+    .tenant-renacer .text-gray-300 { color: #475569 !important; }
+    .tenant-renacer .text-neutral-400 { color: #64748B !important; }
+
+    /* Fondo de la página → blanco. */
+    .tenant-renacer body {
+      background-color: #FFFFFF !important;
+      background-image: none !important;
+      color: #0F172A !important;
+    }
+
+    /* Apagar las decoraciones doradas que hereda de elegance (shimmer/glow/sweep). */
+    .tenant-renacer .booking-hero::after { content: none !important; }
+    .tenant-renacer .service-option.border-neon::after,
+    .tenant-renacer .barber-option.border-neon::after { content: none !important; }
+    .tenant-renacer #progressTrack::after { content: none !important; animation: none !important; }
+
+    /* ── Header / hero (el fondo blanco base ya lo pone la regla de más arriba) ── */
+    .tenant-renacer .booking-hero-overlay { background: none !important; }
+    .tenant-renacer #shopNombre { color: #0F172A !important; text-shadow: none !important; }
+    .tenant-renacer #shopSlogan { color: #64748B !important; }
+    .tenant-renacer .gold-divider {
+      background: linear-gradient(90deg, transparent, #C4B5FD, transparent) !important;
+    }
+    .tenant-renacer .hero-logo-ring {
+      background: #FFFFFF !important;
+      border: 4px solid #FFFFFF !important;
+      box-shadow: 0 6px 22px rgba(15,23,42,0.08) !important;
+    }
+    .tenant-renacer .info-strip {
+      background: #FFFFFF !important;
+      border-top: 1px solid #E2E8F0 !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-renacer .info-strip i { color: #7C3AED !important; }
+    .tenant-renacer .info-strip a,
+    .tenant-renacer .info-strip > div { color: #0F172A !important; font-weight: 600 !important; }
+    .tenant-renacer button[onclick="goBack()"] {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.06) !important;
+    }
+    .tenant-renacer button[onclick="goBack()"] i { color: #0F172A !important; }
+    .tenant-renacer #heroGoogleBadge {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.06) !important;
+    }
+    .tenant-renacer #heroGoogleBadge span,
+    .tenant-renacer #heroGoogleBadge .text-white { color: #0F172A !important; }
+
+    /* ── Barra de progreso — morada sobre riel gris ── */
+    .tenant-renacer #progressBar {
+      background: #7C3AED !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+    .tenant-renacer #progressBar::after { content: none !important; display: none !important; }
+    .tenant-renacer #progressTrack { background-color: #E2E8F0 !important; border: none !important; }
+    .tenant-renacer #stepIndicatorText { color: #7C3AED !important; font-weight: 700 !important; }
+    .tenant-renacer #progressPercentage { color: #64748B !important; }
+
+    /* ── Pills de categoría — blanco/borde suave; activa morada sólida ── */
+    .tenant-renacer .category-pill {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      color: #475569 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      transition: border-color .2s ease, color .2s ease, background .2s ease !important;
+    }
+    .tenant-renacer .category-pill:hover {
+      border-color: #93C5FD !important;   /* blue-300 */
+      color: #2563EB !important;
+      background: #FFFFFF !important;
+      transform: none !important;
+    }
+    .tenant-renacer .category-pill.border-neon,
+    .tenant-renacer .category-pill.text-neon {
+      background: #7C3AED !important;
+      border-color: #7C3AED !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 14px rgba(124,58,237,0.30) !important;
+      font-weight: 700 !important;
+      animation: none !important;
+    }
+
+    /* ── Títulos — oscuros (el morado se reserva para acciones) ── */
+    .tenant-renacer .cat-title {
+      color: #0F172A !important;
+      border-color: #7C3AED !important;
+    }
+    /* "¿Qué servicio buscas?" y otros h2.text-neon → slate-900 (jerarquía limpia). */
+    .tenant-renacer h2.text-neon { color: #0F172A !important; text-shadow: none !important; }
+
+    /* ── Tarjetas de servicio — blanco, borde azul fino, hover azul + sombra ── */
+    .tenant-renacer .service-option,
+    .tenant-renacer .barber-option {
+      background: #FFFFFF !important;
+      background-image: none !important;
+      border: 1px solid #BFDBFE !important;   /* blue-200 */
+      box-shadow: none !important;
+      color: #0F172A !important;
+      transition: box-shadow .2s ease, border-color .2s ease !important;
+      animation: none !important;
+    }
+    .tenant-renacer .service-option:hover,
+    .tenant-renacer .barber-option:hover {
+      background: #FFFFFF !important;
+      border-color: #2563EB !important;       /* blue-600 */
+      box-shadow: 0 4px 14px rgba(37,99,235,0.12) !important;   /* hover:shadow-md */
+      transform: none !important;
+    }
+    /* Seleccionada → morado (mata el glow blanco + scale heredados del JS default). */
+    .tenant-renacer .service-option.border-neon,
+    .tenant-renacer .barber-option.border-neon {
+      background: rgba(124,58,237,0.06) !important;
+      border: 2px solid #7C3AED !important;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+      transform: none !important;
+      animation: none !important;
+    }
+    .tenant-renacer .service-option.bg-brand-neon\/10,
+    .tenant-renacer .barber-option.bg-brand-neon\/10 { background: rgba(124,58,237,0.06) !important; }
+    /* Textos de la tarjeta: nombre y precio oscuros (alta legibilidad). */
+    .tenant-renacer .service-option .text-white,
+    .tenant-renacer .service-option p.text-white { color: #0F172A !important; }
+    .tenant-renacer .service-option .price-tag { color: #0F172A !important; font-weight: 700 !important; }
+    .tenant-renacer .service-option.border-neon .price-tag { color: #0F172A !important; }
+    /* Ícono del servicio: acento morado. Thumb → gris muy claro. */
+    .tenant-renacer .service-option i.text-amber-500 { color: #7C3AED !important; }
+    .tenant-renacer .service-option .bg-neutral-800 {
+      background: #F1F5F9 !important;         /* slate-100 */
+      border-color: #E2E8F0 !important;
+    }
+    /* Radio de selección — morado (pisa el #D4AF37 que el JS pone inline). */
+    .tenant-renacer .svc-radio { border-color: #CBD5E1 !important; }
+    .tenant-renacer .service-option.border-neon .svc-radio {
+      border-color: #7C3AED !important;
+      background: #7C3AED !important;
+    }
+
+    /* ── Paso 2: barberos (rama propia de renacer, estilo oscuro/ámbar). El
+       .barber-option ya toma el fondo blanco de arriba; acá se aclaran el
+       avatar (bg-neutral-800), las iniciales/ícono (text-amber-500) y el radio. ── */
+    .tenant-renacer .barber-option .bg-neutral-800 {
+      background: #F1F5F9 !important;         /* slate-100 */
+      border-color: #E2E8F0 !important;
+    }
+    .tenant-renacer .barber-option .text-amber-500 { color: #7C3AED !important; }
+    .tenant-renacer .barber-option .border-neutral-600 { border-color: #CBD5E1 !important; }
+    .tenant-renacer .barber-name { color: #0F172A !important; }
+    /* Barbero seleccionado: el render pone ámbar INLINE (rgba(245,158,11,…)),
+       no la clase .border-neon → se piso por el atributo de estilo. */
+    .tenant-renacer .barber-option[style*="245,158,11"] {
+      border-color: #7C3AED !important;
+      background: rgba(124,58,237,0.06) !important;
+    }
+    .tenant-renacer .barber-option[style*="245,158,11"] .barber-radio {
+      background: #7C3AED !important;
+      border-color: #7C3AED !important;
+    }
+    .tenant-renacer .barber-option[style*="245,158,11"] .barber-check { color: #FFFFFF !important; }
+
+    /* ── Tarjeta "Únete al Club" (fondo inline oscuro #0a0807) → blanca ──
+       El ícono/borde ya usan var(--accent) = morado, así que quedan bien;
+       solo hay que aclarar el fondo y mapear los grises/blancos sueltos. */
+    .tenant-renacer a:has(> .club-icon-wrap) {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      box-shadow: 0 2px 12px rgba(15,23,42,0.06) !important;
+    }
+    .tenant-renacer .text-gray-500 { color: #94A3B8 !important; }
+    .tenant-renacer .text-white\/25 { color: rgba(15,23,42,0.30) !important; }
+
+    /* ── Paso 3: fecha y hora ── */
+    /* Pills de día (bg-[#0a0a0d] oscuro → blanco; seleccionado → morado). */
+    .tenant-renacer .day-btn {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      color: #0F172A !important;
+      box-shadow: none !important;
+    }
+    .tenant-renacer .day-btn:hover { border-color: #93C5FD !important; }
+    .tenant-renacer .day-btn.active,
+    .tenant-renacer .day-btn.border-neon {
+      background: rgba(124,58,237,0.08) !important;
+      border-color: #7C3AED !important;
+      color: #7C3AED !important;
+    }
+    .tenant-renacer .day-btn .dot,
+    .tenant-renacer .day-btn .dot.bg-neon { background: #7C3AED !important; }
+    /* Tarjetas con fondo inline oscuro #0a0807 (ubicación) → blancas. */
+    .tenant-renacer [style*="background:#0a0807"] {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    /* Chips de Smart Slots (estado estático; el hover lo re-pinta el JS inline). */
+    .tenant-renacer .smart-slot-pill {
+      background: #FFFFFF !important;
+      border-color: #DDD6FE !important;      /* violet-200 */
+      color: #6D28D9 !important;             /* purple-700 */
+    }
+
+    /* ── Botón de acción principal — morado sólido, texto blanco ── */
+    .tenant-renacer #btnContinueBar {
+      background: rgba(255,255,255,0.92) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border-top: 1px solid #E2E8F0 !important;
+    }
+    .tenant-renacer #btnContinue,
+    .tenant-renacer #btnContinueBar button {
+      background: #7C3AED !important;
+      color: #FFFFFF !important;
+      border: none !important;
+      box-shadow: 0 8px 24px rgba(124,58,237,0.30) !important;
+      background-image: none !important;
+      font-weight: 800 !important;
+    }
+    .tenant-renacer #btnContinue:hover:not(:disabled) {
+      background: #6D28D9 !important;         /* purple-700 */
+      color: #FFFFFF !important;
+      transform: none !important;
+      filter: none !important;
+    }
+    .tenant-renacer #btnContinue:active { transform: scale(0.985) !important; }
+    .tenant-renacer #btnContinue:disabled {
+      background: #E2E8F0 !important;
+      color: #94A3B8 !important;
+      box-shadow: none !important;
+      filter: none !important;
     }
 
     /* ══════════════════════════════════════════════════════════
