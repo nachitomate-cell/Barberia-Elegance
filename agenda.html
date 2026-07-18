@@ -852,14 +852,13 @@
             /* No hay clase específica de estado en el markup — el fondo se
                ajusta selectivamente por el border-left inline. */
         }
-        /* Confirmada (border verde #10b981) — tinte verde muy leve, "activa".
-           El selector keyea por el hex del border-left inline; tras unificar la
-           convención con el admin, verde = Confirmada. */
+        /* Completada (border verde #10b981) — tinte verde muy leve, "éxito".
+           El selector keyea por el hex del border-left inline. */
         html:not(.light-mode) .cita-card[style*="border-left: 4px solid #10b981"],
         html:not(.light-mode) .cita-card[style*="border-left:4px solid #10b981"] {
             background: #14322a !important;
         }
-        /* Completada (border azul #6CABDD) — tinte azul, "cerrada". */
+        /* Confirmada (border azul #6CABDD) — tinte azul. */
         html:not(.light-mode) .cita-card[style*="#6CABDD"] {
             background: #1c2333 !important;
         }
@@ -2749,13 +2748,11 @@
             const isNoShow    = cita.estado === 'NoAsistio';
             const isPending   = cita.estado === 'Pendiente';
 
-            // Colores mejorados
-            // Convención unificada con el admin: Confirmada=verde, Completada=azul,
-            // No asistió=rose. Antes Confirmada/Completada estaban al revés → el dueño
-            // que mira las dos pantallas veía el verde con dos significados. El tinte
-            // de fondo lo pone el CSS por hex (más abajo), así que al intercambiar
-            // los hex el borde y el tinte siguen calzando solos.
-            const leftBorderColor = isCompleted ? '#6CABDD' : isCancelled ? 'rgba(239,68,68,0.3)' : isNoShow ? '#f43f5e' : isConfirmed ? '#10b981' : '#eab308';
+            // Colores del panel del barbero: Completada=verde, Confirmada=azul,
+            // No asistió=rose. (El admin usa la convención inversa a propósito; acá
+            // se mantiene la del barbero, que es a la que están acostumbrados.)
+            // El tinte de fondo lo pone el CSS por hex (más abajo): sigue al hex.
+            const leftBorderColor = isCompleted ? '#10b981' : isCancelled ? 'rgba(239,68,68,0.3)' : isNoShow ? '#f43f5e' : isConfirmed ? '#6CABDD' : '#eab308';
             
             const isNew = newlyAddedCitas.has(cita.id);
             const extraClass = isNew ? 'cita-nueva-highlight' : '';
@@ -4205,10 +4202,10 @@
                     const isCompleted = cita.estado === 'Completada';
                     const isConfirmed = cita.estado === 'Confirmada';
                     const isNoShow    = cita.estado === 'NoAsistio';
-                    // Confirmada=verde, Completada=azul, No asistió=rose (unificado con el
-                    // admin). Acá el color va inline en JS, así que se intercambian borde Y fondo.
-                    const leftColor   = isCompleted ? '#6CABDD' : isNoShow ? '#f43f5e' : isConfirmed ? '#10b981' : '#eab308';
-                    const bgColor     = isCompleted ? 'rgba(108,171,221,0.20)' : isNoShow ? 'rgba(244,63,94,0.18)' : isConfirmed ? 'rgba(16,185,129,0.20)' : 'rgba(234,179,8,0.20)';
+                    // Completada=verde, Confirmada=azul, No asistió=rose (convención del
+                    // barbero). Acá el color va inline en JS: borde Y fondo.
+                    const leftColor   = isCompleted ? '#10b981' : isNoShow ? '#f43f5e' : isConfirmed ? '#6CABDD' : '#eab308';
+                    const bgColor     = isCompleted ? 'rgba(16,185,129,0.20)' : isNoShow ? 'rgba(244,63,94,0.18)' : isConfirmed ? 'rgba(108,171,221,0.20)' : 'rgba(234,179,8,0.20)';
                     const citaH       = hOf(ve - vs);
                     // El estado va EXPLÍCITO escrito (píldora sólida), no solo por color:
                     // el barbero pidió leer "Confirmada / Completada" de un vistazo en la
