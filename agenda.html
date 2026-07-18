@@ -2645,6 +2645,16 @@
         }
         function _buildCitaChips(cita, isPending, isConfirmed, isCompleted, isCancelled) {
             const chips = [];
+            // Estado EXPLÍCITO escrito (además del color del borde): el barbero pidió
+            // leer "Confirmada / Completada" de un vistazo, no deducirlo del color.
+            // Convención unificada con el admin: Confirmada=verde, Completada=azul.
+            if (!isCancelled) {
+                if (isCompleted) {
+                    chips.push(_citaChip('<i class="ph-fill ph-check-circle text-[10px]"></i>', 'Completada', 'bg-sky-500/15 text-sky-300'));
+                } else if (isConfirmed) {
+                    chips.push(_citaChip('<i class="ph-fill ph-check-circle text-[10px]"></i>', 'Confirmada', 'bg-emerald-500/15 text-emerald-300'));
+                }
+            }
             if (isPending && !isCancelled) {
                 chips.push(_citaChip('<i class="ph-bold ph-clock text-[10px]"></i>', 'Sin confirmar', 'bg-yellow-500/10 text-yellow-300'));
             }
@@ -4200,7 +4210,15 @@
                     const leftColor   = isCompleted ? '#6CABDD' : isNoShow ? '#f43f5e' : isConfirmed ? '#10b981' : '#eab308';
                     const bgColor     = isCompleted ? 'rgba(108,171,221,0.20)' : isNoShow ? 'rgba(244,63,94,0.18)' : isConfirmed ? 'rgba(16,185,129,0.20)' : 'rgba(234,179,8,0.20)';
                     const citaH       = hOf(ve - vs);
-                    const showService = citaH >= 34;
+                    // El estado va EXPLÍCITO escrito (píldora sólida), no solo por color:
+                    // el barbero pidió leer "Confirmada / Completada" de un vistazo en la
+                    // grilla semanal. Prioriza el estado sobre el nombre del servicio cuando
+                    // el bloque es corto (2 líneas): estado primero, servicio solo si hay 3ª línea.
+                    const showStatus  = citaH >= 26;
+                    const showService = citaH >= 46;
+                    const estadoLabel = isCompleted ? 'Completada' : isConfirmed ? 'Confirmada' : isNoShow ? 'No asistió' : 'Sin confirmar';
+                    // Texto oscuro solo sobre el amarillo de "Sin confirmar" (bajo contraste con blanco).
+                    const estadoTxt   = (isCompleted || isConfirmed || isNoShow) ? '#ffffff' : '#3f2d00';
 
                     const el = document.createElement('div');
                     el.style.cssText = [
@@ -4227,7 +4245,8 @@
                         <p style="font-size:10px;font-weight:800;color:${pal.citaTexto};line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                             <span style="font-weight:700;color:${leftColor};margin-right:3px;">${cita.hora}</span>${cita.clienteNombre || 'Cliente'}
                         </p>
-                        ${showService ? `<p style="font-size:8px;color:${pal.citaServicio};margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
+                        ${showStatus ? `<span style="display:inline-block;margin-top:2px;font-size:7.5px;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:${estadoTxt};background:${leftColor};padding:0 4px;border-radius:999px;line-height:1.55;white-space:nowrap;">${estadoLabel}</span>` : ''}
+                        ${showService ? `<p style="font-size:8px;color:${pal.citaServicio};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
                     `;
                     dayCol.appendChild(el);
                 });
