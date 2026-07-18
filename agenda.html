@@ -1002,6 +1002,22 @@
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
 
+    <!-- Indicador de conexión: pill flotante, oculto salvo sin red / al reconectar.
+         No empuja layout (position:fixed) para no pelear con el header sticky. -->
+    <div id="connBanner" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%) translateY(-160%);z-index:9600;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:9999px;font-size:12.5px;font-weight:700;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,0.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .34s cubic-bezier(0.16,1,0.3,1), opacity .28s ease;pointer-events:none;opacity:0;color:#fff;background:rgba(190,18,60,0.94);">
+        <i id="connBannerIcon" class="ph-fill ph-wifi-slash" style="font-size:15px;"></i>
+        <span id="connBannerText">Sin conexión</span>
+    </div>
+
+    <!-- Red de seguridad de errores: pill de recuperación, oculto salvo error
+         no atrapado. Ofrece recargar en vez de dejar la agenda congelada. -->
+    <div id="errBanner" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:50%;transform:translateX(-50%) translateY(200%);z-index:9550;display:flex;align-items:center;gap:10px;padding:9px 10px 9px 15px;border-radius:9999px;background:rgba(30,30,36,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);transition:transform .32s cubic-bezier(0.16,1,0.3,1);">
+        <i class="ph-fill ph-warning-circle" style="color:#fbbf24;font-size:17px;flex-shrink:0;"></i>
+        <span style="font-size:12.5px;color:#fff;font-weight:600;white-space:nowrap;">Ocurrió un error</span>
+        <button type="button" onclick="location.reload()" style="font-size:11px;color:#0a0a0a;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:7px 13px;border-radius:9999px;background:#fff;border:none;cursor:pointer;flex-shrink:0;">Recargar</button>
+        <button type="button" aria-label="Cerrar" onclick="document.getElementById('errBanner').style.transform='translateX(-50%) translateY(200%)'" style="width:30px;height:30px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:13px;flex-shrink:0;">✕</button>
+    </div>
+
     <!-- Pantalla de Carga -->
     <div id="loadingOverlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-300">
         <div class="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(255,255,255,0.2)]"></div>
@@ -1837,10 +1853,79 @@
             return { isBarbero: true, isAdmin, barberoId: foundDoc.id, nombre, snap };
         }
 
+        // ── INDICADOR DE CONEXIÓN ─────────────────────────────────
+        // Feedback honesto para el wifi malo del local: avisa cuando se cae la
+        // red y confirma la reconexión. No promete sync tras cerrar la app
+        // (agenda.html no habilita persistencia offline de Firestore); dentro
+        // de la sesión el SDK sí reintenta las escrituras al reconectar.
+        let _connHideTimer = null;
+        function _showConnBanner(text, iconClass, bg, autoHideMs) {
+            const el = document.getElementById('connBanner');
+            if (!el) return;
+            document.getElementById('connBannerText').textContent = text;
+            document.getElementById('connBannerIcon').className = iconClass;
+            el.style.background = bg;
+            el.style.opacity = '1';
+            el.style.transform = 'translateX(-50%) translateY(0)';
+            if (_connHideTimer) { clearTimeout(_connHideTimer); _connHideTimer = null; }
+            if (autoHideMs) {
+                _connHideTimer = setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateX(-50%) translateY(-160%)';
+                }, autoHideMs);
+            }
+        }
+        function _initConnBanner() {
+            const offline = () => _showConnBanner('Sin conexión', 'ph-fill ph-wifi-slash', 'rgba(190,18,60,0.94)', 0);
+            const online  = () => _showConnBanner('Conexión restablecida', 'ph-fill ph-wifi-high', 'rgba(4,120,87,0.94)', 2600);
+            window.addEventListener('offline', offline);
+            window.addEventListener('online', online);
+            if (!navigator.onLine) offline();   // por si arranca sin red
+        }
+
+        // ── RED DE SEGURIDAD DE ERRORES ───────────────────────────
+        // Si un throw no atrapado o un promise rejection deja la UI en mal
+        // estado, ofrecemos recargar en vez de una pantalla congelada. Se
+        // muestra como máximo 1 vez por minuto (no spamear), filtra ruido
+        // benigno (ResizeObserver, "Script error." cross-origin) y los
+        // rechazos de red (que ya cubre el indicador de conexión), y SIEMPRE
+        // loguea a consola para diagnóstico.
+        let _errBannerShownAt = 0;
+        function _isNoiseError(msg) {
+            if (!msg) return true;
+            const m = String(msg);
+            return m.includes('ResizeObserver loop')
+                || m === 'Script error.'
+                || m.includes('Non-Error promise rejection')
+                || m.includes('unavailable') || m.includes('network') || m.includes('Failed to fetch');
+        }
+        function _showErrBanner() {
+            const now = Date.now();
+            if (now - _errBannerShownAt < 60000) return;   // máx 1 cada 60s
+            _errBannerShownAt = now;
+            const el = document.getElementById('errBanner');
+            if (el) el.style.transform = 'translateX(-50%) translateY(0)';
+        }
+        function _initErrorNet() {
+            window.addEventListener('error', (e) => {
+                try { console.error('[Agenda] error no atrapado:', e.message, e.filename + ':' + e.lineno); } catch(_) {}
+                if (!_isNoiseError(e && e.message)) _showErrBanner();
+            });
+            // Los promise rejections rara vez congelan la UI y suelen ser ruido
+            // de fondo → solo se loguean, NO abren el banner (evita falsas alarmas).
+            // El banner queda reservado al throw síncrono de arriba, que es el que
+            // sí deja la pantalla pegada.
+            window.addEventListener('unhandledrejection', (e) => {
+                try { console.error('[Agenda] promise rejection:', e && e.reason); } catch(_) {}
+            });
+        }
+
         // ── INICIALIZACIÓN ──
         document.addEventListener('DOMContentLoaded', () => {
             _aplicarBranding();
             _aplicarPrivacidadTelefono();
+            _initConnBanner();
+            _initErrorNet();
 
             firebase.auth().onAuthStateChanged(async (user) => {
                 // Sesion "fantasma": anonima (residual del tenant-status-guard
