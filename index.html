@@ -6363,10 +6363,12 @@
     }
 
     /* ── Calendar month heading & "Horas Disponibles" (Step 3) ── */
-    :is(.tenant-aura,.tenant-latincaribe) #currentMonthText {
+    /* infinity comparte el tema claro: sin este override, #currentMonthText
+       ("Julio 2026") y el h3 "Horas Disponibles" quedan gris claro invisible. */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #currentMonthText {
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) #step3 h3 {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #step3 h3 {
       color: #18181B !important;
     }
 
@@ -7467,14 +7469,16 @@
       box-shadow: none !important;
     }
 
-    /* ── Tipografía editorial en servicios (list row) ── */
+    /* ── Tipografía de servicios: IDÉNTICA a la del barbero (paso 2), por
+       pedido del cliente. Antes era 0.95rem/#000; ahora calza con .barber-name
+       (7535): 1.05rem, #18181B, mismo peso y tracking. ── */
     .tenant-infinity .service-option .svc-name {
-      color: #000000 !important;
+      color: #18181B !important;
       font-weight: 600 !important;
-      font-size: 0.95rem !important;
+      font-size: 1.05rem !important;
       line-height: 1.2 !important;
       letter-spacing: -0.02em !important;
-      margin-bottom: 2px !important;
+      margin-bottom: 4px !important;
     }
     .tenant-infinity .service-option .svc-desc {
       color: #555555 !important;
