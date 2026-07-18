@@ -5826,32 +5826,32 @@
     .upsell-check { display: none; font-size: 8px; font-weight: 900; color: #000000; line-height: 1; }
     .upsell-item.sel .upsell-check { display: block; }
 
-    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet {
       background: #ffffff !important;
       border-color: rgba(24,24,27,0.12) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-glow {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-glow {
       background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(24,24,27,0.05) 0%, transparent 80%) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) .upsell-item {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item {
       background: #fafafa;
       border-color: rgba(24,24,27,0.14);
     }
-    :is(.tenant-aura,.tenant-latincaribe) .upsell-item.sel {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item.sel {
       background: rgba(24,24,27,0.05);
       border-color: #18181B;
     }
-    :is(.tenant-aura,.tenant-latincaribe) .upsell-radio { border-color: rgba(24,24,27,0.3); }
-    :is(.tenant-aura,.tenant-latincaribe) .upsell-item.sel .upsell-radio {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-radio { border-color: rgba(24,24,27,0.3); }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item.sel .upsell-radio {
       background: #18181B; border-color: #18181B;
     }
-    :is(.tenant-aura,.tenant-latincaribe) .upsell-check { color: #ffffff; }
-    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-cta {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-check { color: #ffffff; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-cta {
       background: #18181B !important;
       color: #ffffff !important;
       box-shadow: 0 0 20px rgba(24,24,27,0.15) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) #upsell-sheet .upsell-cta-ghost {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-cta-ghost {
       border-color: rgba(24,24,27,0.15) !important;
       color: rgba(24,24,27,0.55) !important;
     }
@@ -6038,7 +6038,7 @@
       font-weight: 700 !important;
       box-shadow: 0 2px 8px rgba(156,163,175,0.30) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) .slot-pill-busy {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .slot-pill-busy {
       background: rgba(220,38,38,0.06) !important;
       border-color: rgba(220,38,38,0.18) !important;
       color: rgba(220,38,38,0.40) !important;
@@ -6379,7 +6379,7 @@
     }
 
     /* ── Skeleton loader ── */
-    :is(.tenant-aura,.tenant-latincaribe) #servicesSkeleton > div {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #servicesSkeleton > div {
       background: rgba(156,163,175,0.08) !important;
     }
 
@@ -7090,6 +7090,11 @@
     .tenant-infinity .text-white\/20 { color: rgba(0, 0, 0, 0.2) !important; }
     .tenant-infinity .text-white\/10 { color: rgba(0, 0, 0, 0.1) !important; }
     .tenant-infinity .text-white\/70 { color: rgba(0, 0, 0, 0.7) !important; }
+    /* Red de seguridad (#5 auditoría): .text-white SÓLIDO sin remapear → negro sobre
+       las superficies claras de infinity. SIN !important a propósito: las reglas por
+       id que fijan blanco donde corresponde (botón Continuar #btnContinue, pills
+       seleccionadas con color inline) siguen ganando. */
+    .tenant-infinity .text-white { color: #000000; }
     .tenant-infinity .text-white\/80 { color: rgba(0, 0, 0, 0.8) !important; }
     .tenant-infinity .text-white\/90 { color: rgba(0, 0, 0, 0.9) !important; }
 
@@ -7469,16 +7474,12 @@
       box-shadow: none !important;
     }
 
-    /* ── Tipografía de servicios: IDÉNTICA a la del barbero (paso 2), por
-       pedido del cliente. Antes era 0.95rem/#000; ahora calza con .barber-name
-       (7535): 1.05rem, #18181B, mismo peso y tracking. ── */
+    /* ── Tipografía de servicios: IDÉNTICA a la de Aura (usan el mismo template
+       _useRowLayout). Aura NO override tamaño/peso → usa el base (text-sm, bold,
+       tracking-wide). Infinity solo override el COLOR, igual que Aura, para que
+       el tamaño de letra calce exacto (antes 1.05rem se veía más grande). ── */
     .tenant-infinity .service-option .svc-name {
       color: #18181B !important;
-      font-weight: 600 !important;
-      font-size: 1.05rem !important;
-      line-height: 1.2 !important;
-      letter-spacing: -0.02em !important;
-      margin-bottom: 4px !important;
     }
     /* Badge "✦ Más solicitado" del template de Aura es violeta → negro para infinity. */
     .tenant-infinity .service-option span.bg-violet-500\/10 {
@@ -12280,7 +12281,7 @@
 
         // Marca como "✓ Añadido" los botones del cross-sell cuyo producto ya está en el cart.
         const _markXsellSelected = (container) => {
-          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
           container.querySelectorAll('button[data-pid]').forEach(btn => {
             if (_selectedProducts.some(p => p.id === btn.dataset.pid)) {
               btn.textContent = '✓ Añadido';
@@ -12352,7 +12353,7 @@
               if (!btn) return;
               const pid = btn.dataset.pid;
               const idx = _selectedProducts.findIndex(p => p.id === pid);
-              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
 
               if (idx === -1) {
                 _selectedProducts.push({ id: pid, nombre: btn.dataset.pname, precio: Number(btn.dataset.pprecio) });
