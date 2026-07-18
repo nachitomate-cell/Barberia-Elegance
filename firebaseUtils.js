@@ -1091,6 +1091,40 @@ const FDB = (() => {
       // Ambos casos caen aquí (fall-through) y solo avanzamos el cursor.
       cur += interval;
     }
+
+    // ── SLOT DE CIERRE ("backfill de cola") ───────────────────────────
+    // La grilla se ancla a la apertura y salta de `interval`, por lo que
+    // cuando (cierre − duración) NO cae en un punto de grilla se pierde la
+    // última franja del día. Ej: abre 09:00, cierra 20:00, interval 45,
+    // servicio 45 → última hora ofrecida 18:45, y 19:15 nunca aparece pese
+    // a que calzaría JUSTO hasta el cierre. Este bloque agrega esa hora de
+    // cierre SOLO si está genuinamente libre: respeta ocupación, colación,
+    // descansos, bloqueos y tramos VIP igual que el loop principal, y no
+    // duplica una hora ya ofrecida.
+    //
+    // ROLLOUT SEGURO: por defecto APAGADO. Corre solo en el tenant sandbox
+    // 'delnero' (canary, mismo patrón de compuerta que ya usa este archivo)
+    // o en tenants que lo activen con `ofrecerSlotCierre: true` en su config.
+    const _slotCierreOn = (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'
+                       || cfg.ofrecerSlotCierre === true;
+    if (_slotCierreOn) {
+      const curC   = fin - durNum;              // hora cuyo servicio termina justo al cierre
+      const hhmmC  = fromMin(curC);
+      const yaEsta = slots.some(s => s.time === hhmmC);   // dedupe: no re-agregar si ya está
+      const enTurno = curC >= ini && curC < fin;          // dentro del turno normal
+      if (!yaEsta && enTurno) {
+        const chocaCol = col ? (curC < toMins(col.fin) && (curC + durNum) > toMins(col.inicio)) : false;
+        const chocaDes = descansoRanges.some(r => curC < r.end && (curC + durNum) > r.start);
+        const chocaBlo = rangosBloq.some(r => curC < r.end && (curC + durNum) > r.start);
+        const chocaOcu = ocupados.some(o => curC < o.end && (curC + durNum) > o.start);
+        const enVip    = tramosVip.some(t => curC < t.end && (curC + durNum) > t.start);
+        if (!chocaCol && !chocaDes && !chocaBlo && !chocaOcu && !enVip) {
+          slots.push({ time: hhmmC, occupied: false });
+          slots.sort((a, b) => toMins(a.time) - toMins(b.time));  // reinsertar ordenado
+        }
+      }
+    }
+
     return slots;
   }
 
