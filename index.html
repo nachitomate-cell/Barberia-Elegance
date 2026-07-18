@@ -7480,6 +7480,12 @@
       letter-spacing: -0.02em !important;
       margin-bottom: 4px !important;
     }
+    /* Badge "✦ Más solicitado" del template de Aura es violeta → negro para infinity. */
+    .tenant-infinity .service-option span.bg-violet-500\/10 {
+      background: #000000 !important;
+      border-color: #000000 !important;
+      color: #FFFFFF !important;
+    }
     .tenant-infinity .service-option .svc-desc {
       color: #555555 !important;
       font-weight: 400 !important;
@@ -10215,7 +10221,7 @@
                   </div>
                 </div>
               </button>`;
-          } else if (_isInfSvc) {
+          } else if (false /* infinity ahora usa el MISMO template que Aura (_useRowLayout): tarjeta con descripción visible + precio bajo el nombre. Pedido del cliente. La rama de abajo queda como referencia. */) {
             // ── INFINITY STUDIO — Airy list row horizontal (B&W minimal) ──
             // Fila 100% ancho, py-3 px-4 compact. Izquierda: ícono minimal thin.
             // Centro: badge "Más solicitado" + nombre semibold + duración.
