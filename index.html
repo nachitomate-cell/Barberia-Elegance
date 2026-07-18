@@ -12288,9 +12288,11 @@
         const xsellEl = document.getElementById('step4XSell');
         if (xsellEl) {
           if (_isProductsEnabled && _fsProducts.length > 0) {
-            const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+            // Tenants con tema CLARO usan la tarjeta de producto blanca; el resto,
+            // la oscura/dorada. infinity es claro → sin esto salía negra con dorado.
+            const isLightTheme = ['aura', 'latincaribe', 'infinity'].includes(window.CURRENT_TENANT_ID);
 
-            if (isAura) {
+            if (isLightTheme) {
               xsellEl.innerHTML = `
                 <p class="text-sm font-bold mb-3" style="color:#111827;">¿Te falta producto en casa? Añádelo a tu cita</p>
                 <div class="overflow-x-auto no-scrollbar -mx-6 px-6">
