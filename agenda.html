@@ -1743,6 +1743,11 @@
         // Suscripciones de Firestore para limpiarlas si cambia el día
         let unsubs = [];
 
+        // Listener de "reservas recientes": vive aparte de `unsubs` porque no
+        // depende del día. Se guarda para poder cortarlo antes de reabrir y no
+        // apilar listeners cada vez que se pulsa "recargar" (recargarAgenda).
+        let _unsubLatestReservations = null;
+
         // Debounce para consolidar los 3 onSnapshot en un solo render
         let _renderTimer = null;
         function scheduleRender() {
@@ -2248,10 +2253,13 @@
                 snap.docs.forEach(doc => {
                     const c = doc.data();
                     if (c.barberoId !== barberId) return;
-                    // Cancelada y No asistió no son ingreso. Ojo con el fallback
-                    // `|| 15000` de abajo: sin excluir, un no-show sumaría $15.000 fantasma.
+                    // Cancelada y No asistió no son ingreso.
                     if (c.estado === 'Cancelada' || c.estado === 'NoAsistio') return;
-                    const monto = Number(c.precio) || 15000;
+                    // Precio REAL denormalizado. Antes había un fallback `|| 15000`
+                    // (precio de Elegance hardcodeado) que inflaba: una sesión de pack
+                    // prepagada (precio 0) o una cita sin precio sumaban $15.000
+                    // fantasma, y en otros tenants ese monto era simplemente ajeno.
+                    const monto = Number(c.precio) || 0;
                     const f = c.fecha;
                     if (f === hoyStr) { diaTot += monto; diaCnt++; }
                     if (f >= weekStartStr && f <= weekEndStr) { semTot += monto; semCnt++; }
@@ -2393,9 +2401,11 @@
             const statC = todayCitas.filter(c => c.estado === 'Completada').length;
             const statP = todayCitas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada').length;
             const totalGanancia = todayCitas.reduce((acc, c) => {
-                // Igual que arriba: no-show no suma (y el fallback |15000 lo inflaría).
+                // No-show / cancelada no suman. Precio REAL denormalizado, sin el
+                // fallback `|15000` que inflaba packs prepagados (precio 0) y citas
+                // sin precio (ver nota en abrirModalProyeccion).
                 if (c.estado === 'Cancelada' || c.estado === 'NoAsistio') return acc;
-                return acc + (Number(c.precio) || 15000);
+                return acc + (Number(c.precio) || 0);
             }, 0);
             
             document.getElementById('statCompletadas').textContent = statC;
@@ -4541,8 +4551,13 @@
         // ── ÚLTIMAS RESERVAS ──
         function loadLatestReservations() {
             const container = document.getElementById('latestReservationsContainer');
-            
-            tenantCol('citas')
+
+            // Cortar el listener previo antes de reabrir: recargarAgenda() llama
+            // a esta función en cada pulsación del botón "recargar", y sin esto
+            // cada llamada apilaba un onSnapshot permanente sobre la misma query.
+            if (_unsubLatestReservations) { _unsubLatestReservations(); _unsubLatestReservations = null; }
+
+            _unsubLatestReservations = tenantCol('citas')
                 .where('barberoId', '==', barberId)
                 .orderBy('creadoEn', 'desc')
                 .limit(5)
