@@ -337,7 +337,7 @@ exports.recordatorioCita24h = onSchedule(
           const phoneE164 = `+${telefono}`;
           // Nombre del local resuelto dinámicamente por tenantId — sin esto,
           // el mensaje decía "Barbería Elegance" para Ferraza, Gitana, etc.
-          const tenantNombre = getTenantConfig(tenant.id, logger).nombre;
+          const tenantNombre = (await getTenantConfig(tenant.id, logger)).nombre;
           try {
             await twilioClient.messages.create({
               from: from,
@@ -522,7 +522,7 @@ exports.recordatorioCita1h = onSchedule(
       // Marcar antes de enviar para evitar envíos múltiples (Idempotencia)
       await ref.update({ recordatorio1hEnviado: true });
 
-      const cfg = getTenantConfig(tenantId, logger);
+      const cfg = await getTenantConfig(tenantId, logger);
       const html = build1hEmailHtml({ cfg, cita });
 
       try {

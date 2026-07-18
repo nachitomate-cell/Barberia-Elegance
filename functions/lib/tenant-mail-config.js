@@ -15,6 +15,8 @@
 //  logging claro para poder añadirlo aquí y quedar cubierto de un solo tiro.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const admin = require('firebase-admin');
+
 const TENANT_CONFIG = {
   elegance: {
     nombre:    'Elegance Barbershop',
@@ -264,24 +266,77 @@ const TENANT_CONFIG = {
     from:        'Yūgen Studio <citas@synaptechspa.cl>',
     dashboardUrl:'https://yugenstudio.synaptechspa.cl/dashboard',
   },
+  estudioluxury: {
+    nombre:      'Studio Luxury',
+    slogan:      'Estilo y distinción en cada corte.',
+    direccion:   'Talagante · Isla de Maipo · El Monte (local y domicilio)',
+    horario:     'Lun a Sáb · Agenda tu hora',
+    color:       '#DAA520',
+    darkHeader:  true,
+    headerBg:    '#0b0a09',
+    instagram:   'https://www.instagram.com/estudio.luxury_/',
+    whatsapp:    '56958994297',
+    from:        'Studio Luxury <citas@synaptechspa.cl>',
+    dashboardUrl:'https://estudioluxury.synaptechspa.cl/dashboard',
+  },
 };
 
 /**
- * Devuelve el branding de correos del tenant. Si el tenant no está mapeado,
- * loggea explícitamente y cae a elegance — el fallback existía antes también,
- * pero era silencioso: los correos salían con nombre "Elegance Barbershop"
- * y nadie se enteraba de por qué. Ahora queda registrado en Cloud Logging.
+ * Devuelve el branding de correos del tenant (async).
+ *
+ * Si el tenant está mapeado arriba, retorna su branding curado al instante
+ * (sin lectura a Firestore). Si NO está mapeado — caso típico de tenants
+ * self-service y altas nuevas — YA NO se impersona a Elegance: se deriva el
+ * nombre real desde su doc `tenants/{tid}` (mismo patrón que aviso-cita-staff
+ * y evolution/*) y se arma una config neutra dark con ese nombre. Así un
+ * tenant nuevo queda cubierto sin editar este archivo; conviene agregarlo
+ * igual para el branding completo (color/slogan/redes), y el warn lo recuerda.
+ *
+ * Antes el fallback silencioso mandaba correos "Elegance Barbershop" a los
+ * clientes de otros locales — eso es lo que este cambio elimina de raíz.
  *
  * @param {string} tenantId
  * @param {import('firebase-functions').logger} [logger] opcional para warn.
+ * @returns {Promise<object>} branding del tenant.
  */
-function getTenantConfig(tenantId, logger) {
+async function getTenantConfig(tenantId, logger) {
   const cfg = TENANT_CONFIG[tenantId];
   if (cfg) return cfg;
-  if (logger && typeof logger.warn === 'function') {
-    logger.warn(`[tenant-mail-config] tenant '${tenantId}' sin entrada — usando fallback elegance. Añadir a lib/tenant-mail-config.js para branding correcto.`);
+
+  // Derivar branding real del doc del tenant (nunca impersonar Elegance).
+  let nombre = null, direccion = '', horario = '', whatsapp = '', instagram = '';
+  try {
+    const snap = await admin.firestore().collection('tenants').doc(tenantId).get();
+    if (snap.exists) {
+      const d = snap.data() || {};
+      nombre    = d.nombre || d.nombreLocal || d.nombreCorto || (d.branding && d.branding.nombre) || null;
+      direccion = d.direccion || (d.branding && d.branding.direccion) || '';
+      horario   = d.horario || '';
+      whatsapp  = d.whatsapp || d.telefono || '';
+      instagram = d.instagram || '';
+    }
+  } catch (e) {
+    if (logger && typeof logger.warn === 'function') {
+      logger.warn(`[tenant-mail-config] no se pudo leer tenants/${tenantId}: ${e.message}`);
+    }
   }
-  return TENANT_CONFIG.elegance;
+
+  const displayName = nombre || tenantId;   // jamás "Elegance"
+  if (logger && typeof logger.warn === 'function') {
+    logger.warn(`[tenant-mail-config] tenant '${tenantId}' sin entrada estática — branding derivado (nombre='${displayName}'). Añadir a lib/tenant-mail-config.js para branding completo.`);
+  }
+  return {
+    nombre:       displayName,
+    direccion,
+    horario,
+    color:        '#DAA520',
+    darkHeader:   true,
+    headerBg:     '#0b0a09',
+    instagram,
+    whatsapp,
+    from:         `${displayName} <citas@synaptechspa.cl>`,
+    dashboardUrl: `https://${tenantId}.synaptechspa.cl/dashboard`,
+  };
 }
 
 /**

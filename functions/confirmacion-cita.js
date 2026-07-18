@@ -292,7 +292,7 @@ async function enviarConfirmacion(citaId, data, tenantId) {
     return;
   }
 
-  const cfg = getTenantConfig(tenantId, logger);
+  const cfg = await getTenantConfig(tenantId, logger);
 
   // Backfill del código: si la cita se creó por un path que no lo incluyó
   // (Flow, Mercado Pago o algunas citas viejas del panel), generamos uno
