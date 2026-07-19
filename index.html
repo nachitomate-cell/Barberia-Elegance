@@ -5505,9 +5505,13 @@
       overflow: visible !important;
       box-shadow: none !important;
     }
+    /* El archivo del logo trae un fondo oscuro CUADRADO horneado, y el emblema
+       interior es un círculo con margen. Con border-radius:0 se veían los
+       bordes del cuadrado recortados sobre la foto del hero; al 50% se recorta
+       solo el fondo sobrante y queda como un medallón redondo. */
     .tenant-elbarberomoderno #shopLogo {
       object-fit: contain !important;
-      border-radius: 0 !important;
+      border-radius: 50% !important;
       filter: drop-shadow(0 10px 28px rgba(0,0,0,0.7));
     }
     .tenant-elbarberomoderno #shopNombre { display: none !important; }
