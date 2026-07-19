@@ -459,7 +459,7 @@
     }
 
     /* Modal de horario semanal */
-    #openStatusModal {
+    :is(#openStatusModal,#locationModal) {
       position: fixed; inset: 0; z-index: 200;
       display: none;
       background: rgba(0,0,0,0.75);
@@ -468,8 +468,8 @@
       align-items: center; justify-content: center;
       padding: 20px;
     }
-    #openStatusModal.is-open { display: flex; }
-    #openStatusModal .os-card {
+    :is(#openStatusModal,#locationModal).is-open { display: flex; }
+    :is(#openStatusModal,#locationModal) .os-card {
       width: 100%; max-width: 340px;
       background: #0f0f10;
       border: 1px solid rgba(255,255,255,0.08);
@@ -483,38 +483,67 @@
       from { opacity: 0; transform: translateY(10px) scale(0.98); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    #openStatusModal .os-head {
+    :is(#openStatusModal,#locationModal) .os-head {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 14px;
     }
-    #openStatusModal .os-title {
+    :is(#openStatusModal,#locationModal) .os-title {
       font-size: 14px; font-weight: 800; letter-spacing: 0.06em;
       text-transform: uppercase; color: #fff;
     }
-    #openStatusModal .os-x {
+    :is(#openStatusModal,#locationModal) .os-x {
       background: none; border: none; color: rgba(255,255,255,0.6);
       cursor: pointer; padding: 4px; font-size: 16px;
     }
-    #openStatusModal .os-x:hover { color: #fff; }
-    #openStatusModal .os-row {
+    :is(#openStatusModal,#locationModal) .os-x:hover { color: #fff; }
+    :is(#openStatusModal,#locationModal) .os-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 0;
       border-bottom: 1px solid rgba(255,255,255,0.05);
       font-size: 13px;
     }
-    #openStatusModal .os-row:last-child { border-bottom: 0; }
-    #openStatusModal .os-row.is-today {
+    :is(#openStatusModal,#locationModal) .os-row:last-child { border-bottom: 0; }
+    :is(#openStatusModal,#locationModal) .os-row.is-today {
       background: rgba(255,255,255,0.03);
       margin: 0 -10px; padding: 8px 10px;
       border-radius: 8px;
     }
-    #openStatusModal .os-day {
+    :is(#openStatusModal,#locationModal) .os-day {
       font-weight: 600; color: rgba(255,255,255,0.75);
       text-transform: capitalize;
     }
-    #openStatusModal .os-row.is-today .os-day { color: #fff; font-weight: 700; }
-    #openStatusModal .os-range { font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85); }
-    #openStatusModal .os-range.is-closed { color: rgba(255,255,255,0.35); font-style: italic; }
+    :is(#openStatusModal,#locationModal) .os-row.is-today .os-day { color: #fff; font-weight: 700; }
+    :is(#openStatusModal,#locationModal) .os-range { font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85); }
+    :is(#openStatusModal,#locationModal) .os-range.is-closed { color: rgba(255,255,255,0.35); font-style: italic; }
+
+    /* Estado Abierto/Cerrado: vive DENTRO del modal de horario. Antes se
+       inyectaba en la franja de info, donde aparecía tarde (espera a
+       Firestore) y provocaba un salto de layout molesto. */
+    #openStatusNow { margin: -4px 0 12px; min-height: 20px; }
+    #openStatusNow:empty { display: none; }
+
+    /* Modal de ubicación */
+    #locationModal .os-loc-addr {
+      font-size: 15px; font-weight: 700; color: #fff; line-height: 1.35;
+    }
+    #locationModal .os-loc-city {
+      font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 2px;
+    }
+    /* Muchos tenants traen la dirección completa en una línea (sin "|"): sin
+       esto el <p> vacío dejaba un hueco antes del botón. */
+    #locationModal .os-loc-city:empty { display: none; }
+    #locationModal .os-loc-cta {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 18px; padding: 12px 16px;
+      border-radius: 12px; border: 0; cursor: pointer;
+      font-size: 14px; font-weight: 800;
+      background: var(--accent, #c9a84c);
+      color: #0a0a0a;
+      text-decoration: none;
+      transition: filter .2s ease, transform .12s ease;
+    }
+    #locationModal .os-loc-cta:hover { filter: brightness(1.08); }
+    #locationModal .os-loc-cta:active { transform: scale(0.98); }
     /* ─── /Indicador Abierto/Cerrado ─── */
     .bg-neon {
       background-color: var(--neon-clr);
@@ -9301,7 +9330,27 @@
           <span id="openStatusTitle" class="os-title">Horario semanal</span>
           <button type="button" class="os-x" onclick="closeOpenStatusModal()" aria-label="Cerrar"><i class="ph-bold ph-x"></i></button>
         </div>
+        <!-- Estado Abierto/Cerrado (lo llena renderPill) -->
+        <div id="openStatusNow"></div>
         <div id="openStatusRows"></div>
+      </div>
+    </div>
+
+    <!-- Modal de ubicación (la franja solo dice "Ubicación") -->
+    <div id="locationModal" role="dialog" aria-modal="true" aria-labelledby="locationTitle"
+         onclick="closeLocationModal(event)">
+      <div class="os-card" onclick="event.stopPropagation()">
+        <div class="os-head">
+          <span id="locationTitle" class="os-title">Ubicación</span>
+          <button type="button" class="os-x" onclick="closeLocationModal()" aria-label="Cerrar"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div>
+          <p id="locationAddr" class="os-loc-addr"></p>
+          <p id="locationCity" class="os-loc-city"></p>
+        </div>
+        <a id="locationCta" class="os-loc-cta" href="#" target="_blank" rel="noopener">
+          <i class="ph-fill ph-navigation-arrow"></i> Cómo llegar
+        </a>
       </div>
     </div>
 
@@ -10993,9 +11042,10 @@
       btn.classList.remove('bg-[#0a0a0d]');
       btn.classList.add('bg-brand-neon/10');
       window._selectedSucursal = SHOP.sucursales.find(s => s.id === id);
-      // Update hero address strip
+      // La franja conserva la etiqueta genérica "Ubicación"; el detalle de la
+      // sucursal se refleja en el modal al confirmarla (ver más abajo).
       const heroAddr = document.getElementById('heroInfoAddrText');
-      if (heroAddr && window._selectedSucursal) heroAddr.textContent = window._selectedSucursal.ciudad;
+      if (heroAddr) heroAddr.textContent = 'Ubicación';
       updateContinueBtn();
       updateSelectionRecap();
     }
@@ -12437,9 +12487,17 @@
         const heroAddr = document.getElementById('heroInfoAddrText');
         if (calleEl)  calleEl.textContent  = calle;
         if (ciudadEl) ciudadEl.textContent = ciudad + ', Chile';
-        if (heroAddr) heroAddr.textContent = ciudad;
+        // La franja mantiene la etiqueta genérica; el dato de la sucursal
+        // elegida se refleja en el modal de ubicación.
+        if (heroAddr) heroAddr.textContent = 'Ubicación';
         document.getElementById('shopDireccionLink')?.setAttribute('href', mapsUrl);
         document.getElementById('heroInfoAddr')?.setAttribute('href', mapsUrl);
+        const locA = document.getElementById('locationAddr');
+        const locC = document.getElementById('locationCity');
+        const locB = document.getElementById('locationCta');
+        if (locA) locA.textContent = calle || '';
+        if (locC) locC.textContent = ciudad ? ciudad + ', Chile' : '';
+        if (locB) locB.setAttribute('href', mapsUrl);
         transitionStep(0, 1);
         currentStep = 1;
         updateProgress();
@@ -13675,15 +13733,25 @@
       if (calleEl)  calleEl.textContent  = dirCalle  || dirRaw || '';
       if (ciudadEl) ciudadEl.textContent = dirCiudad || '';
 
-      // Quick strip
+      // Franja de info: etiqueta genérica. El dato exacto vive en el modal.
       const heroAddr = document.getElementById('heroInfoAddrText');
-      if (heroAddr) heroAddr.textContent = dirCalle || dirRaw || '';
+      if (heroAddr) heroAddr.textContent = 'Ubicación';
 
       // Actualizar link de Google Maps con la dirección real
       const gmapsQ = encodeURIComponent((dirCalle || dirRaw) + ' ' + (dirCiudad || ''));
       const gmapsUrl = `https://maps.google.com/?q=${gmapsQ}`;
       document.getElementById('shopDireccionLink')?.setAttribute('href', gmapsUrl);
+      // El <a> conserva el href a Maps (fallback y "abrir en pestaña nueva"),
+      // pero el click abre el modal de ubicación — ver wireLocationModal().
       document.getElementById('heroInfoAddr')?.setAttribute('href', gmapsUrl);
+
+      // Poblar el modal de ubicación
+      const locAddr = document.getElementById('locationAddr');
+      const locCity = document.getElementById('locationCity');
+      const locCta  = document.getElementById('locationCta');
+      if (locAddr) locAddr.textContent = dirCalle || dirRaw || '';
+      if (locCity) locCity.textContent = dirCiudad || '';
+      if (locCta)  locCta.setAttribute('href', gmapsUrl);
 
       // ── Horario ──────────────────────────────────────────────────
       const horClean = (SHOP.horario || '').replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '').trim();
@@ -13698,37 +13766,52 @@
           </div>`).join('');
       }
 
-      // Quick strip: horario completo
+      // Franja de info: etiqueta genérica para TODOS los tenants. El horario
+      // exacto se ve al tocar (modal semanal). Antes se imprimía el rango
+      // completo aquí y el indicador Abierto/Cerrado lo pisaba al llegar de
+      // Firestore, provocando un salto de layout tardío.
       const heroHor = document.getElementById('heroInfoHorText');
-      if (heroHor) heroHor.textContent = horParts.length > 0 ? horParts.join(' • ') : horClean;
-
-      // Studio Dieciséis: info-strip como BOTONES (no muestra el texto). "Ubicación"
-      // abre el mapa; "Horarios" muestra el horario al tocar.
-      // NOTA: el indicador Abierto/Cerrado global también engancha #heroInfoHorBtn.
-      // Si hay horario estructurado en Firestore, ese callback abre el modal semanal
-      // y este fallback textual queda como respaldo si no hay data.
-      if (window.CURRENT_TENANT_ID === 'sionbarberia') {
-        if (heroAddr) heroAddr.textContent = 'Ubicación';
-        if (heroHor) {
-          const horFull = (horParts.length > 0 ? horParts.join(' • ') : horClean);
-          heroHor.textContent = 'Horarios';
-          const horBtn = document.getElementById('heroInfoHorBtn');
-          if (horBtn) {
-            horBtn.style.cursor = 'pointer';
-            horBtn.dataset.sionFallback = horFull;
-            // Sólo dispara el toast si el indicador global no cargó horario.
-            horBtn.addEventListener('click', function _sionFallback(){
-              if (!document.querySelector('#heroInfoHorText .hero-status-pill')) {
-                showToast('🕒 ' + horFull);
-              }
-            });
-          }
-        }
+      if (heroHor) heroHor.textContent = 'Horario';
+      const horBtn = document.getElementById('heroInfoHorBtn');
+      if (horBtn) {
+        horBtn.style.cursor = 'pointer';
+        // Respaldo textual: si Firestore no trae horario estructurado, el modal
+        // muestra igual el string de config.js en vez de abrirse vacío.
+        window._horarioFallbackTexto = (horParts.length > 0 ? horParts.join(' • ') : horClean) || '';
       }
+
+      wireLocationModal();
 
       renderExtrasSection();
       renderHeroBadge();
       subscribeGoogleReviews();
+    }
+
+    // ── Modal de ubicación ────────────────────────────────────────────
+    // La franja solo dice "Ubicación": al tocarla se abre este modal con la
+    // dirección y el botón "Cómo llegar". El <a> mantiene su href a Maps para
+    // que "abrir en pestaña nueva" y los lectores de pantalla sigan sirviendo.
+    window.openLocationModal = function () {
+      const m = document.getElementById('locationModal');
+      if (m) m.classList.add('is-open');
+    };
+    window.closeLocationModal = function (ev) {
+      if (ev && ev.target && ev.target.id && ev.target.id !== 'locationModal') return;
+      const m = document.getElementById('locationModal');
+      if (m) m.classList.remove('is-open');
+    };
+    let _locWired = false;
+    function wireLocationModal() {
+      if (_locWired) return;
+      const a = document.getElementById('heroInfoAddr');
+      if (!a) return;
+      _locWired = true;
+      a.addEventListener('click', function (ev) {
+        // Ctrl/Cmd/middle-click → dejar que el navegador abra Maps directo.
+        if (ev.metaKey || ev.ctrlKey || ev.button === 1) return;
+        ev.preventDefault();
+        window.openLocationModal();
+      });
     }
 
     // Sincroniza rating + total + reseñas con lo último de Google (Firestore,
@@ -13825,24 +13908,24 @@
         return { open: false };
       }
 
+      // El estado se pinta DENTRO del modal de horario, no en la franja: ahí
+      // llegaba tarde (depende de Firestore) y desplazaba el layout.
       function renderPill() {
-        const btn  = document.getElementById('heroInfoHorBtn');
-        const span = document.getElementById('heroInfoHorText');
-        if (!btn || !span) return;
+        const slot = document.getElementById('openStatusNow');
+        if (!slot) return;
         const status = getTenantOpenStatus(_horario);
-        if (!status) return; // fallback: string estático de SHOP.horario ya se renderizó en applyConfig
+        if (!status) return;
         const cls = status.open ? 'is-open' : 'is-closed';
         const label = status.open ? 'Abierto ahora' : 'Cerrado ahora';
         let extra = '';
         if (status.open && status.cierraA) extra = ` · Cierra ${status.cierraA}`;
         else if (!status.open && status.abreA) extra = ` · Abre ${status.abreDia} ${status.abreA}`;
-        span.innerHTML =
+        slot.innerHTML =
           `<span class="hero-status-pill ${cls}">
              <span class="hero-status-dot"></span>
              <span>${label}</span>
              <span class="hero-status-extra">${extra}</span>
            </span>`;
-        btn.style.cursor = 'pointer';
       }
 
       function subscribeHorario() {
@@ -13869,8 +13952,18 @@
 
       // Modal semanal
       window.openOpenStatusModal = function () {
-        if (!_horario) return;
         const rows = document.getElementById('openStatusRows');
+        // Sin horario estructurado en Firestore: mostrar el texto de config.js
+        // para que el modal nunca se abra vacío.
+        if (!_horario) {
+          const txt = window._horarioFallbackTexto || '';
+          if (!txt) return;
+          if (rows) rows.innerHTML =
+            `<div class="os-row"><span class="os-day" style="text-transform:none;">${txt}</span></div>`;
+          const m0 = document.getElementById('openStatusModal');
+          if (m0) m0.classList.add('is-open');
+          return;
+        }
         const now = getChileNow();
         if (rows) {
           rows.innerHTML = DIA_ORDEN.map(k => {
@@ -13899,9 +13992,9 @@
       function attachClick() {
         const btn = document.getElementById('heroInfoHorBtn');
         if (!btn) return;
-        btn.addEventListener('click', () => {
-          if (_horario) window.openOpenStatusModal();
-        });
+        // Siempre abre: con horario de Firestore muestra la semana, y si no
+        // llegó, el respaldo textual de config.js.
+        btn.addEventListener('click', () => window.openOpenStatusModal());
       }
 
       function boot() {
