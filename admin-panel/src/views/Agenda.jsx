@@ -3837,6 +3837,29 @@ export default function Agenda() {
     }),
   [rawBarberos, tenantId]);
 
+  // Deep-link ?nueva=1&barbero=<id>&hora=HH:MM — la Pizarra walk-in manda aquí
+  // con barbero y hora ya resueltos (libre → ahora; ocupado → cuando se
+  // desocupa). Abre el modal de cita nueva para HOY con eso precargado.
+  // Espera a que cargue `barberos`: el modal resuelve el NOMBRE del barbero al
+  // inicializar su form (línea "barbero: barberos.find(...)"), y con la lista
+  // vacía la cita se guardaría con barbero:''. Como los params se borran tras
+  // procesar, el efecto corre una sola vez en la práctica.
+  useEffect(() => {
+    if (barberosLoading) return;
+    if (searchParams.get('nueva') !== '1') return;
+    const barberoParam = searchParams.get('barbero') || '';
+    const horaParam    = searchParams.get('hora') || '';
+    const barberoId    = barberos.some(b => b.id === barberoParam) ? barberoParam : '';
+    setDate(new Date());   // walk-in siempre es hoy, aunque la agenda quedara en otro día
+    setCitaModal({
+      cita: null,
+      barberoId,
+      hora: /^([01]\d|2[0-3]):[0-5]\d$/.test(horaParam) ? horaParam : '09:00',
+    });
+    setSearchParams(p => { p.delete('nueva'); p.delete('barbero'); p.delete('hora'); return p; }, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barberosLoading]);
+
   // Orden manual de columnas (arrastrar la cabecera para reordenar), persistido por sede.
   const ORDER_KEY = `agenda_barber_order_${tenantId}`;
   const [barberOrder, setBarberOrder] = useState(() => {

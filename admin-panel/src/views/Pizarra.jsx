@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { where } from 'firebase/firestore';
 import {
-  Zap, Clock, User, Coffee, Users, Maximize2, Minimize2,
+  Zap, Clock, User, Coffee, Users, Maximize2, Minimize2, UserPlus,
 } from 'lucide-react';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig } from '../hooks/useConfig';
@@ -126,7 +127,7 @@ function formatWait(mins) {
 }
 
 // ── Card por barbero ────────────────────────────────────────────────
-function BarberoCard({ b, estado }) {
+function BarberoCard({ b, estado, walkinHora, onWalkin }) {
   const isLibre    = estado.estado === 'libre';
   const isOcupado  = estado.estado === 'ocupado';
   const isColacion = estado.estado === 'colacion';
@@ -213,6 +214,24 @@ function BarberoCard({ b, estado }) {
           <span className="truncate">Siguiente: <span className="text-slate-400">{estado.proxCliente}</span></span>
         </div>
       )}
+
+      {/* CTA walk-in — abre la Agenda con barbero + hora ya resueltos:
+          libre → ahora; ocupado/colación → cuando se desocupa. */}
+      <button
+        onClick={onWalkin}
+        className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs md:text-sm font-bold transition-colors ${
+          isLibre
+            ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+            : isColacion
+              ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+              : 'bg-slate-700/40 hover:bg-slate-700/70 text-slate-300 border-slate-600/50'
+        }`}
+        title={`Crear cita con ${b.nombre} a las ${walkinHora}`}
+      >
+        <UserPlus size={15} className="shrink-0" />
+        <span>Agregar cliente de paso</span>
+        <span className="tabular-nums opacity-70">· {walkinHora}</span>
+      </button>
     </div>
   );
 }
@@ -220,6 +239,7 @@ function BarberoCard({ b, estado }) {
 // ── Vista principal ─────────────────────────────────────────────────
 export default function Pizarra() {
   const { id: tenantId } = useTenant();
+  const navigate = useNavigate();
   const [now, setNow] = useState(() => new Date());
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -273,6 +293,19 @@ export default function Pizarra() {
   const libres = cards.filter(x => x.estado.estado === 'libre').length;
   const proximoOcupado = cards.find(x => x.estado.estado === 'ocupado');
 
+  // Hora sugerida para el walk-in: ahora si está libre; si no, cuando se
+  // desocupa (fin de cita o colación). Redondeo ↑ a 5 min para una hora
+  // limpia sin regalar minutos de sillón. Tope 23:55 por si el fin de la
+  // última cita se pasa de medianoche.
+  const horaWalkin = (estado) => {
+    const base = estado.estado === 'libre' ? nowMin : (estado.hastaMin ?? nowMin);
+    return minToHhmm(Math.min(Math.ceil(base / 5) * 5, 23 * 60 + 55));
+  };
+  // Deep-link a la Agenda: allá un efecto lee ?nueva=1&barbero&hora y abre
+  // el modal de cita nueva con todo precargado (fecha = hoy).
+  const goWalkin = (b, estado) =>
+    navigate(`/agenda?nueva=1&barbero=${encodeURIComponent(b.id)}&hora=${horaWalkin(estado)}`);
+
   const wrapCls = fullscreen
     ? 'fixed inset-0 z-50 bg-slate-950 overflow-auto p-6'
     : '';
@@ -322,7 +355,13 @@ export default function Pizarra() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {cards.map(({ b, estado }) => (
-            <BarberoCard key={b.id} b={b} estado={estado} />
+            <BarberoCard
+              key={b.id}
+              b={b}
+              estado={estado}
+              walkinHora={horaWalkin(estado)}
+              onWalkin={() => goWalkin(b, estado)}
+            />
           ))}
         </div>
       )}

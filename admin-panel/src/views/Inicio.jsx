@@ -12,7 +12,7 @@ import {
 import { auth } from '../lib/firebase';
 /* Nota: el banner de "Liquidaciones pendientes de aceptación" se renderiza
    en `agenda.html` (panel del barbero), NO acá. Este panel admin solo lo ve
-   admin/jefe y para ellos no aplica. */
+   el rol admin y para ellos no aplica. */
 import {
   ResponsiveContainer, PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,

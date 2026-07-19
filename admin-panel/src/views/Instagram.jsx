@@ -275,7 +275,7 @@ export default function InstagramPage() {
             <p>Los posts se ven automáticamente en <em>/lookbook</em> y en la app pública. Puedes desactivar posts individuales si no quieres que aparezcan.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo admins/jefes pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si sigues activo. Si caduca, vas a tener que reconectar.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo los administradores pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si sigues activo. Si caduca, vas a tener que reconectar.</p>
         </HelpModal>
       )}
     </div>
