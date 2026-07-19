@@ -6360,10 +6360,10 @@
     /* ── Calendar month heading & "Horas Disponibles" (Step 3) ── */
     /* infinity comparte el tema claro: sin este override, #currentMonthText
        ("Julio 2026") y el h3 "Horas Disponibles" quedan gris claro invisible. */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #currentMonthText {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #currentMonthText {
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #step3 h3 {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #step3 h3 {
       color: #18181B !important;
     }
 
@@ -12306,6 +12306,7 @@
         kronnos_limache:    { bg: '#f97316', cl: '#ffffff', sh: '0 0 14px rgba(249,115,22,0.45)' },
         kronnos_woman:      { bg: '#ec4899', cl: '#ffffff', sh: '0 0 14px rgba(236,72,153,0.45)' },
         elbarberomoderno:   { bg: '#E0E0E0', cl: '#000000', sh: '0 0 14px rgba(224,224,224,0.28)' },
+        renacer:            { bg: '#7C3AED', cl: '#ffffff', sh: '0 4px 14px rgba(124,58,237,0.30)' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
