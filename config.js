@@ -67,6 +67,14 @@
     renacer:      'elegance',
   };
 
+  // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
+  // El default de la plataforma es OSCURO (incluye self-service): todo tenant
+  // que no esté en esta lista recibe la clase `theme-dark` en <html>; estos
+  // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
+  // por modo (ej: el buscador de servicios en index.html / barbero.html).
+  // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer'];
+
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
     // Acceso: ?local=sandbox  o  sandbox.synaptechspa.cl
@@ -1116,6 +1124,12 @@
       _rootSt.setProperty('--neon-r', String(_accR));
       _rootSt.setProperty('--neon-g', String(_accG));
       _rootSt.setProperty('--neon-b', String(_accB));
+      // También --accent: lo usan el focus del buscador y otros detalles
+      // acento-aware que en tenants a medida vienen del bloque .tenant-X.
+      _rootSt.setProperty('--accent', _accSelf);
+      _rootSt.setProperty('--accent-r', String(_accR));
+      _rootSt.setProperty('--accent-g', String(_accG));
+      _rootSt.setProperty('--accent-b', String(_accB));
     }
   } catch (_) {}
 
@@ -1166,6 +1180,10 @@
   if (_themeAlias[tenantId]) {
     document.documentElement.classList.add('tenant-' + _themeAlias[tenantId]);
   }
+  // Modo claro/oscuro global del tenant (ver _lightTenants arriba).
+  var _modoTema = _lightTenants.indexOf(tenantId) !== -1 ? 'light' : 'dark';
+  window.TENANT_THEME_MODE = _modoTema;
+  document.documentElement.classList.add('theme-' + _modoTema);
 
   var _logoSrc = _tenants[tenantId] && _tenants[tenantId].logo;
   if (_logoSrc) {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
-  Package, Tag, PenLine, Award, Bell,
+  Package, Tag, PenLine, Award, Bell, Mail,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -50,6 +50,11 @@ const DEFAULT_SETTINGS = {
   whatsapp:  '',
   instagram: '',
   logo:      '',
+  // Correo oficial del local para avisos del sistema (mensualidad, etc.).
+  // Es DISTINTO del correo con que cada admin inicia sesión: esos viven en
+  // barberos/ y en varios locales son inventados, así que no sirven como
+  // destinatario. Lo leen las Cloud Functions desde settings/general.
+  emailAvisos: '',
   horario: {
     '1': { activo: true,  inicio: '09:00', fin: '20:00' },
     '2': { activo: true,  inicio: '09:00', fin: '20:00' },
@@ -792,6 +797,7 @@ export default function Configuracion() {
           whatsapp:  d.whatsapp  || '',
           instagram: d.instagram || '',
           logo:      d.logo      || '',
+          emailAvisos: d.emailAvisos || '',
           horario:   mergeHorario(d.horario),
           features:  mergeFeatures(d.features),
           quienesSomos: { activo: !!(d.quienesSomos && d.quienesSomos.activo), texto: (d.quienesSomos && d.quienesSomos.texto) || '' },
@@ -1528,6 +1534,32 @@ export default function Configuracion() {
       </Card>
 
       {/* Preferencias del panel — locales al dispositivo */}
+      {/* Correo oficial del local para avisos del sistema. Separado del correo
+          de login de cada administrador (ese no se toca desde aquí). */}
+      <Card Icon={Mail} title="Correo para avisos">
+        <Field label="Correo oficial del local">
+          <input
+            className={inp}
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            placeholder="correo@dellocal.cl"
+            value={form.emailAvisos}
+            onChange={e => set('emailAvisos', e.target.value.trim())}
+          />
+        </Field>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Aquí llegan los avisos importantes de tu cuenta, como el vencimiento de tu mensualidad.
+          Usa un correo que revises: si no llega el aviso y el pago se atrasa, se bloquean secciones del panel.
+        </p>
+        <p className="text-[10px] text-slate-600 leading-relaxed">
+          No es el correo con el que inicias sesión. Cambiarlo aquí no afecta el acceso de nadie al panel.
+        </p>
+        {form.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailAvisos) && (
+          <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+        )}
+      </Card>
+
       <NotificacionesToggleCard />
 
       <DailyWelcomeToggleCard />

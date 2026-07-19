@@ -76,45 +76,49 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Buscador — TEMA POR DEFECTO (Aura y otros): fondo claro + texto oscuro
-       para contrastar con pantallas claras. Renacer overridea a obsidiana. */
+    /* Buscador — estilos por MODO de tema (config.js pone theme-dark/theme-light
+       en <html> según _lightTenants). Base = OSCURO (default de la plataforma):
+       superficie translúcida + foco con el acento del tenant (--accent, que
+       aquí SIEMPRE está seteado por el accentMap de initPage). `.theme-light`
+       activa el esquema blanco (Aura, Latin Caribe, Infinity, Renacer). */
     input.svc-search {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      background-color: #ffffff !important;
+      background-color: rgba(255,255,255,0.07) !important;
       background-image: none !important;
-      color: #1f2937 !important;
-      border: 1px solid #e5e7eb;
+      color: #f5f5f5 !important;
+      border: 1px solid rgba(255,255,255,0.14);
       border-radius: 0.75rem;
       padding: 0.75rem 1rem;
       font-size: 0.875rem;
       line-height: 1.25rem;
-      box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.06);
+      box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.35);
       outline: none;
       transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
-      caret-color: #1f2937;
+      caret-color: var(--accent, #f5f5f5);
     }
-    input.svc-search::placeholder { color: #9ca3af !important; opacity: 1; }
-    input.svc-search:hover { border-color: #d1d5db; }
+    input.svc-search::placeholder { color: rgba(255,255,255,0.45) !important; opacity: 1; }
+    input.svc-search:hover { border-color: rgba(255,255,255,0.28); }
     input.svc-search:focus {
+      background-color: rgba(255,255,255,0.10) !important;
       border-color: var(--accent, #9ca3af);
       box-shadow: 0 0 0 3px rgba(var(--accent-r,156),var(--accent-g,163),var(--accent-b,175),0.18);
     }
-    /* Renacer: variante obsidiana premium. */
-    .tenant-renacer input.svc-search {
-      background-color: #120e0c !important;
-      color: #f5f5f5 !important;
-      border-color: #262626;
-      box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.5);
-      caret-color: #f59e0b;
+    /* Tema claro (Aura, Latin Caribe, Infinity, Renacer). */
+    .theme-light input.svc-search {
+      background-color: #ffffff !important;
+      color: #1f2937 !important;
+      border-color: #e5e7eb;
+      box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.06);
+      caret-color: #1f2937;
     }
-    .tenant-renacer input.svc-search::placeholder { color: #737373 !important; }
-    .tenant-renacer input.svc-search:hover { border-color: #404040; }
-    .tenant-renacer input.svc-search:focus {
-      background-color: #18120f !important;
-      border-color: #f59e0b;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+    .theme-light input.svc-search::placeholder { color: #9ca3af !important; }
+    .theme-light input.svc-search:hover { border-color: #d1d5db; }
+    .theme-light input.svc-search:focus {
+      background-color: #ffffff !important;
+      border-color: var(--accent, #9ca3af);
+      box-shadow: 0 0 0 3px rgba(var(--accent-r,156),var(--accent-g,163),var(--accent-b,175),0.18);
     }
     input.svc-search::-webkit-search-cancel-button {
       -webkit-appearance: none;
@@ -129,32 +133,28 @@
     }
     input.svc-search:hover::-webkit-search-cancel-button,
     input.svc-search:focus::-webkit-search-cancel-button {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%231f2937'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
-    }
-    /* Renacer: 'x' claro sobre input obsidiana. */
-    .tenant-renacer input.svc-search::-webkit-search-cancel-button {
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a3a3a3'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
-    }
-    .tenant-renacer input.svc-search:hover::-webkit-search-cancel-button,
-    .tenant-renacer input.svc-search:focus::-webkit-search-cancel-button {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffffff'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
     }
+    .theme-light input.svc-search:hover::-webkit-search-cancel-button,
+    .theme-light input.svc-search:focus::-webkit-search-cancel-button {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%231f2937'><path d='M6.28 6.28a.75.75 0 0 1 1.06 0L10 8.94l2.66-2.66a.75.75 0 1 1 1.06 1.06L11.06 10l2.66 2.66a.75.75 0 1 1-1.06 1.06L10 11.06l-2.66 2.66a.75.75 0 1 1-1.06-1.06L8.94 10 6.28 7.34a.75.75 0 0 1 0-1.06z'/></svg>");
+    }
 
-    /* Autofill: claro por defecto, obsidiana en Renacer. */
+    /* Autofill: oscuro por defecto, claro bajo .theme-light. */
     input.svc-search:-webkit-autofill,
     input.svc-search:-webkit-autofill:hover,
     input.svc-search:-webkit-autofill:focus {
+      -webkit-text-fill-color: #f5f5f5 !important;
+      -webkit-box-shadow: 0 0 0 1000px #1f1f22 inset !important;
+      caret-color: var(--accent, #f5f5f5) !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+    .theme-light input.svc-search:-webkit-autofill,
+    .theme-light input.svc-search:-webkit-autofill:hover,
+    .theme-light input.svc-search:-webkit-autofill:focus {
       -webkit-text-fill-color: #1f2937 !important;
       -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
       caret-color: #1f2937 !important;
-      transition: background-color 5000s ease-in-out 0s;
-    }
-    .tenant-renacer input.svc-search:-webkit-autofill,
-    .tenant-renacer input.svc-search:-webkit-autofill:hover,
-    .tenant-renacer input.svc-search:-webkit-autofill:focus {
-      -webkit-text-fill-color: #f5f5f5 !important;
-      -webkit-box-shadow: 0 0 0 1000px #120e0c inset !important;
-      caret-color: #f5f5f5 !important;
     }
 
     .text-accent { color: var(--accent); }

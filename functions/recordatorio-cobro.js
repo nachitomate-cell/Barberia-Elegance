@@ -85,26 +85,39 @@ async function tokensAdmin(tid) {
   }
 }
 
-// Destinatarios EXPLÍCITOS para el fallback por correo.
-//   1) _billing/{tid}.emailCobro   (string | array) — lo setea el superadmin
-//   2) tenants/{tid}.ownerEmail    — capturado en el alta self-service
-// Los tenants "a medida" no tienen doc raíz en /tenants: para ellos hay que
-// llenar emailCobro a mano (si no, cae en la alerta al superadmin).
-async function emailsCobro(tid, billingData) {
-  const limpia = (arr) => [...new Set(
-    arr.map(e => String(e || '').trim().toLowerCase()).filter(e => e.includes('@'))
-  )];
+// Destinatarios EXPLÍCITOS para el fallback por correo, en orden:
+//   1) settings/general.emailAvisos — correo oficial del local, que el propio
+//      dueño edita en /gestion-interna → Configuración → "Correo para avisos".
+//   2) _billing/{tid}.emailCobro    — override del superadmin (string | array)
+//   3) tenants/{tid}.ownerEmail     — capturado en el alta self-service
+// NUNCA se usan los correos de barberos/: son credenciales de login y en
+// varios locales están inventados.
+const settingsRefPath = (tid) => (tid === 'elegance' ? 'settings/general' : `tenants/${tid}/settings/general`);
 
-  const raw = billingData.emailCobro;
-  const explicitos = Array.isArray(raw) ? raw : (typeof raw === 'string' ? [raw] : []);
-  const deBilling = limpia(explicitos);
+async function emailsCobro(tid, billingData) {
+  const limpia = (v) => {
+    const arr = Array.isArray(v) ? v : (typeof v === 'string' ? [v] : []);
+    return [...new Set(arr.map(e => String(e || '').trim().toLowerCase()).filter(e => e.includes('@')))];
+  };
+
+  try {
+    const s = await db.doc(settingsRefPath(tid)).get();
+    if (s.exists) {
+      const oficial = limpia(s.data().emailAvisos);
+      if (oficial.length) return oficial;
+    }
+  } catch (e) {
+    logger.warn(`[Cobro] emailAvisos ${tid}: ${e.message}`);
+  }
+
+  const deBilling = limpia(billingData.emailCobro);
   if (deBilling.length) return deBilling;
 
   try {
     const t = await db.collection('tenants').doc(tid).get();
     if (t.exists) {
-      const owner = t.data().ownerEmail;
-      if (owner) return limpia([owner]);
+      const owner = limpia(t.data().ownerEmail);
+      if (owner.length) return owner;
     }
   } catch (e) {
     logger.warn(`[Cobro] ownerEmail ${tid}: ${e.message}`);
