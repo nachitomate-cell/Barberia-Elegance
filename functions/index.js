@@ -1339,6 +1339,14 @@ exports.walletApplePase        = walletApple.walletApplePase;
 exports.walletAppleWs          = walletApple.walletAppleWs;
 
 // ─────────────────────────────────────────────────────────────────
+//  CLUB PASSWORDLESS — migración de cuentas al vuelo. Cuentas viejas
+//  (clave propia) o solo-Google entran directo con su email: el login
+//  llama este callable, que resetea la password a la interna del
+//  tenant (staff con claims JAMÁS se toca). Ver club-migrar-login.js
+// ─────────────────────────────────────────────────────────────────
+exports.clubMigrarLogin = require('./club-migrar-login').clubMigrarLogin;
+
+// ─────────────────────────────────────────────────────────────────
 //  ALERTAS PROACTIVAS AL /admin — ver admin-alerts.js. Convierte el
 //  portal superadmin en un copiloto que avisa por push (admin_fcm_tokens):
 //  nuevo local self-service, mensaje de soporte, pico de errores y
