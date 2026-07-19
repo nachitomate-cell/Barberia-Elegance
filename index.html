@@ -3559,14 +3559,25 @@
       background-color: #0b0a09 !important;
     }
 
-    /* Renacer: hero blanco limpio (rediseño tema claro 2026). El resto del tema
-       claro/morado/azul vive en el bloque grande .tenant-renacer (ver más abajo,
-       después del bloque de Infinity). */
+    /* Renacer (rediseño tema claro 2026): hero con FOTO de banner + overlay
+       oscuro y texto blanco (patrón aura/latincaribe), cuerpo claro debajo.
+       El resto del tema claro/morado/azul vive en el bloque grande
+       .tenant-renacer (más abajo, después del bloque de Infinity). */
     .tenant-renacer .booking-hero {
-      background-image: none !important;
-      background-color: #ffffff !important;
-      border-bottom: 1px solid #e2e8f0 !important;
+      background-image: url('/renacer/banner.webp') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+      background-color: #141018 !important;
     }
+    /* Texto del hero blanco sobre la foto (el bloque grande mapea .text-white
+       a slate; aquí lo devolvemos a blanco solo dentro del hero). */
+    .tenant-renacer .booking-hero .text-white,
+    .tenant-renacer .booking-hero .text-white\/70,
+    .tenant-renacer .booking-hero .text-white\/50 { color: inherit !important; }
+    .tenant-renacer .booking-hero p,
+    .tenant-renacer .booking-hero span { color: rgba(255,255,255,0.75) !important; }
+    .tenant-renacer #heroBadgeRating { color: #ffffff !important; }
+    .tenant-renacer #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
 
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
     .tenant-barbersclub .info-strip { display: none !important; }
@@ -8269,17 +8280,20 @@
     .tenant-renacer .barber-option.border-neon::after { content: none !important; }
     .tenant-renacer #progressTrack::after { content: none !important; animation: none !important; }
 
-    /* ── Header / hero (el fondo blanco base ya lo pone la regla de más arriba) ── */
-    .tenant-renacer .booking-hero-overlay { background: none !important; }
-    .tenant-renacer #shopNombre { color: #0F172A !important; text-shadow: none !important; }
-    .tenant-renacer #shopSlogan { color: #64748B !important; }
+    /* ── Header / hero: FOTO de banner + overlay oscuro (tinte violeta) y texto
+       blanco. El fondo/foto la pone la regla de arriba (línea ~3565). ── */
+    .tenant-renacer .booking-hero-overlay {
+      background: linear-gradient(180deg, rgba(20,15,35,0.50) 0%, rgba(20,15,35,0.86) 100%) !important;
+    }
+    .tenant-renacer #shopNombre { color: #FFFFFF !important; text-shadow: 0 1px 12px rgba(0,0,0,0.35) !important; }
+    .tenant-renacer #shopSlogan { color: rgba(255,255,255,0.72) !important; }
     .tenant-renacer .gold-divider {
       background: linear-gradient(90deg, transparent, #C4B5FD, transparent) !important;
     }
     .tenant-renacer .hero-logo-ring {
       background: #FFFFFF !important;
       border: 4px solid #FFFFFF !important;
-      box-shadow: 0 6px 22px rgba(15,23,42,0.08) !important;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.28) !important;
     }
     .tenant-renacer .info-strip {
       background: #FFFFFF !important;
@@ -8446,6 +8460,19 @@
     }
     .tenant-renacer .day-btn .dot,
     .tenant-renacer .day-btn .dot.bg-neon { background: #7C3AED !important; }
+    /* Horas disponibles (.time-pill): el estado base es blanco-sobre-oscuro
+       (--ps-cl blanco), invisible sobre fondo claro. La seleccionada la pinta
+       el JS (mapa SEL → morado). Aquí solo el estado NO seleccionado. */
+    .tenant-renacer .time-pill:not([data-sel]) {
+      background: #FFFFFF !important;
+      border-color: #DDD6FE !important;   /* violet-200 */
+      color: #6D28D9 !important;          /* violet-700 */
+    }
+    .tenant-renacer .time-pill:not([data-sel]):hover {
+      background: #F5F3FF !important;
+      border-color: #7C3AED !important;
+      color: #7C3AED !important;
+    }
     /* Tarjetas con fondo inline oscuro #0a0807 (ubicación) → blancas. */
     .tenant-renacer [style*="background:#0a0807"] {
       background: #FFFFFF !important;
