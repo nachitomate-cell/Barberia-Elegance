@@ -8,9 +8,14 @@ import { Lock, ChevronRight } from 'lucide-react';
 // Días de atraso a partir de los cuales se restringen las secciones premium.
 export const DIAS_RESTRINGIDO = 8;
 
-// Tenants exentos del modo restringido (arreglo de billing especial).
-// Nunca se les bloquean las secciones premium aunque figuren atrasados.
-const SIN_RESTRICCION = new Set(['ferraza']);
+// La exención de corte vive en _billing/{tid}.sinCorte, NO hardcodeada acá.
+// Antes era un Set en el bundle: cambiarla exigía rebuild + deploy, y el
+// backend no se enteraba, así que la Cloud Function seguía mandando avisos
+// diciendo "secciones bloqueadas" a locales que en realidad nunca se
+// bloqueaban. Con el flag en Firestore ambos lados leen lo mismo.
+//
+// sinCorte = true → se le siguen enviando los avisos de atraso, pero NUNCA
+// se le restringe el panel (arreglos especiales, pilotos, afiliados).
 
 function parseFecha(f) {
   if (!f) return null;
@@ -24,24 +29,26 @@ function parseFecha(f) {
 export function useBillingRestriction() {
   const { id } = useTenant();
   const [dias, setDias] = useState(0);
+  const [sinCorte, setSinCorte] = useState(false);
 
   useEffect(() => {
     const ref = doc(db, '_billing', id);
     const unsub = onSnapshot(
       ref,
       s => {
-        if (!s.exists()) { setDias(0); return; }
+        if (!s.exists()) { setDias(0); setSinCorte(false); return; }
         const d = s.data();
         const due = parseFecha(d.fechaProximoPago);
         const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
         setDias(due ? Math.round((hoy.getTime() - due.getTime()) / 86400000) : 0);
+        setSinCorte(d.sinCorte === true);
       },
-      () => setDias(0),
+      () => { setDias(0); setSinCorte(false); },
     );
     return unsub;
   }, [id]);
 
-  return { diasAtraso: dias, restringido: !SIN_RESTRICCION.has(id) && dias >= DIAS_RESTRINGIDO };
+  return { diasAtraso: dias, restringido: !sinCorte && dias >= DIAS_RESTRINGIDO };
 }
 
 // Envuelve una vista premium: si el pago está muy atrasado, la bloquea.

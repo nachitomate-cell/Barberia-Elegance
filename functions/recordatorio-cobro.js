@@ -41,6 +41,16 @@ const MAIL_FROM      = 'SynapTech <cobros@synaptechspa.cl>';
 // Negativo = antes de vencer; 0 = vence hoy; positivo = atrasado.
 const DIAS_RECORDATORIO = new Set([-3, -1, 0, 1, 3, 8, 15]);
 
+// Pasado el día 15 la escalera se acababa y el local NUNCA volvía a recibir
+// un aviso: quien aguantaba dos semanas dejaba de existir para el cobro.
+// Ahora se repite cada RECORDATORIO_RECURRENTE días de forma indefinida.
+const RECORDATORIO_RECURRENTE = 7;
+
+function tocaRecordatorio(dias) {
+  if (DIAS_RECORDATORIO.has(dias)) return true;
+  return dias > 15 && (dias - 15) % RECORDATORIO_RECURRENTE === 0;
+}
+
 // Días seguidos sin tokens push antes de molestar al superadmin.
 const ALERTA_DIAS_SIN_CANAL = 3;
 
@@ -159,11 +169,12 @@ exports.recordatorioCobro = onSchedule(
       if (dueUTC === null) continue;
 
       const dias = Math.round((hoyUTC - dueUTC) / 86400000); // + = atrasado, - = falta
-      if (!DIAS_RECORDATORIO.has(dias)) continue;
+      if (!tocaRecordatorio(dias)) continue;
       // Idempotencia diaria: da igual por qué canal haya salido hoy.
       if (d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr) continue;
 
-      const { title, body } = buildMensaje(dias, d.montoPendiente);
+      // sinCorte: se avisa igual, pero sin prometer bloqueos que no ocurren.
+      const { title, body } = buildMensaje(dias, d.montoPendiente, d.sinCorte === true);
       const tokens = await tokensAdmin(tid);
 
       // ── Canal 1: push FCM ──────────────────────────────────────

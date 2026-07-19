@@ -5,7 +5,8 @@ import {
   Package, Tag, PenLine, Award, Bell, Mail,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
+import { activarNotificaciones } from '../hooks/useFCMToken';
 import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
@@ -196,8 +197,6 @@ function NotificacionesToggleCard() {
 
   async function activar() {
     setStatus('loading');
-    const { activarNotificaciones } = await import('../hooks/useFCMToken');
-    const { auth } = await import('../lib/firebase');
     const res = await activarNotificaciones({
       uid:      auth.currentUser?.uid,
       tenantId: resolveTenantId(),

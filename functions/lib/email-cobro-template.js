@@ -8,8 +8,11 @@
 //  lo que se revisa por diseño es lo que reciben los locales.
 // ─────────────────────────────────────────────────────────────────
 
-/** Copy según los días respecto al vencimiento (+ = atrasado). */
-function buildMensaje(dias, monto) {
+/** Copy según los días respecto al vencimiento (+ = atrasado).
+ *  `sinCorte` = el local está exento de bloqueo (arreglo especial). En ese
+ *  caso NO se afirma que hay secciones bloqueadas, porque sería falso: el
+ *  panel le sigue funcionando entero y el aviso perdería credibilidad. */
+function buildMensaje(dias, monto, sinCorte = false) {
   const m = Number(monto) > 0 ? `$${Number(monto).toLocaleString('es-CL')}` : 'tu mensualidad';
   if (dias < 0) {
     const n = Math.abs(dias);
@@ -17,6 +20,14 @@ function buildMensaje(dias, monto) {
   }
   if (dias === 0) return { title: '💳 Tu mensualidad vence hoy', body: `Paga ${m} para mantener tu cuenta activa.` };
   if (dias < 8)  return { title: '⚠️ Tu mensualidad está atrasada', body: `Venció hace ${dias} día${dias !== 1 ? 's' : ''}. Regulariza ${m} para no perder funciones.` };
+
+  if (sinCorte) {
+    return {
+      title: '⚠️ Tienes una mensualidad pendiente',
+      body:  `Llevas ${dias} días de atraso. Regulariza ${m} para mantener tu cuenta al día.`,
+    };
+  }
+
   if (dias < 15) return { title: '🔒 Secciones bloqueadas por falta de pago', body: `Llevas ${dias} días de atraso. Regulariza ${m} para reactivar Métricas, Comisiones y Caja.` };
   return { title: '⛔ Tu cuenta puede ser suspendida', body: `${dias} días de atraso. Regulariza ${m} hoy para evitar la suspensión.` };
 }
