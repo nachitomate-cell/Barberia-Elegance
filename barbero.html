@@ -650,6 +650,35 @@
        Verificación: node scripts/check-tema-tenants.js
        (sionbarberia y elegance ya tienen su propio tratamiento arriba.) */
 
+    /* ══════════ INFINITY · hero con el banner del dashboard ══════════
+       Usa /infinit.png (misma foto luminosa que su dashboard). Como la imagen
+       es CLARA, hay que invertir el hero: el overlay oscuro por defecto la
+       ensuciaría y el texto blanco desaparecería. Overlay blanco (igual al
+       .hero-overlay del dashboard) + texto grafito #111827. */
+    .tenant-infinity #barberHero::before {
+      background: linear-gradient(180deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.90) 100%) !important;
+    }
+    .tenant-infinity #barberHero { border-bottom: 1px solid #E5E7EB !important; }
+    .tenant-infinity #barberHero #shopNameLabel { color: rgba(17,24,39,0.55) !important; }
+    .tenant-infinity #barberHero #barberName {
+      color: #111827 !important;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.9), 0 2px 12px rgba(255,255,255,0.7) !important;
+    }
+    .tenant-infinity #barberHero #barberEspecialidad { color: rgba(17,24,39,0.85) !important; }
+    /* El avatar trae borde/sombra/fondo inline pensados para fondo oscuro. */
+    .tenant-infinity #barberPhotoWrap {
+      background: #F3F4F6 !important;
+      border: 3px solid #FFFFFF !important;
+      box-shadow: 0 4px 18px rgba(17,24,39,0.18) !important;
+    }
+    .tenant-infinity #barberPhotoWrap i { color: rgba(17,24,39,0.25) !important; }
+    /* Badge verde: más contraste sobre fondo claro. */
+    .tenant-infinity #disponibleBadge {
+      background: rgba(16,185,129,0.12) !important;
+      border-color: rgba(16,185,129,0.45) !important;
+      color: #047857 !important;
+    }
+
     /* ── Tenants CLAROS (usan la base clara de arriba) ── */
     .tenant-infinity { --accent:#000000; --accent-r:0; --accent-g:0; --accent-b:0; --body-bg:#F4F4F5; }
     .tenant-infinity body, .tenant-infinity #appShell { background-color:#F4F4F5 !important; }
@@ -771,7 +800,10 @@
           aura:               '/auralogin.png',
           latincaribe:        '/thelatin/banner-latincaribe-main.jpeg',
           machos:             '/machos_bg.png',
-          infinity:           '/infinity_bg.png',
+          // Infinity usa el mismo banner que su dashboard (/infinit.png: foto
+          // luminosa del local). Al ser una imagen clara, su hero invierte el
+          // overlay a blanco y el texto a grafito — ver bloque CSS más abajo.
+          infinity:           '/infinit.png',
           sionbarberia:       '/dieciseis/banner16.webp',
           elbarberomoderno:   '/elbarberomoderno/barbero1.png',
           omegastudio:        '/omega2.avif',
