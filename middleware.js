@@ -1684,6 +1684,21 @@ export default async function middleware(request) {
   if (hostname === 'links.synaptechspa.cl') {
     return Response.redirect('https://bioo.cl' + url.pathname + url.search, 308);
   }
+
+  // ── Wallets · bioo (estudio de personalización de tarjetas) ──
+  // No es un tenant: wallets-bioo.html trae su propio <head>. La raíz se
+  // sirve desde aquí porque el index.html del repo tapa el rewrite de
+  // vercel.json (mismo caso documentado de bioo.cl). El resto de rutas
+  // (config.js, firebase-config.js, assets) pasan crudas.
+  if (hostname === 'wallets.bioo.cl') {
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      const rw  = new URL('/wallets-bioo.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    return;
+  }
+
   if (hostname === 'bioo.cl') {
     // La raíz sirve la landing de Links (un index.html en la raíz del repo tapa
     // el rewrite afterFiles de vercel.json, así que lo servimos desde aquí).
