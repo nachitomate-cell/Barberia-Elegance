@@ -1877,6 +1877,22 @@
           >…</button>
         </div>
 
+        <!-- Wallet — visibilidad para los CLIENTES del local (configuracion/wallet.enabled).
+             Independiente del add-on (billing): esto prende/apaga el botón
+             "Añadir a Google Wallet" en el dashboard de sus clientes. -->
+        <div class="stat-card">
+          <div class="stat-icon" id="wallet-cliente-icon" style="background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ph-fill ph-eye" style="font-size:1.25rem;color:#94a3b8;"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.25rem;">Wallet — visible a clientes</p>
+            <div id="wallet-cliente-status"><div class="skeleton" style="width:80px;height:16px;"></div></div>
+          </div>
+          <button onclick="toggleWalletCliente()" id="wallet-cliente-btn"
+            style="padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#64748b;transition:all 0.2s;"
+          >…</button>
+        </div>
+
       </div>
     </div>
 
@@ -2507,6 +2523,7 @@
       loadStats(tenantId);
       loadTenantStatus(tenantId);
       loadWalletAddon(tenantId);
+      loadWalletCliente(tenantId);
       loadTenantCRM(tenantId);
     }
 
@@ -4717,6 +4734,92 @@
       }
     }
     window.toggleWalletAddon = toggleWalletAddon;
+
+    // ══ Wallet visible a clientes (configuracion/wallet.enabled) ═════
+    // El MISMO switch que el local ve en su panel (gestion-interna →
+    // Wallets), pero manejable desde acá. Independiente del add-on:
+    // el add-on es el gate de cobro; esto es la visibilidad del botón
+    // "Añadir a Google Wallet" en el dashboard de sus clientes.
+    // Escritura directa con esBootstrap (mismo patrón que Kill Switch).
+    function walletCfgDocRef(tid) {
+      return tid === 'elegance'
+        ? db.collection('configuracion').doc('wallet')
+        : db.collection('tenants').doc(tid).collection('configuracion').doc('wallet');
+    }
+    async function loadWalletCliente(tenantId) {
+      const st = document.getElementById('wallet-cliente-status');
+      if (st) st.innerHTML = '<div class="skeleton" style="width:80px;height:16px;"></div>';
+      let visible = false;
+      try {
+        const snap = await walletCfgDocRef(tenantId).get();
+        visible = snap.exists && snap.data().enabled === true;
+      } catch (_) {}
+      renderWalletCliente(visible);
+    }
+    function renderWalletCliente(visible) {
+      const icon = document.getElementById('wallet-cliente-icon');
+      const st   = document.getElementById('wallet-cliente-status');
+      const btn  = document.getElementById('wallet-cliente-btn');
+      if (!icon || !st || !btn) return;
+      const i = icon.querySelector('i');
+      if (visible) {
+        icon.style.background = 'rgba(74,222,128,0.12)'; icon.style.borderColor = 'rgba(74,222,128,0.3)';
+        if (i) { i.className = 'ph-fill ph-eye'; i.style.color = '#4ade80'; }
+        st.innerHTML = '<span style="color:#4ade80;font-weight:700;font-size:0.9rem;">Visible</span>';
+        btn.textContent = 'Ocultar';
+        btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.borderColor = 'rgba(239,68,68,0.3)'; btn.style.color = '#f87171';
+      } else {
+        icon.style.background = 'rgba(100,116,139,0.1)'; icon.style.borderColor = 'rgba(100,116,139,0.2)';
+        if (i) { i.className = 'ph-fill ph-eye-slash'; i.style.color = '#94a3b8'; }
+        st.innerHTML = '<span style="color:#64748b;font-weight:600;font-size:0.9rem;">Oculto</span>';
+        btn.textContent = 'Mostrar';
+        btn.style.background = 'rgba(74,222,128,0.12)'; btn.style.borderColor = 'rgba(74,222,128,0.3)'; btn.style.color = '#4ade80';
+      }
+    }
+    async function toggleWalletCliente() {
+      if (!_activeTenant) return;
+      let visibleActual = false;
+      try {
+        const snap = await walletCfgDocRef(_activeTenant).get();
+        visibleActual = snap.exists && snap.data().enabled === true;
+      } catch (_) {}
+      const mostrar = !visibleActual;
+      const nombre = (typeof TENANTS !== 'undefined' && TENANTS[_activeTenant] && TENANTS[_activeTenant].nombre) || _activeTenant;
+
+      // Aviso si el add-on está inactivo: la visibilidad sola no basta
+      // (walletGenerarPase gatea server-side por _billing.walletActivo).
+      let addonActivo = false;
+      try {
+        const b = await db.collection('_billing').doc(_activeTenant).get();
+        addonActivo = b.exists && b.data().walletActivo === true;
+      } catch (_) {}
+
+      let msg = mostrar
+        ? `¿MOSTRAR la tarjeta Wallet a los clientes de "${nombre}"?\n\nSus clientes verán el botón "Añadir a Google Wallet" en su dashboard.`
+        : `¿OCULTAR la tarjeta Wallet para los clientes de "${nombre}"?\n\nEl botón desaparece del dashboard de sus clientes (el add-on y las tarjetas ya guardadas no se tocan).`;
+      if (mostrar && !addonActivo) {
+        msg += '\n\n⚠️ OJO: el add-on Wallet está INACTIVO para este local — el botón aparecerá pero la generación de tarjetas seguirá bloqueada hasta activar el add-on.';
+      }
+      if (!confirm(msg)) return;
+
+      const btn = document.getElementById('wallet-cliente-btn');
+      const prev = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      HAPTIC([10, 30, 10]);
+      try {
+        await walletCfgDocRef(_activeTenant).set(
+          { enabled: mostrar, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        renderWalletCliente(mostrar);
+      } catch (e) {
+        alert('Error: ' + (e.message || e));
+        if (btn) btn.textContent = prev;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    window.toggleWalletCliente = toggleWalletCliente;
 
     // ══ Embudo self-service ═════════════════════════════════════════
     // Locales creados solos en {slug}.synaptechspa.cl (origen:'self-service').

@@ -1,38 +1,29 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, collection, query, where, getCountFromServer } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp } from 'firebase/app';
 import {
-  Wallet, MapPin, Palette, Save, CheckCircle2, AlertCircle, Loader2,
-  Store, Users, Sparkles, Power, Crown, MapPinned, BellRing, RefreshCw, ArrowRight,
+  Wallet, Loader2, Users, Eye, EyeOff, ExternalLink, Sparkles,
+  Crown, MapPinned, BellRing, RefreshCw, ArrowRight,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
+
+// La PERSONALIZACIÓN de la tarjeta vive en su propio estudio (wallets.bioo.cl).
+// Esta vista es el launcher: estado del módulo + botón al estudio + upsell.
+const WALLETS_BIOO_URL = 'https://wallets.bioo.cl';
 
 // Ruta del doc de config por tenant (mismo criterio que las CFs de wallet).
 const cfgPath = (tid) => (tid === 'elegance' ? 'configuracion/wallet' : `tenants/${tid}/configuracion/wallet`);
 const usersPath = (tid) => (tid === 'elegance' ? 'users' : `tenants/${tid}/users`);
 
 export default function Wallets() {
-  const { id: tenantId, name: tenantName, logo: tenantLogo } = useTenant();
+  const { id: tenantId, name: tenantName } = useTenant();
   const { role } = useAuth();
   const isAdmin = role === 'admin' || role === 'jefe';
 
-  const [form, setForm] = useState({
-    enabled: false,
-    programName: '',
-    issuerName: '',
-    accent: '#c9a84c',
-    bg: '#0a0a0a',
-    logoUrl: '',
-    lat: '',
-    lng: '',
-  });
-  const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [savedCount, setSavedCount] = useState(null);
+  // Visibilidad para clientes: configuracion/wallet.enabled (se edita en el estudio).
+  const [enabled, setEnabled] = useState(null);
   // Add-on pagado: _billing/{tid}.walletActivo (null = cargando).
   const [walletActivo, setWalletActivo] = useState(null);
 
@@ -46,43 +37,15 @@ export default function Wallets() {
     return () => unsub();
   }, [tenantId]);
 
-  // Prefill desde configuracion/wallet.
   useEffect(() => {
     if (!tenantId) return;
     const unsub = onSnapshot(
       doc(db, cfgPath(tenantId)),
-      (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          setForm((f) => ({
-            ...f,
-            enabled: d.enabled ?? f.enabled,
-            programName: d.programName ?? f.programName,
-            issuerName: d.issuerName ?? f.issuerName,
-            accent: d.accent ?? f.accent,
-            bg: d.bg ?? f.bg,
-            logoUrl: d.logoUrl ?? f.logoUrl,
-            lat: d.location?.lat ?? f.lat,
-            lng: d.location?.lng ?? f.lng,
-          }));
-        }
-        setLoaded(true);
-      },
-      () => setLoaded(true),
+      (snap) => setEnabled(snap.exists() && snap.data().enabled === true),
+      () => setEnabled(false),
     );
     return () => unsub();
   }, [tenantId]);
-
-  // Defaults sensatos la primera vez (nombre del programa + emisor + logo del tenant).
-  useEffect(() => {
-    if (!loaded) return;
-    setForm((f) => ({
-      ...f,
-      programName: f.programName || `Club ${tenantName || ''}`.trim(),
-      issuerName: f.issuerName || tenantName || 'SynapTech',
-      logoUrl: f.logoUrl || (typeof tenantLogo === 'string' && /^https:\/\//.test(tenantLogo) ? tenantLogo : ''),
-    }));
-  }, [loaded, tenantName, tenantLogo]);
 
   // Cuántos clientes guardaron su tarjeta (best-effort).
   useEffect(() => {
@@ -94,34 +57,7 @@ export default function Wallets() {
         setSavedCount(agg.data().count);
       } catch { setSavedCount(null); }
     })();
-  }, [tenantId, saving]);
-
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  async function guardar() {
-    setSaving(true);
-    setMsg(null);
-    try {
-      const config = {
-        enabled: form.enabled,
-        programName: form.programName.trim(),
-        issuerName: form.issuerName.trim(),
-        accent: form.accent,
-        bg: form.bg,
-        logoUrl: form.logoUrl.trim() || null,
-        location: (form.lat !== '' && form.lng !== '')
-          ? { lat: Number(form.lat), lng: Number(form.lng) }
-          : null,
-      };
-      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'walletProvisionarClase');
-      const res = await fn({ tenantId, config });
-      setMsg({ ok: true, text: `Tarjeta ${res.data?.result === 'created' ? 'creada' : 'actualizada'} correctamente.` });
-    } catch (err) {
-      setMsg({ ok: false, text: err.message || 'No se pudo guardar. Reintenta.' });
-    } finally {
-      setSaving(false);
-    }
-  }
+  }, [tenantId]);
 
   if (!isAdmin) {
     return (
@@ -145,6 +81,7 @@ export default function Wallets() {
     return <UpsellWallet tenantName={tenantName} />;
   }
 
+  // ── Módulo ACTIVO → launcher al estudio wallets.bioo.cl ──────────
   return (
     <div className="px-4 sm:px-6 py-6 max-w-3xl mx-auto">
       {/* Header */}
@@ -155,155 +92,76 @@ export default function Wallets() {
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-primary [html.light_&]:text-ink-900">Wallet</h1>
           <p className="text-sm text-slate-400 [html.light_&]:text-ink-600 mt-1">
-            Tus clientes llevan sus sellos y rango en su Google Wallet. Se actualizan solos y reciben un aviso
-            al pasar cerca del local (geo-push).
+            Tus clientes llevan sus sellos y rango en el wallet de su celular. Se actualizan solos y reciben
+            un aviso al pasar cerca del local (geo-push).
           </p>
         </div>
       </div>
 
-      {msg && (
-        <div className={`mb-5 flex items-center gap-2 p-3 rounded-xl text-sm ${
-          msg.ok ? 'bg-emerald-950/30 border border-emerald-800/30 text-emerald-300'
-                 : 'bg-red-950/30 border border-red-800/30 text-red-300'
-        }`}>
-          {msg.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-          {msg.text}
+      {/* Hero launcher → estudio de diseño */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-slate-950/60 to-slate-950/60 [html.light_&]:from-amber-50 [html.light_&]:via-white [html.light_&]:to-white px-6 sm:px-10 py-10 sm:py-12 mb-4 text-center">
+        <div className="absolute -top-20 -right-16 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(251,191,36,0.18) 0%, transparent 70%)' }} />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full bg-emerald-400/15 text-emerald-300 [html.light_&]:bg-emerald-100 [html.light_&]:text-emerald-700 mb-5">
+            ● Módulo activo
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black leading-tight tracking-tight text-primary [html.light_&]:text-ink-900">
+            Diseña tu tarjeta en{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">
+              Wallets · bioo
+            </span>
+          </h2>
+          <p className="text-sm sm:text-base text-slate-300 [html.light_&]:text-ink-600 mt-3 max-w-xl mx-auto leading-relaxed">
+            Colores, logo, geo-push y visibilidad para tus clientes: todo se personaliza en el estudio,
+            con vista previa en vivo de cómo quedará la tarjeta.
+          </p>
+          <a
+            href={WALLETS_BIOO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-7 inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-black text-ink-900 bg-amber-400 hover:bg-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.6)] transition-transform active:scale-95"
+          >
+            Abrir el estudio <ExternalLink size={17} />
+          </a>
+          <p className="text-xs text-slate-500 mt-3">wallets.bioo.cl · entra con esta misma cuenta</p>
         </div>
-      )}
+      </div>
 
-      {/* Toggle activar */}
-      <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 mb-4">
-        <label className="flex items-center justify-between gap-4 cursor-pointer">
-          <div className="flex items-center gap-3 min-w-0">
-            <Power size={18} className={form.enabled ? 'text-emerald-400' : 'text-slate-500'} />
-            <div className="min-w-0">
-              <p className="font-semibold text-primary [html.light_&]:text-ink-900">Wallet activo</p>
-              <p className="text-xs text-slate-400 [html.light_&]:text-ink-600">
-                Habilita el botón "Añadir a Google Wallet" en la vista de sellos del cliente.
-              </p>
-            </div>
+      {/* Estado actual */}
+      <div className="grid sm:grid-cols-2 gap-3 mb-4">
+        <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 flex items-center gap-3">
+          {enabled
+            ? <Eye size={18} className="text-emerald-400 shrink-0" />
+            : <EyeOff size={18} className="text-slate-500 shrink-0" />}
+          <div className="min-w-0">
+            <p className="font-semibold text-primary [html.light_&]:text-ink-900 text-sm">
+              {enabled === null ? '…' : enabled ? 'Visible para tus clientes' : 'Oculta para tus clientes'}
+            </p>
+            <p className="text-xs text-slate-400 [html.light_&]:text-ink-600">
+              {enabled
+                ? 'El botón "Añadir a Wallet" está en su vista de sellos.'
+                : 'Actívala desde el estudio cuando el diseño esté listo.'}
+            </p>
           </div>
-          <input
-            type="checkbox"
-            checked={form.enabled}
-            onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))}
-            className="w-5 h-5 accent-emerald-500 shrink-0"
-          />
-        </label>
-      </div>
-
-      {/* Branding */}
-      <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 mb-4 space-y-4">
-        <div className="flex items-center gap-2 text-slate-300 [html.light_&]:text-ink-700">
-          <Store size={16} /> <h3 className="font-semibold">Marca de la tarjeta</h3>
         </div>
-
-        <Field label="Nombre del programa">
-          <input value={form.programName} onChange={set('programName')} placeholder="Club Elegance"
-            className="input" />
-        </Field>
-        <Field label="Nombre del emisor (tu local)">
-          <input value={form.issuerName} onChange={set('issuerName')} placeholder={tenantName || 'Tu barbería'}
-            className="input" />
-        </Field>
-        <Field label="Logo (URL https pública)" hint="Se muestra en la tarjeta. Debe ser un enlace público https.">
-          <input value={form.logoUrl} onChange={set('logoUrl')} placeholder="https://…/logo.png"
-            className="input" />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Color de marca">
-            <div className="flex items-center gap-2">
-              <input type="color" value={form.accent} onChange={set('accent')}
-                className="w-9 h-9 rounded-lg bg-transparent border border-slate-700 cursor-pointer shrink-0" />
-              <input value={form.accent} onChange={set('accent')} className="input" />
-            </div>
-          </Field>
-          <Field label="Fondo de la tarjeta">
-            <div className="flex items-center gap-2">
-              <input type="color" value={form.bg} onChange={set('bg')}
-                className="w-9 h-9 rounded-lg bg-transparent border border-slate-700 cursor-pointer shrink-0" />
-              <input value={form.bg} onChange={set('bg')} className="input" />
-            </div>
-          </Field>
+        <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 flex items-center gap-3">
+          <Users size={18} className="text-amber-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-semibold text-primary [html.light_&]:text-ink-900 text-sm">
+              {savedCount == null ? 'Tarjetas guardadas: —' : `${savedCount} cliente${savedCount === 1 ? '' : 's'}`}
+            </p>
+            <p className="text-xs text-slate-400 [html.light_&]:text-ink-600">
+              {savedCount == null ? '' : savedCount === 1 ? 'guardó su tarjeta en el celular' : 'guardaron su tarjeta en el celular'}
+            </p>
+          </div>
         </div>
-
-        {/* Previsualización de las estampas */}
-        <Field label="Vista previa de las estampas">
-          <img
-            alt="Vista previa"
-            src={`https://us-central1-barberia-elegance.cloudfunctions.net/walletStampImg?f=7&t=10&c=${encodeURIComponent(form.accent.replace('#', ''))}`}
-            className="w-full rounded-xl border border-slate-800 [html.light_&]:border-ink-200"
-            style={{ background: form.bg }}
-          />
-        </Field>
-      </div>
-
-      {/* Geo-push */}
-      <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 mb-4 space-y-4">
-        <div className="flex items-center gap-2 text-slate-300 [html.light_&]:text-ink-700">
-          <MapPin size={16} /> <h3 className="font-semibold">Geo-push (ubicación del local)</h3>
-        </div>
-        <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 -mt-1">
-          Cuando el cliente pase cerca, su tarjeta aparece en la pantalla de bloqueo. Copia las coordenadas
-          desde Google Maps (clic derecho sobre tu local → "¿Qué hay aquí?").
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Latitud">
-            <input value={form.lat} onChange={set('lat')} inputMode="decimal" placeholder="-33.0472" className="input" />
-          </Field>
-          <Field label="Longitud">
-            <input value={form.lng} onChange={set('lng')} inputMode="decimal" placeholder="-71.6127" className="input" />
-          </Field>
-        </div>
-      </div>
-
-      {/* Stats + guardar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2 text-sm text-slate-400 [html.light_&]:text-ink-600">
-          <Users size={15} />
-          {savedCount == null ? 'Tarjetas guardadas: —' : `${savedCount} cliente${savedCount === 1 ? '' : 's'} guardó su tarjeta`}
-        </div>
-        <button
-          onClick={guardar}
-          disabled={saving}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-ink-900 bg-amber-400 hover:bg-amber-300 transition-transform active:scale-95 disabled:opacity-60"
-        >
-          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-          {saving ? 'Guardando…' : 'Guardar y provisionar'}
-        </button>
       </div>
 
       <p className="flex items-center gap-1.5 text-xs text-slate-500 mt-6">
-        <Sparkles size={12} /> Apple Wallet llegará en una fase futura. Hoy solo Google Wallet (Android).
+        <Sparkles size={12} /> Google Wallet disponible hoy · Apple Wallet muy pronto (misma configuración).
       </p>
-
-      {/* Estilos de input compartidos (Tailwind @apply no está disponible en JSX inline) */}
-      <style>{`
-        .input {
-          width: 100%;
-          background: rgba(15,23,42,0.6);
-          border: 1px solid rgb(51,65,85);
-          border-radius: 0.6rem;
-          padding: 0.5rem 0.7rem;
-          font-size: 0.875rem;
-          color: white;
-          outline: none;
-        }
-        .input:focus { border-color: #fbbf24; }
-        html.light .input { background: white; color: #0f172a; border-color: rgb(203,213,225); }
-      `}</style>
     </div>
-  );
-}
-
-function Field({ label, hint, children }) {
-  return (
-    <label className="block">
-      <span className="block text-xs font-medium text-slate-400 [html.light_&]:text-ink-600 mb-1.5">{label}</span>
-      {children}
-      {hint && <span className="block text-[11px] text-slate-500 mt-1">{hint}</span>}
-    </label>
   );
 }
 

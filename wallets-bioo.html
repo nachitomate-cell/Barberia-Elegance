@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wallets — bioo · Tarjetas de fidelidad</title>
+<meta name="description" content="Diseña la tarjeta de fidelidad digital de tu local: Google Wallet y Apple Wallet, personalizada con tu marca.">
+<link rel="icon" type="image/png" href="/bioo-iso.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── Marca bioo: claro, tinta verde, Plus Jakarta (espejo de links/index.html) ── */
+  :root{
+    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
+    --ok:#16a34a; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  a{color:inherit;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;max-width:1080px;width:100%;margin:0 auto;}
+  .wordmark{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.5px;}
+  .wordmark .pill{font-size:12px;font-weight:700;letter-spacing:.4px;background:var(--ink);color:#fff;border-radius:999px;padding:4px 10px;}
+  .session{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--soft);}
+  .session button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--soft);}
+
+  main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:8px 22px 40px;}
+  .hidden{display:none !important;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 2px 10px rgba(21,36,11,.05);}
+
+  /* Login */
+  .login-wrap{max-width:400px;margin:6vh auto 0;}
+  .login-wrap h1{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;}
+  .login-wrap p.sub{font-size:14px;color:var(--soft);margin-bottom:22px;}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:14px 0 6px;letter-spacing:.2px;}
+  input[type=email],input[type=password],input[type=text],input[type=url],input[type=number],select{
+    width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:15px;
+    font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border .15s;
+  }
+  input:focus,select:focus{border-color:var(--ink);}
+  .btn{width:100%;height:52px;border:0;border-radius:14px;background:var(--ink);color:#fff;font-size:15.5px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.2px;box-shadow:0 4px 14px rgba(21,36,11,.18);font-family:inherit;}
+  .btn:hover{background:#1d3411;transform:translateY(-1px);}
+  .btn:disabled{opacity:.55;cursor:default;transform:none;}
+  .msg-err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;display:none;}
+
+  /* Studio */
+  .studio-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:6px 0 18px;}
+  .studio-head h1{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:999px;padding:6px 12px;}
+  .badge.ok{background:rgba(22,163,74,.1);color:var(--ok);}
+  .badge.off{background:rgba(180,83,9,.1);color:var(--warn);}
+  .banner{border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.5;margin-bottom:18px;}
+  .banner.warn{background:rgba(180,83,9,.08);border:1px solid rgba(180,83,9,.25);color:#7c4a12;}
+
+  .grid{display:grid;grid-template-columns:1fr 400px;gap:22px;align-items:start;}
+  @media (max-width:900px){.grid{grid-template-columns:1fr;}}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .color-field{display:flex;align-items:center;gap:8px;}
+  .color-field input[type=color]{width:48px;height:48px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:4px;cursor:pointer;}
+  .color-field input[type=text]{flex:1;}
+
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;}
+  .switch-row .t{font-size:14px;font-weight:700;}
+  .switch-row .d{font-size:12.5px;color:var(--soft);margin-top:2px;}
+  .switch{position:relative;width:50px;height:30px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:#d6dae2;border-radius:999px;transition:.2s;cursor:pointer;}
+  .slider:before{content:'';position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .switch input:checked + .slider{background:var(--ok);}
+  .switch input:checked + .slider:before{transform:translateX(20px);}
+
+  /* Preview de la tarjeta (mockup Google Wallet) */
+  .pv-sticky{position:sticky;top:18px;}
+  .pv-title{font-size:12.5px;font-weight:700;color:var(--soft);letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px;}
+  .gcard{border-radius:22px;overflow:hidden;box-shadow:0 14px 40px rgba(21,36,11,.22);color:#fff;}
+  .gcard-top{display:flex;align-items:center;gap:12px;padding:16px 18px 10px;}
+  .gcard-top img{width:38px;height:38px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.12);}
+  .gcard-top .p{font-size:15.5px;font-weight:700;line-height:1.2;}
+  .gcard-top .i{font-size:12px;opacity:.75;}
+  .gcard-mid{display:flex;align-items:flex-end;justify-content:space-between;padding:8px 18px 12px;}
+  .gcard-mid .lbl{font-size:10.5px;letter-spacing:.08em;font-weight:700;opacity:.75;text-transform:uppercase;}
+  .gcard-mid .val{font-size:24px;font-weight:800;letter-spacing:-.5px;}
+  .pv-chip{font-size:11.5px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 10px;opacity:.9;}
+  .gcard-strip{display:block;width:100%;}
+  .gcard-foot{padding:10px 18px 14px;font-size:11.5px;opacity:.8;min-height:20px;}
+  .pv-demo{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12.5px;color:var(--soft);}
+  .pv-demo input[type=range]{flex:1;accent-color:var(--ink);}
+  .pv-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:50;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--err);}
+
+  footer.powered{display:flex;align-items:center;justify-content:center;gap:7px;padding:22px;font-size:12px;color:var(--muted);}
+  footer.powered img{width:16px;height:16px;border-radius:4px;}
+  .spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 1s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="/firebase-config.js"></script>
+<script src="/config.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wordmark">bioo <span class="pill">wallets</span></div>
+  <div class="session hidden" id="session">
+    <span id="session-email"></span>
+    <button onclick="salir()">Salir</button>
+  </div>
+</header>
+
+<main>
+  <!-- Cargando -->
+  <div id="view-loading"><div class="spin"></div></div>
+
+  <!-- Login -->
+  <div id="view-login" class="login-wrap hidden">
+    <div class="card">
+      <h1>Wallets</h1>
+      <p class="sub">Diseña la tarjeta de fidelidad digital de tu local. Entra con tu cuenta de administrador.</p>
+      <label for="login-email">Correo</label>
+      <input type="email" id="login-email" autocomplete="username" placeholder="tu@correo.cl">
+      <label for="login-pass">Contraseña</label>
+      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••">
+      <div style="height:20px;"></div>
+      <button class="btn" id="login-btn" onclick="entrar()">Entrar</button>
+      <p class="msg-err" id="login-err"></p>
+    </div>
+  </div>
+
+  <!-- Sin acceso -->
+  <div id="view-denied" class="login-wrap hidden">
+    <div class="card" style="text-align:center;">
+      <h1 style="font-size:20px;">Sin acceso</h1>
+      <p class="sub" style="margin:10px 0 0;">Esta cuenta no es administradora de ningún local. Si crees que es un error, escríbenos.</p>
+    </div>
+  </div>
+
+  <!-- Studio -->
+  <div id="view-studio" class="hidden">
+    <div class="studio-head">
+      <h1 id="studio-title">Tu tarjeta de fidelidad</h1>
+      <span class="badge off" id="addon-badge">…</span>
+    </div>
+
+    <!-- Selector de tenant (solo superadmin) -->
+    <div id="tenant-picker" class="hidden" style="margin-bottom:18px;">
+      <label for="tenant-select">Local</label>
+      <select id="tenant-select" onchange="cargarTenant(this.value)"></select>
+    </div>
+
+    <div class="banner warn hidden" id="addon-banner"></div>
+
+    <div class="grid">
+      <!-- Formulario -->
+      <div class="card">
+        <label for="f-programName">Nombre del programa (título de la tarjeta)</label>
+        <input type="text" id="f-programName" maxlength="40" placeholder="Club de Fidelidad">
+
+        <label for="f-issuerName">Nombre del local (emisor)</label>
+        <input type="text" id="f-issuerName" maxlength="40" placeholder="Mi Barbería">
+
+        <label for="f-logoUrl">Logo (URL pública, cuadrado ideal)</label>
+        <input type="url" id="f-logoUrl" placeholder="https://…/logo.png">
+
+        <div class="row2">
+          <div>
+            <label for="f-accent-hex">Color de acento (sellos)</label>
+            <div class="color-field">
+              <input type="color" id="f-accent" value="#c9a84c">
+              <input type="text" id="f-accent-hex" value="#c9a84c" maxlength="7" autocomplete="off">
+            </div>
+          </div>
+          <div>
+            <label for="f-bg-hex">Color de fondo de la tarjeta</label>
+            <div class="color-field">
+              <input type="color" id="f-bg" value="#0a0a0a">
+              <input type="text" id="f-bg-hex" value="#0a0a0a" maxlength="7" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label for="f-lat">Latitud (geo-push)</label>
+            <input type="number" id="f-lat" step="any" placeholder="-33.0245">
+          </div>
+          <div>
+            <label for="f-lng">Longitud</label>
+            <input type="number" id="f-lng" step="any" placeholder="-71.5518">
+          </div>
+        </div>
+        <p class="pv-note">Con la ubicación, la tarjeta aparece sola en el teléfono del cliente cuando está cerca del local. Copia las coordenadas desde Google Maps (clic derecho sobre el local).</p>
+
+        <label for="f-geoMensaje">Mensaje de cercanía (opcional)</label>
+        <input type="text" id="f-geoMensaje" maxlength="90" placeholder="Estás cerca 💈 muestra tu tarjeta y suma sellos">
+
+        <div class="switch-row">
+          <div>
+            <p class="t">Tarjeta visible para tus clientes</p>
+            <p class="d">Muestra el botón "Añadir a Wallet" en el dashboard de tus clientes.</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="f-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div style="height:20px;"></div>
+        <button class="btn" id="save-btn" onclick="guardar()">Guardar y provisionar</button>
+        <p class="pv-note" style="margin-top:10px;">Al guardar se crea (o actualiza) la tarjeta en Google Wallet con tu marca. Apple Wallet usa esta misma configuración.</p>
+      </div>
+
+      <!-- Preview -->
+      <div class="pv-sticky">
+        <p class="pv-title">Así la verán tus clientes</p>
+        <div class="gcard" id="pv-card" style="background:#0a0a0a;">
+          <div class="gcard-top">
+            <img id="pv-logo" src="/bioo-iso.png" onerror="this.style.visibility='hidden'">
+            <div>
+              <div class="p" id="pv-program">Club de Fidelidad</div>
+              <div class="i" id="pv-issuer">Mi local</div>
+            </div>
+          </div>
+          <div class="gcard-mid">
+            <div>
+              <div class="lbl">Sellos</div>
+              <div class="val" id="pv-sellos">3 / 10</div>
+            </div>
+            <div class="pv-chip">Rango Gold</div>
+          </div>
+          <img class="gcard-strip" id="pv-strip" alt="Sellos" src="">
+          <div class="gcard-foot" id="pv-geo"></div>
+        </div>
+        <div class="pv-demo">
+          <span>Demo:</span>
+          <input type="range" id="pv-range" min="0" max="10" value="3" oninput="renderPreview()">
+          <span id="pv-range-label">3 sellos</span>
+        </div>
+        <p class="pv-note">La cantidad real de casillas depende de los premios configurados en tu panel (la tarjeta se llena hacia el próximo premio). El rango del cliente se calcula solo.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="powered">
+  <img src="/synaptech/ig.png" alt="SynapTech">
+  Powered by SynapTech
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────────────────────────────
+//  WALLETS · BIOO — estudio de personalización de tarjetas (multi-tenant)
+//  wallets.bioo.cl → este archivo (rewrite por host en vercel.json).
+//
+//  Quién entra: superadmin (elige local) o admin/jefe de un tenant
+//  (su propio local, resuelto por custom claims).
+//  Guardar = callable walletProvisionarClase({tenantId, config}):
+//  persiste configuracion/wallet Y crea/actualiza el LoyaltyClass de
+//  Google. Apple Wallet lee la MISMA config (wallet-apple.js).
+// ─────────────────────────────────────────────────────────────────
+
+var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
+var STAMP_IMG = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletStampImg';
+var WA_SYNAPTECH = 'https://wa.me/56983568212';
+
+var db = firebase.firestore();
+var _tid = null;          // tenant activo
+var _isSuper = false;
+var _addonActivo = false;
+
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  ['view-loading', 'view-login', 'view-denied', 'view-studio'].forEach(function (v) {
+    $(v).classList.toggle('hidden', v !== id);
+  });
+}
+function toast(msg, esError) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!esError);
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, 4200);
+}
+
+// ── Rutas por tenant (espejo de functions/wallet.js) ──────────────
+function cfgRef(tid) {
+  return tid === 'elegance'
+    ? db.collection('configuracion').doc('wallet')
+    : db.collection('tenants').doc(tid).collection('configuracion').doc('wallet');
+}
+
+// ── Sesión ────────────────────────────────────────────────────────
+function entrar() {
+  var email = $('login-email').value.trim();
+  var pass = $('login-pass').value;
+  var err = $('login-err');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Completa correo y contraseña.'; err.style.display = 'block'; return; }
+  $('login-btn').disabled = true;
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .catch(function (e) {
+      err.textContent = (e && e.code === 'auth/invalid-credential') ? 'Correo o contraseña incorrectos.' : 'No pudimos iniciar sesión. Intenta de nuevo.';
+      err.style.display = 'block';
+    })
+    .finally(function () { $('login-btn').disabled = false; });
+}
+function salir() { firebase.auth().signOut(); }
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !$('view-login').classList.contains('hidden')) entrar();
+});
+
+firebase.auth().onAuthStateChanged(function (user) {
+  if (!user) { $('session').classList.add('hidden'); show('view-login'); return; }
+  $('session').classList.remove('hidden');
+  $('session-email').textContent = user.email || '';
+  user.getIdTokenResult().then(function (tk) {
+    var email = String(user.email || '').toLowerCase();
+    var claims = tk.claims || {};
+    _isSuper = SUPERADMINS.indexOf(email) !== -1;
+    if (_isSuper) {
+      initTenantPicker();
+      show('view-studio');
+      return;
+    }
+    var esAdminTenant = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId;
+    if (esAdminTenant) {
+      $('tenant-picker').classList.add('hidden');
+      show('view-studio');
+      cargarTenant(String(claims.tenantId));
+      return;
+    }
+    show('view-denied');
+  }).catch(function () { show('view-denied'); });
+});
+
+// ── Selector de local (superadmin) ────────────────────────────────
+function initTenantPicker() {
+  var sel = $('tenant-select');
+  var all = window.ALL_TENANTS || {};
+  var ids = Object.keys(all).sort(function (a, b) {
+    var na = (all[a].nombreCorto || all[a].nombre || a).toLowerCase();
+    var nb = (all[b].nombreCorto || all[b].nombre || b).toLowerCase();
+    return na < nb ? -1 : 1;
+  });
+  sel.innerHTML = '<option value="">— Elige un local —</option>' + ids.map(function (id) {
+    var n = all[id].nombreCorto || all[id].nombre || id;
+    return '<option value="' + id + '">' + n + ' (' + id + ')</option>';
+  }).join('');
+  $('tenant-picker').classList.remove('hidden');
+}
+
+// ── Carga de un tenant ────────────────────────────────────────────
+function cargarTenant(tid) {
+  if (!tid) return;
+  _tid = tid;
+  var all = window.ALL_TENANTS || {};
+  var nombre = (all[tid] && (all[tid].nombreCorto || all[tid].nombre)) || tid;
+  $('studio-title').textContent = 'Tarjeta de ' + nombre;
+  $('addon-badge').textContent = '…';
+
+  Promise.all([
+    db.collection('_billing').doc(tid).get().catch(function () { return null; }),
+    cfgRef(tid).get().catch(function () { return null; }),
+  ]).then(function (r) {
+    var billing = r[0];
+    var cfgSnap = r[1];
+    _addonActivo = !!(billing && billing.exists && billing.data().walletActivo === true);
+
+    var badge = $('addon-badge');
+    badge.className = 'badge ' + (_addonActivo ? 'ok' : 'off');
+    badge.textContent = _addonActivo ? '● Módulo activo' : '● Módulo inactivo';
+
+    var banner = $('addon-banner');
+    if (!_addonActivo) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = _isSuper
+        ? '⚠️ El add-on Wallet está <b>inactivo</b> para este local — actívalo desde /admin. Como superadmin puedes configurar y provisionar igual.'
+        : '⚠️ El módulo Wallet aún no está activo para tu local. <a href="' + WA_SYNAPTECH + '" target="_blank" style="font-weight:700;">Escríbenos por WhatsApp</a> para activarlo y tus clientes podrán llevar su tarjeta de sellos en el teléfono.';
+      $('save-btn').disabled = !_isSuper;
+    } else {
+      banner.classList.add('hidden');
+      $('save-btn').disabled = false;
+    }
+
+    var cfg = (cfgSnap && cfgSnap.exists) ? (cfgSnap.data() || {}) : {};
+    llenarForm(cfg, all[tid] || {});
+    renderPreview();
+  });
+}
+
+function llenarForm(cfg, tenantCfg) {
+  $('f-programName').value = cfg.programName || 'Club de Fidelidad';
+  $('f-issuerName').value = cfg.issuerName || tenantCfg.nombreCorto || tenantCfg.nombre || '';
+  $('f-logoUrl').value = cfg.logoUrl || '';
+  var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent || '') ? cfg.accent : '#c9a84c';
+  var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
+  $('f-accent').value = acc; $('f-accent-hex').value = acc;
+  $('f-bg').value = bg; $('f-bg-hex').value = bg;
+  $('f-lat').value = (cfg.location && Number.isFinite(Number(cfg.location.lat))) ? cfg.location.lat : '';
+  $('f-lng').value = (cfg.location && Number.isFinite(Number(cfg.location.lng))) ? cfg.location.lng : '';
+  $('f-geoMensaje').value = cfg.geoMensaje || '';
+  $('f-enabled').checked = cfg.enabled === true;
+}
+
+function leerForm() {
+  var lat = parseFloat($('f-lat').value);
+  var lng = parseFloat($('f-lng').value);
+  var cfg = {
+    programName: $('f-programName').value.trim() || 'Club de Fidelidad',
+    issuerName: $('f-issuerName').value.trim() || 'SynapTech',
+    logoUrl: $('f-logoUrl').value.trim(),
+    accent: $('f-accent-hex').value.trim(),
+    bg: $('f-bg-hex').value.trim(),
+    geoMensaje: $('f-geoMensaje').value.trim(),
+    enabled: $('f-enabled').checked,
+  };
+  if (Number.isFinite(lat) && Number.isFinite(lng)) cfg.location = { lat: lat, lng: lng };
+  return cfg;
+}
+
+// ── Preview en vivo ───────────────────────────────────────────────
+function renderPreview() {
+  var cfg = leerForm();
+  var filled = parseInt($('pv-range').value, 10) || 0;
+  $('pv-range-label').textContent = filled + (filled === 1 ? ' sello' : ' sellos');
+  $('pv-card').style.background = /^#[0-9a-fA-F]{6}$/.test(cfg.bg) ? cfg.bg : '#0a0a0a';
+  $('pv-program').textContent = cfg.programName;
+  $('pv-issuer').textContent = cfg.issuerName;
+  $('pv-sellos').textContent = filled + ' / 10';
+  var logo = $('pv-logo');
+  logo.style.visibility = 'visible';
+  logo.src = cfg.logoUrl || '/bioo-iso.png';
+  var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent) ? cfg.accent.slice(1) : 'c9a84c';
+  $('pv-strip').src = STAMP_IMG + '?f=' + filled + '&t=10&c=' + acc;
+  $('pv-geo').textContent = cfg.location
+    ? '📍 ' + (cfg.geoMensaje || 'Aparece sola cuando el cliente está cerca del local')
+    : '';
+}
+
+// Sincronizar color pickers ↔ hex y refrescar preview con cada cambio.
+[['f-accent', 'f-accent-hex'], ['f-bg', 'f-bg-hex']].forEach(function (par) {
+  $(par[0]).addEventListener('input', function () { $(par[1]).value = this.value; renderPreview(); });
+  $(par[1]).addEventListener('input', function () {
+    if (/^#[0-9a-fA-F]{6}$/.test(this.value)) $(par[0]).value = this.value;
+    renderPreview();
+  });
+});
+['f-programName', 'f-issuerName', 'f-logoUrl', 'f-lat', 'f-lng', 'f-geoMensaje'].forEach(function (id) {
+  $(id).addEventListener('input', renderPreview);
+});
+$('f-enabled').addEventListener('change', renderPreview);
+
+// ── Guardar y provisionar ─────────────────────────────────────────
+function guardar() {
+  if (!_tid) { toast('Primero elige un local.', true); return; }
+  var cfg = leerForm();
+  if (!/^#[0-9a-fA-F]{6}$/.test(cfg.accent) || !/^#[0-9a-fA-F]{6}$/.test(cfg.bg)) {
+    toast('Los colores deben ser hex de 6 dígitos (ej: #c9a84c).', true); return;
+  }
+  if (cfg.logoUrl && !/^https:\/\//.test(cfg.logoUrl)) {
+    toast('El logo debe ser una URL https pública.', true); return;
+  }
+  var latVal = $('f-lat').value.trim();
+  var lngVal = $('f-lng').value.trim();
+  if ((latVal && !lngVal) || (!latVal && lngVal)) {
+    toast('Para el geo-push necesitas latitud Y longitud.', true); return;
+  }
+
+  var btn = $('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  var fn = firebase.app().functions('us-central1').httpsCallable('walletProvisionarClase');
+  fn({ tenantId: _tid, config: cfg })
+    .then(function (res) {
+      toast('✓ Tarjeta guardada y provisionada en Google Wallet');
+      console.log('[Wallets] provisionada:', res.data);
+    })
+    .catch(function (e) {
+      toast(e && e.message ? e.message : 'No se pudo guardar. Intenta de nuevo.', true);
+    })
+    .finally(function () {
+      btn.disabled = false;
+      btn.textContent = 'Guardar y provisionar';
+    });
+}
+
+show('view-loading');
+</script>
+</body>
+</html>

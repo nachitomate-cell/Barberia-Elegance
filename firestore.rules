@@ -737,9 +737,11 @@ service cloud.firestore {
     // ── /configuracion ─────────────────────────────────────────────
     // Horario y configuración operativa del local. El widget de reservas
     // la lee para calcular disponibilidad sin necesitar autenticación.
+    // esBootstrap: el superadmin la maneja desde /admin (p.ej. el
+    // toggle de visibilidad del Wallet, configuracion/wallet.enabled).
     match /configuracion/{docId} {
       allow read: if true;
-      allow write: if esAdmin('elegance');
+      allow write: if esAdmin('elegance') || esBootstrap();
     }
 
     // ── /system_errors ─────────────────────────────────────────────
@@ -1278,9 +1280,11 @@ service cloud.firestore {
       }
 
       // ── configuracion ─────────────────────────────────────────────
+      // esBootstrap: el superadmin la maneja desde /admin (p.ej. el
+      // toggle de visibilidad del Wallet, configuracion/wallet.enabled).
       match /configuracion/{docId} {
         allow read: if true;
-        allow write: if esAdmin(tid);
+        allow write: if esAdmin(tid) || esBootstrap();
       }
 
       // ── anuncios (push publicitario al cliente) ──────────────────

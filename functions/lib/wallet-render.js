@@ -58,28 +58,33 @@ function drawStar(ctx, cx, cy, rOut, color) {
 
 /**
  * Renderiza la tira de estampas y devuelve un Buffer PNG.
- * @param {{filled:number, target:number, accent?:string, bg?:string}} opts
+ * width/height permiten otros lienzos (Apple strip); por defecto
+ * mantiene EXACTAMENTE las dimensiones Google (heroImage 1032×336).
+ * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number}} opts
  */
-function renderStampStrip({ filled = 0, target = 10, accent, bg } = {}) {
+function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height } = {}) {
+  const w = Math.max(100, Math.round(Number(width) || W));
+  const h = Math.max(40, Math.round(Number(height) || H));
   const n = Math.max(1, Math.min(40, Math.round(Number(target) || 10)));
   const done = Math.max(0, Math.min(n, Math.round(Number(filled) || 0)));
   const accentHex = normHex(accent, '#c9a84c');
   const bgHex = normHex(bg, '#0a0a0a');
 
-  const canvas = createCanvas(W, H);
+  const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
 
   // Fondo
   ctx.fillStyle = bgHex;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, w, h);
 
   // Layout en grilla: hasta 5 por fila; con target grande usamos 2 filas.
+  // Padding proporcional (70/1032 y 60/336) → idéntico al histórico en Google.
   const cols = n <= 5 ? n : Math.ceil(n / 2);
   const rows = Math.ceil(n / cols);
-  const padX = 70;
-  const padY = 60;
-  const cellW = (W - padX * 2) / cols;
-  const cellH = (H - padY * 2) / rows;
+  const padX = Math.round(w * (70 / 1032));
+  const padY = Math.round(h * (60 / 336));
+  const cellW = (w - padX * 2) / cols;
+  const cellH = (h - padY * 2) / rows;
   const r = Math.max(14, Math.min(cellW, cellH) * 0.34);
 
   for (let i = 0; i < n; i++) {
@@ -121,4 +126,33 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg } = {}) {
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { renderStampStrip, W, H };
+/**
+ * Ícono cuadrado para Apple Wallet (obligatorio en el .pkpass): un sello
+ * lleno con su tick, sobre el color de fondo del tenant. Sin fuentes,
+ * mismo criterio determinista que la tira.
+ * @param {{size?:number, accent?:string, bg?:string}} opts
+ */
+function renderIcon({ size = 87, accent, bg } = {}) {
+  const s = Math.max(29, Math.round(Number(size) || 87));
+  const accentHex = normHex(accent, '#c9a84c');
+  const bgHex = normHex(bg, '#0a0a0a');
+
+  const canvas = createCanvas(s, s);
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = bgHex;
+  ctx.fillRect(0, 0, s, s);
+
+  const cx = s / 2;
+  const cy = s / 2;
+  const r = s * 0.36;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = accentHex;
+  ctx.fill();
+  drawCheck(ctx, cx, cy, r, bgHex);
+
+  return canvas.toBuffer('image/png');
+}
+
+module.exports = { renderStampStrip, renderIcon, W, H };

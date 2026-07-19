@@ -11,6 +11,9 @@
 //    walletSyncSelloElegance — trigger users/{uid}: sincroniza el pase al cambiar sellos.
 //    walletSyncSelloTenant   — trigger tenants/{tid}/users/{uid}: idem multi-tenant.
 //
+//  Los triggers de sync también avisan a Apple Wallet (APNs) si el
+//  cliente guardó su pase en iPhone — ver wallet-apple.js.
+//
 //  Fuente de verdad = Firestore (users/{uid}.sellos*). El pase es espejo.
 //  Config del tenant en {tid}/configuracion/wallet. Secret: WALLET_SA_KEY
 //  (JSON completo de la service account wallet-issuer@barberia-elegance).
@@ -28,6 +31,8 @@ const admin = require('firebase-admin');
 
 const core = require('./lib/wallet-core');
 const { renderStampStrip } = require('./lib/wallet-render');
+// Apple Wallet: el sync de sellos también avisa a los iPhones (APNs).
+const appleWallet = require('./wallet-apple');
 
 const db = admin.firestore();
 const WALLET_SA_KEY = defineSecret('WALLET_SA_KEY');
@@ -232,10 +237,13 @@ exports.walletGenerarPase = onCall(
 
 // ═══════════════════════════════════════════════════════════════
 //  4) SYNC — al cambiar los sellos, actualiza el pase (espejo push-cliente)
+//     Google: PATCH directo al objeto. Apple: bump + APNs (el iPhone
+//     viene solo a buscar el .pkpass fresco a walletAppleWs).
 // ═══════════════════════════════════════════════════════════════
 async function syncPase(tenantId, uid, before, after) {
-  const objectId = after?.walletObjectId;
-  if (!objectId) return; // el cliente aún no guardó su tarjeta
+  const objectId = after?.walletObjectId;          // Google
+  const appleSerial = after?.appleWalletSerial;    // Apple
+  if (!objectId && !appleSerial) return; // el cliente aún no guardó tarjeta
 
   const dispAntes = Number(before?.sellosDisponibles ?? before?.stamps ?? 0);
   const dispDesp  = Number(after?.sellosDisponibles  ?? after?.stamps  ?? 0);
@@ -243,38 +251,53 @@ async function syncPase(tenantId, uid, before, after) {
   const histDesp  = Number(after?.sellosHistoricos  ?? 0);
   if (dispAntes === dispDesp && histAntes === histDesp) return; // nada relevante cambió
 
-  const [premios, rangosCfg, cfg] = await Promise.all([
-    leerPremios(tenantId),
-    leerRangosCfg(tenantId),
-    leerWalletCfg(tenantId),
-  ]);
-  const accent = cfg.accent || '#c9a84c';
-  const { filled, target } = core.stampState(dispDesp, premios);
-  const rango = core.rangoNombre(histDesp, rangosCfg);
+  if (objectId) {
+    try {
+      const [premios, rangosCfg, cfg] = await Promise.all([
+        leerPremios(tenantId),
+        leerRangosCfg(tenantId),
+        leerWalletCfg(tenantId),
+      ]);
+      const accent = cfg.accent || '#c9a84c';
+      const { filled, target } = core.stampState(dispDesp, premios);
+      const rango = core.rangoNombre(histDesp, rangosCfg);
 
-  const key = saKey();
-  await core.patchObject(key, objectId, {
-    loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-    heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent }) } },
-    textModulesData: [{ id: 'rango', header: 'Rango', body: rango }],
-  });
-
-  // Hito: desbloqueó un premio nuevo → notificación automática al pase.
-  if (dispDesp > dispAntes) {
-    const nuevo = core.premioDesbloqueado(dispAntes, dispDesp, premios);
-    if (nuevo) {
-      await core.addMessage(key, objectId, {
-        header: '🎁 ¡Premio disponible!',
-        body: `Ya puedes canjear: ${nuevo.nombre}.`,
-        id: `premio_${target}_${Date.now()}`.slice(0, 40),
+      const key = saKey();
+      await core.patchObject(key, objectId, {
+        loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
+        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent }) } },
+        textModulesData: [{ id: 'rango', header: 'Rango', body: rango }],
       });
+
+      // Hito: desbloqueó un premio nuevo → notificación automática al pase.
+      if (dispDesp > dispAntes) {
+        const nuevo = core.premioDesbloqueado(dispAntes, dispDesp, premios);
+        if (nuevo) {
+          await core.addMessage(key, objectId, {
+            header: '🎁 ¡Premio disponible!',
+            body: `Ya puedes canjear: ${nuevo.nombre}.`,
+            id: `premio_${target}_${Date.now()}`.slice(0, 40),
+          });
+        }
+      }
+      logger.info(`[Wallet sync] ${objectId}: ${filled}/${target} (${rango})`);
+    } catch (e) {
+      // Google no puede bloquear el sync de Apple (y viceversa).
+      logger.error(`[Wallet sync] Google (${objectId}):`, e.response?.data || e.message);
     }
   }
-  logger.info(`[Wallet sync] ${objectId}: ${filled}/${target} (${rango})`);
+
+  if (appleSerial) {
+    try {
+      await appleWallet.notificarCambioPase(appleSerial);
+    } catch (e) {
+      logger.warn(`[Wallet sync] Apple (${appleSerial}): ${e.message}`);
+    }
+  }
 }
 
 exports.walletSyncSelloElegance = onDocumentWritten(
-  { document: 'users/{uid}', region: 'us-central1', secrets: [WALLET_SA_KEY] },
+  { document: 'users/{uid}', region: 'us-central1', secrets: [WALLET_SA_KEY, ...appleWallet.APPLE_SECRETS] },
   async (event) => {
     const after = event.data?.after?.data();
     if (!after) return null;
@@ -285,7 +308,7 @@ exports.walletSyncSelloElegance = onDocumentWritten(
 );
 
 exports.walletSyncSelloTenant = onDocumentWritten(
-  { document: 'tenants/{tid}/users/{uid}', region: 'us-central1', secrets: [WALLET_SA_KEY] },
+  { document: 'tenants/{tid}/users/{uid}', region: 'us-central1', secrets: [WALLET_SA_KEY, ...appleWallet.APPLE_SECRETS] },
   async (event) => {
     const after = event.data?.after?.data();
     if (!after) return null;
