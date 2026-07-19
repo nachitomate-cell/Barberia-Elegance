@@ -11,7 +11,7 @@
 //    firebase deploy --only functions
 // ════════════════════════════════════════════════════════════════
 
-const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentWritten, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { onSchedule }           = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError }   = require('firebase-functions/v2/https');
 const { setGlobalOptions }     = require('firebase-functions/v2');
@@ -663,6 +663,136 @@ exports.notificarCitaTenant = onDocumentCreated(
       }
     } catch (err) {
       logger.error('[FCM] Error al enviar (tenant):', err);
+    }
+    return null;
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────
+//  CANCELACIÓN DEL CLIENTE → aviso al staff
+//
+//  Era el hueco más grande de la agenda: si un cliente cancelaba, al barbero
+//  se le liberaba una hora y no se enteraba hasta abrir la agenda.
+//
+//  No hay trigger de "reagendamiento" porque no existe como operación: el
+//  dashboard reagenda cancelando y reservando de nuevo, así que la mitad
+//  nueva ya la cubre notificarCita*/notificarReservaPublica. El cliente que
+//  reagenda genera dos avisos (se liberó esta, entró esta otra), que es
+//  justo lo que el barbero necesita saber.
+//
+//  Solo se avisa cuando canceló el CLIENTE (firebaseUtils marca
+//  canceladaPor:'cliente'). Si canceló el propio staff desde el panel o
+//  agenda.html, no se le notifica su propia acción.
+// ─────────────────────────────────────────────────────────────────
+function _cancelacionCopy(cita) {
+  const cliente  = cita.clienteNombre || cita.cliente || 'Un cliente';
+  const servicio = cita.servicio || cita.servicioNombre || 'su cita';
+  const hora     = cita.hora  || '';
+  const fecha    = cita.fecha || '';
+  return {
+    title: `❌ Cita cancelada — ${hora} ${fecha}`.trim(),
+    body:  `${cliente} canceló ${servicio}. La hora quedó libre.`,
+  };
+}
+
+/** true solo en la transición "no cancelada" → "cancelada por el cliente". */
+function _esCancelacionDeCliente(before, after) {
+  if (!after || after.estado !== 'Cancelada') return false;
+  if (before && before.estado === 'Cancelada') return false;   // ya lo estaba
+  return after.canceladaPor === 'cliente';
+}
+
+exports.notificarCancelacionAdmin = onDocumentUpdated('citas/{citaId}', async (event) => {
+  const before = event.data?.before?.data();
+  const after  = event.data?.after?.data();
+  if (!_esCancelacionDeCliente(before, after)) return null;
+
+  const { citaId } = event.params;
+  const { title, body } = _cancelacionCopy(after);
+  const barberoId = after.barberoId || '';
+  const barbero   = after.barbero || after.barberoNombre || '';
+
+  logger.info('[FCM] Cancelación cliente (elegance):', { citaId, barberoId });
+  try {
+    const tokens = await getTokensActivos(barberoId, barbero);
+    if (!tokens.length) { logger.warn('[FCM] Sin tokens para cancelación. Omitiendo.'); return null; }
+
+    const response = await messaging.sendEachForMulticast({
+      notification: { title, body },
+      data: { citaId, url: '/gestion-interna/agenda', tipo: 'cancelacion', tag: `cancelacion-${citaId}` },
+      webpush: {
+        headers: { Urgency: 'high' },
+        notification: {
+          title, body,
+          icon:     '/gestion-interna/pwa-192.png',
+          badge:    '/gestion-interna/pwa-192.png',
+          vibrate:  [200, 100, 200],
+          tag:      `cancelacion-${citaId}`,
+          renotify: true,
+        },
+        fcmOptions: { link: '/gestion-interna/agenda' },
+      },
+      tokens,
+    });
+    logger.info(`[FCM] Cancelación elegance: ${response.successCount} OK, ${response.failureCount} errores`);
+  } catch (err) {
+    logger.error('[FCM] Error al enviar cancelación (elegance):', err);
+  }
+  return null;
+});
+
+exports.notificarCancelacionTenant = onDocumentUpdated(
+  'tenants/{tenantId}/citas/{citaId}',
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after  = event.data?.after?.data();
+    if (!_esCancelacionDeCliente(before, after)) return null;
+
+    const { tenantId, citaId } = event.params;
+    const { title, body } = _cancelacionCopy(after);
+    const barberoId = after.barberoId || '';
+    const barbero   = after.barbero || after.barberoNombre || '';
+
+    logger.info('[FCM] Cancelación cliente (tenant):', { tenantId, citaId, barberoId });
+    try {
+      const tokens = await getTokensActivosTenant(tenantId, barberoId, barbero);
+      if (!tokens.length) { logger.warn(`[FCM] Sin tokens para cancelación en ${tenantId}. Omitiendo.`); return null; }
+
+      const response = await messaging.sendEachForMulticast({
+        notification: { title, body },
+        data: { citaId, url: '/gestion-interna/agenda', tipo: 'cancelacion', tag: `cancelacion-${citaId}` },
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            title, body,
+            icon:     '/gestion-interna/pwa-192.png',
+            badge:    '/gestion-interna/pwa-192.png',
+            vibrate:  [200, 100, 200],
+            tag:      `cancelacion-${citaId}`,
+            renotify: true,
+          },
+          fcmOptions: { link: '/gestion-interna/agenda' },
+        },
+        tokens,
+      });
+      logger.info(`[FCM] Cancelación tenant ${tenantId}: ${response.successCount} OK, ${response.failureCount} errores`);
+
+      const TOKEN_ERRORS = new Set([
+        'messaging/invalid-registration-token',
+        'messaging/registration-token-not-registered',
+        'messaging/invalid-argument',
+      ]);
+      const invalidos = [];
+      response.responses.forEach((res, idx) => {
+        if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tokens[idx]);
+      });
+      if (invalidos.length) {
+        const batch = db.batch();
+        invalidos.forEach(t => batch.update(db.collection(`tenants/${tenantId}/fcm_tokens`).doc(t), { activo: false }));
+        await batch.commit();
+      }
+    } catch (err) {
+      logger.error('[FCM] Error al enviar cancelación (tenant):', err);
     }
     return null;
   }

@@ -698,11 +698,18 @@ const FDB = (() => {
 
   async function updateCitaEstado(id, estado) {
     const citaRef = tenantCol(COL.CITAS).doc(id);
-    // Solo actualiza el estado. Si pasa a Cancelada, la Cloud Function
-    // liberarSlot{Elegance,Tenant} libera el slotLock asociado. Esto evita
-    // que el cliente (que no tiene permisos para borrar slotLocks) falle
-    // al intentar hacerlo desde su dashboard.
-    await citaRef.update({ estado });
+    const patch = { estado };
+    // Marca de origen. A esta función solo llega el dashboard del CLIENTE
+    // (el panel y agenda.html cancelan por su propio camino), así que una
+    // cancelación de acá siempre la hizo el cliente. La usa la CF
+    // notificarCancelacion*: al barbero se le avisa solo cuando le cancelan
+    // desde fuera, que es el caso en que se le libera una hora sin enterarse.
+    if (estado === 'Cancelada') patch.canceladaPor = 'cliente';
+    // Si pasa a Cancelada, la Cloud Function liberarSlot{Elegance,Tenant}
+    // libera el slotLock asociado. Esto evita que el cliente (que no tiene
+    // permisos para borrar slotLocks) falle al intentar hacerlo desde su
+    // dashboard.
+    await citaRef.update(patch);
   }
 
   async function updateCitaNota(id, nota) {

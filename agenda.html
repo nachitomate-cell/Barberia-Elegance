@@ -4816,6 +4816,12 @@
             token,
             uid: firebase.auth().currentUser.uid,
             barberoId: barberId || null,
+            // Identifica la PWA de origen. Antes no se escribía y estos tokens
+            // entraban por descarte (plataforma !== 'web-cliente'), mezclados
+            // con los legados: no se podía segmentar un broadcast solo a la
+            // agenda ni deduplicar a quien tiene las dos PWA instaladas.
+            // Se rellena solo al reabrir, porque el set va con merge.
+            plataforma: 'web-agenda',
             dispositivo: navigator.userAgent.substring(0, 120),
             creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
             activo: true
