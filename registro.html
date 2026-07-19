@@ -1632,6 +1632,14 @@
       <button onclick="loginWithEmail()" class="btn-primary mt-5">
         <i class="ph-bold ph-sign-in"></i> Ingresar
       </button>
+      <!-- Clickwrap del login: respalda el consentimiento cuando la cuenta
+           se aprovisiona sola desde la ficha migrada (clubMigrarLogin). -->
+      <p class="text-center text-[10px] text-gray-600 mt-3 leading-relaxed px-2">
+        Al ingresar aceptas los
+        <a href="privacidad.html" target="_blank" rel="noopener"
+           class="underline text-gray-500 hover:text-gray-300">Términos y la Política de Privacidad</a>
+        y el tratamiento de tus datos según la Ley 19.628 / 21.719.
+      </p>
       <p class="text-center mt-4">
         <button onclick="switchTab('reset')"
           class="text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
@@ -2195,7 +2203,15 @@
         let info = null;
         try {
           const fn = firebase.app().functions('us-central1').httpsCallable('clubMigrarLogin');
-          info = (await fn({ email, tenantId: window.CURRENT_TENANT_ID })).data || null;
+          // terminosVersion + ua: evidencia de consentimiento si el server
+          // aprovisiona la cuenta desde la ficha migrada (clickwrap del
+          // botón Ingresar — ver nota legal bajo el botón).
+          info = (await fn({
+            email,
+            tenantId: window.CURRENT_TENANT_ID,
+            terminosVersion: TERMINOS_VERSION,
+            ua: navigator.userAgent || '',
+          })).data || null;
         } catch (fnErr) {
           console.warn('[Club Auth] clubMigrarLogin falló:', fnErr && fnErr.code);
         }
@@ -2420,7 +2436,12 @@
         showLoading('Tu cuenta ya existía — entrando...');
         try {
           const fn = firebase.app().functions('us-central1').httpsCallable('clubMigrarLogin');
-          const info = (await fn({ email, tenantId: window.CURRENT_TENANT_ID })).data || {};
+          const info = (await fn({
+            email,
+            tenantId: window.CURRENT_TENANT_ID,
+            terminosVersion: TERMINOS_VERSION,
+            ua: navigator.userAgent || '',
+          })).data || {};
           if (info.migrado) {
             const cred2 = await auth.signInWithEmailAndPassword(email, clubPassword());
             try { await ensureUserDoc(cred2.user, { nombre, telefono, fechaNacimiento, acepto }); } catch (_) {}
