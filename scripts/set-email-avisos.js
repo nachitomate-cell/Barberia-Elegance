@@ -31,6 +31,7 @@ const EMAILS = {
   infinity:           'infinitystudio0223@gmail.com',
   yugen:              'contacto.yugenstudio@gmail.com',
   latincaribe:        'joshidalgo.jg@gmail.com',
+  lumen:              'harcutbarberia@gmail.com',   // D'Jones
 };
 
 const settingsPath = (tid) => (tid === 'elegance' ? 'settings/general' : `tenants/${tid}/settings/general`);

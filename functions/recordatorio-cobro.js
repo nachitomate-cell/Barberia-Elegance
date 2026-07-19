@@ -26,6 +26,9 @@ const { defineSecret }  = require('firebase-functions/params');
 const { logger }        = require('firebase-functions');
 const admin             = require('firebase-admin');
 const { dispatchAdminPush } = require('./admin-push');
+// Copy + HTML compartidos con scripts/preview-email-cobro.js, para que lo que
+// se revisa por diseño sea exactamente lo que reciben los locales.
+const { buildMensaje, buildEmailHtml } = require('./lib/email-cobro-template');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -99,30 +102,33 @@ async function emailsCobro(tid, billingData) {
     const arr = Array.isArray(v) ? v : (typeof v === 'string' ? [v] : []);
     return [...new Set(arr.map(e => String(e || '').trim().toLowerCase()).filter(e => e.includes('@')))];
   };
+  let nombreLocal = '';
 
   try {
     const s = await db.doc(settingsRefPath(tid)).get();
     if (s.exists) {
+      nombreLocal = String(s.data().nombre || '').trim();
       const oficial = limpia(s.data().emailAvisos);
-      if (oficial.length) return oficial;
+      if (oficial.length) return { emails: oficial, nombreLocal };
     }
   } catch (e) {
     logger.warn(`[Cobro] emailAvisos ${tid}: ${e.message}`);
   }
 
   const deBilling = limpia(billingData.emailCobro);
-  if (deBilling.length) return deBilling;
+  if (deBilling.length) return { emails: deBilling, nombreLocal };
 
   try {
     const t = await db.collection('tenants').doc(tid).get();
     if (t.exists) {
+      if (!nombreLocal) nombreLocal = String(t.data().nombre || '').trim();
       const owner = limpia(t.data().ownerEmail);
-      if (owner.length) return owner;
+      if (owner.length) return { emails: owner, nombreLocal };
     }
   } catch (e) {
     logger.warn(`[Cobro] ownerEmail ${tid}: ${e.message}`);
   }
-  return [];
+  return { emails: [], nombreLocal };
 }
 
 async function sendResend(apiKey, payload) {
@@ -134,41 +140,6 @@ async function sendResend(apiKey, payload) {
   const body = await res.json();
   if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
   return body;
-}
-
-function buildMensaje(dias, monto) {
-  const m = Number(monto) > 0 ? `$${Number(monto).toLocaleString('es-CL')}` : 'tu mensualidad';
-  if (dias < 0) {
-    const n = Math.abs(dias);
-    return { title: `💳 Tu mensualidad vence en ${n} día${n !== 1 ? 's' : ''}`, body: `Paga ${m} a tiempo para mantener tu cuenta activa.` };
-  }
-  if (dias === 0) return { title: '💳 Tu mensualidad vence hoy', body: `Paga ${m} para mantener tu cuenta activa.` };
-  if (dias < 8)  return { title: '⚠️ Tu mensualidad está atrasada', body: `Venció hace ${dias} día${dias !== 1 ? 's' : ''}. Regulariza ${m} para no perder funciones.` };
-  if (dias < 15) return { title: '🔒 Secciones bloqueadas por falta de pago', body: `Llevas ${dias} días de atraso. Regulariza ${m} para reactivar Métricas, Comisiones y Caja.` };
-  return { title: '⛔ Tu cuenta puede ser suspendida', body: `${dias} días de atraso. Regulariza ${m} hoy para evitar la suspensión.` };
-}
-
-function buildEmailHtml({ title, body, tid }) {
-  const url = `https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`;
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:28px 12px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-        <tr><td style="padding:26px 26px 8px;">
-          <h1 style="margin:0 0 10px;font-size:19px;line-height:1.3;color:#111827;">${title}</h1>
-          <p style="margin:0;font-size:14px;line-height:1.6;color:#4b5563;">${body}</p>
-        </td></tr>
-        <tr><td style="padding:20px 26px 28px;">
-          <a href="${url}" style="display:block;text-align:center;background:#111827;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 20px;border-radius:10px;">Ver mi mensualidad</a>
-          <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#9ca3af;">
-            Recibes este correo porque tienes una mensualidad pendiente en tu panel de SynapTech.
-            Activa las notificaciones en Configuración para recibir los avisos directo en tu teléfono.
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
 }
 
 exports.recordatorioCobro = onSchedule(
@@ -247,7 +218,7 @@ exports.recordatorioCobro = onSchedule(
       const desde = d.sinTokensDesde || todayStr;
       const diasSinCanal = Math.round((hoyUTC - (parseFechaUTC(desde) ?? hoyUTC)) / 86400000);
 
-      const destinatarios = await emailsCobro(tid, d);
+      const { emails: destinatarios, nombreLocal } = await emailsCobro(tid, d);
       let mailOk = false;
 
       if (destinatarios.length) {
@@ -256,7 +227,7 @@ exports.recordatorioCobro = onSchedule(
             from:    MAIL_FROM,
             to:      destinatarios,
             subject: title,
-            html:    buildEmailHtml({ title, body, tid }),
+            html:    buildEmailHtml({ title, body, tid, nombreLocal }),
           });
           mailOk = true;
           totalMail += destinatarios.length;
