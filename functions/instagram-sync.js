@@ -429,7 +429,7 @@ exports.instagramSyncManual = onCall(
       }
       // 3) Habilitar admin, jefe Y barbero (equipo del local). Consistente
       //    con esStaff() de firestore.rules.
-      if (!['admin', 'jefe', 'barbero'].includes(rol)) {
+      if (!['admin', 'barbero'].includes(rol)) {
         throw new HttpsError('permission-denied', 'Solo el equipo del local puede sincronizar.');
       }
     }

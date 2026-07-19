@@ -59,7 +59,7 @@ async function getAdminTokens(root) {
   const tokensCol   = db.collection(`${root}fcm_tokens`);
   try {
     const [barbSnap, tokSnap] = await Promise.all([
-      barberosCol.where('rol', 'in', ['admin', 'jefe']).get(),
+      barberosCol.where('rol', '==', 'admin').get(),
       tokensCol.where('activo', '==', true).get(),
     ]);
     const adminUids = new Set();

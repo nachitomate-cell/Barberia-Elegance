@@ -403,7 +403,7 @@ function assertTenantAdmin(request, tenantId) {
   const claims = request.auth.token || {};
   const rol = claims.role || '';
   const tid = claims.tenantId || '';
-  if ((rol === 'admin' || rol === 'jefe') && tid === tenantId) return;
+  if (rol === 'admin' && tid === tenantId) return;
   throw new HttpsError('permission-denied', 'No autorizado para este tenant.');
 }
 

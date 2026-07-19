@@ -48,7 +48,7 @@ exports.superadminCrearStaff = onCall({ region: 'us-central1', cors: true }, asy
   if (!password || password.length < 6) {
     throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
   }
-  if (!['admin', 'jefe', 'barbero'].includes(rolNorm)) {
+  if (!['admin', 'barbero'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', 'Rol inválido.');
   }
 

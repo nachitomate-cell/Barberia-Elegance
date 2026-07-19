@@ -43,7 +43,7 @@ function fmtCLP(n) { return `$${Math.round(Number(n) || 0).toLocaleString('es-CL
 export default function Facturacion() {
   const { id: tenantId, name: tenantName } = useTenant();
   const { role } = useAuth();
-  const isAdmin = role === 'admin' || role === 'jefe';
+  const isAdmin = role === 'admin';
 
   const [sys, setSys]         = useState(null);   // _system/{tid} → llave del módulo (null = cargando)
   const [cfg, setCfg]         = useState(null);   // doc configuracion/facturacion

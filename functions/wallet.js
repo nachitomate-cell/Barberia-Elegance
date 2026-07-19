@@ -113,7 +113,7 @@ exports.walletProvisionarClase = onCall(
       throw new HttpsError('invalid-argument', 'tenantId requerido.');
     }
     const isSuperadmin  = SUPERADMINS.includes(callerEmail);
-    const isTenantAdmin = (callerRole === 'admin' || callerRole === 'jefe') && callerTenant === tenantId;
+    const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
     if (!isSuperadmin && !isTenantAdmin) {
       throw new HttpsError('permission-denied', 'Solo el admin del local puede configurar el wallet.');
     }

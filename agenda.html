@@ -1806,7 +1806,7 @@
                 const rol = d.rol || 'barbero';
                 return {
                     isBarbero: true,
-                    isAdmin: rol === 'admin' || rol === 'jefe',
+                    isAdmin: rol === 'admin',
                     barberoId: d._mainDocId,
                     nombre: d.nombre || null,
                     snap,
@@ -1847,7 +1847,7 @@
 
             const data = foundDoc.data();
             const rol = data.rol || 'barbero';
-            const isAdmin = rol === 'admin' || rol === 'jefe';
+            const isAdmin = rol === 'admin';
             const nombre = data.nombre || data.displayName || null;
 
             return { isBarbero: true, isAdmin, barberoId: foundDoc.id, nombre, snap };

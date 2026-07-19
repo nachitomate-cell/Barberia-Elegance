@@ -84,7 +84,7 @@ async function tokensAdmin(tid) {
     bSnap.forEach(doc => {
       const b = doc.data();
       if (b.activo === false) return;
-      if (b.rol === 'jefe' || b.rol === 'admin') { uids.add(doc.id); if (b.uid) uids.add(b.uid); }
+      if (b.rol === 'admin') { uids.add(doc.id); if (b.uid) uids.add(b.uid); }
     });
     const out = [];
     tSnap.forEach(doc => {

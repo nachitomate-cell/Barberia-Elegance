@@ -120,7 +120,7 @@ exports.referidosAsegurarCodigo = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'Falta tenantId. Recarga la página e intenta de nuevo.');
   }
   if (!superadmin) {
-    if (tenantId !== callerTid || !['admin', 'jefe'].includes(callerRol)) {
+    if (tenantId !== callerTid || callerRol !== 'admin') {
       throw new HttpsError('permission-denied', 'Solo administradores pueden generar el código.');
     }
   }

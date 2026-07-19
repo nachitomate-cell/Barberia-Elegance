@@ -324,7 +324,7 @@ exports.flowReembolsar = onCall(
     const email = (request.auth?.token?.email || '').toLowerCase();
     if (!BOOTSTRAP.includes(email)) {
       const claims = request.auth?.token || {};
-      const rolOk = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId === tenantId;
+      const rolOk = claims.role === 'admin' && claims.tenantId === tenantId;
       if (!rolOk) throw new HttpsError('permission-denied', 'Solo administradores del local.');
     }
 

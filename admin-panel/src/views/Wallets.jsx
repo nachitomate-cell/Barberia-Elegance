@@ -19,7 +19,7 @@ const usersPath = (tid) => (tid === 'elegance' ? 'users' : `tenants/${tid}/users
 export default function Wallets() {
   const { id: tenantId, name: tenantName } = useTenant();
   const { role } = useAuth();
-  const isAdmin = role === 'admin' || role === 'jefe';
+  const isAdmin = role === 'admin';
 
   const [savedCount, setSavedCount] = useState(null);
   // Visibilidad para clientes: configuracion/wallet.enabled (se edita en el estudio).

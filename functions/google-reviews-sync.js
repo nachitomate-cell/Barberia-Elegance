@@ -290,14 +290,14 @@ async function autorizarTenantAdmin(request, tenantId) {
   if (BOOTSTRAP_ADMINS.includes(email)) return; // superadmin
   // Fast path: dueños provisionados traen rol/tenant en el claim.
   const claims = request.auth.token || {};
-  if (['admin', 'jefe'].includes(claims.role || '') && (claims.tenantId || '') === tenantId) return;
+  if ((claims.role || '') === 'admin' && (claims.tenantId || '') === tenantId) return;
   // Fuente de verdad: barberos/{uid}.rol (sigue _mainDocId como AuthContext).
   let snap = await barberoRef(tenantId, request.auth.uid).get();
   if (snap.exists && snap.data()._mainDocId) {
     snap = await barberoRef(tenantId, snap.data()._mainDocId).get();
   }
   const rol = snap.exists ? (snap.data().rol || '') : '';
-  if (['admin', 'jefe'].includes(rol)) return;
+  if (rol === 'admin') return;
   throw new HttpsError('permission-denied', 'Solo administradores del local.');
 }
 

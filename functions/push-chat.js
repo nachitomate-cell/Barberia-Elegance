@@ -72,7 +72,7 @@ async function tokensAdmins(tenantId) {
     barberosSnap.forEach(docSnap => {
       const b = docSnap.data();
       if (b.activo === false) return;
-      if (b.rol === 'jefe' || b.rol === 'admin') {
+      if (b.rol === 'admin') {
         validUids.add(docSnap.id);
         if (b.uid) validUids.add(b.uid);
       }

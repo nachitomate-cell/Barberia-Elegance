@@ -191,7 +191,7 @@ export default function Inicio() {
   const navigate = useNavigate();
   const { role, user } = useAuth();
   const { config } = useConfig();
-  const isAdmin  = role === 'admin' || role === 'jefe';
+  const isAdmin  = role === 'admin';
   const A        = ACCENT[tenant.accent] ?? ACCENT.emerald;
 
   const [citas,     setCitas]     = useState([]);

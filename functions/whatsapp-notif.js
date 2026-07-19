@@ -510,7 +510,7 @@ exports.waNotifEstado = onCall(async (req) => {
   let tid = claims.tenantId || null;
   if (esBootstrap && req.data && req.data.tenantId) tid = String(req.data.tenantId);
   if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
-  if (!esBootstrap && !['admin', 'jefe'].includes(claims.role || '')) {
+  if (!esBootstrap && (claims.role || '') !== 'admin') {
     throw new HttpsError('permission-denied', 'Solo administradores.');
   }
 

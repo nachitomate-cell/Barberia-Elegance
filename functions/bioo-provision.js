@@ -542,7 +542,7 @@ exports.biooProvisionBarbero = onCall(
     const claims = auth.token || {};
     const isBootstrap = ['ignaciiio.mate@gmail.com']
       .includes(String(claims.email || '').toLowerCase());
-    const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
+    const isAdmin = (claims.tenantId === tenantId && claims.role === 'admin') || isBootstrap;
     if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede crear el bioo de un barbero.');
 
     // Ruta del doc según tenant (elegance vive en root, resto en /tenants/{tid}/).
@@ -722,7 +722,7 @@ exports.biooOpenBarberoEditor = onCall(
     const claims = auth.token || {};
     const isBootstrap = ['ignaciiio.mate@gmail.com']
       .includes(String(claims.email || '').toLowerCase());
-    const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
+    const isAdmin = (claims.tenantId === tenantId && claims.role === 'admin') || isBootstrap;
     if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede abrir el editor del bioo.');
 
     const root = tenantId === 'elegance'

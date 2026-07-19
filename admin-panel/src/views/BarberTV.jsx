@@ -659,7 +659,7 @@ function SlideEquipo({ barberos, imageCache, cardsFondo, skipAnimation }) {
               <div>
                 <p className="text-primary font-bold text-base leading-tight">{b.nombre}</p>
                 <p className="text-sm mt-1 capitalize" style={{ color: GOLD }}>
-                  {b.especialidad || (b.rol === 'jefe' ? 'Jefe de Sala' : 'Barbero')}
+                  {b.especialidad || 'Barbero'}
                 </p>
               </div>
             </motion.div>

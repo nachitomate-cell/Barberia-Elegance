@@ -338,7 +338,7 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b
 
 export default function Metricas() {
   const { role } = useAuth();
-  const isAdmin = role === 'admin' || role === 'jefe';
+  const isAdmin = role === 'admin';
   // Paleta activa según modo (dark/light). Se recalcula cuando el usuario
   // toggle el tema desde el Sidebar. Los charts Recharts la reciben por
   // props porque sus SVG no leen los overrides html.light del CSS global.

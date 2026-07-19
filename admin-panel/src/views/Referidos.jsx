@@ -22,7 +22,7 @@ export default function Referidos() {
   const { id: tenantId } = useTenant();
   const { user, role } = useAuth();
   const isSuperAdmin = !!user?.email && SUPERADMIN_EMAILS.has(user.email.toLowerCase());
-  const canManage = role === 'admin' || role === 'jefe' || isSuperAdmin;
+  const canManage = role === 'admin' || isSuperAdmin;
 
   const [referral, setReferral] = useState(null);
   const [signups, setSignups]   = useState([]);

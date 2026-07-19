@@ -68,7 +68,7 @@ function assertTenantAdmin(request, tenantId) {
   const email = (request.auth.token?.email || '').toLowerCase();
   if (BOOTSTRAP.includes(email)) return;
   const claims = request.auth.token || {};
-  const ok = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId === tenantId;
+  const ok = claims.role === 'admin' && claims.tenantId === tenantId;
   if (!ok) throw new HttpsError('permission-denied', 'Solo administradores del local.');
 }
 

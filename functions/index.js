@@ -32,7 +32,7 @@ setGlobalOptions({ region: 'us-central1' });
 //  usuario de Firebase Auth correspondiente.  Las reglas de Firestore
 //  leen request.auth.token.role / .tenantId (sin lecturas extras).
 //
-//  Formato de claims: { role: 'admin'|'jefe'|'barbero', tenantId: string }
+//  Formato de claims: { role: 'admin'|'barbero', tenantId: string }
 // ═════════════════════════════════════════════════════════════════
 
 /**
@@ -188,7 +188,7 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
     throw new HttpsError('invalid-argument', 'tenantId requerido.');
   }
   const rolNorm = String(rol).toLowerCase();
-  if (!['admin', 'jefe', 'barbero'].includes(rolNorm)) {
+  if (!['admin', 'barbero'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', `Rol inválido: ${rol}`);
   }
 
@@ -294,7 +294,7 @@ exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, asy
   // admin/jefe del tenant al que se le cambia la clave.
   const isSuperadmin  = SUPERADMINS.includes(callerEmail);
   const isBrandAdmin  = (BRAND_ADMINS[callerEmail] || []).includes(tenantId);
-  const isTenantAdmin = (callerRole === 'admin' || callerRole === 'jefe') && callerTenant === tenantId;
+  const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
   if (!isSuperadmin && !isBrandAdmin && !isTenantAdmin) {
     throw new HttpsError('permission-denied', 'Solo el admin del local puede cambiar contraseñas.');
   }
@@ -349,7 +349,7 @@ async function getTokensActivos(barberoId, barberoNombre) {
       const b = doc.data();
       if (b.activo === false) return;
 
-      const isManager      = b.rol === 'jefe' || b.rol === 'admin';
+      const isManager      = b.rol === 'admin';
       const matchById      = barberoIdTrimmed && doc.id === barberoIdTrimmed;
       const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
       // Detecta doc de enlace (uid-doc): su _mainDocId apunta al doc original del barbero.
@@ -566,7 +566,7 @@ async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
     barberosSnap.forEach(docSnap => {
       const b = docSnap.data();
       if (b.activo === false) return;
-      const isManager      = b.rol === 'jefe' || b.rol === 'admin';
+      const isManager      = b.rol === 'admin';
       const matchById      = barberoIdTrimmed && docSnap.id === barberoIdTrimmed;
       const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
       const matchByMainDoc = barberoIdTrimmed && b._mainDocId === barberoIdTrimmed;
@@ -849,7 +849,7 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
     // Verificar que el caller sea admin/jefe en Firestore
     const callerDoc = await db.collection('barberos').doc(callerUid).get();
     const rol = callerDoc.exists ? callerDoc.data().rol : null;
-    if (rol !== 'admin' && rol !== 'jefe') {
+    if (rol !== 'admin') {
       throw new HttpsError('permission-denied', 'Solo administradores pueden cambiar contraseñas.');
     }
   }

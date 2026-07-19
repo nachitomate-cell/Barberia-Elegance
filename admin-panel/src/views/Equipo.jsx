@@ -395,7 +395,7 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
 function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false, tenant = null, canManageBioo = false, linkedMainDocIds = null }) {
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
-  const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
+  const isAdmin       = barber.rol === 'admin';
   // Toggle desplegable: por default colapsado para no saturar el grid con
   // los mismos 2 párrafos explicativos repetidos en cada card del equipo.
   const [linksOpen, setLinksOpen] = useState(false);
@@ -434,7 +434,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
       <div className="text-center">
         <p className="text-lg font-bold text-primary leading-tight">{barber.nombre}</p>
-        {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
+        {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">Admin</p>}
         {!isAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
         {barber.sucursalId && (() => {
           const suc = sucursales.find(s => s.id === barber.sucursalId);
@@ -603,7 +603,7 @@ export default function Equipo() {
   const tenant   = useTenant();
   const waUrl    = buildWaUrl(tenant.name);
   const { role } = useAuth();
-  const isAdmin  = role === 'admin' || role === 'jefe';
+  const isAdmin  = role === 'admin';
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');

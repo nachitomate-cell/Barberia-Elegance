@@ -619,7 +619,7 @@ function SedeSwitcher() {
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
-  const isAdminRole     = role === 'admin' || role === 'jefe';
+  const isAdminRole     = role === 'admin';
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const { light, toggle: toggleTheme } = useTheme();
   const hasUnreadNews   = useUnreadNews();

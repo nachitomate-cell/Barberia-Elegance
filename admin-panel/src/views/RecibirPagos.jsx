@@ -17,7 +17,7 @@ const PASARELAS = [
 export default function RecibirPagos() {
   const { id: tenantId } = useTenant();
   const { role } = useAuth();
-  const isAdmin = role === 'admin' || role === 'jefe';
+  const isAdmin = role === 'admin';
 
   const [mpConnected, setMpConnected] = useState(false);
   const [loading, setLoading] = useState(true);

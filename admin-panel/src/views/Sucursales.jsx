@@ -135,7 +135,7 @@ function SucursalCard({ suc, onEdit, onDelete }) {
 export default function Sucursales() {
   const sucursales = useSucursales();
   const { role } = useAuth();
-  const isAdmin = role === 'admin' || role === 'jefe';
+  const isAdmin = role === 'admin';
 
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', data?: suc }
   const [saving, setSaving] = useState(false);
