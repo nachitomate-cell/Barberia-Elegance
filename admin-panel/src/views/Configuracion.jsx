@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
-  Package, Tag, PenLine, Award,
+  Package, Tag, PenLine, Award, Bell,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -165,6 +165,113 @@ function DailyWelcomeToggleCard() {
           className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${mostrar ? 'bg-emerald-500' : 'bg-slate-700'}`}>
           <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${mostrar ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Notificaciones push del panel (avisos de citas y de mensualidad).
+ *
+ * Punto de entrada PERMANENTE: antes esto solo se ofrecía en un banner
+ * (NotificationBanner) que, al cerrarse, guardaba 'notif-banner-dismissed'
+ * y no volvía a aparecer nunca. Locales que lo cerraron una vez quedaban
+ * sin push para siempre — y sin tokens, el recordatorio de cobro no tenía
+ * a quién enviarle (fallaba en silencio).
+ */
+function NotificacionesToggleCard() {
+  const soportado = typeof window !== 'undefined' && 'Notification' in window;
+  const [permiso, setPermiso] = useState(() => (soportado ? Notification.permission : 'unsupported'));
+  const [status, setStatus]   = useState('idle'); // idle | loading | error
+
+  // iOS solo permite push web si la PWA está instalada en la pantalla de inicio.
+  const esIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const instaladaPWA = typeof window !== 'undefined' &&
+    (window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true);
+
+  async function activar() {
+    setStatus('loading');
+    const { activarNotificaciones } = await import('../hooks/useFCMToken');
+    const { auth } = await import('../lib/firebase');
+    const res = await activarNotificaciones({
+      uid:      auth.currentUser?.uid,
+      tenantId: resolveTenantId(),
+    });
+    setPermiso(soportado ? Notification.permission : 'unsupported');
+    if (res === 'granted') {
+      // El banner ya no tiene sentido si el permiso quedó concedido.
+      try { localStorage.removeItem('notif-banner-dismissed'); } catch { /* noop */ }
+      setStatus('idle');
+    } else {
+      setStatus(res === 'denied' ? 'idle' : 'error');
+    }
+  }
+
+  const activo = permiso === 'granted';
+
+  return (
+    <Card Icon={Bell} title="Notificaciones del panel">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="text-sm font-semibold text-primary">
+            {activo ? 'Notificaciones activas' : 'Activar notificaciones'}
+          </span>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+            Avisos de nuevas reservas y del vencimiento de tu mensualidad, aunque tengas el panel cerrado.
+          </p>
+
+          {activo && (
+            <p className="text-[11px] text-emerald-400 mt-1.5">
+              Este dispositivo ya está recibiendo notificaciones.
+            </p>
+          )}
+
+          {permiso === 'denied' && (
+            <p className="text-[11px] text-amber-400 mt-1.5 leading-relaxed">
+              Las bloqueaste en el navegador, así que no podemos volver a pedírtelo desde aquí.
+              Actívalas en el candado de la barra de direcciones → Notificaciones → Permitir.
+            </p>
+          )}
+
+          {!soportado && (
+            <p className="text-[11px] text-amber-400 mt-1.5">
+              Este navegador no soporta notificaciones push.
+            </p>
+          )}
+
+          {esIOS && !instaladaPWA && !activo && (
+            <p className="text-[11px] text-amber-400 mt-1.5 leading-relaxed">
+              En iPhone primero debes instalar el panel: Compartir → &quot;Agregar a inicio&quot;.
+              Safari no permite notificaciones desde una pestaña normal.
+            </p>
+          )}
+
+          {status === 'error' && (
+            <p className="text-[11px] text-red-400 mt-1.5">
+              No se pudo activar. Revisa los permisos del navegador e intenta de nuevo.
+            </p>
+          )}
+
+          <p className="text-[10px] text-slate-600 mt-1.5">
+            Se activan por dispositivo: repite esto en cada teléfono o computador donde uses el panel.
+          </p>
+        </div>
+
+        {!activo && soportado && permiso !== 'denied' && (
+          <button type="button" onClick={activar} disabled={status === 'loading'}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-semibold rounded-lg transition-all">
+            {status === 'loading'
+              ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Bell size={12} />}
+            {status === 'loading' ? 'Activando…' : 'Activar'}
+          </button>
+        )}
+
+        {activo && (
+          <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold">
+            <Check size={11} /> Activas
+          </span>
+        )}
       </div>
     </Card>
   );
@@ -1421,6 +1528,8 @@ export default function Configuracion() {
       </Card>
 
       {/* Preferencias del panel — locales al dispositivo */}
+      <NotificacionesToggleCard />
+
       <DailyWelcomeToggleCard />
 
       {/* Soporte Técnico */}
