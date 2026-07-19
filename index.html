@@ -8488,6 +8488,36 @@
       filter: none !important;
     }
 
+    /* ── Paso 4: inputs del formulario (bg-[#0a0a0d] oscuro → claro, foco azul) ── */
+    .tenant-renacer #clientName,
+    .tenant-renacer #clientPhone,
+    .tenant-renacer #clientEmail {
+      background: #F8FAFC !important;
+      border: 1px solid #E2E8F0 !important;
+      color: #0F172A !important;
+    }
+    .tenant-renacer #clientName::placeholder,
+    .tenant-renacer #clientPhone::placeholder,
+    .tenant-renacer #clientEmail::placeholder { color: #94A3B8 !important; }
+    .tenant-renacer #clientName:focus,
+    .tenant-renacer #clientPhone:focus,
+    .tenant-renacer #clientEmail:focus {
+      background: #FFFFFF !important;
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+    }
+    /* Banner "¿Ya tienes cuenta?" (fondo inline negro tenue) → gris muy claro. */
+    .tenant-renacer .club-anim-el { background: #F1F5F9 !important; }
+
+    /* ── Pantalla de éxito: tarjetas .bg-[#0a0a0d] → claras (como ferraza) ──
+       El check y los textos .text-neon ya salen morados por --neon-clr; el h2
+       "¡Reserva Confirmada!" queda oscuro por la regla h2.text-neon de arriba. */
+    .tenant-renacer #success-state .bg-\[\#0a0a0d\] {
+      background: #F8FAFC !important;
+      border-color: #DDD6FE !important;   /* violet-200 */
+    }
+    .tenant-renacer #success-state .border-neon\/30 { border-color: #DDD6FE !important; }
+
     /* ══════════════════════════════════════════════════════════
        OMEGA STUDIO — tenant-omegastudio
        Tema: oscuro inmersivo · acento champán cálido (#d4a96a)
@@ -10009,6 +10039,33 @@
             </div>
           </div>
         `;
+      } else if (window.CURRENT_TENANT_ID === 'renacer') {
+        // Renacer — tema claro: tarjeta violeta muy tenue, rayo morado, chips blancos.
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+               style="background:#F5F3FF;border-color:#DDD6FE;box-shadow:none;">
+            <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+               style="color:#6D28D9;">
+              <i class="ph-fill ph-lightning text-sm" style="color:#7C3AED;filter:none;"></i> Horas recomendadas (Smart Slots)
+            </p>
+            <p class="text-xs mb-3.5" style="color:#64748B;font-weight:500;">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button
+                  onclick="selectSmartSlot('${r.time}')"
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+                  style="background:#FFFFFF; border-color:#DDD6FE; color:#6D28D9;"
+                  onmouseover="this.style.borderColor='#7C3AED';"
+                  onmouseout="if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='#DDD6FE';this.style.color='#6D28D9';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
       } else if (isBM) {
         container.innerHTML = `
           <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
@@ -10115,6 +10172,7 @@
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
+      const isRenacer = (window.CURRENT_TENANT_ID === 'renacer');
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
@@ -10124,6 +10182,12 @@
             btn.style.color = '#FFFFFF';
             btn.style.borderColor = '#000000';
             btn.style.boxShadow = 'none';
+          } else if (isRenacer) {
+            // Seleccionado: morado sólido, texto blanco.
+            btn.style.background = '#7C3AED';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#7C3AED';
+            btn.style.boxShadow = '0 4px 14px rgba(124,58,237,0.30)';
           } else if (isBM) {
             btn.style.background = '#E0E0E0';
             btn.style.color = '#000000';
@@ -10152,6 +10216,12 @@
             btn.style.background = '#0f0f0f';
             btn.style.color = '#FFFFFF';
             btn.style.borderColor = '#3A3A3A';
+            btn.style.boxShadow = 'none';
+          } else if (isRenacer) {
+            // Inactivo: blanco, borde violeta tenue, texto morado.
+            btn.style.background = '#FFFFFF';
+            btn.style.color = '#6D28D9';
+            btn.style.borderColor = '#DDD6FE';
             btn.style.boxShadow = 'none';
           } else if (isAura) {
             btn.style.background = '#FFFFFF';
@@ -12572,7 +12642,7 @@
           if (_isProductsEnabled && _fsProducts.length > 0) {
             // Tenants con tema CLARO usan la tarjeta de producto blanca; el resto,
             // la oscura/dorada. infinity es claro → sin esto salía negra con dorado.
-            const isLightTheme = ['aura', 'latincaribe', 'infinity'].includes(window.CURRENT_TENANT_ID);
+            const isLightTheme = ['aura', 'latincaribe', 'infinity', 'renacer'].includes(window.CURRENT_TENANT_ID);
 
             if (isLightTheme) {
               xsellEl.innerHTML = `
