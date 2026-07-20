@@ -820,7 +820,9 @@
                 gap: 0.5rem !important;
                 margin-top: 0 !important;
             }
-            #barberHeaderBlock { flex-direction: column; }
+            /* Header en UNA línea: burger · logo · nombre+EN VIVO. Antes iba en
+               columna (logo arriba, nombre abajo). */
+            #barberHeaderBlock { flex-direction: row; align-items: center; }
         }
         @media (min-width: 640px) {
             #kebabMenuBtn { display: none !important; }
@@ -1107,11 +1109,52 @@
 
     <!-- Header Navigation -->
     <header class="sticky top-0 z-50 w-full px-4 sm:px-6 py-2 sm:py-5 flex items-center justify-between bg-brand-bg/90 backdrop-blur-md border-b border-white/5">
-        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0" id="barberHeaderBlock">
-            <!-- Antes era un ícono de calendario decorativo (sin función). Ahora
-                 muestra el LOGO del local, que _aplicarBranding() rellena — igual
-                 que el login, el banner de instalar y el modal iOS. Si el tenant
-                 no tiene logo, queda el ícono de calendario como respaldo. -->
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0" id="barberHeaderBlock">
+            <!-- Burger (mobile). Antes era un kebab de 3 puntos a la derecha; se
+                 movió acá al inicio y cambió a hamburguesa. Abre el mismo menú de
+                 acciones secundarias. Solo móvil: en desktop están los botones
+                 sueltos a la derecha. -->
+            <div class="relative sm:hidden shrink-0">
+                <button id="kebabMenuBtn" onclick="toggleKebabMenu(event)" class="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Menú" aria-label="Abrir menú de opciones" aria-haspopup="true" aria-expanded="false">
+                    <i class="ph-bold ph-list text-lg text-white/70"></i>
+                </button>
+                <!-- Panel del dropdown. left-0 porque ahora el botón está a la
+                     izquierda (antes right-0 cuando era kebab a la derecha). -->
+                <div id="kebabMenuPanel" class="hidden absolute left-0 mt-2 w-52 rounded-xl overflow-hidden shadow-2xl z-50"
+                     style="background:#0f0f12;border:1px solid rgba(255,255,255,0.08);"
+                     role="menu">
+                    <div class="p-1.5 space-y-0.5">
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); abrirPerfil();" role="menuitem">
+                            <i class="ph-bold ph-user-circle text-base"></i>
+                            <span>Mi perfil</span>
+                        </button>
+                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); toggleTheme();" role="menuitem">
+                            <i id="kebabThemeIcon" class="ph-bold ph-sun text-base"></i>
+                            <span id="kebabThemeLabel">Modo claro</span>
+                        </button>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); recargarAgenda();" role="menuitem">
+                            <i class="ph-bold ph-arrows-clockwise text-base"></i>
+                            <span>Recargar agenda</span>
+                        </button>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); window.location.href='/';" role="menuitem">
+                            <i class="ph-bold ph-house text-base"></i>
+                            <span>Ir al inicio</span>
+                        </button>
+                        <a data-menu-item href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" onclick="closeKebabMenu()" role="menuitem">
+                            <i class="ph-fill ph-whatsapp-logo text-base" style="color:#25D366;"></i>
+                            <span>Soporte WhatsApp</span>
+                        </a>
+                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); firebase.auth().signOut();" role="menuitem">
+                            <i class="ph-bold ph-sign-out text-base"></i>
+                            <span>Cerrar sesión</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Logo del local (lo rellena _aplicarBranding con shop.logo). Si el
+                 tenant no tiene logo propio, queda el ícono de calendario. -->
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 shrink-0 overflow-hidden">
                 <img id="headerShopLogo" alt="" class="w-full h-full object-cover hidden" />
                 <i id="headerShopIconFallback" class="ph-bold ph-calendar text-base sm:text-xl text-white"></i>
@@ -1162,47 +1205,7 @@
             <button id="btnHome" onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors hidden sm:flex" title="Ir al inicio">
                 <i class="ph-bold ph-house text-lg text-white/60"></i>
             </button>
-
-            <!-- Kebab (mobile only) — abre el dropdown con acciones secundarias -->
-            <div class="relative sm:hidden">
-                <button id="kebabMenuBtn" onclick="toggleKebabMenu(event)" class="w-11 h-11 sm:w-10 sm:h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Más opciones" aria-label="Abrir menú de opciones" aria-haspopup="true" aria-expanded="false">
-                    <i class="ph-bold ph-dots-three-vertical text-lg text-white/70"></i>
-                </button>
-                <!-- Panel del dropdown. Renderizado siempre (hidden class controla display).
-                     Cliqueo fuera lo cierra (bind global en el script del kebab). -->
-                <div id="kebabMenuPanel" class="hidden absolute right-0 mt-2 w-52 rounded-xl overflow-hidden shadow-2xl z-50"
-                     style="background:#0f0f12;border:1px solid rgba(255,255,255,0.08);"
-                     role="menu">
-                    <div class="p-1.5 space-y-0.5">
-                        <button type="button" data-menu-item onclick="closeKebabMenu(); abrirPerfil();" role="menuitem">
-                            <i class="ph-bold ph-user-circle text-base"></i>
-                            <span>Mi perfil</span>
-                        </button>
-                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
-                        <button type="button" data-menu-item onclick="closeKebabMenu(); toggleTheme();" role="menuitem">
-                            <i id="kebabThemeIcon" class="ph-bold ph-sun text-base"></i>
-                            <span id="kebabThemeLabel">Modo claro</span>
-                        </button>
-                        <button type="button" data-menu-item onclick="closeKebabMenu(); recargarAgenda();" role="menuitem">
-                            <i class="ph-bold ph-arrows-clockwise text-base"></i>
-                            <span>Recargar agenda</span>
-                        </button>
-                        <button type="button" data-menu-item onclick="closeKebabMenu(); window.location.href='/';" role="menuitem">
-                            <i class="ph-bold ph-house text-base"></i>
-                            <span>Ir al inicio</span>
-                        </button>
-                        <a data-menu-item href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" onclick="closeKebabMenu()" role="menuitem">
-                            <i class="ph-fill ph-whatsapp-logo text-base" style="color:#25D366;"></i>
-                            <span>Soporte WhatsApp</span>
-                        </a>
-                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
-                        <button type="button" data-menu-item onclick="closeKebabMenu(); firebase.auth().signOut();" role="menuitem">
-                            <i class="ph-bold ph-sign-out text-base"></i>
-                            <span>Cerrar sesión</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- El kebab (ahora burger) se movió al inicio del bloque izquierdo. -->
         </div>
     </header>
 
