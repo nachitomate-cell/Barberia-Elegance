@@ -1143,12 +1143,29 @@ html.light [data-view="agenda"] [role="tab"][aria-selected="true"] {
   font-weight: 700 !important;
 }
 
-/* Bloqueos: patrón rayado ultra suave (#f1f5f9) sobre blanco (regla 2) */
+/* Bloqueos: el rayado estaba en #f1f5f9 (slate-100) sobre blanco, tan
+   suave que una franja bloqueada no se distinguía de una libre — y eso
+   es funcional, no estético: el local no ve de un vistazo qué está
+   cerrado. Sube a slate-200 con borde slate-300. Sigue siendo un fondo
+   tranquilo, pero ahora se lee. */
 html.light [data-view="agenda"] .agenda-blocked-slot {
   background-color: #ffffff !important;
   background-image:
-    repeating-linear-gradient(45deg, transparent, transparent 10px, #f1f5f9 10px, #f1f5f9 20px) !important;
-  border-color: #e2e8f0 !important;
+    repeating-linear-gradient(45deg, transparent, transparent 10px, #e2e8f0 10px, #e2e8f0 20px) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Día libre: mismo rayado, mismo criterio. El patrón vivía como estilo
+   inline en Agenda.jsx (rgba(148,163,184,0.05)), que ninguna hoja podía
+   pisar; por eso en claro era invisible. Ahora es clase, con su valor
+   por modo. */
+.agenda-dia-libre {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(148, 163, 184, 0.05) 0 10px, transparent 10px 20px);
+}
+html.light [data-view="agenda"] .agenda-dia-libre {
+  background-image:
+    repeating-linear-gradient(45deg, #e2e8f0 0 10px, transparent 10px 20px) !important;
 }
 html.light [data-view="agenda"] .agenda-blocked-slot > span:first-of-type {
   background-color: rgba(255, 255, 255, 0.85) !important;

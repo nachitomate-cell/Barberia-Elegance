@@ -4673,11 +4673,14 @@ export default function Agenda() {
 
                           <div className={`relative ${diaLibre ? 'opacity-60' : ''}`} style={{ height: `${totalSlots * 40}px` }}>
                             {/* Día libre: rayado + chip. pointer-events-none → el admin
-                                igual puede agendar una excepción encima si lo necesita. */}
+                                igual puede agendar una excepción encima si lo necesita.
+                                El rayado va por CLASE (.agenda-dia-libre), no inline: un
+                                estilo inline gana sobre cualquier hoja, así que el modo
+                                claro no tenía forma de subirle el contraste y al 5%
+                                sobre blanco no se veía nada. */}
                             {diaLibre && (
                               <div
-                                className="absolute inset-0 z-[15] flex items-start justify-center pt-8 pointer-events-none"
-                                style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(148,163,184,0.05) 0 10px, transparent 10px 20px)' }}
+                                className="agenda-dia-libre absolute inset-0 z-[15] flex items-start justify-center pt-8 pointer-events-none"
                               >
                                 <span className="text-[11px] font-semibold text-amber-500/90 bg-slate-900/85 border border-amber-500/30 rounded-full px-3 py-1 flex items-center gap-1.5">
                                   <CalendarOff size={11} /> Día libre — no atiende hoy
