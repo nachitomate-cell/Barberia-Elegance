@@ -206,8 +206,9 @@ exports.evolutionWebhook = onRequest({
     // ── messages.upsert → CEREBRO (Sprint 2): responde y agenda solo ──
     //  Se procesa INLINE (antes del 200) a propósito: el claim de dedup por
     //  messageId se escribe temprano, así que un reintento de Evolution por un
-    //  200 lento no re-procesa ni re-agenda. El cerebro filtra fromMe/grupos y
-    //  gatea por botEnabled+connected. (Anti-colisión con silencio 2h → Sprint 4.)
+    //  200 lento no re-procesa ni re-agenda. El cerebro filtra grupos, gatea
+    //  por botEnabled+connected, y maneja la anti-colisión (Sprint 4): fromMe
+    //  humano → silencio 2h; ecos propios se reconocen por botMsgIds + gracia.
     if (event === 'messages.upsert') {
       await procesarMensajeEntrante({
         tid,

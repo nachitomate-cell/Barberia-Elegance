@@ -357,6 +357,13 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     const conv = (await ref.get()).data() || {};
     const botIds = Array.isArray(conv.botMsgIds) ? conv.botMsgIds : [];
     if (msgId && botIds.includes(msgId)) return;         // eco propio → nada
+    // Gracia anti-carrera: si NOSOTROS enviamos algo hace <15s, este eco es
+    // casi seguro nuestro aunque su id aún no alcanzara a persistirse (el
+    // webhook del eco puede ganarle a la escritura). Sin esta gracia, el bot
+    // se silenciaba 2h a sí mismo por su propia respuesta. Costo: una toma de
+    // control humana en esos mismos 15s no silencia — el siguiente mensaje
+    // del dueño (>15s) sí lo hace.
+    if (Date.now() - millis(conv.lastBotSendAt) < 15_000) return;
     await ref.set({
       botSilencedUntil: Timestamp.fromMillis(Date.now() + SILENCIO_MS),
       remoteJid,
@@ -400,6 +407,15 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       const r = await evoClient.enviarTexto(`instance_${tid}`, telefono, txt);
       const id = r && r.key && r.key.id;
       if (id) sentIds.push(String(id));                 // registrar nuestro eco (anti-colisión)
+      // El id del eco se registra AL TIRO (no solo en persistir(), que corre
+      // después): el webhook del eco fromMe puede llegar antes que esa
+      // persistencia y, sin el id en botMsgIds, la anti-colisión leería
+      // nuestro propio mensaje como "el dueño escribió" → silencio de 2h
+      // autoinfligido. lastBotSendAt alimenta la gracia anti-carrera de arriba.
+      await ref.set({
+        ...(id ? { botMsgIds: FieldValue.arrayUnion(String(id)) } : {}),
+        lastBotSendAt: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {});
       ok = true;
     } catch (e) { logger.error(`[cerebro] ${tid} enviar:`, e.message); }
     await logWaSend(tid, 'bot', ok).catch(() => {});    // métrica para el dashboard ops

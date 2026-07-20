@@ -5,7 +5,7 @@ import {
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
-  Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
+  Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
   Coffee,
 } from 'lucide-react';
@@ -2669,6 +2669,101 @@ function CitaContextMenu({ x, y, cita, onCompletar, onHistorial, onCambiarFecha,
   );
 }
 
+/* ── AvisarClienteModal — se abre DESPUÉS de mover una cita ──────
+   Mover una cita cambia un compromiso que el cliente ya tenía tomado, y
+   hasta ahora el sistema no ofrecía ninguna forma de contárselo: el
+   local tenía que acordarse solo y escribirle por fuera.
+
+   El texto va en español neutro con "tú" (misma regla que el resto de
+   los mensajes a cliente final: sin voseo ni chilenismos), y se puede
+   editar antes de enviar. */
+function AvisarClienteModal({ data, shopName, onClose }) {
+  const fechaLarga = (f) => {
+    try {
+      return new Date(`${f}T12:00:00`).toLocaleDateString('es-CL', {
+        weekday: 'long', day: 'numeric', month: 'long',
+      });
+    } catch { return f; }
+  };
+
+  const nombre = (data.cita.clienteNombre || '').trim().split(' ')[0] || '';
+  const textoBase =
+    `Hola${nombre ? ' ' + nombre : ''}! Te escribimos de ${shopName || 'la barbería'} ` +
+    `para avisarte que movimos la hora de tu cita.\n\n` +
+    `Nueva hora: ${fechaLarga(data.fecha)} a las ${data.hora}\n` +
+    (data.barberoNombre ? `Con: ${data.barberoNombre}\n` : '') +
+    `\nSi no te acomoda, respóndenos este mensaje y la reagendamos. ¡Te esperamos!`;
+
+  const [texto, setTexto] = useState(textoBase);
+  const [copiado, setCopiado] = useState(false);
+
+  const tel = String(data.cita.clienteTelefono || '').replace(/\D/g, '');
+  const waUrl = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(texto)}` : null;
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch { /* sin portapapeles: el textarea queda seleccionable igual */ }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <MessageCircle size={20} className="text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-primary">Avísale a tu cliente</p>
+              <p className="text-xs text-slate-500 truncate">
+                Cambiaste la hora de {data.cita.clienteNombre || 'la cita'}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+              Mensaje
+            </label>
+            <textarea
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              rows={7}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-[13px] leading-relaxed text-primary focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+            />
+            <p className="text-[11px] text-slate-500 mt-1.5">Puedes editarlo antes de enviar.</p>
+          </div>
+
+          {!tel && (
+            <div className="flex items-start gap-2 text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5">
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+              <span>Esta cita no tiene teléfono guardado, así que no podemos abrir WhatsApp. Copia el mensaje y envíaselo por donde lo tengas.</span>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
+              Ahora no
+            </button>
+            <button onClick={copiar} className="shrink-0 px-3 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all">
+              {copiado ? '¡Copiado!' : 'Copiar'}
+            </button>
+            {waUrl && (
+              <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={onClose}
+                className="flex-1 py-2 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 transition-all text-center">
+                WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── ReagendarModal — aviso de la app al mover una cita ─────────── */
 function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -3662,7 +3757,9 @@ function MenuItem({ icon: Icon, label, onClick, active, badge, accent }) {
 const LS_LAST_SEEN = 'agenda_last_seen_cita';
 
 export default function Agenda() {
-  const { id: tenantId } = useTenant();
+  // `name` se usa al avisarle al cliente que se movió su cita: el mensaje
+  // se firma con el nombre del local, no con un genérico.
+  const { id: tenantId, name: tenantName } = useTenant();
   // Duración de franja cacheada por sede → evita el parpadeo del eje "denso" en la primera carga.
   const SLOT_KEY = `agenda_slot_${tenantId}`;
   const [slotMins,      setSlotMins]      = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 30);
@@ -3680,6 +3777,8 @@ export default function Agenda() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [reagendarModal, setReagendarModal] = useState(null);
+  // Se llena al mover una cita con éxito → abre AvisarClienteModal.
+  const [avisarModal, setAvisarModal] = useState(null);
   const [ctxMenu,       setCtxMenu]       = useState(null);  // { x, y, cita } menú clic derecho sobre una cita
   const [histModal,     setHistModal]     = useState(null);  // cita seleccionada para ver historial/notas
   const [showDifusionModal, setShowDifusionModal] = useState(false);
@@ -4095,6 +4194,14 @@ export default function Agenda() {
       }
 
       await batch.commit();
+      // Movida OK → ofrecer avisarle al cliente. Solo si salió bien: si el
+      // batch falló, la hora no cambió y avisar sería mentirle.
+      setAvisarModal({
+        cita: m.cita,
+        fecha,
+        hora: m.hora,
+        barberoNombre: m.barberoNombre,
+      });
     } catch (err) {
       console.error('Error al reagendar cita:', err);
     }
@@ -4858,6 +4965,13 @@ export default function Agenda() {
           dateStr={dateStr}
           onConfirm={doReagendar}
           onClose={() => setReagendarModal(null)}
+        />
+      )}
+      {avisarModal && (
+        <AvisarClienteModal
+          data={avisarModal}
+          shopName={tenantName}
+          onClose={() => setAvisarModal(null)}
         />
       )}
       {showUltima && (

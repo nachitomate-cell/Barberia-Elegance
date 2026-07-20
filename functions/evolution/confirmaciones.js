@@ -99,8 +99,10 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
     },
     remoteJid: `${tel}@s.whatsapp.net`,
     // Registra el eco de este envío para que la anti-colisión NO lo lea como
-    // "el dueño escribió" (ver cerebro.js: botMsgIds).
+    // "el dueño escribió" (ver cerebro.js: botMsgIds). lastBotSendAt alimenta
+    // la gracia anti-carrera del cerebro (el eco puede ganarle a esta escritura).
     ...(sentId ? { botMsgIds: FieldValue.arrayUnion(sentId) } : {}),
+    lastBotSendAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 
