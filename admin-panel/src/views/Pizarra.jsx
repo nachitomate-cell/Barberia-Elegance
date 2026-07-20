@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { where } from 'firebase/firestore';
 import {
-  Zap, Clock, User, Coffee, Users, Maximize2, Minimize2, UserPlus,
+  Zap, Clock, User, Coffee, Users, Maximize2, Minimize2, UserPlus, CalendarOff,
 } from 'lucide-react';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig } from '../hooks/useConfig';
@@ -79,12 +79,36 @@ function computeEstadoBarbero({ barberoId, citas, nowMin, colacion }) {
   // 2) ¿Alguna cita cubre ahora?
   const actual = misCitas.find(c => nowMin >= c._start && nowMin < c._end);
   if (actual) {
+    // ENCADENAR. Antes se devolvía actual._end, o sea "se desocupa cuando
+    // termine lo que está haciendo". Con la agenda llena eso es falso: si a
+    // las 18:00 empieza la siguiente cita, a las 18:00 NO está libre. La
+    // pizarra ofrecía un walk-in a una hora ya tomada.
+    // Avanzamos mientras exista una cita que empiece antes (o justo) del
+    // fin acumulado — así se saltan cadenas de citas pegadas y también los
+    // solapamientos (sobrecupo).
+    let fin = actual._end;
+    for (let guard = 0; guard < misCitas.length; guard++) {
+      const sigue = misCitas.find(c => c._start <= fin && c._end > fin);
+      if (!sigue) break;
+      fin = sigue._end;
+    }
+
+    // Hueco real DESPUÉS de la cadena: hasta la próxima cita, o resto del día.
+    const trasCadena = misCitas.find(c => c._start > fin);
+    const huecoMin   = trasCadena ? trasCadena._start - fin : Infinity;
+
     return {
       estado: 'ocupado',
-      hastaMin: actual._end,
-      faltaMin: actual._end - nowMin,
+      hastaMin: fin,
+      faltaMin: fin - nowMin,
       cliente: actual.clienteNombre || '',
       servicio: actual.servicioNombre || '',
+      // Cuánto dura el hueco cuando por fin se libera. Infinity = resto del
+      // día. La tarjeta lo usa para no ofrecer un walk-in que no cabe.
+      huecoMin,
+      // true si hay más citas pegadas después de la actual: sirve para
+      // avisar que el "hasta" no es el fin de la cita en curso.
+      encadenado: fin !== actual._end,
     };
   }
 
@@ -141,6 +165,14 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
   const iniciales = String(b.nombre || '?')
     .split(/\s+/).filter(Boolean).slice(0, 2)
     .map(w => w[0]).join('').toUpperCase();
+
+  // ¿Cabe algo en el hueco? Un walk-in por debajo de este mínimo no alcanza
+  // ni para el servicio más corto, así que ofrecerlo solo lleva a crear una
+  // cita que después hay que mover. Los libres siempre pueden (su hueco es
+  // "hasta la próxima cita", que ya lo valida la rama de arriba).
+  const MIN_WALKIN = 20; // minutos
+  const huecoUtil = !isOcupado || estado.huecoMin == null
+    || estado.huecoMin === Infinity || estado.huecoMin >= MIN_WALKIN;
 
   return (
     <div className={`relative rounded-2xl border p-5 md:p-6 transition-colors ${wrap}`}>
@@ -215,23 +247,41 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
         </div>
       )}
 
+      {/* Aviso cuando el "hasta" NO es el fin de la cita en curso, sino el de
+          una cadena de citas pegadas. Sin esto, "Ocupado hasta 20:00" con una
+          cita que termina 18:00 se lee como un error del sistema. */}
+      {isOcupado && estado.encadenado && (
+        <p className="mt-3 text-[11px] md:text-xs leading-snug text-slate-500">
+          Tiene citas seguidas hasta esa hora.
+        </p>
+      )}
+
       {/* CTA walk-in — abre la Agenda con barbero + hora ya resueltos:
-          libre → ahora; ocupado/colación → cuando se desocupa. */}
-      <button
-        onClick={onWalkin}
-        className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs md:text-sm font-bold transition-colors ${
-          isLibre
-            ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
-            : isColacion
-              ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-              : 'bg-slate-700/40 hover:bg-slate-700/70 text-slate-300 border-slate-600/50'
-        }`}
-        title={`Crear cita con ${b.nombre} a las ${walkinHora}`}
-      >
-        <UserPlus size={15} className="shrink-0" />
-        <span>Agregar cliente de paso</span>
-        <span className="tabular-nums opacity-70">· {walkinHora}</span>
-      </button>
+          libre → ahora; ocupado/colación → cuando termina su cadena de citas.
+          Si el hueco que queda es más corto que un servicio típico, no se
+          ofrece: mandaba a crear una cita que no cabe. */}
+      {huecoUtil ? (
+        <button
+          onClick={onWalkin}
+          className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs md:text-sm font-bold transition-colors ${
+            isLibre
+              ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+              : isColacion
+                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                : 'bg-slate-700/40 hover:bg-slate-700/70 text-slate-300 border-slate-600/50'
+          }`}
+          title={`Crear cita con ${b.nombre} a las ${walkinHora}`}
+        >
+          <UserPlus size={15} className="shrink-0" />
+          <span>Agregar cliente de paso</span>
+          <span className="tabular-nums opacity-70">· {walkinHora}</span>
+        </button>
+      ) : (
+        <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/30 px-3 py-2.5 text-xs md:text-sm font-semibold text-slate-500">
+          <CalendarOff size={15} className="shrink-0" />
+          <span>Sin espacio libre hoy</span>
+        </div>
+      )}
     </div>
   );
 }
