@@ -1,14 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
+import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   CheckCircle2, AlertCircle, XCircle, MessageSquare,
   ExternalLink, CreditCard, Sparkles, Copy, Check, Send,
   Calendar, Building2, User, Hash, Mail, Wallet, Clock,
-  Headphones, ChevronRight,
+  Headphones, ChevronRight, Repeat, Zap,
 } from 'lucide-react';
 
 /* ── Configuración por estado ───────────────────────────────────── */
@@ -221,6 +223,43 @@ export default function Mensualidad() {
     || cuotas.find(c => claseCuota(c) === 'proxima');
   const mesMensaje = primerPendiente ? mesLabel(primerPendiente.mes) : '';
 
+  // ── Pago automático (Suscripciones MP) ──
+  // El estado vive en _billing/{tid}.suscripcionMp y lo mantiene el webhook
+  // mpMensualidadWebhook; aquí solo se lee y se disparan los callables.
+  const [autopayBusy, setAutopayBusy] = useState(false);
+  const [autopayErr,  setAutopayErr]  = useState('');
+  const sub           = billing?.suscripcionMp || null;
+  const autopayActivo = sub?.status === 'authorized';
+  const cobroFallido  = !!(sub?.ultimoPago?.status && sub.ultimoPago.status !== 'approved');
+
+  const activarAutopay = async () => {
+    setAutopayBusy(true); setAutopayErr('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'mpMensualidadCrearLink');
+      const r  = await fn({ tenantId, origen: window.location.origin });
+      if (r.data?.url) window.open(r.data.url, '_blank', 'noopener');
+    } catch (e) {
+      setAutopayErr(e.message || 'No se pudo generar el link. Intenta de nuevo.');
+    } finally { setAutopayBusy(false); }
+  };
+
+  const cancelarAutopay = async () => {
+    const ok = await confirmDialog({
+      title: 'Cancelar pago automático',
+      message: 'Tu tarjeta dejará de cobrarse sola y volverás a pagar por transferencia manual. ¿Continuar?',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'Volver',
+    });
+    if (!ok) return;
+    setAutopayBusy(true); setAutopayErr('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'mpMensualidadCancelar');
+      await fn({ tenantId });
+    } catch (e) {
+      setAutopayErr(e.message || 'No se pudo cancelar. Intenta de nuevo.');
+    } finally { setAutopayBusy(false); }
+  };
+
   const waphone = billing?.whatsappAdmin || '56983568212';
   const txtMensaje = encodeURIComponent(
     `¡Hola Ignacio! Acabo de realizar la transferencia de la mensualidad del local *${tenantName || tenantId}*` +
@@ -252,6 +291,21 @@ export default function Mensualidad() {
             diasVencido={diasVencido}
             diasParaVencer={diasParaVencer}
           />
+
+          {/* ─────── Pago automático (Suscripciones MP) ─────── */}
+          {billing && Number(billing?.montoPendiente) > 0 && (
+            <AutopayCard
+              sub={sub}
+              activo={autopayActivo}
+              cobroFallido={cobroFallido}
+              monto={Number(billing?.montoPendiente) || 0}
+              busy={autopayBusy}
+              err={autopayErr}
+              onActivar={activarAutopay}
+              onCancelar={cancelarAutopay}
+              formatFecha={formatFecha}
+            />
+          )}
 
           {/* ─────── Ver planes ─────── */}
           {!['elegance', 'ferraza'].includes(tenantId) && (
@@ -480,6 +534,124 @@ function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasPara
             )}
           </div>
         )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AUTOPAY CARD — Suscripciones Mercado Pago (cargo automático)
+   Estados: sin activar (promo) · link_creado (retomar) ·
+   authorized (activa, con próximo cobro) · cancelled (reactivable)
+   ════════════════════════════════════════════════════════════════ */
+function AutopayCard({ sub, activo, cobroFallido, monto, busy, err, onActivar, onCancelar, formatFecha }) {
+  if (activo) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.08 }}
+        className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-950 p-5 shadow-lg"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
+              <Repeat size={17} className="text-emerald-300" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-primary">Pago automático activo</p>
+              <p className="text-[11px] text-slate-400">
+                ${Number(monto).toLocaleString('es-CL')}/mes con cargo a tu tarjeta · Mercado Pago
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300 ring-1 ring-emerald-400/30 shrink-0">
+            <Zap size={9} /> Activo
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4 text-[12px]">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Próximo cobro</p>
+            <p className="mt-0.5 font-semibold text-slate-200">
+              {sub?.nextPaymentDate ? (formatFecha(sub.nextPaymentDate) || sub.nextPaymentDate) : 'Lo informa Mercado Pago'}
+            </p>
+          </div>
+          {sub?.ultimoPago?.status === 'approved' && (
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Último pago</p>
+              <p className="mt-0.5 inline-flex items-center gap-1 font-semibold text-emerald-300">
+                <Check size={11} /> {formatFecha(sub.ultimoPago.fecha) || sub.ultimoPago.fecha}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {cobroFallido && (
+          <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-300">
+            El último cobro no pasó. Mercado Pago volverá a intentarlo — revisa que tu tarjeta tenga cupo o actualízala en tu cuenta de MP.
+          </p>
+        )}
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCancelar}
+          className="mt-4 text-[11px] font-semibold text-slate-500 underline-offset-2 transition-colors hover:text-red-400 hover:underline disabled:opacity-50"
+        >
+          Cancelar pago automático
+        </button>
+        {err && <p className="mt-2 text-[11px] font-semibold text-red-400">{err}</p>}
+      </motion.div>
+    );
+  }
+
+  const retomar   = sub?.status === 'link_creado';
+  const cancelado = sub?.status === 'cancelled';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.08 }}
+      className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-sky-500/[0.07] via-slate-900 to-slate-950 p-5 shadow-lg"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.16), transparent 70%)', filter: 'blur(22px)' }}
+      />
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-500/15 ring-1 ring-sky-400/25">
+            <Repeat size={17} className="text-sky-300" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-primary">
+              {retomar ? 'Termina de activar tu pago automático' : 'Activa el pago automático'}
+            </p>
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              {retomar
+                ? 'Generaste el link pero falta ingresar tu tarjeta. Retómalo aquí.'
+                : 'Ingresa tu tarjeta una vez y la mensualidad se paga sola cada mes. Sin transferencias ni comprobantes.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onActivar}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-500 py-3 text-sm font-extrabold text-sky-950 shadow-[0_8px_22px_-6px_rgba(56,189,248,0.45)] transition-transform hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60"
+        >
+          <CreditCard size={15} />
+          {busy ? 'Generando link…' : retomar ? 'Continuar activación' : 'Activar pago automático'}
+        </button>
+
+        <p className="mt-2.5 text-center text-[10px] leading-relaxed text-slate-500">
+          Cargo mensual de <b className="text-slate-300">${Number(monto).toLocaleString('es-CL')}</b> vía
+          Mercado Pago · puedes cancelarlo cuando quieras{cancelado ? ' · lo cancelaste, reactívalo aquí' : ''}.
+        </p>
+        {err && <p className="mt-2 text-center text-[11px] font-semibold text-red-400">{err}</p>}
       </div>
     </motion.div>
   );

@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/check-firestore-safety.js && eslint src",
+    "prebuild": "node scripts/check-firestore-safety.js && node scripts/check-light-mode.js && eslint src",
     "build": "vite build",
     "preview": "vite preview",
     "check:firestore": "node scripts/check-firestore-safety.js",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "check:light": "node scripts/check-light-mode.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

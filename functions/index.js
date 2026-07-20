@@ -1229,6 +1229,19 @@ exports.mpRetorno   = mpPago.mpRetorno;
 exports.mpReembolsar = mpPago.mpReembolsar;
 
 // ─────────────────────────────────────────────────────────────────
+//  MENSUALIDAD — pago automático con Suscripciones MP. ver
+//  mensualidad-mp.js. SynapTech cobra la mensualidad de cada local
+//  con cargo mensual a la tarjeta del dueño (cuenta MP de plataforma,
+//  MP_ACCESS_TOKEN). El webhook actualiza _billing/{tid} y manda el
+//  comprobante (RESEND_API_KEY). Requiere configurar la URL del
+//  webhook en la app de MP (eventos "Planes y suscripciones").
+// ─────────────────────────────────────────────────────────────────
+const mensualidadMp = require('./mensualidad-mp');
+exports.mpMensualidadCrearLink = mensualidadMp.mpMensualidadCrearLink;
+exports.mpMensualidadWebhook   = mensualidadMp.mpMensualidadWebhook;
+exports.mpMensualidadCancelar  = mensualidadMp.mpMensualidadCancelar;
+
+// ─────────────────────────────────────────────────────────────────
 //  CORTE AL LÁPIZ — reserva sin pasarela para miembros (Yūgen)
 //  ver corte-lapiz-reservar.js. La acumulación a la cuenta corriente
 //  la hace sello-automatico al completar la cita.

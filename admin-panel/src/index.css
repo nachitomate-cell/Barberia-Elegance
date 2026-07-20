@@ -101,6 +101,39 @@ html.light .bg-red-950\/20,
 html.light .hover\:bg-red-950\/20:hover { background-color: rgba(254, 226, 226, 0.7) !important; }
 html.light .bg-red-950\/40 { background-color: rgba(254, 202, 202, 0.8) !important; }
 html.light .bg-amber-950\/30 { background-color: rgba(254, 243, 199, 0.8) !important; }
+
+/* ── Resto de shades oscuras (>=800) usadas como superficie ──────────
+   Auditoría 20-jul-2026: quedaban 24 clases (43 usos) sin mapear. Un
+   `bg-red-950/30` es un panel rojo apenas insinuado sobre negro, pero
+   sobre blanco es un manchón gris sucio: el tono oscuro no se aclara
+   solo, hay que cambiarlo por su contraparte clara de la misma familia.
+   Misma convención que las tres de arriba: fondo → tinte 100/200 de la
+   familia; borde → shade 200/300.                                      */
+html.light .bg-red-950\/10     { background-color: rgba(254, 226, 226, 0.5) !important; }
+html.light .bg-red-950\/30     { background-color: rgba(254, 226, 226, 0.8) !important; }
+html.light .bg-red-950\/50     { background-color: rgba(254, 202, 202, 0.8) !important; }
+html.light .bg-emerald-950\/30 { background-color: rgba(209, 250, 229, 0.8) !important; }
+html.light .bg-emerald-950\/60 { background-color: rgba(167, 243, 208, 0.8) !important; }
+html.light .bg-amber-950\/10   { background-color: rgba(254, 243, 199, 0.5) !important; }
+html.light .bg-amber-950\/60,
+html.light .bg-amber-950\/70   { background-color: rgba(254, 243, 199, 0.9) !important; }
+html.light .bg-amber-950\/90,
+html.light .bg-amber-900\/90   { background-color: rgba(253, 230, 138, 0.95) !important; }
+html.light .bg-indigo-900\/20  { background-color: rgba(224, 231, 255, 0.7) !important; }
+html.light .bg-indigo-900\/30  { background-color: rgba(224, 231, 255, 0.9) !important; }
+html.light .bg-orange-900\/30  { background-color: rgba(255, 237, 213, 0.9) !important; }
+html.light .bg-purple-950\/60  { background-color: rgba(243, 232, 255, 0.9) !important; }
+html.light .bg-cyan-900\/\[0\.10\] { background-color: rgba(207, 250, 254, 0.7) !important; }
+
+html.light .border-red-800\/30,
+html.light .border-red-800\/40,
+html.light .border-red-900\/30,
+html.light .border-red-900\/40,
+html.light .border-red-900\/50      { border-color: rgba(252, 165, 165, 0.9) !important; }
+html.light .border-emerald-800\/30,
+html.light .border-emerald-900\/50  { border-color: rgba(110, 231, 183, 0.9) !important; }
+html.light .border-amber-800\/30,
+html.light .border-amber-900\/40    { border-color: rgba(252, 211, 77, 0.9) !important; }
 html.light .bg-emerald-900\/10,
 html.light .hover\:bg-emerald-900\/10:hover { background-color: rgba(209, 250, 229, 0.7) !important; }
 

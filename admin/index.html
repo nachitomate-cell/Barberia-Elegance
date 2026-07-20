@@ -3253,14 +3253,93 @@
           <!-- ── Módulos WhatsApp (entitlements que solo SynapTech activa) ── -->
           <div id="wa-modules-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
 
+          <!-- ── Pago automático (Suscripciones MP) ── -->
+          <div id="autopay-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
+
           <!-- ── Suspender / Reactivar cuenta (Kill Switch) ── -->
           <div id="suspension-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
         </div>`;
 
       renderPlanBtns();
       renderCuotasList();
+      renderAutopayControl(d.suscripcionMp || null);
       loadSuspensionState();
       loadWaModules();
+    }
+
+    // ── Pago automático (Suscripciones MP) — estado y control ──
+    //  El estado lo escribe mpMensualidadWebhook en _billing/{tid}.suscripcionMp.
+    //  Aquí solo se muestra + cancelar (callable, el bootstrap admin siempre puede).
+    function renderAutopayControl(sub) {
+      const el = document.getElementById('autopay-control');
+      if (!el) return;
+      const LBL = `font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;`;
+      const chip = (txt, color, bg) =>
+        `<span style="font-size:0.68rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:999px;color:${color};background:${bg};">${txt}</span>`;
+
+      let estadoChip;
+      switch (sub && sub.status) {
+        case 'authorized':  estadoChip = chip('ACTIVO · cobra solo', '#34d399', 'rgba(52,211,153,0.12)'); break;
+        case 'link_creado': estadoChip = chip('LINK CREADO · falta tarjeta', '#fbbf24', 'rgba(251,191,36,0.12)'); break;
+        case 'paused':      estadoChip = chip('PAUSADO', '#fbbf24', 'rgba(251,191,36,0.12)'); break;
+        case 'cancelled':   estadoChip = chip('CANCELADO', '#f87171', 'rgba(248,113,113,0.1)'); break;
+        default:            estadoChip = chip('NO ACTIVADO', '#64748b', 'rgba(255,255,255,0.05)');
+      }
+
+      const row = (l, v) => v
+        ? `<div style="display:flex;justify-content:space-between;gap:0.5rem;font-size:0.78rem;padding:0.2rem 0;">
+             <span style="color:#64748b;">${l}</span><span style="color:#cbd5e1;text-align:right;">${v}</span></div>`
+        : '';
+      const up = sub && sub.ultimoPago;
+      const upTxt = up
+        ? `${up.status === 'approved' ? '✓' : '✕'} ${up.fecha || ''} · $${Number(up.monto || 0).toLocaleString('es-CL')}${up.status !== 'approved' ? ` (${up.status})` : ''}`
+        : '';
+
+      el.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+          <span style="${LBL}"><i class="ph-bold ph-arrows-clockwise" style="margin-right:0.3rem;"></i>Pago automático (MP)</span>
+          ${estadoChip}
+        </div>
+        ${row('Monto suscrito', sub && sub.monto ? '$' + Number(sub.monto).toLocaleString('es-CL') + '/mes' : '')}
+        ${row('Próximo cobro', sub && sub.nextPaymentDate)}
+        ${row('Último pago', upTxt)}
+        ${row('Tarjeta de', sub && sub.payerEmail)}
+        <div style="display:flex;gap:0.5rem;margin-top:0.55rem;">
+          ${sub && sub.status === 'link_creado' && sub.initPoint ? `
+            <button onclick="copiarLinkAutopay()" style="flex:1;padding:0.5rem;border-radius:0.5rem;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;font-size:0.75rem;font-weight:600;">
+              <i class="ph ph-copy" style="margin-right:0.3rem;"></i>Copiar link de suscripción
+            </button>` : ''}
+          ${sub && (sub.status === 'authorized' || sub.status === 'link_creado' || sub.status === 'paused') ? `
+            <button onclick="cancelarAutopayTenant()" style="flex:1;padding:0.5rem;border-radius:0.5rem;cursor:pointer;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);color:#f87171;font-size:0.75rem;font-weight:600;">
+              <i class="ph ph-x-circle" style="margin-right:0.3rem;"></i>Cancelar suscripción
+            </button>` : ''}
+        </div>
+        ${!sub ? `<p style="font-size:0.72rem;color:#475569;margin:0.35rem 0 0;">El local lo activa desde su panel → Mensualidad. Requiere "Monto mensual" configurado arriba.</p>` : ''}
+        <p id="autopay-feedback" style="font-size:0.72rem;margin:0.35rem 0 0;"></p>`;
+
+      window._autopaySub = sub;
+    }
+
+    function copiarLinkAutopay() {
+      const sub = window._autopaySub;
+      if (!sub || !sub.initPoint) return;
+      navigator.clipboard.writeText(sub.initPoint);
+      const fb = document.getElementById('autopay-feedback');
+      if (fb) { fb.style.color = '#34d399'; fb.textContent = 'Link copiado — mándaselo al dueño por WhatsApp.'; }
+    }
+
+    async function cancelarAutopayTenant() {
+      if (!_activeTenant) return;
+      if (!confirm(`¿Cancelar el pago automático de "${_activeTenant}"?\n\nSu tarjeta dejará de cobrarse y vuelve a transferencia manual.`)) return;
+      const fb = document.getElementById('autopay-feedback');
+      try {
+        if (fb) { fb.style.color = '#94a3b8'; fb.textContent = 'Cancelando…'; }
+        await firebase.functions().httpsCallable('mpMensualidadCancelar')({ tenantId: _activeTenant });
+        if (fb) { fb.style.color = '#34d399'; fb.textContent = 'Suscripción cancelada.'; }
+        loadBillingData();
+      } catch (e) {
+        if (fb) { fb.style.color = '#f87171'; fb.textContent = 'Error: ' + (e.message || e); }
+      }
     }
 
     // ── Kill Switch: suspender/reactivar (escribe en _system/{tenant}) ──
