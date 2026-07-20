@@ -1239,18 +1239,20 @@
              así que el barbero no se enteraba de que tenía citas sin cerrar ni
              cuándo. Aparece cuando hay citas Confirmada del barbero cuya hora
              ya pasó. Listener en iniciarBannerPorCerrar(), tras fijar barberId. -->
-        <div id="porCerrarBanner" class="hidden mb-4 sm:mb-6 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 relative overflow-hidden"
-             style="background:linear-gradient(to right, rgba(245,158,11,0.14), rgba(245,158,11,0.04)); border: 1px solid rgba(245,158,11,0.30);">
-            <div class="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style="background:rgba(245,158,11,0.15);">
-                    <i class="ph-fill ph-check-square-offset text-lg sm:text-xl" style="color:#fbbf24;"></i>
+        <div id="porCerrarBanner" class="hidden mb-3 sm:mb-4 rounded-xl sm:rounded-2xl overflow-hidden"
+             style="background:linear-gradient(to right, rgba(245,158,11,0.12), rgba(245,158,11,0.03)); border: 1px solid rgba(245,158,11,0.28);">
+            <!-- Fila SIEMPRE visible: compacta, una sola línea. Toca para expandir.
+                 Colapsado por defecto para no comerse media pantalla en móvil. -->
+            <button type="button" id="porCerrarToggle" onclick="togglePorCerrar()"
+                class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-white/5 transition-colors">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(245,158,11,0.15);">
+                    <i class="ph-fill ph-check-square-offset text-base" style="color:#fbbf24;"></i>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h3 id="porCerrarTitulo" class="text-[14px] sm:text-[15px] font-black text-white leading-tight">Tienes citas por cerrar</h3>
-                    <p class="text-[11px] sm:text-xs text-white/60 leading-snug mt-0.5">Márcalas como completadas para sumar tu comisión y el sello del cliente. Toca una para abrirla.</p>
-                </div>
-            </div>
-            <div id="porCerrarLista" class="space-y-2"></div>
+                <span id="porCerrarTitulo" class="flex-1 min-w-0 text-[13px] font-bold text-white truncate">Citas por cerrar</span>
+                <i id="porCerrarChevron" class="ph-bold ph-caret-down text-white/40 shrink-0 transition-transform"></i>
+            </button>
+            <!-- Lista: oculta hasta expandir. -->
+            <div id="porCerrarLista" class="hidden space-y-1.5 px-2.5 pb-2.5"></div>
         </div>
 
         <!-- ── LIQUIDACIONES PENDIENTES DE CONFIRMAR ──
@@ -1552,6 +1554,21 @@
             return (now.getHours() * 60 + now.getMinutes()) >= finMin;
         }
 
+        // Estado de expansión: arranca colapsado. Si el barbero lo abrió y
+        // llega un snapshot nuevo, respetamos que siga abierto.
+        let _porCerrarAbierto = false;
+        function togglePorCerrar() {
+            _porCerrarAbierto = !_porCerrarAbierto;
+            _aplicarPorCerrarExpand();
+        }
+        function _aplicarPorCerrarExpand() {
+            const lista = document.getElementById('porCerrarLista');
+            const chev  = document.getElementById('porCerrarChevron');
+            if (!lista || !chev) return;
+            lista.classList.toggle('hidden', !_porCerrarAbierto);
+            chev.style.transform = _porCerrarAbierto ? 'rotate(180deg)' : '';
+        }
+
         function renderBannerPorCerrar(items) {
             const banner = document.getElementById('porCerrarBanner');
             const lista  = document.getElementById('porCerrarLista');
@@ -1560,12 +1577,14 @@
             if (!items.length) {
                 banner.classList.add('hidden');
                 lista.innerHTML = '';
+                _porCerrarAbierto = false;
+                _aplicarPorCerrarExpand();
                 return;
             }
             banner.classList.remove('hidden');
             titulo.textContent = items.length === 1
-                ? 'Tienes 1 cita por cerrar'
-                : `Tienes ${items.length} citas por cerrar`;
+                ? '1 cita por cerrar'
+                : `${items.length} citas por cerrar`;
 
             const hoyStr = _fmtDate(new Date());
             const diaCorto = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -1578,21 +1597,23 @@
                 const serv = c.servicioNombre ? ` · ${_escHtml(c.servicioNombre)}` : '';
                 return `
                     <button type="button" onclick="abrirCitaPorCerrar('${c.fecha}','${c.id}')"
-                        class="w-full flex items-center gap-3 text-left rounded-xl px-3 py-2.5 transition-colors active:scale-[0.99]"
-                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">
-                        <div class="shrink-0 text-center" style="min-width:44px;">
-                            <p class="text-[10px] font-bold uppercase tracking-wide" style="color:#fbbf24;">${cuando}</p>
-                            <p class="text-[13px] font-black text-white leading-none mt-0.5 tabular-nums">${_escHtml(c.hora || '')}</p>
+                        class="w-full flex items-center gap-2.5 text-left rounded-lg px-2.5 py-2 transition-colors active:scale-[0.99]"
+                        style="background:rgba(255,255,255,0.05);">
+                        <div class="shrink-0 text-center" style="min-width:38px;">
+                            <p class="text-[9px] font-bold uppercase tracking-wide" style="color:#fbbf24;">${cuando}</p>
+                            <p class="text-[12px] font-black text-white leading-none mt-0.5 tabular-nums">${_escHtml(c.hora || '')}</p>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-[13px] font-semibold text-white truncate">${cliente}</p>
-                            <p class="text-[11px] text-white/50 truncate">Confirmada${serv} — falta marcarla</p>
+                            <p class="text-[12.5px] font-semibold text-white truncate">${cliente}</p>
+                            <p class="text-[10.5px] text-white/50 truncate">${serv ? serv.slice(3) : 'Confirmada'} — falta marcarla</p>
                         </div>
-                        <i class="ph-bold ph-arrow-right text-white/40 shrink-0"></i>
+                        <i class="ph-bold ph-arrow-right text-white/35 shrink-0 text-sm"></i>
                     </button>`;
             }).join('') + (items.length > 5
                 ? `<p class="text-[11px] text-white/45 text-center pt-1">y ${items.length - 5} más…</p>`
                 : '');
+
+            _aplicarPorCerrarExpand();
         }
 
         // Tap en una cita del banner: ir a su día en vista Día y abrir su detalle.
