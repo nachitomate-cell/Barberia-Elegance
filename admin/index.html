@@ -307,12 +307,18 @@
     .ghost-btn-soporte { left: 6.5rem; }
     .ghost-btn-notif   { left: 13rem; }
     .ghost-btn-anuncio { left: 19.5rem; }
+    .ghost-btn-ops     { left: 26rem; }
     .ghost-btn-logout  { right: 1rem; }
     .ghost-btn-logs:hover    { color: #f87171; border-color: rgba(248,113,113,0.3); }
     .ghost-btn-soporte:hover { color: #f59e0b; border-color: rgba(245,158,11,0.3);  }
     .ghost-btn-notif:hover   { color: #34d399; border-color: rgba(52,211,153,0.3);  }
     .ghost-btn-anuncio:hover { color: #c4b5fd; border-color: rgba(196,181,253,0.35); }
+    .ghost-btn-ops:hover     { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
     .ghost-btn-logout:hover  { color: #f87171; border-color: rgba(248,113,113,0.3); }
+    /* Los ghost-btn son fijos y con posición absoluta en rem: en pantallas
+       angostas se encimarían con el de logout (right:1rem). Ops es el último
+       de la fila, así que es el primero que se oculta. */
+    @media (max-width: 900px) { .ghost-btn-ops { display: none; } }
 
     /* ── Status badges: legible size ── */
     .status-badge {
@@ -850,6 +856,17 @@
       </div>
     </div>
   </div>
+
+  <!-- Dashboard interno de Operaciones. Es un <a>, no un button con
+       window.open: así funcionan el clic con rueda, "abrir en pestaña nueva"
+       y el copiar-enlace. Va con rel=noopener por seguridad al usar target. -->
+  <a href="https://ops.synaptechspa.cl" target="_blank" rel="noopener noreferrer"
+     class="ghost-btn ghost-btn-ops" aria-label="Abrir dashboard de Operaciones"
+     title="Dashboard de Operaciones (ops.synaptechspa.cl)"
+     style="text-decoration:none;">
+    <i class="ph ph-chart-line-up"></i>
+    Ops
+  </a>
 
   <!-- Log de Notificaciones + Estado Push (doble-click / o click si permission='default' = activar) -->
   <button onclick="abrirNotifOActivar(event)" class="ghost-btn ghost-btn-notif" aria-label="Notificaciones y push"
