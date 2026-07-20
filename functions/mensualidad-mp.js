@@ -6,8 +6,11 @@
 //
 //  SynapTech cobra la mensualidad a cada local con cargo automático mensual a
 //  la tarjeta del dueño, vía Suscripciones MP (preapproval_plan + checkout).
-//  El dinero entra a la cuenta MP de la PLATAFORMA (MP_ACCESS_TOKEN, la misma
-//  de Yügen) — NO a las cuentas OAuth de los tenants (tenant_mp).
+//  El dinero entra a la cuenta MP de SYNAPTECH: MP_PLATFORM_ACCESS_TOKEN,
+//  app "bioo12" (6764890748674836) — la misma de los cobros single-seller de
+//  bioo. ⚠ NO usar MP_ACCESS_TOKEN aquí: ese token es de la app de YÜGEN
+//  (4270046524878802, cuenta de Dusan) y la plata caería en su cuenta.
+//  Tampoco las cuentas OAuth de los tenants (tenant_mp).
 //
 //  Flujo:
 //    1) El dueño toca "Activar pago automático" en /gestion-interna/mensualidad
@@ -30,11 +33,11 @@
 //  Cada cobro queda además en _billing/{tid}/pagosAuto/{authorizedPaymentId}
 //  (idempotencia: si MP reenvía el webhook, no se procesa dos veces).
 //
-//  CONFIGURACIÓN MANUAL (una vez, en el panel de desarrolladores de MP):
-//    En la aplicación dueña de MP_ACCESS_TOKEN → Webhooks → agregar
+//  CONFIGURACIÓN MANUAL (una vez, en el panel de desarrolladores de MP,
+//  cuenta SynapTech Spa → aplicación "bioo12"):
+//    Webhooks → Modo productivo → agregar
 //      https://us-central1-barberia-elegance.cloudfunctions.net/mpMensualidadWebhook
-//    con los eventos de "Planes y suscripciones". (El webhook de pagos de
-//    Yügen no se toca: los pagos de suscripción que le lleguen los ignora.)
+//    con los eventos de "Planes y suscripciones".
 //
 //  DEPLOY:
 //    firebase deploy --only functions:mpMensualidadCrearLink,functions:mpMensualidadWebhook,functions:mpMensualidadCancelar
@@ -48,11 +51,19 @@ const { FieldValue }                    = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 
-const MP_ACCESS_TOKEN = defineSecret('MP_ACCESS_TOKEN');
+const MP_PLATFORM_ACCESS_TOKEN = defineSecret('MP_PLATFORM_ACCESS_TOKEN');
 const RESEND_API_KEY  = defineSecret('RESEND_API_KEY');
 
 const MP_API    = 'https://api.mercadopago.com';
 const MAIL_FROM = 'SynapTech <cobros@synaptechspa.cl>';
+
+// La app bioo12 admite UNA sola URL de webhook a nivel de aplicación, y antes
+// de este módulo apuntaba a mpBioWebhook (evento "Pagos"). Ahora la URL de la
+// app apunta aquí, y todo evento que NO sea de suscripciones se reenvía tal
+// cual a mpBioWebhook — comportamiento idéntico al anterior para bioo.
+// (Los flujos de pago además traen notification_url por preferencia, así que
+// este forward es cinturón y tirantes.)
+const BIO_WEBHOOK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/mpBioWebhook';
 
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
@@ -212,7 +223,7 @@ async function tenantPorSuscripcion({ externalRef, preapprovalId, planId }) {
 //     y devuelve el init_point para que el dueño ingrese su tarjeta.
 // ════════════════════════════════════════════════════════════════════════════
 exports.mpMensualidadCrearLink = onCall(
-  { secrets: [MP_ACCESS_TOKEN], region: 'us-central1', cors: true },
+  { secrets: [MP_PLATFORM_ACCESS_TOKEN], region: 'us-central1', cors: true },
   async (request) => {
     const tid = String(request.data?.tenantId || '').trim();
     if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
@@ -254,7 +265,7 @@ exports.mpMensualidadCrearLink = onCall(
       },
     };
 
-    const { httpStatus, json } = await mpRequest('POST', '/preapproval_plan', MP_ACCESS_TOKEN.value(), { body: plan });
+    const { httpStatus, json } = await mpRequest('POST', '/preapproval_plan', MP_PLATFORM_ACCESS_TOKEN.value(), { body: plan });
     if (httpStatus >= 300 || !json || !json.init_point || !json.id) {
       logger.error('[MPmens] crear plan falló', JSON.stringify(json));
       throw new HttpsError('internal', 'Mercado Pago no pudo crear la suscripción. Intenta de nuevo.');
@@ -399,25 +410,36 @@ async function procesarCobro(authorizedPaymentId, token, resendKey) {
 }
 
 exports.mpMensualidadWebhook = onRequest(
-  { secrets: [MP_ACCESS_TOKEN, RESEND_API_KEY], region: 'us-central1' },
+  { secrets: [MP_PLATFORM_ACCESS_TOKEN, RESEND_API_KEY], region: 'us-central1' },
   async (req, res) => {
     try {
       const q    = req.query || {};
       const body = req.body  || {};
       const type = String(q.type || q.topic || body.type || body.topic || '').toLowerCase();
       const id   = q['data.id'] || q.id || (body.data && body.data.id) || null;
-      if (!id) return res.status(200).send('no id');
 
       if (type.includes('subscription_authorized_payment') || type.includes('authorized_payment')) {
-        await procesarCobro(String(id), MP_ACCESS_TOKEN.value(), RESEND_API_KEY.value());
+        if (!id) return res.status(200).send('no id');
+        await procesarCobro(String(id), MP_PLATFORM_ACCESS_TOKEN.value(), RESEND_API_KEY.value());
       } else if (type.includes('subscription_preapproval_plan')) {
         // Evento del PLAN (alta/edición), no de una suscripción: su data.id es un
         // plan id — consultarlo como preapproval solo generaría 404 y ruido.
         return res.status(200).send('ignored');
       } else if (type.includes('subscription_preapproval') || type === 'preapproval') {
-        await procesarPreapproval(String(id), MP_ACCESS_TOKEN.value());
+        if (!id) return res.status(200).send('no id');
+        await procesarPreapproval(String(id), MP_PLATFORM_ACCESS_TOKEN.value());
       } else {
-        return res.status(200).send('ignored');
+        // Evento ajeno a suscripciones (ej: "Pagos" de bioo) → reenviar a
+        // mpBioWebhook, que era el destino original de la URL de la app.
+        try {
+          const qs = new URLSearchParams(q).toString();
+          await fetch(`${BIO_WEBHOOK_URL}${qs ? '?' + qs : ''}`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+          });
+        } catch (e) { logger.warn('[MPmens] forward a mpBioWebhook falló:', e.message); }
+        return res.status(200).send('forwarded');
       }
       return res.status(200).send('OK');
     } catch (e) {
@@ -432,7 +454,7 @@ exports.mpMensualidadWebhook = onRequest(
 //     Cancela la suscripción en MP; el local vuelve a transferencia manual.
 // ════════════════════════════════════════════════════════════════════════════
 exports.mpMensualidadCancelar = onCall(
-  { secrets: [MP_ACCESS_TOKEN], region: 'us-central1', cors: true },
+  { secrets: [MP_PLATFORM_ACCESS_TOKEN], region: 'us-central1', cors: true },
   async (request) => {
     const tid = String(request.data?.tenantId || '').trim();
     if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
@@ -446,7 +468,7 @@ exports.mpMensualidadCancelar = onCall(
 
     // Solo link creado (nadie se suscribió aún) → basta con limpiar el estado.
     if (sub.preapprovalId) {
-      const { httpStatus, json } = await mpRequest('PUT', `/preapproval/${sub.preapprovalId}`, MP_ACCESS_TOKEN.value(), {
+      const { httpStatus, json } = await mpRequest('PUT', `/preapproval/${sub.preapprovalId}`, MP_PLATFORM_ACCESS_TOKEN.value(), {
         body: { status: 'cancelled' },
       });
       if (httpStatus >= 300) {

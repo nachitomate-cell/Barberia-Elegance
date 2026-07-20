@@ -3,6 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
+import { PLANES, CADENA, PROMOS, fmtCLP } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -65,29 +66,40 @@ function mesLabel(mes) {
    PLANES Y TARIFAS MODAL
    ════════════════════════════════════════════════════════════════ */
 function PlanCard({ nombre, sub, mes, anual, pop }) {
+  const ahorroPct = anual ? Math.round((1 - anual / mes) * 100) : 0;
   return (
+    // pt-5 deja aire para el badge, que va DENTRO del flujo. Antes iba con
+    // -top-2.5 sobre una tarjeta con overflow-hidden, así que la propia
+    // tarjeta lo recortaba: se veía cortado y pisando la tarjeta de arriba.
     <div
-      className={`relative overflow-hidden rounded-2xl border p-4 transition-all ${
+      className={`relative rounded-2xl border p-4 transition-all ${
         pop
-          ? 'border-lime-500/60 bg-gradient-to-br from-lime-500/15 via-slate-900 to-slate-950 shadow-[0_8px_24px_-8px_rgba(132,204,22,0.4)]'
+          ? 'border-lime-500/60 bg-gradient-to-br from-lime-500/15 via-slate-900 to-slate-950 pt-5 shadow-[0_8px_24px_-8px_rgba(132,204,22,0.4)]'
           : 'border-slate-700/60 bg-slate-800/40'
       }`}
     >
       {pop && (
-        <span className="absolute -top-2.5 left-3 inline-flex items-center gap-1 rounded-full bg-lime-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-950">
+        <span className="absolute -top-2 left-4 inline-flex items-center gap-1 rounded-full bg-lime-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-950 shadow-sm">
           <Sparkles size={9} /> Más popular
         </span>
       )}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm font-bold text-primary">{nombre}</p>
-          <p className="text-[11px] text-slate-500">{sub}</p>
+          <p className="text-[11px] leading-snug text-slate-500">{sub}</p>
         </div>
-        <div className="text-right">
-          <p className={`text-lg font-black ${pop ? 'text-lime-300' : 'text-primary'}`}>
-            ${mes}<span className="text-[11px] font-medium text-slate-500">/mes</span>
+        <div className="shrink-0 text-right">
+          <p className={`text-lg font-black leading-none ${pop ? 'text-lime-300' : 'text-primary'}`}>
+            {fmtCLP(mes)}<span className="text-[11px] font-medium text-slate-500">/mes</span>
           </p>
-          <p className="text-[10px] text-slate-500">anual ${anual}/mes</p>
+          {anual > 0 && (
+            <p className="mt-1 text-[10px] leading-tight text-slate-500">
+              {fmtCLP(anual)}/mes pagando el año
+              {ahorroPct > 0 && (
+                <span className="ml-1 font-bold text-lime-400">−{ahorroPct}%</span>
+              )}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -122,28 +134,50 @@ function TarifasModal({ onClose }) {
             ✕
           </button>
         </div>
-        <div className="max-h-[78vh] space-y-3 overflow-y-auto p-5">
-          <PlanCard nombre="Individual" sub="1 barbero · trabajas solo" mes="14.900" anual="11.900" />
-          <PlanCard nombre="Local" sub="Barberos ilimitados · por local" mes="29.900" anual="24.900" pop />
+        <div className="max-h-[78vh] space-y-3 overflow-y-auto p-5 pt-6">
+          {PLANES.map(p => (
+            <PlanCard key={p.id} nombre={p.nombre} sub={p.sub} mes={p.mes} anual={p.anual} pop={p.popular} />
+          ))}
+
+          {/* Cadena: antes el primer tramo decía "1 local · $29.900 c/u", que
+              es exactamente el plan Local de arriba. Repetirlo hacía dudar si
+              eran cosas distintas. Ahora la tabla parte donde empieza el
+              descuento real. */}
           <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
-            <p className="mb-1.5 text-sm font-bold text-primary">
-              Cadena <span className="text-[11px] font-medium text-slate-500">· 3 o más locales</span>
+            <p className="text-sm font-bold text-primary">
+              Cadena <span className="text-[11px] font-medium text-slate-500">· 2 o más locales</span>
             </p>
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-between text-[13px] text-slate-300">
-                <span>1 local</span><b className="text-primary">$29.900 c/u</b>
-              </div>
-              <div className="flex items-center justify-between text-[13px] text-slate-300">
-                <span>2 locales</span><b className="text-primary">$25.900 c/u</b>
-              </div>
-              <div className="flex items-center justify-between text-[13px] text-lime-300">
-                <span>3 a 5 locales</span><b>$22.900 c/u</b>
-              </div>
+            <p className="mb-2 text-[11px] text-slate-500">Mientras más locales, menos pagas por cada uno.</p>
+            <div className="space-y-1">
+              {CADENA.map(t => {
+                const label = t.desde === t.hasta ? `${t.desde} locales` : `${t.desde} a ${t.hasta} locales`;
+                const off = Math.round((1 - t.porLocal / PLANES[1].mes) * 100);
+                return (
+                  <div key={t.desde} className="flex items-center justify-between gap-2 text-[13px] text-slate-300">
+                    <span>{label}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <b className="text-primary">{fmtCLP(t.porLocal)}</b>
+                      <span className="text-[10px] text-slate-500">c/u</span>
+                      {off > 0 && <span className="text-[10px] font-bold text-lime-400">−{off}%</span>}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <p className="pt-1 text-center text-[11px] leading-relaxed text-slate-500">
-            Primer mes gratis · sin instalación · migración gratis<br />
-            2° local: 50% off los primeros 3 meses
+
+          {/* Promos: en lista, no en un párrafo corrido separado por puntos. */}
+          <ul className="space-y-1 rounded-2xl border border-lime-500/20 bg-lime-500/5 p-3.5">
+            {PROMOS.map(p => (
+              <li key={p} className="flex items-start gap-2 text-[11.5px] leading-snug text-slate-300">
+                <Check size={12} className="mt-0.5 shrink-0 text-lime-400" />
+                {p}
+              </li>
+            ))}
+          </ul>
+
+          <p className="text-center text-[10px] text-slate-500">
+            Valores en pesos chilenos, IVA incluido.
           </p>
         </div>
       </motion.div>

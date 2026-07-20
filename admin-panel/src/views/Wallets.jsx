@@ -5,6 +5,7 @@ import {
   Crown, MapPinned, BellRing, RefreshCw, ArrowRight,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { ADDONS, fmtCLP } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -173,7 +174,10 @@ function UpsellWallet({ tenantName }) {
     `Hola SynapTech, quiero activar el módulo Wallet (tarjeta de fidelidad + geo-push) para mi local ${tenantName || ''}.`.trim(),
   );
   const waUrl = `https://wa.me/56983568212?text=${waMsg}`;
-  const PRECIO = '9.990'; // CLP/mes · cambiar acá si ajustas el precio
+  // El precio ya no vive acá: sale de lib/precios.js, que es la fuente
+  // única de todas las tarifas (planes y add-ons). Antes cada vista tenía
+  // el suyo hardcodeado y subir precios obligaba a tocar 4 archivos.
+  const PRECIO = fmtCLP(ADDONS.find(a => a.id === 'wallets').mes).replace('$', '');
 
   const HOOKS = [
     { Icon: MapPinned, titulo: 'Aparece cuando pasa cerca', desc: 'Su tarjeta salta sola a la pantalla de bloqueo al acercarse a tu local. El recordatorio perfecto, en el segundo perfecto.', star: true },

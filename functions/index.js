@@ -1231,10 +1231,11 @@ exports.mpReembolsar = mpPago.mpReembolsar;
 // ─────────────────────────────────────────────────────────────────
 //  MENSUALIDAD — pago automático con Suscripciones MP. ver
 //  mensualidad-mp.js. SynapTech cobra la mensualidad de cada local
-//  con cargo mensual a la tarjeta del dueño (cuenta MP de plataforma,
-//  MP_ACCESS_TOKEN). El webhook actualiza _billing/{tid} y manda el
+//  con cargo mensual a la tarjeta del dueño. Cuenta MP de SYNAPTECH
+//  (MP_PLATFORM_ACCESS_TOKEN, app bioo12) — NO MP_ACCESS_TOKEN, que
+//  es la app de Yügen. El webhook actualiza _billing/{tid} y manda el
 //  comprobante (RESEND_API_KEY). Requiere configurar la URL del
-//  webhook en la app de MP (eventos "Planes y suscripciones").
+//  webhook en bioo12 (eventos "Planes y suscripciones").
 // ─────────────────────────────────────────────────────────────────
 const mensualidadMp = require('./mensualidad-mp');
 exports.mpMensualidadCrearLink = mensualidadMp.mpMensualidadCrearLink;
