@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import { SheetModal, sheetBtn } from '../components/ui/SheetModal';
 import {
   Users, UserCheck, AlertTriangle, Plus, XCircle,
   RefreshCw, Settings, Trash2, GripVertical, Search,
@@ -65,59 +66,54 @@ function ModalConfirmarExtender({ miembro, tenantId, planes, onClose, onConfirm 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl relative overflow-hidden">
-        {/* Glow decoration */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-1">
-          <h3 className="text-primary font-bold text-lg flex items-center gap-2">
-            <RefreshCw size={18} className="text-emerald-400 animate-spin-slow" />
-            Extender membresía
-          </h3>
-          <p className="text-xs text-slate-400">Cliente: <strong className="text-primary">{miembro.nombre || '—'}</strong></p>
-        </div>
-
-        <div className="bg-slate-900/80 border border-slate-700/40 rounded-xl p-4 space-y-2.5 text-sm text-slate-300">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Vencimiento actual:</span>
-            <span className="font-semibold text-slate-200">{fechaActualVence.toLocaleDateString('es-CL')}</span>
-          </div>
-          <div className="flex justify-between items-center text-emerald-400">
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Nuevo vencimiento (+1 mes):</span>
-            <span className="font-bold flex items-center gap-1">
-              {nuevaFecha.toLocaleDateString('es-CL')}
-            </span>
-          </div>
-          {montoPlan > 0 && (
-            <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
-              <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Monto a cobrar:</span>
-              <span className="font-black text-primary text-base">${montoPlan.toLocaleString('es-CL')}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Método de registro de pago</label>
-          <select value={metodo} onChange={e => setMetodo(e.target.value)} className={INPUT_CLS}>
-            <option value="transferencia">📲 Transferencia Bancaria</option>
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="tarjeta">💳 Tarjeta de Débito/Crédito</option>
-            <option value="ninguno">⚠️ Extender gratis (Cortesía / Sin registrar pago)</option>
-          </select>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
-            Cancelar
-          </button>
-          <button onClick={procesar} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-bold transition-all shadow-lg shadow-emerald-950/20 disabled:opacity-50">
+    <SheetModal
+      icon={RefreshCw}
+      titulo="Extender membresía"
+      sub={miembro.nombre || '—'}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={procesar} disabled={loading} className={`${sheetBtn.base} ${sheetBtn.primary}`}>
             {loading ? 'Procesando…' : 'Confirmar'}
           </button>
-        </div>
+        </>
+      }
+    >
+      {/* El resultado (la fecha nueva) es el dato que se viene a confirmar:
+          va destacado, no como una fila más de una tabla de datos. */}
+      <div className="rounded-2xl bg-slate-800/50 px-4 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nuevo vencimiento</p>
+        <p className="mt-1 text-[19px] font-semibold leading-tight tracking-[-0.01em] text-primary">
+          {nuevaFecha.toLocaleDateString('es-CL')}
+        </p>
+        <p className="mt-0.5 text-[13px] text-slate-400">
+          antes vencía el {fechaActualVence.toLocaleDateString('es-CL')}
+        </p>
+        {montoPlan > 0 && (
+          <div className="mt-3 flex items-center justify-between border-t border-slate-700/50 pt-3">
+            <span className="text-[13px] text-slate-400">Monto a cobrar</span>
+            <span className="text-[15px] font-semibold text-primary">${montoPlan.toLocaleString('es-CL')}</span>
+          </div>
+        )}
       </div>
-    </div>
+
+      <div>
+        <label className="mb-2 block px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          Método de pago
+        </label>
+        <select
+          value={metodo}
+          onChange={e => setMetodo(e.target.value)}
+          className="w-full rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3 text-[15px] text-primary transition-colors focus:border-emerald-500/60 focus:outline-none"
+        >
+          <option value="transferencia">📲 Transferencia bancaria</option>
+          <option value="efectivo">💵 Efectivo</option>
+          <option value="tarjeta">💳 Tarjeta de débito/crédito</option>
+          <option value="ninguno">⚠️ Extender gratis (cortesía)</option>
+        </select>
+      </div>
+    </SheetModal>
   );
 }
 

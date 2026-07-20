@@ -17,6 +17,7 @@ import {
   runTransaction, Timestamp, arrayUnion,
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
+import { SheetModal, sheetBtn } from '../components/ui/SheetModal';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -2668,64 +2669,6 @@ function CitaContextMenu({ x, y, cita, onCompletar, onHistorial, onCambiarFecha,
     </div>
   );
 }
-
-/* ── SheetModal — base compartida de los diálogos de la agenda ────
-   Los modales de mover/avisar tenían cada uno su propio shell copiado, y
-   se veían "de sistema": esquinas chicas, scrim negro duro, botones
-   apretados. Esta base los unifica con el tratamiento que usa iOS:
-
-     · scrim claro pero MUY difuminado (el fondo se adivina, no se tapa)
-     · radio grande (28px) y sombra difusa en capas, no un box-shadow duro
-     · borde hairline en vez de 1px sólido
-     · entrada con spring corto, no un fade plano
-     · aire generoso: el apretado es lo que hace ver barata una interfaz
-
-   Un solo lugar que tocar cuando el criterio cambie. */
-function SheetModal({ icon: Icon, tone = 'emerald', titulo, sub, children, footer, onClose }) {
-  const tonos = {
-    emerald: 'bg-emerald-500/15 text-emerald-400',
-    amber:   'bg-amber-500/15 text-amber-400',
-  };
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-        className="sheet-modal-card w-full max-w-[380px] rounded-[28px] border border-slate-800 bg-slate-900 p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-3.5">
-          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${tonos[tone] || tonos.emerald}`}>
-            <Icon size={21} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[17px] font-semibold leading-tight tracking-[-0.01em] text-primary">{titulo}</p>
-            {sub && <p className="mt-0.5 truncate text-[13px] text-slate-500">{sub}</p>}
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-4">{children}</div>
-
-        {footer && <div className="mt-6 flex gap-2.5">{footer}</div>}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* Botones del SheetModal — altos, radio grande y respuesta al tacto. */
-const sheetBtn = {
-  base:   'flex-1 rounded-2xl py-3 text-[15px] font-semibold transition-all active:scale-[0.97] disabled:opacity-40',
-  ghost:  'bg-slate-800 text-slate-300 hover:bg-slate-700',
-  primary:'bg-emerald-500 text-white hover:bg-emerald-400 shadow-[0_4px_14px_-4px_rgba(16,185,129,0.5)]',
-  warn:   'bg-amber-500 text-amber-950 hover:bg-amber-400 shadow-[0_4px_14px_-4px_rgba(245,158,11,0.5)]',
-};
 
 /* ── AvisarClienteModal — se abre DESPUÉS de mover una cita ──────
    Mover una cita cambia un compromiso que el cliente ya tenía tomado, y
