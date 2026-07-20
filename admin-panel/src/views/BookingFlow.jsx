@@ -58,6 +58,16 @@ export default function BookingFlow() {
   );
   const loading = loadingBarberos || loadingServicios;
 
+  /* ── Estado del wizard ──
+     Va ANTES del early return de `loading`: como loading arranca en true y
+     pasa a false dentro del mismo montaje, si estos useState quedaban abajo
+     el primer render llamaba 5 hooks y el siguiente 9, y React reventaba con
+     "Rendered more hooks than during the previous render". */
+  const [stepIdx,   setStepIdx]   = useState(0);
+  const [servicio,  setServicio]  = useState(null);
+  const [barbero,   setBarbero]   = useState(null);
+  const [fechaHora, setFechaHora] = useState(null);
+
   if (loading) return <LoadingFlow accent={accent} />;
 
   /* 3 pasos si skip, 4 si no */
@@ -65,12 +75,6 @@ export default function BookingFlow() {
   const steps = skipBarbero
     ? ['servicios', 'fecha', 'confirmar']
     : ['servicios', 'barbero', 'fecha', 'confirmar'];
-
-  /* ── Estado del wizard ── */
-  const [stepIdx,   setStepIdx]   = useState(0);
-  const [servicio,  setServicio]  = useState(null);
-  const [barbero,   setBarbero]   = useState(null);
-  const [fechaHora, setFechaHora] = useState(null);
 
   const goNext = () => setStepIdx(i => i + 1);
   const goBack = () => setStepIdx(i => Math.max(0, i - 1));

@@ -26,6 +26,12 @@
   //    (y afines) al autocompletar credenciales en formularios; a veces
   //    referencia la variable antes de definirla y lanza en su propio
   //    script. No es un bug de la app (lo vemos en registro.html).
+  //  - Firefox para iOS inyecta `window.__firefox__` (modo lectura) en cada
+  //    página; su propio script falla si consulta la variable antes de que
+  //    la inyección termine. Visto en infinity/registro, 16-jul-2026.
+  //  - Gestores de contraseñas y el autofill de iOS que leen los campos del
+  //    formulario: `autofillFieldData.autoCompleteType` es de su script, no
+  //    del nuestro. Visto en aura/, 13-jul-2026.
   const IGNORE_PATTERNS = [
     'Attempt to get records from database without an in-progress transaction',
     'Connection to Indexed Database server lost',
@@ -39,6 +45,8 @@
     'instantSearchSDKJSBridgeClearHighlight',
     'ReactNativeWebView',
     '_AutofillCallbackHandler',
+    '__firefox__',
+    'autofillFieldData',
   ];
 
   function shouldIgnore(message) {

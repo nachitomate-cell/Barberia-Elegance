@@ -2074,6 +2074,21 @@ function SinHoraTray({ citas, onOpen }) {
 // lo que el local lee de un vistazo. Sin color, la barra queda como siempre.
 function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
+
+  // Todos los hooks van ANTES del early return de abajo. Una cita puede
+  // pasar de "sin hora válida" a tenerla dentro del mismo montaje (es el
+  // flujo de _horaEstimada: se guarda sin hora y queda fijada al abrirla o
+  // arrastrarla al slot). Con los hooks debajo del return, ese cambio movía
+  // el conteo de 0 a 6 y React reventaba la agenda entera con "Rendered more
+  // hooks than during the previous render".
+  const [over, setOver] = useState(false);
+  const cardRef      = useRef(null);
+  const holdTimer    = useRef(null);
+  const isTouchDrag  = useRef(false);
+  const suppressTap  = useRef(false); // evita que el touchend dispare el click "abrir cita"
+  const startPos     = useRef({ x: 0, y: 0 });
+  const lastTarget   = useRef(null);  // { el, barberoId, hora, ciId }
+
   // Defense-in-depth: computeOverlapLayout ya filtra las citas sin hora
   // válida, pero si esta card llega por otra vía (ej. drag) prefiero no
   // renderizar nada a explotar la agenda entera.
@@ -2087,18 +2102,12 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
   const pct   = 100 / colTotal;
   // NoAsistio es también un estado final: no se arrastra (como Completada/Cancelada).
   const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada' && cita.estado !== 'NoAsistio';
-  const [over, setOver] = useState(false);
 
   // ── Soporte táctil (long-press + arrastrar) ─────────────────
   // HTML5 draggable no dispara eventos en pantallas táctiles, así que
   // manejamos manualmente touchstart/move/end y usamos elementFromPoint
   // para saber qué franja horaria queda bajo el dedo al soltar.
-  const cardRef      = useRef(null);
-  const holdTimer    = useRef(null);
-  const isTouchDrag  = useRef(false);
-  const suppressTap  = useRef(false); // evita que el touchend dispare el click "abrir cita"
-  const startPos     = useRef({ x: 0, y: 0 });
-  const lastTarget   = useRef(null);  // { el, barberoId, hora, ciId }
+  // (Los refs se declaran arriba, antes del early return.)
   const TOUCH_HOVER  = ['!bg-emerald-500/30', 'ring-2', 'ring-inset', 'ring-emerald-400', 'z-10'];
 
   const clearTouchHover = () => {
@@ -2491,7 +2500,27 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
 }
 
 /* ── CitaContextMenu — menú al hacer clic derecho sobre una cita ── */
-function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, onWhatsApp, onCancelar, onNoAsistio, onEliminar, onClose }) {
+// Ítem del menú contextual. whitespace-nowrap: labels largos ("Confirmar por
+// WhatsApp") se quebraban en dos líneas con el ancho anterior.
+function CtxItem({ icon: Icon, iconCls = '', label, onClick, danger = false, emphasis = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] whitespace-nowrap transition-colors ${
+        danger
+          ? 'text-red-400 hover:bg-red-500/10'
+          : emphasis
+            ? 'text-emerald-300 font-semibold hover:bg-emerald-500/10'
+            : 'text-slate-200 hover:bg-slate-800'
+      }`}
+    >
+      <Icon size={15} className={`shrink-0 ${iconCls}`} />
+      {label}
+    </button>
+  );
+}
+
+function CitaContextMenu({ x, y, cita, onCompletar, onHistorial, onCambiarFecha, onEditar, onWhatsApp, onCancelar, onNoAsistio, onEliminar, onClose }) {
   const ref = useRef(null);
   // Reposiciona para que no se salga de la ventana.
   const [pos, setPos] = useState({ left: x, top: y });
@@ -2511,74 +2540,66 @@ function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, on
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const iniciales = String(cita.clienteNombre || '?')
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(w => w[0]).join('').toUpperCase();
+
+  // Completar solo tiene sentido si la cita sigue "viva".
+  const puedeCompletar = onCompletar &&
+    cita.estado !== 'Completada' && cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio';
+  const puedeNoAsistio = onNoAsistio &&
+    cita.estado !== 'Completada' && cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio';
+  const puedeCancelar  = cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio';
+
   return (
     <div className="fixed inset-0 z-[70]" onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }}>
       <div
         ref={ref}
         onClick={e => e.stopPropagation()}
-        className="absolute w-52 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden"
+        className="absolute w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 py-1.5 overflow-hidden"
         style={{ left: pos.left, top: pos.top }}
       >
-        <div className="px-3 py-2 border-b border-slate-800 mb-1">
-          <p className="text-xs font-semibold text-primary truncate">{cita.clienteNombre || 'Cliente'}</p>
-          <p className="text-[10px] text-slate-500 truncate">{cita.hora}{cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}</p>
+        {/* Header: avatar + cliente + estado, contexto de un vistazo */}
+        <div className="px-3 py-2.5 border-b border-slate-800 mb-1 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-slate-800 text-emerald-300 text-[11px] font-bold flex items-center justify-center shrink-0">
+            {iniciales || '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-primary truncate">{cita.clienteNombre || 'Cliente'}</p>
+            <p className="text-[10px] text-slate-500 truncate">{cita.hora}{cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}</p>
+          </div>
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ESTADO_BADGE[cita.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+            {STATUS_LABEL[cita.estado] || cita.estado || 'Confirmada'}
+          </span>
         </div>
-        <button
-          onClick={onHistorial}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-        >
-          <History size={15} className="text-emerald-400 shrink-0" />
-          Ver historial / Notas
-        </button>
-        <button
-          onClick={onCambiarFecha}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-        >
-          <CalendarDays size={15} className="text-emerald-400 shrink-0" />
-          Cambiar de fecha
-        </button>
-        <button
-          onClick={onEditar}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-        >
-          <Scissors size={15} className="text-slate-400 shrink-0" />
-          Editar cita
-        </button>
+
+        {/* Acción principal: abre el modal con la cita en estado Completada,
+            lista para confirmar pago/propina y guardar. */}
+        {puedeCompletar && (
+          <>
+            <CtxItem icon={CheckCircle2} iconCls="text-emerald-400" emphasis
+              label="Completar cita" onClick={onCompletar} />
+            <div className="my-1 border-t border-slate-800" />
+          </>
+        )}
+
+        <CtxItem icon={Scissors}     iconCls="text-slate-400"   label="Editar cita"           onClick={onEditar} />
+        <CtxItem icon={CalendarDays} iconCls="text-emerald-400" label="Cambiar de fecha"      onClick={onCambiarFecha} />
+        <CtxItem icon={History}      iconCls="text-emerald-400" label="Ver historial / Notas" onClick={onHistorial} />
         {cita.clienteTelefono && (
-          <button
-            onClick={onWhatsApp}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-          >
-            <MessageSquare size={15} className="text-green-400 shrink-0" />
-            Confirmar por WhatsApp
-          </button>
+          <CtxItem icon={MessageSquare} iconCls="text-green-400" label="Confirmar por WhatsApp" onClick={onWhatsApp} />
         )}
-        {cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio' && cita.estado !== 'Completada' && onNoAsistio && (
-          <button
-            onClick={onNoAsistio}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-          >
-            <UserX size={15} className="text-rose-400 shrink-0" />
-            Marcar no asistió
-          </button>
+
+        {(puedeNoAsistio || puedeCancelar) && <div className="my-1 border-t border-slate-800" />}
+        {puedeNoAsistio && (
+          <CtxItem icon={UserX} iconCls="text-rose-400"  label="Marcar no asistió" onClick={onNoAsistio} />
         )}
-        {cita.estado !== 'Cancelada' && cita.estado !== 'NoAsistio' && (
-          <button
-            onClick={onCancelar}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
-          >
-            <Ban size={15} className="text-amber-400 shrink-0" />
-            Cancelar cita
-          </button>
+        {puedeCancelar && (
+          <CtxItem icon={Ban}   iconCls="text-amber-400" label="Cancelar cita"     onClick={onCancelar} />
         )}
+
         <div className="my-1 border-t border-slate-800" />
-        <button
-          onClick={onEliminar}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-        >
-          <Trash2 size={15} className="shrink-0" />
-          Eliminar cita
-        </button>
+        <CtxItem icon={Trash2} label="Eliminar cita" onClick={onEliminar} danger />
       </div>
     </div>
   );
@@ -4728,6 +4749,12 @@ export default function Agenda() {
           x={ctxMenu.x}
           y={ctxMenu.y}
           cita={ctxMenu.cita}
+          onCompletar={() => {
+            // Mismo flujo que el deep-link ?completar=: el modal abre con la
+            // cita cargada y estado Completada — solo falta confirmar y guardar.
+            const c = ctxMenu.cita; setCtxMenu(null);
+            setCitaModal({ cita: c, barberoId: c.barberoId, hora: c.hora, defaultEstado: 'Completada' });
+          }}
           onHistorial={() => { setHistModal(ctxMenu.cita); setCtxMenu(null); }}
           onCambiarFecha={() => { openReagendar(ctxMenu.cita); setCtxMenu(null); }}
           onEditar={() => { openEditCita(ctxMenu.cita); setCtxMenu(null); }}
