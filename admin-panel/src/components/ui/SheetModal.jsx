@@ -100,4 +100,18 @@ export const sheetBtn = {
   danger:  'bg-red-500 text-white hover:bg-red-400 shadow-[0_4px_14px_-4px_rgba(239,68,68,0.5)]',
 };
 
+/* Campos del SheetModal. Se exportan para que cada vista migrada no
+   invente su propio input: sin esto, los modales comparten el marco pero
+   por dentro siguen viéndose de diez maneras distintas. */
+export const sheetInput =
+  'w-full rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3 text-[15px] text-primary ' +
+  'placeholder-slate-500 transition-colors focus:border-emerald-500/60 focus:outline-none';
+
+export const sheetLabel =
+  'mb-2 block px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500';
+
+/* Bloque de dato destacado: lo que el usuario viene a confirmar (una
+   fecha nueva, un monto, una hora) va acá, no como fila de tabla. */
+export const sheetHighlight = 'rounded-2xl bg-slate-800/50 px-4 py-3.5';
+
 export default SheetModal;

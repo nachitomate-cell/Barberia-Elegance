@@ -5,6 +5,7 @@ import {
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
+import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,87 +102,75 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
   const montoNum = parseFloat(monto);
   const montoPorCuota = montoNum > 0 && cuotas > 1 ? Math.round(montoNum / cuotas) : null;
 
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors';
-  const lbl = 'block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5';
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center">
-              <Wallet size={20} className="text-orange-400" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary">Registrar adelanto</p>
-              <p className="text-xs text-slate-500">{barbero.nombre}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={lbl}>Monto ($)</label>
-              <input className={inp} type="number" min="1" step="1" placeholder="0" autoFocus
-                value={monto} onChange={e => setMonto(e.target.value)} />
-            </div>
-            <div>
-              <label className={lbl}>Fecha</label>
-              <input className={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <label className={lbl}>Método de pago</label>
-            <select className={inp} value={metodoPago} onChange={e => setMetodoPago(e.target.value)}>
-              {METODOS_PAGO.map(m => <option key={m}>{m}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className={lbl}>Nota (opcional)</label>
-            <input className={inp} placeholder="Ej: adelanto quincena" value={nota} onChange={e => setNota(e.target.value)} />
-          </div>
-
-          <div>
-            <label className={lbl}>Cuotas (para descontar)</label>
-            <div className="flex items-center gap-2">
-              <input className={inp} type="number" min="1" max="36" step="1"
-                value={cuotas} onChange={e => setCuotas(e.target.value)} />
-              <span className="text-xs text-slate-500 whitespace-nowrap">
-                {cuotas == 1 ? 'sin cuotas' : `× ${cuotas} meses`}
-              </span>
-            </div>
-            {montoPorCuota && (
-              <p className="text-[11px] text-amber-300 mt-1.5">
-                Se descontarán <strong>{formatCLP(montoPorCuota)}</strong> de la liquidación de cada uno de los próximos {cuotas} períodos mensuales.
-              </p>
-            )}
-          </div>
-
-          <p className="text-xs text-slate-500">
-            Se registra como gasto en la categoría <span className="text-slate-300 font-medium">Sueldos</span> el día indicado. {cuotas == 1
-              ? 'Se descuenta entero del próximo pago al barbero.'
-              : 'El descuento se prorratea en las cuotas indicadas.'}
-          </p>
-
-          {error && (
-            <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-              <AlertCircle size={13} /> {error}
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
-              Cancelar
-            </button>
-            <button onClick={handle} disabled={loading}
-              className="flex-1 py-2 rounded-lg text-sm font-bold text-orange-950 bg-orange-400 hover:bg-orange-300 disabled:opacity-50 transition-all">
-              {loading ? 'Registrando...' : 'Registrar adelanto'}
-            </button>
-          </div>
+    <SheetModal
+      icon={Wallet}
+      tone="amber"
+      titulo="Registrar adelanto"
+      sub={barbero.nombre}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={handle} disabled={loading} className={`${sheetBtn.base} ${sheetBtn.warn}`}>
+            {loading ? 'Registrando…' : 'Registrar'}
+          </button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={sheetLabel}>Monto ($)</label>
+          <input className={sheetInput} type="number" min="1" step="1" placeholder="0" autoFocus
+            value={monto} onChange={e => setMonto(e.target.value)} />
+        </div>
+        <div>
+          <label className={sheetLabel}>Fecha</label>
+          <input className={sheetInput} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
         </div>
       </div>
-    </div>
+
+      <div>
+        <label className={sheetLabel}>Método de pago</label>
+        <select className={sheetInput} value={metodoPago} onChange={e => setMetodoPago(e.target.value)}>
+          {METODOS_PAGO.map(m => <option key={m}>{m}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <label className={sheetLabel}>Nota (opcional)</label>
+        <input className={sheetInput} placeholder="Ej: adelanto quincena" value={nota} onChange={e => setNota(e.target.value)} />
+      </div>
+
+      <div>
+        <label className={sheetLabel}>Cuotas para descontar</label>
+        <div className="flex items-center gap-2.5">
+          <input className={sheetInput} type="number" min="1" max="36" step="1"
+            value={cuotas} onChange={e => setCuotas(e.target.value)} />
+          <span className="whitespace-nowrap text-[13px] text-slate-500">
+            {cuotas == 1 ? 'sin cuotas' : `× ${cuotas} meses`}
+          </span>
+        </div>
+        {montoPorCuota && (
+          <p className="mt-2 px-1 text-[12.5px] leading-snug text-amber-300">
+            Se descontarán <strong>{formatCLP(montoPorCuota)}</strong> de la liquidación de cada uno de los próximos {cuotas} períodos.
+          </p>
+        )}
+      </div>
+
+      <p className="px-1 text-[12.5px] leading-relaxed text-slate-500">
+        Se registra como gasto en <span className="font-medium text-slate-400">Sueldos</span> el día indicado.{' '}
+        {cuotas == 1
+          ? 'Se descuenta entero del próximo pago al barbero.'
+          : 'El descuento se prorratea en las cuotas indicadas.'}
+      </p>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-[12.5px] text-rose-400">
+          <AlertCircle size={14} className="shrink-0" /> {error}
+        </div>
+      )}
+    </SheetModal>
   );
 }
 
@@ -195,61 +184,56 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
     onClose();
   };
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-              <CheckCircle2 size={20} className="text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary">Registrar pago</p>
-              <p className="text-xs text-slate-500">{barbero.nombre}</p>
-            </div>
+    <SheetModal
+      icon={CheckCircle2}
+      titulo="Registrar pago"
+      sub={barbero.nombre}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={handle} disabled={loading} className={`${sheetBtn.base} ${sheetBtn.primary}`}>
+            {loading ? 'Registrando…' : 'Confirmar pago'}
+          </button>
+        </>
+      }
+    >
+      {/* El total va arriba y grande: es la cifra que se confirma. El
+          desglose queda debajo como respaldo, no compitiendo con ella. */}
+      <div className={sheetHighlight}>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total a pagar</p>
+        <p className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.02em] text-emerald-400">
+          {formatCLP(barbero.total)}
+        </p>
+
+        <div className="mt-3.5 space-y-1.5 border-t border-slate-700/50 pt-3 text-[13px]">
+          <div className="flex justify-between text-slate-400">
+            <span>Sueldo base</span>
+            <span className="font-medium text-slate-300">{formatCLP(barbero.sueldoBase)}</span>
           </div>
-          <div className="bg-slate-800/60 rounded-lg p-4 space-y-2 text-sm">
-            <div className="flex justify-between text-slate-400">
-              <span>Sueldo base</span>
-              <span className="text-primary font-medium">{formatCLP(barbero.sueldoBase)}</span>
-            </div>
-            <div className="flex justify-between text-slate-400">
-              <span>Comisiones ({barbero.comisionPct}%)</span>
-              <span className="text-primary font-medium">{formatCLP(barbero.montoComision)}</span>
-            </div>
-            {barbero.adelantos > 0 && (
-              <div className="flex justify-between text-slate-400">
-                <span>Adelantos del período</span>
-                <span className="text-orange-400 font-medium">− {formatCLP(barbero.adelantos)}</span>
-              </div>
-            )}
-            <div className="border-t border-slate-700 pt-2 flex justify-between font-bold">
-              <span className="text-slate-300">Total a pagar</span>
-              <span className="text-emerald-400">{formatCLP(barbero.total)}</span>
-            </div>
+          <div className="flex justify-between text-slate-400">
+            <span>Comisiones ({barbero.comisionPct}%)</span>
+            <span className="font-medium text-slate-300">{formatCLP(barbero.montoComision)}</span>
           </div>
-          {barbero.saldoPendiente > 0 && (
-            <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-              Los adelantos superan lo generado este período. Queda un saldo de {formatCLP(barbero.saldoPendiente)} a favor del local (arrástralo al próximo período).
-            </p>
+          {barbero.adelantos > 0 && (
+            <div className="flex justify-between text-slate-400">
+              <span>Adelantos del período</span>
+              <span className="font-medium text-orange-400">− {formatCLP(barbero.adelantos)}</span>
+            </div>
           )}
-          <p className="text-xs text-slate-500">
-            Se registrará como gasto en la categoría <span className="text-slate-300 font-medium">Sueldos</span> del período {periodo}.
-          </p>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
-              Cancelar
-            </button>
-            <button
-              onClick={handle}
-              disabled={loading}
-              className="flex-1 py-2 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 disabled:opacity-50 transition-all"
-            >
-              {loading ? 'Registrando...' : 'Confirmar pago'}
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+
+      {barbero.saldoPendiente > 0 && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-snug text-amber-300">
+          Los adelantos superan lo generado este período. Queda un saldo de {formatCLP(barbero.saldoPendiente)} a favor del local — arrástralo al próximo período.
+        </div>
+      )}
+
+      <p className="px-1 text-[12.5px] leading-relaxed text-slate-500">
+        Se registrará como gasto en <span className="font-medium text-slate-400">Sueldos</span> del período {periodo}.
+      </p>
+    </SheetModal>
   );
 }
 
