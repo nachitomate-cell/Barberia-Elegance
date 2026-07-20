@@ -1108,8 +1108,13 @@
     <!-- Header Navigation -->
     <header class="sticky top-0 z-50 w-full px-4 sm:px-6 py-2 sm:py-5 flex items-center justify-between bg-brand-bg/90 backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-2.5 sm:gap-3 min-w-0" id="barberHeaderBlock">
-            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 shrink-0">
-                <i class="ph-bold ph-calendar text-base sm:text-xl text-white"></i>
+            <!-- Antes era un ícono de calendario decorativo (sin función). Ahora
+                 muestra el LOGO del local, que _aplicarBranding() rellena — igual
+                 que el login, el banner de instalar y el modal iOS. Si el tenant
+                 no tiene logo, queda el ícono de calendario como respaldo. -->
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 shrink-0 overflow-hidden">
+                <img id="headerShopLogo" alt="" class="w-full h-full object-cover hidden" />
+                <i id="headerShopIconFallback" class="ph-bold ph-calendar text-base sm:text-xl text-white"></i>
             </div>
             <div class="min-w-0">
                 <h1 class="text-[15px] sm:text-lg font-bold text-white tracking-tight truncate leading-tight" id="barberNameHeader">Agenda</h1>
@@ -1738,6 +1743,18 @@
             const nombreCorto = shop.nombreCorto || 'Agenda';
 
             document.title = 'Agenda | ' + nombreCorto;
+
+            // Logo del local en el header (reemplaza el ícono de calendario). Si
+            // el tenant no definió logo propio (queda el fallback '/logo.jpg' de
+            // Elegance), no lo forzamos: mejor el ícono genérico que el logo de
+            // otra marca. El <img> se muestra solo con un logo real del tenant.
+            const headerLogo = document.getElementById('headerShopLogo');
+            const headerIcon = document.getElementById('headerShopIconFallback');
+            if (headerLogo && shop.logo) {
+                headerLogo.src = shop.logo;
+                headerLogo.onload  = () => { headerLogo.classList.remove('hidden'); if (headerIcon) headerIcon.classList.add('hidden'); };
+                headerLogo.onerror = () => { headerLogo.classList.add('hidden'); if (headerIcon) headerIcon.classList.remove('hidden'); };
+            }
 
             const loginLogo = document.getElementById('loginLogo');
             if (loginLogo) loginLogo.src = logo;
