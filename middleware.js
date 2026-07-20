@@ -1290,8 +1290,8 @@ const TENANT_META = {
     iconPwa192:  '/icons/pwa/renacer-192.png',
     iconPwa512:  '/icons/pwa/renacer-512.png',
     local: {
-      telephone:       '',
-      streetAddress:   'Ecuador 226',
+      telephone:       '+56985279282',
+      streetAddress:   'Ecuador 266',
       postalCode:      '2520000',
       priceRange:      '$$',
       addressLocality: 'Viña del Mar',

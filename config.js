@@ -1004,20 +1004,20 @@
       nombreCorto:     'Renacer',
       pageTitle:       'Renacer | Peluquería & Barbería',
       bodyBg:          '#0a0806',
-      slogan:          'Peluquería & Barbería de Autor',
+      slogan:          'Acompañamos cada cambio',  // tagline oficial del flyer
       sobreNosotros:   'Un espacio de estilismo unisex y barbería de alta gama dedicado al cuidado integral, la técnica de autor y una experiencia de reserva fluida y sin demoras.',
       logo:            '/renacer/logo.webp',
       banner:          '/renacer/banner.webp',  // hero background (evita fallback al banner de Elegance)
-      direccion:       '📍 Ecuador 226 | Viña del Mar',
+      direccion:       '📍 Ecuador 266 | Viña del Mar',  // flyer oficial (antes 226, verificar en terreno)
       horario:         '🕒 Lun a Sáb · 10:00 – 20:00',
-      telefono:        '',
+      telefono:        '56985279282',   // WhatsApp del flyer: +56 9 8527 9282
       club:            'Club Renacer',
       headerSub:       'ESTUDIO UNISEX',
       heroLine1:       'Tu estilo,',
       heroLine2:       'elevado al siguiente nivel.',
       watermark:       'R',
-      instagram:       'https://instagram.com',
-      instagramHandle: '@renacer.studio',
+      instagram:       'https://www.instagram.com/peluqueriaybarberiarenacer/',
+      instagramHandle: '@peluqueriaybarberiarenacer',
       waEmoji:         '✂️',
       googleReviewUrl: '',
       ratingGeneral:   5.0,   // aggregateRating real desde AgendaPro (2026-07-14)
