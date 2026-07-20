@@ -1234,10 +1234,17 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           )}
           <div className="hidden sm:block sm:flex-1" />
           <button onClick={onClose} className="shrink-0 px-4 py-2.5 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+          {/* El botón nombra el resultado: si la cita se va a cerrar, lo dice.
+              Un "Guardar" neutro no le confirmaba al usuario que la acción
+              que buscaba (dar por terminada la cita) era la correcta. */}
           <button onClick={handleSave} disabled={saving || !form.clienteNombre || !form.hora}
             className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all">
-            {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {isNew ? 'Crear cita' : 'Guardar'}
+            {saving
+              ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : (!isNew && form.estado === 'Completada' && <Check size={15} className="shrink-0" />)}
+            {isNew
+              ? 'Crear cita'
+              : (form.estado === 'Completada' ? 'Completar cita' : 'Guardar')}
           </button>
         </div>
       }
@@ -1415,25 +1422,52 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={lbl}>Barbero</label>
-            <select className={field} value={form.barberoId} onChange={e => onBarberoChange(e.target.value)}>
-              {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-            </select>
-          </div>
-          {!isNew && (
-            <div>
-              <label className={lbl}>Estado</label>
-              <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
-                <option value="Confirmada">Confirmada</option>
-                <option value="Completada">Completada</option>
-                <option value="Cancelada">Cancelada</option>
-                <option value="NoAsistio">No asistió</option>
-              </select>
-            </div>
-          )}
+        <div>
+          <label className={lbl}>Barbero</label>
+          <select className={field} value={form.barberoId} onChange={e => onBarberoChange(e.target.value)}>
+            {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+          </select>
         </div>
+
+        {/* Estado: antes era un <select> genérico metido al lado de "Barbero".
+            Cerrar la cita es LA acción del día y quedaba escondida detrás de
+            un desplegable — los locales no encontraban cómo completarla.
+            Ahora los 4 estados se ven de una y se cambian con un toque, con
+            los mismos colores que la grilla de la agenda. */}
+        {!isNew && (
+          <div>
+            <label className={lbl}>Estado de la cita</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { v: 'Confirmada', txt: 'Confirmada', on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+                { v: 'Completada', txt: 'Completada', on: 'bg-blue-500/20 border-blue-500/60 text-blue-300' },
+                { v: 'Cancelada',  txt: 'Cancelada',  on: 'bg-red-500/15 border-red-500/50 text-red-300' },
+                { v: 'NoAsistio',  txt: 'No asistió', on: 'bg-rose-500/15 border-rose-500/50 text-rose-300' },
+              ].map(o => {
+                const activo = form.estado === o.v;
+                return (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => set('estado', o.v)}
+                    aria-pressed={activo}
+                    className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-bold transition-all active:scale-95 ${
+                      activo ? o.on : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                    }`}
+                  >
+                    {activo && <Check size={13} className="shrink-0" />}
+                    {o.txt}
+                  </button>
+                );
+              })}
+            </div>
+            {form.estado === 'Completada' && (
+              <p className="text-[11px] text-blue-300/80 mt-2 leading-relaxed">
+                Al guardar, la cita queda cerrada: cuenta para las métricas del día, suma la comisión del barbero y le entrega el sello al cliente.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ═══ BLOQUE 3 · FINANZAS Y NOTAS ═══ */}
