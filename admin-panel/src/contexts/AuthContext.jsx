@@ -28,6 +28,23 @@ export function getBrandTenants(email) {
   return BRAND_ADMINS[e] || null;
 }
 
+// Fallback: custom claims { role, tenantId } que setea superadminCrearStaff.
+// Cubre cuentas SIN doc-espejo barberos/{uid} (flujos de alta antiguos solo
+// dejaban authUid en el doc principal): sin esto, un admin real degradaba a
+// 'barbero' en silencio y perdía el sidebar (caso Infinity, 2026-07-19).
+// Los claims viven en el ID token cacheado, así que también sirven si la
+// lectura de Firestore falla por red.
+async function roleFromClaims(firebaseUser) {
+  try {
+    const tok = await firebaseUser.getIdTokenResult();
+    const { role, tenantId } = tok.claims || {};
+    if (tenantId !== resolveTenantId()) return null;   // claims de OTRO tenant no valen aquí
+    return (role === 'admin' || role === 'barbero') ? role : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined);
   const [role,    setRole]    = useState(null);
@@ -72,10 +89,10 @@ export function AuthProvider({ children }) {
             setRole(data.rol || 'barbero');
           }
         } else {
-          setRole('barbero');
+          setRole(await roleFromClaims(firebaseUser) || 'barbero');
         }
       } catch {
-        setRole('barbero');
+        setRole(await roleFromClaims(firebaseUser) || 'barbero');
       }
       setLoading(false);
     });
