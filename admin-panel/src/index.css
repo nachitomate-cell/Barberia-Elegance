@@ -1143,6 +1143,17 @@ html.light [data-view="agenda"] [role="tab"][aria-selected="true"] {
   font-weight: 700 !important;
 }
 
+/* Diálogos de la agenda (SheetModal): en claro necesitan borde hairline y
+   sombra suave. Sin esto heredaban el .border-slate-800 de la vista, que
+   acá se mapea a #94a3b8 (gris medio) — un marco pesado que arruina el
+   efecto de tarjeta flotante. La elevación la da la sombra, no el borde. */
+html.light [data-view="agenda"] .sheet-modal-card {
+  border-color: #e9edf2 !important;
+  box-shadow:
+    0 24px 56px -12px rgba(15, 23, 42, 0.18),
+    0 4px 12px -4px rgba(15, 23, 42, 0.08) !important;
+}
+
 /* Bloqueos: el rayado estaba en #f1f5f9 (slate-100) sobre blanco, tan
    suave que una franja bloqueada no se distinguía de una libre — y eso
    es funcional, no estético: el local no ve de un vistazo qué está

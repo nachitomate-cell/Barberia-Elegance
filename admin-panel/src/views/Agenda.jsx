@@ -2669,6 +2669,64 @@ function CitaContextMenu({ x, y, cita, onCompletar, onHistorial, onCambiarFecha,
   );
 }
 
+/* ── SheetModal — base compartida de los diálogos de la agenda ────
+   Los modales de mover/avisar tenían cada uno su propio shell copiado, y
+   se veían "de sistema": esquinas chicas, scrim negro duro, botones
+   apretados. Esta base los unifica con el tratamiento que usa iOS:
+
+     · scrim claro pero MUY difuminado (el fondo se adivina, no se tapa)
+     · radio grande (28px) y sombra difusa en capas, no un box-shadow duro
+     · borde hairline en vez de 1px sólido
+     · entrada con spring corto, no un fade plano
+     · aire generoso: el apretado es lo que hace ver barata una interfaz
+
+   Un solo lugar que tocar cuando el criterio cambie. */
+function SheetModal({ icon: Icon, tone = 'emerald', titulo, sub, children, footer, onClose }) {
+  const tonos = {
+    emerald: 'bg-emerald-500/15 text-emerald-400',
+    amber:   'bg-amber-500/15 text-amber-400',
+  };
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+        className="sheet-modal-card w-full max-w-[380px] rounded-[28px] border border-slate-800 bg-slate-900 p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3.5">
+          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${tonos[tone] || tonos.emerald}`}>
+            <Icon size={21} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[17px] font-semibold leading-tight tracking-[-0.01em] text-primary">{titulo}</p>
+            {sub && <p className="mt-0.5 truncate text-[13px] text-slate-500">{sub}</p>}
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-4">{children}</div>
+
+        {footer && <div className="mt-6 flex gap-2.5">{footer}</div>}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* Botones del SheetModal — altos, radio grande y respuesta al tacto. */
+const sheetBtn = {
+  base:   'flex-1 rounded-2xl py-3 text-[15px] font-semibold transition-all active:scale-[0.97] disabled:opacity-40',
+  ghost:  'bg-slate-800 text-slate-300 hover:bg-slate-700',
+  primary:'bg-emerald-500 text-white hover:bg-emerald-400 shadow-[0_4px_14px_-4px_rgba(16,185,129,0.5)]',
+  warn:   'bg-amber-500 text-amber-950 hover:bg-amber-400 shadow-[0_4px_14px_-4px_rgba(245,158,11,0.5)]',
+};
+
 /* ── AvisarClienteModal — se abre DESPUÉS de mover una cita ──────
    Mover una cita cambia un compromiso que el cliente ya tenía tomado, y
    hasta ahora el sistema no ofrecía ninguna forma de contárselo: el
@@ -2709,58 +2767,45 @@ function AvisarClienteModal({ data, shopName, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-              <MessageCircle size={20} className="text-emerald-400" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-primary">Avísale a tu cliente</p>
-              <p className="text-xs text-slate-500 truncate">
-                Cambiaste la hora de {data.cita.clienteNombre || 'la cita'}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
-              Mensaje
-            </label>
-            <textarea
-              value={texto}
-              onChange={e => setTexto(e.target.value)}
-              rows={7}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-[13px] leading-relaxed text-primary focus:outline-none focus:border-emerald-500 transition-colors resize-none"
-            />
-            <p className="text-[11px] text-slate-500 mt-1.5">Puedes editarlo antes de enviar.</p>
-          </div>
-
-          {!tel && (
-            <div className="flex items-start gap-2 text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
-              <span>Esta cita no tiene teléfono guardado, así que no podemos abrir WhatsApp. Copia el mensaje y envíaselo por donde lo tengas.</span>
-            </div>
+    <SheetModal
+      icon={MessageCircle}
+      titulo="Avísale a tu cliente"
+      sub={`Cambiaste la hora de ${data.cita.clienteNombre || 'la cita'}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Ahora no</button>
+          <button onClick={copiar} className={`${sheetBtn.base} ${sheetBtn.ghost} !flex-none px-4`}>
+            {copiado ? '¡Listo!' : 'Copiar'}
+          </button>
+          {waUrl && (
+            <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={onClose}
+              className={`${sheetBtn.base} ${sheetBtn.primary} grid place-items-center`}>
+              WhatsApp
+            </a>
           )}
-
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
-              Ahora no
-            </button>
-            <button onClick={copiar} className="shrink-0 px-3 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all">
-              {copiado ? '¡Copiado!' : 'Copiar'}
-            </button>
-            {waUrl && (
-              <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={onClose}
-                className="flex-1 py-2 rounded-lg text-sm font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 transition-all text-center">
-                WhatsApp
-              </a>
-            )}
-          </div>
-        </div>
+        </>
+      }
+    >
+      {/* El mensaje se ve como una burbuja de chat, no como un formulario:
+          así se entiende de inmediato que es lo que va a recibir el cliente. */}
+      <div>
+        <textarea
+          value={texto}
+          onChange={e => setTexto(e.target.value)}
+          rows={7}
+          className="w-full resize-none rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3.5 text-[14px] leading-relaxed text-primary transition-colors focus:border-emerald-500/60 focus:outline-none"
+        />
+        <p className="mt-2 px-1 text-[12px] text-slate-500">Puedes editarlo antes de enviar.</p>
       </div>
-    </div>
+
+      {!tel && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-snug text-amber-300">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          <span>Esta cita no tiene teléfono guardado, así que no podemos abrir WhatsApp. Copia el mensaje y envíaselo por donde lo tengas.</span>
+        </div>
+      )}
+    </SheetModal>
   );
 }
 
@@ -2773,54 +2818,54 @@ function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
   // La advertencia de sobrecupo solo aplica al día visible (no conocemos la ocupación de otros días).
   const ocupada = data.ocupada && !otroDia;
   const handle  = async () => { setLoading(true); await onConfirm(fecha); setLoading(false); };
-  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors';
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ocupada ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
-              <CalendarDays size={20} className={ocupada ? 'text-amber-400' : 'text-emerald-400'} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary">Mover cita</p>
-              <p className="text-xs text-slate-500">{data.cita.clienteNombre || 'Cliente'}</p>
-            </div>
-          </div>
-
-          <p className="text-sm text-slate-300">
-            Mover a las <span className="font-bold text-primary">{data.hora}</span> con <span className="font-bold text-primary">{data.barberoNombre}</span>
-            {otroDia && <> el <span className="font-bold text-primary">{fecha}</span></>}.
-          </p>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Fecha</label>
-            <input type="date" className={inp} value={fecha} onChange={e => setFecha(e.target.value)} />
-            <p className="text-[11px] text-slate-500 mt-1.5">Cambia la fecha para reagendar a otro día.</p>
-          </div>
-
-          {ocupada && (
-            <div className="flex items-start gap-2 text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
-              <span>Ese horario <b>ya tiene una cita</b>. Quedará como <b>sobrecupo</b> (dos citas a la misma hora). Asegúrate de poder atender ambas.</span>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
-              Cancelar
-            </button>
-            <button onClick={handle} disabled={loading}
-              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 ${
-                ocupada ? 'text-amber-950 bg-amber-400 hover:bg-amber-300' : 'text-emerald-950 bg-emerald-400 hover:bg-emerald-300'
-              }`}>
-              {loading ? 'Moviendo...' : ocupada ? 'Mover (sobrecupo)' : otroDia ? 'Mover a otro día' : 'Mover cita'}
-            </button>
-          </div>
-        </div>
+    <SheetModal
+      icon={CalendarDays}
+      tone={ocupada ? 'amber' : 'emerald'}
+      titulo="Mover cita"
+      sub={data.cita.clienteNombre || 'Cliente'}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={handle} disabled={loading}
+            className={`${sheetBtn.base} ${ocupada ? sheetBtn.warn : sheetBtn.primary}`}>
+            {loading ? 'Moviendo…' : ocupada ? 'Mover igual' : 'Mover cita'}
+          </button>
+        </>
+      }
+    >
+      {/* El destino como dato destacado, no como frase corrida: es lo que
+          el usuario viene a confirmar de un vistazo. */}
+      <div className="rounded-2xl bg-slate-800/50 px-4 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nueva hora</p>
+        <p className="mt-1 text-[19px] font-semibold leading-tight tracking-[-0.01em] text-primary">
+          {data.hora}
+        </p>
+        <p className="mt-0.5 text-[13px] text-slate-400">
+          con {data.barberoNombre}{otroDia && <> · {fecha}</>}
+        </p>
       </div>
-    </div>
+
+      <div>
+        <label className="mb-2 block px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Fecha</label>
+        <input
+          type="date"
+          value={fecha}
+          onChange={e => setFecha(e.target.value)}
+          className="w-full rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3 text-[15px] text-primary transition-colors focus:border-emerald-500/60 focus:outline-none"
+        />
+        <p className="mt-2 px-1 text-[12px] text-slate-500">Cámbiala para reagendar a otro día.</p>
+      </div>
+
+      {ocupada && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-snug text-amber-300">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          <span>Ese horario <b>ya tiene una cita</b>. Quedará como <b>sobrecupo</b>: dos citas a la misma hora. Asegúrate de poder atender ambas.</span>
+        </div>
+      )}
+    </SheetModal>
   );
 }
 
