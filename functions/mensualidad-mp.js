@@ -410,6 +410,10 @@ exports.mpMensualidadWebhook = onRequest(
 
       if (type.includes('subscription_authorized_payment') || type.includes('authorized_payment')) {
         await procesarCobro(String(id), MP_ACCESS_TOKEN.value(), RESEND_API_KEY.value());
+      } else if (type.includes('subscription_preapproval_plan')) {
+        // Evento del PLAN (alta/edición), no de una suscripción: su data.id es un
+        // plan id — consultarlo como preapproval solo generaría 404 y ruido.
+        return res.status(200).send('ignored');
       } else if (type.includes('subscription_preapproval') || type === 'preapproval') {
         await procesarPreapproval(String(id), MP_ACCESS_TOKEN.value());
       } else {

@@ -67,33 +67,106 @@ function isTelefonoValido(t) {
   return digits.length >= 8 && digits.length <= 15;
 }
 
+// ── Consultas ───────────────────────────────────────────────────
+// Cada una aislada y con su propio try/catch: si una falla o expira, el
+// resto del brief se arma igual. Se lanzan en PARALELO desde cargarBrief.
+
+// 1) Citas de hoy
+async function qCitasHoy(hoyStr) {
+  try {
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('citas'), where('fecha', '==', hoyStr))),
+      10000, 'brief/citas-hoy',
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { console.warn('[brief] citas hoy:', e.message); return []; }
+}
+
+// 2) Últimas ~90 citas (para promedio del mismo día de la semana)
+//    Filtramos client-side por dow para no pedir un índice compuesto extra.
+async function qHistorico(hoyStr) {
+  try {
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('citas'), orderBy('fecha', 'desc'), fbLimit(90))),
+      12000, 'brief/historico',
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(c => c.fecha && c.fecha !== hoyStr);
+  } catch (e) { console.warn('[brief] historico:', e.message); return []; }
+}
+
+// 4) Cumpleaños de los próximos 7 días
+async function qCumples() {
+  const proximosMMDD = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    proximosMMDD.push(`${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  }
+
+  // Filtramos EN SERVIDOR con `in` (7 fechas, y el tope de `in` es 10).
+  // Antes se traían 500 documentos de users para quedarse con 5 como
+  // mucho: en locales con clientela grande eso era la descarga más
+  // pesada del brief y lo que más demoraba el panel.
+  try {
+    const snap = await withTimeout(
+      getDocs(query(tenantCol('users'), where('cumpleDia', 'in', proximosMMDD), fbLimit(20))),
+      12000, 'brief/users-cumples',
+    );
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(u => (u.nombre || '').trim())
+      .slice(0, 5);
+  } catch (e) {
+    // Si la consulta falla (p. ej. falta el índice de un solo campo),
+    // el bloque de cumpleaños se omite en vez de tumbar el brief.
+    console.warn('[brief] cumples:', e.message);
+    return [];
+  }
+}
+
+// 5) Features nuevas de la semana (Centro de Ayuda). Si no hay de los
+//    últimos 7 días, ampliamos a 14 para no dejar el bloque vacío en
+//    semanas tranquilas de deploys.
+async function qFeatures() {
+  try {
+    const snap = await withTimeout(
+      getDocs(query(
+        collection(db, '_ayuda/global/articulos'),
+        where('publicado', '==', true),
+        orderBy('entregadoEn', 'desc'),
+        fbLimit(6),
+      )),
+      10000, 'brief/features',
+    );
+    const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const ahora = Date.now();
+    const dentro = ms => todos.filter(a => {
+      const t = a.entregadoEn?.toMillis?.() ?? 0;
+      return t && (ahora - t) <= ms;
+    });
+    let features = dentro(7 * 86400 * 1000);
+    if (features.length === 0) features = dentro(14 * 86400 * 1000);
+    return features.slice(0, 2);
+  } catch (e) { console.warn('[brief] features:', e.message); return []; }
+}
+
 // ── Data loader ─────────────────────────────────────────────────
 async function cargarBrief() {
   const hoy = new Date();
   const hoyStr = fechaStr(hoy);
   const dow = hoy.getDay();
 
-  // 1) Citas de hoy
-  let citasHoy = [];
-  try {
-    const snap = await withTimeout(
-      getDocs(query(tenantCol('citas'), where('fecha', '==', hoyStr))),
-      10000, 'brief/citas-hoy',
-    );
-    citasHoy = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.warn('[brief] citas hoy:', e.message); }
-
-  // 2) Últimas ~60 citas (para promedio del mismo día de la semana)
-  //    Filtramos client-side por dow para no pedir un índice compuesto extra.
-  let citasHistoricas = [];
-  try {
-    const snap = await withTimeout(
-      getDocs(query(tenantCol('citas'), orderBy('fecha', 'desc'), fbLimit(90))),
-      12000, 'brief/historico',
-    );
-    citasHistoricas = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .filter(c => c.fecha && c.fecha !== hoyStr);
-  } catch (e) { console.warn('[brief] historico:', e.message); }
+  // Las 4 consultas son INDEPENDIENTES: ninguna usa el resultado de otra.
+  // En serie, el peor caso era la suma de sus timeouts (10+12+12+10 = 44s)
+  // y el panel se quedaba en skeleton un rato largo. En paralelo el peor
+  // caso es la más lenta (12s), y el caso normal es una sola ida a red.
+  const [citasHoy, citasHistoricas, cumples, features] = await Promise.all([
+    qCitasHoy(hoyStr),
+    qHistorico(hoyStr),
+    qCumples(),
+    qFeatures(),
+  ]);
 
   // Ingreso REALIZADO de hoy — solo citas Completadas (igual que Inicio.jsx).
   // Antes incluía Confirmadas (aún no atendidas) → sobrestimaba el ingreso del
@@ -138,53 +211,6 @@ async function cargarBrief() {
       to: '/agenda',
     });
   }
-
-  // 4) Cumpleaños esta semana (users con cumpleDia MM-DD dentro de los próximos 7 días)
-  let cumples = [];
-  try {
-    const snap = await withTimeout(
-      getDocs(query(tenantCol('users'), fbLimit(500))),
-      12000, 'brief/users-cumples',
-    );
-    const proximosMMDD = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      proximosMMDD.push(`${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    }
-    cumples = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(u => u.cumpleDia && proximosMMDD.includes(u.cumpleDia) && (u.nombre || '').trim())
-      .slice(0, 5);
-  } catch (e) { console.warn('[brief] cumples:', e.message); }
-
-  // 5) Fase 2: features nuevas de esta semana (Centro de Ayuda)
-  //    _ayuda/global/articulos con entregadoEn ≥ hoy − 7 días.
-  //    Si no hay de la última semana, ampliamos a 14 días para que
-  //    el bloque no quede vacío en semanas tranquilas de deploys.
-  let features = [];
-  try {
-    const snap = await withTimeout(
-      getDocs(query(
-        collection(db, '_ayuda/global/articulos'),
-        where('publicado', '==', true),
-        orderBy('entregadoEn', 'desc'),
-        fbLimit(6),
-      )),
-      10000, 'brief/features',
-    );
-    const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const ahora = Date.now();
-    const semana  = 7  * 86400 * 1000;
-    const dosSem  = 14 * 86400 * 1000;
-    const dentro = ms => todos.filter(a => {
-      const t = a.entregadoEn?.toMillis?.() ?? 0;
-      return t && (ahora - t) <= ms;
-    });
-    features = dentro(semana);
-    if (features.length === 0) features = dentro(dosSem);
-    features = features.slice(0, 2);
-  } catch (e) { console.warn('[brief] features:', e.message); }
 
   return {
     citasHoy,
