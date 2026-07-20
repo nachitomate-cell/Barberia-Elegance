@@ -1234,6 +1234,25 @@
             </div>
         </div>
 
+        <!-- ── CITAS POR CERRAR (del propio barbero) ──
+             El aviso de "pendientes de cierre" solo existía en el panel admin,
+             así que el barbero no se enteraba de que tenía citas sin cerrar ni
+             cuándo. Aparece cuando hay citas Confirmada del barbero cuya hora
+             ya pasó. Listener en iniciarBannerPorCerrar(), tras fijar barberId. -->
+        <div id="porCerrarBanner" class="hidden mb-4 sm:mb-6 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 relative overflow-hidden"
+             style="background:linear-gradient(to right, rgba(245,158,11,0.14), rgba(245,158,11,0.04)); border: 1px solid rgba(245,158,11,0.30);">
+            <div class="flex items-start gap-3 mb-2.5 sm:mb-3">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0" style="background:rgba(245,158,11,0.15);">
+                    <i class="ph-fill ph-check-square-offset text-lg sm:text-xl" style="color:#fbbf24;"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 id="porCerrarTitulo" class="text-[14px] sm:text-[15px] font-black text-white leading-tight">Tienes citas por cerrar</h3>
+                    <p class="text-[11px] sm:text-xs text-white/60 leading-snug mt-0.5">Márcalas como completadas para sumar tu comisión y el sello del cliente. Toca una para abrirla.</p>
+                </div>
+            </div>
+            <div id="porCerrarLista" class="space-y-2"></div>
+        </div>
+
         <!-- ── LIQUIDACIONES PENDIENTES DE CONFIRMAR ──
              Aparece SOLO cuando hay gastos con tipo=liquidacion + barberoId
              = mi uid + aceptacionBarbero='pendiente'. El listener se monta
@@ -1482,6 +1501,113 @@
             const tid = window.CURRENT_TENANT_ID || 'elegance';
             if (tid === 'elegance') return db.collection(name);
             return db.collection('tenants').doc(tid).collection(name);
+        }
+
+        // ── BANNER CITAS POR CERRAR ──
+        // Misma regla que el panel admin (PendingAppointmentsBanner): cita
+        // Confirmada cuya hora ya pasó = pendiente de cierre. Pero acá filtrada
+        // al PROPIO barbero, que era justo lo que le faltaba: el aviso vivía
+        // solo en el panel del dueño.
+        //
+        // Query por rango de `fecha` (single-field, sin índice compuesto nuevo,
+        // igual que la carga semanal) y el resto se filtra en memoria. Ventana
+        // de 14 días atrás: una cita Confirmada más vieja que eso ya no se va a
+        // cerrar, solo sería ruido.
+        let _unsubPorCerrar = null;
+        function iniciarBannerPorCerrar(uid) {
+            if (!uid) return;
+            if (_unsubPorCerrar) { _unsubPorCerrar(); _unsubPorCerrar = null; }
+            const hoy = new Date();
+            const desde = new Date(hoy); desde.setDate(desde.getDate() - 14);
+            const desdeStr = _fmtDate(desde);
+            const hoyStr   = _fmtDate(hoy);
+            const q = tenantCol('citas')
+                .where('fecha', '>=', desdeStr)
+                .where('fecha', '<=', hoyStr);
+            _unsubPorCerrar = q.onSnapshot(snap => {
+                const items = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(c => c.barberoId === uid && c.estado === 'Confirmada' && _citaYaPaso(c));
+                // Más recientes primero: lo que acaba de terminar es lo más urgente.
+                items.sort((a, b) => (b.fecha + (b.hora || '')).localeCompare(a.fecha + (a.hora || '')));
+                renderBannerPorCerrar(items);
+            }, err => {
+                console.warn('[PorCerrar] no se pudo escuchar:', err.message);
+                renderBannerPorCerrar([]);
+            });
+        }
+
+        // ¿La cita ya terminó respecto a AHORA? Días pasados: siempre. Hoy:
+        // solo si su hora de fin (hora + duración) ya quedó atrás — así no
+        // marca como "por cerrar" una cita que aún está en curso o por venir.
+        function _citaYaPaso(c) {
+            const hoyStr = _fmtDate(new Date());
+            if (!c.fecha) return false;
+            if (c.fecha < hoyStr) return true;
+            if (c.fecha !== hoyStr) return false;   // fecha futura (no debería, la query corta en hoy)
+            const [hh, mm] = String(c.hora || '00:00').split(':').map(Number);
+            const dur = parseInt(c.duracionServicio || c.duracion || 30, 10);
+            const finMin = (hh * 60 + (mm || 0)) + (isNaN(dur) ? 30 : dur);
+            const now = new Date();
+            return (now.getHours() * 60 + now.getMinutes()) >= finMin;
+        }
+
+        function renderBannerPorCerrar(items) {
+            const banner = document.getElementById('porCerrarBanner');
+            const lista  = document.getElementById('porCerrarLista');
+            const titulo = document.getElementById('porCerrarTitulo');
+            if (!banner || !lista || !titulo) return;
+            if (!items.length) {
+                banner.classList.add('hidden');
+                lista.innerHTML = '';
+                return;
+            }
+            banner.classList.remove('hidden');
+            titulo.textContent = items.length === 1
+                ? 'Tienes 1 cita por cerrar'
+                : `Tienes ${items.length} citas por cerrar`;
+
+            const hoyStr = _fmtDate(new Date());
+            const diaCorto = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            // Máximo 5 filas para no volver el banner una pantalla entera.
+            lista.innerHTML = items.slice(0, 5).map(c => {
+                const [y, m, d] = String(c.fecha).split('-').map(Number);
+                const dt = new Date(y, (m || 1) - 1, d || 1);
+                const cuando = c.fecha === hoyStr ? 'Hoy' : `${diaCorto[dt.getDay()]} ${d}`;
+                const cliente = _escHtml(c.clienteNombre || 'Cliente');
+                const serv = c.servicioNombre ? ` · ${_escHtml(c.servicioNombre)}` : '';
+                return `
+                    <button type="button" onclick="abrirCitaPorCerrar('${c.fecha}','${c.id}')"
+                        class="w-full flex items-center gap-3 text-left rounded-xl px-3 py-2.5 transition-colors active:scale-[0.99]"
+                        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">
+                        <div class="shrink-0 text-center" style="min-width:44px;">
+                            <p class="text-[10px] font-bold uppercase tracking-wide" style="color:#fbbf24;">${cuando}</p>
+                            <p class="text-[13px] font-black text-white leading-none mt-0.5 tabular-nums">${_escHtml(c.hora || '')}</p>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-white truncate">${cliente}</p>
+                            <p class="text-[11px] text-white/50 truncate">Confirmada${serv} — falta marcarla</p>
+                        </div>
+                        <i class="ph-bold ph-arrow-right text-white/40 shrink-0"></i>
+                    </button>`;
+            }).join('') + (items.length > 5
+                ? `<p class="text-[11px] text-white/45 text-center pt-1">y ${items.length - 5} más…</p>`
+                : '');
+        }
+
+        // Tap en una cita del banner: ir a su día en vista Día y abrir su detalle.
+        // Las pendientes suelen ser de días pasados que no están en la vista
+        // actual, así que hay que navegar primero.
+        function abrirCitaPorCerrar(fecha, citaId) {
+            try {
+                const [y, m, d] = String(fecha).split('-').map(Number);
+                if (typeof setAgendaView === 'function') setAgendaView('dia');
+                seleccionarDia(y, (m || 1) - 1, d || 1);
+                // Dar un respiro a loadAgendaData antes de abrir el detalle.
+                setTimeout(() => { try { abrirDetalleCita(citaId); } catch (_) {} }, 450);
+            } catch (e) {
+                console.warn('[PorCerrar] abrir:', e.message);
+            }
         }
 
         // ── BANNER LIQUIDACIONES PENDIENTES ──
@@ -1995,6 +2121,7 @@
 
                     // Banner de liquidaciones pendientes de mi aceptación.
                     iniciarBannerLiquidaciones(myBarberoId);
+                    iniciarBannerPorCerrar(myBarberoId);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {
