@@ -1248,6 +1248,18 @@
     </div>
   </div>
 
+  <!-- ── Alta express de tenants (a medida, sobre rieles dinámicos) ── -->
+  <button onclick="abrirWizardTenant()" style="
+    width:100%; max-width:660px; margin:0 0 1rem; padding:0.875rem 1rem;
+    border-radius:0.875rem; cursor:pointer; border:1px dashed rgba(52,211,153,0.45);
+    background:rgba(52,211,153,0.07); color:#34d399; font-size:0.875rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:all 0.2s;"
+    onmouseover="this.style.background='rgba(52,211,153,0.14)'"
+    onmouseout="this.style.background='rgba(52,211,153,0.07)'">
+    <i class="ph-bold ph-rocket-launch" style="font-size:1rem;"></i>
+    Crear tenant express — agenda funcionando en minutos
+  </button>
+
   <!-- ── Tenant list ── -->
   <h3 class="sa-section-title">✅ Funcionando <span class="sa-count" id="count-ok">0</span></h3>
   <div class="tenant-grid" id="grid-ok">
@@ -6783,6 +6795,255 @@
     if (b1) b1.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, true); });
     if (b2) b2.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, false); });
     setTimeout(window.saUpdateCounts, 3500);
+  })();
+  </script>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       WIZARD "CREAR TENANT EXPRESS" — alta a-medida en minutos.
+       Llama a la CF provisionarTenantAdmin (solo bootstrap), que monta el
+       tenant sobre los rieles dinámicos del self-service: subdominio,
+       agenda, panel, dueño con credenciales, billing, servicios y equipo.
+       Sin ediciones de código ni rebuild. Fase 2 opcional por cliente:
+       tema CSS a medida, fotos, TENANT_META (SEO fino).
+       ══════════════════════════════════════════════════════════════ -->
+  <div id="wizardTenant" style="display:none; position:fixed; inset:0; z-index:200; background:rgba(2,6,23,0.85); backdrop-filter:blur(6px); overflow-y:auto; padding:2rem 1rem;">
+    <div style="max-width:640px; margin:0 auto; background:#0b1220; border:1px solid rgba(255,255,255,0.1); border-radius:1.25rem; overflow:hidden;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:1.125rem 1.375rem; border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div>
+          <h2 style="margin:0; font-size:1.05rem; font-weight:800; color:#f1f5f9;"><i class="ph-bold ph-rocket-launch" style="color:#34d399; margin-right:0.4rem;"></i>Crear tenant express</h2>
+          <p style="margin:0.2rem 0 0; font-size:0.72rem; color:#64748b;">Agenda + panel + dueño + billing en un solo paso. Sin tocar código.</p>
+        </div>
+        <button onclick="cerrarWizardTenant()" style="width:34px;height:34px;border-radius:0.625rem;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;font-size:1rem;">✕</button>
+      </div>
+
+      <div id="wz-form" style="padding:1.25rem 1.375rem; display:flex; flex-direction:column; gap:1rem;">
+        <!-- Identidad -->
+        <div>
+          <p class="wz-sec">1 · Identidad del local</p>
+          <div class="wz-grid2">
+            <div><label class="wz-lbl">Nombre *</label><input id="wz-nombre" class="wz-in" placeholder="Barbería Don Pedro" oninput="wzSugerirSlug()"></div>
+            <div><label class="wz-lbl">Subdominio (slug) *</label>
+              <input id="wz-slug" class="wz-in" placeholder="donpedro" onblur="wzCheckSlug()" style="text-transform:lowercase;">
+              <p id="wz-slug-status" style="font-size:0.68rem; margin:0.25rem 0 0; color:#64748b;">Será {slug}.synaptechspa.cl</p>
+            </div>
+            <div><label class="wz-lbl">Tipo</label>
+              <select id="wz-tipo" class="wz-in" onchange="wzCargarPlantilla()">
+                <option value="barberia">Barbería</option><option value="peluqueria">Peluquería</option>
+                <option value="nails">Nails / Manicure</option><option value="spa">Spa / Estética</option>
+                <option value="mixto">Mixto</option><option value="otro">Otro</option>
+              </select>
+            </div>
+            <div><label class="wz-lbl">WhatsApp del local</label><input id="wz-telefono" class="wz-in" placeholder="56912345678"></div>
+            <div><label class="wz-lbl">Dirección</label><input id="wz-direccion" class="wz-in" placeholder="Av. Libertad 123, Viña del Mar"></div>
+            <div><label class="wz-lbl">Instagram</label><input id="wz-instagram" class="wz-in" placeholder="@dondepedro"></div>
+            <div><label class="wz-lbl">Color de acento</label><input id="wz-color" type="color" value="#34d399" class="wz-in" style="height:42px; padding:0.25rem;"></div>
+            <div><label class="wz-lbl">Logo (URL, opcional)</label><input id="wz-logo" class="wz-in" placeholder="https://…/logo.png"></div>
+          </div>
+          <div style="margin-top:0.625rem;"><label class="wz-lbl">Slogan</label><input id="wz-slogan" class="wz-in" placeholder="Estilo que se nota"></div>
+        </div>
+
+        <!-- Dueño -->
+        <div>
+          <p class="wz-sec">2 · Dueño (credenciales del panel)</p>
+          <div class="wz-grid2">
+            <div><label class="wz-lbl">Nombre</label><input id="wz-dueno-nombre" class="wz-in" placeholder="Pedro Soto"></div>
+            <div><label class="wz-lbl">Email *</label><input id="wz-dueno-email" class="wz-in" placeholder="pedro@gmail.com" type="email"></div>
+            <div><label class="wz-lbl">Contraseña</label><input id="wz-dueno-pass" class="wz-in" placeholder="(vacío = se genera sola)"></div>
+            <div style="display:flex; align-items:end; padding-bottom:0.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:#cbd5e1; cursor:pointer;">
+                <input id="wz-dueno-atiende" type="checkbox" checked style="width:16px;height:16px;accent-color:#34d399;"> El dueño también atiende
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing -->
+        <div>
+          <p class="wz-sec">3 · Mensualidad</p>
+          <div style="display:flex; gap:0.5rem; margin-bottom:0.625rem;">
+            <button type="button" class="wz-preset" onclick="wzPlan('Individual · 1 barbero',14900)">Individual $14.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('Local · ilimitado',29900)">Local $29.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('',0)">Gratis/después</button>
+          </div>
+          <div class="wz-grid2">
+            <div><label class="wz-lbl">Plan (texto)</label><input id="wz-plan" class="wz-in" placeholder="Local · ilimitado"></div>
+            <div><label class="wz-lbl">Monto mensual ($)</label><input id="wz-monto" class="wz-in" type="number" min="0" step="100" placeholder="29900"></div>
+            <div><label class="wz-lbl">Próximo vencimiento</label><input id="wz-fpp" class="wz-in" type="date"></div>
+          </div>
+        </div>
+
+        <!-- Servicios -->
+        <div>
+          <p class="wz-sec">4 · Servicios <span style="font-weight:500; color:#64748b; text-transform:none;">— uno por línea: <code style="color:#94a3b8;">Nombre | precio | minutos | categoría</code></span></p>
+          <textarea id="wz-servicios" class="wz-in" rows="7" style="font-family:ui-monospace,monospace; font-size:0.78rem; resize:vertical;"></textarea>
+        </div>
+
+        <!-- Equipo -->
+        <div>
+          <p class="wz-sec">5 · Equipo <span style="font-weight:500; color:#64748b; text-transform:none;">— un barbero por línea (las cuentas se crean después en su panel → Equipo)</span></p>
+          <textarea id="wz-equipo" class="wz-in" rows="3" placeholder="Juan Pérez&#10;Diego Rojas"></textarea>
+        </div>
+
+        <p id="wz-error" style="display:none; margin:0; padding:0.625rem 0.75rem; border-radius:0.625rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:0.78rem;"></p>
+
+        <button id="wz-submit" onclick="wzCrearTenant()" style="width:100%; padding:0.875rem; border-radius:0.75rem; cursor:pointer; border:none; background:#34d399; color:#052e16; font-size:0.9rem; font-weight:800;">
+          <i class="ph-bold ph-rocket-launch"></i> Crear tenant
+        </button>
+      </div>
+
+      <!-- Resultado -->
+      <div id="wz-result" style="display:none; padding:1.25rem 1.375rem;"></div>
+    </div>
+  </div>
+
+  <style>
+    .wz-sec { font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:#34d399; margin:0 0 0.5rem; }
+    .wz-lbl { display:block; font-size:0.66rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; margin-bottom:0.3rem; }
+    .wz-in  { width:100%; box-sizing:border-box; padding:0.55rem 0.7rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:0.625rem; color:#e2e8f0; font-size:0.82rem; outline:none; }
+    .wz-in:focus { border-color:rgba(52,211,153,0.5); }
+    .wz-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0.625rem; }
+    @media (max-width:520px) { .wz-grid2 { grid-template-columns:1fr; } }
+    .wz-preset { flex:1; padding:0.5rem; border-radius:0.625rem; cursor:pointer; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:0.72rem; font-weight:700; }
+    .wz-preset:hover { border-color:rgba(52,211,153,0.5); color:#34d399; }
+  </style>
+
+  <script>
+  (function () {
+    // Plantillas por tipo (espejo de PLANTILLAS_SERVICIOS en la CF) para
+    // prellenar el textarea — Ignacio las reemplaza por la lista real del
+    // cliente si la tiene a mano.
+    const WZ_PLANTILLAS = {
+      barberia:   ['Corte de cabello | 12000 | 45 | Cortes', 'Corte + Barba | 18000 | 60 | Combos', 'Barba | 8000 | 30 | Barba', 'Perfilado de cejas | 3000 | 10 | Extras', 'Corte niño | 10000 | 30 | Cortes'],
+      peluqueria: ['Corte de cabello | 15000 | 45 | Cortes', 'Peinado | 12000 | 40 | Peinados', 'Color raíz | 35000 | 90 | Color', 'Alisado / Brushing | 15000 | 45 | Tratamientos', 'Hidratación capilar | 18000 | 50 | Tratamientos'],
+      nails:      ['Manicure tradicional | 12000 | 40 | Manos', 'Manicure permanente | 18000 | 60 | Manos', 'Uñas acrílicas | 28000 | 90 | Manos', 'Pedicure | 15000 | 50 | Pies', 'Retiro + mantención | 10000 | 40 | Manos'],
+      spa:        ['Limpieza facial | 25000 | 60 | Facial', 'Masaje relajación | 28000 | 60 | Masajes', 'Masaje descontracturante | 32000 | 60 | Masajes', 'Depilación cera | 12000 | 30 | Depilación'],
+      mixto:      ['Corte hombre | 12000 | 45 | Cortes', 'Corte mujer | 15000 | 50 | Cortes', 'Barba | 8000 | 30 | Barba', 'Color | 35000 | 90 | Color', 'Peinado | 12000 | 40 | Otros'],
+      otro:       ['Servicio 1 | 10000 | 30 | Otro', 'Servicio 2 | 15000 | 45 | Otro', 'Servicio 3 | 20000 | 60 | Otro'],
+    };
+
+    window.abrirWizardTenant = function () {
+      document.getElementById('wizardTenant').style.display = 'block';
+      document.getElementById('wz-form').style.display = 'flex';
+      document.getElementById('wz-result').style.display = 'none';
+      // Vencimiento default: en 1 mes (primer mes de cortesía típico).
+      const d = new Date(); d.setMonth(d.getMonth() + 1);
+      document.getElementById('wz-fpp').value = d.toISOString().slice(0, 10);
+      wzCargarPlantilla();
+    };
+    window.cerrarWizardTenant = function () {
+      document.getElementById('wizardTenant').style.display = 'none';
+    };
+    window.wzCargarPlantilla = function () {
+      const tipo = document.getElementById('wz-tipo').value;
+      document.getElementById('wz-servicios').value = (WZ_PLANTILLAS[tipo] || WZ_PLANTILLAS.otro).join('\n');
+    };
+    window.wzPlan = function (plan, monto) {
+      document.getElementById('wz-plan').value  = plan;
+      document.getElementById('wz-monto').value = monto || '';
+    };
+    window.wzSugerirSlug = function () {
+      const slugEl = document.getElementById('wz-slug');
+      if (slugEl.dataset.tocado === '1') return;   // no pisar lo que escribió a mano
+      const n = document.getElementById('wz-nombre').value;
+      slugEl.value = n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '').slice(0, 30);
+    };
+    document.getElementById('wz-slug').addEventListener('input', function () { this.dataset.tocado = '1'; });
+
+    window.wzCheckSlug = async function () {
+      const slug = document.getElementById('wz-slug').value.trim().toLowerCase();
+      const st = document.getElementById('wz-slug-status');
+      if (!slug) { st.textContent = 'Será {slug}.synaptechspa.cl'; st.style.color = '#64748b'; return; }
+      st.textContent = 'Verificando…'; st.style.color = '#64748b';
+      try {
+        const r = await firebase.functions().httpsCallable('verificarSlugLibre')({ slug });
+        if (r.data && r.data.libre) { st.textContent = `✓ ${slug}.synaptechspa.cl disponible`; st.style.color = '#34d399'; }
+        else { st.textContent = `✕ ${(r.data && r.data.motivo) || 'No disponible'}`; st.style.color = '#f87171'; }
+      } catch (e) { st.textContent = 'No se pudo verificar (' + (e.message || e) + ')'; st.style.color = '#f59e0b'; }
+    };
+
+    function wzParseServicios(txt) {
+      return String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+        const p = l.split('|').map(x => x.trim());
+        return { nombre: p[0] || '', precio: Number(p[1]) || 0, duracion: Number(p[2]) || 30, categoria: p[3] || 'Otro' };
+      }).filter(s => s.nombre && s.precio > 0);
+    }
+
+    window.wzCrearTenant = async function () {
+      const err = document.getElementById('wz-error');
+      const btn = document.getElementById('wz-submit');
+      err.style.display = 'none';
+      const payload = {
+        slug:      document.getElementById('wz-slug').value.trim().toLowerCase(),
+        nombre:    document.getElementById('wz-nombre').value.trim(),
+        tipo:      document.getElementById('wz-tipo').value,
+        telefono:  document.getElementById('wz-telefono').value.trim(),
+        direccion: document.getElementById('wz-direccion').value.trim(),
+        instagram: document.getElementById('wz-instagram').value.trim(),
+        slogan:    document.getElementById('wz-slogan').value.trim(),
+        color:     document.getElementById('wz-color').value,
+        logoUrl:   document.getElementById('wz-logo').value.trim(),
+        dueno: {
+          nombre:   document.getElementById('wz-dueno-nombre').value.trim(),
+          email:    document.getElementById('wz-dueno-email').value.trim(),
+          password: document.getElementById('wz-dueno-pass').value,
+          atiende:  document.getElementById('wz-dueno-atiende').checked,
+        },
+        billing: {
+          plan:  document.getElementById('wz-plan').value.trim(),
+          monto: Number(document.getElementById('wz-monto').value) || 0,
+          fechaProximoPago: document.getElementById('wz-fpp').value || null,
+        },
+        servicios: wzParseServicios(document.getElementById('wz-servicios').value),
+        equipo:    String(document.getElementById('wz-equipo').value || '').split('\n').map(x => x.trim()).filter(Boolean),
+      };
+      if (!payload.nombre || !payload.slug) { err.textContent = 'Falta el nombre o el slug.'; err.style.display = 'block'; return; }
+      if (!payload.dueno.email)             { err.textContent = 'Falta el email del dueño.';  err.style.display = 'block'; return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block;"></i> Creando tenant…';
+      try {
+        const r = await firebase.functions().httpsCallable('provisionarTenantAdmin')(payload);
+        const d = r.data || {};
+        const pass = d.dueno && d.dueno.password;
+        const credTxt = `${d.urlPanel}\nUsuario: ${d.dueno ? d.dueno.email : ''}${pass ? '\nContraseña: ' + pass : ''}`;
+        const waMsg = encodeURIComponent(
+          `¡Hola${payload.dueno.nombre ? ' ' + payload.dueno.nombre : ''}! Tu agenda ya está lista 🚀\n\n` +
+          `📅 Tu página de reservas: ${d.urlAgenda}\n` +
+          `🔐 Tu panel de administración: ${d.urlPanel}\n` +
+          `Usuario: ${d.dueno ? d.dueno.email : ''}${pass ? '\nContraseña: ' + pass : ''}\n\n` +
+          `Entra al panel y revisa tus servicios y horarios. Cualquier duda me escribes por aquí.\n\n— SynapTech`
+        );
+        const row = (l, v) => `<div style="display:flex; justify-content:space-between; gap:0.75rem; padding:0.45rem 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.8rem;"><span style="color:#64748b;">${l}</span><span style="color:#e2e8f0; text-align:right; word-break:break-all;">${window.esc(v)}</span></div>`;
+        document.getElementById('wz-form').style.display = 'none';
+        const res = document.getElementById('wz-result');
+        res.style.display = 'block';
+        res.innerHTML = `
+          <div style="text-align:center; margin-bottom:1rem;">
+            <div style="font-size:2.5rem;">🎉</div>
+            <h3 style="margin:0.25rem 0 0; color:#34d399; font-size:1.05rem; font-weight:800;">Tenant creado: ${window.esc(d.slug)}</h3>
+            <p style="margin:0.25rem 0 0; color:#64748b; font-size:0.75rem;">La agenda ya está viva — sin deploy, sin código.</p>
+          </div>
+          ${row('Agenda pública', d.urlAgenda)}
+          ${row('Panel del dueño', d.urlPanel)}
+          ${row('Usuario', d.dueno ? d.dueno.email : '')}
+          ${pass ? row('Contraseña generada', pass) : row('Contraseña', '(la cuenta ya existía — conserva la suya)')}
+          ${row('Servicios', (d.resumen && d.resumen.servicios || 0) + (d.resumen && d.resumen.serviciosDeplantilla ? ' (plantilla)' : ' (reales)'))}
+          ${row('Equipo', String(d.resumen && d.resumen.equipo || 0))}
+          <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            <button onclick="navigator.clipboard.writeText(${JSON.stringify('')} + this.dataset.cred); this.textContent='✓ Copiado';" data-cred="${window.esc(credTxt)}" style="flex:1; padding:0.7rem; border-radius:0.625rem; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; font-size:0.78rem; font-weight:700;"><i class="ph ph-copy"></i> Copiar credenciales</button>
+            ${payload.telefono ? `<a href="https://wa.me/${payload.telefono.replace(/\D/g, '')}?text=${waMsg}" target="_blank" style="flex:1; display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.7rem; border-radius:0.625rem; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.3); color:#25d366; font-size:0.78rem; font-weight:700; text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i> Enviar al dueño</a>` : ''}
+          </div>
+          <a href="${d.urlAgenda}" target="_blank" style="display:block; text-align:center; margin-top:0.75rem; padding:0.7rem; border-radius:0.625rem; background:#34d399; color:#052e16; font-size:0.8rem; font-weight:800; text-decoration:none;"><i class="ph ph-arrow-square-out"></i> Abrir la agenda nueva</a>
+          <button onclick="cerrarWizardTenant()" style="width:100%; margin-top:0.5rem; padding:0.6rem; border-radius:0.625rem; cursor:pointer; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#64748b; font-size:0.75rem;">Cerrar</button>`;
+      } catch (e) {
+        err.textContent = (e && e.message) || 'Error al crear el tenant.';
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-rocket-launch"></i> Crear tenant';
+      }
+    };
   })();
   </script>
 </body>

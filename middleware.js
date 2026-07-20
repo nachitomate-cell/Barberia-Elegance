@@ -1547,7 +1547,11 @@ async function fetchSelfTenant(slug) {
     if (!res.ok) return null;
     const f = ((await res.json()).fields) || {};
     const s = (k) => (f[k] && f[k].stringValue) || null;
-    if (s('origen') !== 'self-service') return null; // a medida se resuelve por DOMAIN_MAP
+    // Tenants dinámicos: self-service (/crea) Y a-medida express (/admin →
+    // provisionarTenantAdmin). Los a medida clásicos (con CSS propio) se
+    // resuelven antes por DOMAIN_MAP y nunca llegan aquí.
+    const origen = s('origen');
+    if (origen !== 'self-service' && origen !== 'admin-express') return null;
     if (s('estado') === 'suspendido') return null;   // kill switch a nivel edge
     return {
       slug,

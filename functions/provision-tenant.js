@@ -168,6 +168,254 @@ exports.verificarSlugLibre = onCall(async (req) => {
 
 /* ─────────────────── Callable: aprovisionar tenant ─────────────────── */
 
+/* ─────────── Callable: aprovisionar tenant desde /admin (EXPRESS) ───────────
+   Alta "a medida express" hecha por SynapTech: crea el tenant COMPLETO sobre
+   los mismos rieles dinámicos del self-service (middleware resuelve el
+   subdominio desde tenants/{slug} — CERO ediciones de código), pero con lo que
+   el self-service no cubre:
+     · cuenta del DUEÑO creada por SynapTech (email+password para entregar)
+     · _billing/{slug} con plan/monto/vencimiento (mensualidad desde el día 1)
+     · servicios REALES del cliente (o plantilla por tipo si no se pasan)
+     · equipo inicial (barberos sin cuenta; credenciales después vía Equipo)
+   Objetivo: tenant funcionando en ~10 min. El tema CSS a medida y las fotos
+   quedan como fase 2 opcional por cliente (no bloquean el go-live).
+   Solo bootstrap (SynapTech). */
+
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
+
+function passwordLegible(nombreCorto) {
+  // Pronunciable + dígitos + símbolo: fácil de dictar por WhatsApp, no trivial.
+  const silabas = ['ba', 'ce', 'di', 'fo', 'gu', 'ka', 'le', 'mi', 'no', 'pu', 'ra', 'se', 'ti', 'vo', 'zu'];
+  let p = '';
+  for (let i = 0; i < 3; i++) p += silabas[Math.floor(Math.random() * silabas.length)];
+  const base = (nombreCorto || 'local').replace(/[^a-zA-Z]/g, '').slice(0, 6) || 'local';
+  return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase()
+    + '.' + p + Math.floor(100 + Math.random() * 900);
+}
+
+exports.provisionarTenantAdmin = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const callerEmail = String((req.auth && req.auth.token && req.auth.token.email) || '').toLowerCase();
+  if (!req.auth || !BOOTSTRAP_ADMINS.includes(callerEmail)) {
+    throw new HttpsError('permission-denied', 'Solo SynapTech puede crear tenants desde /admin.');
+  }
+
+  const raw       = req.data || {};
+  const slug      = normalizarSlug(raw.slug);
+  const nombre    = String(raw.nombre || '').trim().slice(0, 60);
+  const tipoRaw   = String(raw.tipo || '').trim();
+  const telefono  = String(raw.telefono || '').replace(/\D/g, '').slice(0, 15);
+  const direccion = String(raw.direccion || '').trim().slice(0, 120) || null;
+  const slogan    = String(raw.slogan || '').trim().slice(0, 120) || null;
+  const instagram = String(raw.instagram || '').trim().replace(/^@+/, '').slice(0, 40) || null;
+  const colorRaw  = String(raw.color || '').trim();
+  const logoUrl   = /^https?:\/\/\S+$/.test(String(raw.logoUrl || '').trim()) ? String(raw.logoUrl).trim() : null;
+
+  if (!nombre) throw new HttpsError('invalid-argument', 'Falta el nombre del local.');
+  if (!slug)   throw new HttpsError('invalid-argument', 'Falta el slug.');
+  const tipo  = PLANTILLAS_SERVICIOS[tipoRaw] ? tipoRaw : 'barberia';
+  const color = /^#[0-9a-fA-F]{6}$/.test(colorRaw) ? colorRaw.toLowerCase() : null;
+
+  // ── Dueño ──
+  const dueno       = raw.dueno || {};
+  const duenoNombre = String(dueno.nombre || '').trim().slice(0, 60) || nombre.split(/\s+/)[0];
+  const duenoEmail  = String(dueno.email || '').trim().toLowerCase();
+  const duenoAtiende = dueno.atiende !== false;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(duenoEmail)) {
+    throw new HttpsError('invalid-argument', 'Email del dueño inválido.');
+  }
+
+  const check = await chequearSlug(slug);
+  if (!check.libre) throw new HttpsError('already-exists', check.motivo);
+
+  // Cuenta del dueño: reusar si existe (validando que no pertenezca a OTRO
+  // local), crear si no. La password solo se devuelve cuando la creamos acá.
+  let ownerUid, passwordEntregada = null, cuentaNueva = false;
+  try {
+    const u = await admin.auth().getUserByEmail(duenoEmail);
+    const c = u.customClaims || {};
+    if (c.tenantId && c.tenantId !== slug) {
+      throw new HttpsError('failed-precondition',
+        `Ese email ya pertenece al local "${c.tenantId}". Usa otro correo para el dueño.`);
+    }
+    ownerUid = u.uid;
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    if (e.code !== 'auth/user-not-found') {
+      throw new HttpsError('internal', `Auth: ${e.message}`);
+    }
+    passwordEntregada = String(dueno.password || '').trim() || passwordLegible(nombre.split(/\s+/)[0]);
+    if (passwordEntregada.length < 6) {
+      throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
+    }
+    const nuevo = await admin.auth().createUser({
+      email: duenoEmail, password: passwordEntregada, displayName: duenoNombre,
+    });
+    ownerUid = nuevo.uid;
+    cuentaNueva = true;
+  }
+
+  // ── Servicios: los reales del cliente, o la plantilla del tipo ──
+  const svcRaw = Array.isArray(raw.servicios) ? raw.servicios : [];
+  const serviciosCustom = svcRaw
+    .map((s, i) => ({
+      nombre:    String((s && s.nombre) || '').trim().slice(0, 80),
+      precio:    Math.max(0, Math.round(Number(s && s.precio) || 0)),
+      duracion:  Math.max(5, Math.min(480, Math.round(Number(s && s.duracion) || 30))),
+      categoria: String((s && s.categoria) || '').trim().slice(0, 40) || 'Otro',
+      icono:     'ph-scissors',
+      activo:    true,
+      orden:     i,
+    }))
+    .filter(s => s.nombre && s.precio > 0)
+    .slice(0, 60);
+  const servicios = serviciosCustom.length ? serviciosCustom : PLANTILLAS_SERVICIOS[tipo];
+
+  // ── Equipo extra (barberos sin cuenta) ──
+  const equipo = (Array.isArray(raw.equipo) ? raw.equipo : [])
+    .map(n => String(n || '').trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 20);
+
+  // ── Billing ──
+  const billing = raw.billing || {};
+  const monto   = Math.max(0, Math.round(Number(billing.monto) || 0));
+  const plan    = String(billing.plan || '').trim().slice(0, 60) || null;
+  const fpp     = /^\d{4}-\d{2}-\d{2}$/.test(String(billing.fechaProximoPago || '')) ? billing.fechaProximoPago : null;
+
+  const tenantRef = db.collection('tenants').doc(slug);
+  const nombreCorto = nombre.split(/\s+/)[0];
+
+  // 1. Doc raíz — reserva atómica del slug (mismo patrón que el self-service).
+  await db.runTransaction(async (tx) => {
+    const cur = await tx.get(tenantRef);
+    if (cur.exists) throw new HttpsError('already-exists', 'Esa dirección ya está tomada.');
+    tx.create(tenantRef, {
+      slug, nombre, nombreCorto, tipo,
+      telefono: telefono || null,
+      color, instagram, slogan, direccion, logoUrl,
+      dominio:   `${slug}.${BASE_DOMAIN}`,
+      origen:    'admin-express',
+      plan:      plan || 'a-medida',
+      estado:    'activo',
+      ownerUid,
+      ownerEmail: duenoEmail,
+      altaPor:    callerEmail,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  // 2. Subcolecciones + _system + _billing en batch.
+  const batch = db.batch();
+  const TS = FieldValue.serverTimestamp();
+  const categorias = [...new Set(servicios.map((s) => s.categoria))];
+
+  batch.set(tenantRef.collection('configuracion').doc('main'), {
+    ...CONFIG_DEFAULT,
+    telefonoAdmin: telefono || null,
+    categoriasServicio: [...categorias, 'Otro'].filter((c, i, a) => a.indexOf(c) === i),
+    updatedAt: TS,
+  });
+  batch.set(tenantRef.collection('settings').doc('general'), {
+    nombre,
+    direccion: direccion || '',
+    telefono:  telefono || '',
+    instagram: instagram || '',
+    emailAvisos: duenoEmail,
+    updatedAt: TS,
+  });
+
+  servicios.forEach((svc, i) => {
+    batch.set(tenantRef.collection('servicios').doc(`svc-${slug}-${i}`), {
+      ...svc, createdAt: TS, updatedAt: TS,
+    });
+  });
+
+  // Dueño: admin. Si atiende, aparece en la agenda; si no, solo administra.
+  const mainBarberoRef = tenantRef.collection('barberos').doc(`dueno-${slug}`);
+  batch.set(mainBarberoRef, {
+    nombre:     duenoNombre,
+    email:      duenoEmail,
+    rol:        'admin',
+    esBarbero:  duenoAtiende,
+    activo:     true,
+    disponible: duenoAtiende,
+    uid:        ownerUid,
+    authUid:    ownerUid,
+    creadoEn:   TS,
+  });
+  batch.set(mainBarberoRef.collection('configuracion').doc('main'), {
+    ...CONFIG_DEFAULT, updatedAt: TS,
+  });
+  batch.set(tenantRef.collection('barberos').doc(ownerUid), {
+    _mainDocId: `dueno-${slug}`,
+    uid: ownerUid,
+    email: duenoEmail,
+    nombre: duenoNombre,
+    rol: 'admin',
+    activo: true,
+  });
+
+  equipo.forEach((nombreBarbero, i) => {
+    batch.set(tenantRef.collection('barberos').doc(`barbero-${slug}-${i + 1}`), {
+      nombre: nombreBarbero,
+      rol: 'barbero',
+      activo: true,
+      disponible: true,
+      foto: null,
+      creadoEn: TS,
+    });
+  });
+
+  batch.set(tenantRef.collection('premios').doc(`premio-${slug}-1`), {
+    nombre: 'Servicio gratis', costoSellos: 10, activo: true, creadoEn: TS,
+  });
+
+  batch.set(db.collection('_system').doc(slug), {
+    status: 'active',
+    plan:   plan || 'a-medida',
+    origen: 'admin-express',
+    tenantNombre: nombre,
+    creadoEn: TS,
+  });
+
+  if (monto > 0 || plan) {
+    batch.set(db.collection('_billing').doc(slug), {
+      estadoPago:      'al_dia',
+      montoPendiente:  monto,
+      ...(plan ? { plan } : {}),
+      ...(fpp  ? { fechaProximoPago: fpp } : {}),
+      emailCobro:      duenoEmail,
+      creadoEn:        TS,
+    }, { merge: true });
+  }
+
+  await batch.commit();
+
+  // 3. Claims del dueño (directo, sin esperar triggers).
+  await admin.auth().setCustomUserClaims(ownerUid, { role: 'admin', tenantId: slug });
+
+  logger.info(`[admin-express] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) dueño=${duenoEmail} por=${callerEmail}`);
+
+  return {
+    ok: true,
+    slug,
+    urlAgenda: `https://${slug}.${BASE_DOMAIN}`,
+    urlPanel:  `https://${slug}.${BASE_DOMAIN}/gestion-interna/?local=${slug}`,
+    dueno: {
+      email: duenoEmail,
+      password: passwordEntregada,   // null si la cuenta ya existía
+      cuentaNueva,
+    },
+    resumen: {
+      servicios: servicios.length,
+      serviciosDeplantilla: serviciosCustom.length === 0,
+      equipo: equipo.length,
+      billing: monto > 0 || !!plan,
+    },
+  };
+});
+
 exports.provisionarTenantSelf = onCall(async (req) => {
   if (!req.auth) {
     throw new HttpsError('unauthenticated', 'Crea tu cuenta antes de activar la agenda.');

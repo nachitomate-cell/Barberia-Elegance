@@ -1405,6 +1405,10 @@ exports.biooAiGenerate = biooAiBuilder.biooAiGenerate;
 const provisionTenant = require('./provision-tenant');
 exports.verificarSlugLibre     = provisionTenant.verificarSlugLibre;
 exports.provisionarTenantSelf  = provisionTenant.provisionarTenantSelf;
+// Alta express desde /admin (solo bootstrap): tenant a-medida completo en
+// minutos, sobre los rieles dinámicos — dueño con credenciales + billing +
+// servicios reales + equipo. Ver provisionarTenantAdmin en provision-tenant.js.
+exports.provisionarTenantAdmin = provisionTenant.provisionarTenantAdmin;
 
 // ─────────────────────────────────────────────────────────────────
 //  CHAT — disponibilidad de horas para el bot de /chat (callable).
