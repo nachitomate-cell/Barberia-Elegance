@@ -4509,6 +4509,52 @@ export default function Agenda() {
 
           {showMenu && (
             <div className="absolute right-0 top-full mt-1.5 w-56 max-w-[calc(100vw-1.5rem)] rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-30 p-1.5">
+              {/* Solo en MÓVIL: lo que se sacó de la fila de controles para
+                  darle alto a la agenda. En desktop sigue estando allá, así
+                  que acá se ocultaría duplicado. */}
+              <div className="sm:hidden">
+                <MenuItem
+                  icon={Activity}
+                  label="Resumen del día"
+                  onClick={() => { setShowMenu(false); setShowResumen(true); }}
+                />
+                <MenuItem
+                  icon={Clock}
+                  label={isToday ? 'Ir a la hora actual' : 'Volver a hoy'}
+                  onClick={() => { setShowMenu(false); scrollToNow(); }}
+                />
+                {/* Resolución de la grilla: preferencia, no acción diaria. */}
+                <div className="px-2.5 pt-2 pb-1">
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Resolución de la grilla
+                  </p>
+                  <div className="flex items-center gap-1">
+                    {[15, 30, 45, 60].map(step => (
+                      <button
+                        key={step}
+                        // Mismas tres cosas que el control de desktop: estado,
+                        // etiquetas del eje horario y persistencia. Con solo
+                        // setSlotMins la preferencia no sobrevivía al reload y
+                        // el eje quedaba con la resolución anterior.
+                        onClick={() => {
+                          setSlotMins(step);
+                          setLabelStep(step);
+                          try { localStorage.setItem(SLOT_KEY, String(step)); } catch { /* modo privado */ }
+                        }}
+                        className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-colors ${
+                          slotMins === step
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {step < 60 ? `${step}'` : '1h'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="my-1.5 border-t border-slate-800" />
+              </div>
+
               <MenuItem
                 icon={UserPlus}
                 label="Sobrecupo"
@@ -4557,8 +4603,19 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* ── Fila 2: reloj + intervalos (una sola pastilla) + FilterChip barbero ── */}
-      <div className="flex items-center gap-2 overflow-x-auto py-1 my-1 shrink-0 no-scrollbar">
+      {/* ── Fila 3: reloj + intervalos + FilterChip + resumen/ayuda ──
+          En MÓVIL esta fila entera se oculta salvo el chip de filtro. Entre
+          la cabecera, la navegación de fecha y las pestañas ya se iban ~330px
+          de una pantalla de ~790px: 42% del alto gastado en controles antes
+          de mostrar una sola cita.
+
+          Lo que se va no se pierde, se mueve a donde corresponde por
+          frecuencia de uso: la resolución de la grilla (15'/30'/45'/1h) es
+          una preferencia que se ajusta una vez, no una acción diaria, y el
+          resumen y la ayuda son secundarios — los tres viven ahora en el
+          menú "…". El reloj/"ir a ahora" queda junto a la fecha, que es
+          donde uno lo busca. */}
+      <div className="hidden sm:flex items-center gap-2 overflow-x-auto py-1 my-1 shrink-0 no-scrollbar">
         <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1 text-xs shrink-0">
           <button
             onClick={scrollToNow}
@@ -4626,6 +4683,26 @@ export default function Agenda() {
           <HelpButton onClick={() => setShowHelp(true)} />
         </div>
       </div>
+
+      {/* Chip de filtro en MÓVIL. Va aparte porque la fila de arriba se
+          oculta: si el chip desapareciera, la agenda quedaría filtrada por
+          un barbero sin nada que lo indique — el peor tipo de estado
+          invisible. Solo ocupa alto cuando hay filtro puesto. */}
+      {focusBarbero && (
+        <div className="flex sm:hidden items-center py-1 shrink-0">
+          <div className="h-7 pl-2.5 pr-1 bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 rounded-full text-xs flex items-center gap-1.5">
+            <User size={11} className="shrink-0" />
+            <span className="font-semibold truncate max-w-[180px]">{focusBarbero.nombre}</span>
+            <button
+              onClick={() => setSoloBarbero(null)}
+              aria-label="Quitar filtro de barbero"
+              className="w-5 h-5 -mr-0.5 flex items-center justify-center rounded-full hover:bg-emerald-500/20 text-emerald-300 transition-colors"
+            >
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {diaGlobalCerrado && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-950/40 border border-red-500/30 rounded-xl text-sm text-red-400 shrink-0">
