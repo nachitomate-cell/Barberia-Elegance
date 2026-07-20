@@ -9590,6 +9590,10 @@
             class="svc-search">
         </div>
 
+        <!-- Reserva en grupo (feature con toggle configuracion/main.reservasGrupo;
+             se puebla desde _renderGrupoSelector() solo si el local lo activó) -->
+        <div id="grupoSelector" class="hidden mb-4 px-1"></div>
+
         <!-- Category Pills -->
         <div id="categoryPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6 scroll-smooth">
         </div>
@@ -11006,6 +11010,65 @@
     let _unsubSlotLocks  = null; // listener tiempo real de slotLocks en paso 3
     let _chameleonSlotMap = {}; // { barberoId: occupiedCount } — para badges de disponibilidad
 
+    // ── Reserva EN GRUPO ────────────────────────────────────────────
+    //  1 = flujo normal. >1 = grupo: mismo servicio para todos, atendidos a la
+    //  misma hora en sillones paralelos (asignación automática de profesionales).
+    //  Solo disponible si el local activó configuracion/main.reservasGrupo y
+    //  tiene 2+ profesionales. Excluido en tenants con prepago (la pasarela
+    //  cobraría una sola cita).
+    let _grupoSize = 1;
+
+    function _grupoCfg() {
+      const rg = _fsConfig && _fsConfig.reservasGrupo;
+      if (!rg || rg.enabled !== true) return null;
+      if (['yugen'].includes(window.CURRENT_TENANT_ID)) return null;   // prepago
+      const barberosReales = (_fsBarberos || []).filter(b => !b._mainDocId && b.disponible !== false);
+      const maxCfg = Math.max(2, Math.min(6, Number(rg.maxPersonas) || 4));
+      const max = Math.min(maxCfg, barberosReales.length);
+      return max >= 2 ? { max } : null;
+    }
+
+    function _renderGrupoSelector() {
+      const wrap = document.getElementById('grupoSelector');
+      if (!wrap) return;
+      const cfg = _grupoCfg();
+      if (!cfg) { wrap.classList.add('hidden'); _grupoSize = 1; return; }
+      if (_grupoSize > cfg.max) _grupoSize = 1;
+
+      const chips = [];
+      for (let n = 1; n <= cfg.max; n++) {
+        const sel = n === _grupoSize;
+        chips.push(`
+          <button type="button" onclick="_setGrupoSize(${n})"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold border transition-colors ${
+              sel ? 'border-neon bg-brand-neon/10 text-neon' : 'border-white/10 text-white/50 hover:border-white/25'
+            }">${n === 1 ? 'Solo yo' : n}</button>`);
+      }
+      wrap.innerHTML = `
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+          <div class="flex items-center gap-2 mb-2.5">
+            <i class="ph ph-users-three text-neon text-base"></i>
+            <p class="text-sm font-bold text-white">¿Para cuántas personas?</p>
+          </div>
+          <div class="flex flex-wrap gap-2">${chips.join('')}</div>
+          <p id="grupoNota" class="mt-2.5 text-[11px] leading-relaxed text-white/40 ${_grupoSize > 1 ? '' : 'hidden'}">
+            👥 Reserva grupal: el <b class="text-white/70">mismo servicio para ${_grupoSize} personas</b>, atendidas a la
+            misma hora en sillones distintos. Asignamos a los profesionales automáticamente.
+          </p>
+        </div>`;
+      wrap.classList.remove('hidden');
+    }
+
+    window._setGrupoSize = function (n) {
+      const cfg = _grupoCfg();
+      _grupoSize = cfg ? Math.max(1, Math.min(cfg.max, Number(n) || 1)) : 1;
+      // Cambiar el tamaño invalida la hora elegida (la disponibilidad cambia).
+      selectedTimeStr = null;
+      _selectedSlotInfo = null;
+      _renderGrupoSelector();
+      if (typeof updateContinueBtn === 'function') updateContinueBtn();
+    };
+
     async function _prefetchChameleonSlots() {
       try {
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -11623,6 +11686,7 @@
       const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
       _fsSettings = _shopSettings;
       _renderFeaturesStrip(_shopSettings?.features);
+      _renderGrupoSelector();   // reserva en grupo (solo si el local la activó)
       // Quiénes somos (configurable desde el panel → Configuración)
       try {
         const _qs = _shopSettings && _shopSettings.quienesSomos;
@@ -12077,6 +12141,18 @@
         return;
       }
 
+      // ── Reserva en grupo: solo horas con ≥N profesionales libres a la vez ──
+      //  (sin cupos VIP/sobrecupo en modo grupo: un doble-booking múltiple no
+      //  tiene sentido operacional). _multiHoras conserva la lista completa
+      //  para la asignación en el paso 4.
+      if (_grupoSize > 1) {
+        hours = hours.filter(h =>
+          !h.esSobrecupo &&
+          Array.isArray(h.availableBarberoIds) &&
+          h.availableBarberoIds.length >= _grupoSize
+        );
+      }
+
       grid.innerHTML = '';
 
       // Filtrar horas pasadas si es hoy
@@ -12452,9 +12528,11 @@
       if (currentStep === 0 || (currentStep === 1 && !window._hasSucursales)) {
         window.history.back();
       } else {
-        // delnero y marcelo_hairdressing saltan el paso 2 en ambas direcciones
+        // delnero y marcelo_hairdressing saltan el paso 2 en ambas direcciones.
+        // La reserva en grupo también (los profesionales se asignan solos).
         const _skipStep2Tenants = ['delnero', 'marcelo_hairdressing'];
-        const targetStep = (_skipStep2Tenants.includes(window.CURRENT_TENANT_ID) && currentStep === 3) ? 1 : currentStep - 1;
+        const _saltaPaso2 = _skipStep2Tenants.includes(window.CURRENT_TENANT_ID) || _grupoSize > 1;
+        const targetStep = (_saltaPaso2 && currentStep === 3) ? 1 : currentStep - 1;
         const currentStepEl = document.getElementById(`step${currentStep}`);
         const prevStepEl = document.getElementById(`step${targetStep}`);
 
@@ -12539,6 +12617,33 @@
         // Recomendaciones configuradas en el panel: pausar el avance una vez
         // para ofrecer complementos. Los botones del modal re-llaman nextStep().
         if (_maybeShowUpsell()) return;
+
+        // ── Reserva en grupo: saltar la elección de barbero ──
+        //  Los profesionales se asignan automáticamente (se necesitan N libres
+        //  a la misma hora, elegir uno a mano no tiene sentido). Mismo patrón
+        //  de salto 1→3 que delnero/marcelo.
+        if (_grupoSize > 1) {
+          // Una sesión de pack cubre UNA persona — no combinable con grupo.
+          if (selectedServiceObj?.consumeSesionPack) {
+            return showToast('Las sesiones de pack no aplican a reservas grupales. Cambia a "Solo yo" o quita el pack.');
+          }
+          window._selectedBarberId = 'any';
+          window._selectedBarber   = 'any';
+          const summaryBarberGrp = document.getElementById('summaryBarber');
+          if (summaryBarberGrp) summaryBarberGrp.textContent = `Grupo de ${_grupoSize}`;
+          selectedTimeStr = null;
+          _selectedSlotInfo = null;
+          await precargarBloqueos(null);
+          _activeBarberConfig = null;
+          renderCalendar(null);
+          renderHours(null);
+          _subscribeSlotLocks(currentDateStr);
+          transitionStep(1, 3);
+          currentStep = 3;
+          updateProgress();
+          updateContinueBtn();
+          return;
+        }
 
         if (window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
           // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
@@ -13324,6 +13429,42 @@
           // comportamiento pedido: no puede reservar sin responder.
           const _auraOrigen = window.askAuraOrigenSiCorresponde ? await window.askAuraOrigenSiCorresponde() : undefined;
 
+          // ── Reserva EN GRUPO: N citas atómicas con profesionales distintos ──
+          if (_grupoSize > 1) {
+            const slotDataGrp = _multiHoras.find(h => h.time === selectedTimeStr);
+            const availGrp = (slotDataGrp && slotDataGrp.availableBarberoIds) || [];
+            if (availGrp.length < _grupoSize) {
+              const eGrp = new Error('Ya no hay suficientes profesionales libres a esa hora.');
+              eGrp.code = 'slot-taken';
+              throw eGrp;
+            }
+            // Elegir N barberos al azar entre los libres (distribuye la carga).
+            const elegidos = [...availGrp].sort(() => Math.random() - 0.5).slice(0, _grupoSize);
+            const personasGrp = elegidos.map(id => {
+              const bDoc = (_fsBarberos || []).find(b => b.id === id);
+              return { barberoId: _canonicalBarberoId(id), barbero: bDoc ? bDoc.nombre : '' };
+            });
+            await FDB.addCitasGrupo(personasGrp, {
+              fecha:            currentDateStr,
+              hora:             selectedTimeStr,
+              clienteNombre:    nombre,
+              clienteTelefono:  tel,
+              clienteTelefonoSuf9: telSuf9,
+              clienteEmail:     email,
+              ..._reservaAcepto,
+              servicioId:       selectedServiceObj.id,
+              servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
+              duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
+              precio:           _basePrecioAdd,   // por persona (sin VIP: grupo lo excluye)
+              codigoCita:       window._generarCodigoCita(),
+              ...(window._selectedSucursal ? {
+                sucursalId:     window._selectedSucursal.id,
+                sucursalNombre: window._selectedSucursal.nombre,
+              } : {}),
+            });
+            citaGuardada = true;
+          } else {
+
           await FDB.addCita({
             fecha:            currentDateStr,
             hora:             selectedTimeStr,
@@ -13371,6 +13512,7 @@
             } : {}),
           });
           citaGuardada = true;
+          } // fin else (reserva individual vs grupo)
         } catch(e) {
           if (e.code === 'slot-taken') {
             showToast('Esa hora fue tomada por otro cliente. Por favor elige otro horario.');

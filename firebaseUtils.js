@@ -696,6 +696,100 @@ const FDB = (() => {
     return citaId;
   }
 
+  // ── Reserva EN GRUPO (feature con toggle configuracion/main.reservasGrupo) ──
+  //  Crea N citas + N slotLocks en UNA transacción: o entran todas o ninguna
+  //  (si alguien tomó uno de los cupos en el intertanto → error slot-taken y
+  //  el front re-consulta horas). Todas comparten `grupoId`; solo la cita
+  //  principal (grupoIndex 0) lleva email/teléfono del reservante, así las
+  //  CFs de confirmación (email/WhatsApp/push cliente) no duplican avisos.
+  //
+  //  personas: [{ barberoId, barbero }]  — distintos entre sí, uno por persona
+  //  base:     { fecha, hora, clienteNombre, clienteTelefono, clienteTelefonoSuf9,
+  //              clienteEmail, servicioId, servicioNombre, duracionServicio,
+  //              precio, codigoCita, sucursalId?, sucursalNombre?, ...aceptos }
+  async function addCitasGrupo(personas, base) {
+    if (!Array.isArray(personas) || personas.length < 2) {
+      throw new Error('Una reserva de grupo requiere al menos 2 personas.');
+    }
+    const dur = Number(base.duracionServicio) || 30;
+    const safeHora = (base.hora || '').replace(':', '');
+    const grupoId  = tenantCol(COL.CITAS).doc().id;   // id compartido del grupo
+
+    function _genCodigo() {
+      const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+      return code.slice(0, 3) + '-' + code.slice(3);
+    }
+
+    const items = personas.map((p, i) => {
+      const safeBid = String(p.barberoId || 'any').replace(/[^a-zA-Z0-9_-]/g, '_');
+      return {
+        idx:     i,
+        lockRef: tenantCol('slotLocks').doc(`${safeBid}_${base.fecha}_${safeHora}`),
+        citaRef: tenantCol(COL.CITAS).doc(),
+        barberoId: p.barberoId,
+        barbero:   p.barbero || '',
+      };
+    });
+
+    await db.runTransaction(async (tx) => {
+      // 1) TODOS los locks deben estar libres (lecturas antes de escrituras).
+      const snaps = await Promise.all(items.map(it => tx.get(it.lockRef)));
+      if (snaps.some(s => s.exists)) {
+        const err = new Error('Uno de los cupos del grupo ya fue tomado. Elige otro horario.');
+        err.code = 'slot-taken';
+        throw err;
+      }
+      // 2) Escribir N locks + N citas.
+      for (const it of items) {
+        const esPrincipal = it.idx === 0;
+        tx.set(it.lockRef, {
+          citaId:    it.citaRef.id,
+          fecha:     base.fecha,
+          hora:      base.hora,
+          barberoId: it.barberoId,
+          duracion:  dur,
+          origen:    'reserva_online_grupo',
+          creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.set(it.citaRef, {
+          fecha:            base.fecha,
+          hora:             base.hora,
+          // Acompañantes: nombre derivado del reservante; el staff los ubica
+          // por el badge de grupo en la agenda. Sin email/teléfono → las CFs
+          // de confirmación al cliente no se duplican.
+          clienteNombre:    esPrincipal ? (base.clienteNombre || '') : `${base.clienteNombre || 'Grupo'} · acompañante ${it.idx + 1}`,
+          clienteTelefono:  esPrincipal ? (base.clienteTelefono || '') : '',
+          clienteEmail:     esPrincipal ? (base.clienteEmail || '') : '',
+          ...(esPrincipal && base.clienteTelefonoSuf9 ? { clienteTelefonoSuf9: base.clienteTelefonoSuf9 } : {}),
+          servicioNombre:   base.servicioNombre || '',
+          ...(base.servicioId ? { servicioId: base.servicioId } : {}),
+          duracionServicio: dur,
+          precio:           Number(base.precio) || 0,
+          barbero:          it.barbero,
+          barberoId:        it.barberoId,
+          estado:           'Confirmada',
+          nota:             '',
+          origen:           'reserva_online_grupo',
+          codigoCita:       esPrincipal && base.codigoCita ? base.codigoCita : _genCodigo(),
+          slotLockId:       it.lockRef.id,
+          grupoId,
+          grupoIndex:       it.idx,
+          grupoTotal:       items.length,
+          waOptIn:          esPrincipal,   // confirmación WhatsApp solo al reservante
+          ...(base.sucursalId     ? { sucursalId: base.sucursalId } : {}),
+          ...(base.sucursalNombre ? { sucursalNombre: base.sucursalNombre } : {}),
+          ...(base.aceptaTerminos != null ? { aceptaTerminos: base.aceptaTerminos } : {}),
+          ...(base.aceptaTerminosEn ? { aceptaTerminosEn: base.aceptaTerminosEn } : {}),
+          creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
+
+    return { grupoId, citaIds: items.map(it => it.citaRef.id) };
+  }
+
   async function updateCitaEstado(id, estado) {
     const citaRef = tenantCol(COL.CITAS).doc(id);
     const patch = { estado };
@@ -1804,7 +1898,7 @@ const FDB = (() => {
     // Configuración por barbero
     getConfigBarbero, updateConfigBarbero, onConfigBarberoChange,
     // Citas
-    getCitas, getCitasMes, getCitasByCliente, onCitasByClienteChange, addCita,
+    getCitas, getCitasMes, getCitasByCliente, onCitasByClienteChange, addCita, addCitasGrupo,
     updateCitaEstado, updateCitaNota, deleteCita,
     onCitasDiaChange, clearGoogleReviewFlag,
     // Disponibilidad

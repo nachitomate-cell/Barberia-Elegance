@@ -5,7 +5,7 @@ import {
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
-  Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle,
+  Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle, Activity,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
   Coffee,
 } from 'lucide-react';
@@ -17,7 +17,7 @@ import {
   runTransaction, Timestamp, arrayUnion,
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { SheetModal, sheetBtn } from '../components/ui/SheetModal';
+import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -2377,6 +2377,16 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
             </span>
           );
         })()}
+        {/* Reserva en grupo: N personas a la misma hora en sillones distintos.
+            El grupoId agrupa las citas hermanas (mismo cliente reservante). */}
+        {cita.grupoId && (
+          <span
+            title={`Reserva en grupo · ${cita.grupoTotal || '?'} personas a la misma hora`}
+            className="mr-1 inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-black uppercase tracking-wide align-middle bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/30"
+          >
+            👥 Grupo{cita.grupoTotal ? ` ${(cita.grupoIndex ?? 0) + 1}/${cita.grupoTotal}` : ''}
+          </span>
+        )}
         {cita.clienteNombre || 'Cliente'}
       </p>
       <p className="truncate text-[10px] opacity-75">
@@ -2667,6 +2677,125 @@ function CitaContextMenu({ x, y, cita, onCompletar, onHistorial, onCambiarFecha,
         <CtxItem icon={Trash2} label="Eliminar cita" onClick={onEliminar} danger />
       </div>
     </div>
+  );
+}
+
+/* ── ResumenDiaModal — foto del día de un vistazo ─────────────────
+   La agenda muestra la grilla, pero para saber "¿cómo viene el día?" había
+   que contar columnas a ojo. Esto responde eso: cuántas citas, cuánto se
+   espera facturar y qué necesita atención.
+
+   El ingreso usa la MISMA convención que Inicio/Métricas — cortesía = 0 y
+   fallback al precio del servicio si la cita no lo trae — para que los
+   números no se contradigan entre pantallas. Ese fallback existe porque
+   citas viejas guardaban el precio solo en el servicio. */
+function ResumenDiaModal({ citas, servicios, barberos, fechaLabel, onClose }) {
+  const precioMap = useMemo(() => {
+    const m = {};
+    (servicios || []).forEach(s => {
+      if (s.precio != null) { m[s.id] = Number(s.precio) || 0; m[s.nombre] = Number(s.precio) || 0; }
+    });
+    return m;
+  }, [servicios]);
+
+  const getPrice = (c) =>
+    c.cortesia ? 0 : (Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0);
+
+  const r = useMemo(() => {
+    const activas    = citas.filter(c => c.estado !== 'Cancelada' && c.estado !== 'NoAsistio');
+    const confirmadas = citas.filter(c => c.estado === 'Confirmada');
+    const completadas = citas.filter(c => c.estado === 'Completada');
+    const pendientes  = citas.filter(c => c.estado === 'Pendiente');
+    const canceladas  = citas.filter(c => c.estado === 'Cancelada');
+    const noAsistio   = citas.filter(c => c.estado === 'NoAsistio');
+    const sinBarbero  = activas.filter(c => !c.barberoId);
+    const sinHora     = activas.filter(c => !c.hora);
+
+    // Esperado = lo que entra si el día se cumple. Realizado = lo ya cerrado.
+    const esperado  = activas.reduce((s, c) => s + getPrice(c), 0);
+    const realizado = completadas.reduce((s, c) => s + getPrice(c), 0);
+
+    // Carga por barbero, para ver quién está copado y quién libre.
+    const porBarbero = (barberos || []).map(b => ({
+      nombre: b.nombre,
+      n: activas.filter(c => c.barberoId === b.id).length,
+    })).sort((a, b) => b.n - a.n);
+
+    return { activas, confirmadas, completadas, pendientes, canceladas, noAsistio,
+             sinBarbero, sinHora, esperado, realizado, porBarbero };
+  }, [citas, barberos, precioMap]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fmt = n => '$' + Number(n || 0).toLocaleString('es-CL');
+
+  const Stat = ({ label, valor, color = 'text-primary' }) => (
+    <div className="rounded-2xl bg-slate-800/50 px-3.5 py-3">
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
+      <p className={`mt-0.5 text-[22px] font-semibold leading-none tracking-[-0.02em] ${color}`}>{valor}</p>
+    </div>
+  );
+
+  // Solo lo que necesita acción entra acá: un panel lleno de avisos vacíos
+  // enseña a ignorarlo.
+  const avisos = [];
+  if (r.sinBarbero.length) avisos.push(`${r.sinBarbero.length} cita${r.sinBarbero.length !== 1 ? 's' : ''} sin barbero asignado`);
+  if (r.sinHora.length)    avisos.push(`${r.sinHora.length} cita${r.sinHora.length !== 1 ? 's' : ''} sin hora definida`);
+  if (r.pendientes.length) avisos.push(`${r.pendientes.length} sin confirmar por el cliente`);
+
+  return (
+    <SheetModal
+      icon={Activity}
+      titulo="Resumen del día"
+      sub={fechaLabel}
+      onClose={onClose}
+      maxW="max-w-[420px]"
+      footer={<button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cerrar</button>}
+    >
+      {/* Titular: las dos cifras que resumen el día. */}
+      <div className={sheetHighlight}>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Se espera facturar</p>
+        <p className="mt-1 text-[30px] font-semibold leading-none tracking-[-0.02em] text-primary">{fmt(r.esperado)}</p>
+        <p className="mt-1.5 text-[13px] text-slate-400">
+          {r.activas.length} cita{r.activas.length !== 1 ? 's' : ''} activa{r.activas.length !== 1 ? 's' : ''}
+          {r.realizado > 0 && <> · {fmt(r.realizado)} ya cerrado</>}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <Stat label="Confirmadas" valor={r.confirmadas.length} color="text-emerald-400" />
+        <Stat label="Completadas" valor={r.completadas.length} color="text-blue-400" />
+        <Stat label="Pendientes"  valor={r.pendientes.length}  color={r.pendientes.length ? 'text-amber-400' : 'text-primary'} />
+        <Stat label="Canceladas"  valor={r.canceladas.length + r.noAsistio.length} color={(r.canceladas.length + r.noAsistio.length) ? 'text-rose-400' : 'text-primary'} />
+      </div>
+
+      {avisos.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">Requiere atención</p>
+          <ul className="mt-1.5 space-y-1">
+            {avisos.map(a => (
+              <li key={a} className="flex items-start gap-2 text-[13px] leading-snug text-amber-300">
+                <AlertTriangle size={13} className="mt-0.5 shrink-0" />{a}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {r.porBarbero.length > 0 && (
+        <div>
+          <p className={sheetLabel}>Carga por barbero</p>
+          <div className="space-y-1">
+            {r.porBarbero.map(b => (
+              <div key={b.nombre} className="flex items-center justify-between rounded-xl bg-slate-800/40 px-3.5 py-2.5 text-[13px]">
+                <span className="truncate text-slate-300">{b.nombre}</span>
+                <span className={`ml-2 shrink-0 font-semibold ${b.n ? 'text-slate-300' : 'text-slate-500'}`}>
+                  {b.n === 0 ? 'sin citas' : `${b.n} cita${b.n !== 1 ? 's' : ''}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SheetModal>
   );
 }
 
@@ -3765,6 +3894,7 @@ export default function Agenda() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [reagendarModal, setReagendarModal] = useState(null);
+  const [showResumen, setShowResumen] = useState(false);
   // Se llena al mover una cita con éxito → abre AvisarClienteModal.
   const [avisarModal, setAvisarModal] = useState(null);
   const [ctxMenu,       setCtxMenu]       = useState(null);  // { x, y, cita } menú clic derecho sobre una cita
@@ -4482,8 +4612,17 @@ export default function Agenda() {
           </div>
         )}
 
-        {/* Ayuda contextual — última posición, discreta */}
-        <div className="ml-auto shrink-0">
+        {/* Resumen del día + ayuda contextual, al final de la barra. */}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowResumen(true)}
+            title="Resumen del día"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-[12px] font-semibold text-slate-300 transition-all hover:bg-slate-700 active:scale-95"
+          >
+            <Activity size={13} />
+            <span className="hidden sm:inline">Resumen</span>
+          </button>
           <HelpButton onClick={() => setShowHelp(true)} />
         </div>
       </div>
@@ -4960,6 +5099,15 @@ export default function Agenda() {
           data={avisarModal}
           shopName={tenantName}
           onClose={() => setAvisarModal(null)}
+        />
+      )}
+      {showResumen && (
+        <ResumenDiaModal
+          citas={citas.filter(c => c.fecha === dateStr)}
+          servicios={servicios}
+          barberos={barberos}
+          fechaLabel={date.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
+          onClose={() => setShowResumen(false)}
         />
       )}
       {showUltima && (

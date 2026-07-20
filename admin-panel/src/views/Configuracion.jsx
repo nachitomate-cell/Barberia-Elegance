@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
-  Package, Tag, PenLine, Award, Bell, Mail,
+  Package, Tag, PenLine, Award, Bell, Mail, Users,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -767,6 +767,10 @@ export default function Configuracion() {
   const [chatCancelEnabled,   setChatCancelEnabled]   = useState(true);
   const [chatReagendarEnabled, setChatReagendarEnabled] = useState(true);
   const [politicaMensaje,     setPoliticaMensaje]     = useState('');
+  // Reservas en grupo (agenda pública): mismo servicio para N personas a la
+  // misma hora, en sillones paralelos. index.html lee configuracion/main.reservasGrupo.
+  const [grupoEnabled, setGrupoEnabled] = useState(false);
+  const [grupoMax,     setGrupoMax]     = useState(4);
   // Metas financieras — inputs como string para distinguir "" (sin definir,
   // usa el fallback automático en Inicio) de 0 (forzar a 0).
   const [metaMensual,   setMetaMensual]   = useState('');
@@ -828,6 +832,10 @@ export default function Configuracion() {
         if (cd.reservaMaxPorDia   !== undefined) setReservaMaxPorDia(Number(cd.reservaMaxPorDia)   || 0);
         if (cd.chatCancelEnabled !== undefined) setChatCancelEnabled(!!cd.chatCancelEnabled);
         if (cd.chatReagendarEnabled !== undefined) setChatReagendarEnabled(!!cd.chatReagendarEnabled);
+        if (cd.reservasGrupo) {
+          setGrupoEnabled(cd.reservasGrupo.enabled === true);
+          setGrupoMax(Math.max(2, Math.min(6, Number(cd.reservasGrupo.maxPersonas) || 4)));
+        }
         if (cd.politicaMensaje !== undefined) setPoliticaMensaje(String(cd.politicaMensaje || ''));
         if (cd.metaMensualVentas != null) setMetaMensual(String(cd.metaMensualVentas));
         if (cd.costoDiarioFijo   != null) setCostoDiario(String(cd.costoDiarioFijo));
@@ -911,6 +919,11 @@ export default function Configuracion() {
           // Toggles del chat (cancelar/reagendar vía código) + mensaje opcional
           chatCancelEnabled:       !!chatCancelEnabled,
           chatReagendarEnabled:    !!chatReagendarEnabled,
+          // Reservas en grupo (leído por index.html en el paso 1)
+          reservasGrupo: {
+            enabled:     !!grupoEnabled,
+            maxPersonas: Math.max(2, Math.min(6, Math.round(Number(grupoMax) || 4))),
+          },
           politicaMensaje:         String(politicaMensaje || '').trim().slice(0, 500),
           metaMensualVentas:       parsePosInt(metaMensual),
           costoDiarioFijo:         parsePosInt(costoDiario),
@@ -1229,6 +1242,58 @@ export default function Configuracion() {
             {politicaMensaje.length}/500
           </p>
         </div>
+      </Card>
+
+      {/* Reservas en grupo en la agenda pública */}
+      <Card Icon={Users} title="Reservas en grupo">
+        <p className="text-xs text-slate-500 -mt-1 mb-3 leading-relaxed">
+          Permite que un cliente reserve para <strong className="text-slate-300">varias personas a la vez</strong> desde
+          tu agenda pública: el mismo servicio para todos, atendidos a la misma hora en sillones distintos.
+          Los profesionales se asignan automáticamente entre los que estén libres.
+        </p>
+
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-primary">Activar reservas en grupo</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Requiere al menos 2 profesionales activos; con menos, el selector no se muestra.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setGrupoEnabled(v => !v); setDirty(true); }}
+            className={`relative inline-flex w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${grupoEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+            aria-pressed={grupoEnabled}
+          >
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${grupoEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
+        {grupoEnabled && (
+          <div className="mt-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Máximo de personas por reserva</p>
+            <div className="grid grid-cols-5 gap-2">
+              {[2, 3, 4, 5, 6].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => { setGrupoMax(n); setDirty(true); }}
+                  className={`py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                    grupoMax === n
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              💡 El tope real nunca supera la cantidad de profesionales disponibles ese día.
+              Las sesiones de pack y los cupos VIP no aplican en reservas grupales.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Anti-spam de reservas en la agenda pública */}
