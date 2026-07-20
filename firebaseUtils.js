@@ -744,13 +744,16 @@ const FDB = (() => {
       // 2) Escribir N locks + N citas.
       for (const it of items) {
         const esPrincipal = it.idx === 0;
+        // OJO: las rules de slotLocks tienen allowlist ESTRICTA de llaves
+        // (hasOnly[citaId,creadoEn,fecha,hora,barberoId,duracion]) — un campo
+        // extra (ej: origen) rechaza la transacción COMPLETA con
+        // permission-denied. El origen del grupo vive en la cita, no aquí.
         tx.set(it.lockRef, {
           citaId:    it.citaRef.id,
           fecha:     base.fecha,
           hora:      base.hora,
           barberoId: it.barberoId,
           duracion:  dur,
-          origen:    'reserva_online_grupo',
           creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
         });
         tx.set(it.citaRef, {
