@@ -1167,12 +1167,21 @@ html.light [data-view="agenda"] .agenda-dia-libre {
   background-image:
     repeating-linear-gradient(45deg, #e2e8f0 0 10px, transparent 10px 20px) !important;
 }
-html.light [data-view="agenda"] .agenda-blocked-slot > span:first-of-type {
-  background-color: rgba(255, 255, 255, 0.85) !important;
-  color: #64748b !important;
+/* Píldora "BLOQUEO DE AGENDA": sólida sobre el rayado, si no el patrón la
+   atraviesa y no se lee. */
+html.light [data-view="agenda"] .agenda-blocked-pill {
+  background-color: #ffffff !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
 }
 html.light [data-view="agenda"] .agenda-blocked-slot > p {
   color: #94a3b8 !important;
+}
+/* La hora es el dato que se busca de un vistazo: más contraste que el
+   resto. Va con el selector completo (> p.clase) porque la regla de
+   arriba es más específica que la clase sola y le ganaría. */
+html.light [data-view="agenda"] .agenda-blocked-slot > p.agenda-blocked-hora {
+  color: #334155 !important;
 }
 
 /* Tarjetas de cita: mayor contraste tipográfico (regla 3).

@@ -1956,16 +1956,46 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 
   return (
     <div
-      title={`Bloqueado${bloqueo.nota ? ': ' + bloqueo.nota : ''}`}
+      title={[
+        bloqueo.todo_el_dia ? 'Día cerrado' : `Bloqueo de agenda ${bloqueo.hora_inicio}–${bloqueo.hora_fin}`,
+        'No disponible para reservas',
+        bloqueo.nota || null,
+        'Clic para desbloquear',
+      ].filter(Boolean).join(' · ')}
       onClick={async () => { if (await confirmDialog('¿Desbloquear este horario?')) onDelete(bloqueo); }}
       className="agenda-blocked-slot absolute inset-x-0.5 rounded-md border border-neutral-800 bg-neutral-900 bg-[image:repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all"
       style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
     >
-      <span className="bg-neutral-950 px-2 py-1 rounded text-xs font-bold text-neutral-400 inline-flex items-center gap-1 mt-1">
-        <Lock size={10} />
-        <span className="truncate">{bloqueo.todo_el_dia ? 'Día cerrado' : `${bloqueo.hora_inicio}–${bloqueo.hora_fin}`}</span>
+      {/* El bloqueo mostraba solo la hora, y había que saberse el sistema para
+          entender qué era esa franja rayada. Ahora se explica solo: qué es,
+          cuándo, y que no se puede reservar ahí.
+
+          El detalle se ajusta al alto real: un bloqueo puede durar un solo
+          slot (36px) y tres líneas no caben. spans = cuántos slots ocupa. */}
+      <span className="agenda-blocked-pill bg-neutral-950 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide text-neutral-400 inline-flex items-center gap-1 mt-1">
+        <Lock size={10} className="shrink-0" />
+        <span className="truncate">
+          {bloqueo.todo_el_dia ? 'Día cerrado' : 'Bloqueo de agenda'}
+        </span>
       </span>
-      {bloqueo.nota && <p className="text-[9px] text-neutral-500 truncate mt-0.5">{bloqueo.nota}</p>}
+
+      {spans >= 2 && !bloqueo.todo_el_dia && (
+        <p className="agenda-blocked-hora text-[11px] font-semibold text-neutral-300 truncate mt-1">
+          {bloqueo.hora_inicio} – {bloqueo.hora_fin}
+        </p>
+      )}
+
+      {spans >= 3 && (
+        <p className="text-[9px] text-neutral-500 truncate mt-0.5">
+          No disponible{bloqueo.nota ? ` · ${bloqueo.nota}` : ''}
+        </p>
+      )}
+
+      {/* En bloqueos cortos la nota no cabe como línea propia, pero no se
+          pierde: el title del contenedor ya la incluye. */}
+      {spans === 2 && bloqueo.nota && (
+        <p className="text-[9px] text-neutral-500 truncate mt-0.5">{bloqueo.nota}</p>
+      )}
     </div>
   );
 }
