@@ -4,6 +4,7 @@ import {
   doc, updateDoc, setDoc, addDoc, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -337,65 +338,56 @@ function ModalSaldar({ cuenta, tenantId, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="space-y-1">
-          <h3 className="text-primary font-bold text-lg flex items-center gap-2">
-            <HandCoins size={18} className="text-amber-400" />
-            Saldar cuota
-          </h3>
-          <p className="text-xs text-slate-400">Cliente: <strong className="text-primary">{cuenta.nombre || '—'}</strong></p>
-        </div>
-
-        <div className="bg-slate-900/80 border border-slate-700/40 rounded-xl p-4 space-y-2.5">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Servicios del período:</span>
-            <span className="font-semibold text-slate-200">{servicios.length}</span>
-          </div>
-          <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Total a cobrar:</span>
-            <span className="font-black text-primary text-lg">{fmt(saldo)}</span>
-          </div>
-        </div>
-
-        {servicios.length > 0 && (
-          <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-            {servicios.map((s, i) => (
-              <div key={i} className="flex justify-between items-center text-xs bg-slate-900/40 border border-slate-800/60 rounded-lg px-3 py-2">
-                <span className="text-slate-300 truncate">
-                  {s.servicioNombre || 'Servicio'} <span className="text-slate-600">· {s.fecha || ''}</span>
-                  {(s.precio != null && s.recargo != null) && (
-                    <span className="block text-[10px] text-slate-600">{fmt(s.precio)} + {fmt(s.recargo)} recargo</span>
-                  )}
-                </span>
-                <span className="text-slate-400 font-semibold shrink-0 ml-2">{fmt(s.monto)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Método de pago</label>
-          <select value={metodo} onChange={e => setMetodo(e.target.value)} className={INPUT_CLS}>
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="transferencia">📲 Transferencia Bancaria</option>
-            <option value="tarjeta">💳 Tarjeta de Débito/Crédito</option>
-          </select>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
-            Cancelar
-          </button>
-          <button onClick={saldar} disabled={loading || saldo <= 0}
-            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-primary text-sm font-bold transition-all shadow-lg shadow-amber-950/20 disabled:opacity-50">
+    <SheetModal
+      icon={HandCoins}
+      tone="amber"
+      titulo="Saldar cuota"
+      sub={cuenta.nombre || '—'}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={saldar} disabled={loading || saldo <= 0} className={`${sheetBtn.base} ${sheetBtn.warn}`}>
             {loading ? 'Procesando…' : 'Confirmar pago'}
           </button>
-        </div>
+        </>
+      }
+    >
+      {/* El monto a cobrar es LA cifra del diálogo: va grande arriba, y el
+          conteo de servicios queda como contexto debajo. */}
+      <div className={sheetHighlight}>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total a cobrar</p>
+        <p className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.02em] text-primary">{fmt(saldo)}</p>
+        <p className="mt-1 text-[13px] text-slate-400">
+          {servicios.length} servicio{servicios.length !== 1 ? 's' : ''} del período
+        </p>
       </div>
-    </div>
+
+      {servicios.length > 0 && (
+        <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
+          {servicios.map((s, i) => (
+            <div key={i} className="flex items-center justify-between rounded-xl bg-slate-800/40 px-3.5 py-2.5 text-[13px]">
+              <span className="min-w-0 truncate text-slate-300">
+                {s.servicioNombre || 'Servicio'} <span className="text-slate-500">· {s.fecha || ''}</span>
+                {(s.precio != null && s.recargo != null) && (
+                  <span className="block text-[11px] text-slate-500">{fmt(s.precio)} + {fmt(s.recargo)} recargo</span>
+                )}
+              </span>
+              <span className="ml-2 shrink-0 font-semibold text-slate-400">{fmt(s.monto)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <label className={sheetLabel}>Método de pago</label>
+        <select value={metodo} onChange={e => setMetodo(e.target.value)} className={sheetInput}>
+          <option value="efectivo">💵 Efectivo</option>
+          <option value="transferencia">📲 Transferencia bancaria</option>
+          <option value="tarjeta">💳 Tarjeta de débito/crédito</option>
+        </select>
+      </div>
+    </SheetModal>
   );
 }
 
@@ -420,30 +412,32 @@ function ModalRecargo({ tenantId, recargoActual, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-sm bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl">
-        <h3 className="text-primary font-bold text-lg flex items-center gap-2">
-          <Pencil size={17} className="text-amber-400" /> Recargo por servicio
-        </h3>
-        <p className="text-xs text-slate-400">Se suma al <strong className="text-slate-200">precio del servicio</strong> cada vez que el miembro completa una cita. La cuota acumula <strong className="text-slate-200">precio + recargo</strong>.</p>
-        <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Recargo (CLP)</label>
-          <input type="number" min="0" step="100" inputMode="numeric"
-            value={recargo}
-            onChange={e => setRecargo(e.target.value.replace(/[^\d]/g, ''))}
-            className={INPUT_CLS} />
-        </div>
-        <div className="flex gap-3 pt-1">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-primary transition-all">
-            Cancelar
-          </button>
-          <button onClick={guardar} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-primary text-sm font-bold transition-all disabled:opacity-50">
+    <SheetModal
+      icon={Pencil}
+      tone="amber"
+      titulo="Recargo por servicio"
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={guardar} disabled={loading} className={`${sheetBtn.base} ${sheetBtn.warn}`}>
             {loading ? 'Guardando…' : 'Guardar'}
           </button>
-        </div>
+        </>
+      }
+    >
+      <p className="px-1 text-[13px] leading-relaxed text-slate-400">
+        Se suma al <span className="font-medium text-slate-300">precio del servicio</span> cada vez que el miembro
+        completa una cita. La cuota acumula <span className="font-medium text-slate-300">precio + recargo</span>.
+      </p>
+      <div>
+        <label className={sheetLabel}>Recargo (CLP)</label>
+        <input type="number" min="0" step="100" inputMode="numeric"
+          value={recargo}
+          onChange={e => setRecargo(e.target.value.replace(/[^\d]/g, ''))}
+          className={sheetInput} />
       </div>
-    </div>
+    </SheetModal>
   );
 }
 
