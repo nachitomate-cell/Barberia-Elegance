@@ -445,7 +445,14 @@
         /* ── Textos blancos → slate-900 (con jerarquía de opacidad) ───────── */
         html.light-mode .text-white { color: #0f172a !important; }
         html.light-mode .text-white\/90 { color: #0f172a !important; }
+        /* /85 = precio de la cita; /55 = nombre del servicio; /45 y /35
+           sueltos. No estaban mapeados → quedaban BLANCOS sobre la tarjeta
+           celeste clara (invisibles). Se slotean en la misma rampa slate. */
+        html.light-mode .text-white\/85 { color: #0f172a !important; }
         html.light-mode .text-white\/80 { color: #1e293b !important; }
+        html.light-mode .text-white\/55 { color: #475569 !important; }
+        html.light-mode .text-white\/45 { color: #64748b !important; }
+        html.light-mode .text-white\/35 { color: #94a3b8 !important; }
         html.light-mode .text-white\/70 { color: #334155 !important; }
         html.light-mode .text-white\/60 { color: #475569 !important; }
         html.light-mode .text-white\/50 { color: #64748b !important; }
@@ -645,6 +652,14 @@
             color: #334155 !important;
             font-weight: 700 !important;
         }
+        /* text-brand-accent CON opacidad (/50, /60, /80) es una clase que
+           Tailwind no genera (brand-accent no lleva <alpha-value>): el texto
+           heredaba BLANCO, invisible en claro (ej. "Hoy/Semana/Mes" del modal
+           de proyección). Se fija al dorado legible. El override del dashboard
+           de arriba, más específico por el id, sigue mandando ahí. */
+        html.light-mode .text-brand-accent\/80,
+        html.light-mode .text-brand-accent\/60,
+        html.light-mode .text-brand-accent\/50 { color: #a17d3a !important; }
 
         /* ── Banner "Instalar como Aplicación" ─────────────────────────
            Fondo/gradiente inline en oro semi-transparente eran casi
