@@ -1131,6 +1131,24 @@
         html.light-mode #kebabMenuPanel [style*="rgba(255,255,255,0.06)"] {
             background: #e2e8f0 !important; /* divisor entre items */
         }
+        /* Login: grupo de campos inset estilo iOS. El foco lo maneja el
+           contenedor (:focus-within), no cada input. El login siempre es
+           oscuro, por eso los colores van fijos (no vars de tema). */
+        #loginFields:focus-within {
+            border-color: rgba(255,255,255,0.3);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.05);
+        }
+        #loginFields input::placeholder { color: rgba(255,255,255,0.42); }
+        /* Evita el fondo azul/blanco del autofill del navegador sobre el
+           input transparente oscuro y mantiene el texto legible. */
+        #loginFields input:-webkit-autofill,
+        #loginFields input:-webkit-autofill:hover,
+        #loginFields input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #fff;
+            caret-color: #fff;
+            -webkit-box-shadow: 0 0 0 1000px rgba(30,30,36,0.9) inset;
+            transition: background-color 9999s ease-in-out 0s;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
@@ -1180,10 +1198,13 @@
                 <p style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.3em;margin:0;">Agenda Barbero</p>
                 <h1 id="loginShopName" style="font-size:1.55rem;line-height:1.1;font-weight:900;color:#fff;margin:0.45rem 0 0;">Barbershop</h1>
                 <p id="loginSlogan" style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin:0.35rem 0 0;"></p>
-                <!-- Badge: diferencia esta vista como la agenda DIRECTA del profesional -->
-                <div id="agendaDirectaBadge" style="display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.9rem;padding:0.3rem 0.8rem;border-radius:9999px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;font-size:10.5px;font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-weight:700;letter-spacing:0.08em;">
-                    <span class="animate-pulse" style="width:6px;height:6px;border-radius:9999px;background:#f59e0b;"></span>
-                    <span id="agendaDirectaBadgeText">AGENDA DIRECTA DEL PROFESIONAL</span>
+                <!-- Badge: diferencia esta vista como la agenda DIRECTA del
+                     profesional. Antes era ámbar monoespaciado (aspecto
+                     "terminal"); ahora es una píldora glass sutil, universal
+                     para cualquier tenant. -->
+                <div id="agendaDirectaBadge" style="display:inline-flex;align-items:center;gap:0.45rem;margin-top:0.9rem;padding:0.34rem 0.9rem;border-radius:9999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:rgba(255,255,255,0.72);font-size:11.5px;font-weight:600;letter-spacing:0.01em;">
+                    <i class="ph-fill ph-scissors" style="font-size:12px;color:rgba(255,255,255,0.55);"></i>
+                    <span id="agendaDirectaBadgeText">Agenda directa del profesional</span>
                 </div>
             </div>
             <!-- Mejora dinámica: si el link trae ?barbero= o ?staff=, personaliza el badge -->
@@ -1196,38 +1217,38 @@
                   var nombre = decodeURIComponent(raw).replace(/[-_]+/g, ' ').trim()
                     .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
                   var el = document.getElementById('agendaDirectaBadgeText');
-                  if (el && nombre) el.textContent = 'AGENDA DE ' + nombre.toUpperCase();
+                  if (el && nombre) el.textContent = 'Agenda de ' + nombre;
                 } catch (_) {}
               })();
             </script>
 
             <!-- Tarjeta -->
             <div style="border-radius:1.5rem;padding:1.6rem 1.5rem;background:rgba(14,14,18,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 24px 60px rgba(0,0,0,0.55);">
-                <!-- Correo -->
-                <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:0.45rem;">Correo</label>
-                <div style="position:relative;margin-bottom:1.1rem;">
-                    <i class="ph-bold ph-envelope-simple" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.05rem;color:rgba(255,255,255,0.4);pointer-events:none;"></i>
-                    <input id="agendaEmail" type="email" placeholder="tu@correo.com" autocomplete="email"
-                        onkeydown="if(event.key==='Enter')loginBarbero()"
-                        onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
-                        style="width:100%;border-radius:0.85rem;padding:0.8rem 0.95rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);outline:none;transition:border-color .2s, box-shadow .2s;">
+                <!-- Campos agrupados estilo lista inset de iOS: correo y
+                     contraseña en un solo contenedor con divisor, sin labels en
+                     mayúsculas. El borde va fijo (login siempre oscuro), no la
+                     var de tema, que se colaba clara en modo claro. El foco lo
+                     maneja el contenedor con :focus-within. -->
+                <div id="loginFields" style="border-radius:1.05rem;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);transition:border-color .2s, box-shadow .2s;">
+                    <div style="display:flex;align-items:center;">
+                        <i class="ph-bold ph-envelope-simple" style="flex-shrink:0;padding-left:1rem;font-size:1.1rem;color:rgba(255,255,255,0.4);"></i>
+                        <input id="agendaEmail" type="email" placeholder="Correo" autocomplete="email"
+                            onkeydown="if(event.key==='Enter')loginBarbero()"
+                            style="flex:1;min-width:0;background:transparent;border:none;padding:0.95rem 1rem 0.95rem 0.7rem;font-size:0.95rem;color:#fff;outline:none;">
+                    </div>
+                    <div style="height:1px;background:rgba(255,255,255,0.08);margin-left:2.9rem;"></div>
+                    <div style="display:flex;align-items:center;">
+                        <i class="ph-bold ph-lock-simple" style="flex-shrink:0;padding-left:1rem;font-size:1.1rem;color:rgba(255,255,255,0.4);"></i>
+                        <input id="agendaPassword" type="password" placeholder="Contraseña" autocomplete="current-password"
+                            onkeydown="if(event.key==='Enter')loginBarbero()"
+                            style="flex:1;min-width:0;background:transparent;border:none;padding:0.95rem 0.5rem 0.95rem 0.7rem;font-size:0.95rem;color:#fff;outline:none;">
+                        <button type="button" onclick="togglePwdVisibility(this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña"
+                            style="flex-shrink:0;margin-right:0.4rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;">
+                            <i class="ph-bold ph-eye" style="font-size:1.05rem;"></i>
+                        </button>
+                    </div>
                 </div>
-                <!-- Contraseña -->
-                <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:0.45rem;">Contraseña</label>
-                <div style="position:relative;margin-bottom:0.4rem;">
-                    <i class="ph-bold ph-lock-simple" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.05rem;color:rgba(255,255,255,0.4);pointer-events:none;"></i>
-                    <input id="agendaPassword" type="password" placeholder="••••••••" autocomplete="current-password"
-                        onkeydown="if(event.key==='Enter')loginBarbero()"
-                        onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
-                        style="width:100%;border-radius:0.85rem;padding:0.8rem 2.8rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);outline:none;transition:border-color .2s, box-shadow .2s;">
-                    <button type="button" onclick="togglePwdVisibility(this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña"
-                        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;">
-                        <i class="ph-bold ph-eye" style="font-size:1.05rem;"></i>
-                    </button>
-                </div>
-                <p id="loginError" class="text-red-400 text-xs hidden" style="margin-top:0.35rem;"></p>
+                <p id="loginError" class="text-red-400 text-xs hidden" style="margin-top:0.6rem;"></p>
                 <button id="loginBtn" onclick="loginBarbero()"
                     onmouseover="if(!this.disabled)this.style.background='rgba(255,255,255,0.9)'" onmouseout="this.style.background='#fff'"
                     onmousedown="if(!this.disabled)this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'"
