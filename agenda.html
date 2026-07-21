@@ -69,6 +69,15 @@
     </script>
 
     <style>
+        /* Superficie elevada (banner/modal de instalar PWA). Valor oscuro por
+           defecto; html.light-mode lo cambia a blanco. Se lee desde estilos
+           inline como var(--elev-surface) porque un !important de hoja no pisa
+           esos inline en esta página (Tailwind CDN + capas). */
+        :root {
+            --elev-surface: #111115;
+            --elev-border:  rgba(255,255,255,0.12);
+        }
+
         * {
             -webkit-tap-highlight-color: transparent;
         }
@@ -303,6 +312,35 @@
         html.light-mode .bg-brand-bg\/80 {
             background-color: #f8fafc !important;
         }
+
+        /* ── Superficies oscuras que quedaban negras en modo claro ──────────
+           Auditoría 2026-07. Solo lo que aparece SOBRE la app clara. NO se
+           tocan el splash de carga (#loadingOverlay) ni la pantalla de login
+           (#loginOverlay): son pantallas oscuras a propósito (foto + spinner
+           blanco), aclararlas rompería su texto/spinner blanco.
+           Los inline se pisan por selector de atributo — un !important de
+           hoja gana al inline. */
+
+        /* Banner + modal de instalar PWA: su fondo era inline #111115. Un
+           !important de hoja NO lo pisa en esta página (Tailwind CDN mete sus
+           utilidades en @layer y, para !important, las capas ganan al CSS sin
+           capa). Se resuelve con variable: el inline lee var(--elev-surface),
+           que cambia por tema. El texto usa .text-white (ya invertido). */
+        html.light-mode {
+            --elev-surface: #ffffff;
+            --elev-border:  #e2e8f0;
+        }
+
+        /* Banner de error del sistema → rojo muy claro, texto oscuro legible. */
+        html.light-mode #errBanner {
+            background: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #991b1b !important;
+        }
+        html.light-mode #errBanner * { color: #991b1b !important; }
+        /* Banner "conexión perdida" (rose): ya es una alerta de color; en claro
+           lo dejamos sólido rose-600 para que se lea sin el tinte translúcido. */
+        html.light-mode #connBanner { background: #e11d48 !important; }
 
         /* Fondos oscuros de tarjetas de cita ($1c1c24) → pastel azul */
         html.light-mode .bg-\[\#1c1c24\] {
@@ -1013,7 +1051,7 @@
 
     <!-- Red de seguridad de errores: pill de recuperación, oculto salvo error
          no atrapado. Ofrece recargar en vez de dejar la agenda congelada. -->
-    <div id="errBanner" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:50%;transform:translateX(-50%) translateY(200%);z-index:9550;display:flex;align-items:center;gap:10px;padding:9px 10px 9px 15px;border-radius:9999px;background:rgba(30,30,36,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 32px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);transition:transform .32s cubic-bezier(0.16,1,0.3,1);">
+    <div id="errBanner" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:50%;transform:translateX(-50%) translateY(200%);z-index:9550;display:flex;align-items:center;gap:10px;padding:9px 10px 9px 15px;border-radius:9999px;background:rgba(30,30,36,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--elev-border);box-shadow:0 12px 32px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);transition:transform .32s cubic-bezier(0.16,1,0.3,1);">
         <i class="ph-fill ph-warning-circle" style="color:#fbbf24;font-size:17px;flex-shrink:0;"></i>
         <span style="font-size:12.5px;color:#fff;font-weight:600;white-space:nowrap;">Ocurrió un error</span>
         <button type="button" onclick="location.reload()" style="font-size:11px;color:#0a0a0a;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:7px 13px;border-radius:9999px;background:#fff;border:none;cursor:pointer;flex-shrink:0;">Recargar</button>
@@ -1074,7 +1112,7 @@
                         onkeydown="if(event.key==='Enter')loginBarbero()"
                         onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
                         onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
-                        style="width:100%;border-radius:0.85rem;padding:0.8rem 0.95rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);outline:none;transition:border-color .2s, box-shadow .2s;">
+                        style="width:100%;border-radius:0.85rem;padding:0.8rem 0.95rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);outline:none;transition:border-color .2s, box-shadow .2s;">
                 </div>
                 <!-- Contraseña -->
                 <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:0.45rem;">Contraseña</label>
@@ -1084,7 +1122,7 @@
                         onkeydown="if(event.key==='Enter')loginBarbero()"
                         onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
                         onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
-                        style="width:100%;border-radius:0.85rem;padding:0.8rem 2.8rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);outline:none;transition:border-color .2s, box-shadow .2s;">
+                        style="width:100%;border-radius:0.85rem;padding:0.8rem 2.8rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);outline:none;transition:border-color .2s, box-shadow .2s;">
                     <button type="button" onclick="togglePwdVisibility(this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña"
                         style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;">
                         <i class="ph-bold ph-eye" style="font-size:1.05rem;"></i>
@@ -1215,7 +1253,7 @@
         <div class="lg:col-span-7 flex flex-col lg:h-full lg:overflow-y-auto pb-24 lg:pr-2" style="scrollbar-width: none;">
         <!-- ── TOGGLE DE VISTA Día / Semana ── -->
         <div class="flex items-center mb-3 sm:mb-6 animate-fade-in">
-            <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
                 <button id="viewBtnDia" onclick="setAgendaView('dia')" class="flex items-center gap-1.5 px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition-all">
                     <i class="ph-bold ph-calendar-dot"></i> Día
                 </button>
@@ -1333,7 +1371,7 @@
                             <i class="ph-bold ph-caret-down text-[9px] text-white/40"></i>
                         </button>
                         <div id="intervalPopover" class="hidden absolute right-0 mt-2 z-50 rounded-xl p-2 shadow-2xl"
-                             style="background:#0f0f12;border:1px solid rgba(255,255,255,0.1);">
+                             style="background:#0f0f12;border:1px solid var(--elev-border);">
                             <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 px-1 pb-1.5 whitespace-nowrap">Intervalo</p>
                             <div class="flex items-center gap-0.5 rounded-lg p-0.5" style="background:rgba(255,255,255,0.05);">
                                 <button onclick="setSlotInterval(15)" data-int="15" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">15'</button>
@@ -1356,7 +1394,7 @@
                  Ocupa el espacio que liberó la banda de "Intervalo". -->
             <button type="button" id="nextCitaChip" onclick="irASiguienteCita()"
                     class="hidden w-full mb-5 px-3.5 py-2.5 rounded-xl flex items-center gap-2.5 text-left active:scale-[0.99] transition-all"
-                    style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                    style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
                 <span id="nextCitaDot" class="w-2 h-2 rounded-full shrink-0" style="background:#34d399;"></span>
                 <span id="nextCitaText" class="flex-1 min-w-0 truncate text-[13px] text-white/85">—</span>
                 <i id="nextCitaCaret" class="ph-bold ph-caret-right text-[11px] text-white/30 shrink-0"></i>
@@ -1453,7 +1491,7 @@
 
                     <div class="rounded-2xl p-5 mb-5" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);">
                                 <i class="ph-bold ph-user text-white/50 text-xl"></i>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -1482,7 +1520,7 @@
                         <textarea class="cd-nota w-full rounded-2xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none resize-none transition-colors focus:bg-white/10" rows="4" placeholder="Ej: cliente prefiere degradado suave..." style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" oninput="document.querySelectorAll('.cd-nota-status').forEach(el=>el.textContent='')"></textarea>
                         <div class="flex items-center justify-between mt-3">
                             <span class="cd-nota-status text-xs font-medium text-emerald-400"></span>
-                            <button class="cd-nota-btn px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:bg-white/10 disabled:opacity-40" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);" onclick="guardarNotaCita()">
+                            <button class="cd-nota-btn px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:bg-white/10 disabled:opacity-40" style="background:rgba(255,255,255,0.08);border:1px solid var(--elev-border);" onclick="guardarNotaCita()">
                                 Guardar nota
                             </button>
                         </div>
@@ -3664,7 +3702,7 @@
 
                 const t = document.createElement('div');
                 t.id = 'welcomeToast';
-                t.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 14px);left:50%;transform:translateX(-50%) translateY(-160%);z-index:9500;display:flex;align-items:center;gap:11px;padding:9px 18px 9px 9px;border-radius:9999px;background:rgba(14,14,18,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 14px 40px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);cursor:pointer;transition:transform .5s cubic-bezier(0.16,1,0.3,1), opacity .35s ease;';
+                t.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 14px);left:50%;transform:translateX(-50%) translateY(-160%);z-index:9500;display:flex;align-items:center;gap:11px;padding:9px 18px 9px 9px;border-radius:9999px;background:rgba(14,14,18,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--elev-border);box-shadow:0 14px 40px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);cursor:pointer;transition:transform .5s cubic-bezier(0.16,1,0.3,1), opacity .35s ease;';
                 t.innerHTML = `
                     <img src="${logo}" alt="" style="width:38px;height:38px;border-radius:9999px;object-fit:cover;border:1px solid rgba(255,255,255,0.18);flex-shrink:0;">
                     <div style="min-width:0;line-height:1.25;">
@@ -5132,7 +5170,7 @@
       <!-- Cliente -->
       <div class="rounded-2xl p-4 mb-4" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);">
             <i class="ph ph-user text-white/50 text-base"></i>
           </div>
           <div class="min-w-0 flex-1">
@@ -5162,7 +5200,7 @@
         <textarea class="cd-nota w-full rounded-xl px-3 py-3 text-sm text-white placeholder-white/20 outline-none resize-none" rows="4" placeholder="Ej: cliente prefiere degradado suave..." style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" oninput="document.querySelectorAll('.cd-nota-status').forEach(el=>el.textContent='')"></textarea>
         <div class="flex items-center justify-between mt-2">
           <span class="cd-nota-status text-xs text-emerald-400"></span>
-          <button class="cd-nota-btn px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);" onclick="guardarNotaCita()">
+          <button class="cd-nota-btn px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40" style="background:rgba(255,255,255,0.08);border:1px solid var(--elev-border);" onclick="guardarNotaCita()">
             Guardar nota
           </button>
         </div>
@@ -5385,7 +5423,7 @@
         <input type="text" id="blockRangeMotivo" placeholder="Ej: Almuerzo, curso, capacitación..."
           maxlength="80"
           class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
-          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
       </div>
 
       <p id="blockRangeError" class="text-red-400 text-xs hidden mb-3"></p>
@@ -5424,28 +5462,28 @@
             </span>
           </div>
           <div id="manualNameSugg" class="hidden absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-y-auto"
-            style="background:#1c1c26;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
+            style="background:#1c1c26;border:1px solid var(--elev-border);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
           </div>
         </div>
         <div id="manualPhoneWrap">
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono / WhatsApp</label>
-          <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
-          <input type="email" id="manualEmail" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" autocomplete="off">
+          <input type="email" id="manualEmail" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" autocomplete="off">
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
           <select id="manualServiceSelect" onchange="_onManualServiceChange()"
             class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none"
-            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             <option value="" style="background:#111">Cargando servicios…</option>
           </select>
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Duración (minutos)</label>
-          <select id="manualDuration" class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <select id="manualDuration" class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             <option value="10" style="background:#111">10 min</option>
             <option value="15" style="background:#111">15 min</option>
             <option value="20" style="background:#111">20 min</option>
@@ -5465,11 +5503,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Precio ($)</label>
-            <input type="number" id="manualPrecio" placeholder="0" min="0" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" oninput="_onManualPrecioInput()">
+            <input type="number" id="manualPrecio" placeholder="0" min="0" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" oninput="_onManualPrecioInput()">
           </div>
           <div>
             <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Descuento (%)</label>
-            <input type="number" id="manualDesc" placeholder="0" min="0" max="100" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" oninput="_onManualDescInput()">
+            <input type="number" id="manualDesc" placeholder="0" min="0" max="100" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" oninput="_onManualDescInput()">
           </div>
         </div>
         <p id="manualError" class="text-red-400 text-xs hidden"></p>
@@ -5501,32 +5539,32 @@
         <!-- Cliente -->
         <div>
           <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Cliente</label>
-          <input type="text" id="ecNombre" placeholder="Nombre" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <input type="text" id="ecNombre" placeholder="Nombre" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
         </div>
         <div class="grid grid-cols-2 gap-2.5">
           <div id="ecTelWrap">
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono <span id="ecTelReq" class="text-amber-400 hidden">*</span></label>
-            <input type="tel" id="ecTel" placeholder="+569..." class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="tel" id="ecTel" placeholder="+569..." class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
-            <input type="email" id="ecEmail" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="email" id="ecEmail" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
         </div>
 
         <!-- Servicio -->
         <div>
           <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
-          <select id="ecServicio" onchange="_onEcServicioChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></select>
+          <select id="ecServicio" onchange="_onEcServicioChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);"></select>
         </div>
         <div class="grid grid-cols-2 gap-2.5">
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Precio ($)</label>
-            <input type="number" id="ecPrecio" min="0" oninput="_ecSobrecupoRefresh()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="number" id="ecPrecio" min="0" oninput="_ecSobrecupoRefresh()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Descuento (%)</label>
-            <input type="number" id="ecDesc" min="0" max="100" placeholder="0" oninput="_onEcDescInput()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="number" id="ecDesc" min="0" max="100" placeholder="0" oninput="_onEcDescInput()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
         </div>
 
@@ -5534,18 +5572,18 @@
         <div class="grid grid-cols-2 gap-2.5">
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Hora</label>
-            <input type="time" id="ecHora" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="time" id="ecHora" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
           <div>
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Duración (min)</label>
-            <input type="number" id="ecDuracion" min="5" step="5" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <input type="number" id="ecDuracion" min="5" step="5" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
           </div>
         </div>
 
         <!-- Estado -->
         <div>
           <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Estado</label>
-          <select id="ecEstado" onchange="_onEcEstadoChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <select id="ecEstado" onchange="_onEcEstadoChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             <option value="Confirmada" style="background:#111">Confirmada</option>
             <option value="Completada" style="background:#111">Completada</option>
             <option value="NoAsistio"  style="background:#111">No asistió</option>
@@ -5556,7 +5594,7 @@
         <!-- Sobrecupo / Horario especial: recargo por atender fuera de turno o
              encima de otra cita. precio = base + recargo (Caja lo cobra solo). -->
         <div>
-          <button type="button" id="ecSobrecupoToggle" onclick="_toggleEcSobrecupo()" class="flex items-center justify-between w-full p-3 rounded-xl transition-colors" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <button type="button" id="ecSobrecupoToggle" onclick="_toggleEcSobrecupo()" class="flex items-center justify-between w-full p-3 rounded-xl transition-colors" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             <span class="flex items-center gap-2">
               <i class="ph-bold ph-lightning text-amber-400 text-sm"></i>
               <span class="text-sm font-semibold text-white/80">Sobrecupo / Horario especial</span>
@@ -5589,7 +5627,7 @@
           <div class="grid grid-cols-2 gap-2.5">
             <div>
               <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Método de pago *</label>
-              <select id="ecMetodoPago" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+              <select id="ecMetodoPago" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
                 <option value="Efectivo" style="background:#111">Efectivo</option>
                 <option value="Débito" style="background:#111">Débito</option>
                 <option value="Crédito" style="background:#111">Crédito</option>
@@ -5598,7 +5636,7 @@
             </div>
             <div>
               <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Propina ($)</label>
-              <input type="number" id="ecPropina" min="0" placeholder="0" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+              <input type="number" id="ecPropina" min="0" placeholder="0" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             </div>
           </div>
         </div>
@@ -5616,11 +5654,11 @@
           <div id="ecAddProductoForm" class="hidden flex-wrap items-end gap-2 p-2 rounded-lg" style="background:rgba(0,0,0,0.3);">
             <div class="flex-1 min-w-[120px]">
               <label class="text-[9px] font-bold text-white/30 uppercase block mb-1">Producto</label>
-              <select id="ecProductoSel" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></select>
+              <select id="ecProductoSel" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);"></select>
             </div>
             <div class="w-16">
               <label class="text-[9px] font-bold text-white/30 uppercase block mb-1">Cant.</label>
-              <input type="number" id="ecProductoQty" min="1" value="1" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+              <input type="number" id="ecProductoQty" min="1" value="1" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
             </div>
             <button onclick="ecConfirmarAddProducto()" class="px-2.5 py-2 rounded-lg text-xs font-bold text-emerald-300" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);">Agregar</button>
             <button onclick="ecCancelarAddProducto()" class="px-2 py-2 text-xs text-white/40">×</button>
@@ -5631,7 +5669,7 @@
         <!-- Nota -->
         <div>
           <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Nota interna</label>
-          <textarea id="ecNota" rows="2" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></textarea>
+          <textarea id="ecNota" rows="2" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);"></textarea>
         </div>
 
         <p id="ecError" class="text-red-400 text-xs hidden"></p>
@@ -5639,7 +5677,7 @@
 
       <!-- Footer -->
       <div class="px-5 py-3 border-t border-white/5 shrink-0 flex gap-2" style="background:rgba(0,0,0,0.3);">
-        <button onclick="cerrarEditarCita()" class="flex-1 py-3 rounded-xl text-sm font-bold text-white/60" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">Cancelar</button>
+        <button onclick="cerrarEditarCita()" class="flex-1 py-3 rounded-xl text-sm font-bold text-white/60" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">Cancelar</button>
         <button id="ecSaveBtn" onclick="guardarEdicionCita()" class="flex-[2] py-3 rounded-xl text-sm font-bold text-black bg-brand-accent active:scale-95 transition-all">Guardar cambios</button>
       </div>
     </div>
@@ -6651,7 +6689,7 @@
        PWA INSTALL BANNER — para barberos (agenda)
        ═══════════════════════════════════════════════════════════ -->
   <div id="pwaBanner" class="hidden fixed bottom-4 left-3 right-3 z-50 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
-    style="background:#111115;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.7);">
+    style="background:var(--elev-surface);border:1px solid var(--elev-border);box-shadow:0 8px 40px rgba(0,0,0,0.7);">
     <img id="bannerLogo" src="/logo.jpg" class="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" alt="Logo">
     <div class="flex-1 min-w-0">
       <p class="text-sm font-bold text-white leading-tight">Instala la agenda</p>
@@ -6672,7 +6710,7 @@
 
   <!-- Modal iOS -->
   <div id="pwaModalIOS" class="hidden fixed inset-0 z-50 flex items-end justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
-    <div class="w-full max-w-sm rounded-3xl p-6 text-center" style="background:#111115;border:1px solid rgba(255,255,255,0.1);">
+    <div class="w-full max-w-sm rounded-3xl p-6 text-center" style="background:var(--elev-surface);border:1px solid var(--elev-border);">
       <img id="modalIOSLogo" src="/logo.jpg" class="w-14 h-14 rounded-2xl object-cover mx-auto mb-4 border border-white/10" alt="Logo">
       <h3 class="text-base font-bold text-white mb-1">Instala tu agenda</h3>
       <p class="text-xs text-white/40 mb-5 leading-relaxed">Abre la agenda sin necesidad de abrir el navegador cada vez.</p>
@@ -6703,7 +6741,7 @@
       <!-- Icono -->
       <div class="flex justify-center mb-4">
         <div class="w-16 h-16 rounded-2xl flex items-center justify-center"
-             style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+             style="background:rgba(255,255,255,0.06);border:1px solid var(--elev-border);">
           <i class="ph-fill ph-bell-ringing text-3xl text-white"></i>
         </div>
       </div>
