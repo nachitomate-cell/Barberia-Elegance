@@ -75,7 +75,13 @@
            esos inline en esta página (Tailwind CDN + capas). */
         :root {
             --elev-surface: #111115;
+            --elev-surface-2: #1c1c26;   /* tarjetas anidadas / inputs dentro de un modal */
             --elev-border:  rgba(255,255,255,0.12);
+            /* Banner de aviso "por cerrar" (ámbar). */
+            --warn-surface: linear-gradient(to right, rgba(245,158,11,0.12), rgba(245,158,11,0.03));
+            --warn-border:  rgba(245,158,11,0.28);
+            --warn-icon-bg: rgba(245,158,11,0.15);
+            --warn-accent:  #fbbf24;
             /* Splash de carga (tema oscuro por defecto). */
             --splash-bg:       #0a0a0c;
             --splash-ring:     rgba(255,255,255,0.10);
@@ -385,7 +391,14 @@
            que cambia por tema. El texto usa .text-white (ya invertido). */
         html.light-mode {
             --elev-surface: #ffffff;
+            --elev-surface-2: #f1f5f9;   /* gris muy suave para lo anidado */
             --elev-border:  #e2e8f0;
+            /* Ámbar suave en claro: fondo crema tenue, acento amber-700 (no el
+               #fbbf24 chillón que cansaba). */
+            --warn-surface: #fffbeb;
+            --warn-border:  #fde68a;
+            --warn-icon-bg: #fef3c7;
+            --warn-accent:  #b45309;
             /* Splash en claro: tela suave, glow y barra en grafito tenue. */
             --splash-bg:      #f8fafc;
             --splash-ring:    rgba(15,23,42,0.10);
@@ -752,8 +765,8 @@
 
         /* Contenedor interior del modal (div hijo con style inline #0d0d10 →
            rgb(13, 13, 16)). Cubrimos ambas notaciones más el fallback por hijo. */
-        html.light-mode [style*="background:#0d0d10"],
-        html.light-mode [style*="background: #0d0d10"],
+        html.light-mode [style*="background:var(--elev-surface)"],
+        html.light-mode [style*="background:var(--elev-surface)"],
         html.light-mode [style*="background:rgb(13, 13, 16)"],
         html.light-mode [style*="background:rgb(13,13,16)"],
         html.light-mode #freeSlotModal > div,
@@ -842,8 +855,8 @@
 
         /* Dropdown de sugerencias del buscador de clientes (#1c1c26 → rgb(28,28,38)) */
         html.light-mode #manualNameSugg,
-        html.light-mode [style*="background:#1c1c26"],
-        html.light-mode [style*="background: #1c1c26"],
+        html.light-mode [style*="background:var(--elev-surface-2)"],
+        html.light-mode [style*="background:var(--elev-surface-2)"],
         html.light-mode [style*="background:rgb(28, 28, 38)"] {
             background: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
@@ -1230,7 +1243,7 @@
                 <!-- Panel del dropdown. left-0 porque ahora el botón está a la
                      izquierda (antes right-0 cuando era kebab a la derecha). -->
                 <div id="kebabMenuPanel" class="hidden absolute left-0 mt-2 w-52 rounded-xl overflow-hidden shadow-2xl z-50"
-                     style="background:#0f0f12;border:1px solid rgba(255,255,255,0.08);"
+                     style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.08);"
                      role="menu">
                     <div class="p-1.5 space-y-0.5">
                         <button type="button" data-menu-item onclick="closeKebabMenu(); abrirPerfil();" role="menuitem">
@@ -1357,13 +1370,15 @@
              cuándo. Aparece cuando hay citas Confirmada del barbero cuya hora
              ya pasó. Listener en iniciarBannerPorCerrar(), tras fijar barberId. -->
         <div id="porCerrarBanner" class="hidden mb-3 sm:mb-4 rounded-xl sm:rounded-2xl overflow-hidden"
-             style="background:linear-gradient(to right, rgba(245,158,11,0.12), rgba(245,158,11,0.03)); border: 1px solid rgba(245,158,11,0.28);">
+             style="background:var(--warn-surface); border: 1px solid var(--warn-border);">
             <!-- Fila SIEMPRE visible: compacta, una sola línea. Toca para expandir.
-                 Colapsado por defecto para no comerse media pantalla en móvil. -->
+                 Colapsado por defecto para no comerse media pantalla en móvil.
+                 Colores por var(--warn-*): en claro el ámbar es más suave y el
+                 acento pasa a amber-700 para no cansar la vista. -->
             <button type="button" id="porCerrarToggle" onclick="togglePorCerrar()"
                 class="w-full flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-white/5 transition-colors">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(245,158,11,0.15);">
-                    <i class="ph-fill ph-check-square-offset text-base" style="color:#fbbf24;"></i>
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:var(--warn-icon-bg);">
+                    <i class="ph-fill ph-check-square-offset text-base" style="color:var(--warn-accent);"></i>
                 </div>
                 <span id="porCerrarTitulo" class="flex-1 min-w-0 text-[13px] font-bold text-white truncate">Citas por cerrar</span>
                 <i id="porCerrarChevron" class="ph-bold ph-caret-down text-white/40 shrink-0 transition-transform"></i>
@@ -1442,7 +1457,7 @@
                             <i class="ph-bold ph-caret-down text-[9px] text-white/40"></i>
                         </button>
                         <div id="intervalPopover" class="hidden absolute right-0 mt-2 z-50 rounded-xl p-2 shadow-2xl"
-                             style="background:#0f0f12;border:1px solid var(--elev-border);">
+                             style="background:var(--elev-surface);border:1px solid var(--elev-border);">
                             <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 px-1 pb-1.5 whitespace-nowrap">Intervalo</p>
                             <div class="flex items-center gap-0.5 rounded-lg p-0.5" style="background:rgba(255,255,255,0.05);">
                                 <button onclick="setSlotInterval(15)" data-int="15" class="int-btn px-3 py-2 rounded-lg text-[11px] font-mono font-bold transition-all">15'</button>
@@ -1717,7 +1732,7 @@
                         class="w-full flex items-center gap-2.5 text-left rounded-lg px-2.5 py-2 transition-colors active:scale-[0.99]"
                         style="background:rgba(255,255,255,0.05);">
                         <div class="shrink-0 text-center" style="min-width:38px;">
-                            <p class="text-[9px] font-bold uppercase tracking-wide" style="color:#fbbf24;">${cuando}</p>
+                            <p class="text-[9px] font-bold uppercase tracking-wide" style="color:var(--warn-accent);">${cuando}</p>
                             <p class="text-[12px] font-black text-white leading-none mt-0.5 tabular-nums">${_escHtml(c.hora || '')}</p>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -5224,7 +5239,7 @@
   <div id="citaDetailOverlay" class="hidden fixed inset-0 z-[300] lg:hidden" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);" onclick="cerrarDetalleCita()"></div>
   <!-- Sheet con dos snap positions: 55dvh (compact, default) y 90dvh (expanded).
        El toggle en el header + drag-up desde el handle intercambia entre ambas. -->
-  <div id="citaDetailSheet" data-state="compact" class="fixed bottom-0 left-0 right-0 z-[301] lg:hidden" style="transform:translateY(100%);max-height:55dvh;background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;transition:transform .3s ease-out, max-height .3s ease-out;">
+  <div id="citaDetailSheet" data-state="compact" class="fixed bottom-0 left-0 right-0 z-[301] lg:hidden" style="transform:translateY(100%);max-height:55dvh;background:var(--elev-surface);border-top:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;transition:transform .3s ease-out, max-height .3s ease-out;">
     <!-- Handle (arrastrable: down cierra o colapsa; up expande) -->
     <div id="citaSheetHandle" class="flex justify-center pt-3.5 pb-2.5 cursor-grab active:cursor-grabbing">
       <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
@@ -5294,7 +5309,7 @@
   <!-- Mobile: bottom sheet full-width con esquinas superiores redondeadas.
        Desktop (sm+): modal centrado con las 4 esquinas redondeadas. Se
        reposiciona via top-1/2 + translate para no depender de m-auto. -->
-  <div id="perfilModal" class="hidden fixed inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[351]" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;max-height:92dvh;overflow:hidden;">
+  <div id="perfilModal" class="hidden fixed inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[351]" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;max-height:92dvh;overflow:hidden;">
     <div class="sm:hidden flex justify-center pt-3.5 pb-2.5" onclick="cerrarPerfil()">
       <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
     </div>
@@ -5380,7 +5395,7 @@
 
   <!-- Modal Opciones Slot Libre -->
   <div id="freeSlotModal" class="hidden fixed inset-0 z-[5000] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <h3 class="text-lg font-bold text-white mb-5 text-center">Opciones para las <span id="freeSlotTimeLabel" class="text-brand-accent"></span></h3>
       <div class="space-y-3">
         <button onclick="accionAgendarCliente()" class="w-full py-3.5 rounded-xl text-sm font-bold text-black bg-white hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2">
@@ -5406,7 +5421,7 @@
 
   <!-- Modal Proyección — desglose de ganancias diaria/semanal/mensual (no cancelada). -->
   <div id="proyeccionModal" class="hidden fixed inset-0 z-[5001] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarModalProyeccion()">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <div class="flex items-center justify-between mb-1">
         <div class="flex items-center gap-2">
           <i class="ph-fill ph-wallet text-brand-accent text-xl"></i>
@@ -5470,7 +5485,7 @@
 
   <!-- Modal Bloquear Rango de Horas — permite bloquear desde/hasta con motivo opcional. -->
   <div id="blockRangeModal" class="hidden fixed inset-0 z-[5002] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <div class="flex items-center justify-between mb-5">
         <h3 class="text-lg font-bold text-white">Bloquear rango de horas</h3>
         <button onclick="cerrarBlockRange()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
@@ -5517,7 +5532,7 @@
 
   <!-- Modal Agendar Cliente Manual -->
   <div id="agendarModal" class="hidden fixed inset-0 z-[5001] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-bold text-white">Nueva Cita a las <span id="agendarHoraDisplay" class="text-brand-accent"></span></h3>
         <button onclick="cerrarAgendarModal()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
@@ -5541,7 +5556,7 @@
             </span>
           </div>
           <div id="manualNameSugg" class="hidden absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-y-auto"
-            style="background:#1c1c26;border:1px solid var(--elev-border);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
+            style="background:var(--elev-surface-2);border:1px solid var(--elev-border);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
           </div>
         </div>
         <div id="manualPhoneWrap">
@@ -5599,7 +5614,7 @@
 
   <!-- ═══════ MODAL DE EDICIÓN / COMPLETAR CITA ═══════ -->
   <div id="editCitaOverlay" class="hidden fixed inset-0 z-[6000]" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarEditarCita()">
-    <div id="editCitaSheet" class="absolute bottom-0 left-0 right-0 mx-auto max-w-md rounded-t-3xl overflow-hidden flex flex-col" style="background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);max-height:92dvh;">
+    <div id="editCitaSheet" class="absolute bottom-0 left-0 right-0 mx-auto max-w-md rounded-t-3xl overflow-hidden flex flex-col" style="background:var(--elev-surface);border-top:1px solid rgba(255,255,255,0.08);max-height:92dvh;">
 
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
@@ -5764,7 +5779,7 @@
 
   <!-- Modal Calendario Mensual -->
   <div id="calendarModal" class="hidden fixed inset-0 z-[5002] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarMiniCalendario()">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <div class="flex items-center justify-between mb-4">
         <button onclick="cambiarMesMini(-1)" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"><i class="ph-bold ph-caret-left text-white/60"></i></button>
         <h3 id="calendarMonthLabel" class="text-base font-bold text-white tracking-wide uppercase">Mayo 2026</h3>
@@ -6816,7 +6831,7 @@
   <div id="notifPermModal" class="hidden fixed inset-0 z-[6000] flex items-end justify-center px-4 pb-6"
        style="background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);">
     <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in"
-         style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 -4px 40px rgba(0,0,0,0.6);">
+         style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 -4px 40px rgba(0,0,0,0.6);">
       <!-- Icono -->
       <div class="flex justify-center mb-4">
         <div class="w-16 h-16 rounded-2xl flex items-center justify-center"
