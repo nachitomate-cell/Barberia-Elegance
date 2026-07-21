@@ -233,7 +233,11 @@ exports.mpMensualidadCrearLink = onCall(
 
     const bSnap   = await db.doc(`_billing/${tid}`).get();
     const billing = bSnap.exists ? bSnap.data() : {};
-    const monto   = Math.round(Number(billing.montoPendiente) || 0);
+    // montoPendiente se guarda NETO (criterio 2026-07-20); el cargo real de la
+    // suscripción es neto + IVA 19% — igual que lo que muestra la vista
+    // Mensualidad (ej: $29.900 + IVA = $35.581).
+    const monto    = Math.round(Number(billing.montoPendiente) || 0);
+    const montoIva = Math.round(monto * 1.19);
     if (monto < MONTO_MINIMO) {
       throw new HttpsError('failed-precondition', 'La mensualidad de este local aún no está configurada. Escríbenos por WhatsApp.');
     }
@@ -242,7 +246,7 @@ exports.mpMensualidadCrearLink = onCall(
     if (sub && sub.status === 'authorized') {
       throw new HttpsError('failed-precondition', 'El pago automático ya está activo.');
     }
-    // Link vigente con el mismo monto → reusar (evita un plan nuevo por cada clic).
+    // Link vigente con el mismo monto NETO → reusar (evita un plan por clic).
     if (sub && sub.status === 'link_creado' && sub.initPoint && Number(sub.monto) === monto) {
       return { url: sub.initPoint };
     }
@@ -260,7 +264,7 @@ exports.mpMensualidadCrearLink = onCall(
       auto_recurring: {
         frequency:          1,
         frequency_type:     'months',
-        transaction_amount: monto,
+        transaction_amount: montoIva,   // total con IVA — es lo que se carga a la tarjeta
         currency_id:        'CLP',
       },
     };
@@ -276,13 +280,14 @@ exports.mpMensualidadCrearLink = onCall(
         planId:    json.id,
         initPoint: json.init_point,
         status:    'link_creado',
-        monto,
+        monto,               // neto (para el check de reuso del link)
+        montoIva,            // lo que MP carga efectivamente cada mes
         creadoEn:  FieldValue.serverTimestamp(),
         creadoPor: String((request.auth.token && request.auth.token.email) || request.auth.uid),
       },
     }, { merge: true });
 
-    logger.info(`[MPmens] plan creado ${tid} → ${json.id} (${clp(monto)}/mes)`);
+    logger.info(`[MPmens] plan creado ${tid} → ${json.id} (${clp(monto)} + IVA = ${clp(montoIva)}/mes)`);
     return { url: json.init_point };
   },
 );

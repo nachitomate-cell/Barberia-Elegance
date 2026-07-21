@@ -3241,8 +3241,10 @@
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
             <div>
-              <label style="${LBL}">Monto mensual ($) <span onclick="showTarifas()" style="cursor:pointer;color:#a3e635;font-weight:600;font-size:0.68rem;margin-left:6px;">Ver tarifas ⓘ</span></label>
-              <input id="bf-monto" type="number" min="0" step="100" value="${monto}" placeholder="ej: 29900" style="${IS}" />
+              <label style="${LBL}">Monto mensual NETO ($) <span onclick="showTarifas()" style="cursor:pointer;color:#a3e635;font-weight:600;font-size:0.68rem;margin-left:6px;">Ver tarifas ⓘ</span></label>
+              <input id="bf-monto" type="number" min="0" step="100" value="${monto}" placeholder="ej: 29900" style="${IS}"
+                oninput="var t=document.getElementById('bf-monto-iva'); if(t) t.textContent = this.value>0 ? ('+ IVA 19% = $' + Math.round(this.value*1.19).toLocaleString('es-CL') + ' a cobrar') : '';" />
+              <p id="bf-monto-iva" style="font-size:0.68rem;color:#a3e635;margin:0.3rem 0 0;">${monto > 0 ? '+ IVA 19% = $' + Math.round(monto * 1.19).toLocaleString('es-CL') + ' a cobrar' : ''}</p>
             </div>
             <div>
               <label style="${LBL}">Próximo vencimiento</label>
@@ -6877,7 +6879,7 @@
           </div>
           <div class="wz-grid2">
             <div><label class="wz-lbl">Plan (texto)</label><input id="wz-plan" class="wz-in" placeholder="Local · ilimitado"></div>
-            <div><label class="wz-lbl">Monto mensual ($)</label><input id="wz-monto" class="wz-in" type="number" min="0" step="100" placeholder="29900"></div>
+            <div><label class="wz-lbl">Monto mensual NETO ($, + IVA al cobrar)</label><input id="wz-monto" class="wz-in" type="number" min="0" step="100" placeholder="29900"></div>
             <div><label class="wz-lbl">Próximo vencimiento</label><input id="wz-fpp" class="wz-in" type="date"></div>
           </div>
         </div>

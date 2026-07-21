@@ -174,7 +174,10 @@ exports.recordatorioCobro = onSchedule(
       if (d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr) continue;
 
       // sinCorte: se avisa igual, pero sin prometer bloqueos que no ocurren.
-      const { title, body } = buildMensaje(dias, d.montoPendiente, d.sinCorte === true);
+      // montoPendiente es NETO (criterio 2026-07-20): el aviso pide el total
+      // con IVA 19%, igual que la vista Mensualidad y el cargo automático.
+      const montoConIva = Math.round((Number(d.montoPendiente) || 0) * 1.19);
+      const { title, body } = buildMensaje(dias, montoConIva, d.sinCorte === true);
       const tokens = await tokensAdmin(tid);
 
       // ── Canal 1: push FCM ──────────────────────────────────────

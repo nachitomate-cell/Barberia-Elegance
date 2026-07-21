@@ -3,7 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
-import { PLANES, CADENA, PROMOS, fmtCLP } from '../lib/precios';
+import { PLANES, CADENA, PROMOS, fmtCLP, conIva } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -90,11 +90,14 @@ function PlanCard({ nombre, sub, mes, anual, pop }) {
         </div>
         <div className="shrink-0 text-right">
           <p className={`text-lg font-black leading-none ${pop ? 'text-lime-300' : 'text-primary'}`}>
-            {fmtCLP(mes)}<span className="text-[11px] font-medium text-slate-500">/mes</span>
+            {fmtCLP(mes)}<span className="text-[11px] font-medium text-slate-500">/mes + IVA</span>
+          </p>
+          <p className="mt-0.5 text-[10px] leading-tight text-slate-500">
+            = {fmtCLP(conIva(mes))} IVA incluido
           </p>
           {anual > 0 && (
             <p className="mt-1 text-[10px] leading-tight text-slate-500">
-              {fmtCLP(anual)}/mes pagando el año
+              {fmtCLP(anual)} + IVA/mes pagando el año
               {ahorroPct > 0 && (
                 <span className="ml-1 font-bold text-lime-400">−{ahorroPct}%</span>
               )}
@@ -157,7 +160,7 @@ function TarifasModal({ onClose }) {
                     <span>{label}</span>
                     <span className="flex items-baseline gap-1.5">
                       <b className="text-primary">{fmtCLP(t.porLocal)}</b>
-                      <span className="text-[10px] text-slate-500">c/u</span>
+                      <span className="text-[10px] text-slate-500">c/u + IVA</span>
                       {off > 0 && <span className="text-[10px] font-bold text-lime-400">−{off}%</span>}
                     </span>
                   </div>
@@ -177,7 +180,7 @@ function TarifasModal({ onClose }) {
           </ul>
 
           <p className="text-center text-[10px] text-slate-500">
-            Valores en pesos chilenos, IVA incluido.
+            Valores netos en pesos chilenos · se agrega IVA (19%) en la factura.
           </p>
         </div>
       </motion.div>
@@ -543,8 +546,12 @@ function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasPara
           <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Monto mensual</p>
+              {/* El monto guardado es NETO; lo que se paga es neto + IVA 19%. */}
               <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-primary sm:text-4xl">
-                ${Number(monto).toLocaleString('es-CL')}
+                {fmtCLP(conIva(monto))}
+              </p>
+              <p className="mt-0.5 text-[10px] tabular-nums text-slate-500">
+                {fmtCLP(monto)} + IVA (19%)
               </p>
             </div>
             {fechaFmt && (
@@ -595,7 +602,7 @@ function AutopayCard({ sub, activo, cobroFallido, monto, busy, err, onActivar, o
             <div className="min-w-0">
               <p className="text-sm font-bold text-primary">Pago automático activo</p>
               <p className="text-[11px] text-slate-400">
-                ${Number(monto).toLocaleString('es-CL')}/mes con cargo a tu tarjeta · Mercado Pago
+                {fmtCLP(conIva(monto))}/mes (IVA incl.) con cargo a tu tarjeta · Mercado Pago
               </p>
             </div>
           </div>
@@ -682,7 +689,7 @@ function AutopayCard({ sub, activo, cobroFallido, monto, busy, err, onActivar, o
         </button>
 
         <p className="mt-2.5 text-center text-[10px] leading-relaxed text-slate-500">
-          Cargo mensual de <b className="text-slate-300">${Number(monto).toLocaleString('es-CL')}</b> vía
+          Cargo mensual de <b className="text-slate-300">{fmtCLP(conIva(monto))}</b> (IVA incluido) vía
           Mercado Pago · puedes cancelarlo cuando quieras{cancelado ? ' · lo cancelaste, reactívalo aquí' : ''}.
         </p>
         {err && <p className="mt-2 text-center text-[11px] font-semibold text-red-400">{err}</p>}
@@ -763,7 +770,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
               <Building2 size={14} className="text-emerald-300" /> Datos bancarios
             </p>
             <p className="mt-0.5 text-[11px] text-slate-500">
-              Transfiere y envía el comprobante por WhatsApp.
+              Transfiere el <b className="text-slate-300">monto con IVA que ves arriba</b> y envía el comprobante.
             </p>
           </div>
           <button

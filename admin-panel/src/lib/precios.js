@@ -20,12 +20,24 @@ export function fmtCLP(n) {
   return '$' + Number(n || 0).toLocaleString('es-CL');
 }
 
+/** IVA Chile. Los montos de tarifas con `iva:'mas'` son NETOS. */
+export const IVA = 0.19;
+
+/** Total con IVA, redondeado al peso: 29900 → 35581 */
+export function conIva(neto) {
+  return Math.round(Number(neto || 0) * (1 + IVA));
+}
+
 /** Sufijo de impuesto, para no volver a mezclar criterios entre vistas. */
 export function sufijoIva(iva) {
   return iva === 'mas' ? '+ IVA' : '';
 }
 
 // ── Planes base (mensualidad del local) ──────────────────────────
+// Criterio comercial 2026-07-20 (pedido de Ignacio): los planes son NETOS y
+// el IVA (19%) se agrega al cobrar — ej: Local $29.900 + IVA = $35.581.
+// `_billing.montoPendiente` también se guarda NETO; la UI y el cobro
+// automático (mpMensualidadCrearLink) aplican conIva().
 export const PLANES = [
   {
     id: 'individual',
@@ -33,7 +45,7 @@ export const PLANES = [
     sub: '1 barbero · trabajas solo',
     mes: 14900,
     anual: 11900,       // precio por mes, pagando el año
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'local',
@@ -41,7 +53,7 @@ export const PLANES = [
     sub: 'Barberos ilimitados · un local',
     mes: 29900,
     anual: 24900,
-    iva: 'incluido',
+    iva: 'mas',
     popular: true,
   },
 ];
