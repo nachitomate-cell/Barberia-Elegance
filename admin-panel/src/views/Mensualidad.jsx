@@ -180,7 +180,8 @@ function TarifasModal({ onClose }) {
           </ul>
 
           <p className="text-center text-[10px] text-slate-500">
-            Valores netos en pesos chilenos · se agrega IVA (19%) en la factura.
+            Valores netos en pesos chilenos + IVA (19%) · emitimos boleta o factura según corresponda.
+            Si tu local tiene giro, el IVA de la factura lo recuperas como crédito fiscal.
           </p>
         </div>
       </motion.div>

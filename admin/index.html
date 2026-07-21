@@ -3245,6 +3245,13 @@
               <input id="bf-monto" type="number" min="0" step="100" value="${monto}" placeholder="ej: 29900" style="${IS}"
                 oninput="var t=document.getElementById('bf-monto-iva'); if(t) t.textContent = this.value>0 ? ('+ IVA 19% = $' + Math.round(this.value*1.19).toLocaleString('es-CL') + ' a cobrar') : '';" />
               <p id="bf-monto-iva" style="font-size:0.68rem;color:#a3e635;margin:0.3rem 0 0;">${monto > 0 ? '+ IVA 19% = $' + Math.round(monto * 1.19).toLocaleString('es-CL') + ' a cobrar' : ''}</p>
+              <!-- Precio final pactado (descuento comercial): escribe el TOTAL
+                   que acordaste con el cliente y se calcula el neto que lo
+                   produce. El cliente ve ese total; la boleta/factura va por
+                   lo mismo. NO es "sin IVA": el IVA vive dentro del total. -->
+              <p onclick="var tot=prompt('¿Total FINAL pactado con IVA incluido? (ej: 29900)'); if(tot>0){ var neto=Math.round(tot/1.19); var el=document.getElementById('bf-monto'); el.value=neto; el.dispatchEvent(new Event('input')); }"
+                 style="font-size:0.66rem;color:#64748b;margin:0.25rem 0 0;cursor:pointer;text-decoration:underline;">
+                ¿Pactaste un precio final con IVA incluido? Calcular el neto desde el total</p>
             </div>
             <div>
               <label style="${LBL}">Próximo vencimiento</label>
