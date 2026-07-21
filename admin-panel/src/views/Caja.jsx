@@ -1099,8 +1099,10 @@ export default function Caja() {
     citasHoy.forEach(c => {
       items.push({
         type: 'servicio',
-        label: `${c.servicio || 'Servicio'} — ${c.clienteNombre || 'Cliente'}`,
-        sub: `${c.barbero || ''} · ${c.metodoPago || 'No especificado'}`,
+        // Nombre REAL del servicio: antes usaba c.servicio (que viene vacío) y
+        // caía al literal "Servicio". El nombre vive en c.servicioNombre.
+        label: `${c.servicioNombre || c.servicio || 'Servicio'} — ${c.clienteNombre || 'Cliente'}`,
+        sub: `✂️ ${c.barbero || 'Sin profesional'}`,   // el método se muestra como badge en el render
         monto: Number(c.precio) || 0,
         time: c.hora || '00:00',
         metodo: c.metodoPago || 'No especificado',
@@ -1110,7 +1112,7 @@ export default function Caja() {
       items.push({
         type: 'producto',
         label: `${v.productName || v.productoNombre || 'Producto'} x${v.cantidad || 1}`,
-        sub: `Venta producto · ${v.metodoPago || 'No especificado'}`,
+        sub: 'Venta de producto',   // el método se muestra como badge en el render
         monto: Number(v.precio) || 0, // precio = total de línea; no re-multiplicar
         time: (() => {
           const ts = v.creadoEn || v.createdAt;
@@ -1125,7 +1127,7 @@ export default function Caja() {
       items.push({
         type: 'gasto',
         label: g.descripcion || 'Gasto',
-        sub: `${g.categoria || ''} · ${g.metodoPago || 'Efectivo'}`,
+        sub: `${g.categoria || 'Gasto'}`,   // el método se muestra como badge en el render
         monto: -(Number(g.monto) || 0),
         time: (() => {
           const ts = g.creadoEn || g.fecha;
@@ -1673,6 +1675,17 @@ export default function Caja() {
                       ) : null}
                     </p>
                   </div>
+                  {/* Badge de método de pago: se lee de un vistazo. Cortesía en
+                      ámbar resalta las atenciones gratis; sin método en rose avisa. */}
+                  {t.metodo && t.metodo !== '—' && (() => {
+                    const m = String(t.metodo);
+                    const cls = /efectivo/i.test(m)                        ? 'bg-emerald-500/15 text-emerald-300'
+                              : /cortes/i.test(m)                          ? 'bg-amber-500/15 text-amber-300'
+                              : /transfer/i.test(m)                        ? 'bg-cyan-500/15 text-cyan-300'
+                              : /(d[ée]bito|cr[ée]dito|tarjeta)/i.test(m)  ? 'bg-violet-500/15 text-violet-300'
+                              : 'bg-rose-500/15 text-rose-300';   // No especificado / Sin método
+                    return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${cls}`}>{m}</span>;
+                  })()}
                   <span className={`text-sm font-bold shrink-0 ${revertido ? 'text-slate-500 line-through' : (isPositive ? 'text-emerald-400' : 'text-rose-400')}`}>
                     {isPositive ? '+' : ''}{fmtCurrency(t.monto)}
                   </span>
