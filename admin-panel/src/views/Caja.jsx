@@ -3,7 +3,7 @@ import {
   Wallet, DollarSign, ArrowDownCircle, ArrowUpCircle,
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
-  FileText, Printer, ListChecks, Undo2, Scissors,
+  FileText, Printer, ListChecks, Undo2, Scissors, Gift,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
@@ -927,6 +927,7 @@ export default function Caja() {
   const [citasHoy, setCitasHoy] = useState([]);
   const [ventasHoy, setVentasHoy] = useState([]);
   const [gastosHoy, setGastosHoy] = useState([]);
+  const [servicios, setServicios] = useState([]);   // catálogo, para valorizar cortesías
 
   // Historical sessions
   const [historial, setHistorial] = useState([]);
@@ -992,6 +993,13 @@ export default function Caja() {
     return () => { unsub1(); unsub2(); unsub3(); };
   }, [sesionActiva]);
 
+  /* ── Catálogo de servicios (una vez) — para valorizar cortesías ── */
+  useEffect(() => {
+    withTimeout(getDocs(tenantCol('servicios')), 15000, 'caja/servicios')
+      .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+  }, []);
+
   /* ── Load historical sessions ───────────────────────────── */
   useEffect(() => {
     const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'cerrada'), orderBy('fechaCierre', 'desc'), limit(20));
@@ -1055,6 +1063,32 @@ export default function Caja() {
     const totalIngresosTransf = serviciosTransf + productosTransf;
     const totalIngresosGeneral = totalIngresosEfectivo + totalIngresosTarjeta + totalIngresosTransf;
 
+    // ── Métricas de claridad ─────────────────────────────────
+    // Mapa de precios de catálogo (para valorizar las cortesías).
+    const precioPorId = {}, precioPorNombre = {};
+    servicios.forEach(s => {
+      precioPorId[s.id] = Number(s.precio) || 0;
+      if (s.nombre) precioPorNombre[String(s.nombre).toLowerCase().trim()] = Number(s.precio) || 0;
+    });
+    // Nº de transacciones EN EFECTIVO (el sub del card mostraba el total del día).
+    const transEfectivo = citasHoy.filter(c => c.metodoPago === 'Efectivo').length
+                        + ventasHoy.filter(v => v.metodoPago === 'Efectivo').length;
+    // Cortesías: atenciones a $0 (flag cortesia o método "Cortesía"). No mueven
+    // plata, pero es "lo que regalaste": valor = precio de catálogo del servicio.
+    const cortesias = citasHoy.filter(c => c.cortesia === true || /cortes/i.test(c.metodoPago || ''));
+    const valorCortesias = cortesias.reduce((s, c) => {
+      const p = (c.servicioId && precioPorId[c.servicioId]) || precioPorNombre[String(c.servicioNombre || '').toLowerCase().trim()] || 0;
+      return s + p;
+    }, 0);
+    // Ticket promedio de servicios COBRADOS (excluye cortesías $0 y sin método).
+    const ventasServicios = serviciosEfectivo + serviciosTarjeta + serviciosTransf;
+    const nServiciosCobrados = citasHoy.filter(c =>
+      (c.metodoPago === 'Efectivo' || isTarjeta(c.metodoPago) || c.metodoPago === 'Transferencia') && (Number(c.precio) || 0) > 0
+    ).length;
+    const ticketPromedio = nServiciosCobrados > 0 ? Math.round(ventasServicios / nServiciosCobrados) : 0;
+    // Lista de citas sin método (para la alerta accionable).
+    const citasSinMetodoList = citasHoy.filter(c => !c.metodoPago);
+
     return {
       apertura,
       serviciosEfectivo, serviciosTarjeta, serviciosTransf, serviciosNoEspecificado,
@@ -1068,8 +1102,11 @@ export default function Caja() {
       totalCitas: citasHoy.length,
       totalVentas: ventasHoy.length,
       totalGastos: gastosHoy.length,
+      transEfectivo, ticketPromedio, nServiciosCobrados,
+      nCortesias: cortesias.length, valorCortesias,
+      citasSinMetodoList,
     };
-  }, [sesionActiva, citasHoy, ventasHoy, gastosHoy]);
+  }, [sesionActiva, citasHoy, ventasHoy, gastosHoy, servicios]);
 
   /* ── Detección de caja olvidada ─────────────────────────── */
   // Si la sesión se abrió antes de hoy 00:00 (hora local), es probable que
@@ -1566,7 +1603,7 @@ export default function Caja() {
         </div>
       )}
 
-      {/* Alerta: citas sin método de pago */}
+      {/* Alerta: citas sin método de pago — lista CUÁLES para poder accionarlas */}
       {kpis.citasSinMetodo > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3">
           <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
@@ -1575,7 +1612,30 @@ export default function Caja() {
               {kpis.citasSinMetodo} {kpis.citasSinMetodo === 1 ? 'cita' : 'citas'} sin método de pago por {fmtCurrency(kpis.serviciosNoEspecificado)}
             </p>
             <p className="text-xs text-amber-200/70 mt-0.5">
-              No se cuentan en el saldo esperado hasta que las marques con método. Edítalas en Agenda para que aparezcan en el arqueo.
+              No entran al saldo esperado hasta que les marques método en la Agenda.
+            </p>
+            <div className="mt-2 space-y-1">
+              {kpis.citasSinMetodoList.map((c, i) => (
+                <div key={c.id || i} className="text-xs text-amber-100/90 flex items-center justify-between gap-2">
+                  <span className="truncate">• {c.hora || '--:--'} · {c.servicioNombre || 'Servicio'} — {c.clienteNombre || 'Cliente'}{c.barbero ? ` · ${c.barbero}` : ''}</span>
+                  <span className="font-semibold shrink-0 tabular-nums">{fmtCurrency(Number(c.precio) || 0)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cortesías del día: no mueven caja, pero es útil ver cuánto se regala */}
+      {kpis.nCortesias > 0 && (
+        <div className="bg-slate-800/40 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+          <Gift size={18} className="text-amber-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-primary">
+              {kpis.nCortesias} {kpis.nCortesias === 1 ? 'atención de cortesía' : 'atenciones de cortesía'} hoy
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Valor regalado (precio de lista): <span className="font-semibold text-amber-300">{fmtCurrency(kpis.valorCortesias)}</span>. No entra a la caja — es solo para que midas cuánto regalas.
             </p>
           </div>
         </div>
@@ -1584,11 +1644,11 @@ export default function Caja() {
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard icon={Banknote} label="Saldo Esperado" value={fmtCurrency(kpis.saldoEsperado)} color="emerald" sub="En caja física" />
-        <KpiCard icon={ArrowDownCircle} label="Ingresos Efectivo" value={fmtCurrency(kpis.totalIngresosEfectivo)} color="blue" sub={`${kpis.totalCitas + kpis.totalVentas} transacciones`} />
+        <KpiCard icon={ArrowDownCircle} label="Ingresos Efectivo" value={fmtCurrency(kpis.totalIngresosEfectivo)} color="blue" sub={`${kpis.transEfectivo} ${kpis.transEfectivo === 1 ? 'transacción' : 'transacciones'} en efectivo`} />
         <KpiCard icon={ArrowUpCircle} label="Egresos Efectivo" value={fmtCurrency(kpis.totalEgresosEfectivo)} color="rose" sub={`${kpis.totalGastos} gastos`} />
         <KpiCard icon={CreditCard} label="Tarjeta" value={fmtCurrency(kpis.totalIngresosTarjeta)} color="purple" />
         <KpiCard icon={ArrowRightLeft} label="Transferencia" value={fmtCurrency(kpis.totalIngresosTransf)} color="cyan" />
-        <KpiCard icon={TrendingUp} label="Total General" value={fmtCurrency(kpis.totalIngresosGeneral)} color="amber" sub={`Propinas: ${fmtCurrency(kpis.propinasTotal)}`} />
+        <KpiCard icon={TrendingUp} label="Total General" value={fmtCurrency(kpis.totalIngresosGeneral)} color="amber" sub={kpis.ticketPromedio > 0 ? `Ticket prom: ${fmtCurrency(kpis.ticketPromedio)} · ${kpis.totalCitas + kpis.totalVentas} transac.` : `${kpis.totalCitas + kpis.totalVentas} transacciones`} />
       </div>
 
       {/* Desglose rápido */}
