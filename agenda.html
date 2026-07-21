@@ -76,6 +76,63 @@
         :root {
             --elev-surface: #111115;
             --elev-border:  rgba(255,255,255,0.12);
+            /* Splash de carga (tema oscuro por defecto). */
+            --splash-bg:       #0a0a0c;
+            --splash-ring:     rgba(255,255,255,0.10);
+            --splash-glow:     rgba(255,255,255,0.14);
+            --splash-track:    rgba(255,255,255,0.09);
+            --splash-sweep:    rgba(255,255,255,0.85);
+            --splash-name:     rgba(255,255,255,0.55);
+            --splash-logo-sh:  rgba(0,0,0,0.45);
+        }
+
+        /* ── Splash de carga · estilo iOS ─────────────────────────────────
+           Logo del local respirando sobre un glow ambiental + barra shimmer
+           delgada. Reemplaza el anillo genérico. Theme-aware: el <html> ya
+           trae light-mode por el anti-FOUC, así que arranca en el tema real. */
+        #loadingOverlay { background: var(--splash-bg); }
+        .splash-glow {
+            position: absolute;
+            width: 320px; height: 320px; border-radius: 50%;
+            background: radial-gradient(circle, var(--splash-glow), transparent 68%);
+            filter: blur(44px);
+            animation: splashGlow 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes splashGlow {
+            0%, 100% { transform: scale(1);    opacity: 0.5; }
+            50%      { transform: scale(1.18); opacity: 0.9; }
+        }
+        .splash-logo {
+            position: relative;
+            width: 88px; height: 88px; border-radius: 22px; object-fit: cover;
+            box-shadow: 0 12px 42px var(--splash-logo-sh), 0 0 0 1px var(--splash-ring);
+            animation: splashBreathe 2.4s ease-in-out infinite;
+        }
+        @keyframes splashBreathe {
+            0%, 100% { transform: scale(1);     }
+            50%      { transform: scale(1.045); }
+        }
+        .splash-name {
+            position: relative;
+            margin-top: 1.1rem;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.22em;
+            text-transform: uppercase; color: var(--splash-name);
+        }
+        .splash-bar {
+            position: relative;
+            margin-top: 1.6rem;
+            width: 148px; height: 3px; border-radius: 99px;
+            background: var(--splash-track); overflow: hidden;
+        }
+        .splash-bar-fill {
+            width: 45%; height: 100%; border-radius: 99px;
+            background: linear-gradient(90deg, transparent, var(--splash-sweep), transparent);
+            animation: splashSweep 1.25s ease-in-out infinite;
+        }
+        @keyframes splashSweep {
+            0%   { transform: translateX(-140%); }
+            100% { transform: translateX(360%);  }
         }
 
         * {
@@ -329,6 +386,14 @@
         html.light-mode {
             --elev-surface: #ffffff;
             --elev-border:  #e2e8f0;
+            /* Splash en claro: tela suave, glow y barra en grafito tenue. */
+            --splash-bg:      #f8fafc;
+            --splash-ring:    rgba(15,23,42,0.10);
+            --splash-glow:    rgba(15,23,42,0.06);
+            --splash-track:   rgba(15,23,42,0.08);
+            --splash-sweep:   rgba(15,23,42,0.55);
+            --splash-name:    rgba(71,85,105,0.75);
+            --splash-logo-sh: rgba(15,23,42,0.14);
         }
 
         /* Banner de error del sistema → rojo muy claro, texto oscuro legible. */
@@ -1059,9 +1124,15 @@
     </div>
 
     <!-- Pantalla de Carga -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-300">
-        <div class="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(255,255,255,0.2)]"></div>
-        <p class="text-white/60 text-sm font-medium animate-pulse tracking-widest uppercase">Cargando Agenda...</p>
+    <!-- Splash de carga estilo iOS: logo del local respirando sobre un glow
+         ambiental, con una barra shimmer delgada en vez del anillo genérico.
+         Fondo y acentos cambian por tema (vars --splash-*). El logo lo rellena
+         _aplicarBranding con shop.logo; parte con el fallback global. -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center transition-opacity duration-300">
+        <div class="splash-glow"></div>
+        <img id="splashLogo" src="/logo.jpg" alt="" class="splash-logo" />
+        <p id="splashName" class="splash-name"></p>
+        <div class="splash-bar"><div class="splash-bar-fill"></div></div>
     </div>
 
     <!-- Login Integrado -->
@@ -1784,6 +1855,14 @@
             const nombreCorto = shop.nombreCorto || 'Agenda';
 
             document.title = 'Agenda | ' + nombreCorto;
+
+            // Splash de carga: logo + nombre del local. Si config.js ya cargó
+            // (es síncrono en el <head>), esto corre antes de que el splash se
+            // note, así que no alcanza a verse el logo de Elegance por defecto.
+            const splashLogo = document.getElementById('splashLogo');
+            const splashName = document.getElementById('splashName');
+            if (splashLogo) splashLogo.src = logo;
+            if (splashName) splashName.textContent = nombreCorto;
 
             // Logo del local en el header (reemplaza el ícono de calendario). Si
             // el tenant no definió logo propio (queda el fallback '/logo.jpg' de
