@@ -38,6 +38,8 @@ const DOMAIN_MAP = {
   'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
   'estudioluxury.synaptechspa.cl':     'estudioluxury',
   'renacer.synaptechspa.cl':           'renacer',
+  'orenbarber.synaptechspa.cl':        'oren',
+  'orenbarbercl.synaptechspa.cl':      'oren',
 };
 
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────

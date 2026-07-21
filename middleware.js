@@ -45,6 +45,8 @@ const DOMAIN_MAP = {
   'memphissalon.synaptechspa.cl':      'memphis',
   'alfamen.synaptechspa.cl':           'alfamen',
   'renacer.synaptechspa.cl':           'renacer',
+  'orenbarber.synaptechspa.cl':        'oren',
+  'orenbarbercl.synaptechspa.cl':      'oren',
 };
 
 // Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
@@ -241,6 +243,53 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=mapubarbershop',
       icons: [
         { src: '/mapu2.png',                   sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  oren: {
+    booking: {
+      title:       'Oren Barber | Cortes con Estilo',
+      description: 'Reserva tu hora en Oren Barber. Elige tu sucursal (Reñaca o Villa Alemana), tu barbero, servicio y horario en segundos.',
+      ogTitle:     'Agendar Hora | Oren Barber',
+      ogDesc:      'Reserva tu hora en Oren Barber. Cortes con estilo en Reñaca y Villa Alemana.',
+    },
+    dashboard: {
+      title:       'Mi Club | Oren Barber',
+      description: 'Tu panel personal en Oren Barber. Revisa tus sellos y canjea premios del Club Oren.',
+      ogTitle:     'Mi Club | Oren Barber',
+      ogDesc:      'Panel de fidelidad de Oren Barber. Acumula sellos y disfruta de cortes gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Oren Barber',
+      description: 'Crea tu cuenta en el Club Oren. Acumula sellos, canjea premios y lleva el registro de tus visitas.',
+      ogTitle:     'Únete al Club | Oren Barber',
+      ogDesc:      'Regístrate en Oren Barber y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Oren Barber',
+    ogImage:     '/oren/logo.png',
+    themeColor:  '#0a0a0d',
+    appTitle:    'Oren',
+    icon:        '/oren/logo.png',
+    iconPwa192:  '/icons/pwa/oren-192.png',
+    iconPwa512:  '/icons/pwa/oren-512.png',
+    local: { telephone: '', streetAddress: 'Plaza Reñaca, Local 21', addressLocality: 'Reñaca', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 128, reviews: [{ author: 'Matías R.', rating: 5, text: 'El mejor corte de Reñaca. Reservé por la web en un minuto y me atendieron a la hora exacta.' }, { author: 'Cristóbal V.', rating: 5, text: 'Tienen sucursal en Villa Alemana y en Reñaca, siempre el mismo nivel. Corte y barba impecables.' }, { author: 'Ignacio S.', rating: 5, text: 'Ambiente top y profesionales de verdad. Ya soy cliente del Club Oren.' }] },
+    manifest: {
+      name:             'Oren Barber',
+      short_name:       'Oren',
+      theme_color:      '#0a0a0d',
+      background_color: '#0a0a0d',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Oren Barber',
+      short_name:       'Oren',
+      description:      'Panel de administración — Oren Barber',
+      theme_color:      '#3b82f6',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=oren',
+      icons: [
+        { src: '/oren/logo.png',               sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
@@ -1329,6 +1378,7 @@ const GEO_COORDS = {
   chameleon:          { lat: -33.013664, lng: -71.549411 },
   lumen:              { lat: -33.025211, lng: -71.557101 },
   aura:               { lat: -33.021511, lng: -71.548534 },
+  oren:               { lat: -32.972200, lng: -71.551000 }, // Reñaca (sucursal principal)
   latincaribe:        { lat: -27.361472, lng: -70.335353 },
   infinity:           { lat: -33.023257, lng: -71.558337 },
   sionbarberia:       { lat: -33.048783, lng: -71.609610 },

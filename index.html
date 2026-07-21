@@ -3638,6 +3638,21 @@
     .tenant-renacer #heroBadgeRating { color: #ffffff !important; }
     .tenant-renacer #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
 
+    /* ── Oren Barber (demo) — hero propio ────────────────────────────────
+       Reutiliza el tema Elegance (alias), pero el hero base trae /elegance.png
+       con la marca "Elegance" incrustada. Lo reemplazamos por un fondo oscuro
+       con glow dorado + textura vertical sutil (evoca listones), SIN foto ni
+       texto, para no filtrar branding ajeno. El logo + nombre van encima. */
+    .tenant-oren .booking-hero {
+      background-color: #0a0a0d !important;
+      background-image:
+        radial-gradient(ellipse 72% 62% at 50% 0%, rgba(201,168,76,0.24) 0%, transparent 60%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.024) 0px, rgba(255,255,255,0.024) 1px, transparent 1px, transparent 11px),
+        linear-gradient(180deg, #17130b 0%, #0b0b0e 62%, #0a0a0d 100%) !important;
+      background-size: cover, auto, cover !important;
+      background-position: center top !important;
+    }
+
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
     .tenant-barbersclub .info-strip { display: none !important; }
 

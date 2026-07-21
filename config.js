@@ -50,6 +50,8 @@
     'elbarberomoderno.synaptechspa.cl':   'elbarberomoderno',
     'estudioluxury.synaptechspa.cl':      'estudioluxury',
     'renacer.synaptechspa.cl':            'renacer',
+    'orenbarber.synaptechspa.cl':         'oren',
+    'orenbarbercl.synaptechspa.cl':       'oren',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -65,6 +67,9 @@
     // Renacer reutiliza el tema base de Elegance (dark + acentos finos) para
     // salir en vivo sin CSS propio. Se puede desacoplar en fase visual futura.
     renacer:      'elegance',
+    // Oren Barber (demo multi-sucursal) reutiliza el tema Elegance para lucir
+    // pulido sin CSS propio. Desacoplable en fase visual si cierra el trato.
+    oren:         'elegance',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -621,6 +626,63 @@
         { id: 'daniela-ramirez',     nombre: 'Daniela Ramirez',     foto: null, disponible: true, sucursalId: 'vinadelmar'  },
         { id: 'ian-alcalde',         nombre: 'Ian Alcalde',         foto: null, disponible: true, sucursalId: 'vinadelmar'  },
         { id: 'gabriel-apablaza',    nombre: 'Gabriel Apablaza',    foto: null, disponible: true, sucursalId: 'vinadelmar'  },
+      ],
+    },
+    // ── OREN BARBER — DEMO multi-sucursal (Reñaca + Villa Alemana) ──
+    // Datos de marca reales (Instagram @orenbarbercl). Servicios/barberos son
+    // demo realista para la reunión; se reemplazan por los reales al cerrar.
+    // Tema: alias 'elegance' (dark + dorado). Acceso: ?local=oren
+    oren: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Club', 'Extras'],
+      nombre:          'Oren Barber',
+      nombreCorto:     'Oren',
+      pageTitle:       'Oren Barber | Cortes con Estilo',
+      slogan:          'Cortes con Estilo',
+      sobreNosotros:   'Oren Barber nace de la pasión por el oficio y el detalle. Con dos sucursales —Reñaca y Villa Alemana— llevamos la barbería moderna a la región de Valparaíso: cortes personalizados, barba de precisión y una experiencia pensada para que salgas renovado.<br><br>Elige tu sucursal, tu barbero y tu horario en segundos. Cortes con estilo, siempre.',
+      logo:            '/oren/logo.png',
+      logo2:           '/oren/logo.png',
+      direccion:       '', // resuelto por sucursal — ver sucursales[]
+      horario:         '🕒 Lun a Dom · Reserva tu hora',
+      telefono:        '',
+      club:            'Club Oren',
+      heroLine1:       'Cortes<br>con Estilo.',
+      heroLine2:       false,
+      watermark:       'O',
+      instagram:       'https://www.instagram.com/orenbarbercl/',
+      instagramHandle: '@orenbarbercl',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   5.0,
+      totalReviews:    128,
+      reviews: [
+        { author: 'Matías R.',   rating: 5, text: 'El mejor corte de Reñaca. Reservé por la web en un minuto y me atendieron a la hora exacta. Cracks.' },
+        { author: 'Cristóbal V.', rating: 5, text: 'Tienen sucursal en Villa Alemana y en Reñaca, siempre el mismo nivel. Corte y barba impecables.' },
+        { author: 'Ignacio S.',   rating: 5, text: 'Ambiente top y profesionales de verdad. Ya soy cliente del Club Oren.' },
+      ],
+      sucursales: [
+        {
+          id:        'renaca',
+          nombre:    'Oren Barber Reñaca',
+          calle:     'Plaza Reñaca, Local 21',
+          ciudad:    'Reñaca',
+          mapsUrl:   'https://maps.google.com/?q=Plaza+Reñaca+Local+21+Reñaca+Chile',
+        },
+        {
+          id:        'villaalemana',
+          nombre:    'Oren Barber Villa Alemana',
+          calle:     'Las Américas 2487',
+          ciudad:    'Villa Alemana',
+          mapsUrl:   'https://maps.google.com/?q=Las+Américas+2487+Villa+Alemana+Chile',
+        },
+      ],
+      barberos: [
+        // ── Reñaca ──────────────────────────────────────────────────
+        { id: 'oren-matias',    nombre: 'Matías',    foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-cristobal', nombre: 'Cristóbal', foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-franco',    nombre: 'Franco',    foto: null, disponible: true, sucursalId: 'renaca' },
+        // ── Villa Alemana ───────────────────────────────────────────
+        { id: 'oren-benjamin',  nombre: 'Benjamín',  foto: null, disponible: true, sucursalId: 'villaalemana' },
+        { id: 'oren-ignacio',   nombre: 'Ignacio',   foto: null, disponible: true, sucursalId: 'villaalemana' },
       ],
     },
     aura: {
