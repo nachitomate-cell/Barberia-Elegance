@@ -66,18 +66,40 @@ function fechaBonita(fecha) {
   } catch (_) { return fecha; }
 }
 
+/* Redacciones rotadas del mensaje de confirmación — anti-ban: miles de envíos
+   con EXACTAMENTE el mismo texto son firma de bot para la heurística de Meta
+   (mismo truco que copyResenaSugerida en las reseñas de Google). Todas
+   mantienen las palabras clave *CONFIRMAR* / *CANCELAR* que el fast-path del
+   cerebro detecta en la RESPUESTA del cliente (detectarDecision). */
+const SALUDOS = [
+  (n) => (n ? `Hola ${n} 👋` : '¡Hola! 👋'),
+  (n) => (n ? `¡Hola ${n}!` : '¡Hola!'),
+  (n) => (n ? `${n}, ¿cómo estás? 👋` : '¿Cómo estás? 👋'),
+];
+const INTROS = [
+  (local) => `Te recordamos tu cita en *${local}*:`,
+  (local) => `Te escribimos de *${local}* para recordarte tu cita:`,
+  (local) => `Tienes una cita agendada en *${local}*:`,
+];
+const CIERRES = [
+  '¿La confirmas? Responde *CONFIRMAR* para asistir o *CANCELAR* si no podrás. 🙌',
+  'Para asegurar tu cupo responde *CONFIRMAR*, o *CANCELAR* si no podrás venir. 🙏',
+  '¿Cuento contigo? Escribe *CONFIRMAR* y te esperamos, o *CANCELAR* si tuviste un imprevisto.',
+];
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 /** Envía UNA confirmación por Evolution y deja el rastro para la respuesta. */
 async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLocal }) {
   const nombre = String(cita.clienteNombre || '').trim().split(/\s+/)[0] || '';
   const msg = [
-    nombre ? `Hola ${nombre} 👋` : '¡Hola! 👋',
+    pick(SALUDOS)(nombre),
     '',
-    `Te recordamos tu cita en *${nombreLocal}*:`,
+    pick(INTROS)(nombreLocal),
     `📅 ${fechaBonita(cita.fecha)}`,
     `🕐 ${cita.hora} hrs`,
     cita.servicioNombre ? `✂️ ${cita.servicioNombre}` : '',
     '',
-    '¿La confirmas? Responde *CONFIRMAR* para asistir o *CANCELAR* si no podrás. 🙌',
+    pick(CIERRES),
   ].filter(Boolean).join('\n');
 
   const sent = await evoClient.enviarTexto(`instance_${tid}`, tel, msg);
@@ -110,12 +132,32 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
   logger.info(`[confirm] ${tid}/${citaId} → confirmación enviada a ${tel}`);
 }
 
+/* Tope DIARIO de confirmaciones por instancia, escalonado por madurez del
+   número — anti-ban: un número recién vinculado despachando decenas de
+   salientes proactivos el día uno es el patrón clásico que Meta suspende.
+   La edad se mide desde `vinculadoDesde` (primera conexión, NO se resetea
+   en reconexiones); sin ese dato se asume número nuevo (conservador). */
+function capDiario(cfg) {
+  const desde = cfg && cfg.vinculadoDesde && cfg.vinculadoDesde.toMillis
+    ? cfg.vinculadoDesde.toMillis() : 0;
+  const dias = desde ? (Date.now() - desde) / 86400000 : 0;
+  if (dias >= 30) return 150;
+  if (dias >= 7)  return 60;
+  return 20;
+}
+
 /** Escanea un tenant y envía las confirmaciones que toquen. Devuelve cuántas envió. */
 async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }) {
   const ventana = Number(cfg?.recordatorio?.ventanaHoras) || 24;
   const now = ahoraChile();
   const nowAbs = absMin(now.fecha, now.mins);
   const nDays = Math.ceil(ventana / 24);
+
+  // Contador del día persistido en la config del canal (sobrevive entre ciclos).
+  const cap = capDiario(cfg);
+  const cd  = (cfg && cfg.confirmDia) || {};
+  let enviadasHoy = cd.fecha === now.fecha ? (Number(cd.enviadas) || 0) : 0;
+  const cfgRef = db.doc(`tenants/${tid}/configuracion/whatsapp`);
 
   let enviadas = 0;
   for (let i = 0; i <= nDays; i++) {
@@ -133,9 +175,18 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
       const diffH = (absMin(cita.fecha, toMins(cita.hora)) - nowAbs) / 60;
       if (diffH <= 0 || diffH > ventana) continue;          // fuera de ventana
 
+      if (enviadasHoy >= cap) {
+        // Válvula de seguridad: las citas no preguntadas siguen 'Pendiente'
+        // y entran en el próximo ciclo/día. Mejor un no-show que un ban.
+        logger.warn(`[confirm] ${tid}: tope diario anti-ban alcanzado (${cap}); quedan citas sin preguntar`);
+        return enviadas;
+      }
+
       try {
         await enviarConfirmacion({ tid, citaId: doc.id, cita, tel, evoClient, nombreLocal });
         enviadas++;
+        enviadasHoy++;
+        await cfgRef.set({ confirmDia: { fecha: now.fecha, enviadas: enviadasHoy } }, { merge: true }).catch(() => {});
       } catch (e) {
         logger.error(`[confirm] ${tid}/${doc.id}:`, e.message);
       }

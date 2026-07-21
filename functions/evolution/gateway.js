@@ -127,9 +127,13 @@ exports.evolutionEstado = onCall({ region: 'us-central1', cors: true, secrets: S
   const state = await c.estadoConexion(instanceName); // open | connecting | close | unknown
 
   if (state === 'open') {
+    const prev = (await waCfgRef(tid).get().catch(() => null))?.data() || {};
     await waCfgRef(tid).set({
       estadoConexion: 'connected',
       conectadoEn:    FieldValue.serverTimestamp(),
+      ...(prev.vinculadoDesde ? {} : { vinculadoDesde: FieldValue.serverTimestamp() }),
+      desconectadoEn:           FieldValue.delete(),
+      alertaDesconexionEnviada: FieldValue.delete(),
     }, { merge: true });
     return { estado: 'connected' };
   }
@@ -193,13 +197,27 @@ exports.evolutionWebhook = onRequest({
       const state = body.data?.state || body.data?.connection;
       if (state === 'open') {
         const numero = body.data?.wuid || body.data?.me?.id || body.sender || null;
+        const prev = (await waCfgRef(tid).get().catch(() => null))?.data() || {};
         await waCfgRef(tid).set({
           estadoConexion:  'connected',
           numeroVinculado: numero ? String(numero).replace(/[:@].*$/, '') : null,
           conectadoEn:     FieldValue.serverTimestamp(),
+          // vinculadoDesde: PRIMERA conexión, no se pisa en reconexiones — es
+          // la base del tope diario anti-ban escalonado (confirmaciones.js).
+          ...(prev.vinculadoDesde ? {} : { vinculadoDesde: FieldValue.serverTimestamp() }),
+          // Reconectó → se limpia el rastro de la caída y re-arma la alerta.
+          desconectadoEn:           FieldValue.delete(),
+          alertaDesconexionEnviada: FieldValue.delete(),
         }, { merge: true }).catch(() => {});
       } else if (state === 'close') {
-        await waCfgRef(tid).set({ estadoConexion: 'disconnected' }, { merge: true }).catch(() => {});
+        const prev = (await waCfgRef(tid).get().catch(() => null))?.data() || {};
+        await waCfgRef(tid).set({
+          estadoConexion: 'disconnected',
+          // Conserva el PRIMER momento de la caída (los 'close' se repiten);
+          // el cron de salud alerta si lleva >20 min caída (anti-flapping).
+          ...(prev.estadoConexion === 'disconnected' && prev.desconectadoEn
+            ? {} : { desconectadoEn: FieldValue.serverTimestamp() }),
+        }, { merge: true }).catch(() => {});
       }
     }
 

@@ -547,12 +547,17 @@ function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasPara
           <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Monto mensual</p>
-              {/* El monto guardado es NETO; lo que se paga es neto + IVA 19%. */}
-              <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-primary sm:text-4xl">
-                {fmtCLP(conIva(monto))}
+              {/* El precio ESTIPULADO (neto) protagonista + "+ IVA" en grande al
+                  lado (pedido de Ignacio); el total a pagar queda como subline
+                  porque es lo que el cliente debe transferir. */}
+              <p className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-3xl font-black tabular-nums tracking-tight text-primary sm:text-4xl">
+                  {fmtCLP(monto)}
+                </span>
+                <span className="text-xl font-black tracking-tight text-emerald-300 sm:text-2xl">+ IVA</span>
               </p>
-              <p className="mt-0.5 text-[10px] tabular-nums text-slate-500">
-                {fmtCLP(monto)} + IVA (19%)
+              <p className="mt-0.5 text-[10px] tabular-nums text-slate-400">
+                Total a pagar: <b className="text-slate-200">{fmtCLP(conIva(monto))}</b> (IVA 19% incluido)
               </p>
             </div>
             {fechaFmt && (

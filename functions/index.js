@@ -1449,6 +1449,12 @@ exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
 
+// Salud de sesiones Evolution: alerta por email (SynapTech + dueño) cuando el
+// WhatsApp de un local con bot/confirmaciones lleva >20 min desconectado —
+// antes moría en silencio. Ver evolution/salud.js.
+const evolutionSalud = require('./evolution/salud');
+exports.evolutionSaludSesiones = evolutionSalud.evolutionSaludSesiones;
+
 // Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;

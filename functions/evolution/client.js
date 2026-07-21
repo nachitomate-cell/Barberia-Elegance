@@ -90,12 +90,19 @@ function crearCliente({ baseUrl, apiKey }) {
       });
     },
 
-    /** Envía texto con pacing: `delay` muestra "escribiendo…" delayMs antes de enviar. */
-    async enviarTexto(instanceName, numero, texto, { delayMs = 4000 } = {}) {
+    /** Envía texto con pacing: `delay` muestra "escribiendo…" antes de enviar.
+     *  Anti-ban: el delay por defecto es ALEATORIO (3–8 s) — un ritmo fijo de
+     *  4 s exactos en cada respuesta es firma de bot para la heurística de
+     *  Meta; el jitter lo humaniza. Se puede fijar con delayMs si un caller
+     *  necesita determinismo. */
+    async enviarTexto(instanceName, numero, texto, { delayMs = null } = {}) {
+      const delay = Number.isFinite(delayMs) && delayMs > 0
+        ? delayMs
+        : 3000 + Math.floor(Math.random() * 5000);   // 3000–7999 ms
       return req('POST', `/message/sendText/${encodeURIComponent(instanceName)}`, {
         number: numero,
         text: texto,
-        delay: delayMs,
+        delay,
       });
     },
 
