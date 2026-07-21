@@ -1409,6 +1409,9 @@ exports.provisionarTenantSelf  = provisionTenant.provisionarTenantSelf;
 // minutos, sobre los rieles dinámicos — dueño con credenciales + billing +
 // servicios reales + equipo. Ver provisionarTenantAdmin en provision-tenant.js.
 exports.provisionarTenantAdmin = provisionTenant.provisionarTenantAdmin;
+// Importar negocio desde link de la competencia (Weibook completo, AgendaPro
+// parcial) para prellenar el wizard del alta express. Solo bootstrap.
+exports.importarNegocioExterno = provisionTenant.importarNegocioExterno;
 
 // ─────────────────────────────────────────────────────────────────
 //  CHAT — disponibilidad de horas para el bot de /chat (callable).

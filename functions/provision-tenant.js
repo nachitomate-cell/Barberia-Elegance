@@ -193,6 +193,160 @@ function passwordLegible(nombreCorto) {
     + '.' + p + Math.floor(100 + Math.random() * 900);
 }
 
+/* ─────────── Callable: importar negocio desde la competencia ───────────
+   Pegas el link público de reservas del prospecto y devuelve los datos
+   normalizados para prellenar el wizard del alta express. Proveedores:
+     · Weibook (book.weibook.co/branch/...) — COMPLETO: identidad + teléfono +
+       dirección + IG + color de marca + logo + servicios (precio/duración/
+       categoría) + equipo. Todo viene server-rendered en su __NEXT_DATA__.
+     · AgendaPro ({slug}.agendapro.com / {slug}.site.agendapro.com) — PARCIAL:
+       identidad + descripción + logo + color + rubro (companyOverview del
+       minisitio). Sus servicios cargan por API autenticada (401 público), así
+       que se pegan a mano. `parcial: true` avisa al wizard.
+   Solo bootstrap. Lee únicamente páginas públicas (lo mismo que ve un
+   cliente en el navegador). */
+
+const IMPORT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+
+async function fetchHtml(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': IMPORT_UA, 'Accept-Language': 'es-CL,es;q=0.9' }, redirect: 'follow' });
+  if (!res.ok) throw new HttpsError('not-found', `La página respondió ${res.status}. Revisa el link.`);
+  return await res.text();
+}
+
+function nextData(html) {
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch (_) { return null; }
+}
+
+function igHandle(v) {
+  const m = String(v || '').match(/instagram\.com\/([A-Za-z0-9._]+)/);
+  return m ? m[1] : (String(v || '').replace(/^@+/, '').trim() || null);
+}
+
+function tipoDesdeTexto(txt) {
+  const t = String(txt || '').toLowerCase();
+  if (/barber/.test(t)) return 'barberia';
+  if (/pelu|hair|salon|salón/.test(t)) return 'peluqueria';
+  if (/nail|uña|manicur/.test(t)) return 'nails';
+  if (/spa|estetic|estétic|belleza/.test(t)) return 'spa';
+  return 'barberia';
+}
+
+// Weibook solo expone IDs opacos de categoría (los nombres no viajan en la
+// página), así que categorizamos por el nombre del servicio. Mismo espíritu
+// que las categorías default de la plataforma.
+function categoriaHeuristica(nombre) {
+  const n = String(nombre || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/pack|combo|\by\b|\+/.test(n))              return 'Combos';
+  if (/barba|bigote|afeitad/.test(n))             return 'Barba';
+  if (/corte|fade|degradad/.test(n))              return 'Cortes';
+  if (/color|tinte|mecha|platinad/.test(n))       return 'Color';
+  if (/manicur|u(n|Ã±)a|esmalt/.test(n))          return 'Manos';
+  if (/pedicur/.test(n))                          return 'Pies';
+  if (/masaje/.test(n))                           return 'Masajes';
+  if (/limpieza facial|facial/.test(n))           return 'Facial';
+  if (/ceja|pestan/.test(n))                      return 'Extras';
+  if (/lavado|hidrata|tratamiento|keratina|alisad/.test(n)) return 'Tratamientos';
+  return 'Otro';
+}
+
+async function importarWeibook(url) {
+  const html = await fetchHtml(url);
+  const data = nextData(html);
+  const info = data && data.props && data.props.pageProps && data.props.pageProps.info;
+  if (!info || !info.dataInfo) throw new HttpsError('not-found', 'No pude leer los datos de esa página de Weibook.');
+  const d = info.dataInfo;
+
+  const servicios = ((info.services && info.services.data) || [])
+    .filter((s) => s && s.name && Number(s.cost) > 0)
+    .map((s) => ({
+      nombre:    String(s.name).trim().slice(0, 80),
+      precio:    Math.round(Number(s.cost) || 0),
+      duracion:  Math.max(5, Math.round(Number(s.min) || 30)),
+      categoria: categoriaHeuristica(s.name),
+    }));
+
+  const equipo = ((info.collaborators && info.collaborators.data) || [])
+    .map((c) => String((c && c.name) || '').trim())
+    .filter(Boolean);
+
+  const palette = (data.props.pageProps.themeConfig && data.props.pageProps.themeConfig.palette) || {};
+
+  return {
+    proveedor: 'weibook',
+    parcial:   false,
+    nombre:    String(d.name || '').trim(),
+    slogan:    String(d.description || '').trim().slice(0, 120) || null,
+    telefono:  String(d.telephone || '').replace(/\D/g, '') || null,
+    direccion: String(d.address || '').trim().slice(0, 120) || null,
+    instagram: igHandle(d.instagram),
+    color:     /^#[0-9a-fA-F]{6}$/.test(String(palette.primary || '')) ? palette.primary : null,
+    logoUrl:   String(d.portad_image || d.imageshare || '').trim() || null,
+    // categoriesBusiness son strings planos (ej: ["Barbería","Salon de belleza"]).
+    tipo:      tipoDesdeTexto((Array.isArray(d.categoriesBusiness) ? d.categoriesBusiness.join(' ') : '') || d.description),
+    servicios,
+    equipo,
+  };
+}
+
+async function importarAgendaPro(url) {
+  const u = new URL(url);
+  const slug = u.hostname.split('.')[0];
+  // location id: /sucursal/{id} o ?local={id}; si no viene, se pesca del HTML.
+  let locId = (u.pathname.match(/\/sucursal\/(\d+)/) || [])[1] || u.searchParams.get('local') || null;
+  if (!locId) {
+    const landing = await fetchHtml(`https://${slug}.agendapro.com/cl`);
+    locId = (landing.match(/location_id=(\d+)/) || landing.match(/sucursal\/(\d+)/) || [])[1] || null;
+  }
+  if (!locId) throw new HttpsError('not-found', 'No encontré la sucursal en ese link de AgendaPro. Pega el link que incluye ?local= o /sucursal/.');
+
+  const html = await fetchHtml(`https://${slug}.site.agendapro.com/cl/sucursal/${locId}`);
+  const data = nextData(html);
+  const ov = data && data.props && data.props.pageProps && data.props.pageProps.companyOverview;
+  if (!ov) throw new HttpsError('not-found', 'No pude leer los datos de ese minisitio de AgendaPro.');
+
+  return {
+    proveedor: 'agendapro',
+    parcial:   true,
+    nota:      'AgendaPro no publica los servicios en la página (API cerrada): pégalos a mano o pídele la lista al dueño.',
+    nombre:    String(ov.name || '').trim(),
+    slogan:    String(ov.description || '').trim().slice(0, 120) || null,
+    telefono:  String(ov.phone || '').replace(/\D/g, '') || null,
+    direccion: null,
+    instagram: null,
+    color:     /^#[0-9a-fA-F]{6}$/.test(String(ov.colorMinisite || '')) ? ov.colorMinisite : null,
+    logoUrl:   String(ov.logo || '').trim() || null,
+    tipo:      tipoDesdeTexto(ov.economicSector),
+    servicios: [],
+    equipo:    [],
+  };
+}
+
+exports.importarNegocioExterno = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const callerEmail = String((req.auth && req.auth.token && req.auth.token.email) || '').toLowerCase();
+  if (!req.auth || !BOOTSTRAP_ADMINS.includes(callerEmail)) {
+    throw new HttpsError('permission-denied', 'Solo SynapTech puede importar negocios.');
+  }
+  let url;
+  try { url = new URL(String(req.data && req.data.url || '').trim()); }
+  catch (_) { throw new HttpsError('invalid-argument', 'Pega un link válido (https://…).'); }
+
+  const host = url.hostname.toLowerCase();
+  let out;
+  if (host === 'book.weibook.co' || host.endsWith('.weibook.co')) {
+    out = await importarWeibook(url.href);
+  } else if (host.endsWith('agendapro.com')) {
+    out = await importarAgendaPro(url.href);
+  } else {
+    throw new HttpsError('invalid-argument', 'Proveedor no soportado aún. Hoy: Weibook y AgendaPro.');
+  }
+  logger.info(`[importar] ${out.proveedor} "${out.nombre}" servicios=${out.servicios.length} equipo=${out.equipo.length} (${url.href})`);
+  return { ok: true, ...out };
+});
+
 exports.provisionarTenantAdmin = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const callerEmail = String((req.auth && req.auth.token && req.auth.token.email) || '').toLowerCase();
   if (!req.auth || !BOOTSTRAP_ADMINS.includes(callerEmail)) {

@@ -6817,6 +6817,16 @@
       </div>
 
       <div id="wz-form" style="padding:1.25rem 1.375rem; display:flex; flex-direction:column; gap:1rem;">
+        <!-- Importar desde la competencia -->
+        <div style="background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.25); border-radius:0.875rem; padding:0.875rem;">
+          <p class="wz-sec" style="color:#a78bfa;">⚡ Importar desde link (Weibook / AgendaPro)</p>
+          <div style="display:flex; gap:0.5rem;">
+            <input id="wz-import-url" class="wz-in" placeholder="https://book.weibook.co/branch/… o https://local.agendapro.com/cl" style="flex:1;">
+            <button type="button" id="wz-import-btn" onclick="wzImportar()" style="padding:0.55rem 0.875rem; border-radius:0.625rem; cursor:pointer; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.4); color:#a78bfa; font-size:0.78rem; font-weight:700; white-space:nowrap;">Importar</button>
+          </div>
+          <p id="wz-import-status" style="font-size:0.68rem; margin:0.35rem 0 0; color:#64748b;">Pega el link público de reservas del prospecto y el formulario se llena solo.</p>
+        </div>
+
         <!-- Identidad -->
         <div>
           <p class="wz-sec">1 · Identidad del local</p>
@@ -6949,6 +6959,43 @@
         .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '').slice(0, 30);
     };
     document.getElementById('wz-slug').addEventListener('input', function () { this.dataset.tocado = '1'; });
+
+    window.wzImportar = async function () {
+      const url = document.getElementById('wz-import-url').value.trim();
+      const st  = document.getElementById('wz-import-status');
+      const btn = document.getElementById('wz-import-btn');
+      if (!url) { st.textContent = 'Pega primero el link.'; st.style.color = '#f59e0b'; return; }
+      btn.disabled = true; btn.textContent = 'Importando…';
+      st.textContent = 'Leyendo la página del negocio…'; st.style.color = '#64748b';
+      try {
+        const r = await firebase.functions().httpsCallable('importarNegocioExterno')({ url });
+        const d = r.data || {};
+        const setv = (id, v) => { if (v != null && v !== '') document.getElementById(id).value = v; };
+        setv('wz-nombre', d.nombre);
+        setv('wz-telefono', d.telefono);
+        setv('wz-direccion', d.direccion);
+        setv('wz-instagram', d.instagram);
+        setv('wz-slogan', d.slogan);
+        setv('wz-logo', d.logoUrl);
+        if (d.color) document.getElementById('wz-color').value = d.color;
+        if (d.tipo)  document.getElementById('wz-tipo').value  = d.tipo;
+        if (d.nombre) { document.getElementById('wz-slug').dataset.tocado = ''; wzSugerirSlug(); wzCheckSlug(); }
+        if (Array.isArray(d.servicios) && d.servicios.length) {
+          document.getElementById('wz-servicios').value =
+            d.servicios.map(s => `${s.nombre} | ${s.precio} | ${s.duracion} | ${s.categoria}`).join('\n');
+        }
+        if (Array.isArray(d.equipo) && d.equipo.length) {
+          document.getElementById('wz-equipo').value = d.equipo.join('\n');
+        }
+        st.textContent = `✓ Importado de ${d.proveedor}: ${d.servicios.length} servicios, ${d.equipo.length} en el equipo.` + (d.parcial ? ' ⚠ ' + (d.nota || 'Importación parcial.') : '');
+        st.style.color = d.parcial ? '#f59e0b' : '#34d399';
+      } catch (e) {
+        st.textContent = '✕ ' + ((e && e.message) || 'No se pudo importar.');
+        st.style.color = '#f87171';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Importar';
+      }
+    };
 
     window.wzCheckSlug = async function () {
       const slug = document.getElementById('wz-slug').value.trim().toLowerCase();
