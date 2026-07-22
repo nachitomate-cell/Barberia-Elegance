@@ -67,9 +67,10 @@
     // Renacer reutiliza el tema base de Elegance (dark + acentos finos) para
     // salir en vivo sin CSS propio. Se puede desacoplar en fase visual futura.
     renacer:      'elegance',
-    // Oren Barber (demo multi-sucursal) reutiliza el tema Elegance para lucir
-    // pulido sin CSS propio. Desacoplable en fase visual si cierra el trato.
-    oren:         'elegance',
+    // Oren Barber reutiliza el tema CLARO de Aura (cuerpo blanco + hero oscuro).
+    // Va también en _lightTenants. El hero se sobreescribe (.tenant-oren.tenant-aura
+    // .booking-hero) para no heredar la foto /auralogin.png de Aura.
+    oren:         'aura',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -78,7 +79,7 @@
   // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
   // por modo (ej: el buscador de servicios en index.html / barbero.html).
   // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
-  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer'];
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren'];
 
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
@@ -652,6 +653,10 @@
       instagramHandle: '@orenbarbercl',
       waEmoji:         '✂️',
       googleReviewUrl: '',
+      // Galería vacía → el modal "Información" muestra el placeholder
+      // "Pronto verás..." en vez de las fotos de Aura (tema aliaseado).
+      // Llenar con fotos reales del local al recibirlas: ['/oren/foto1.jpg', …]
+      galeria:         [],
       ratingGeneral:   5.0,
       totalReviews:    128,
       reviews: [

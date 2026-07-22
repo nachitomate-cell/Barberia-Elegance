@@ -3638,11 +3638,14 @@
     .tenant-renacer #heroBadgeRating { color: #ffffff !important; }
     .tenant-renacer #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
 
-    /* ── Oren Barber (demo) — hero propio ────────────────────────────────
-       Reutiliza el tema Elegance (alias), pero el hero base trae /elegance.png
-       con la marca "Elegance" incrustada. Lo reemplazamos por un fondo oscuro
-       con glow dorado + textura vertical sutil (evoca listones), SIN foto ni
-       texto, para no filtrar branding ajeno. El logo + nombre van encima. */
+    /* ── Oren Barber — hero propio ───────────────────────────────────────
+       Reutiliza el tema CLARO de Aura (cuerpo blanco), pero Aura pinta su
+       hero con la foto /auralogin.png (:is(.tenant-aura,.tenant-latincaribe)
+       .booking-hero). Lo reemplazamos por un fondo oscuro con glow dorado +
+       textura vertical sutil (evoca listones), SIN foto ni marca ajena. El
+       doble .tenant-oren.tenant-aura gana en especificidad sobre la regla de
+       Aura. Hero oscuro + cuerpo blanco = el patrón visual de Aura. */
+    .tenant-oren.tenant-aura .booking-hero,
     .tenant-oren .booking-hero {
       background-color: #0a0a0d !important;
       background-image:
@@ -3652,6 +3655,28 @@
       background-size: cover, auto, cover !important;
       background-position: center top !important;
     }
+    /* Oren (tema claro Aura) — tarjetas de sucursal en claro. Traen estilos
+       dark inline (bg-[#0a0a0d], text-gray-100, icon bg-[#111115]) porque
+       ningún tenant claro usaba multi-sucursal; las igualamos a las cards de
+       servicio (blancas, borde y sombra suaves, texto oscuro). */
+    .tenant-oren .sucursal-option {
+      background: #ffffff !important;
+      border-color: #E5E7EB !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.05) !important;
+    }
+    .tenant-oren .sucursal-option:hover { border-color: #D1D5DB !important; }
+    .tenant-oren .sucursal-option.border-neon,
+    .tenant-oren .sucursal-option.bg-brand-neon\/10 {
+      background: #F3F4F6 !important;
+      border-color: #4B5563 !important;
+    }
+    .tenant-oren .sucursal-option .font-bold { color: #18181B !important; }
+    .tenant-oren .sucursal-option p { color: #6B7280 !important; }
+    .tenant-oren .sucursal-option > div:first-child {
+      background: #F3F4F6 !important;
+      border-color: #E5E7EB !important;
+    }
+    .tenant-oren .sucursal-option .ph-map-pin { color: #6B7280 !important; }
 
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
     .tenant-barbersclub .info-strip { display: none !important; }
