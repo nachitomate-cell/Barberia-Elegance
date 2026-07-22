@@ -486,6 +486,31 @@ export default function WhatsAppAsistente({ embedded = false }) {
               )}
             </div>
 
+            {/* ── Aviso explícito: convivencia con humanos + automáticos nativos ──
+                Caso real (Kronnos, demo 2026-07-21): los mensajes de bienvenida/
+                ausencia de la app WhatsApp Business salen del teléfono como
+                fromMe → el anti-colisión los lee como "un humano tomó el chat"
+                y silencia al bot 2h en CADA conversación nueva. La regla
+                operativa: automáticos nativos APAGADOS, humanos cuando quieran. */}
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-4 space-y-2.5">
+              <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <ShieldAlert size={14} /> Cómo convive el bot con tu equipo
+              </p>
+              <p className="text-xs text-amber-100/80 leading-relaxed">
+                Si tú o alguien de tu equipo responde un chat <strong>a mano desde el teléfono</strong>,
+                el bot se calla <strong>2 horas en esa conversación</strong>. Es a propósito: cuando un
+                humano toma el control, el bot no se mete. Pasadas las 2 horas (o si el cliente
+                escribe en otro chat) vuelve a responder solo.
+              </p>
+              <p className="text-xs text-amber-100/80 leading-relaxed">
+                ⚠ <strong>Apaga los mensajes automáticos de WhatsApp Business</strong> (el de
+                bienvenida y el de ausencia): el sistema los detecta como si un humano hubiera
+                respondido y silencia al bot en cada chat nuevo. En tu teléfono:
+                <strong> WhatsApp Business → Herramientas para la empresa → Mensaje de bienvenida / Mensaje de ausencia → desactivar</strong>.
+                El Asistente los reemplaza conversando y agendando de verdad.
+              </p>
+            </div>
+
             {/* Políticas siempre a un toque, también con el módulo andando */}
             <button
               type="button"
