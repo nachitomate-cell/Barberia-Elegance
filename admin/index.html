@@ -3553,6 +3553,23 @@
     function toggleCuota(i) {
       _syncCuotaMontos();
       _cuotas[i].pagada = !_cuotas[i].pagada;
+      // Al marcar PAGADA una cuota, correr el "próximo vencimiento" al mes
+      // siguiente de esa cuota (mismo día). Sin esto el panel del local sigue
+      // gritando "Pago atrasado": Mensualidad.jsx deriva el estado por
+      // fechaProximoPago y esa fecha gana sobre el estado manual (caso real
+      // D'Jones/lumen 2026-07-22).
+      if (_cuotas[i].pagada && _cuotas[i].mes) {
+        const fEl = document.getElementById('bf-fecha');
+        if (fEl && fEl.value && fEl.value.slice(0, 7) <= _cuotas[i].mes) {
+          const dia = Number(fEl.value.slice(8, 10)) || 1;
+          const [y, m] = _cuotas[i].mes.split('-').map(Number);   // m es 1-based
+          const diasMesSig = new Date(y, m + 1, 0).getDate();      // días del mes siguiente
+          const d = new Date(y, m, Math.min(dia, diasMesSig));     // mes siguiente, mismo día (con tope)
+          fEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const fb = document.getElementById('bf-feedback');
+          if (fb) { fb.style.color = '#f59e0b'; fb.textContent = `Próximo vencimiento movido al ${fEl.value} — recuerda Guardar.`; }
+        }
+      }
       renderCuotasList();
     }
 
