@@ -262,7 +262,7 @@ async function ejecutarTool(name, input, ctx) {
 
 /* ─────────────────────────── Prompt de sistema ─────────────────────────── */
 
-function construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono }) {
+function construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono, estiloChileno }) {
   return [
     `Eres el asistente virtual de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`,
     direccion ? `Dirección del local: ${direccion}.` : '',
@@ -272,7 +272,11 @@ function construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, push
     '',
     'REGLAS:',
     '- Sé cálido, cercano y BREVE (es WhatsApp). Frases cortas, máximo 1–2 emojis.',
-    '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres). PROHIBIDO el voseo ("querís", "podís", "vos", "tenés") y los modismos o chilenismos ("bacán", "al tiro", "cachai", "po", "filete", "la raja"). Escribe claro y universal, como para cualquier país hispanohablante.',
+    // Estilo configurable por local (configuracion/whatsapp.estiloChileno).
+    // Default = neutro (doctrina de copy externo de la plataforma).
+    estiloChileno
+      ? '- ESTILO CHILENO CERCANO: habla como un chileno amable. Puedes usar modismos suaves con moderación ("bacán", "al tiro", "ya po") — máximo UNO por mensaje y siempre entendible. SIN voseo escrito ("querís", "podís", "vos") ni groserías. La claridad manda: fechas, horas y precios siempre en lenguaje estándar.'
+      : '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres). PROHIBIDO el voseo ("querís", "podís", "vos", "tenés") y los modismos o chilenismos ("bacán", "al tiro", "cachai", "po", "filete", "la raja"). Escribe claro y universal, como para cualquier país hispanohablante.',
     '- Tu único trabajo es informar del local y agendar/gestionar citas. Si preguntan otra cosa, redirige con amabilidad.',
     '- NUNCA inventes precios, servicios ni horas. Sácalos SIEMPRE de las herramientas (consultar_servicios / consultar_disponibilidad).',
     '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
@@ -476,7 +480,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const telefonoLocal = tdoc.telefono || conf.telefonoAdmin || '';
   const fechaHoy      = ahoraChile().fecha;
 
-  let system = construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono });
+  let system = construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono, estiloChileno: waCfg.estiloChileno === true });
   if (citaPendiente) {
     system += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
   }

@@ -187,6 +187,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
   const numero      = cfg?.numeroVinculado;
   const botOn       = cfg?.botEnabled === true;
   const confirmOn   = cfg?.confirmacionesEnabled === true;
+  const estiloChileno = cfg?.estiloChileno === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
 
   // Habilitado = la llave de SynapTech, o (fallback) ya estaba conectado.
@@ -403,24 +404,46 @@ export default function WhatsAppAsistente({ embedded = false }) {
               </button>
             </div>
 
-            {/* Switch maestro del bot */}
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Power size={18} className={botOn ? 'text-emerald-400' : 'text-slate-500'} />
-                <div>
-                  <p className="text-sm font-semibold text-primary">Asistente encendido</p>
-                  <p className="text-xs text-slate-400">{botOn ? 'Responde y agenda solo' : 'Apagado — nadie responde por ti (útil en feriados)'}</p>
+            {/* Switch maestro del bot + estilo de conversación */}
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Power size={18} className={botOn ? 'text-emerald-400' : 'text-slate-500'} />
+                  <div>
+                    <p className="text-sm font-semibold text-primary">Asistente encendido</p>
+                    <p className="text-xs text-slate-400">{botOn ? 'Responde y agenda solo' : 'Apagado — nadie responde por ti (útil en feriados)'}</p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={botOn}
+                  onClick={() => patchCfg({ botEnabled: !botOn })}
+                  className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${botOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${botOn ? 'left-6' : 'left-1'}`} />
+                </button>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={botOn}
-                onClick={() => patchCfg({ botEnabled: !botOn })}
-                className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${botOn ? 'bg-emerald-500' : 'bg-slate-600'}`}
-              >
-                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${botOn ? 'left-6' : 'left-1'}`} />
-              </button>
+              {botOn && (
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-700/40">
+                  <div>
+                    <p className="text-xs text-slate-400">Estilo de conversación</p>
+                    <p className="text-[11px] text-slate-500">
+                      {estiloChileno
+                        ? 'Chileno cercano — modismos suaves con moderación'
+                        : 'Español neutro — claro y universal (recomendado)'}
+                    </p>
+                  </div>
+                  <select
+                    value={estiloChileno ? 'chileno' : 'neutro'}
+                    onChange={(e) => patchCfg({ estiloChileno: e.target.value === 'chileno' })}
+                    className="bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-emerald-500 shrink-0"
+                  >
+                    <option value="neutro">Neutro</option>
+                    <option value="chileno">Chileno</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Confirmaciones anti-no-show */}
