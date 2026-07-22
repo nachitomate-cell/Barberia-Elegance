@@ -9,6 +9,7 @@ import { WaChatPreview, ClaudeBadge, LivePreviewHeader } from '../components/WaC
 import {
   QrCode, ShieldAlert, Loader2, CheckCircle2, Power, Clock,
   Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, ExternalLink, Bot,
+  ShieldCheck, FileText, ChevronRight,
 } from 'lucide-react';
 
 // Módulo premium "Asistente IA 24/7" — el bot responde y agenda solo sobre el
@@ -25,6 +26,90 @@ const WA_SYNAPTECH = '56983568212';
 const TYC_TEXT =
   'Comprendo que al vincular mi línea particular a un asistente automatizado de terceros, ' +
   'asumo las políticas de uso responsable de WhatsApp y de la plataforma.';
+
+/* ── Políticas de WhatsApp (v1.0 · julio 2026) ─────────────────────
+   Documento de riesgos y uso responsable del módulo. Protege a ambas
+   partes: el local sabe EXACTAMENTE qué acepta al vincular, y SynapTech
+   deja constancia de que informó los riesgos del canal (que no controla).
+   La aceptación queda registrada al vincular (tycAceptado/En/Por). */
+const POLITICAS_WHATSAPP = [
+  {
+    t: '1 · Qué es este servicio',
+    c: 'El Asistente funciona vinculando tu número de WhatsApp como "dispositivo vinculado" (igual que WhatsApp Web), no mediante la API oficial de Meta. Tu teléfono y tu app siguen funcionando normal y mantienes el control total de tus conversaciones.',
+  },
+  {
+    t: '2 · Riesgo del canal (importante)',
+    c: 'WhatsApp/Meta puede restringir o suspender números que, según sus sistemas automáticos, infrinjan sus condiciones. Ese riesgo existe con cualquier herramienta de automatización no oficial, SynapTech no lo controla ni puede garantizar que no ocurra, y al vincular tu número lo aceptas expresamente. Recomendamos usar un número con historial (nunca un chip recién comprado) y tener un chip de respaldo.',
+  },
+  {
+    t: '3 · Uso responsable (lo que el sistema permite)',
+    c: 'El Asistente solo responde a clientes que te escriben primero y envía confirmaciones de citas reales de tu propia agenda. Está prohibido usar el canal para spam, marketing masivo, mensajes a bases de datos compradas o contenido ilícito. SynapTech puede suspender el módulo ante un uso indebido.',
+  },
+  {
+    t: '4 · Protecciones automáticas',
+    c: 'Para cuidar tu número, el sistema impone ritmo humano de escritura, topes diarios de envío según la antigüedad de la vinculación, silencio automático del bot cuando un humano toma la conversación, y respeto inmediato a quien pide no recibir mensajes. Estos límites no son configurables: son la protección.',
+  },
+  {
+    t: '5 · Datos personales (Ley 21.719)',
+    c: 'Los datos de tus clientes (nombres, teléfonos, mensajes, citas) son tuyos: tu local es el responsable del tratamiento y SynapTech actúa como encargado, procesándolos únicamente para operar el servicio (responder, agendar, confirmar). La memoria conversacional es acotada y no se venden ni comparten datos con terceros.',
+  },
+  {
+    t: '6 · Responsabilidad',
+    c: 'SynapTech responde por el funcionamiento de su software. No responde por decisiones de Meta/WhatsApp sobre tu número (restricciones, suspensiones, cambios de plataforma), por indisponibilidad del canal, por la entrega efectiva de cada mensaje, ni por usos del canal contrarios a estas políticas. Tus datos de negocio (citas, clientes, historial) viven en la plataforma, no en WhatsApp: una suspensión del número no los afecta.',
+  },
+  {
+    t: '7 · Tu control',
+    c: 'Puedes apagar el Asistente, apagar las confirmaciones o desvincular tu número cuando quieras desde este mismo panel, con efecto inmediato. Desvincular devuelve el control 100% manual a tu teléfono.',
+  },
+  {
+    t: '8 · Continuidad del servicio',
+    c: 'Si WhatsApp modifica o bloquea el mecanismo de dispositivos vinculados, el servicio podrá migrar a otro canal o suspenderse mientras exista una alternativa viable, sin que ello constituya incumplimiento de SynapTech.',
+  },
+  {
+    t: '9 · Aceptación',
+    c: 'Al marcar la casilla y vincular tu número, el administrador del local declara haber leído y aceptado estas políticas. Queda registro de la cuenta, fecha y hora de aceptación. Versión 1.0 · julio 2026 · Dudas: WhatsApp +56 9 8356 8212.',
+  },
+];
+
+function PoliticasModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-[9100] flex items-center justify-center px-4 py-8 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-3xl border border-slate-700/60 bg-[#0e0e12] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck size={18} className="text-emerald-400" />
+            <div>
+              <h3 className="text-base font-bold text-primary leading-tight">Políticas de WhatsApp</h3>
+              <p className="text-[11px] text-slate-500">Riesgos y uso responsable del Asistente · v1.0</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary shrink-0" aria-label="Cerrar">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-6 py-4 space-y-4">
+          {POLITICAS_WHATSAPP.map((s) => (
+            <div key={s.t}>
+              <p className="text-xs font-bold text-emerald-300 mb-1">{s.t}</p>
+              <p className="text-xs text-slate-300 leading-relaxed">{s.c}</p>
+            </div>
+          ))}
+        </div>
+        <div className="px-6 py-3.5 border-t border-slate-800 shrink-0">
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold py-2.5 transition-colors"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const card = 'bg-slate-800/30 border border-slate-700/50 rounded-2xl';
 
@@ -83,6 +168,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
   const [vinculando, setVinc]   = useState(false);
   const [conectado, setConectado] = useState(false);
   const [err, setErr]           = useState('');
+  const [showPoliticas, setShowPoliticas] = useState(false);
 
   /* ── Entitlement: _system/{tid}.waAsistente (solo SynapTech lo escribe) ── */
   useEffect(() => {
@@ -279,6 +365,15 @@ export default function WhatsAppAsistente({ embedded = false }) {
 
             <button
               type="button"
+              onClick={() => setShowPoliticas(true)}
+              className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 transition-colors"
+            >
+              <span className="flex items-center gap-2"><FileText size={14} /> Políticas de WhatsApp — riesgos y uso responsable</span>
+              <ChevronRight size={14} className="shrink-0" />
+            </button>
+
+            <button
+              type="button"
               onClick={vincular}
               disabled={!tyc || vinculando}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed text-ink-950 font-bold py-3 transition-all"
@@ -367,8 +462,20 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 </div>
               )}
             </div>
+
+            {/* Políticas siempre a un toque, también con el módulo andando */}
+            <button
+              type="button"
+              onClick={() => setShowPoliticas(true)}
+              className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3.5 py-2.5 text-xs font-semibold text-slate-400 hover:border-emerald-500/40 hover:text-emerald-300 transition-colors"
+            >
+              <span className="flex items-center gap-2"><ShieldCheck size={14} /> Políticas de WhatsApp — riesgos y uso responsable</span>
+              <ChevronRight size={14} className="shrink-0" />
+            </button>
           </div>
         )}
+
+      {showPoliticas && <PoliticasModal onClose={() => setShowPoliticas(false)} />}
       </div>
 
       {/* ── Modal de escaneo QR ── */}
