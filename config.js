@@ -640,8 +640,8 @@
       pageTitle:       'Oren Barber | Cortes con Estilo',
       slogan:          'Cortes con Estilo',
       sobreNosotros:   'Oren Barber nace de la pasión por el oficio y el detalle. Con dos sucursales —Reñaca y Villa Alemana— llevamos la barbería moderna a la región de Valparaíso: cortes personalizados, barba de precisión y una experiencia pensada para que salgas renovado.<br><br>Elige tu sucursal, tu barbero y tu horario en segundos. Cortes con estilo, siempre.',
-      logo:            '/oren/logo.png',
-      logo2:           '/oren/logo.png',
+      logo:            '/oren/oren-logo.webp',
+      logo2:           '',   // sin segundo logo (evita el cuadrito redundante)
       direccion:       '', // resuelto por sucursal — ver sucursales[]
       horario:         '🕒 Lun a Dom · Reserva tu hora',
       telefono:        '',

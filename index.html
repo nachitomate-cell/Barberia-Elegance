@@ -3639,21 +3639,22 @@
     .tenant-renacer #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
 
     /* ── Oren Barber — hero propio ───────────────────────────────────────
-       Reutiliza el tema CLARO de Aura (cuerpo blanco), pero Aura pinta su
-       hero con la foto /auralogin.png (:is(.tenant-aura,.tenant-latincaribe)
-       .booking-hero). Lo reemplazamos por un fondo oscuro con glow dorado +
-       textura vertical sutil (evoca listones), SIN foto ni marca ajena. El
-       doble .tenant-oren.tenant-aura gana en especificidad sobre la regla de
-       Aura. Hero oscuro + cuerpo blanco = el patrón visual de Aura. */
+       Reutiliza el tema CLARO de Aura (cuerpo blanco). El hero es un slider
+       con los banners REALES de cada sede (renaca.webp / villaalemana.webp),
+       que rotan para mostrar que son 2 locales (ver initHeroSlider). Quitamos
+       la imagen de fondo del .booking-hero (Aura pinta /auralogin.png) para
+       que el slider #heroSliderBg se vea por debajo; queda un fondo oscuro de
+       respaldo mientras cargan las fotos. El doble .tenant-oren.tenant-aura
+       gana en especificidad sobre la regla de Aura. */
     .tenant-oren.tenant-aura .booking-hero,
     .tenant-oren .booking-hero {
+      background-image: none !important;
       background-color: #0a0a0d !important;
-      background-image:
-        radial-gradient(ellipse 72% 62% at 50% 0%, rgba(201,168,76,0.24) 0%, transparent 60%),
-        repeating-linear-gradient(90deg, rgba(255,255,255,0.024) 0px, rgba(255,255,255,0.024) 1px, transparent 1px, transparent 11px),
-        linear-gradient(180deg, #17130b 0%, #0b0b0e 62%, #0a0a0d 100%) !important;
-      background-size: cover, auto, cover !important;
-      background-position: center top !important;
+    }
+    /* Overlay más denso sobre las fotos para que el logo y el nombre se lean. */
+    .tenant-oren .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(10,10,13,0.62) 0%, rgba(10,10,13,0.42) 40%, rgba(10,10,13,0.94) 100%) !important;
     }
     /* Oren (tema claro Aura) — tarjetas de sucursal en claro. Traen estilos
        dark inline (bg-[#0a0a0d], text-gray-100, icon bg-[#111115]) porque
@@ -10161,7 +10162,7 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
 
@@ -10323,7 +10324,7 @@
         updateSelectionRecap();
       }
 
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
       const isRenacer = (window.CURRENT_TENANT_ID === 'renacer');
@@ -10617,7 +10618,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
@@ -11223,7 +11224,7 @@
       // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
       // líneas. La rama default (abajo) los deja como hermanos sueltos del
       // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -12359,7 +12360,7 @@
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
-      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe');
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
@@ -12908,7 +12909,7 @@
 
         // Marca como "✓ Añadido" los botones del cross-sell cuyo producto ya está en el cart.
         const _markXsellSelected = (container) => {
-          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
+          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
           container.querySelectorAll('button[data-pid]').forEach(btn => {
             if (_selectedProducts.some(p => p.id === btn.dataset.pid)) {
               btn.textContent = '✓ Añadido';
@@ -12924,7 +12925,7 @@
           if (_isProductsEnabled && _fsProducts.length > 0) {
             // Tenants con tema CLARO usan la tarjeta de producto blanca; el resto,
             // la oscura/dorada. infinity es claro → sin esto salía negra con dorado.
-            const isLightTheme = ['aura', 'latincaribe', 'infinity', 'renacer'].includes(window.CURRENT_TENANT_ID);
+            const isLightTheme = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren'].includes(window.CURRENT_TENANT_ID);
 
             if (isLightTheme) {
               xsellEl.innerHTML = `
@@ -12980,7 +12981,7 @@
               if (!btn) return;
               const pid = btn.dataset.pid;
               const idx = _selectedProducts.findIndex(p => p.id === pid);
-              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
+              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
 
               if (idx === -1) {
                 _selectedProducts.push({ id: pid, nombre: btn.dataset.pname, precio: Number(btn.dataset.pprecio) });
@@ -13082,7 +13083,7 @@
         } else {
           // No logueado: CTA prominente para unirse al club
           const _clubEmoji = window.CURRENT_TENANT_ID === 'gitana' ? '💅' : '✂️';
-          if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe')) {
+          if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe')) {
             authContainer.innerHTML = `
               <div class="club-hero-card rounded-2xl overflow-hidden relative" style="background:#FFFFFF;border:1px solid #D4D4D8;box-shadow:0 2px 16px rgba(156,163,175,0.10);">
 
@@ -13800,6 +13801,7 @@
           lumen: '/djones1.png',
           delnero: '/nero.jpg',
           aura: '/auralogin.png',
+          oren: '/oren/renaca.webp',
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
           sionbarberia: '/dieciseis/banner16-bn.png',
@@ -14699,7 +14701,7 @@
         if (titleEl) titleEl.textContent = 'Mapu Barber Shop';
         const bodyEl = document.getElementById('mapu-sobre-body');
         if (bodyEl) bodyEl.innerHTML = window.SHOP.sobreNosotros;
-      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia')) {
+      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia')) {
         const titleEl = document.getElementById('aura-sobre-title');
         if (titleEl) titleEl.textContent = 'Quiénes Somos';
         const bodyEl = document.getElementById('aura-sobre-body');
@@ -14901,16 +14903,16 @@
   <script>
     // ── Barbers Club — Hero Slider (rotación cross-fade cada 4.5s) ────
     (function initHeroSlider(){
-      var SLIDES = [
-        '/barbersclub/slider-bg-1.png',
-        '/barbersclub/slider-bg-2.png',
-        '/barbersclub/slider-bg-3.png'
-      ];
+      var SLIDES_BY_TENANT = {
+        barbersclub: ['/barbersclub/slider-bg-1.png', '/barbersclub/slider-bg-2.png', '/barbersclub/slider-bg-3.png'],
+        // Oren Barber — banners reales de cada sede; rotan para mostrar que son 2 locales.
+        oren: ['/oren/renaca.webp', '/oren/villaalemana.webp'],
+      };
+      var SLIDES = SLIDES_BY_TENANT[window.CURRENT_TENANT_ID] || [];
       var host = document.getElementById('heroSliderBg');
-      if (!host) return;
+      if (!host || !SLIDES.length) return;
       var timer = null;
       function attach(){
-        if (window.CURRENT_TENANT_ID !== 'barbersclub') return false;
         if (host.dataset.ready === '1') return true;
         SLIDES.forEach(function(src){ var i = new Image(); i.src = src; });
         host.innerHTML = SLIDES.map(function(src, idx){
