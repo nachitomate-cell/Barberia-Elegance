@@ -1460,6 +1460,10 @@ exports.evolutionSaludSesiones = evolutionSalud.evolutionSaludSesiones;
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;
 
+// Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
+const kronnosResumenModule = require('./kronnos-resumen');
+exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;
+
 // ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users

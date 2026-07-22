@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kronnos · Gestión Interna</title>
   <link rel="icon" href="/kronnos/studio.jpg">
+  <!-- PWA: instalable desde el navegador (manifest + SW propios de este host) -->
+  <link rel="manifest" href="/kronnos-admin.webmanifest">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="apple-touch-icon" href="/icons/pwa/kronnos-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kronnos Admin">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --red:#e11d2a; --orange:#f97316; --magenta:#ec4899; }
@@ -88,6 +96,30 @@
                 font-size: .85rem; color: #cbd5e1; user-select: none; }
     .remember input { width: 17px; height: 17px; accent-color: var(--red); cursor: pointer; }
     .hidden { display: none !important; }
+
+    /* ── Métricas del mes (las 3 sedes) ── */
+    .metrics { background: #121212; border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
+               padding: 1.4rem 1.4rem 1.1rem; margin-bottom: 2.2rem; }
+    .m-head { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
+              flex-wrap: wrap; margin-bottom: 1.1rem; }
+    .m-head h3 { font-size: 1.02rem; font-weight: 700; }
+    .m-head h3 span { color: #9ca3af; font-weight: 600; text-transform: capitalize; }
+    .m-note { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+              color: #9ca3af; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+              padding: .3rem .7rem; border-radius: 999px; }
+    .m-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: 1.1rem; }
+    @media (max-width: 640px) { .m-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .m-kpi { background: #0a0a0a; border: 1px solid rgba(255,255,255,.06); border-radius: 14px;
+             padding: .9rem .9rem .8rem; }
+    .m-kpi .n { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em;
+                font-variant-numeric: tabular-nums; }
+    .m-kpi .k { font-size: .72rem; color: #9ca3af; margin-top: .15rem; }
+    .m-sede { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; font-size: .87rem;
+              border-top: 1px solid rgba(255,255,255,.06); flex-wrap: wrap; }
+    .m-sede .sd { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .m-sede b { font-weight: 700; }
+    .m-sede .det { color: #9ca3af; font-variant-numeric: tabular-nums; margin-left: auto; text-align: right; }
+    .m-err { color: #9ca3af; font-size: .85rem; padding: .4rem 0; }
   </style>
 </head>
 <body>
@@ -133,6 +165,21 @@
         <h1><span>KRONNOS</span> · Gestión Interna</h1>
         <p class="tagline">Selecciona la sucursal que quieres administrar. Tu sesión se mantiene activa entre sedes.</p>
       </header>
+
+      <!-- ══ Métricas globales del mes (las 3 sedes) ══ -->
+      <section id="metricsSec" class="metrics">
+        <div class="m-head">
+          <h3>📊 Resumen del mes · <span id="mesLabel">—</span></h3>
+          <span class="m-note">3 sedes combinadas</span>
+        </div>
+        <div class="m-kpis">
+          <div class="m-kpi"><div class="n" id="mCitas">—</div><div class="k">Citas del mes</div></div>
+          <div class="m-kpi"><div class="n" id="mComp">—</div><div class="k">Completadas</div></div>
+          <div class="m-kpi"><div class="n" id="mProx">—</div><div class="k">Próximas</div></div>
+          <div class="m-kpi"><div class="n" id="mIng">—</div><div class="k">Ingresos realizados</div></div>
+        </div>
+        <div id="mSedes"><div class="m-err">Cargando métricas…</div></div>
+      </section>
 
       <main class="grid">
         <!-- Peñablanca -->
@@ -187,6 +234,7 @@
   <!-- ══ Firebase Auth ══ -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script>
     // Mismo proyecto que el panel → la sesión (IndexedDB LOCAL) se comparte.
     firebase.initializeApp({
@@ -211,11 +259,54 @@
     let _authResolved = false;
     setTimeout(() => { if (!_authResolved) show('loginView'); }, 3500);
 
+    // ── PWA: registrar el service worker (instalabilidad) ──
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/kronnos-admin-sw.js').catch(() => {});
+    }
+
+    // ── Métricas del mes (las 3 sedes) — CF kronnosResumenMensual ──
+    const SEDE_META = {
+      kronnos_penablanca: { nombre: 'Peñablanca', color: 'var(--red)' },
+      kronnos_limache:    { nombre: 'Limache',    color: 'var(--orange)' },
+      kronnos_woman:      { nombre: 'Woman',      color: 'var(--magenta)' },
+    };
+    const clp = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+    const num = n => (Number(n) || 0).toLocaleString('es-CL');
+
+    let _metricsCargadas = false;
+    async function cargarMetricas() {
+      if (_metricsCargadas) return;
+      try {
+        const fn = firebase.app().functions('us-central1').httpsCallable('kronnosResumenMensual');
+        const { data } = await fn({});
+        _metricsCargadas = true;
+        const [y, m] = data.mes.split('-').map(Number);
+        $('mesLabel').textContent = new Date(y, m - 1, 1)
+          .toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+        $('mCitas').textContent = num(data.total.citas);
+        $('mComp').textContent  = num(data.total.completadas);
+        $('mProx').textContent  = num(data.total.proximas);
+        $('mIng').textContent   = clp(data.total.ingreso);
+        $('mSedes').innerHTML = Object.keys(SEDE_META).map(tid => {
+          const s = data.sedes[tid];
+          const meta = SEDE_META[tid];
+          if (!s || s.error) return `<div class="m-sede"><span class="sd" style="background:${meta.color}"></span><b>${meta.nombre}</b><span class="det">sin datos</span></div>`;
+          return `<div class="m-sede">
+            <span class="sd" style="background:${meta.color}"></span><b>${meta.nombre}</b>
+            <span class="det">${num(s.citas)} cita(s) · ${num(s.completadas)} completada(s) · ${clp(s.ingreso)}</span>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        $('mSedes').innerHTML = '<div class="m-err">No se pudieron cargar las métricas. Reintenta recargando la página.</div>';
+      }
+    }
+
     firebase.auth().onAuthStateChanged(user => {
       _authResolved = true;
       if (user && ALLOWED.includes((user.email || '').toLowerCase())) {
         $('sessEmail').textContent = user.email;
         show('lobbyView');
+        cargarMetricas();
       } else if (user) {
         // Sesión de alguien no autorizado para este panel.
         firebase.auth().signOut();

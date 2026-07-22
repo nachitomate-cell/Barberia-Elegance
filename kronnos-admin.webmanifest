@@ -1,0 +1,17 @@
+{
+  "name": "Kronnos · Gestión Interna",
+  "short_name": "Kronnos Admin",
+  "description": "Panel de administración de las sucursales Kronnos: Peñablanca, Limache y Woman.",
+  "id": "/kronnos-admin",
+  "start_url": "/kronnos-admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/icons/pwa/kronnos-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/pwa/kronnos-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/pwa/kronnos-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
