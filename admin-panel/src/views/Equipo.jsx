@@ -24,6 +24,7 @@ import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import { useSucursales } from '../hooks/useSucursales';
 import { useTenant } from '../contexts/TenantContext';
 import DropdownMenu from '../components/ui/DropdownMenu';
@@ -608,7 +609,10 @@ export default function Equipo() {
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
   const sucursales                     = useSucursales();
-  const barberos = rawBarberos.filter(b => !b._mainDocId);
+  const { matchSucursal }              = useSucursal();
+  // Filtra por sede activa: un encargado de sede ve solo su equipo; el dueño
+  // (Todas) los ve a todos. Barberos sin sucursalId (atienden en ambas) pasan.
+  const barberos = rawBarberos.filter(b => !b._mainDocId).filter(matchSucursal);
 
   /* ── Pestañas (Tabs) ── */
   const [activeTab, setActiveTab] = useState('miembros');

@@ -113,7 +113,10 @@ async function main() {
 
   sep('CONFIGURACIÓN');
   if (COMMIT) await col('configuracion').doc('main').set({ ...CONFIG, updatedAt: TS() }, { merge: true });
-  console.log(`  ${COMMIT ? '✅' : '🅳'} /configuracion/main · ${SUCURSALES.length} sucursales`);
+  // Espejo de sucursales en settings/general: lo lee el hook useSucursales del
+  // panel (dropdown de sede al editar un barbero en Equipo, vista Sucursales).
+  if (COMMIT) await col('settings').doc('general').set({ sucursales: SUCURSALES, updatedAt: TS() }, { merge: true });
+  console.log(`  ${COMMIT ? '✅' : '🅳'} /configuracion/main + /settings/general · ${SUCURSALES.length} sucursales`);
   SUCURSALES.forEach(s => console.log(`       · ${s.nombre} — ${s.ciudad}`));
 
   sep('SERVICIOS');

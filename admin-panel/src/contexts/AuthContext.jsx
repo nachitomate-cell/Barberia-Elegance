@@ -45,9 +45,18 @@ async function roleFromClaims(firebaseUser) {
   }
 }
 
+// Scope de sucursal de un doc de barbero/admin. `sucursalScope` es el campo
+// explícito de "qué sede puede ver este usuario" ('all' | id de sucursal). Si
+// no está, cae al `sucursalId` del barbero (donde trabaja) — así un barbero ve
+// su sede. Sin nada → 'all' (tenants de una sola sede quedan sin filtro).
+function scopeFromDoc(data) {
+  return data?.sucursalScope ?? data?.sucursalId ?? 'all';
+}
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined);
   const [role,    setRole]    = useState(null);
+  const [sucursalScope, setSucursalScope] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +64,7 @@ export function AuthProvider({ children }) {
       if (!firebaseUser) {
         setUser(null);
         setRole(null);
+        setSucursalScope('all');
         setLoading(false);
         return;
       }
@@ -65,6 +75,7 @@ export function AuthProvider({ children }) {
       // Superadmin de SynapTech — acceso total en cualquier tenant
       if (email === SUPERADMIN_EMAIL) {
         setRole('admin');
+        setSucursalScope('all');
         setLoading(false);
         return;
       }
@@ -72,6 +83,7 @@ export function AuthProvider({ children }) {
       // Admin de marca — dueño con 'admin' en sus sedes (sin re-login al cambiar)
       if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
         setRole('admin');
+        setSucursalScope('all');
         setLoading(false);
         return;
       }
@@ -85,14 +97,18 @@ export function AuthProvider({ children }) {
           if (data._mainDocId) {
             const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 10000, 'auth/role-link');
             setRole(main.exists() ? (main.data().rol || 'barbero') : 'barbero');
+            setSucursalScope(main.exists() ? scopeFromDoc(main.data()) : 'all');
           } else {
             setRole(data.rol || 'barbero');
+            setSucursalScope(scopeFromDoc(data));
           }
         } else {
           setRole(await roleFromClaims(firebaseUser) || 'barbero');
+          setSucursalScope('all');
         }
       } catch {
         setRole(await roleFromClaims(firebaseUser) || 'barbero');
+        setSucursalScope('all');
       }
       setLoading(false);
     });
@@ -100,7 +116,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, role, loading }}>
+    <AuthContext.Provider value={{ user, role, sucursalScope, loading }}>
       {children}
     </AuthContext.Provider>
   );

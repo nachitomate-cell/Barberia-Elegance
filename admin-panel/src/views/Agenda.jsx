@@ -25,6 +25,7 @@ import { withTimeout } from '../lib/firestore-helpers';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import ReviewModal from '../components/ReviewModal';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
@@ -508,6 +509,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const { pickerLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
+  const { activeSucursal, sucursales: _sucursalesList } = useSucursal();  // para taggear la sede de la cita
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const firstSvc = servicios[0];
 
@@ -972,6 +974,20 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       const fechaCita = form.fecha || dateStr;
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+
+      // Sede de la cita: la del barbero elegido (los barberos pertenecen a una
+      // sede); si el barbero no tiene sede, cae a la sede activa del panel. Así
+      // la cita queda filtrable por sucursal en Agenda/Métricas/Caja. No pisa
+      // el valor si ya venía (ej. edición de una cita ya seteada).
+      if (!payload.sucursalId) {
+        const _barb  = barberos.find(b => b.id === payload.barberoId);
+        const _sucId = _barb?.sucursalId || activeSucursal?.id || null;
+        if (_sucId) {
+          payload.sucursalId = _sucId;
+          const _suc = (_sucursalesList || []).find(s => s.id === _sucId);
+          payload.sucursalNombre = _suc?.nombre || activeSucursal?.nombre || payload.sucursalNombre || '';
+        }
+      }
 
       // Normalización de teléfono: quita espacios/guiones/paréntesis y
       // deriva `clienteTelefonoSuf9` (últimos 9 dígitos) para que la CF
@@ -4022,6 +4038,7 @@ export default function Agenda() {
   }, [viewMode, weekDates, monthDates, dateStr]);
 
   const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
+  const { matchSucursal } = useSucursal();
 
   // Colación por barbero — un getDoc por profesional visible, una sola vez
   // por cambio real de la lista (dep-key estable por ids, no por identidad
@@ -4058,7 +4075,10 @@ export default function Agenda() {
     () => [where('fecha', '>=', rangeStart), where('fecha', '<=', rangeEnd)],
     [rangeStart, rangeEnd],
   );
-  const { data: citas }       = useCollection('citas',    dateRange, [_visibleDatesKey]);
+  const { data: citasAll }    = useCollection('citas',    dateRange, [_visibleDatesKey]);
+  // Filtro por sede activa: en "Todas" pasa todo; con sede elegida solo sus
+  // citas (por sucursalId/sucursalNombre; las sin sede pasan por compat).
+  const citas = useMemo(() => citasAll.filter(matchSucursal), [citasAll, matchSucursal]);
   const { data: bloqueos }    = useCollection('bloqueos', dateRange, [_visibleDatesKey]);
   const { data: servicios }   = useCollection('servicios');
   const { data: productos }   = useCollection('productos');
@@ -4130,6 +4150,7 @@ export default function Agenda() {
     rawBarberos.filter(b => {
       if (b._mainDocId) return false;
       if (b.disponible === false) return false;
+      if (!matchSucursal(b)) return false;   // filtro por sede activa
       if (b.rol !== 'admin') return true;
       return (
         tenantId === 'delnero' ||
@@ -4137,7 +4158,7 @@ export default function Agenda() {
         b.esBarbero === true
       );
     }),
-  [rawBarberos, tenantId]);
+  [rawBarberos, tenantId, matchSucursal]);
 
   // Deep-link ?nueva=1&barbero=<id>&hora=HH:MM — la Pizarra walk-in manda aquí
   // con barbero y hora ya resueltos (libre → ahora; ocupado → cuando se

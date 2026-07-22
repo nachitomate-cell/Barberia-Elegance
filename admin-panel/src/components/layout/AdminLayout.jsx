@@ -6,6 +6,7 @@ import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
 import BillingBanner       from './BillingBanner';
 import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
+import SucursalBar               from '../SucursalBar';
 import ContextualHelpButton     from '../ContextualHelpButton';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
@@ -229,6 +230,9 @@ export default function AdminLayout({ children }) {
           {/* Spacer espejo para centrar el título */}
           <div className="w-11" />
         </header>
+
+        {/* Selector de sede (solo tenants multi-sucursal) */}
+        <SucursalBar />
 
         {/* PWA install banner */}
         <PWABanner />

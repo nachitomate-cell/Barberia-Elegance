@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SucursalProvider } from './contexts/SucursalContext';
 import { resolveTenantId } from './lib/tenantUtils';
 import Membresias from './views/Membresias';
 import CorteAlLapiz from './views/CorteAlLapiz';
@@ -199,14 +200,16 @@ export default function App() {
       <ErrorBoundaryWithTenant>
         <TenantGate>
           <AuthProvider>
-            <BrowserRouter basename="/gestion-interna">
-              <Routes>
-                <Route path="/saldo-gift-card" element={<SaldoGiftCard />} />
-                <Route path="/dashboard" element={<VIPDashboard />} />
-                <Route path="/*" element={<ProtectedApp />} />
-              </Routes>
-            </BrowserRouter>
-            <ConfirmHost />
+            <SucursalProvider>
+              <BrowserRouter basename="/gestion-interna">
+                <Routes>
+                  <Route path="/saldo-gift-card" element={<SaldoGiftCard />} />
+                  <Route path="/dashboard" element={<VIPDashboard />} />
+                  <Route path="/*" element={<ProtectedApp />} />
+                </Routes>
+              </BrowserRouter>
+              <ConfirmHost />
+            </SucursalProvider>
           </AuthProvider>
         </TenantGate>
       </ErrorBoundaryWithTenant>

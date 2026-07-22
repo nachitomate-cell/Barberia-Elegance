@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSucursal } from '../contexts/SucursalContext';
 import {
   TrendingDown, Plus, X, Calendar, DollarSign,
   Tag, CreditCard, AlertCircle, ChevronDown, Trash2, Repeat,
@@ -124,6 +125,7 @@ function GastoModal({ onClose, onSaved }) {
   const [form,   setForm]   = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
+  const { activeSucursal } = useSucursal();  // sede a la que se imputa el gasto
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -143,6 +145,9 @@ function GastoModal({ onClose, onSaved }) {
         metodoPago:  form.metodoPago,
         fecha:       Timestamp.fromDate(fechaDate),
         creadoEn:    serverTimestamp(),
+        // Imputa el gasto a la sede activa (si hay una seleccionada/scopeada).
+        // En modo "Todas" queda sin sede = gasto general del negocio.
+        ...(activeSucursal ? { sucursalId: activeSucursal.id, sucursalNombre: activeSucursal.nombre } : {}),
       };
       // Si es recurrente, marcamos el mes actual como "ya generado" para
       // que el materializador no cree un duplicado al próximo mount.
@@ -285,7 +290,11 @@ function KpiCard({ label, value, sub, color = 'red' }) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Gastos() {
-  const [gastos,    setGastos]    = useState([]);
+  const [gastosRaw, setGastosRaw] = useState([]);
+  const { matchSucursal } = useSucursal();
+  // Filtra por sede activa (multi-sucursal). Los gastos sin sucursalId (los
+  // históricos o los del dueño en modo "Todas") pasan en todas las vistas.
+  const gastos = useMemo(() => gastosRaw.filter(matchSucursal), [gastosRaw, matchSucursal]);
   const [showHelp,  setShowHelp]  = useState(false);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(false);
@@ -303,7 +312,7 @@ export default function Gastos() {
       orderBy('fecha', 'desc'),
     );
     const unsub = onSnapshot(q, snap => {
-      setGastos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setGastosRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, () => setLoading(false));
 

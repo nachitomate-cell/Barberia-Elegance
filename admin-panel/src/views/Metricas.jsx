@@ -17,6 +17,7 @@ import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import { useChartTheme } from '../hooks/useChartTheme';
 
 function localDateStr() {
@@ -357,13 +358,13 @@ export default function Metricas() {
   });
   const [fechaFin, setFechaFin] = useState(localDateStr);
 
-  // Firestore collections
-  const [citas,     setCitas]     = useState([]);
+  // Firestore collections (crudas; las visibles se derivan filtradas por sede)
+  const [citasRaw,  setCitasRaw]  = useState([]);
   const [servicios, setServicios] = useState([]);
   const [clientes,  setClientes]  = useState([]);
   const [aggStats,  setAggStats]  = useState(null);   // resumen precalculado (_stats/resumen)
-  const [ventas,    setVentas]    = useState([]);
-  const [gastos,    setGastos]    = useState([]);
+  const [ventasRaw, setVentasRaw] = useState([]);
+  const [gastosRaw, setGastosRaw] = useState([]);
   const [barberos,  setBarberos]  = useState([]);
   const [productos, setProductos] = useState([]);
   const [loading,   setLoading]   = useState(true);   // primer fetch (pantalla en spinner)
@@ -376,10 +377,21 @@ export default function Metricas() {
   //  "Hoy" → "Semana" → "Mes", NO necesita re-fetchearse.
   //  Cache TTL 15 min en localStorage por tenant. Estos arrays no se
   //  filtran por rango: alimentan solo a chartData y pnlHistoricalData.
-  const [citas6m,  setCitas6m]  = useState([]);
-  const [ventas6m, setVentas6m] = useState([]);
-  const [gastos6m, setGastos6m] = useState([]);
+  const [citas6mRaw,  setCitas6mRaw]  = useState([]);
+  const [ventas6mRaw, setVentas6mRaw] = useState([]);
+  const [gastos6mRaw, setGastos6mRaw] = useState([]);
   const [trend6mUpdatedAt, setTrend6mUpdatedAt] = useState(null);
+
+  // ── Filtro por sede activa (multi-sucursal) ──────────────────────
+  // Deriva las listas visibles de las crudas; al cambiar de sede se re-filtra
+  // sin re-fetch. En tenants de una sola sede matchSucursal=()=>true → sin cambio.
+  const { matchSucursal } = useSucursal();
+  const citas    = useMemo(() => citasRaw.filter(matchSucursal),    [citasRaw, matchSucursal]);
+  const ventas   = useMemo(() => ventasRaw.filter(matchSucursal),   [ventasRaw, matchSucursal]);
+  const gastos   = useMemo(() => gastosRaw.filter(matchSucursal),   [gastosRaw, matchSucursal]);
+  const citas6m  = useMemo(() => citas6mRaw.filter(matchSucursal),  [citas6mRaw, matchSucursal]);
+  const ventas6m = useMemo(() => ventas6mRaw.filter(matchSucursal), [ventas6mRaw, matchSucursal]);
+  const gastos6m = useMemo(() => gastos6mRaw.filter(matchSucursal), [gastos6mRaw, matchSucursal]);
 
   // ID de fetch en curso. Si cambia (cambio de rango o "Actualizar"), las
   // respuestas anteriores se descartan: evita race conditions y pisar estado
@@ -473,9 +485,9 @@ export default function Metricas() {
       const productosSnap = needCatalogs ? results[i++] : null;
       const clientesSnap  = !stats ? results[i++] : null;
 
-      setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setVentasRaw(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setGastosRaw(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       if (serviciosSnap) setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       if (barberosSnap)  setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId));
       if (productosSnap) setProductos(productosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -515,9 +527,9 @@ export default function Metricas() {
         const cached = JSON.parse(raw);
         const age = Date.now() - (cached.savedAt || 0);
         if (age < TREND_CACHE_TTL_MS && Array.isArray(cached.citas)) {
-          setCitas6m(cached.citas);
-          setVentas6m(cached.ventas || []);
-          setGastos6m(cached.gastos || []);
+          setCitas6mRaw(cached.citas);
+          setVentas6mRaw(cached.ventas || []);
+          setGastos6mRaw(cached.gastos || []);
           setTrend6mUpdatedAt(cached.savedAt);
           // Con cache fresh, no re-fetcheamos. El próximo mount refrescará.
           return;
@@ -541,9 +553,9 @@ export default function Metricas() {
         const citasArr  = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const ventasArr = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const gastosArr = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setCitas6m(citasArr);
-        setVentas6m(ventasArr);
-        setGastos6m(gastosArr);
+        setCitas6mRaw(citasArr);
+        setVentas6mRaw(ventasArr);
+        setGastos6mRaw(gastosArr);
         const savedAt = Date.now();
         setTrend6mUpdatedAt(savedAt);
         try {
