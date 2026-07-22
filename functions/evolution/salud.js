@@ -106,9 +106,11 @@ exports.evolutionSaludSesiones = onSchedule(
     secrets:  [RESEND_API_KEY],
   },
   async () => {
-    // Pocos tenants → iterar es más simple/robusto que un collectionGroup.
-    const tenantsSnap = await db.collection('tenants').get();
-    const tids = new Set(tenantsSnap.docs.map(d => d.id));
+    // listDocuments, NO collection().get(): los docs padre tenants/{id}
+    // suelen NO existir (solo subcolecciones) y get() los omite — con get()
+    // este cron no vigilaba las sesiones de casi ningún local.
+    const tenantRefs = await db.collection('tenants').listDocuments();
+    const tids = new Set(tenantRefs.map(r => r.id));
     tids.add('elegance');
 
     let alertas = 0;

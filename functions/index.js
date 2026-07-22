@@ -130,16 +130,17 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
     } catch { errores++; }
   }
 
-  // Multi-tenant: /tenants/{tid}/barberos
-  const tenantsSnap = await db.collection('tenants').get();
-  for (const tenantDoc of tenantsSnap.docs) {
-    const barberosSnap = await tenantDoc.ref.collection('barberos').get();
+  // Multi-tenant: /tenants/{tid}/barberos — listDocuments porque los docs
+  // padre tenants/{id} pueden no existir (solo subcolecciones) y get() los omite.
+  const tenantRefs = await db.collection('tenants').listDocuments();
+  for (const tenantRef of tenantRefs) {
+    const barberosSnap = await tenantRef.collection('barberos').get();
     for (const docSnap of barberosSnap.docs) {
       const data = docSnap.data();
       if (data.activo === false) continue;
       const uid = resolveUid(docSnap.id, data);
       try {
-        await setClaims(uid, data.rol || 'barbero', tenantDoc.id);
+        await setClaims(uid, data.rol || 'barbero', tenantRef.id);
         migrados++;
       } catch { errores++; }
     }

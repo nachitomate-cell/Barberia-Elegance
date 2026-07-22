@@ -37,7 +37,7 @@ const {
   _barberoLibreParaSlot: barberoLibreParaSlot,
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
-const { logWaSend, logAiUsage } = require('../lib/metrics');
+const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
 
 const db = admin.firestore();
 
@@ -195,6 +195,7 @@ async function aplicarDecision(tid, chatId, citaId, decision) {
   // Cancelar → estado 'Cancelada' dispara liberar-slot-on-cancel (libera el cupo).
   await citasCol(tid).doc(citaId).update(patch).catch(e => logger.error(`[cerebro] aplicarDecision ${tid}/${citaId}:`, e.message));
   await convRef(tid, chatId).update({ citaPendiente: FieldValue.delete() }).catch(() => {});
+  logBotNegocio(tid, decision === 'confirmar' ? 'conf_si' : 'conf_no').catch(() => {}); // ratio para ops
 }
 
 /** Ejecuta la tool que pidió el modelo. Devuelve un objeto (se serializa a JSON). */
@@ -274,6 +275,7 @@ async function ejecutarTool(name, input, ctx) {
       await convRef(tid, ctx.chatId).update({ citaPendiente: FieldValue.delete() }).catch(() => {});
     }
     logger.info(`[cerebro] ${tid}: cita ${id} cancelada por el cliente vía bot`);
+    logBotNegocio(tid, 'cancelada').catch(() => {});  // métrica de negocio para ops
     return { ok: true, cancelada: { fecha: x.fecha, hora: x.hora, servicio: x.servicioNombre || '' } };
   }
 
@@ -371,6 +373,7 @@ async function ejecutarTool(name, input, ctx) {
     }
 
     logger.info(`[cerebro] ${tid}: cita agendada ${codigo} ${fecha} ${hora} (${svc.nombre} · ${barb.nombre})`);
+    logBotNegocio(tid, 'agendada').catch(() => {});   // métrica de negocio para ops
     return {
       ok: true, codigo, fecha, hora,
       servicio: svc.nombre, precio: svc.precio, profesional: barb.nombre,
@@ -444,7 +447,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     });
     const u = resp.usage || {};
     logAiUsage(MODEL, u.input_tokens || 0, u.output_tokens || 0,
-      u.cache_creation_input_tokens || 0, u.cache_read_input_tokens || 0).catch(() => {}); // métrica ops
+      u.cache_creation_input_tokens || 0, u.cache_read_input_tokens || 0, ctx?.tid).catch(() => {}); // métrica ops (global + por tenant)
     messages.push({ role: 'assistant', content: resp.content });
 
     if (resp.stop_reason === 'tool_use') {

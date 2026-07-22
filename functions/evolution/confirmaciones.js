@@ -201,10 +201,13 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
 
 /** Recorre los tenants con confirmaciones activas + conectadas. */
 async function escanearTodos({ evoClient }) {
-  // Pocos tenants → iterar es más simple/robusto que un índice collectionGroup.
-  const tenantsSnap = await db.collection('tenants').get();
-  const tids = new Set(tenantsSnap.docs.map(d => d.id));
-  tids.add('elegance'); // root, por si no tiene doc en tenants/
+  // listDocuments, NO collection().get(): la mayoría de los docs padre
+  // tenants/{id} NO existen como documentos (solo subcolecciones) y get()
+  // los omite — con get() este cron solo veía delnero+elegance y saltaba
+  // TODOS los demás locales (Kronnos incluido). Ver recordatorio-cita.js.
+  const tenantRefs = await db.collection('tenants').listDocuments();
+  const tids = new Set(tenantRefs.map(r => r.id));
+  tids.add('elegance'); // root, por si no aparece en tenants/
 
   let total = 0;
   for (const tid of tids) {
