@@ -262,13 +262,17 @@ async function ejecutarTool(name, input, ctx) {
 
 /* ─────────────────────────── Prompt de sistema ─────────────────────────── */
 
-function construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono, estiloChileno }) {
+// PROMPT CACHING: el system se divide en DOS bloques para que el prefijo
+// estable (herramientas + identidad del local + reglas) se cachee y las
+// llamadas del loop agéntico (2-4 por respuesta) + los turnos siguientes lo
+// lean al 10% del precio. Lo VARIABLE (fecha, cliente, cita pendiente) va en
+// un segundo bloque DESPUÉS del breakpoint — meterlo en el bloque fijo
+// invalidaría el caché en cada cliente nuevo.
+function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno }) {
   return [
     `Eres el asistente virtual de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`,
     direccion ? `Dirección del local: ${direccion}.` : '',
     telefonoLocal ? `Teléfono del local: ${telefonoLocal}.` : '',
-    `Hoy es ${fechaHoy} (hora de Chile). Usa esta fecha para interpretar "hoy", "mañana", "el viernes", etc.`,
-    `El cliente escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
     '',
     'REGLAS:',
     '- Sé cálido, cercano y BREVE (es WhatsApp). Frases cortas, máximo 1–2 emojis.',
@@ -288,18 +292,36 @@ function construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, push
   ].filter(Boolean).join('\n');
 }
 
+// Bloque variable: cambia por día y por cliente — queda FUERA del caché.
+function construirSystemVariable({ fechaHoy, pushName, telefono }) {
+  return [
+    `Hoy es ${fechaHoy} (hora de Chile). Usa esta fecha para interpretar "hoy", "mañana", "el viernes", etc.`,
+    `El cliente escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
+  ].join('\n');
+}
+
 /* ─────────────────────────── Loop agéntico ─────────────────────────── */
 
-async function pensarYResponder({ anthropicKey, system, historia, texto, ctx, tools }) {
+async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, historia, texto, ctx, tools }) {
   const client = new Anthropic({ apiKey: anthropicKey });
   const messages = [...historia, { role: 'user', content: texto }];
+
+  // Prompt caching: breakpoint al final del bloque fijo → el prefijo
+  // (tools + identidad + reglas) se escribe una vez (1.25×) y se lee al 10%
+  // en las llamadas del loop y los turnos siguientes del mismo local.
+  const system = [
+    { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: systemVariable },
+  ];
 
   let finalText = '';
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
     });
-    logAiUsage(MODEL, resp.usage?.input_tokens || 0, resp.usage?.output_tokens || 0).catch(() => {}); // métrica ops
+    const u = resp.usage || {};
+    logAiUsage(MODEL, u.input_tokens || 0, u.output_tokens || 0,
+      u.cache_creation_input_tokens || 0, u.cache_read_input_tokens || 0).catch(() => {}); // métrica ops
     messages.push({ role: 'assistant', content: resp.content });
 
     if (resp.stop_reason === 'tool_use') {
@@ -480,9 +502,11 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const telefonoLocal = tdoc.telefono || conf.telefonoAdmin || '';
   const fechaHoy      = ahoraChile().fecha;
 
-  let system = construirSystem({ nombreLocal, direccion, telefonoLocal, fechaHoy, pushName, telefono, estiloChileno: waCfg.estiloChileno === true });
+  // Bloque FIJO (cacheable por local) + bloque VARIABLE (fecha/cliente/cita).
+  const systemFijo = construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno: waCfg.estiloChileno === true });
+  let systemVariable = construirSystemVariable({ fechaHoy, pushName, telefono });
   if (citaPendiente) {
-    system += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
+    systemVariable += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
   }
   const tools = citaPendiente ? [...TOOLS, GESTION_CONFIRMACION_TOOL] : TOOLS;
 
@@ -490,7 +514,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   let respuesta;
   try {
     respuesta = await pensarYResponder({
-      anthropicKey, system, historia, texto, tools,
+      anthropicKey, systemFijo, systemVariable, historia, texto, tools,
       ctx: { tid, telefono, pushName, confirmacionesEnabled: confOn, chatId, citaPendiente },
     });
   } catch (e) {

@@ -36,14 +36,23 @@ async function logWaSend(tid, tipo, ok) {
 }
 
 /** Registra uso de Claude (tokens + costo estimado). */
-async function logAiUsage(model, inputTokens, outputTokens) {
+// Prompt caching (2026-07): input_tokens ya NO incluye lo cacheado — la API
+// reporta aparte cache_creation (se cobra 1.25× el precio de entrada) y
+// cache_read (0.1×). Sin estos términos la métrica subcontaría el costo real.
+async function logAiUsage(model, inputTokens, outputTokens, cacheWriteTokens = 0, cacheReadTokens = 0) {
   const p = PRICE[model] || { in: 1, out: 5 };
-  const costUsd = (inputTokens / 1e6) * p.in + (outputTokens / 1e6) * p.out;
+  const costUsd =
+    (inputTokens / 1e6) * p.in +
+    (outputTokens / 1e6) * p.out +
+    (cacheWriteTokens / 1e6) * p.in * 1.25 +
+    (cacheReadTokens / 1e6) * p.in * 0.1;
   await db.doc(`_metrics/ai_${hoy()}`).set({
     proyecto: 'barberia',
     llamadas: FieldValue.increment(1),
     tokensIn: FieldValue.increment(inputTokens),
     tokensOut: FieldValue.increment(outputTokens),
+    tokensCacheWrite: FieldValue.increment(cacheWriteTokens),
+    tokensCacheRead: FieldValue.increment(cacheReadTokens),
     costUsd: FieldValue.increment(costUsd),
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
