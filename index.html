@@ -10990,9 +10990,22 @@
 
     function _getPrecioEfectivo(s, dow) {
       if (!s) return 0;
-      if (!s.preciosPorDia) return s.precio;
-      const p = s.preciosPorDia[String(dow)];
-      return (p != null && p !== '') ? Number(p) : s.precio;
+      // Base: precio por sucursal si el servicio define preciosSucursal (multi-
+      // sucursal con precios distintos por local). La sucursal se elige en el
+      // paso 1, antes de ver los precios, así que _selectedSucursal ya está.
+      // Es el chokepoint tanto del display como de la escritura de la cita, así
+      // que con esto la cita queda con el precio correcto de su local.
+      let base = s.precio;
+      const suc = window._selectedSucursal;
+      if (suc && s.preciosSucursal && s.preciosSucursal[suc.id] != null && s.preciosSucursal[suc.id] !== '') {
+        base = Number(s.preciosSucursal[suc.id]);
+      }
+      // Precio por día (promo/recargo por día de la semana) — gana si está def.
+      if (s.preciosPorDia) {
+        const p = s.preciosPorDia[String(dow)];
+        if (p != null && p !== '') return Number(p);
+      }
+      return base;
     }
 
     // Recargo por horario según día de la semana (0=Dom…6=Sáb) y hora (entero).
@@ -11175,6 +11188,10 @@
       btn.classList.remove('bg-[#0a0a0d]');
       btn.classList.add('bg-brand-neon/10');
       window._selectedSucursal = SHOP.sucursales.find(s => s.id === id);
+      // Re-render de servicios: el precio puede variar por sucursal
+      // (preciosSucursal), así que la grilla debe reflejar el local elegido.
+      // Sin esto queda el precio base del primer render (antes de elegir local).
+      try { if (window._fsServices && window._fsServices.length) _renderServicesGrid(window._fsServices); } catch (_) {}
       // La franja conserva la etiqueta genérica "Ubicación"; el detalle de la
       // sucursal se refleja en el modal al confirmarla (ver más abajo).
       const heroAddr = document.getElementById('heroInfoAddrText');

@@ -274,7 +274,7 @@ const TENANT_META = {
     icon:        '/oren/logo.png',
     iconPwa192:  '/icons/pwa/oren-192.png',
     iconPwa512:  '/icons/pwa/oren-512.png',
-    local: { telephone: '', streetAddress: 'Plaza Reñaca, Local 21', addressLocality: 'Reñaca', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 128, reviews: [{ author: 'Matías R.', rating: 5, text: 'El mejor corte de Reñaca. Reservé por la web en un minuto y me atendieron a la hora exacta.' }, { author: 'Cristóbal V.', rating: 5, text: 'Tienen sucursal en Villa Alemana y en Reñaca, siempre el mismo nivel. Corte y barba impecables.' }, { author: 'Ignacio S.', rating: 5, text: 'Ambiente top y profesionales de verdad. Ya soy cliente del Club Oren.' }] },
+    local: { telephone: '', streetAddress: 'Av. Borgoño 14580, Local 21, Mall Plaza Reñaca', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 128, reviews: [{ author: 'Matías R.', rating: 5, text: 'El mejor corte de Reñaca. Reservé por la web en un minuto y me atendieron a la hora exacta.' }, { author: 'Cristóbal V.', rating: 5, text: 'Tienen sucursal en Villa Alemana y en Reñaca, siempre el mismo nivel. Corte y barba impecables.' }, { author: 'Ignacio S.', rating: 5, text: 'Ambiente top y profesionales de verdad. Ya soy cliente del Club Oren.' }] },
     manifest: {
       name:             'Oren Barber',
       short_name:       'Oren',

@@ -668,26 +668,33 @@
         {
           id:        'renaca',
           nombre:    'Oren Barber Reñaca',
-          calle:     'Plaza Reñaca, Local 21',
-          ciudad:    'Reñaca',
-          mapsUrl:   'https://maps.google.com/?q=Plaza+Reñaca+Local+21+Reñaca+Chile',
+          calle:     'Av. Borgoño 14580, Local 21 · Mall Plaza Reñaca',
+          ciudad:    'Viña del Mar',
+          mapsUrl:   'https://maps.google.com/?q=Mall+Plaza+Reñaca+Av+Borgoño+14580+Viña+del+Mar',
+          googleReviewUrl: 'https://share.google/8d8Pyt32jRu5yTjbc',
         },
         {
           id:        'villaalemana',
           nombre:    'Oren Barber Villa Alemana',
-          calle:     'Las Américas 2487',
+          calle:     'Av. Las Américas 498, Local 24 · Estación Las Américas',
           ciudad:    'Villa Alemana',
-          mapsUrl:   'https://maps.google.com/?q=Las+Américas+2487+Villa+Alemana+Chile',
+          mapsUrl:   'https://maps.google.com/?q=Av+Las+Américas+498+Villa+Alemana',
+          googleReviewUrl: 'https://share.google/x0GYsWCEeau8lwKAh',
         },
       ],
+      // Espejo de tenants/oren/barberos (la agenda lee Firestore; esto es
+      // display/fallback). Barbero Max atiende en ambas → 2 perfiles, uno por
+      // sucursal, con el horario de cada local (definido en el seed).
       barberos: [
-        // ── Reñaca ──────────────────────────────────────────────────
-        { id: 'oren-matias',    nombre: 'Matías',    foto: null, disponible: true, sucursalId: 'renaca' },
-        { id: 'oren-cristobal', nombre: 'Cristóbal', foto: null, disponible: true, sucursalId: 'renaca' },
-        { id: 'oren-franco',    nombre: 'Franco',    foto: null, disponible: true, sucursalId: 'renaca' },
-        // ── Villa Alemana ───────────────────────────────────────────
-        { id: 'oren-benjamin',  nombre: 'Benjamín',  foto: null, disponible: true, sucursalId: 'villaalemana' },
-        { id: 'oren-ignacio',   nombre: 'Ignacio',   foto: null, disponible: true, sucursalId: 'villaalemana' },
+        // ── Reñaca (Lun-Dom 11-19) ──────────────────────────────────
+        { id: 'oren-diego',      nombre: 'Barbero Diego',   foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-daniel',     nombre: 'Barbero Daniel',  foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-vicente',    nombre: 'Barbero Vicente', foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-romero',     nombre: 'Barbero Romero',  foto: null, disponible: true, sucursalId: 'renaca' },
+        { id: 'oren-max-renaca', nombre: 'Barbero Max',     foto: null, disponible: true, sucursalId: 'renaca' },
+        // ── Villa Alemana (Lun-Sáb 11-20) ───────────────────────────
+        { id: 'oren-max-villa',  nombre: 'Barbero Max',     foto: null, disponible: true, sucursalId: 'villaalemana' },
+        { id: 'oren-pablo',      nombre: 'Barbero Pablo',   foto: null, disponible: true, sucursalId: 'villaalemana' },
       ],
     },
     aura: {
