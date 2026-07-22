@@ -111,6 +111,89 @@ function PoliticasModal({ onClose }) {
   );
 }
 
+/* ── Capacidades del bot (explícitas) ──────────────────────────────
+   Lista VERAZ de lo que el Asistente hace y NO hace hoy — espejo de las
+   tools reales de functions/evolution/cerebro.js. Si se agrega o quita
+   una capacidad en el backend, actualizar AQUÍ en el mismo cambio. */
+const CAPACIDADES_SI = [
+  { t: 'Responde 24/7 en tu propio número', c: 'Contesta al instante cualquier día y hora, con el nombre y los datos de tu local. Tu app y tu teléfono siguen funcionando normal.' },
+  { t: 'Informa tus servicios y precios reales', c: 'Lee tu catálogo tal como está en el panel. Nunca inventa un precio ni un servicio: si no existe, lo dice.' },
+  { t: 'Revisa disponibilidad real', c: 'Calcula las horas libres respetando tu horario, el horario personal de cada profesional (días libres, descansos, colación) y las citas ya tomadas.' },
+  { t: 'Agenda citas por sí solo', c: 'Confirma servicio, fecha y hora con el cliente, elige un profesional libre y crea la cita con código de reserva. Sin dobles reservas: usa el mismo candado de cupos que tu agenda.' },
+  { t: 'Consulta las citas del cliente que escribe', c: 'Si el cliente pregunta "¿a qué hora era mi cita?", el bot busca las citas futuras de ESE número y se las recuerda.' },
+  { t: 'Cancela o cambia citas del propio cliente', c: 'Solo las citas del número que escribe (jamás las de otra persona) y respetando tu política: si desactivaste la cancelación online o exiges anticipación mínima, el bot lo explica y deriva al local. Cancelar libera el cupo al instante.' },
+  { t: 'Pide confirmación de asistencia', c: 'Con las confirmaciones activas, escribe al cliente antes de su hora (12/24/48 h, tú eliges) pidiendo responder CONFIRMAR o CANCELAR. Si cancela, el cupo queda libre de inmediato.' },
+  { t: 'Deriva a tu equipo cuando corresponde', c: 'Si el cliente pide hablar con una persona, reclama o pide algo fuera de su alcance (pagos, convenios, cotizaciones), el bot avisa que el equipo seguirá la conversación y se calla 2 horas en ese chat.' },
+  { t: 'Habla como tú prefieras', c: 'Español neutro por defecto, o "chileno cercano" con modismos suaves si lo activas en este panel.' },
+];
+const CAPACIDADES_NO = [
+  { t: 'No entiende audios ni fotos', c: 'Si le mandan una nota de voz o una imagen, responde amablemente que solo puede leer texto y pide que se lo escriban. Si la foto trae texto, ese texto sí lo lee.' },
+  { t: 'No cobra ni maneja pagos', c: 'No pide transferencias, no envía links de pago ni promete descuentos.' },
+  { t: 'No hace marketing ni mensajes masivos', c: 'Solo conversa con quien le escribe y envía las confirmaciones de cita. Cero spam: es parte del blindaje anti-bloqueo del número.' },
+  { t: 'No responde grupos ni estados', c: 'Solo chats directos de clientes.' },
+  { t: 'No pisa a tu equipo', c: 'Si alguien del local responde un chat a mano, el bot se calla 2 horas en esa conversación.' },
+  { t: 'No cae en abusos', c: 'Máximo 30 respuestas al día por chat: si alguien lo hace hablar de más, avisa que el equipo seguirá y se detiene.' },
+  { t: 'No agenda en el pasado ni inventa horas', c: 'Toda hora ofrecida sale del cálculo real de disponibilidad; fechas ya pasadas se rechazan siempre.' },
+];
+
+function CapacidadesModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-[9100] flex items-center justify-center px-4 py-8 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-3xl border border-slate-700/60 bg-[#0e0e12] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Bot size={18} className="text-violet-400" />
+            <div>
+              <h3 className="text-base font-bold text-primary leading-tight">¿Qué puede hacer el bot?</h3>
+              <p className="text-[11px] text-slate-500">Capacidades y límites, sin letra chica</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-primary shrink-0" aria-label="Cerrar">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-6 py-4 space-y-5">
+          <div className="space-y-3.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Lo que hace</p>
+            {CAPACIDADES_SI.map((s) => (
+              <div key={s.t} className="flex items-start gap-2.5">
+                <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-slate-200 mb-0.5">{s.t}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{s.c}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3.5 pt-4 border-t border-slate-800">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Lo que NO hace (a propósito)</p>
+            {CAPACIDADES_NO.map((s) => (
+              <div key={s.t} className="flex items-start gap-2.5">
+                <X size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-slate-200 mb-0.5">{s.t}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{s.c}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="px-6 py-3.5 border-t border-slate-800 shrink-0">
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold py-2.5 transition-colors"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const card = 'bg-slate-800/30 border border-slate-700/50 rounded-2xl';
 
 // Guion del chat de la vista previa (el bot que responde y agenda solo).
@@ -169,6 +252,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
   const [conectado, setConectado] = useState(false);
   const [err, setErr]           = useState('');
   const [showPoliticas, setShowPoliticas] = useState(false);
+  const [showCapacidades, setShowCapacidades] = useState(false);
 
   /* ── Entitlement: _system/{tid}.waAsistente (solo SynapTech lo escribe) ── */
   useEffect(() => {
@@ -366,6 +450,15 @@ export default function WhatsAppAsistente({ embedded = false }) {
 
             <button
               type="button"
+              onClick={() => setShowCapacidades(true)}
+              className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-violet-500/40 hover:text-violet-300 transition-colors"
+            >
+              <span className="flex items-center gap-2"><Bot size={14} /> ¿Qué puede hacer el bot? — capacidades y límites</span>
+              <ChevronRight size={14} className="shrink-0" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowPoliticas(true)}
               className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 transition-colors"
             >
@@ -511,7 +604,15 @@ export default function WhatsAppAsistente({ embedded = false }) {
               </p>
             </div>
 
-            {/* Políticas siempre a un toque, también con el módulo andando */}
+            {/* Capacidades + políticas siempre a un toque, también con el módulo andando */}
+            <button
+              type="button"
+              onClick={() => setShowCapacidades(true)}
+              className="w-full flex items-center justify-between gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3.5 py-2.5 text-xs font-semibold text-slate-400 hover:border-violet-500/40 hover:text-violet-300 transition-colors"
+            >
+              <span className="flex items-center gap-2"><Bot size={14} /> ¿Qué puede hacer el bot? — capacidades y límites</span>
+              <ChevronRight size={14} className="shrink-0" />
+            </button>
             <button
               type="button"
               onClick={() => setShowPoliticas(true)}
@@ -524,6 +625,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
         )}
 
       {showPoliticas && <PoliticasModal onClose={() => setShowPoliticas(false)} />}
+      {showCapacidades && <CapacidadesModal onClose={() => setShowCapacidades(false)} />}
       </div>
 
       {/* ── Modal de escaneo QR ── */}
