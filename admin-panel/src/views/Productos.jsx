@@ -7,6 +7,7 @@ import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -478,6 +479,7 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
 
 export default function Productos() {
   const tenant = useTenant();
+  const { activeSucursal, sucursales: _sucList } = useSucursal();  // sede de la venta
   const isDeluxe = tenant.id === 'deluxeperfumes';
 
   const { data: productos, loading } = useCollection('productos', [orderBy('createdAt', 'asc')]);
@@ -574,6 +576,14 @@ export default function Productos() {
         barberoNombre: barb.nombre,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        // Sede de la venta: la del barbero (o la sede activa) → aísla la venta
+        // por sucursal en Caja/Métricas/Inventario.
+        ...(() => {
+          const sid = barb.sucursalId || activeSucursal?.id || null;
+          if (!sid) return {};
+          const nom = (_sucList || []).find(s => s.id === sid)?.nombre || activeSucursal?.nombre || '';
+          return { sucursalId: sid, sucursalNombre: nom };
+        })(),
       });
 
       // Deduct stock

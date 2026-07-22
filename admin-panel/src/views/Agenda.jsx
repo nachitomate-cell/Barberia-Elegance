@@ -1124,6 +1124,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 fecha:         fechaCita,
                 createdAt:     serverTimestamp(),
                 updatedAt:     serverTimestamp(),
+                // Misma sede que la cita (aísla la venta por sucursal).
+                ...(payload.sucursalId ? { sucursalId: payload.sucursalId, sucursalNombre: payload.sucursalNombre } : {}),
               });
               productosResumen.push({
                 productId:     n.productId,
