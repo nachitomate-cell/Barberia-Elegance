@@ -102,6 +102,18 @@ service cloud.firestore {
           || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() == 'admin');
     }
 
+    // ── Scope de sucursal (multi-sucursal: encargado de sede) ────────
+    // El claim `sucursalScope` restringe a un admin de sede a SU sucursal.
+    // Ausente o 'all' = sin restricción → el dueño, los tenants de una sola
+    // sede y TODOS los tenants existentes quedan intactos (default 'all').
+    // Un doc sin `sucursalId` (catálogos / registros compartidos) pasa siempre.
+    function scopeSucursal() {
+      return request.auth != null ? request.auth.token.get('sucursalScope', 'all') : 'all';
+    }
+    function scopeSucursalOk(sid) {
+      return scopeSucursal() == 'all' || sid == null || sid == '' || scopeSucursal() == sid;
+    }
+
     // ── Verificar si el usuario es el cliente de un documento de cita ──
     function esCliente(data) {
       return autenticado()
@@ -1054,8 +1066,8 @@ service cloud.firestore {
       // ── citas (panel admin) ───────────────────────────────────────
       match /citas/{citaId} {
         allow read: if esStaff(tid) || esCliente(resource.data);
-        allow create: if bookingPublicoValido() || esStaff(tid);
-        allow update: if esStaff(tid)
+        allow create: if bookingPublicoValido() || (esStaff(tid) && scopeSucursalOk(request.resource.data.get('sucursalId', '')));
+        allow update: if (esStaff(tid) && scopeSucursalOk(resource.data.get('sucursalId', '')))
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada')
@@ -1064,7 +1076,7 @@ service cloud.firestore {
                           && request.resource.data.pendingGoogleReview == false)
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackPrivadoRating', 'feedbackPrivadoComment', 'feedbackPrivadoCreatedAt']));
-        allow delete: if esStaff(tid);
+        allow delete: if esStaff(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
       // ── bookings (flujo público web) ──────────────────────────────
@@ -1257,7 +1269,10 @@ service cloud.firestore {
 
       // ── gastos ────────────────────────────────────────────────────
       match /gastos/{docId} {
-        allow read, write: if esAdmin(tid);
+        allow read:   if esAdmin(tid);
+        allow create: if esAdmin(tid) && scopeSucursalOk(request.resource.data.get('sucursalId', ''));
+        allow update: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
+        allow delete: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
       // ── listaEspera (lista de espera del panel) ───────────────────
@@ -1415,13 +1430,13 @@ service cloud.firestore {
       // actualizar el estado o cualquier campo de la reserva.
       match /product_reservations/{docId} {
         allow read:   if autenticado() && (resource.data.get('userId', '') == uid() || esStaff(tid));
-        allow create: if esStaff(tid)
+        allow create: if (esStaff(tid) && scopeSucursalOk(request.resource.data.get('sucursalId', '')))
                       || (autenticado()
                           && request.resource.data.userId == uid()
                           && request.resource.data.status == 'pending'
                           && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']));
-        allow update: if esStaff(tid);
-        allow delete: if esAdmin(tid);
+        allow update: if esStaff(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
+        allow delete: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
       // ── soporte_mensajes ──────────────────────────────────────────
@@ -1451,7 +1466,10 @@ service cloud.firestore {
 
       // ── caja_sesiones ─────────────────────────────────────────────
       match /caja_sesiones/{docId} {
-        allow read, write: if esStaff(tid);
+        allow read:   if esStaff(tid);
+        allow create: if esStaff(tid) && scopeSucursalOk(request.resource.data.get('sucursalId', ''));
+        allow update: if esStaff(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
+        allow delete: if esStaff(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
       // ── slotLocks ─────────────────────────────────────────────────
