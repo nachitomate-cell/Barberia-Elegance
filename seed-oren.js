@@ -117,9 +117,15 @@ async function main() {
 
   sep('CONFIGURACIÓN');
   if (COMMIT) await col('configuracion').doc('main').set({ ...CONFIG, updatedAt: TS() }, { merge: true });
-  // Espejo de sucursales en settings/general: lo lee el hook useSucursales del
-  // panel (dropdown de sede al editar un barbero en Equipo, vista Sucursales).
-  if (COMMIT) await col('settings').doc('general').set({ sucursales: SUCURSALES, updatedAt: TS() }, { merge: true });
+  // settings/general: sucursales (dropdown de Equipo) + branding del login del
+  // panel (logo + banner). TenantContext lee logo/loginBanner de aquí, así que
+  // el branding del panel es AUTOMÁTICO para cualquier tenant que lo siembre.
+  if (COMMIT) await col('settings').doc('general').set({
+    sucursales: SUCURSALES,
+    logo:        '/oren/oren-logo.webp',
+    loginBanner: '/oren/renaca.webp',
+    updatedAt: TS(),
+  }, { merge: true });
   console.log(`  ${COMMIT ? '✅' : '🅳'} /configuracion/main + /settings/general · ${SUCURSALES.length} sucursales`);
   SUCURSALES.forEach(s => console.log(`       · ${s.nombre} — ${s.ciudad}`));
 

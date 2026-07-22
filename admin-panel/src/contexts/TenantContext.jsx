@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { resolveTenantId } from '../lib/tenantUtils';
+import { resolveTenantId, tenantDoc } from '../lib/tenantUtils';
 
 const TENANT_META = {
   elegance:       { name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐁𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩', accent: 'emerald', emoji: '✂️', logo: '/logo.jpg'   },
@@ -27,6 +27,7 @@ const TENANT_META = {
   elbarberomoderno:   { name: 'El Barbero Moderno',        accent: 'zinc',   emoji: '✂️', logo: '/elbarberomoderno/barbero2.jpg', brand: { hex: '#E0E0E0', sede: 'Serrano 73', tagline: 'Master Barber' } },
   estudioluxury:      { name: 'Studio Luxury',             accent: 'amber',  emoji: '💈', logo: '/luxury/luxury.jpg', banner: '/luxury/banner.webp', brand: { sede: 'Talagante', tagline: 'Barbería' } },
   renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
+  oren:               { name: 'Oren Barber', accent: 'amber', emoji: '✂️', logo: '/oren/oren-logo.webp', banner: '/oren/renaca.webp' },
 };
 
 const TenantContext = createContext(null);
@@ -45,12 +46,30 @@ export function TenantProvider({ children }) {
   // null = cargando, false = activo, true = suspendido
   const [suspended, setSuspended] = useState(null);
 
+  // Branding del tenant desde Firestore (settings/general): logo + banner del
+  // login del panel. Hace el branding AUTOMÁTICO — un tenant nuevo solo lo
+  // siembra ahí (settings/general.logo + .loginBanner) y el panel lo toma sin
+  // tocar el mapa TENANT_META, que queda como fallback instantáneo.
+  const [brand, setBrand] = useState(null);
+
   useEffect(() => {
     const ref = doc(db, '_system', id);
     const unsub = onSnapshot(
       ref,
       snap => setSuspended(snap.exists() ? snap.data().status === 'suspended' : false),
       ()   => setSuspended(false),
+    );
+    return unsub;
+  }, [id]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      tenantDoc('settings', 'general'),
+      snap => {
+        const d = snap.exists() ? snap.data() : {};
+        setBrand({ logo: d.logo || null, banner: d.loginBanner || d.banner || null });
+      },
+      () => setBrand(null),
     );
     return unsub;
   }, [id]);
@@ -83,8 +102,12 @@ export function TenantProvider({ children }) {
     }
   }, [id, meta]);
 
+  // Firestore (branding sembrado) gana sobre el mapa; el mapa es el fallback.
+  const logo   = brand?.logo   || meta.logo   || null;
+  const banner = brand?.banner || meta.banner || null;
+
   return (
-    <TenantContext.Provider value={{ id, ...meta, suspended }}>
+    <TenantContext.Provider value={{ id, ...meta, logo, banner, suspended }}>
       {children}
     </TenantContext.Provider>
   );
