@@ -11,6 +11,9 @@
 //    · consultar_servicios      → catálogo real (tenants/{tid}/servicios)
 //    · consultar_disponibilidad → primeros cupos libres (reusa chat-horas)
 //    · agendar_cita             → crea la cita + candado (misma tx que addCita)
+//    · consultar_mis_citas      → citas futuras del número que escribe
+//    · cancelar_cita            → cancela una cita PROPIA (respeta política del local)
+//    · pasar_con_humano         → deriva al equipo (silencia el bot 2h en el chat)
 //
 //  Blindajes de este sprint:
 //    · Solo responde mensajes ENTRANTES (fromMe=false). Ignora sus propios ecos
@@ -72,6 +75,15 @@ function genCodigoCita() {
 const norm = (s) => String(s || '').toLowerCase().trim()
   .normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Minutos absolutos (día*1440 + minutos) para comparar fechas+horas sin líos
+// de zona — todo en hora Chile (mismo helper que confirmaciones.js).
+const toMinsHHMM = (t) => { const [h, m] = String(t || '').split(':').map(Number); return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0); };
+const absMin = (fecha, mins) => { const [y, mo, d] = String(fecha).split('-').map(Number); return Math.floor(Date.UTC(y, mo - 1, d) / 86400000) * 1440 + mins; };
+
+// Tope de seguridad: respuestas del bot conversacional por chat por día.
+// Protege del cliente-troll (o de un loop imprevisto): costo + señal anti-ban.
+const MAX_RESP_CHAT_DIA = 30;
+
 /** Lista los servicios activos del local (para la tool + para validar al agendar). */
 async function cargarServicios(tid) {
   const snap = await serviciosCol(tid).get();
@@ -131,6 +143,27 @@ const TOOLS = [
       required: ['servicio_nombre', 'fecha', 'hora', 'cliente_nombre'],
     },
   },
+  {
+    name: 'consultar_mis_citas',
+    description: 'Devuelve las citas FUTURAS del cliente que está escribiendo (se buscan por su número de WhatsApp). Úsala cuando pregunte por su cita, quiera cancelarla o cambiarla de hora.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'cancelar_cita',
+    description: 'Cancela UNA cita futura del cliente. Primero llama a consultar_mis_citas, confirma con el cliente CUÁL cancelar, y recién entonces llama esto. Para CAMBIAR de hora: cancela la actual y agenda la nueva (consultar_disponibilidad → agendar_cita).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cita_id: { type: 'string', description: 'El cita_id devuelto por consultar_mis_citas.' },
+      },
+      required: ['cita_id'],
+    },
+  },
+  {
+    name: 'pasar_con_humano',
+    description: 'Úsala cuando el cliente pida hablar con una persona, esté molesto o reclame, o pida algo fuera de tus herramientas (cotizaciones especiales, reclamos, temas de pago). Pausa el bot 2 horas en este chat para que el equipo del local responda. Después de llamarla, despídete corto indicando que el equipo le escribirá pronto.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
 ];
 
 // Se ofrece SOLO cuando el cliente tiene una cita pendiente de confirmar.
@@ -176,6 +209,83 @@ async function ejecutarTool(name, input, ctx) {
     return { ok: true, decision: dec };
   }
 
+  if (name === 'consultar_mis_citas') {
+    const suf9 = String(telefono).slice(-9);
+    const hoyC = ahoraChile();
+    // Dos consultas: por sufijo-9 (flujo público) y por teléfono completo (citas del bot).
+    const [q1, q2] = await Promise.all([
+      citasCol(tid).where('clienteTelefonoSuf9', '==', suf9).get().catch(() => ({ docs: [] })),
+      citasCol(tid).where('clienteTelefono', '==', String(telefono)).get().catch(() => ({ docs: [] })),
+    ]);
+    const vistos = new Set();
+    const futuras = [];
+    for (const d of [...q1.docs, ...q2.docs]) {
+      if (vistos.has(d.id)) continue;
+      vistos.add(d.id);
+      const x = d.data();
+      if (['Cancelada', 'NoAsistio', 'Completada'].includes(x.estado)) continue;
+      if (typeof x.fecha !== 'string' || typeof x.hora !== 'string') continue;
+      if (absMin(x.fecha, toMinsHHMM(x.hora)) <= absMin(hoyC.fecha, hoyC.mins)) continue; // solo futuras
+      futuras.push({
+        cita_id: d.id, fecha: x.fecha, hora: x.hora,
+        servicio: x.servicioNombre || '', profesional: x.barbero || '', codigo: x.codigoCita || '',
+      });
+    }
+    futuras.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+    if (!futuras.length) return { citas: [], nota: 'Este número no tiene citas futuras.' };
+    return { citas: futuras.slice(0, 5) };
+  }
+
+  if (name === 'cancelar_cita') {
+    const id = String(input?.cita_id || '').trim();
+    if (!id) return { ok: false, motivo: 'Falta cita_id (llama antes a consultar_mis_citas).' };
+    const snap = await citasCol(tid).doc(id).get();
+    if (!snap.exists) return { ok: false, motivo: 'No encontré esa cita.' };
+    const x = snap.data();
+    // Solo SUS citas: el teléfono del chat debe calzar (jamás cancelar ajenas).
+    const suf9 = String(telefono).slice(-9);
+    const esSuya = x.clienteTelefonoSuf9 === suf9
+      || String(x.clienteTelefono || '').replace(/\D/g, '').endsWith(suf9);
+    if (!esSuya) return { ok: false, motivo: 'Esa cita no pertenece a este número.' };
+    if (x.estado === 'Cancelada') return { ok: true, nota: 'Esa cita ya estaba cancelada.' };
+    // Política del local — la misma del chat público (el dueño la configura):
+    const conf = (await configRef(tid).get()).data() || {};
+    if (conf.chatCancelEnabled === false) {
+      return { ok: false, motivo: 'Este local gestiona las cancelaciones directamente: indícale al cliente que llame o escriba al local.' };
+    }
+    const limMin = Number(conf.minutosLimiteReagendar) || 0;
+    if (limMin > 0 && typeof x.fecha === 'string' && typeof x.hora === 'string') {
+      const hoyC = ahoraChile();
+      const faltan = absMin(x.fecha, toMinsHHMM(x.hora)) - absMin(hoyC.fecha, hoyC.mins);
+      if (faltan < limMin) {
+        return { ok: false, motivo: `La cita está muy próxima (el local pide al menos ${Math.round(limMin / 60)}h de anticipación). Indícale que se comunique directo con el local.` };
+      }
+    }
+    // Cancelada → el trigger liberarSlot suelta el cupo solo.
+    await citasCol(tid).doc(id).update({
+      estado: 'Cancelada',
+      canceladaPor: 'cliente',
+      canceladaVia: 'wa_bot',
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    // Si era la cita del flujo de confirmación de ESTE chat, limpiar el
+    // pendiente: un "CONFIRMAR" posterior no debe revivir una cita cancelada.
+    if (ctx.citaPendiente?.citaId === id) {
+      await convRef(tid, ctx.chatId).update({ citaPendiente: FieldValue.delete() }).catch(() => {});
+    }
+    logger.info(`[cerebro] ${tid}: cita ${id} cancelada por el cliente vía bot`);
+    return { ok: true, cancelada: { fecha: x.fecha, hora: x.hora, servicio: x.servicioNombre || '' } };
+  }
+
+  if (name === 'pasar_con_humano') {
+    await convRef(tid, ctx.chatId).set({
+      botSilencedUntil: Timestamp.fromMillis(Date.now() + SILENCIO_MS),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    logger.info(`[cerebro] ${tid} chat=${ctx.chatId}: derivado a humano (bot en pausa 2h)`);
+    return { ok: true, nota: 'Bot pausado 2 horas en este chat. Despídete corto: el equipo del local le escribirá.' };
+  }
+
   if (name === 'consultar_servicios') {
     const servicios = await cargarServicios(tid);
     if (!servicios.length) return { servicios: [], nota: 'El local aún no cargó servicios.' };
@@ -196,6 +306,12 @@ async function ejecutarTool(name, input, ctx) {
     if (!/^\d{2}:\d{2}$/.test(hora))        return { ok: false, motivo: 'Hora inválida (usa HH:MM).' };
     if (!nombre)                            return { ok: false, motivo: 'Falta el nombre del cliente.' };
 
+    // Cinturón de seguridad: jamás agendar en el pasado (aunque el modelo se
+    // confunda con "el lunes" del mes anterior, etc.).
+    const hoyC = ahoraChile();
+    const faltanMin = absMin(fecha, toMinsHHMM(hora)) - absMin(hoyC.fecha, hoyC.mins);
+    if (faltanMin <= 0) return { ok: false, motivo: `Esa fecha/hora ya pasó (hoy es ${hoyC.fecha}). Ofrece horarios desde hoy en adelante.` };
+
     const servicios = await cargarServicios(tid);
     const svc = matchServicio(servicios, input?.servicio_nombre);
     if (!svc) return { ok: false, motivo: 'Servicio no encontrado.', servicios_validos: servicios.map(s => s.nombre) };
@@ -214,6 +330,7 @@ async function ejecutarTool(name, input, ctx) {
       hora,
       clienteNombre:    nombre,
       clienteTelefono:  telefono,
+      clienteTelefonoSuf9: String(telefono).replace(/\D/g, '').slice(-9), // para consultar_mis_citas + agenda
       clienteEmail:     '',
       servicioNombre:   svc.nombre,
       servicioId:       svc.id,
@@ -223,8 +340,11 @@ async function ejecutarTool(name, input, ctx) {
       barberoId:        barb.id,
       // Con confirmaciones activas la cita nace 'Pendiente' (ámbar) y pasa a
       // 'Confirmada' cuando el cliente responde CONFIRMAR. Sin el add-on, nace
-      // confirmada como siempre (retrocompat).
-      estado:           ctx.confirmacionesEnabled ? 'Pendiente' : 'Confirmada',
+      // confirmada como siempre (retrocompat). Excepción: cita para dentro de
+      // <12h — el cliente la acaba de pedir en este mismo chat, no hay ciclo de
+      // confirmación que corra → nace Confirmada (evita el ámbar eterno y el
+      // "¿confirmas?" absurdo minutos después de reservar).
+      estado:           (ctx.confirmacionesEnabled && faltanMin > 12 * 60) ? 'Pendiente' : 'Confirmada',
       nota:             '',
       origen:           'wa_bot',
       codigoCita:       codigo,
@@ -288,6 +408,9 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
     '- Al agendar con éxito, dale el código de la reserva y recuérdale día, hora y servicio.',
     '- Si una hora ya no está disponible, discúlpate y ofrece las alternativas reales que devuelva la herramienta.',
+    '- Si el cliente pregunta por su cita, o quiere CANCELARLA o CAMBIARLA: usa consultar_mis_citas, confirma con él de cuál se trata y recién entonces llama a cancelar_cita. Para cambiar de hora: cancela la actual y agenda la nueva (consultar_disponibilidad → agendar_cita).',
+    '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
+    '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',
     '- No prometas nada fuera de las herramientas (no cobras online, no cambias precios, no confirmas cosas del local que no sepas).',
   ].filter(Boolean).join('\n');
 }
@@ -401,13 +524,33 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   }
 
   // ── Mensaje ENTRANTE del cliente (fromMe:false) ──
+  // Baileys envuelve efímeros/ver-una-vez un nivel: desenvolver antes de leer.
+  let msg = data.message || {};
+  msg = msg.ephemeralMessage?.message || msg.viewOnceMessage?.message
+     || msg.viewOnceMessageV2?.message || msg;
   const texto = String(
-    data.message?.conversation ??
-    data.message?.extendedTextMessage?.text ??
+    msg.conversation ??
+    msg.extendedTextMessage?.text ??
+    msg.imageMessage?.caption ??      // foto con texto → al menos leemos el texto
+    msg.videoMessage?.caption ??
     '',
   ).trim();
-  if (!texto) return;                                   // por ahora solo texto
+  // Medios que merecen respuesta amable en vez de silencio (un cliente que
+  // manda un AUDIO y no recibe nada percibe el canal como muerto). Reacciones,
+  // stickers y mensajes de protocolo (editar/borrar) sí se ignoran en silencio.
+  const esAudio = !!msg.audioMessage;
+  const esMedia = esAudio || !!msg.imageMessage || !!msg.videoMessage
+    || !!msg.documentMessage || !!msg.documentWithCaptionMessage
+    || !!msg.locationMessage || !!msg.contactMessage || !!msg.contactsArrayMessage;
+  if (!texto && !esMedia) return;                       // reacciones/stickers/protocolo: nada
   const pushName = String(data.pushName || '').trim();
+
+  // Lo que "vio" el modelo y lo que guardamos en la memoria del chat.
+  const textoClaude = (esMedia && texto)
+    ? `${texto}\n\n[Nota: el cliente adjuntó ${esAudio ? 'un audio' : 'una imagen o archivo'} que NO puedes ver ni escuchar. Si es relevante, pídele que lo describa en texto.]`
+    : texto;
+  const textoHistoria = textoClaude
+    || (esAudio ? '[el cliente envió un audio]' : '[el cliente envió una imagen o archivo]');
 
   // ── Dedup transaccional: reclama el mensaje antes del trabajo lento ──
   const claimed = await db.runTransaction(async (tx) => {
@@ -426,6 +569,9 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const citaPendiente = convData.citaPendiente || null;
   const silenciado = millis(convData.botSilencedUntil) > Date.now();
   const botActivo = botOn && !silenciado;               // ¿responde el bot conversacional?
+  const hoyChile = ahoraChile().fecha;
+  const respHoy = (convData.respDia && convData.respDia.fecha === hoyChile)
+    ? (Number(convData.respDia.n) || 0) : 0;            // respuestas ya enviadas hoy en ESTE chat
 
   const sentIds = [];
   const responder = async (txt) => {
@@ -450,13 +596,14 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const persistir = async (respuesta) => {
     const nuevaHistoria = [
       ...historia,
-      { role: 'user', content: texto },
+      { role: 'user', content: textoHistoria },
       { role: 'assistant', content: respuesta },
     ].slice(-MAX_HISTORIA);
     const botMsgIds = [...(Array.isArray(convData.botMsgIds) ? convData.botMsgIds : []), ...sentIds].slice(-20);
     await ref.set({
       messages:      nuevaHistoria,
       botMsgIds,
+      respDia:       { fecha: hoyChile, n: respHoy + 1 },  // tope diario anti-troll
       clienteNombre: pushName || convData.clienteNombre || '',
       remoteJid,
       updatedAt:     FieldValue.serverTimestamp(),
@@ -490,6 +637,31 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
   if (!botActivo) return;   // bot apagado o silenciado (dueño al mando) → no respondemos
 
+  // ── Tope diario por chat (anti-troll / anti-loop): tras avisar UNA vez, mudo ──
+  if (respHoy >= MAX_RESP_CHAT_DIA) {
+    if (respHoy === MAX_RESP_CHAT_DIA) {
+      const reply = 'Por hoy te dejo con el equipo del local para seguir ayudándote 🙏 Si es urgente, contáctalos directamente.';
+      await responder(reply);
+      await persistir(reply);   // deja respDia en tope+1 → los siguientes ni avisan
+    }
+    logger.warn(`[cerebro] ${tid} chat=${chatId}: tope diario de respuestas (${MAX_RESP_CHAT_DIA}) alcanzado`);
+    return;
+  }
+
+  // ── Medios SIN texto (audio/foto/documento): respuesta amable sin pasar por
+  //    Claude. Máx. 1 aviso cada 10 min (5 audios seguidos ≠ 5 avisos). ──
+  if (!texto) {
+    if (millis(convData.mediaAvisoAt) <= Date.now() - 10 * 60_000) {
+      const reply = esAudio
+        ? 'Por ahora no puedo escuchar audios 🙏 ¿Me lo escribes en un mensaje de texto?'
+        : 'Por ahora solo puedo leer mensajes de texto 🙏 ¿Me escribes tu consulta?';
+      await responder(reply);
+      await ref.set({ mediaAvisoAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+      await persistir(reply);
+    }
+    return;
+  }
+
   // ── Contexto del local (nombre/dirección/teléfono viven en el doc del tenant) ──
   const [tenantSnap, confSnap] = await Promise.all([
     db.doc(`tenants/${tid}`).get(),
@@ -500,7 +672,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const nombreLocal   = tdoc.nombre || tdoc.nombreCorto || tid;
   const direccion     = tdoc.direccion || '';
   const telefonoLocal = tdoc.telefono || conf.telefonoAdmin || '';
-  const fechaHoy      = ahoraChile().fecha;
+  const fechaHoy      = hoyChile;
 
   // Bloque FIJO (cacheable por local) + bloque VARIABLE (fecha/cliente/cita).
   const systemFijo = construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno: waCfg.estiloChileno === true });
@@ -514,7 +686,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   let respuesta;
   try {
     respuesta = await pensarYResponder({
-      anthropicKey, systemFijo, systemVariable, historia, texto, tools,
+      anthropicKey, systemFijo, systemVariable, historia, texto: textoClaude, tools,
       ctx: { tid, telefono, pushName, confirmacionesEnabled: confOn, chatId, citaPendiente },
     });
   } catch (e) {
