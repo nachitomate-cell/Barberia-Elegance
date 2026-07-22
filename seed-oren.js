@@ -43,14 +43,18 @@ for (let d = 1; d <= 6; d++) HOR_VILLA[String(d)] = { activo: true, inicio: '11:
 
 // ── Sucursales ───────────────────────────────────────────────────────────────
 const SUCURSALES = [
-  { id: 'renaca', nombre: 'Oren Barber Reñaca',
+  { id: 'renaca', nombre: 'Oren Barber Reñaca', nombreCorto: 'Reñaca',
     calle: 'Av. Borgoño 14580, Local 21 · Mall Plaza Reñaca', ciudad: 'Viña del Mar',
     mapsUrl: 'https://maps.google.com/?q=Mall+Plaza+Reñaca+Av+Borgoño+14580+Viña+del+Mar',
-    googleReviewUrl: 'https://share.google/8d8Pyt32jRu5yTjbc', activo: true, orden: 0 },
-  { id: 'villaalemana', nombre: 'Oren Barber Villa Alemana',
+    googleReviewUrl: 'https://share.google/8d8Pyt32jRu5yTjbc',
+    color: '#D97706', banner: '/oren/renaca.webp', emoji: '✂️',  // identidad de sede (panel)
+    activo: true, orden: 0 },
+  { id: 'villaalemana', nombre: 'Oren Barber Villa Alemana', nombreCorto: 'Villa Alemana',
     calle: 'Av. Las Américas 498, Local 24 · Estación Las Américas', ciudad: 'Villa Alemana',
     mapsUrl: 'https://maps.google.com/?q=Av+Las+Américas+498+Villa+Alemana',
-    googleReviewUrl: 'https://share.google/x0GYsWCEeau8lwKAh', activo: true, orden: 1 },
+    googleReviewUrl: 'https://share.google/x0GYsWCEeau8lwKAh',
+    color: '#2563EB', banner: '/oren/villaalemana.webp', emoji: '💈',
+    activo: true, orden: 1 },
 ];
 
 // ── Servicios (precio por sucursal donde aplica) ─────────────────────────────
