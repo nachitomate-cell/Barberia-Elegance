@@ -1197,14 +1197,24 @@
       </button>
     </div>
 
-    <!-- Pulso del día: reservas CREADAS hoy (creadoEn), sumando todos los locales -->
-    <div class="ps-card" id="ps-hoy-card" style="margin-bottom:0.625rem; display:flex; align-items:center; gap:1rem; border-color:rgba(52,211,153,0.25); background:linear-gradient(135deg, rgba(52,211,153,0.07), rgba(255,255,255,0.02));">
-      <div style="flex:1; min-width:0;">
-        <div id="ps-citas-hoy" class="ps-value" style="color:#34d399;">—</div>
-        <div class="ps-label">Citas agendadas hoy</div>
-        <div class="ps-sub" id="ps-hoy-sub">reservas creadas hoy · todos los locales</div>
+    <!-- Pulso del día: reservas CREADAS hoy (creadoEn) + citas PARA hoy (fecha) -->
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.625rem; margin-bottom:0.625rem;">
+      <div class="ps-card" id="ps-hoy-card" style="display:flex; align-items:center; gap:1rem; border-color:rgba(52,211,153,0.25); background:linear-gradient(135deg, rgba(52,211,153,0.07), rgba(255,255,255,0.02));">
+        <div style="flex:1; min-width:0;">
+          <div id="ps-citas-hoy" class="ps-value" style="color:#34d399;">—</div>
+          <div class="ps-label">Citas agendadas hoy</div>
+          <div class="ps-sub" id="ps-hoy-sub">reservas creadas hoy · todos los locales</div>
+        </div>
+        <i class="ph ph-calendar-plus" style="font-size:1.8rem; color:rgba(52,211,153,0.5); flex-shrink:0;"></i>
       </div>
-      <i class="ph ph-calendar-plus" style="font-size:1.8rem; color:rgba(52,211,153,0.5); flex-shrink:0;"></i>
+      <div class="ps-card" id="ps-parahoy-card" style="display:flex; align-items:center; gap:1rem; border-color:rgba(96,165,250,0.25); background:linear-gradient(135deg, rgba(96,165,250,0.07), rgba(255,255,255,0.02));">
+        <div style="flex:1; min-width:0;">
+          <div id="ps-citas-parahoy" class="ps-value" style="color:#60a5fa;">—</div>
+          <div class="ps-label">Citas para hoy</div>
+          <div class="ps-sub" id="ps-parahoy-sub">con fecha de hoy · sin canceladas</div>
+        </div>
+        <i class="ph ph-calendar-check" style="font-size:1.8rem; color:rgba(96,165,250,0.5); flex-shrink:0;"></i>
+      </div>
     </div>
 
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.625rem; margin-bottom:0.625rem;">
@@ -6115,6 +6125,11 @@
           const t = tsMs(c.creadoEn) || tsMs(c.createdAt);
           return t >= hoyIni && t < hoyFin;
         }).length;
+        // "PARA hoy" = citas con fecha de HOY que siguen en pie (sin canceladas),
+        // da igual cuándo se reservaron.
+        const citasParaHoy = citas.filter(c =>
+          c.fecha === todayStr && !String(c.estado || '').toLowerCase().startsWith('cancelad')
+        ).length;
 
         // "Agendadas" = citas dentro de la ventana de 6 meses HASTA hoy (sin futuro)
         const citasPasadas = citas.filter(c => c.fecha && c.fecha <= todayStr);
@@ -6136,6 +6151,7 @@
           citasTotal: citasPasadas.length,
           citasMes,
           citasHoyCreadas,
+          citasParaHoy,
           canceladas,
           citasPasadas,   // se agrega globalmente para retención cross-tenant
           userKeys,
@@ -6144,8 +6160,9 @@
         };
       }));
 
-      let totCitas = 0, totCitasMes = 0, totCitasHoy = 0, totCanceladas = 0, totProf = 0;
+      let totCitas = 0, totCitasMes = 0, totCitasHoy = 0, totParaHoy = 0, totCanceladas = 0, totProf = 0;
       const hoyPorTenant       = [];  // desglose de "agendadas hoy" para el sub
+      const paraHoyPorTenant   = [];  // desglose de "para hoy" para el sub
       const globalUsers        = new Set();
       const globalClientVisits = new Map(); // key → # visitas globales
       const allServicios       = new Set();
@@ -6156,7 +6173,9 @@
         totCitas      += v.citasTotal;
         totCitasMes   += v.citasMes;
         totCitasHoy   += v.citasHoyCreadas;
+        totParaHoy    += v.citasParaHoy;
         if (v.citasHoyCreadas > 0) hoyPorTenant.push({ tid: v.tid, n: v.citasHoyCreadas });
+        if (v.citasParaHoy > 0) paraHoyPorTenant.push({ tid: v.tid, n: v.citasParaHoy });
         totCanceladas += v.canceladas;
         totProf       += v.profCount;
         v.userKeys.forEach(k => globalUsers.add(k));
@@ -6180,16 +6199,20 @@
         if (el) { el.textContent = val; el.classList.add('loaded'); }
       };
 
-      setVal('ps-citas-hoy',     totCitasHoy.toLocaleString('es-CL'));
-      // Sub del pulso: desglose de los locales con reservas hoy (top 3).
-      if (hoyPorTenant.length) {
-        hoyPorTenant.sort((a, b) => b.n - a.n);
-        const top = hoyPorTenant.slice(0, 3)
+      // Sub del pulso: desglose de los locales (top 3) — mismo formato en ambas.
+      const subDesglose = (arr, subId) => {
+        if (!arr.length) return;
+        arr.sort((a, b) => b.n - a.n);
+        const top = arr.slice(0, 3)
           .map(x => `${(TENANTS[x.tid] && TENANTS[x.tid].nombre) || x.tid} ${x.n}`)
           .join(' · ');
-        const resto = hoyPorTenant.length > 3 ? ` · +${hoyPorTenant.length - 3} locales` : '';
-        document.getElementById('ps-hoy-sub').textContent = top + resto;
-      }
+        const resto = arr.length > 3 ? ` · +${arr.length - 3} locales` : '';
+        document.getElementById(subId).textContent = top + resto;
+      };
+      setVal('ps-citas-hoy',     totCitasHoy.toLocaleString('es-CL'));
+      subDesglose(hoyPorTenant, 'ps-hoy-sub');
+      setVal('ps-citas-parahoy', totParaHoy.toLocaleString('es-CL'));
+      subDesglose(paraHoyPorTenant, 'ps-parahoy-sub');
       setVal('ps-citas-total',   totCitas.toLocaleString('es-CL'));
       setVal('ps-citas-mes',     totCitasMes.toLocaleString('es-CL'));
       setVal('ps-clientes',      totUsers.toLocaleString('es-CL'));
@@ -6203,7 +6226,7 @@
       // Store snapshot for copyStatsSnippet
       window._platformStats = {
         locales: localesActivos, citasTotal: totCitas, citasMes: totCitasMes,
-        citasHoy: totCitasHoy,
+        citasHoy: totCitasHoy, citasParaHoy: totParaHoy,
         clientes: totUsers, profesionales: totProf, retencion, cancelacion,
         servicios: allServicios.size, mes: mesNames[now.getMonth()],
       };
