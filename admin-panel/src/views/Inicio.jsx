@@ -21,6 +21,7 @@ import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import { useConfig } from '../hooks/useConfig';
 
 /* ── Helpers de fecha ─────────────────────────────────────────────── */
@@ -194,12 +195,18 @@ export default function Inicio() {
   const isAdmin  = role === 'admin';
   const A        = ACCENT[tenant.accent] ?? ACCENT.emerald;
 
-  const [citas,     setCitas]     = useState([]);
+  const [citasRaw,  setCitasRaw]  = useState([]);
   const [servicios, setServicios] = useState([]);
   const [clientes,  setClientes]  = useState([]);
   const [aggStats,  setAggStats]  = useState(null);   // resumen precalculado (_stats/resumen)
-  const [gastos,    setGastos]    = useState([]);
-  const [ventas,    setVentas]    = useState([]);
+  const [gastosRaw, setGastosRaw] = useState([]);
+  const [ventasRaw, setVentasRaw] = useState([]);
+  // Dashboard por sede: los KPIs de hoy (ingresos, citas) reflejan la sede
+  // activa. En "Todas" pasa todo (matchSucursal = true).
+  const { matchSucursal } = useSucursal();
+  const citas  = useMemo(() => citasRaw.filter(matchSucursal),  [citasRaw, matchSucursal]);
+  const gastos = useMemo(() => gastosRaw.filter(matchSucursal), [gastosRaw, matchSucursal]);
+  const ventas = useMemo(() => ventasRaw.filter(matchSucursal), [ventasRaw, matchSucursal]);
   const [espera,    setEspera]    = useState([]);     // lista de espera
   const [loading,   setLoading]   = useState(true);
   const [fetching,  setFetching]  = useState(false);
@@ -242,10 +249,10 @@ export default function Inicio() {
 
       const [citasSnap, servSnap, gastosSnap, ventasSnap, esperaSnap, cliSnap] = await Promise.all(tasks);
       if (myId !== fetchIdRef.current) return;
-      setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setServicios(servSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setGastosRaw(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setVentasRaw(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setEspera(esperaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setClientes(cliSnap ? cliSnap.docs.map(d => ({ id: d.id, ...d.data() })) : []);
     } catch (e) {

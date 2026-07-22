@@ -14,6 +14,7 @@ import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -923,32 +924,47 @@ export default function Caja() {
   const [corteXEfectivo, setCorteXEfectivo] = useState('');
   const [corteXSaving, setCorteXSaving] = useState(false);
 
-  // Transactions from today
-  const [citasHoy, setCitasHoy] = useState([]);
-  const [ventasHoy, setVentasHoy] = useState([]);
-  const [gastosHoy, setGastosHoy] = useState([]);
+  // Transactions from today (crudas; se filtran por sede activa)
+  const [citasHoyRaw, setCitasHoyRaw] = useState([]);
+  const [ventasHoyRaw, setVentasHoyRaw] = useState([]);
+  const [gastosHoyRaw, setGastosHoyRaw] = useState([]);
   const [servicios, setServicios] = useState([]);   // catálogo, para valorizar cortesías
 
   // Historical sessions
-  const [historial, setHistorial] = useState([]);
+  const [historialRaw, setHistorialRaw] = useState([]);
+
+  // ── Caja POR SEDE (tipo Kronnos) ─────────────────────────────────
+  // Cada sede tiene su propio cajón (sesión de apertura/cierre). La caja opera
+  // sobre la sede activa; el dueño en "Todas" debe elegir una para operar.
+  const { multiSucursal, activeId, activeSucursal, matchSucursal } = useSucursal();
+  const sedeElegida = !multiSucursal || activeId !== 'all';
+  const citasHoy  = useMemo(() => citasHoyRaw.filter(matchSucursal),  [citasHoyRaw, matchSucursal]);
+  const ventasHoy = useMemo(() => ventasHoyRaw.filter(matchSucursal), [ventasHoyRaw, matchSucursal]);
+  const gastosHoy = useMemo(() => gastosHoyRaw.filter(matchSucursal), [gastosHoyRaw, matchSucursal]);
+  const historial = useMemo(() => historialRaw.filter(matchSucursal), [historialRaw, matchSucursal]);
 
   // Help modal
   const [showHelp, setShowHelp] = useState(false);
 
-  /* ── Load active session ────────────────────────────────── */
+  /* ── Load active session (por sede) ─────────────────────── */
+  // Cada sede tiene su propio cajón. Traemos todas las sesiones abiertas (a lo
+  // más una por sede) y elegimos la de la sede activa. Sin límite server-side
+  // para no perder la de la otra sede; el filtro es por sucursalId en cliente.
   useEffect(() => {
-    const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'abierta'), limit(1));
+    const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'abierta'), limit(10));
     const unsub = onSnapshot(q, snap => {
-      if (!snap.empty) {
-        const d = snap.docs[0];
-        setSesionActiva({ id: d.id, ...d.data() });
-      } else {
-        setSesionActiva(null);
-      }
+      const abiertas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let ses = null;
+      if (multiSucursal && activeId !== 'all') {
+        ses = abiertas.find(s => s.sucursalId === activeId) || null;
+      } else if (!multiSucursal) {
+        ses = abiertas[0] || null;
+      } // multi-sede en "Todas": no se opera un cajón concreto → null
+      setSesionActiva(ses);
       setLoadingSesion(false);
     }, () => setLoadingSesion(false));
     return unsub;
-  }, []);
+  }, [multiSucursal, activeId]);
 
   /* ── Load today's transactions ──────────────────────────── */
   useEffect(() => {
@@ -962,7 +978,7 @@ export default function Caja() {
       where('fecha', '==', hoy),
     );
     const unsub1 = onSnapshot(qCitas, snap => {
-      setCitasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada'));
+      setCitasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada'));
     }, () => {});
 
     // Productos vendidos hoy
@@ -977,7 +993,7 @@ export default function Caja() {
       where('updatedAt', '<', end),
     );
     const unsub2 = onSnapshot(qVentas, snap => {
-      setVentasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setVentasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
 
     // Gastos de hoy
@@ -987,7 +1003,7 @@ export default function Caja() {
       where('fecha', '<', end),
     );
     const unsub3 = onSnapshot(qGastos, snap => {
-      setGastosHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setGastosHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
 
     return () => { unsub1(); unsub2(); unsub3(); };
@@ -1004,7 +1020,7 @@ export default function Caja() {
   useEffect(() => {
     const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'cerrada'), orderBy('fechaCierre', 'desc'), limit(20));
     const unsub = onSnapshot(q, snap => {
-      setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setHistorialRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, () => {});
     return unsub;
   }, []);
@@ -1222,6 +1238,8 @@ export default function Caja() {
   const handleAbrirCaja = async () => {
     const monto = parseFloat(montoApertura);
     if (isNaN(monto) || monto < 0) return;
+    // Caja por sede: no se puede abrir un cajón en modo "Todas" (¿de qué local?).
+    if (multiSucursal && !sedeElegida) return;
     const nombre = nombreApertura.trim();
     setAbriendo(true);
     try {
@@ -1233,6 +1251,8 @@ export default function Caja() {
         nombreApertura: nombre,
         ingresosManuales: [],
         egresosManuales: [],
+        // Cajón de esta sede (permite la separación tipo Kronnos).
+        ...(activeSucursal ? { sucursalId: activeSucursal.id, sucursalNombre: activeSucursal.nombre } : {}),
       });
       if (nombre) {
         try { localStorage.setItem('caja_nombre_default', nombre); } catch {}
@@ -1424,6 +1444,24 @@ export default function Caja() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════ */
+  /*  MULTI-SEDE — elegir sede para operar la caja              */
+  /* ═══════════════════════════════════════════════════════════ */
+  if (multiSucursal && !sedeElegida) {
+    return (
+      <div className="max-w-xl mx-auto pt-16 px-4 text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-800 border-2 border-slate-700 mb-5">
+          <Wallet size={34} className="text-slate-400" />
+        </div>
+        <h1 className="text-2xl font-black text-primary mb-2">Caja por sede</h1>
+        <p className="text-slate-400 text-sm max-w-sm mx-auto">
+          Cada local tiene su propio cajón, con apertura, cierre y arqueo independientes.
+          Elige una sede en la barra de arriba para abrir y operar su caja.
+        </p>
       </div>
     );
   }

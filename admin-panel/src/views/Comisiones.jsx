@@ -9,6 +9,7 @@ import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '..
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -242,7 +243,7 @@ export default function Comisiones() {
   const { user } = useAuth();
   const [fechaInicio, setFechaInicio] = useState(firstOfMonth());
   const [fechaFin, setFechaFin] = useState(today());
-  const [citas, setCitas] = useState([]);
+  const [citasRaw, setCitasRaw] = useState([]);
   const [adelantos, setAdelantos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
@@ -256,7 +257,12 @@ export default function Comisiones() {
   const [comDebPct, setComDebPct]   = useState(1.19);
   const [comCredPct, setComCredPct] = useState(2.95);
 
-  const { data: barberos = [] } = useCollection('barberos');
+  const { data: rawBarberos = [] } = useCollection('barberos');
+  // Separación por sede (tipo Kronnos): comisiones solo del local activo — sus
+  // barberos y las citas de esa sede. En "Todas" pasa todo (matchSucursal=true).
+  const { matchSucursal } = useSucursal();
+  const barberos = useMemo(() => rawBarberos.filter(matchSucursal), [rawBarberos, matchSucursal]);
+  const citas = useMemo(() => citasRaw.filter(matchSucursal), [citasRaw, matchSucursal]);
 
   // % de comisión del POS según el medio de pago (solo tarjeta).
   const comisionPctDe = useCallback((metodo) => {
@@ -284,7 +290,7 @@ export default function Comisiones() {
         where('fecha', '<=', fechaFin),
       );
       const snap = await withTimeout(getDocs(q), 20000, 'comisiones/citas');
-      setCitas(
+      setCitasRaw(
         snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(c => c.estado === 'Completada'),
