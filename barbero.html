@@ -823,7 +823,27 @@
         var pathSlug = window.location.pathname.replace(/^\//, '').split('/')[0].toLowerCase();
         var barberKey = (window.CURRENT_TENANT_ID || '') + '/' + pathSlug;
 
-        var src = heroImgByBarber[barberKey]
+        // Banner por SEDE (multi-sucursal): resuelve el barbero desde
+        // SHOP.barberos (config.js ya cargó síncrono en el <head>) por su slug
+        // y usa el banner de SU sucursal. Así la ficha de un barbero de Reñaca
+        // muestra el banner de Reñaca y uno de Villa Alemana el de Villa Alemana.
+        // Gana sobre el mapa por tenant.
+        var _sedeBanner = '';
+        (function () {
+          if (!(window.SHOP && Array.isArray(window.SHOP.barberos) && Array.isArray(window.SHOP.sucursales))) return;
+          var _slug = function (s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+              .toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          };
+          var b = window.SHOP.barberos.find(function (x) { return _slug(x.nombre) === pathSlug; });
+          if (b && b.sucursalId) {
+            var s = window.SHOP.sucursales.find(function (x) { return x.id === b.sucursalId; });
+            if (s && s.banner) _sedeBanner = s.banner;
+          }
+        })();
+
+        var src = _sedeBanner
+               || heroImgByBarber[barberKey]
                || heroImgByTenant[window.CURRENT_TENANT_ID]
                || (window.SHOP && window.SHOP.logo)
                || '';
@@ -1226,8 +1246,18 @@
       ? (Number(_selectedSlotInfo.recargo) || 0)
       : 0;
   }
+  // Precio del servicio según la SUCURSAL del barbero de esta ficha. El barbero
+  // pertenece a una sede (sucursalId), así que aplicamos el precio de su local
+  // (preciosSucursal). Igual criterio que _getPrecioEfectivo en la agenda.
+  function _precioSvc(s) {
+    if (!s) return 0;
+    var sid = _barber && _barber.sucursalId;
+    if (sid && s.preciosSucursal && s.preciosSucursal[sid] != null && s.preciosSucursal[sid] !== '')
+      return Number(s.preciosSucursal[sid]);
+    return Number(s.precio) || 0;
+  }
   function _precioEfectivo() {
-    return (Number(_selectedService && _selectedService.precio) || 0) + _recargoActual() + _recargoVip();
+    return _precioSvc(_selectedService) + _recargoActual() + _recargoVip();
   }
 
   function updateRecap() {
@@ -1267,7 +1297,7 @@
     if (currentStep === 1) {
       if (_selectedService) {
         btn.disabled = false;
-        btn.innerHTML = `${_selectedService.nombre} · ${formatPrice(_selectedService.precio)} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+        btn.innerHTML = `${_selectedService.nombre} · ${formatPrice(_precioSvc(_selectedService))} <i class="ph-bold ph-arrow-right text-lg"></i>`;
       } else {
         btn.disabled = true;
         btn.innerHTML = `Selecciona un servicio <i class="ph-bold ph-arrow-right text-lg"></i>`;
@@ -1341,7 +1371,7 @@
             ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
           </div>
           <div class="text-right flex items-center gap-3 shrink-0">
-            <span class="text-sm font-bold text-amber-500">${formatPrice(s.precio)}</span>
+            <span class="text-sm font-bold text-amber-500">${formatPrice(_precioSvc(s))}</span>
             <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all"></div>
           </div>
         </button>`;
@@ -1363,7 +1393,7 @@
           <p class="text-[13px] font-bold text-white leading-snug">${s.nombre}</p>
           ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 leading-snug mt-0.5 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</span>` : ''}
           <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
+            <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(_precioSvc(s))}</span>
             <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
           </div>
         </div>
@@ -1908,7 +1938,7 @@
       document.getElementById('clubBanner').classList.add('hidden');
       // Show service chip + slim header
       document.getElementById('chipServiceName').textContent = _selectedService.nombre;
-      document.getElementById('chipPrice').textContent = formatPrice(_selectedService.precio);
+      document.getElementById('chipPrice').textContent = formatPrice(_precioSvc(_selectedService));
       document.getElementById('chipDuration').textContent = formatDuration(_selectedService.duracion);
       document.getElementById('serviceChip').classList.remove('hidden');
       showSlimHeader();
