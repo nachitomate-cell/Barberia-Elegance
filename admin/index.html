@@ -1197,6 +1197,16 @@
       </button>
     </div>
 
+    <!-- Pulso del día: reservas CREADAS hoy (creadoEn), sumando todos los locales -->
+    <div class="ps-card" id="ps-hoy-card" style="margin-bottom:0.625rem; display:flex; align-items:center; gap:1rem; border-color:rgba(52,211,153,0.25); background:linear-gradient(135deg, rgba(52,211,153,0.07), rgba(255,255,255,0.02));">
+      <div style="flex:1; min-width:0;">
+        <div id="ps-citas-hoy" class="ps-value" style="color:#34d399;">—</div>
+        <div class="ps-label">Citas agendadas hoy</div>
+        <div class="ps-sub" id="ps-hoy-sub">reservas creadas hoy · todos los locales</div>
+      </div>
+      <i class="ph ph-calendar-plus" style="font-size:1.8rem; color:rgba(52,211,153,0.5); flex-shrink:0;"></i>
+    </div>
+
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.625rem; margin-bottom:0.625rem;">
       <div class="ps-card">
         <div id="ps-locales" class="ps-value">—</div>
@@ -6051,6 +6061,11 @@
       const nextMonthStart = `${nextMonth.getFullYear()}-${pad(nextMonth.getMonth() + 1)}-01`;
       const mesNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       document.getElementById('ps-mes-label').textContent = mesNames[now.getMonth()];
+      // "Agendadas hoy" = citas cuyo creadoEn (momento de la RESERVA, no la
+      // fecha de la cita) cae dentro del día local de quien mira el panel.
+      const hoyIni = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const hoyFin = hoyIni + 86400000;
+      const tsMs = (v) => (v && typeof v.toMillis === 'function') ? v.toMillis() : 0;
 
       const tenantKeys = Object.keys(TENANTS);
 
@@ -6093,6 +6108,14 @@
             }).length
           : 0;
 
+        // "Agendadas HOY" = creadas hoy (creadoEn/createdAt), para hoy o futuro.
+        // La query trae fecha >= hace-6-meses SIN tope futuro, así que toda
+        // reserva creada hoy está en el set.
+        const citasHoyCreadas = citas.filter(c => {
+          const t = tsMs(c.creadoEn) || tsMs(c.createdAt);
+          return t >= hoyIni && t < hoyFin;
+        }).length;
+
         // "Agendadas" = citas dentro de la ventana de 6 meses HASTA hoy (sin futuro)
         const citasPasadas = citas.filter(c => c.fecha && c.fecha <= todayStr);
         // "Este mes" = citas con fecha en [inicio de mes, inicio de mes siguiente)
@@ -6109,8 +6132,10 @@
         });
 
         return {
+          tid,
           citasTotal: citasPasadas.length,
           citasMes,
+          citasHoyCreadas,
           canceladas,
           citasPasadas,   // se agrega globalmente para retención cross-tenant
           userKeys,
@@ -6119,7 +6144,8 @@
         };
       }));
 
-      let totCitas = 0, totCitasMes = 0, totCanceladas = 0, totProf = 0;
+      let totCitas = 0, totCitasMes = 0, totCitasHoy = 0, totCanceladas = 0, totProf = 0;
+      const hoyPorTenant       = [];  // desglose de "agendadas hoy" para el sub
       const globalUsers        = new Set();
       const globalClientVisits = new Map(); // key → # visitas globales
       const allServicios       = new Set();
@@ -6129,6 +6155,8 @@
         const v = r.value;
         totCitas      += v.citasTotal;
         totCitasMes   += v.citasMes;
+        totCitasHoy   += v.citasHoyCreadas;
+        if (v.citasHoyCreadas > 0) hoyPorTenant.push({ tid: v.tid, n: v.citasHoyCreadas });
         totCanceladas += v.canceladas;
         totProf       += v.profCount;
         v.userKeys.forEach(k => globalUsers.add(k));
@@ -6152,6 +6180,16 @@
         if (el) { el.textContent = val; el.classList.add('loaded'); }
       };
 
+      setVal('ps-citas-hoy',     totCitasHoy.toLocaleString('es-CL'));
+      // Sub del pulso: desglose de los locales con reservas hoy (top 3).
+      if (hoyPorTenant.length) {
+        hoyPorTenant.sort((a, b) => b.n - a.n);
+        const top = hoyPorTenant.slice(0, 3)
+          .map(x => `${(TENANTS[x.tid] && TENANTS[x.tid].nombre) || x.tid} ${x.n}`)
+          .join(' · ');
+        const resto = hoyPorTenant.length > 3 ? ` · +${hoyPorTenant.length - 3} locales` : '';
+        document.getElementById('ps-hoy-sub').textContent = top + resto;
+      }
       setVal('ps-citas-total',   totCitas.toLocaleString('es-CL'));
       setVal('ps-citas-mes',     totCitasMes.toLocaleString('es-CL'));
       setVal('ps-clientes',      totUsers.toLocaleString('es-CL'));
@@ -6165,6 +6203,7 @@
       // Store snapshot for copyStatsSnippet
       window._platformStats = {
         locales: localesActivos, citasTotal: totCitas, citasMes: totCitasMes,
+        citasHoy: totCitasHoy,
         clientes: totUsers, profesionales: totProf, retencion, cancelacion,
         servicios: allServicios.size, mes: mesNames[now.getMonth()],
       };
