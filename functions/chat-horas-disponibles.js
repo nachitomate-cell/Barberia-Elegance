@@ -9,14 +9,17 @@
 //  cupos dentro de los próximos 4) y el bot los muestra con un CTA a
 //  la reserva. Reutilizable a futuro por el bot de WhatsApp.
 //
-//  Modelo v1 (pragmático): un slot está libre si existe AL MENOS UN
-//  barbero elegible sin cita/slotLock/bloqueo en ese rango. No modela
-//  horarios individuales por barbero — el flujo de reserva real valida
-//  al agendar, por eso el chat lo presenta como "sujeto a confirmación".
+//  Un slot está libre si existe AL MENOS UN barbero elegible sin
+//  cita/slotLock/bloqueo en ese rango Y dentro de SU jornada personal.
 //
 //  Ocupación considerada: citas del día (estado ≠ Cancelada/NoAsistio),
 //  slotLocks, bloqueos (por barbero o globales, parciales o día completo),
-//  colación global y horario del día (diasConfig > horario base).
+//  colación global, horario del día del local (diasConfig > horario base)
+//  y — desde 2026-07-22 — la JORNADA PERSONAL de cada barbero: día libre,
+//  horas de entrada/salida propias, descansos y colación individual
+//  (barbero.horario del doc > barberos/{id}/configuracion/main). Antes el
+//  bot de WhatsApp agendó con una barbera en su día libre (caso Araceli,
+//  Kronnos) porque esto no se modelaba.
 //
 //  DEPLOY:
 //    firebase deploy --only functions:chatHorasDisponibles
@@ -75,6 +78,61 @@ function dowDe(fechaStr) {
 
 const solapan = (aIni, aFin, bIni, bFin) => aIni < bFin && bIni < aFin;
 
+/* ── Jornada personal del barbero ─────────────────────────────────
+   Resuelve el día `dow` del barbero con la MISMA prioridad que el cliente
+   (getHorasDisponiblesMulti en firebaseUtils): `horario` del doc del barbero
+   > configuracion/main del barbero (horario | diasConfig) > horario del local.
+   Devuelve rangos OCUPADOS [ini,fin) que representan su indisponibilidad:
+   día libre → todo el día; jornada propia → fuera de [entrada, salida);
+   descansos y colación personal → sus tramos. */
+function rangosFueraDeJornada({ docHorario, cfgPersonal, dow }) {
+  const out = [];
+  const push = (a, b) => { if (b > a) out.push([a, b]); };
+  const descansosDe = (day) => (Array.isArray(day && day.descansos) ? day.descansos : [])
+    .filter(x => x && x.inicio && x.fin)
+    .map(x => [toMins(x.inicio), toMins(x.fin)]);
+
+  const cfg = cfgPersonal || {};
+  const h   = docHorario || cfg.horario || null;
+  let day   = h ? (h[dow] ?? h[String(dow)]) : null;
+  let viaHorario = !!day;
+  if (!day && cfg.diasConfig) day = cfg.diasConfig[dow] ?? cfg.diasConfig[String(dow)] ?? null;
+
+  if (day) {
+    // Día libre: en el esquema `horario` el día debe estar activo (mismo
+    // criterio que el cliente: `if (!dayH.activo) continue`); en diasConfig
+    // solo un activo === false explícito lo apaga.
+    const libre = viaHorario ? day.activo !== true : day.activo === false;
+    if (libre) { push(0, 1440); return out; }
+    const ini = toMins(day.inicio || cfg.horarioInicio || '00:00');
+    const fin = toMins(day.fin    || cfg.horarioFin    || '24:00');
+    push(0, ini);
+    push(fin, 1440);
+    descansosDe(day).forEach(([a, b]) => push(a, b));
+  } else if (cfg.horarioInicio || cfg.horarioFin) {
+    // Sin config del día pero con jornada base propia.
+    push(0, toMins(cfg.horarioInicio || '00:00'));
+    push(toMins(cfg.horarioFin || '24:00'), 1440);
+  }
+
+  // Colación personal (la que muestra la Pizarra) también bloquea.
+  if (cfg.colacion && cfg.colacion.inicio && cfg.colacion.fin) {
+    push(toMins(cfg.colacion.inicio), toMins(cfg.colacion.fin));
+  }
+  return out;
+}
+
+/** Carga configuracion/main de cada barbero y vuelca su jornada al mapa busy. */
+async function aplicarJornadasPersonales(c, barberos, dow, addBusy) {
+  const cfgs = await Promise.all(barberos.map(b =>
+    c.barberos.doc(b.id).collection('configuracion').doc('main').get().catch(() => null)));
+  barberos.forEach((b, i) => {
+    const cfgPersonal = cfgs[i] && cfgs[i].exists ? cfgs[i].data() : null;
+    rangosFueraDeJornada({ docHorario: b.docHorario, cfgPersonal, dow })
+      .forEach(([a, z]) => addBusy(b.id, a, z));
+  });
+}
+
 /** Slots libres de UN día. Exportada para tests locales con Admin SDK. */
 async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
   const c = cols(tenantId);
@@ -109,7 +167,7 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
     if (b._mainDocId) return;
     if (b.disponible === false || b.activo === false) return;
     if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return;
-    barberos.push(d.id);
+    barberos.push({ id: d.id, docHorario: b.horario || null });
   });
   if (!barberos.length) return [];
 
@@ -148,6 +206,9 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
     addBusy(x.barberoId, toMins(x.hora_inicio), toMins(x.hora_fin));
   });
 
+  // Jornada personal: día libre / horas propias / descansos / colación → busy.
+  await aplicarJornadasPersonales(c, barberos, dow, addBusy);
+
   const global = busy.get('*') || [];
   const libreBarbero = (bid, ini, fin) => {
     if (global.some(([a, b]) => solapan(ini, fin, a, b))) return false;
@@ -160,7 +221,7 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
   for (let t = iniMins; t + step <= finMins; t += step) {
     if (t < minMinuto) continue;
     if (colacion && solapan(t, t + step, colacion[0], colacion[1])) continue;
-    if (barberos.some(bid => libreBarbero(bid, t, t + step))) slots.push(toHHMM(t));
+    if (barberos.some(b => libreBarbero(b.id, t, t + step))) slots.push(toHHMM(t));
     if (slots.length >= MAX_SLOTS) break;
   }
   return slots;
@@ -226,7 +287,7 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
     if (b._mainDocId) return;
     if (b.disponible === false || b.activo === false) return;
     if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return;
-    barberos.push({ id: d.id, nombre: b.nombre || '' });
+    barberos.push({ id: d.id, nombre: b.nombre || '', docHorario: b.horario || null });
   });
   if (!barberos.length) return null;
 
@@ -262,11 +323,14 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
     addBusy(x.barberoId, toMins(x.hora_inicio), toMins(x.hora_fin));
   });
 
+  // Jornada personal (día libre / horas propias / descansos / colación).
+  await aplicarJornadasPersonales(c, barberos, dowDe(fechaStr), addBusy);
+
   const global = busy.get('*') || [];
   if (global.some(([a, b]) => solapan(startMin, endMin, a, b))) return null;
   for (const barb of barberos) {
     const propios = busy.get(barb.id) || [];
-    if (!propios.some(([a, b]) => solapan(startMin, endMin, a, b))) return barb;
+    if (!propios.some(([a, b]) => solapan(startMin, endMin, a, b))) return { id: barb.id, nombre: barb.nombre };
   }
   return null;
 }
