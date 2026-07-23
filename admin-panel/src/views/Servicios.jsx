@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Tag, Sparkles } from 'lucide-react';
+import { Plus, Tag, Sparkles, Package } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch,
   serverTimestamp, orderBy, getDocs, query, limit,
@@ -206,6 +206,16 @@ export default function Servicios() {
   const openNew = () => {
     setEditing(null);
     setForm({ ...EMPTY, categoria: categorias[0] || 'Otro', ppd: { ...EMPTY_PPD } });
+    resetImageState();
+    setSlide(true);
+  };
+  // "Nuevo pack" abre el mismo SlideOver pero con isPack:true de arranque.
+  // El JSX del form detecta el modo pack (!editing && form.isPack) y esconde
+  // el toggle redundante + toggles irrelevantes (precios por día/sede,
+  // recomendaciones) para que la UX quede enfocada en configurar la cuponera.
+  const openNewPack = () => {
+    setEditing(null);
+    setForm({ ...EMPTY, categoria: categorias[0] || 'Otro', ppd: { ...EMPTY_PPD }, isPack: true });
     resetImageState();
     setSlide(true);
   };
@@ -444,9 +454,16 @@ export default function Servicios() {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">Arrastra para reordenar. El orden se guarda en Firestore.</p>
           </div>
-          <button onClick={openNew} className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-            <Plus size={16} /> Nuevo servicio
-          </button>
+          {/* Dos CTAs: pack a la izquierda (violeta, decisión secundaria),
+              servicio a la derecha (verde, acción primaria del día). */}
+          <div className="hidden md:flex items-center gap-2">
+            <button onClick={openNewPack} className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+              <Package size={16} /> Nuevo pack
+            </button>
+            <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+              <Plus size={16} /> Nuevo servicio
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -573,20 +590,35 @@ export default function Servicios() {
         </div>
       </div>
 
-      {/* FAB móvil — acción primaria fija en la esquina inferior derecha */}
-      <button
-        onClick={openNew}
-        className="fixed bottom-6 right-6 md:hidden bg-emerald-600 hover:bg-emerald-500 text-primary rounded-full p-4 shadow-lg shadow-emerald-900/50 z-50 transition-colors"
-        aria-label="Nuevo servicio"
-      >
-        <Plus size={24} strokeWidth={2.5} />
-      </button>
+      {/* FABs móviles apilados — pack arriba (violeta), servicio abajo (verde) */}
+      <div className="fixed bottom-6 right-6 md:hidden flex flex-col gap-3 z-50">
+        <button
+          onClick={openNewPack}
+          className="bg-violet-600 hover:bg-violet-500 text-primary rounded-full p-3.5 shadow-lg shadow-violet-900/50 transition-colors"
+          aria-label="Nuevo pack"
+        >
+          <Package size={22} strokeWidth={2.5} />
+        </button>
+        <button
+          onClick={openNew}
+          className="bg-emerald-600 hover:bg-emerald-500 text-primary rounded-full p-4 shadow-lg shadow-emerald-900/50 transition-colors"
+          aria-label="Nuevo servicio"
+        >
+          <Plus size={24} strokeWidth={2.5} />
+        </button>
+      </div>
 
-      {/* ── SlideOver creación/edición ── */}
+      {/* ── SlideOver creación/edición ──
+          `esNuevoPack` es el modo pack sin edición previa (llamado por el
+          botón "Nuevo pack"). Cambia título/CTA y esconde toggles que no
+          aplican (precios por día/sede, recomendaciones), dejando el flujo
+          enfocado en armar la cuponera. Al editar un pack existente, todos
+          los campos vuelven a estar visibles para que se pueda ajustar. */}
+      {(() => { /* no-op — bloque para documentación */ })()}
       <SlideOver
         isOpen={slide}
         onClose={() => { resetImageState(); setSlide(false); }}
-        title={editing ? 'Editar servicio' : 'Nuevo servicio'}
+        title={editing ? 'Editar servicio' : (!editing && form.isPack ? 'Nuevo pack' : 'Nuevo servicio')}
         footer={
           // Footer premium: sticky con desenfoque para no perder el CTA al scrollear.
           // (El SlideOver ya lo renderiza fuera del body scrollable, así que la
@@ -601,10 +633,14 @@ export default function Servicios() {
             <button
               onClick={handleSave}
               disabled={saving || !form.nombre || !form.precio || !form.duracion}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+              className={`px-6 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-medium rounded-lg shadow-lg transition-all flex items-center gap-2 ${
+                !editing && form.isPack
+                  ? 'bg-violet-600 hover:bg-violet-500 shadow-violet-500/20'
+                  : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'
+              }`}
             >
               {(saving || imgUploading) && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : 'Crear servicio')}
+              {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : (!editing && form.isPack ? 'Crear pack' : 'Crear servicio'))}
             </button>
           </div>
         }
@@ -743,7 +779,10 @@ export default function Servicios() {
               TOGGLE: Precios variables por día
               Fila clickeable con switch iOS. El sub-panel condicional se
               "pega" visualmente al toggle (rounded-b-none + -mt-px).
+              En modo "Nuevo pack" esta sección se esconde: la cuponera tiene
+              un precio único (el prepago) que no varía por día.
               ══════════════════════════════════════════════════════════ */}
+          {!(!editing && form.isPack) && (
           <div>
             <button
               type="button"
@@ -783,14 +822,18 @@ export default function Servicios() {
               </div>
             )}
           </div>
+          )}
 
           {/* ══════════════════════════════════════════════════════════
               TOGGLE: Precios por sucursal (solo tenants multi-sede)
               El valor por sede se guarda en preciosSucursal:{sid:precio};
               lo lee index.html vía _getPrecioEfectivo() al elegir sede.
               Sede vacía = usa el precio base.
+              En modo "Nuevo pack" también se esconde: la cuponera tiene un
+              precio único en el tenant; para variarlo por sede, se edita
+              después de creada.
               ══════════════════════════════════════════════════════════ */}
-          {multiSucursal && sucursales.length > 0 && (
+          {!(!editing && form.isPack) && multiSucursal && sucursales.length > 0 && (
             <div>
               <button
                 type="button"
@@ -846,27 +889,42 @@ export default function Servicios() {
           {/* ══════════════════════════════════════════════════════════
               TOGGLE: Pack / Cuponera
               Mismo patrón que precios variables. Motor de sesiones prepagas.
+              En modo "Nuevo pack" (venir del botón violeta) el toggle no se
+              muestra: el usuario ya decidió que quiere un pack, y el bloque
+              de config aparece expandido de arranque bajo un encabezado
+              estático que confirma el modo activo.
               ══════════════════════════════════════════════════════════ */}
           <div>
-            <button
-              type="button"
-              onClick={() => setForm(f => ({ ...f, isPack: !f.isPack }))}
-              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
-                form.isPack
-                  ? 'bg-slate-800/50 border-violet-500/40 rounded-t-xl border-b-transparent'
-                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
-              }`}
-            >
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                  <span aria-hidden="true">📦</span> Este servicio es un Pack / Combo
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">Múltiples visitas prepagas dentro de una vigencia.</p>
+            {(!editing && form.isPack) ? (
+              // Encabezado estático "modo pack" — reemplaza al toggle.
+              <div className="flex items-center gap-2 px-4 py-3 rounded-t-xl border border-b-0 border-violet-500/40 bg-violet-500/10">
+                <Package size={15} className="text-violet-300 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-primary">Modo Pack activo</p>
+                  <p className="text-[11px] text-violet-200/70">Múltiples visitas prepagas dentro de una vigencia. Configura sesiones, precio y servicios cubiertos.</p>
+                </div>
               </div>
-              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.isPack ? 'left-[22px]' : 'left-0.5'}`} />
-              </span>
-            </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, isPack: !f.isPack }))}
+                className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                  form.isPack
+                    ? 'bg-slate-800/50 border-violet-500/40 rounded-t-xl border-b-transparent'
+                    : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+                }`}
+              >
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                    <span aria-hidden="true">📦</span> Este servicio es un Pack / Combo
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Múltiples visitas prepagas dentro de una vigencia.</p>
+                </div>
+                <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.isPack ? 'left-[22px]' : 'left-0.5'}`} />
+                </span>
+              </button>
+            )}
             {form.isPack && (
               <div className="bg-slate-900/50 border-x border-b border-violet-500/40 rounded-b-xl p-4 space-y-4">
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -955,7 +1013,10 @@ export default function Servicios() {
               Mismo patrón que precios variables / pack. Al elegir este
               servicio en la reserva online, se ofrecen los marcados aquí.
               Requiere el módulo global encendido (switch del panel lateral).
+              En modo "Nuevo pack" no aplica: el pack ES la venta, no tiene
+              sentido recomendar OTRAS cosas encima.
               ══════════════════════════════════════════════════════════ */}
+          {!(!editing && form.isPack) && (
           <div>
             <button
               type="button"
@@ -1032,6 +1093,7 @@ export default function Servicios() {
               </div>
             )}
           </div>
+          )}
 
         </div>
       </SlideOver>
