@@ -10650,15 +10650,29 @@
       const grid = document.getElementById('servicesGrid');
       grid.innerHTML = '';
 
-      // Multi-sucursal: si el servicio restringe sedes vía `sucursalesDisponibles`
-      // y la sede activa NO está en la lista, se oculta del catálogo. Sin sede
-      // elegida todavía (tenants mono-sede u onboarding aún en step0) → pasan
-      // todos, el filtro se aplica cuando llegue el `selectSucursal`.
+      // Filtros del catálogo antes de agrupar por categoría:
+      //  1) SEDE (multi-sucursal): si `sucursalesDisponibles` está seteado y
+      //     la sede activa no está en la lista → oculto. Sin sede elegida
+      //     (tenants mono-sede u onboarding) pasan todos; el filtro se aplica
+      //     cuando llegue el `selectSucursal`.
+      //  2) DÍA de la semana: si `diasDisponibles` está seteado y el día de
+      //     HOY no está en la lista → oculto. Coherente con lo que el usuario
+      //     ve en el calendario del paso 3 (que también deshabilita los días
+      //     fuera de la lista); no confundir al cliente con servicios que
+      //     hoy no se pueden reservar. Si querés que el servicio aparezca
+      //     igual para reservar en un próximo día válido, apagá el toggle.
       const _sedeActivaId = window._selectedSucursal && window._selectedSucursal.id;
+      const _diaHoy = new Date().getDay(); // 0=Dom … 6=Sáb
       services = services.filter(s => {
-        if (!Array.isArray(s.sucursalesDisponibles) || s.sucursalesDisponibles.length === 0) return true;
-        if (!_sedeActivaId) return true;
-        return s.sucursalesDisponibles.includes(_sedeActivaId);
+        if (Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0
+            && _sedeActivaId && !s.sucursalesDisponibles.includes(_sedeActivaId)) {
+          return false;
+        }
+        if (Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0
+            && !s.diasDisponibles.includes(_diaHoy)) {
+          return false;
+        }
+        return true;
       });
 
       const categories = {};
