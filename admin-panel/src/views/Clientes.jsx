@@ -201,20 +201,43 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
 
   const [totalCitas, setTotalCitas] = useState(0);
 
-  /* Load all appointments for this client (one-time) */
+  /* Load all appointments for this client (one-time).
+     Fan-out por 3 identificadores: uid (clienteId, el más confiable), email
+     (clienteEmail) y últimos 9 dígitos del teléfono (clienteTelefonoSuf9).
+     Antes solo se buscaba por email y el modal quedaba vacío en tenants
+     passwordless como Oren, donde el club se registra solo con teléfono
+     y `email` suele estar vacío o ser un placeholder. Merge por doc id y
+     sort por fecha/hora desc. Muestra las 10 más recientes; el total real
+     se calcula sobre el merge, no sobre una sola query. */
   useEffect(() => {
-    if (!init.email) return;
-    withTimeout(
-      getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email))),
-      15000, 'clientes/citas-cliente'
-    )
-      .then(snap => {
-        const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
+    const email     = (init.email || '').trim().toLowerCase();
+    const telDigits = (init.telefono || '').replace(/\D/g, '');
+    const telSuf9   = telDigits.length >= 9 ? telDigits.slice(-9) : '';
+    const uid       = init.uid || '';
+    if (!email && !telSuf9 && !uid) return; // nada para buscar
+
+    const queries = [];
+    // firestore-safe: envolvemos el Promise.all conjunto en withTimeout abajo.
+    if (uid)     queries.push(getDocs(query(tenantCol('citas'), where('clienteId',        '==', uid))));
+    // firestore-safe: idem.
+    if (email)   queries.push(getDocs(query(tenantCol('citas'), where('clienteEmail',     '==', email))));
+    // firestore-safe: idem.
+    if (telSuf9) queries.push(getDocs(query(tenantCol('citas'), where('clienteTelefonoSuf9', '==', telSuf9))));
+
+    withTimeout(Promise.all(queries), 15000, 'clientes/citas-cliente')
+      .then(snaps => {
+        const byId = new Map();
+        snaps.forEach(snap => {
+          snap.docs.forEach(d => byId.set(d.id, { id: d.id, ...d.data() }));
+        });
+        const arr = Array.from(byId.values());
+        arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')
+                        || (b.hora  || '').localeCompare(a.hora  || ''));
         setTotalCitas(arr.length);
         setCitas(arr.slice(0, 10));
-      }).catch(() => {});
-  }, [init.uid, init.email]);
+      })
+      .catch(() => {});
+  }, [init.uid, init.email, init.telefono]);
 
   // sellosDisponibles = saldo actual para gastar (se descuenta al canjear)
   // sellosHistoricos  = total histórico acumulado (nunca disminuye, determina el nivel)
@@ -934,7 +957,14 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                 <div key={c.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-primary truncate">{c.servicioNombre || '—'}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">{c.fecha} · {c.hora} · {c.barbero || '—'}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {c.fecha} · {c.hora} · {c.barbero || '—'}
+                      {c.sucursalNombre && (
+                        <span className="ml-1.5 text-[9px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/25 rounded-full px-1.5 py-0.5">
+                          📍 {c.sucursalNombre}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <span className={`text-[10px] font-bold ${col} shrink-0`}>{c.estado}</span>
                 </div>
