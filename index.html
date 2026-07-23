@@ -14679,6 +14679,40 @@
           _renderSucursales();
         }
       } catch (_) { /* fallback silencioso */ }
+
+      // Deep-link por sede: ?sede=<id> preselecciona la sucursal en un tenant
+      // multi-sede y salta directamente al paso 1 (servicios). También acepta
+      // ?sucursal= o ?local= como alias. Ejemplo: /?sede=villaalemana.
+      // Match por id (case-insensitive) o por nombreCorto normalizado.
+      try {
+        if (window._hasSucursales && Array.isArray(SHOP.sucursales)) {
+          const params = new URLSearchParams(window.location.search);
+          const raw = params.get('sede') || params.get('sucursal') || params.get('local') || '';
+          const norm = (v) => String(v || '').toLowerCase().replace(/[\s\-_]+/g, '');
+          const key  = norm(raw);
+          if (key) {
+            const sede = SHOP.sucursales.find(s =>
+              norm(s.id) === key || norm(s.nombreCorto || '') === key || norm(s.nombre || '') === key,
+            );
+            if (sede) {
+              window._selectedSucursal = sede;
+              // Filtra barberos por la sede elegida (mismo criterio que nextStep 0→1).
+              _activeBarberos = (_fsBarberos || []).filter(b => !b.sucursalId || b.sucursalId === sede.id);
+              try { _renderBarberos(_activeBarberos); } catch (_) {}
+              // Pinta el footer/hero con los datos de la sede (destapa info-strip).
+              try { _applyFooterSucursal(sede); } catch (_) {}
+              try { document.documentElement.classList.remove('sede-pendiente'); } catch (_) {}
+              // Oculta paso 0, muestra paso 1.
+              document.getElementById('step0')?.classList.add('hidden');
+              const s1 = document.getElementById('step1');
+              if (s1) { s1.classList.remove('hidden', 'opacity-0', 'translate-x-12', 'transform'); }
+              currentStep = 1;
+              updateProgress();
+            }
+          }
+        }
+      } catch (_) { /* si falla el deep-link, seguimos en el paso 0 normal */ }
+
       renderCalendar();       // ahora que _fsConfig está listo
 
       // ── Deep link: ?servicioId=<id> o ?servicio=<nombre> ──
