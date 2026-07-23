@@ -10650,6 +10650,17 @@
       const grid = document.getElementById('servicesGrid');
       grid.innerHTML = '';
 
+      // Multi-sucursal: si el servicio restringe sedes vía `sucursalesDisponibles`
+      // y la sede activa NO está en la lista, se oculta del catálogo. Sin sede
+      // elegida todavía (tenants mono-sede u onboarding aún en step0) → pasan
+      // todos, el filtro se aplica cuando llegue el `selectSucursal`.
+      const _sedeActivaId = window._selectedSucursal && window._selectedSucursal.id;
+      services = services.filter(s => {
+        if (!Array.isArray(s.sucursalesDisponibles) || s.sucursalesDisponibles.length === 0) return true;
+        if (!_sedeActivaId) return true;
+        return s.sucursalesDisponibles.includes(_sedeActivaId);
+      });
+
       const categories = {};
       services.forEach(s => {
         const cat = s.categoria || 'Otros';

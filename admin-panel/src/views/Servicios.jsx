@@ -55,6 +55,12 @@ const EMPTY = {
   // apagado = disponible SIEMPRE (backward-compat con servicios existentes).
   restringirDias: false,
   diasDisponibles: [],
+  // Disponibilidad por sede (multi-sucursal). `sucursalesDisponibles` contiene
+  // los ids de sede donde el servicio aparece. Toggle apagado = todas las
+  // sedes (comportamiento por defecto y backward-compat). Vacío con toggle
+  // prendido = ninguna (queda oculto en la reserva pública).
+  restringirSucursales: false,
+  sucursalesDisponibles: [],
   recargoSobrecupoDefault: '',
   // Servicio interno: solo el staff puede agendarlo desde el panel.
   // La reserva online pública (index.html) lo oculta. Útil para walk-ins,
@@ -257,6 +263,10 @@ export default function Servicios() {
       // disponible siempre (comportamiento previo).
       restringirDias:  Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0,
       diasDisponibles: Array.isArray(s.diasDisponibles) ? [...s.diasDisponibles] : [],
+      // Sedes disponibles: mismo patrón que días. Vacío o campo ausente =
+      // el servicio va a todas las sedes.
+      restringirSucursales:  Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0,
+      sucursalesDisponibles: Array.isArray(s.sucursalesDisponibles) ? [...s.sucursalesDisponibles] : [],
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
       // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
@@ -326,6 +336,14 @@ export default function Servicios() {
               .map(d => Number(d))
               .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
           )).sort((a, b) => a - b)
+        : null;
+      // Sedes disponibles: solo ids válidos y no duplicados. Cuando el toggle
+      // se apaga, se borra el campo (servicio disponible en TODAS las sedes).
+      const sucursalesDisponibles = form.restringirSucursales
+        ? Array.from(new Set(
+            (form.sucursalesDisponibles || [])
+              .filter(sid => typeof sid === 'string' && sid.length > 0)
+          ))
         : null;
       const descripcion = form.descripcion.trim();
       // Recargo por sobrecupo / horario especial: opcional. Se aplica solo si
@@ -416,6 +434,7 @@ export default function Servicios() {
             ? preciosSucursal
             : deleteField(),
           diasDisponibles: diasDisponibles ? diasDisponibles : deleteField(),
+          sucursalesDisponibles: sucursalesDisponibles ? sucursalesDisponibles : deleteField(),
           // Al desactivar el pack, borramos los campos residuales para que el
           // servicio se comporte como normal en el flujo público y en Agenda.
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
@@ -433,6 +452,7 @@ export default function Servicios() {
           newDoc.preciosSucursal = preciosSucursal;
         }
         if (diasDisponibles) newDoc.diasDisponibles = diasDisponibles;
+        if (sucursalesDisponibles) newDoc.sucursalesDisponibles = sucursalesDisponibles;
         if (recomendados.length) newDoc.recomendados = recomendados;
         // Create doc first to get ID, then upload image
         const docRef = await addDoc(tenantCol('servicios'), newDoc);
@@ -1001,6 +1021,81 @@ export default function Servicios() {
           )}
 
           {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Disponibilidad por sede (solo multi-sucursal)
+              Cuando se prende, el servicio aparece en la reserva pública
+              solo en las sedes marcadas. Apagado = disponible en todas
+              (backward-compat con servicios ya cargados). Se persiste en
+              `sucursalesDisponibles:[ids]`. Sin marca = servicio oculto
+              en todas las sedes (útil para "pausar" temporalmente).
+              En modo pack se esconde: los packs heredan disponibilidad
+              de los servicios que cubren.
+              ══════════════════════════════════════════════════════════ */}
+          {!form.isPack && multiSucursal && sucursales.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, restringirSucursales: !f.restringirSucursales }))}
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                form.restringirSucursales
+                  ? 'bg-slate-800/50 border-fuchsia-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                  <span aria-hidden="true">📍</span> Disponible solo en ciertas sedes
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Marca los locales donde se ofrece este servicio.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.restringirSucursales ? 'bg-fuchsia-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.restringirSucursales ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+            {form.restringirSucursales && (
+              <div className="bg-slate-900/50 border-x border-b border-fuchsia-500/40 rounded-b-xl p-4">
+                <p className="text-xs text-slate-500 mb-3">
+                  El servicio solo aparecerá en la reserva pública en las sedes que marques. En las demás queda oculto.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {sucursales.map(sc => {
+                    const activo = (form.sucursalesDisponibles || []).includes(sc.id);
+                    return (
+                      <button
+                        key={sc.id}
+                        type="button"
+                        onClick={() => setForm(f => {
+                          const set = new Set(f.sucursalesDisponibles || []);
+                          if (set.has(sc.id)) set.delete(sc.id); else set.add(sc.id);
+                          return { ...f, sucursalesDisponibles: Array.from(set) };
+                        })}
+                        aria-pressed={activo}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
+                          activo
+                            ? 'bg-fuchsia-500/15 border-fuchsia-500/50 text-fuchsia-200 shadow-[0_2px_10px_rgba(217,70,239,0.18)]'
+                            : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ background: sc.color || '#94a3b8' }}
+                        />
+                        <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {(form.sucursalesDisponibles || []).length === 0 && (
+                  <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
+                    ⚠ Sin ninguna sede marcada el servicio queda oculto en la reserva pública. Marca al menos una o apaga el toggle para que aparezca en todas.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
               TOGGLE: Precios por sucursal (solo tenants multi-sede)
               El valor por sede se guarda en preciosSucursal:{sid:precio};
               lo lee index.html vía _getPrecioEfectivo() al elegir sede.
@@ -1409,6 +1504,11 @@ function ServicioCardBody({ s, topServicio }) {
                 const ETQ = { 0: 'Do', 1: 'Lu', 2: 'Ma', 3: 'Mi', 4: 'Ju', 5: 'Vi', 6: 'Sá' };
                 return [...s.diasDisponibles].sort((a, b) => a - b).map(d => ETQ[d]).join(' · ');
               })()}
+            </span>
+          )}
+          {Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0 && (
+            <span className="bg-fuchsia-400/10 text-fuchsia-300 border border-fuchsia-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              📍 solo {s.sucursalesDisponibles.length === 1 ? '1 sede' : `${s.sucursalesDisponibles.length} sedes`}
             </span>
           )}
           {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (
