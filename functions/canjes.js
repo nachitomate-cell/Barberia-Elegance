@@ -160,6 +160,11 @@ exports.crearCanje = onCall(async (req) => {
         status:        'pending',
         createdAt:     FieldValue.serverTimestamp(),
         expiresAt,
+        // Sede donde SOLO se puede canjear (multi-sede Oren, Mapu…). Null si
+        // el premio es válido en cualquier sede. Se copia denormalizado del
+        // premio para que el staff en /canjes lo validate sin releer.
+        sucursalId:     pData.sucursalId     || null,
+        sucursalNombre: pData.sucursalNombre || null,
         // Kronnos: sede atribuida (regla 3 Dexter + tiebreak A). Nulla en no-Kronnos.
         // El staff de esta sede es el único que debe aprobar el canje contablemente.
         ...(sedeAtribuida ? { sedeCanje: sedeAtribuida, tenantOrigen: tenantId } : {}),

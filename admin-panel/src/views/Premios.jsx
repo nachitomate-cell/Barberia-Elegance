@@ -4,6 +4,7 @@ import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp, onSnapshot, setDoc 
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
+import { useSucursal } from '../contexts/SucursalContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const ICONOS = [
@@ -42,6 +43,9 @@ const EMPTY = {
   icono: 'ph-scissors',
   categoria: 'SERVICIO',
   configuracion: { ...EMPTY_CONFIG.SERVICIO },
+  // Sede donde se canjea (tenants multi-sede). '' = cualquier sede.
+  // Cuando está seteada, el canje solo es válido en esa sede.
+  sucursalId: '',
 };
 
 /* Lee la categoría real de un premio (fallback SERVICIO para legacy). */
@@ -292,6 +296,7 @@ export default function Premios() {
   const { data: premios, loading } = useCollection('premios');
   const { data: servicios }        = useCollection('servicios');
   const { data: productos }        = useCollection('productos');
+  const { multiSucursal, sucursales } = useSucursal();
 
   const sorted = useMemo(() => {
     const arr = [...premios];
@@ -503,6 +508,7 @@ export default function Premios() {
       icono:         p.icono || 'ph-scissors',
       categoria:     cat,
       configuracion: { ...EMPTY_CONFIG[cat], ...(p.configuracion || {}) },
+      sucursalId:    p.sucursalId || '',
     });
     setFormOpen(true);
     // En móvil, bloquear scroll del body mientras el bottom-sheet esté abierto
@@ -579,6 +585,13 @@ export default function Premios() {
     setError('');
     setSaving(true);
     try {
+      // Sede donde se canjea (multi-sede). '' → premio disponible en todas.
+      // Denormalizamos el nombre para que la vista cliente / canjes no requiera
+      // otro read.
+      const sucursalIdSel = (form.sucursalId || '').trim() || null;
+      const sucursalNombreSel = sucursalIdSel
+        ? (sucursales.find(s => s.id === sucursalIdSel)?.nombre || null)
+        : null;
       const payload = {
         nombre,
         descripcion:   form.descripcion.trim(),
@@ -586,6 +599,8 @@ export default function Premios() {
         icono:         form.icono,
         categoria:     form.categoria,
         configuracion,
+        sucursalId:     sucursalIdSel,
+        sucursalNombre: sucursalNombreSel,
         updatedAt:     serverTimestamp(),
       };
       if (editing) {
@@ -739,7 +754,14 @@ export default function Premios() {
                       </div>
                       {/* Nombre + "Categoría · N sellos" (descripción oculta en lista) */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-primary truncate">{p.nombre}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-semibold text-primary truncate">{p.nombre}</p>
+                          {p.sucursalNombre && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-orange-500/10 border border-orange-500/30 text-orange-300 rounded-full px-1.5 py-0.5">
+                              📍 {p.sucursalNombre}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-neutral-400 truncate">
                           {meta.label} · {p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}
                           {restrict && <span className="text-amber-400/80"> · aplica en {restrict}</span>}
@@ -889,6 +911,56 @@ export default function Premios() {
                       onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
                       onKeyDown={e => e.key === 'Enter' && handleSave()} />
                   </div>
+
+                  {/* Sede de canje (multi-sucursal): pick sede o "cualquier sede".
+                      Al seleccionar una, el canje solo será válido en esa sede
+                      (la vista cliente muestra "Solo canjeable en {sede}"). */}
+                  {multiSucursal && sucursales.length > 0 && (
+                    <div>
+                      <label className={lbl}>Sede donde se canjea</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, sucursalId: '' }))}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all ${
+                            !form.sucursalId
+                              ? 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37]'
+                              : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'
+                          }`}
+                        >
+                          <span aria-hidden="true">🌐</span>
+                          Cualquier sede
+                        </button>
+                        {sucursales.map(sc => {
+                          const active = form.sucursalId === sc.id;
+                          return (
+                            <button
+                              key={sc.id}
+                              type="button"
+                              onClick={() => setForm(f => ({ ...f, sucursalId: sc.id }))}
+                              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all ${
+                                active
+                                  ? 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37]'
+                                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'
+                              }`}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ background: sc.color || '#94a3b8' }}
+                              />
+                              <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {form.sucursalId && (
+                        <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                          El cliente verá &quot;Solo canjeable en {sucursales.find(s => s.id === form.sucursalId)?.nombreCorto || sucursales.find(s => s.id === form.sucursalId)?.nombre}&quot;.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {error && (
                     <p className="text-xs text-red-400 font-semibold">{error}</p>

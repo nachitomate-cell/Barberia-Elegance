@@ -126,6 +126,13 @@ function renderPremiosDashboard(premios) {
         restrictLine = `<p class="text-[11px] mt-0.5" style="color:${meta.color};opacity:0.9;">aplica en ${safeTarget}</p>`;
       }
     }
+    // Sede única (multisede) — copy explícito para que el cliente sepa dónde
+    // canjear antes de gastar sus sellos.
+    let sedeLine = '';
+    if (p.sucursalNombre) {
+      const safeSede = String(p.sucursalNombre).replace(/</g, '&lt;');
+      sedeLine = `<p class="text-[11px] mt-0.5 font-semibold" style="color:#fdba74;">📍 Solo canjeable en ${safeSede}</p>`;
+    }
     return `
     <div onclick="abrirModalCanje('${p.id || ''}')"
       data-prize-id="${p.id || ''}"
@@ -145,6 +152,7 @@ function renderPremiosDashboard(premios) {
         </div>
         <p class="text-sm font-bold text-white">${p.nombre}</p>
         ${restrictLine}
+        ${sedeLine}
         ${_kronnosPremioSublinea()}
       </div>
       <i class="ph-bold ph-caret-right text-white/20 text-sm shrink-0"></i>
@@ -244,6 +252,11 @@ function renderPendingRewards(rewards) {
       }
     }
 
+    const sedeName = r.sucursalNombre ? String(r.sucursalNombre).replace(/</g, '&lt;') : '';
+    const sedeLine = sedeName
+      ? `<p class="text-[11px] mt-0.5 truncate font-semibold" style="color:#fdba74;">📍 Solo en ${sedeName}</p>`
+      : '';
+
     return `
       <div onclick="abrirCanjeExistente('${r.id}')" data-red-id="${r.id}"
         class="flex items-center gap-3 rounded-2xl px-4 py-3 cursor-pointer active:scale-[0.98] transition-transform select-none"
@@ -254,6 +267,7 @@ function renderPendingRewards(rewards) {
         <div class="flex-1 min-w-0">
           <p class="text-sm font-bold text-white truncate leading-tight">${safeName}</p>
           ${safeOrigen ? `<p class="text-[11px] text-white/50 mt-0.5 truncate">${safeOrigen}</p>` : ''}
+          ${sedeLine}
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           ${ttlBadge}

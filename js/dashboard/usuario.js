@@ -50,6 +50,12 @@ async function initProductosTab() {
               ? `<p class="text-[10px] text-gray-400 font-semibold mt-1">Stock: ${stockVal}</p>`
               : `<p class="text-[10px] text-red-500 font-bold mt-1">Agotado</p>`)
           : '';
+        // Badge de sede — si el producto pertenece a una sede específica
+        // (multi-sede, opción B), lo dejamos claro antes de que el cliente
+        // decida comprarlo. El nombre viene denormalizado del panel admin.
+        const sedeHtml = p.sucursalNombre
+          ? `<p class="text-[10px] font-bold mt-1" style="color:#fdba74;">📍 Solo en ${String(p.sucursalNombre).replace(/</g, '&lt;')}</p>`
+          : '';
         const passedStock = stockVal !== null ? stockVal : 'null';
         return `
         <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}', ${passedStock})"
@@ -65,6 +71,7 @@ async function initProductosTab() {
               ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
               : ''}
             ${stockHtml}
+            ${sedeHtml}
             <div class="flex items-center justify-between mt-auto pt-3">
               <span class="text-lg font-bold" style="color:#D4AF37;">$${precio}</span>
               <span class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold">Ver detalle</span>

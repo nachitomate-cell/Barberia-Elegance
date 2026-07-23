@@ -13,7 +13,7 @@ import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, ellipsize } from '../lib/storyCanvas';
 
-const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true, precioCosto: '', stockMinimo: '' };
+const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true, precioCosto: '', stockMinimo: '', sucursalId: '' };
 
 function playProductChime() {
   try {
@@ -165,6 +165,12 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
           <div className="flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5 w-max">
             <EyeOff size={10} className="text-slate-400" />
             <span className="text-[10px] text-slate-400 font-semibold">Oculto</span>
+          </div>
+        )}
+        {producto.sucursalNombre && (
+          <div className="flex items-center gap-1 bg-orange-500/15 border border-orange-500/40 rounded-full px-2 py-0.5 w-max">
+            <span aria-hidden="true" className="text-[9px]">📍</span>
+            <span className="text-[10px] text-orange-300 font-semibold truncate max-w-[110px]">{producto.sucursalNombre}</span>
           </div>
         )}
         {isCriticalStock && (
@@ -723,6 +729,7 @@ export default function Productos() {
       activo:        p.activo !== false,
       precioCosto:   p.precioCosto   ?? '',
       stockMinimo:   p.stockMinimo   ?? '',
+      sucursalId:    p.sucursalId    || '',
     });
     setPreview(p.imagen || '');
     setSlide(true);
@@ -804,6 +811,14 @@ export default function Productos() {
     if (!form.nombre) return;
     setSaving(true);
     try {
+      // Sede del producto (opción B multi-sede): si el tenant es multi-sede,
+      // el producto pertenece a UNA sede y solo se ve en esa sede (el filtro
+      // matchSucursal en useCollection ya lo aísla en el panel). Cadena vacía
+      // → null (producto compartido o tenant mono-sede).
+      const sucursalIdSel = (form.sucursalId || '').trim() || null;
+      const sucursalNombre = sucursalIdSel
+        ? (_sucList.find(s => s.id === sucursalIdSel)?.nombre || null)
+        : null;
       const payload = {
         nombre:         form.nombre,
         descripcion:    form.descripcion,
@@ -817,6 +832,8 @@ export default function Productos() {
         activo:         form.activo !== false,
         precioCosto:    form.precioCosto !== '' ? Math.round(Number(form.precioCosto)) : null,
         stockMinimo:    form.stockMinimo !== '' ? Number(form.stockMinimo) : null,
+        sucursalId:     sucursalIdSel,
+        sucursalNombre: sucursalNombre,
         updatedAt:      serverTimestamp(),
       };
       if (editing) {
@@ -1342,6 +1359,55 @@ export default function Productos() {
               </div>
             )}
           </div>
+
+          {/* Sede del producto (tenants multi-sucursal). Al elegir una sede
+              el producto solo se ve/vende en esa sede (opción B). Dejarlo
+              como "Todas las sedes" lo hace compartido. */}
+          {_sucList && _sucList.length > 1 && (
+            <div className="bg-slate-900/60 p-4 border border-slate-850 rounded-xl space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 flex items-center gap-1.5">
+                <span aria-hidden="true">📍</span> Sede del producto
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Este producto solo se mostrará y venderá en la sede elegida. Deja &quot;Todas las sedes&quot; para compartirlo entre locales.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, sucursalId: '' }))}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                    !form.sucursalId
+                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'
+                  }`}
+                >
+                  Todas las sedes
+                </button>
+                {_sucList.map(sc => {
+                  const active = form.sucursalId === sc.id;
+                  return (
+                    <button
+                      key={sc.id}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, sucursalId: sc.id }))}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                        active
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-300'
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: sc.color || '#94a3b8' }}
+                      />
+                      <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Deluxe: Visible en catálogo */}
           {isDeluxe && (

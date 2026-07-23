@@ -21,6 +21,7 @@ import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig }     from '../hooks/useConfig';
+import { useSucursal }   from '../contexts/SucursalContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
@@ -44,6 +45,10 @@ const EMPTY = {
   nombre: '', categoria: 'Otro', precio: '', duracion: '',
   icono: 'ph-scissors', descripcion: '', varPrecios: false,
   ppd: { ...EMPTY_PPD }, imagen: null,
+  // Precios por sucursal (multi-sede): { <sucursalId>: <precio> }.
+  // Vacío por sede = usa el precio base. Solo se muestra si multiSucursal.
+  varPreciosSede: false,
+  pps: {},
   recargoSobrecupoDefault: '',
   // Servicio interno: solo el staff puede agendarlo desde el panel.
   // La reserva online pública (index.html) lo oculta. Útil para walk-ins,
@@ -144,6 +149,7 @@ function IconPicker({ value, onChange }) {
 export default function Servicios() {
   const { data: servicios, loading } = useCollection('servicios', [orderBy('orden')]);
   const { config, updateConfig }     = useConfig();
+  const { multiSucursal, sucursales } = useSucursal();
   const categorias = config.categoriasServicio ?? ['Otro'];
   // Módulo Recomendaciones: flag global en configuracion/main. La reserva
   // pública (index.html) solo muestra el modal de sugerencias si está true.
@@ -209,12 +215,19 @@ export default function Servicios() {
     if (s.preciosPorDia) {
       Object.entries(s.preciosPorDia).forEach(([k, v]) => { ppd[Number(k)] = v != null ? String(v) : ''; });
     }
+    // Precios por sucursal: convertir números a strings para los inputs
+    const pps = {};
+    if (s.preciosSucursal && typeof s.preciosSucursal === 'object') {
+      Object.entries(s.preciosSucursal).forEach(([sid, v]) => { pps[sid] = v != null ? String(v) : ''; });
+    }
     setEditing(s.id);
     setForm({
       nombre: s.nombre, categoria: s.categoria || 'Otro',
       precio: s.precio, duracion: s.duracion,
       icono: s.icono || 'ph-scissors', descripcion: s.descripcion || '',
       varPrecios: !!s.preciosPorDia, ppd,
+      varPreciosSede: !!(s.preciosSucursal && Object.keys(s.preciosSucursal).length),
+      pps,
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
       // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
@@ -258,6 +271,15 @@ export default function Servicios() {
         DIAS.forEach(({ key }) => {
           const v = form.ppd[key];
           if (v !== '' && v != null) preciosPorDia[String(key)] = Math.round(Number(v));
+        });
+      }
+      // Precios por sucursal: solo persistimos las sedes con valor definido
+      // (>=0); sedes en blanco usan el precio base. Cuando el toggle se apaga,
+      // preciosSucursal se borra con deleteField.
+      const preciosSucursal = {};
+      if (form.varPreciosSede && form.pps) {
+        Object.entries(form.pps).forEach(([sid, v]) => {
+          if (sid && v !== '' && v != null) preciosSucursal[sid] = Math.round(Number(v));
         });
       }
       const descripcion = form.descripcion.trim();
@@ -320,6 +342,9 @@ export default function Servicios() {
           imagen:       imagenUrl !== null ? imagenUrl : deleteField(),
           descripcion:  descripcion || deleteField(),
           preciosPorDia: form.varPrecios ? preciosPorDia : deleteField(),
+          preciosSucursal: (form.varPreciosSede && Object.keys(preciosSucursal).length)
+            ? preciosSucursal
+            : deleteField(),
           // Al desactivar el pack, borramos los campos residuales para que el
           // servicio se comporte como normal en el flujo público y en Agenda.
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
@@ -332,6 +357,9 @@ export default function Servicios() {
         const newDoc = { ...base, orden: nextOrden, createdAt: serverTimestamp() };
         if (descripcion) newDoc.descripcion = descripcion;
         if (form.varPrecios) newDoc.preciosPorDia = preciosPorDia;
+        if (form.varPreciosSede && Object.keys(preciosSucursal).length) {
+          newDoc.preciosSucursal = preciosSucursal;
+        }
         if (recomendados.length) newDoc.recomendados = recomendados;
         // Create doc first to get ID, then upload image
         const docRef = await addDoc(tenantCol('servicios'), newDoc);
@@ -757,6 +785,65 @@ export default function Servicios() {
           </div>
 
           {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Precios por sucursal (solo tenants multi-sede)
+              El valor por sede se guarda en preciosSucursal:{sid:precio};
+              lo lee index.html vía _getPrecioEfectivo() al elegir sede.
+              Sede vacía = usa el precio base.
+              ══════════════════════════════════════════════════════════ */}
+          {multiSucursal && sucursales.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, varPreciosSede: !f.varPreciosSede }))}
+                className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                  form.varPreciosSede
+                    ? 'bg-slate-800/50 border-orange-500/40 rounded-t-xl border-b-transparent'
+                    : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+                }`}
+              >
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                    <span aria-hidden="true">📍</span> Precios por sucursal
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">Define un precio distinto en cada sede.</p>
+                </div>
+                <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.varPreciosSede ? 'bg-orange-500' : 'bg-slate-600'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.varPreciosSede ? 'left-[22px]' : 'left-0.5'}`} />
+                </span>
+              </button>
+              {form.varPreciosSede && (
+                <div className="bg-slate-900/50 border-x border-b border-orange-500/40 rounded-b-xl p-4">
+                  <p className="text-xs text-slate-500 mb-3">Deja en blanco para que la sede use el precio base. La reserva pública mostrará el precio de la sede que elija el cliente.</p>
+                  <div className="space-y-2">
+                    {sucursales.map(sc => (
+                      <div key={sc.id} className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span
+                            aria-hidden="true"
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ background: sc.color || '#94a3b8' }}
+                          />
+                          <span className="text-sm text-primary font-medium truncate">{sc.nombreCorto || sc.nombre}</span>
+                        </div>
+                        <div className="relative w-32 shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                          <input
+                            type="number" min="0" step="1" inputMode="numeric"
+                            placeholder={form.precio || '–'}
+                            value={form.pps[sc.id] || ''}
+                            onChange={e => setForm(f => ({ ...f, pps: { ...f.pps, [sc.id]: e.target.value.replace(/[^\d]/g, '') } }))}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-[13px] text-right text-primary placeholder-slate-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
               TOGGLE: Pack / Cuponera
               Mismo patrón que precios variables. Motor de sesiones prepagas.
               ══════════════════════════════════════════════════════════ */}
@@ -1008,6 +1095,11 @@ function ServicioCardBody({ s, topServicio }) {
           {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
             <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
               precio variable
+            </span>
+          )}
+          {s.preciosSucursal && Object.keys(s.preciosSucursal).length > 0 && (
+            <span className="bg-orange-400/10 text-orange-400 border border-orange-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              📍 precio por sede
             </span>
           )}
           {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (

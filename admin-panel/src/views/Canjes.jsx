@@ -22,6 +22,7 @@ import {
 import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { useSucursal } from '../contexts/SucursalContext';
 import { withTimeout } from '../lib/firestore-helpers';
 
 /* ── Copia local del catálogo de categorías (idéntico al de Premios.jsx) ─ */
@@ -98,6 +99,7 @@ function useCountdown(expiresAt) {
 export default function Canjes() {
   const { user } = useAuth();
   const { msg, show: showToast } = useToast();
+  const { multiSucursal, activeId, activeSucursal, sucursales } = useSucursal();
 
   const [pin, setPin]                = useState('');
   const [searching, setSearching]    = useState(false);
@@ -183,10 +185,31 @@ export default function Canjes() {
     pinRef.current?.focus();
   };
 
+  // Multi-sede: si el premio está restringido a una sede, solo se puede canjear
+  // ahí. Bloqueamos aunque el staff sea el dueño para que la restricción del
+  // premio se respete (si necesita cambiarla, edita el premio en Fidelización).
+  const sedeMismatch = useMemo(() => {
+    if (!candidato) return null;
+    const scId = candidato.sucursalId;
+    if (!scId) return null; // premio válido en cualquier sede
+    if (activeId === 'all') return null; // el staff está en modo global — deja pasar; el nombre en la card lo alerta
+    if (activeId === scId) return null;
+    return {
+      required: candidato.sucursalNombre
+        || sucursales.find(s => s.id === scId)?.nombre
+        || scId,
+      current: activeSucursal?.nombre || activeId,
+    };
+  }, [candidato, activeId, activeSucursal, sucursales]);
+
   const confirmarEntrega = async () => {
     if (!candidato) return;
     if (countdown.expired) {
       setErrorMsg('El canje ya expiró — pídele al cliente que genere uno nuevo.');
+      return;
+    }
+    if (sedeMismatch) {
+      setErrorMsg(`Este premio solo se canjea en ${sedeMismatch.required}. Cambia de sede en la barra superior para aprobarlo.`);
       return;
     }
     setConfirming(true);
@@ -447,7 +470,21 @@ export default function Canjes() {
                   <p className="text-xs text-amber-400 font-semibold mt-1">
                     🏆 Costo: {candidato.costoSellos} sello{candidato.costoSellos !== 1 ? 's' : ''} · se descuentan al confirmar
                   </p>
+                  {candidato.sucursalNombre && (
+                    <p className="text-[11px] text-orange-300 font-semibold mt-1.5 inline-flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 rounded-full px-2 py-0.5">
+                      📍 Solo canjeable en {candidato.sucursalNombre}
+                    </p>
+                  )}
                 </div>
+
+                {sedeMismatch && (
+                  <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-rose-200">
+                    <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5">Sede incorrecta</p>
+                    <p className="text-sm leading-relaxed">
+                      Este premio se canjea solo en <b>{sedeMismatch.required}</b>. Estás operando desde <b>{sedeMismatch.current}</b>. Cambia de sede en la barra superior para aprobarlo.
+                    </p>
+                  </div>
+                )}
 
                 {/* Instrucción para el barbero */}
                 <div className={`rounded-lg border px-4 py-3 ${catColorMap[catMeta.color]}`}>
@@ -490,7 +527,7 @@ export default function Canjes() {
                 </button>
                 <button
                   onClick={confirmarEntrega}
-                  disabled={confirming || countdown.expired}
+                  disabled={confirming || countdown.expired || !!sedeMismatch}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-sm transition-colors"
                 >
                   {confirming
