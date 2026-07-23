@@ -43,8 +43,20 @@ export function TenantProvider({ children }) {
     emoji:  '✂️',
     logo:   null,
   };
-  // null = cargando, false = activo, true = suspendido
-  const [suspended, setSuspended] = useState(null);
+  // null = cargando, false = activo, true = suspendido.
+  // Anti-flash: si en el reload anterior sabíamos que el tenant estaba activo,
+  // arrancamos con `false` para no mostrar el spinner del TenantGate en el
+  // primer render. El onSnapshot corregirá si algo cambió. Un tenant recién
+  // suspendido esperará ≤1 render extra pero el flujo activo (99% del uso)
+  // ya no parpadea.
+  const [suspended, setSuspended] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem(`_tenant_status_${id}`);
+      if (cached === 'active') return false;
+      if (cached === 'suspended') return true;
+    } catch { /* ignore */ }
+    return null;
+  });
 
   // Branding del tenant desde Firestore (settings/general): logo + banner del
   // login del panel. Hace el branding AUTOMÁTICO — un tenant nuevo solo lo
@@ -56,8 +68,12 @@ export function TenantProvider({ children }) {
     const ref = doc(db, '_system', id);
     const unsub = onSnapshot(
       ref,
-      snap => setSuspended(snap.exists() ? snap.data().status === 'suspended' : false),
-      ()   => setSuspended(false),
+      snap => {
+        const isSuspended = snap.exists() ? snap.data().status === 'suspended' : false;
+        setSuspended(isSuspended);
+        try { sessionStorage.setItem(`_tenant_status_${id}`, isSuspended ? 'suspended' : 'active'); } catch { /* ignore */ }
+      },
+      () => setSuspended(false),
     );
     return unsub;
   }, [id]);

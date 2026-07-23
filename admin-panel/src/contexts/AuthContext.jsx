@@ -53,8 +53,23 @@ function scopeFromDoc(data) {
   return data?.sucursalScope ?? data?.sucursalId ?? 'all';
 }
 
+// Semilla anti-flash: si en el reload anterior había un usuario logueado, el
+// primer render ya lo sabe y NO parpadea el LoginPage antes de que Firebase
+// termine su check. Se actualiza en cada onAuthStateChanged.
+const LAST_UID_KEY = '_panel_last_uid';
+function _seedUidSync() {
+  try { return localStorage.getItem(LAST_UID_KEY) || null; } catch { return null; }
+}
+
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(undefined);
+  // `user`: undefined = todavía no sabemos; null = confirmado sin sesión;
+  // objeto = user de Firebase. Anti-flash: si teníamos un UID persistido en
+  // reloads previos, arrancamos con un "placeholder" truthy para no renderizar
+  // LoginPage antes de que onAuthStateChanged confirme el user real.
+  const [user,    setUser]    = useState(() => {
+    const uid = _seedUidSync();
+    return uid ? { uid, _seed: true } : undefined;
+  });
   const [role,    setRole]    = useState(null);
   const [sucursalScope, setSucursalScope] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -62,12 +77,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async firebaseUser => {
       if (!firebaseUser) {
+        try { localStorage.removeItem(LAST_UID_KEY); } catch { /* ignore */ }
         setUser(null);
         setRole(null);
         setSucursalScope('all');
         setLoading(false);
         return;
       }
+      try { localStorage.setItem(LAST_UID_KEY, firebaseUser.uid); } catch { /* ignore */ }
       setUser(firebaseUser);
 
       const email = firebaseUser.email?.toLowerCase();

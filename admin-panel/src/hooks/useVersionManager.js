@@ -5,25 +5,31 @@ import { db } from '../lib/firebase';
 const LS_KEY = '_synaptech_version_ts';
 
 async function cleanupAndReload(newTs) {
-  console.info('[VersionManager] Nueva versión detectada:', newTs, '— limpiando y recargando…');
+  console.info('[VersionManager] Nueva versión detectada:', newTs, '— recargando…');
 
   // Actualizar ANTES del reload para evitar loop infinito.
   localStorage.setItem(LS_KEY, String(newTs));
 
+  // Fix (sesiones cerrándose): antes se desregistraba TODO el service worker
+  // y se borraban TODAS las caches en cada bump de versión. En Safari eso
+  // empujaba al navegador a limpiar también IndexedDB (donde vive la sesión
+  // de Firebase Auth), y el user se encontraba deslogueado tras el reload.
+  // Ahora sólo pedimos al SW que se actualice (skipWaiting → controllerchange
+  // → reload automático) o forzamos reload si no hay SW. El auth queda intacto.
+  // `reload(true)` es no-estándar y agresivo; usamos reload() plano.
   try {
     if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        // Fuerza chequeo del bundle; si hay uno nuevo, workbox dispara
+        // controllerchange → main.jsx hace el reload.
+        await reg.update().catch(() => {});
+      }
     }
   } catch (e) {
-    console.warn('[VersionManager] cleanup parcial:', e.message);
+    console.warn('[VersionManager] update SW:', e.message);
   }
-
-  window.location.reload(true);
+  window.location.reload();
 }
 
 export function useVersionManager() {
