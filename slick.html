@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Slick Gorilla · Aura Salon</title>
+  <meta name="theme-color" content="#f8fafc">
+  <meta name="description" content="Slick Gorilla — productos de peinado disponibles en Aura Salon. Cera, polvo texturizante y styling profesional para hombres.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    :root {
+      --bg:        #f8fafc;  /* slate-50 */
+      --surface:   #ffffff;
+      --surface-2: #f1f5f9;  /* slate-100 */
+      --border:    #e2e8f0;  /* slate-200 */
+      --border-2:  #cbd5e1;  /* slate-300 */
+      --ink:       #0f172a;  /* slate-900 */
+      --ink-2:     #334155;  /* slate-700 */
+      --ink-muted: #64748b;  /* slate-500 */
+      --accent:    #0f172a;  /* botón principal negro sobrio */
+      --accent-2:  #1e293b;
+      --sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: none;
+    }
+    a { text-decoration: none; color: inherit; }
+    img { display: block; max-width: 100%; }
+
+    /* ───────────────────────── HERO ───────────────────────── */
+    .hero {
+      position: relative;
+      padding: 32px 16px 40px;
+      text-align: center;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--ink-muted);
+      font-size: 14px; font-weight: 500;
+      margin-bottom: 24px;
+      transition: color 0.2s ease;
+      cursor: pointer;
+    }
+    .back-btn:hover { color: var(--ink); }
+    .back-btn i { font-size: 18px; }
+
+    .hero-logo {
+      width: 100%; max-width: 240px; height: auto; margin: 4px auto 0;
+      filter: drop-shadow(0 4px 18px rgba(15,23,42,0.08));
+    }
+    .hero-tagline {
+      font-size: 16px; font-weight: 500; line-height: 1.5;
+      color: var(--ink-2);
+      max-width: 34rem; margin: 16px auto 0;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 18px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--ink-2);
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      padding: 5px 14px; border-radius: 999px;
+    }
+    @media (min-width: 768px) {
+      .hero-logo { max-width: 300px; }
+      .hero-tagline { font-size: 18px; }
+    }
+
+    /* ───────────────────────── GRID ───────────────────────── */
+    .catalog {
+      max-width: 64rem; margin: 0 auto;
+      padding: 28px 16px 64px;
+    }
+    .section-label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--ink-muted);
+      margin-bottom: 18px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .grid {
+      display: grid; grid-template-columns: 1fr; gap: 14px;
+    }
+    @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+      transition: border-color .2s ease, transform .18s ease, box-shadow .2s ease;
+    }
+    .card:hover {
+      border-color: var(--border-2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px -12px rgba(15,23,42,0.15);
+    }
+    .card-img-wrap {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: var(--surface-2);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-img-wrap img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: opacity .3s ease;
+    }
+    .img-loading { opacity: 0; }
+    .card-img-ph {
+      font-size: 48px; color: var(--border-2);
+    }
+
+    .stock-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+    }
+    .stock-out { color: #b91c1c; border-color: rgba(185,28,28,0.30); }
+    .stock-low { color: #b45309; border-color: rgba(180,83,9,0.30); }
+    .stock-in  { color: #047857; border-color: rgba(4,120,87,0.30); }
+
+    .card-name {
+      font-size: 15px; font-weight: 700; color: var(--ink);
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 12.5px; color: var(--ink-muted);
+      line-height: 1.45; margin-top: 4px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cross-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px;
+      font-size: 10.5px; font-weight: 600;
+      color: var(--ink-2);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 8px;
+    }
+
+    .card-foot {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .price-wrap { display: flex; flex-direction: column; line-height: 1.1; }
+    .price {
+      font-size: 17px; font-weight: 800; color: var(--ink);
+    }
+    .price-orig {
+      font-size: 11.5px; color: var(--ink-muted); text-decoration: line-through;
+      margin-top: 2px;
+    }
+    .price-consult {
+      font-size: 12px; font-weight: 600; color: var(--ink-muted);
+      font-style: italic;
+    }
+
+    .add-btn, .buy-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12.5px; font-weight: 700; cursor: pointer;
+      border: 1px solid var(--accent);
+      color: #ffffff;
+      background: var(--accent);
+      padding: 7px 12px; border-radius: 12px;
+      transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+    }
+    .add-btn:hover, .buy-btn:hover { background: var(--accent-2); border-color: var(--accent-2); }
+    .add-btn:active, .buy-btn:active { transform: scale(0.96); }
+    .add-btn.active {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #047857;
+      box-shadow: 0 0 12px -3px rgba(16,185,129,0.28);
+    }
+    .add-btn.active:hover { background: #d1fae5; }
+    .add-btn i, .buy-btn i { font-size: 14px; }
+
+    /* Skeletons mientras carga Firestore */
+    .skeleton-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      height: 260px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      max-width: 26rem; margin: 32px auto;
+      padding: 32px 16px;
+      background: var(--surface);
+      border: 1px dashed var(--border-2);
+      border-radius: 16px;
+    }
+    .empty-ic {
+      width: 56px; height: 56px; margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-muted);
+      font-size: 26px;
+    }
+    .empty h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .empty p { font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+    .empty-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 16px;
+      font-size: 13px; font-weight: 700;
+      color: #ffffff; background: var(--accent);
+      padding: 9px 18px; border-radius: 12px;
+      transition: background .2s ease, transform .12s ease;
+    }
+    .empty-cta:hover { background: var(--accent-2); }
+    .empty-cta:active { transform: scale(0.96); }
+
+    /* Foot note */
+    .foot-note {
+      text-align: center; font-size: 12px; color: var(--ink-muted);
+      max-width: 30rem; margin: 8px auto 32px;
+      padding: 0 16px;
+    }
+    .foot-note a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── Barra flotante de resumen (sticky bottom) ── */
+    .sticky-bar {
+      position: fixed; left: 16px; right: 16px; bottom: 16px;
+      max-width: 42rem; margin: 0 auto;
+      background: rgba(255,255,255,0.96);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid var(--border-2);
+      border-radius: 16px; padding: 14px 16px;
+      box-shadow: 0 12px 30px -8px rgba(15,23,42,0.20);
+      z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      transform: translateY(150%); opacity: 0;
+      transition: transform .38s cubic-bezier(0.16,1,0.3,1), opacity .38s ease;
+    }
+    .sticky-bar.visible { transform: translateY(0); opacity: 1; }
+    .sticky-info { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+    .sticky-count { font-size: 12px; font-weight: 500; color: var(--ink-muted); }
+    .sticky-total { font-size: 18px; font-weight: 800; color: var(--ink); }
+    .sticky-cta {
+      display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+      font-size: 14px; font-weight: 700; color: #ffffff;
+      background: var(--accent);
+      padding: 10px 20px; border-radius: 12px; cursor: pointer; border: none;
+      transition: background .2s ease, transform .12s ease;
+    }
+    .sticky-cta:hover { background: var(--accent-2); }
+    .sticky-cta:active { transform: scale(0.96); }
+    body.has-cart { padding-bottom: 96px; }
+  </style>
+</head>
+<body>
+  <!-- ─────────────── HERO ─────────────── -->
+  <header class="hero">
+    <div class="hero-inner">
+      <a id="backBtn" class="back-btn">
+        <i class="ph-bold ph-arrow-left"></i> Volver a la reserva
+      </a>
+      <img class="hero-logo" src="/aura/slick.webp" alt="Slick Gorilla">
+      <p class="hero-tagline">Productos de peinado profesional para hombres — cera, polvo texturizante y styling.</p>
+      <span class="hero-badge"><i class="ph-fill ph-storefront"></i> Disponible en · <span id="sedeName">Aura</span></span>
+    </div>
+  </header>
+
+  <!-- ─────────────── CATÁLOGO ─────────────── -->
+  <main class="catalog">
+    <div class="section-label">Catálogo Slick Gorilla</div>
+    <div id="grid" class="grid">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </main>
+
+  <p class="foot-note">
+    Productos disponibles en el local · <a id="waFoot" href="#" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+  </p>
+
+  <div id="stickyBar" class="sticky-bar" role="region" aria-label="Resumen de productos">
+    <div class="sticky-info">
+      <span id="stickyCount" class="sticky-count"></span>
+      <span id="stickyTotal" class="sticky-total"></span>
+    </div>
+    <button id="stickyCta" class="sticky-cta" type="button">Confirmar y agendar <i class="ph-bold ph-arrow-right"></i></button>
+  </div>
+
+  <!-- Firebase (compat) + config del tenant -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/config.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ── Resolución de tenant/sede ─────────────────────────────
+      // Regla de negocio: Slick Gorilla es un módulo EXCLUSIVO de Aura Salon.
+      // Si alguien entra a /slick apuntando a otro tenant, se redirige a su
+      // reserva pública en vez de mostrar el catálogo con datos ajenos.
+      var TENANT_ID = new URLSearchParams(location.search).get('local')
+                   || window.CURRENT_TENANT_ID
+                   || 'aura';
+      if (TENANT_ID !== 'aura') {
+        location.replace('/?local=' + encodeURIComponent(TENANT_ID));
+        return;
+      }
+
+      // ── Carrito compartido con la agenda (localStorage por sede) ──
+      // Misma clave que index.html hidrata en el paso 4 (_selectedProducts).
+      var CART_KEY = 'reservaProductos_' + TENANT_ID;
+      var Cart = {
+        load:  function () { try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (_) { return []; } },
+        save:  function (a) { try { localStorage.setItem(CART_KEY, JSON.stringify(a || [])); } catch (_) {} },
+        toggle: function (prod) {
+          var a = this.load();
+          var i = a.findIndex(function (p) { return p.id === prod.id; });
+          if (i === -1) a.push(prod); else a.splice(i, 1);
+          this.save(a);
+          return i === -1;
+        },
+        total: function () { return this.load().reduce(function (s, p) { return s + (Number(p.precio) || 0); }, 0); },
+        count: function () { return this.load().length; },
+      };
+
+      var SHOP = window.SHOP || {};
+      var sedeName = SHOP.nombreCorto || SHOP.nombre || 'Aura';
+      document.getElementById('sedeName').textContent = sedeName;
+
+      // WhatsApp de la sede (fallback: Instagram de Slick Gorilla).
+      var SLICK_IG = 'https://www.instagram.com/slickgorilla/';
+      var waDigits = String(SHOP.telefono || '').replace(/\D/g, '');
+      function waLink(msg) {
+        if (!waDigits) return SLICK_IG;
+        return 'https://wa.me/' + waDigits + '?text=' + encodeURIComponent(msg);
+      }
+      var footWa = document.getElementById('waFoot');
+      footWa.href = waLink('Hola ' + sedeName + '! Quiero consultar por los productos Slick Gorilla.');
+
+      // ── Volver a la reserva ───────────────────────────────────
+      var back = document.getElementById('backBtn');
+      var agendaHref = '/?local=' + encodeURIComponent(TENANT_ID);
+      back.href = agendaHref;
+      back.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (history.length > 1) history.back();
+        else location.href = agendaHref;
+      });
+
+      // ── Helpers ───────────────────────────────────────────────
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function fmtPrice(n) { return '$' + Number(n).toLocaleString('es-CL'); }
+      // Match flexible: aparece cualquier producto cuyo nombre, marca o
+      // descripción contenga "slick" o "gorilla" (case-insensitive). Así el
+      // dueño no tiene que ser estricto con el campo `marca` al cargar.
+      function isSlick(p) {
+        var haystack = ((p.marca || '') + ' ' + (p.nombre || '') + ' ' + (p.descripcion || '')).toLowerCase();
+        return haystack.indexOf('slick') !== -1 || haystack.indexOf('gorilla') !== -1;
+      }
+      function stockBadge(p) {
+        if (p.stock == null || p.stock === '') return '';
+        var s = Number(p.stock);
+        if (s <= 0)  return '<span class="stock-badge stock-out">Agotado</span>';
+        if (s <= 3)  return '<span class="stock-badge stock-low">Últimas ' + s + '</span>';
+        return '<span class="stock-badge stock-in">Disponible</span>';
+      }
+      function crossPill(p) {
+        var u = p.usadoEn || p.servicioRelacionado;
+        if (!u) return '';
+        return '<span class="cross-pill">✨ Usado en ' + esc(u) + '</span>';
+      }
+
+      function renderCards(prods) {
+        var grid = document.getElementById('grid');
+        if (!prods.length) { renderEmpty(); return; }
+        grid.innerHTML = prods.map(function (p) {
+          var out = p.stock != null && Number(p.stock) <= 0;
+          var hasOffer = p.precioOriginal && p.precio && Number(p.precioOriginal) > Number(p.precio);
+          var priceHtml = (p.precio != null && p.precio !== '')
+            ? '<span class="price">' + fmtPrice(p.precio) + '</span>' +
+              (hasOffer ? '<span class="price-orig">' + fmtPrice(p.precioOriginal) + '</span>' : '')
+            : '<span class="price-consult">Consultar</span>';
+          var hasPrice = (p.precio != null && p.precio !== '');
+          var msg = 'Hola ' + sedeName + '! Me interesa el producto Slick Gorilla "' + (p.nombre || '') + '"'
+                  + (out ? '. ¿Cuándo tendrán stock?' : '. ¿Está disponible?');
+          var actionHtml = (!out && hasPrice)
+            ? '<button class="add-btn" data-id="' + esc(p.id) + '" data-nombre="' + esc(p.nombre || 'Producto Slick Gorilla') +
+                '" data-precio="' + (Number(p.precio) || 0) + '" data-imagen="' + esc(p.imagen || '') + '">+ Agregar a cita</button>'
+            : '<a class="buy-btn" href="' + waLink(msg) + '" target="_blank" rel="noopener">' +
+                '<i class="ph-fill ph-whatsapp-logo"></i>' + (out ? 'Avísame' : 'Consultar') + '</a>';
+          var imgHtml = p.imagen
+            ? '<img src="' + esc(p.imagen) + '" alt="' + esc(p.nombre) + '" loading="lazy" decoding="async" class="img-loading" onload="this.classList.remove(\'img-loading\')" onerror="this.parentNode.innerHTML=\'<i class=&quot;ph-fill ph-drop-half card-img-ph&quot;></i>\'">'
+            : '<i class="ph-fill ph-drop-half card-img-ph"></i>';
+          return (
+            '<article class="card">' +
+              '<div>' +
+                '<div class="card-img-wrap">' + imgHtml + stockBadge(p) + '</div>' +
+                '<h3 class="card-name">' + esc(p.nombre || 'Producto Slick Gorilla') + '</h3>' +
+                (p.descripcion ? '<p class="card-desc">' + esc(p.descripcion) + '</p>' : '') +
+                crossPill(p) +
+              '</div>' +
+              '<div class="card-foot">' +
+                '<div class="price-wrap">' + priceHtml + '</div>' +
+                actionHtml +
+              '</div>' +
+            '</article>'
+          );
+        }).join('');
+        syncCartButtons();
+        renderStickyBar();
+      }
+
+      // ── Selector de productos ↔ barra flotante ──
+      function productFromBtn(btn) {
+        return { id: btn.dataset.id, nombre: btn.dataset.nombre, precio: Number(btn.dataset.precio) || 0, imagen: btn.dataset.imagen || '' };
+      }
+      function setBtnState(btn, added) {
+        btn.classList.toggle('active', added);
+        btn.textContent = added ? '✓ Agregado' : '+ Agregar a cita';
+      }
+      function syncCartButtons() {
+        var ids = {};
+        Cart.load().forEach(function (p) { ids[p.id] = true; });
+        document.querySelectorAll('.add-btn').forEach(function (btn) { setBtnState(btn, !!ids[btn.dataset.id]); });
+      }
+      function renderStickyBar() {
+        var bar = document.getElementById('stickyBar');
+        var n = Cart.count();
+        if (!n) { bar.classList.remove('visible'); document.body.classList.remove('has-cart'); return; }
+        document.getElementById('stickyCount').textContent = n + (n === 1 ? ' producto para tu cita' : ' productos para tu cita');
+        document.getElementById('stickyTotal').textContent = '+ ' + fmtPrice(Cart.total());
+        bar.classList.add('visible');
+        document.body.classList.add('has-cart');
+      }
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.add-btn');
+        if (!btn) return;
+        setBtnState(btn, Cart.toggle(productFromBtn(btn)));
+        renderStickyBar();
+      });
+      document.getElementById('stickyCta').addEventListener('click', function () {
+        location.href = '/?local=' + encodeURIComponent(TENANT_ID);
+      });
+      renderStickyBar();
+
+      function renderEmpty() {
+        document.getElementById('grid').outerHTML =
+          '<div class="empty">' +
+            '<div class="empty-ic"><i class="ph-fill ph-drop-half"></i></div>' +
+            '<h3>Catálogo en preparación</h3>' +
+            '<p>Muy pronto encontrarás aquí la línea completa de productos Slick Gorilla. ' +
+               'Mientras tanto, consúltalos directamente con nosotros.</p>' +
+            '<a class="empty-cta" href="' + waLink('Hola ' + sedeName + '! Quiero información de los productos Slick Gorilla.') + '" target="_blank" rel="noopener">' +
+              '<i class="ph-fill ph-whatsapp-logo"></i> Consultar productos' +
+            '</a>' +
+          '</div>';
+      }
+
+      // ── Carga desde Firestore (mismo inventario que gestión-interna) ──
+      function prodCol() {
+        return db.collection('tenants').doc(TENANT_ID).collection('productos');
+      }
+      prodCol().get()
+        .then(function (snap) {
+          var prods = snap.docs
+            .map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+            .filter(function (p) { return p.activo !== false && isSlick(p); })
+            .sort(function (a, b) {
+              var ao = (a.stock != null && Number(a.stock) <= 0) ? 1 : 0;
+              var bo = (b.stock != null && Number(b.stock) <= 0) ? 1 : 0;
+              if (ao !== bo) return ao - bo;
+              return (Number(a.precio) || 0) - (Number(b.precio) || 0);
+            });
+          renderCards(prods);
+        })
+        .catch(function (err) {
+          console.error('slick catalog load error:', err);
+          renderEmpty();
+        });
+    })();
+  </script>
+</body>
+</html>

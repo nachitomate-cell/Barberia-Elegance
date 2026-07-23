@@ -2442,6 +2442,45 @@
     }
     .vk-infeed-cta i { font-size: 15px; }
 
+    /* ══ AURA × SLICK GORILLA — módulo exclusivo del tenant Aura ══════════
+       Paleta clara (blanco/gris) para calzar con el tema claro de Aura.
+       Estructura calcada del bloque Viking pero con branding neutro. */
+    .sg-tab {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 800; white-space: nowrap; text-decoration: none;
+      color: #0f172a;
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      box-shadow: 0 2px 10px -2px rgba(15,23,42,0.20);
+      transition: background .2s ease, box-shadow .2s ease, transform .12s ease;
+    }
+    .sg-tab:hover  { background: #f1f5f9; box-shadow: 0 4px 14px -2px rgba(15,23,42,0.28); }
+    .sg-tab:active { transform: scale(0.96); }
+
+    .sg-infeed {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 14px; border-radius: 16px;
+      text-decoration: none; cursor: pointer;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 8px 22px -12px rgba(15,23,42,0.18);
+      transition: border-color .2s ease, transform .12s ease, box-shadow .2s ease;
+    }
+    .sg-infeed:hover  { border-color: #0f172a; box-shadow: 0 12px 26px -12px rgba(15,23,42,0.25); }
+    .sg-infeed:active { transform: scale(0.99); }
+    .sg-infeed-text  { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sg-infeed-emoji { font-size: 18px; flex-shrink: 0; }
+    .sg-infeed-text p { font-size: 12.5px; line-height: 1.35; color: #475569; margin: 0; }
+    .sg-infeed-text strong { color: #0f172a; font-weight: 700; }
+    .sg-infeed-cta {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #ffffff; background: #0f172a; border: 1px solid #0f172a;
+    }
+    .sg-infeed-cta i { font-size: 15px; }
+
     /* Hero badge "Embajador oficial" resaltado en ámbar + flecha (sedes masculinas). */
     .tenant-kronnos_penablanca .partner-badge,
     .tenant-kronnos_limache    .partner-badge {
@@ -10057,6 +10096,11 @@
     const _saveReservaCart  = (a) => { try { localStorage.setItem(_reservaCartKey(), JSON.stringify(a || [])); } catch (_) {} };
     const _clearReservaCart = ()  => { try { localStorage.removeItem(_reservaCartKey()); } catch (_) {} };
     const _isVikingSede = () => (window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache');
+    // Módulo Slick Gorilla: exclusivo del tenant Aura. Mismo mecanismo que
+    // Viking (página dedicada /slick + tab en categorías + banner in-feed +
+    // carrito compartido por localStorage). Cambiar aquí si se suma otro
+    // tenant que venda Slick Gorilla.
+    const _isSlickSede = () => (window.CURRENT_TENANT_ID === 'aura');
 
     // ── Recomendaciones de servicios (upsell configurable) ──────────
     // El admin define en /gestion-interna/servicios qué servicios se
@@ -11001,6 +11045,47 @@
         </button>`;
     }
 
+    // Módulo Slick Gorilla (SOLO Aura): mismo patrón que Viking pero con
+    // paleta clara para calzar con el tema light de Aura. La página dedicada
+    // vive en /slick.html y filtra los productos del tenant por marca/nombre/
+    // descripción conteniendo "slick" o "gorilla".
+    function _injectSlickUI() {
+      if (!_isSlickSede()) return;
+      const t = window.CURRENT_TENANT_ID;
+      const slickHref = '/slick?local=' + encodeURIComponent(t);
+
+      // 1) Pestaña "SLICK GORILLA" como 2ª pestaña (tras "Todos").
+      const pills = document.getElementById('categoryPills');
+      if (pills && !pills.querySelector('.sg-tab')) {
+        const tab = document.createElement('a');
+        tab.href = slickHref;
+        tab.className = 'sg-tab';
+        tab.setAttribute('aria-label', 'Catálogo Slick Gorilla');
+        tab.textContent = '🦍 SLICK GORILLA';
+        const first = pills.firstElementChild;
+        if (first) pills.insertBefore(tab, first.nextSibling);
+        else pills.appendChild(tab);
+      }
+
+      // 2) Banner in-feed tras la 1ª tarjeta de servicio.
+      const grid = document.getElementById('servicesGrid');
+      if (grid && !grid.querySelector('.sg-infeed')) {
+        const firstCard = grid.querySelector('.service-option');
+        if (firstCard) {
+          const banner = document.createElement('a');
+          banner.href = slickHref;
+          banner.className = 'sg-infeed';
+          banner.innerHTML =
+            '<div class="sg-infeed-text">' +
+              '<span class="sg-infeed-emoji">🦍</span>' +
+              '<p><strong>Complementa tu servicio:</strong> Cera, polvo texturizante y styling Slick Gorilla usados en tu corte.</p>' +
+            '</div>' +
+            '<span class="sg-infeed-cta"><i class="ph-bold ph-arrow-right"></i></span>';
+          firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
+        }
+      }
+    }
+
     // Refuerzo de marca Viking (SOLO sedes masculinas Kronnos): pestaña VIP en las
     // categorías + banner in-feed tras la 1ª tarjeta de servicio. Nunca en Woman.
     function _injectVikingUI() {
@@ -11917,6 +12002,7 @@
       _renderServicesGrid(_fsServices);
       _wireSvcSearch();    // buscador en tiempo real (idempotente si ya hay listener)
       _injectVikingUI();   // pestaña VIP + banner in-feed (solo sedes masculinas Kronnos)
+      _injectSlickUI();    // pestaña + banner Slick Gorilla (solo Aura)
       _renderBarberos(_fsBarberos);
       // Renderizar packs activos del user logueado (si aplica). No bloqueante.
       _renderPacksActivosBanner().catch(err => console.warn('[packs] render banner:', err.message));
@@ -13034,12 +13120,18 @@
           const prodTotal = _selectedProducts.reduce((s, p) => s + (Number(p.precio) || 0), 0);
           const grand = totalCost + prodTotal;
           const vk = _isVikingSede();
+          const sg = _isSlickSede();
           // Sedes Viking: cabecera "Productos Viking incluidos" + Editar (→/viking) y total en esmeralda.
+          // Aura: cabecera "Productos Slick Gorilla incluidos" + Editar (→/slick), paleta sobria.
           const header = vk ? `
             <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#f59e0b;margin-bottom:8px;">
               <span>🛍️ Productos Viking incluidos</span>
               <a href="/viking?local=${encodeURIComponent(window.CURRENT_TENANT_ID || '')}" style="color:rgba(251,191,36,0.85);text-transform:none;letter-spacing:normal;font-weight:500;text-decoration:underline;text-underline-offset:2px;">Editar</a>
-            </div>` : '';
+            </div>` : (sg ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:8px;">
+              <span>🦍 Productos Slick Gorilla incluidos</span>
+              <a href="/slick?local=${encodeURIComponent(window.CURRENT_TENANT_ID || '')}" style="color:rgba(148,163,184,0.90);text-transform:none;letter-spacing:normal;font-weight:500;text-decoration:underline;text-underline-offset:2px;">Editar</a>
+            </div>` : '');
           const totalSpan = vk
             ? `<span style="font-size:24px;font-weight:900;color:#34d399;line-height:1;">$${grand.toLocaleString('es-CL')}</span>`
             : `<span class="font-black text-white text-[15px]">$${grand.toLocaleString('es-CL')}</span>`;
@@ -13163,7 +13255,7 @@
                 btn.style.color = '';
                 btn.style.borderColor = '';
               }
-              if (_isVikingSede()) _saveReservaCart(_selectedProducts);  // sincronía con /viking (solo sedes Viking)
+              if (_isVikingSede() || _isSlickSede()) _saveReservaCart(_selectedProducts);  // sincronía con /viking o /slick
               refreshReservaTotal();
             };
           } else {
