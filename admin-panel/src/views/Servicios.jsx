@@ -68,6 +68,14 @@ const EMPTY = {
   sesionesTotales: '',
   diasValidez: '',
   serviciosIncluidos: [],
+  // Cantidad por servicio dentro del pack: { servicioId: n }. Con este mapa
+  // se pueden armar packs "2 cortes + 2 barbas al mes" en vez de "4 usos de
+  // cualquiera". sesionesTotales se auto-calcula como la suma. Backward-compat:
+  // si el doc trae serviciosIncluidos sin serviciosCantidades (packs viejos),
+  // el UI arranca con cantidad 0 en cada uno y el usuario define la nueva
+  // distribución al editar. La CF pack-automatico.js sigue leyendo
+  // serviciosIncluidos como fuente de verdad de "qué cubre el pack".
+  serviciosCantidades: {},
   // Recomendaciones al reservar: IDs de servicios que la web pública ofrece
   // como complemento cuando el cliente elige este servicio (ej: corte →
   // perfilado de cejas). Solo aplican si el módulo global está encendido
@@ -210,7 +218,7 @@ export default function Servicios() {
     setSlide(true);
   };
   // "Nuevo pack" abre el mismo SlideOver pero con isPack:true de arranque.
-  // El JSX del form detecta el modo pack (!editing && form.isPack) y esconde
+  // El JSX del form detecta el modo pack (form.isPack) y esconde
   // el toggle redundante + toggles irrelevantes (precios por día/sede,
   // recomendaciones) para que la UX quede enfocada en configurar la cuponera.
   const openNewPack = () => {
@@ -245,6 +253,11 @@ export default function Servicios() {
       sesionesTotales:    s.sesionesTotales != null ? String(s.sesionesTotales) : '',
       diasValidez:        s.diasValidez     != null ? String(s.diasValidez)     : '',
       serviciosIncluidos: Array.isArray(s.serviciosIncluidos) ? [...s.serviciosIncluidos] : [],
+      // Cantidades por servicio: convertir números a strings para los inputs.
+      // Si el pack viejo no tenía este mapa, arranca vacío y el editor lo pide.
+      serviciosCantidades: (s.serviciosCantidades && typeof s.serviciosCantidades === 'object')
+        ? Object.fromEntries(Object.entries(s.serviciosCantidades).map(([k, v]) => [k, v != null ? String(v) : '']))
+        : {},
       recomendar:         Array.isArray(s.recomendados) && s.recomendados.length > 0,
       recomendados:       Array.isArray(s.recomendados) ? [...s.recomendados] : [],
       soloStaff:          !!s.soloStaff,
@@ -302,8 +315,21 @@ export default function Servicios() {
       // Config del pack (solo si isPack está activo). Validamos enteros ≥ 1
       // para no permitir "0 sesiones" o valores raros que rompen el consumo.
       const isPack = !!form.isPack;
+      // Cantidades por servicio: solo enteros > 0. Los servicios con cantidad
+      // 0 o vacía se descartan (equivale a "no incluido"). Sirve para packs
+      // tipo "2 cortes + 2 barbas al mes" en vez de "4 usos de cualquiera".
+      const serviciosCantidades = {};
+      if (isPack && form.serviciosCantidades) {
+        Object.entries(form.serviciosCantidades).forEach(([sid, v]) => {
+          const n = Math.max(0, Math.round(Number(v) || 0));
+          if (sid && n > 0) serviciosCantidades[sid] = n;
+        });
+      }
+      const sumaCantidades = Object.values(serviciosCantidades).reduce((a, b) => a + b, 0);
+      // Si el usuario definió cantidades, sesionesTotales = suma. Si no
+      // (backward-compat), tomamos el valor del input manual.
       const sesionesTotales = isPack
-        ? Math.max(1, Math.round(Number(form.sesionesTotales) || 0))
+        ? Math.max(1, sumaCantidades || Math.round(Number(form.sesionesTotales) || 0))
         : 0;
       const diasValidez = isPack
         ? Math.max(1, Math.round(Number(form.diasValidez) || 0))
@@ -319,7 +345,12 @@ export default function Servicios() {
 
       const base = {
         nombre: form.nombre, categoria: form.categoria,
-        precio: basePrecio, duracion: Number(form.duracion),
+        precio: basePrecio,
+        // Duración: los servicios normales la piden como input. Los packs no
+        // (cada sesión hereda la duración del servicio consumido), así que
+        // guardamos 30 min como placeholder para que el schema siga siendo
+        // uniforme y las vistas legacy que leen `duracion` no fallen.
+        duracion: Number(form.duracion) || (isPack ? 30 : 30),
         icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp(),
         recargoSobrecupoDefault,
         // Pack / cuponera. isPack=false explícito para que el filtro
@@ -330,11 +361,18 @@ export default function Servicios() {
       if (isPack) {
         base.sesionesTotales = sesionesTotales;
         base.diasValidez     = diasValidez;
-        // IDs de servicios que cubre el pack. Filtramos cadenas vacías y
-        // deduplicamos para no persistir basura.
-        base.serviciosIncluidos = Array.from(new Set(
-          (form.serviciosIncluidos || []).filter(id => typeof id === 'string' && id.length > 0)
-        ));
+        // Si el usuario definió cantidades por servicio, `serviciosIncluidos`
+        // se deriva del mapa. Si no (modo viejo), respetamos lo que ya venía
+        // marcado con los checkboxes.
+        const idsDeCantidades = Object.keys(serviciosCantidades);
+        base.serviciosIncluidos = idsDeCantidades.length
+          ? idsDeCantidades
+          : Array.from(new Set(
+              (form.serviciosIncluidos || []).filter(id => typeof id === 'string' && id.length > 0)
+            ));
+        // Mapa detallado {servicioId: cantidad}. Vacío si el usuario no lo
+        // definió (backward-compat con packs viejos).
+        base.serviciosCantidades = serviciosCantidades;
       }
 
       let imagenUrl = form.imagen ?? null;
@@ -360,6 +398,7 @@ export default function Servicios() {
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
           diasValidez:        isPack ? diasValidez        : deleteField(),
           serviciosIncluidos: isPack ? (base.serviciosIncluidos || []) : deleteField(),
+          serviciosCantidades: isPack ? (base.serviciosCantidades || {}) : deleteField(),
           recomendados:       recomendados.length ? recomendados : deleteField(),
         });
       } else {
@@ -438,6 +477,7 @@ export default function Servicios() {
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
   const lbl   = 'block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5';
   const help  = 'text-xs text-slate-500 mt-1';
+  const sectionHead = 'text-[11px] font-bold uppercase tracking-widest text-violet-200/80 mb-2';
 
   const previewSrc = imagePreview || form.imagen;
 
@@ -618,7 +658,11 @@ export default function Servicios() {
       <SlideOver
         isOpen={slide}
         onClose={() => { resetImageState(); setSlide(false); }}
-        title={editing ? 'Editar servicio' : (!editing && form.isPack ? 'Nuevo pack' : 'Nuevo servicio')}
+        title={
+          form.isPack
+            ? (editing ? 'Editar pack' : 'Nuevo pack')
+            : (editing ? 'Editar servicio' : 'Nuevo servicio')
+        }
         footer={
           // Footer premium: sticky con desenfoque para no perder el CTA al scrollear.
           // (El SlideOver ya lo renderiza fuera del body scrollable, así que la
@@ -632,40 +676,76 @@ export default function Servicios() {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !form.nombre || !form.precio || !form.duracion}
+              disabled={
+                saving ||
+                !form.nombre ||
+                !form.precio ||
+                // Servicio: requiere duración. Pack: requiere ≥1 servicio con cantidad > 0.
+                (form.isPack
+                  ? Object.values(form.serviciosCantidades || {}).reduce(
+                      (a, v) => a + (Math.max(0, Math.round(Number(v) || 0))), 0,
+                    ) === 0
+                  : !form.duracion)
+              }
               className={`px-6 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-medium rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                !editing && form.isPack
+                form.isPack
                   ? 'bg-violet-600 hover:bg-violet-500 shadow-violet-500/20'
                   : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'
               }`}
             >
               {(saving || imgUploading) && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : (!editing && form.isPack ? 'Crear pack' : 'Crear servicio'))}
+              {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : (form.isPack ? 'Crear pack' : 'Crear servicio'))}
             </button>
           </div>
         }
       >
         <div className="space-y-5">
 
+          {/* En modo pack, un encabezado hero al inicio para ubicar al
+              usuario: qué está haciendo, qué debe entender. */}
+          {form.isPack && (
+            <div className="rounded-xl p-4 border border-violet-500/40 bg-gradient-to-br from-violet-500/[0.14] to-violet-500/[0.04] flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/25 border border-violet-500/40 flex items-center justify-center shrink-0">
+                <Package size={18} className="text-violet-200" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-primary">
+                  {editing ? 'Editando pack' : 'Nuevo pack'}
+                </p>
+                <p className="text-[11.5px] text-violet-100/80 mt-0.5 leading-relaxed">
+                  El cliente paga <b>una vez</b> y consume <b>N sesiones prepagas</b> dentro
+                  de la vigencia. Las citas de consumo se cobran <b>$0</b>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ── Nombre ── */}
           <div>
-            <label className={lbl}>Nombre del servicio</label>
-            <input className={field} placeholder="Corte clásico" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+            <label className={lbl}>{form.isPack ? 'Nombre del pack' : 'Nombre del servicio'}</label>
+            <input className={field} placeholder={form.isPack ? 'Ej. Pack Corte + Barba × 4' : 'Corte clásico'} value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
           </div>
 
-          {/* ── Precio + Duración ── */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* ── Precio + Duración ──
+              En modo pack, la duración por sesión pierde sentido: cada visita
+              se agenda con la duración del servicio consumido. Se oculta y se
+              usa una duración placeholder (30) al guardar. */}
+          <div className={form.isPack ? '' : 'grid grid-cols-2 gap-3'}>
             <div>
-              <label className={lbl}>Precio (CLP)</label>
-              <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="12000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value.replace(/[^\d]/g, '') }))} />
+              <label className={lbl}>{form.isPack ? 'Precio del pack (CLP)' : 'Precio (CLP)'}</label>
+              <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder={form.isPack ? '40000' : '12000'} value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value.replace(/[^\d]/g, '') }))} />
+              {form.isPack && <p className={help}>Lo que paga el cliente una sola vez por el pack completo.</p>}
             </div>
-            <div>
-              <label className={lbl}>Duración (min)</label>
-              <input className={field} type="number" placeholder="45" value={form.duracion} onChange={e => setForm(f => ({ ...f, duracion: e.target.value }))} />
-            </div>
+            {!form.isPack && (
+              <div>
+                <label className={lbl}>Duración (min)</label>
+                <input className={field} type="number" placeholder="45" value={form.duracion} onChange={e => setForm(f => ({ ...f, duracion: e.target.value }))} />
+              </div>
+            )}
           </div>
 
-          {/* ── Recargo sobrecupo ── */}
+          {/* ── Recargo sobrecupo (NO aplica a packs — el pack ya está pagado) ── */}
+          {!form.isPack && (
           <div>
             <label className={lbl}>
               Recargo por Sobrecupo <span className="text-slate-600 normal-case tracking-normal font-normal ml-1">(opcional)</span>
@@ -681,12 +761,15 @@ export default function Servicios() {
               Monto adicional cuando la cita es sobrecupo o fuera de turno. El barbero puede ajustarlo por cita.
             </p>
           </div>
+          )}
 
           {/* ══════════════════════════════════════════════════════════
               TOGGLE: Servicio interno (solo staff)
               Se oculta en la reserva online del cliente pero sigue
               disponible al agendar desde el panel / agenda del barbero.
+              No aplica a packs — se agendan siempre por el cliente.
               ══════════════════════════════════════════════════════════ */}
+          {!form.isPack && (
           <div>
             <button
               type="button"
@@ -708,6 +791,7 @@ export default function Servicios() {
               </span>
             </button>
           </div>
+          )}
 
           {/* ── Categoría + Ícono ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -782,7 +866,7 @@ export default function Servicios() {
               En modo "Nuevo pack" esta sección se esconde: la cuponera tiene
               un precio único (el prepago) que no varía por día.
               ══════════════════════════════════════════════════════════ */}
-          {!(!editing && form.isPack) && (
+          {!form.isPack && (
           <div>
             <button
               type="button"
@@ -833,7 +917,7 @@ export default function Servicios() {
               precio único en el tenant; para variarlo por sede, se edita
               después de creada.
               ══════════════════════════════════════════════════════════ */}
-          {!(!editing && form.isPack) && multiSucursal && sucursales.length > 0 && (
+          {!form.isPack && multiSucursal && sucursales.length > 0 && (
             <div>
               <button
                 type="button"
@@ -886,68 +970,134 @@ export default function Servicios() {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════
-              TOGGLE: Pack / Cuponera
-              Mismo patrón que precios variables. Motor de sesiones prepagas.
-              En modo "Nuevo pack" (venir del botón violeta) el toggle no se
-              muestra: el usuario ya decidió que quiere un pack, y el bloque
-              de config aparece expandido de arranque bajo un encabezado
-              estático que confirma el modo activo.
-              ══════════════════════════════════════════════════════════ */}
-          <div>
-            {(!editing && form.isPack) ? (
-              // Encabezado estático "modo pack" — reemplaza al toggle.
-              <div className="flex items-center gap-2 px-4 py-3 rounded-t-xl border border-b-0 border-violet-500/40 bg-violet-500/10">
-                <Package size={15} className="text-violet-300 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-primary">Modo Pack activo</p>
-                  <p className="text-[11px] text-violet-200/70">Múltiples visitas prepagas dentro de una vigencia. Configura sesiones, precio y servicios cubiertos.</p>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setForm(f => ({ ...f, isPack: !f.isPack }))}
-                className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
-                  form.isPack
-                    ? 'bg-slate-800/50 border-violet-500/40 rounded-t-xl border-b-transparent'
-                    : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
-                }`}
-              >
-                <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                    <span aria-hidden="true">📦</span> Este servicio es un Pack / Combo
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Múltiples visitas prepagas dentro de una vigencia.</p>
-                </div>
-                <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.isPack ? 'left-[22px]' : 'left-0.5'}`} />
-                </span>
-              </button>
-            )}
-            {form.isPack && (
-              <div className="bg-slate-900/50 border-x border-b border-violet-500/40 rounded-b-xl p-4 space-y-4">
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  El cliente paga <span className="text-primary font-semibold">${form.precio || '?'}</span> una vez y consume N visitas dentro de la vigencia. Las citas de consumo se cobran <span className="text-primary font-semibold">$0</span>.
+          {/* Bloque de configuración del pack: se muestra SOLO cuando el
+              modal está en modo pack (form.isPack). El toggle "Este servicio
+              es un Pack / Combo" del formulario normal se eliminó — ahora los
+              packs son una entidad aparte que se crea con el botón "Nuevo pack"
+              del header. Editar un pack existente sigue mostrando esta sección
+              porque form.isPack viene true del doc. */}
+          {form.isPack && (() => {
+            // Suma de cantidades por servicio → total de sesiones del pack.
+            // Se recalcula en cada render mientras el usuario edita los inputs.
+            const cantidades = form.serviciosCantidades || {};
+            const totalSesiones = Object.values(cantidades)
+              .reduce((a, v) => a + (Math.max(0, Math.round(Number(v) || 0))), 0);
+            const setCant = (sid, raw) => {
+              const val = String(raw).replace(/[^\d]/g, '').slice(0, 3);
+              setForm(f => {
+                const next = { ...(f.serviciosCantidades || {}), [sid]: val };
+                if (val === '' || Number(val) === 0) delete next[sid];
+                // Mantener `serviciosIncluidos` sincronizado con las claves
+                // que tienen cantidad > 0 (fuente de verdad de "qué cubre").
+                const incluidos = Object.keys(next);
+                return { ...f, serviciosCantidades: next, serviciosIncluidos: incluidos };
+              });
+            };
+            const stepCant = (sid, delta) => {
+              const actual = Math.max(0, Math.round(Number(cantidades[sid]) || 0));
+              const nuevo  = Math.max(0, actual + delta);
+              setCant(sid, String(nuevo));
+            };
+            return (
+            <div className="space-y-4">
+              {/* Sub-sección: qué servicios y cuántas sesiones de cada uno.
+                  Cada fila = un servicio + sus sesiones. Ej: "2 cortes + 2 barbas".
+                  El total de sesiones es la suma automática de estas cantidades. */}
+              <div>
+                <p className={sectionHead}>1. Cuántas sesiones de cada servicio</p>
+                <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+                  Define exactamente cuántas veces se puede usar cada servicio.
+                  Ejemplo: <span className="text-slate-300 font-medium">2 cortes y 2 barbas al mes</span>.
                 </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={lbl}>Sesiones incluidas</label>
-                    <input
-                      type="number" min="1" step="1" inputMode="numeric"
-                      placeholder="Ej: 4"
-                      value={form.sesionesTotales}
-                      onChange={e => setForm(f => ({ ...f, sesionesTotales: e.target.value.replace(/[^\d]/g, '') }))}
-                      className={field}
-                    />
-                    <p className={help}>Cantidad total de citas del pack.</p>
+                <div className="bg-slate-950/40 border border-slate-700 rounded-lg max-h-64 overflow-y-auto p-1.5 space-y-0.5">
+                  {servicios.filter(s => s.id !== editing && !s.isPack).length === 0 ? (
+                    <p className="text-xs text-slate-500 py-6 text-center italic px-4">
+                      Crea primero los servicios normales que quieres incluir en el pack.
+                    </p>
+                  ) : (
+                    servicios
+                      .filter(s => s.id !== editing && !s.isPack)
+                      .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
+                      .map(s => {
+                        const cantRaw = cantidades[s.id];
+                        const cant    = Math.max(0, Math.round(Number(cantRaw) || 0));
+                        const activo  = cant > 0;
+                        return (
+                          <div
+                            key={s.id}
+                            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors ${
+                              activo ? 'bg-violet-500/10' : 'hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <i className={`ph ${s.icono || 'ph-scissors'} text-base ${activo ? 'text-violet-300' : 'text-slate-500'}`} />
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-sm truncate block ${activo ? 'text-primary font-medium' : 'text-slate-300'}`}>
+                                {s.nombre}
+                              </span>
+                              <span className="text-[10px] text-slate-500">
+                                ${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')} c/u
+                              </span>
+                            </div>
+                            {/* Stepper -/+ con input al medio: touch friendly */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => stepCant(s.id, -1)}
+                                disabled={cant === 0}
+                                aria-label={`Restar sesión de ${s.nombre}`}
+                                className="w-7 h-7 flex items-center justify-center rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 text-sm font-bold transition-colors"
+                              >
+                                −
+                              </button>
+                              <input
+                                type="number"
+                                min="0" step="1" inputMode="numeric"
+                                placeholder="0"
+                                value={cantRaw ?? ''}
+                                onChange={e => setCant(s.id, e.target.value)}
+                                className={`w-12 text-center rounded-md py-1 text-sm font-bold border transition-colors ${
+                                  activo
+                                    ? 'bg-violet-500/15 border-violet-500/40 text-violet-200'
+                                    : 'bg-slate-900 border-slate-700 text-slate-400'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => stepCant(s.id, 1)}
+                                aria-label={`Sumar sesión de ${s.nombre}`}
+                                className="w-7 h-7 flex items-center justify-center rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-colors"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+                {/* Total de sesiones (auto-computado). Fila destacada con la
+                    suma de cantidades — reemplaza al viejo input manual. */}
+                {totalSesiones > 0 && (
+                  <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/25">
+                    <span className="text-xs font-semibold text-violet-200">Total del pack</span>
+                    <span className="text-sm font-black text-violet-100">
+                      {totalSesiones} sesion{totalSesiones === 1 ? '' : 'es'}
+                    </span>
                   </div>
+                )}
+              </div>
+
+              {/* Sub-sección: vigencia. Un solo campo (los días desde la
+                  primera cita hasta que el pack expira). Sesiones se auto-
+                  calcula arriba, ya no lo pedimos por separado. */}
+              <div>
+                <p className={sectionHead}>2. Por cuánto tiempo se puede usar</p>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={lbl}>Vigencia (días)</label>
                     <input
                       type="number" min="1" step="1" inputMode="numeric"
-                      placeholder="Ej: 30"
+                      placeholder="30"
                       value={form.diasValidez}
                       onChange={e => setForm(f => ({ ...f, diasValidez: e.target.value.replace(/[^\d]/g, '') }))}
                       className={field}
@@ -955,58 +1105,55 @@ export default function Servicios() {
                     <p className={help}>Días desde la primera cita hasta que expira.</p>
                   </div>
                 </div>
+              </div>
 
-                {/* Servicios cubiertos — checkboxes elegantes */}
-                <div>
-                  <label className={lbl}>¿Qué servicios cubre este pack?</label>
-                  <div className="mt-1 bg-slate-950/40 border border-slate-700 rounded-lg max-h-56 overflow-y-auto p-1.5 space-y-0.5">
-                    {servicios.filter(s => s.id !== editing).length === 0 ? (
-                      <p className="text-xs text-slate-500 py-6 text-center italic px-4">
-                        Crea primero los servicios normales que quieres incluir en el pack.
-                      </p>
-                    ) : (
-                      servicios
-                        .filter(s => s.id !== editing && !s.isPack)
-                        .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
-                        .map(s => {
-                          const checked = (form.serviciosIncluidos || []).includes(s.id);
-                          return (
-                            <label
+              {/* Preview del pack — resume lo elegido en una tarjeta simple
+                  que refleja cómo lo va a ver el cliente. Se actualiza en vivo.
+                  Desglose por servicio "2 Corte · 2 Barba" abajo del monto. */}
+              <div className="rounded-xl p-4 border border-violet-500/30 bg-gradient-to-br from-violet-500/[0.08] to-violet-500/[0.02]">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300/70 mb-2">Vista previa</p>
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center shrink-0">
+                    <Package size={18} className="text-violet-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-primary truncate">
+                      {form.nombre || 'Nombre del pack'}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      <span className="text-violet-300 font-bold">
+                        ${form.precio ? Number(form.precio).toLocaleString('es-CL') : '?'}
+                      </span>
+                      {' · '}
+                      <span>{totalSesiones || '?'} sesion{totalSesiones === 1 ? '' : 'es'}</span>
+                      {' · '}
+                      <span>{form.diasValidez || '?'} días</span>
+                    </p>
+                    {totalSesiones > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {servicios
+                          .filter(s => Number(cantidades[s.id]) > 0)
+                          .map(s => (
+                            <span
                               key={s.id}
-                              className={`flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
-                                checked ? 'bg-violet-500/10' : 'hover:bg-slate-800/50'
-                              }`}
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-200 rounded-full px-2 py-0.5"
                             >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={e => {
-                                  const next = new Set(form.serviciosIncluidos || []);
-                                  if (e.target.checked) next.add(s.id);
-                                  else next.delete(s.id);
-                                  setForm(f => ({ ...f, serviciosIncluidos: [...next] }));
-                                }}
-                                className="w-4 h-4 bg-slate-900 border-slate-600 rounded accent-violet-500 cursor-pointer shrink-0"
-                              />
-                              <i className={`ph ${s.icono || 'ph-scissors'} text-base ${checked ? 'text-violet-300' : 'text-slate-500'}`} />
-                              <span className={`text-sm truncate flex-1 ${checked ? 'text-primary font-medium' : 'text-slate-300'}`}>
-                                {s.nombre}
-                              </span>
-                              <span className="text-[10px] text-slate-500 shrink-0 uppercase tracking-wider">
-                                {s.categoria || 'Otro'}
-                              </span>
-                            </label>
-                          );
-                        })
+                              <b>{Math.round(Number(cantidades[s.id]) || 0)}</b> {s.nombre}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+                    {form.precio && totalSesiones > 0 && (
+                      <p className="text-[10px] text-emerald-400/80 font-semibold mt-2">
+                        ${Math.round(Number(form.precio) / totalSesiones).toLocaleString('es-CL')} por sesión
+                      </p>
                     )}
                   </div>
-                  <p className={help}>
-                    Cuando el cliente reserve uno de estos servicios y tenga este pack activo, la web se lo descontará automáticamente.
-                  </p>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+            );
+          })()}
 
           {/* ══════════════════════════════════════════════════════════
               TOGGLE: Recomendaciones al reservar
@@ -1016,7 +1163,7 @@ export default function Servicios() {
               En modo "Nuevo pack" no aplica: el pack ES la venta, no tiene
               sentido recomendar OTRAS cosas encima.
               ══════════════════════════════════════════════════════════ */}
-          {!(!editing && form.isPack) && (
+          {!form.isPack && (
           <div>
             <button
               type="button"
