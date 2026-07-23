@@ -61,6 +61,11 @@ const EMPTY = {
   // prendido = ninguna (queda oculto en la reserva pública).
   restringirSucursales: false,
   sucursalesDisponibles: [],
+  // Disponibilidad por barbero. Mismo patrón que sedes: toggle apagado o campo
+  // ausente = lo puede realizar cualquier barbero. Toggle prendido con array
+  // vacío = ningún barbero (queda oculto en la reserva pública y en agenda).
+  restringirBarberos: false,
+  barberosDisponibles: [],
   recargoSobrecupoDefault: '',
   // Servicio interno: solo el staff puede agendarlo desde el panel.
   // La reserva online pública (index.html) lo oculta. Útil para walk-ins,
@@ -168,6 +173,9 @@ function IconPicker({ value, onChange }) {
 
 export default function Servicios() {
   const { data: servicios, loading } = useCollection('servicios', [orderBy('orden')]);
+  // Lista de barberos (para el toggle "Solo ciertos barberos" del editor).
+  // Se ordena por `orden` y se filtran los inactivos en el UI del chip.
+  const { data: barberos } = useCollection('barberos', [orderBy('orden')]);
   const { config, updateConfig }     = useConfig();
   const { multiSucursal, sucursales } = useSucursal();
   const categorias = config.categoriasServicio ?? ['Otro'];
@@ -267,6 +275,10 @@ export default function Servicios() {
       // el servicio va a todas las sedes.
       restringirSucursales:  Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0,
       sucursalesDisponibles: Array.isArray(s.sucursalesDisponibles) ? [...s.sucursalesDisponibles] : [],
+      // Barberos disponibles: mismo patrón que sedes. Vacío o campo ausente =
+      // el servicio lo pueden realizar TODOS los barberos.
+      restringirBarberos:  Array.isArray(s.barberosDisponibles) && s.barberosDisponibles.length > 0,
+      barberosDisponibles: Array.isArray(s.barberosDisponibles) ? [...s.barberosDisponibles] : [],
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
       // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
@@ -343,6 +355,13 @@ export default function Servicios() {
         ? Array.from(new Set(
             (form.sucursalesDisponibles || [])
               .filter(sid => typeof sid === 'string' && sid.length > 0)
+          ))
+        : null;
+      // Barberos disponibles: mismo saneo. Toggle apagado ⇒ null ⇒ deleteField.
+      const barberosDisponibles = form.restringirBarberos
+        ? Array.from(new Set(
+            (form.barberosDisponibles || [])
+              .filter(bid => typeof bid === 'string' && bid.length > 0)
           ))
         : null;
       const descripcion = form.descripcion.trim();
@@ -435,6 +454,7 @@ export default function Servicios() {
             : deleteField(),
           diasDisponibles: diasDisponibles ? diasDisponibles : deleteField(),
           sucursalesDisponibles: sucursalesDisponibles ? sucursalesDisponibles : deleteField(),
+          barberosDisponibles: barberosDisponibles ? barberosDisponibles : deleteField(),
           // Al desactivar el pack, borramos los campos residuales para que el
           // servicio se comporte como normal en el flujo público y en Agenda.
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
@@ -453,6 +473,7 @@ export default function Servicios() {
         }
         if (diasDisponibles) newDoc.diasDisponibles = diasDisponibles;
         if (sucursalesDisponibles) newDoc.sucursalesDisponibles = sucursalesDisponibles;
+        if (barberosDisponibles) newDoc.barberosDisponibles = barberosDisponibles;
         if (recomendados.length) newDoc.recomendados = recomendados;
         // Create doc first to get ID, then upload image
         const docRef = await addDoc(tenantCol('servicios'), newDoc);
@@ -1088,6 +1109,94 @@ export default function Servicios() {
                 {(form.sucursalesDisponibles || []).length === 0 && (
                   <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
                     ⚠ Sin ninguna sede marcada el servicio queda oculto en la reserva pública. Marca al menos una o apaga el toggle para que aparezca en todas.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Disponibilidad por barbero
+              Cuando se prende, el servicio solo puede realizarlo el/los
+              barbero(s) marcado(s). Apagado o sin marcar = lo hacen todos
+              los del catálogo (backward-compat). Se persiste como
+              `barberosDisponibles:[ids]` y filtra:
+                · /barbero.html (perfil público del barbero)
+                · /agenda.html (dropdown de servicios al añadir cita)
+              En modo pack se esconde: los packs heredan disponibilidad de
+              los servicios que cubren.
+              ══════════════════════════════════════════════════════════ */}
+          {!form.isPack && (barberos || []).length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, restringirBarberos: !f.restringirBarberos }))}
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                form.restringirBarberos
+                  ? 'bg-slate-800/50 border-cyan-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                  <span aria-hidden="true">✂️</span> Solo lo realizan ciertos barberos
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Útil para servicios exclusivos de un profesional (ej. tinturas, colorimetría).</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.restringirBarberos ? 'bg-cyan-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.restringirBarberos ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+            {form.restringirBarberos && (
+              <div className="bg-slate-900/50 border-x border-b border-cyan-500/40 rounded-b-xl p-4">
+                <p className="text-xs text-slate-500 mb-3">
+                  Solo aparecerá en la agenda del barbero seleccionado y en su perfil público. El resto del equipo no lo verá.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(barberos || [])
+                    .filter(b => b.activo !== false)
+                    .map(b => {
+                      const activo = (form.barberosDisponibles || []).includes(b.id);
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setForm(f => {
+                            const set = new Set(f.barberosDisponibles || []);
+                            if (set.has(b.id)) set.delete(b.id); else set.add(b.id);
+                            return { ...f, barberosDisponibles: Array.from(set) };
+                          })}
+                          aria-pressed={activo}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
+                            activo
+                              ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-200 shadow-[0_2px_10px_rgba(6,182,212,0.18)]'
+                              : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                          }`}
+                        >
+                          {b.foto ? (
+                            <img
+                              src={b.foto}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover shrink-0"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span
+                              aria-hidden="true"
+                              className="w-5 h-5 rounded-full bg-slate-700 shrink-0 flex items-center justify-center text-[10px] text-slate-300"
+                            >
+                              {(b.nombre || '?').charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="truncate">{b.nombre || 'Sin nombre'}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+                {(form.barberosDisponibles || []).length === 0 && (
+                  <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
+                    ⚠ Sin ningún barbero marcado el servicio queda oculto. Marca al menos uno o apaga el toggle para que lo pueda hacer todo el equipo.
                   </p>
                 )}
               </div>

@@ -6711,12 +6711,21 @@
     function _populateServiciosSelect() {
         const sel = document.getElementById('manualServiceSelect');
         if (!sel || !_servicios) return;
-        if (!_servicios.length) {
+        // Filtrar servicios restringidos a ciertos barberos. Si el servicio
+        // define `barberosDisponibles` no vacío, solo aparece cuando el
+        // barbero autenticado está en esa lista. Sin campo o vacío = lo pueden
+        // agendar todos (backward-compat).
+        const _bid = String(barberId || '');
+        const _disponibles = _servicios.filter(s => {
+            if (!Array.isArray(s.barberosDisponibles) || s.barberosDisponibles.length === 0) return true;
+            return s.barberosDisponibles.map(String).includes(_bid);
+        });
+        if (!_disponibles.length) {
             sel.innerHTML = '<option value="" style="background:#111">Sin servicios disponibles</option>';
             return;
         }
         sel.innerHTML = '<option value="" style="background:#111">— Selecciona un servicio —</option>' +
-            _servicios.map(s =>
+            _disponibles.map(s =>
                 `<option value="${_escHtml(s.id)}" data-dur="${s.duracion || 30}" data-precio="${s.precio || 0}" style="background:#111">${_escHtml(s.nombre)}${s.duracion ? '  ·  ' + s.duracion + ' min' : ''}</option>`
             ).join('');
     }

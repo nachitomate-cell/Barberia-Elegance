@@ -2304,6 +2304,15 @@
       _allServices = _allServices.filter(s => _svc.has(String(s.id)));
     }
 
+    // Filtro inverso: si el servicio está restringido a ciertos barberos
+    // (`barberosDisponibles` no vacío), solo aparece si este barbero está
+    // en la lista. Sin campo o vacío = disponible para todos (backward-compat).
+    const _bid = String(_barber.id);
+    _allServices = _allServices.filter(s => {
+      if (!Array.isArray(s.barberosDisponibles) || s.barberosDisponibles.length === 0) return true;
+      return s.barberosDisponibles.map(String).includes(_bid);
+    });
+
     renderCategories(_allServices);
     // Si el catálogo del barbero es grande, arrancamos con la 1ª categoría
     // específica (renderCategories ya la marcó activa y guardó en _activeCategory).
