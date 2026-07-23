@@ -5,9 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useSucursal } from '../contexts/SucursalContext';
 
 // Modal para gestionar citas pendientes rápidamente
-function PendingAppointmentsModal({ citas, onClose }) {
+function PendingAppointmentsModal({ citas, onClose, sedeChip = '', showSedeInCard = false, sucursalNombreById = {} }) {
   const [loadingIds, setLoadingIds] = useState(new Set());
   const navigate = useNavigate();
 
@@ -39,29 +40,44 @@ function PendingAppointmentsModal({ citas, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
       <div className="w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-amber-500/10 rounded-t-2xl">
-          <div className="flex items-center gap-2 text-amber-500">
-            <AlertTriangle size={20} />
-            <h3 className="font-semibold">Cierres Pendientes ({citas.length})</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-amber-500/10 rounded-t-2xl gap-2">
+          <div className="flex items-center gap-2 text-amber-500 min-w-0">
+            <AlertTriangle size={20} className="shrink-0" />
+            <h3 className="font-semibold truncate">Cierres Pendientes ({citas.length})</h3>
+            {sedeChip && (
+              <span className="ml-1 text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-0.5 truncate shrink">
+                📍 {sedeChip}
+              </span>
+            )}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-amber-500/60 hover:text-amber-500 hover:bg-amber-500/20 transition-all">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-amber-500/60 hover:text-amber-500 hover:bg-amber-500/20 transition-all shrink-0">
             <XCircle size={20} />
           </button>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           <p className="text-sm text-slate-400 mb-4">
-            Marca si estas citas fueron completadas o canceladas para mantener tu agenda al día:
+            {sedeChip
+              ? `Solo se muestran las citas pendientes de ${sedeChip}. Marca si fueron completadas o canceladas.`
+              : 'Marca si estas citas fueron completadas o canceladas para mantener tu agenda al día:'}
           </p>
 
-          {citas.map(cita => (
+          {citas.map(cita => {
+            const sedeDeLaCita = cita.sucursalNombre
+              || (cita.sucursalId ? sucursalNombreById[cita.sucursalId] : '');
+            return (
             <div key={cita.id} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">
                     {cita.fecha} {cita.hora}
                   </span>
                   <span className="text-xs text-slate-500 truncate">{cita.barbero}</span>
+                  {showSedeInCard && sedeDeLaCita && (
+                    <span className="text-[10px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 rounded-full px-1.5 py-0.5">
+                      📍 {sedeDeLaCita}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm font-medium text-primary truncate">{cita.clienteNombre}</p>
                 <p className="text-xs text-slate-400 truncate">{cita.servicioNombre}</p>
@@ -87,7 +103,8 @@ function PendingAppointmentsModal({ citas, onClose }) {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {citas.length === 0 && (
             <div className="text-center py-8 text-slate-500">
@@ -102,6 +119,12 @@ function PendingAppointmentsModal({ citas, onClose }) {
 
 export default function PendingAppointmentsBanner() {
   const [modalOpen, setModalOpen] = useState(false);
+  // Multi-sucursal: en tenants con >1 sede, los cierres pendientes se filtran
+  // por la sede activa del panel. El SucursalContext ya lo aplica dentro de
+  // useCollection, pero además reforzamos acá excluyendo citas SIN sucursalId
+  // cuando el usuario opera desde una sede específica — así una cita legacy
+  // sin taggear no "cruza" entre locales del mismo tenant.
+  const { multiSucursal, activeId, activeSucursal, sucursales } = useSucursal();
 
   // Obtener fecha actual YYYY-MM-DD
   const now = new Date();
@@ -127,7 +150,23 @@ export default function PendingAppointmentsBanner() {
     if (!citas) return [];
 
     return citas.filter(cita => {
+      // Solo estado 'Confirmada' aún sin cerrar → candidata a cierre.
       if (cita.estado !== 'Confirmada') return false;
+
+      // Defensivos: si la cita ya lleva señales de haber sido cerrada por el
+      // barbero (metodoPago cargado, sello procesado, cierre masivo), no la
+      // mostramos como pendiente aunque el `estado` haya quedado desactualizado.
+      // Evita el caso reportado: "esta cita ya la cerré, ¿por qué aparece?".
+      if (cita.metodoPago) return false;
+      if (cita.selloProcesado === true) return false;
+      if (cita.cierreMasivo === true) return false;
+
+      // Sede: si el panel opera desde una sede específica (multi-sucursal),
+      // solo cuentan las citas de esa sede. Las citas sin sucursalId (legacy)
+      // se excluyen para que no aparezcan en todos los locales del tenant.
+      if (multiSucursal && activeId !== 'all') {
+        if (!cita.sucursalId || cita.sucursalId !== activeId) return false;
+      }
 
       // Si la fecha es de días anteriores, siempre requiere atención
       if (cita.fecha < todayStr) return true;
@@ -141,13 +180,25 @@ export default function PendingAppointmentsBanner() {
       if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
       return (a.hora || '').localeCompare(b.hora || '');
     });
-  }, [citas, todayStr, isEndOfDay]);
+  }, [citas, todayStr, isEndOfDay, multiSucursal, activeId]);
+
+  // Mapa para resolver el nombre de sede al mostrar cada card cuando el user
+  // está en modo "todas" (útil para saber a qué local corresponde).
+  const sucursalNombreById = useMemo(
+    () => Object.fromEntries((sucursales || []).map(s => [s.id, s.nombreCorto || s.nombre])),
+    [sucursales],
+  );
 
   // Si no hay citas pendientes, cerramos el modal automáticamente si estaba abierto y no mostramos nada
   if (pendingCitas.length === 0) {
     if (modalOpen) setModalOpen(false);
     return null;
   }
+
+  // Etiqueta compacta de sede activa (solo si multi-sucursal + sede específica).
+  const sedeChip = multiSucursal && activeId !== 'all' && activeSucursal
+    ? (activeSucursal.nombreCorto || activeSucursal.nombre)
+    : '';
 
   return (
     <>
@@ -157,6 +208,11 @@ export default function PendingAppointmentsBanner() {
         <span className="font-medium truncate flex items-center gap-1.5 min-w-0">
           <AlertTriangle size={13} className="shrink-0" aria-hidden="true" />
           {pendingCitas.length} pendiente{pendingCitas.length === 1 ? '' : 's'} de cierre
+          {sedeChip && (
+            <span className="ml-1 text-[10px] font-semibold text-amber-300/80 bg-amber-500/15 border border-amber-500/25 rounded-full px-1.5 py-0.5 truncate">
+              📍 {sedeChip}
+            </span>
+          )}
         </span>
         <button
           type="button"
@@ -172,6 +228,9 @@ export default function PendingAppointmentsBanner() {
         <PendingAppointmentsModal
           citas={pendingCitas}
           onClose={() => setModalOpen(false)}
+          sedeChip={sedeChip}
+          showSedeInCard={multiSucursal && activeId === 'all'}
+          sucursalNombreById={sucursalNombreById}
         />
       )}
     </>

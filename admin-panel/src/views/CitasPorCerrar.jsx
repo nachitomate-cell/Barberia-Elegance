@@ -6,6 +6,7 @@ import { where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useSucursal } from '../contexts/SucursalContext';
 import { confirmDialog } from '../lib/confirmDialog';
 
 const METODOS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia'];
@@ -35,6 +36,11 @@ async function commitInChunks(items, applyFn) {
 
 export default function CitasPorCerrar() {
   const hoy = todayStr();
+  // Multi-sucursal: refuerza el filtro de sede (useCollection ya aplica
+  // matchSucursal, pero acá también excluimos citas SIN sucursalId cuando el
+  // panel opera desde una sede específica, para que no aparezcan citas
+  // legacy no taggeadas en el backlog de otro local).
+  const { multiSucursal, activeId, activeSucursal } = useSucursal();
 
   // `in` sobre un campo único no requiere índice compuesto. Trae solo las
   // citas "abiertas" (excluye del servidor todo el histórico Completada/Cancelada).
@@ -50,12 +56,25 @@ export default function CitasPorCerrar() {
   // Backlog = citas abiertas con fecha estrictamente anterior a hoy.
   const backlog = useMemo(() => (
     (citas || [])
-      .filter(c => c.fecha && c.fecha < hoy)
+      .filter(c => {
+        if (!c.fecha || c.fecha >= hoy) return false;
+        // Defensivos contra citas ya cerradas por el barbero cuyo `estado`
+        // quedó desactualizado (metodoPago cargado / sello procesado / cierre
+        // masivo previo). Evita que una cita cobrada reaparezca como pendiente.
+        if (c.metodoPago) return false;
+        if (c.selloProcesado === true) return false;
+        if (c.cierreMasivo === true) return false;
+        // Sede específica: excluye citas de otras sedes O sin sucursalId.
+        if (multiSucursal && activeId !== 'all') {
+          if (!c.sucursalId || c.sucursalId !== activeId) return false;
+        }
+        return true;
+      })
       .sort((a, b) => {
         if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha); // más viejas primero
         return (a.hora || '').localeCompare(b.hora || '');
       })
-  ), [citas, hoy]);
+  ), [citas, hoy, multiSucursal, activeId]);
 
   const allSelected = backlog.length > 0 && selected.size === backlog.length;
 
