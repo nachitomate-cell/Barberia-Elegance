@@ -67,6 +67,15 @@ function resolveUid(docId, data) {
   return docId;                              // intentar con el docId directamente
 }
 
+/**
+ * Las reglas de Firestore solo reconocen role admin|jefe|barbero.
+ * Docs seedeados con otros valores (p. ej. 'profesional' en oren/infinity)
+ * dejaban claims que esStaff() rechaza → barberos sin poder agendar.
+ */
+function normalizarRole(rol) {
+  return ['admin', 'jefe', 'barbero'].includes(rol) ? rol : 'barbero';
+}
+
 // Trigger: /barberos/{docId} (tenant elegance)
 exports.sincronizarClaimsElegance = onDocumentWritten(
   'barberos/{docId}',
@@ -77,7 +86,7 @@ exports.sincronizarClaimsElegance = onDocumentWritten(
     if (!after || after.activo === false) return null; // doc borrado o desactivado
 
     const uid      = resolveUid(docId, after);
-    const role     = after.rol || 'barbero';
+    const role     = normalizarRole(after.rol);
     const tenantId = 'elegance';
 
     await setClaims(uid, role, tenantId);
@@ -95,7 +104,7 @@ exports.sincronizarClaimsTenant = onDocumentWritten(
     if (!after || after.activo === false) return null;
 
     const uid      = resolveUid(docId, after);
-    const role     = after.rol || 'barbero';
+    const role     = normalizarRole(after.rol);
 
     await setClaims(uid, role, tid);
     return null;
@@ -125,7 +134,7 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
     if (data.activo === false) continue;
     const uid = resolveUid(docSnap.id, data);
     try {
-      await setClaims(uid, data.rol || 'barbero', 'elegance');
+      await setClaims(uid, normalizarRole(data.rol), 'elegance');
       migrados++;
     } catch { errores++; }
   }
@@ -140,7 +149,7 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
       if (data.activo === false) continue;
       const uid = resolveUid(docSnap.id, data);
       try {
-        await setClaims(uid, data.rol || 'barbero', tenantRef.id);
+        await setClaims(uid, normalizarRole(data.rol), tenantRef.id);
         migrados++;
       } catch { errores++; }
     }

@@ -1811,7 +1811,9 @@ const FDB = (() => {
         uid,
         email: (email || '').toLowerCase().trim() || mData.email || '',
         _mainDocId: typeof mainDoc.id === 'string' ? mainDoc.id : mainDocId,
-        rol: mData.rol || 'barbero',
+        // Las rules solo aceptan el self-create con rol 'barbero'; valores de
+        // seed como 'profesional' rompían el enlace (y con él, esBarberoFirestore).
+        rol: ['admin', 'jefe', 'barbero'].includes(mData.rol) ? mData.rol : 'barbero',
         nombre: mData.nombre || mData.displayName || '',
       };
 
