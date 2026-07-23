@@ -1272,6 +1272,15 @@
   if (_tenants[tenantId] && _tenants[tenantId].clubOculto) {
     document.documentElement.classList.add('club-oculto');
   }
+  // Multi-sucursal: hasta que el usuario elija una sede en el paso 0, la
+  // clase `sede-pendiente` en <html> apaga por CSS los pills de ubicación y
+  // horario (varían por sede). Al pisar selectSucursal() se quita la clase.
+  // Se pone acá (antes de que el body exista) para evitar el flash inicial
+  // que teníamos con `body[data-step="0"]`.
+  if (_tenants[tenantId] && Array.isArray(_tenants[tenantId].sucursales)
+      && _tenants[tenantId].sucursales.length > 1) {
+    document.documentElement.classList.add('sede-pendiente');
+  }
   // Modo claro/oscuro global del tenant (ver _lightTenants arriba).
   var _modoTema = _lightTenants.indexOf(tenantId) !== -1 ? 'light' : 'dark';
   window.TENANT_THEME_MODE = _modoTema;

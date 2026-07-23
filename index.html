@@ -3692,14 +3692,17 @@
 
     /* ── Oren: multi-sucursal fit & finish ─────────────────────────────
        (1) Info-strip (Ubicación + Horario + Consultas) NO tiene sentido
-       antes de elegir sucursal: ambos datos varían por sede. Se oculta
-       en paso 0 y reaparece desde paso 1 con el detalle correcto.
+       antes de elegir sucursal: ambos datos varían por sede. La clase
+       `sede-pendiente` la pone config.js en <html> desde el arranque
+       (antes de que el body exista → cero flash) y la quita
+       selectSucursal() al elegir. Reaparece con el detalle correcto de
+       la sede en el paso 1.
        (2) "Quiénes Somos" / "Información" (heredados de Aura) se ocultan
        siempre en Oren — el tenant no los usa. La doble clase
        `.tenant-oren.tenant-aura` sube la especificidad para ganarle a la
        regla `:is(.tenant-aura,...) #aura-sobre-wrap { display: block }`
        que viene más abajo con !important. */
-    .tenant-oren body[data-step="0"] .info-strip { display: none !important; }
+    html.tenant-oren.sede-pendiente .info-strip { display: none !important; }
     .tenant-oren.tenant-aura #aura-sobre-wrap { display: none !important; }
 
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
@@ -11193,6 +11196,14 @@
       grid.innerHTML = SHOP.sucursales.map(s => {
         const isSelected = window._selectedSucursal?.id === s.id;
         const stateClass = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
+        // Multi-sede: si el panel editó `direccion`, usarlo tal cual; de lo
+        // contrario armar "calle" + "ciudad" como antes.
+        const linea1 = (s.direccion && String(s.direccion).trim())
+          ? String(s.direccion).trim()
+          : (s.calle || '');
+        const linea2 = s.direccion
+          ? '' // ya viene todo en direccion
+          : `${s.ciudad || ''}${s.ciudad ? ', Chile' : ''}`;
         return `
           <button onclick="selectSucursal(this, '${s.id}')"
             class="sucursal-option relative flex items-center gap-4 p-5 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all w-full text-left">
@@ -11201,8 +11212,8 @@
             </div>
             <div class="flex-1 min-w-0">
               <span class="font-bold text-gray-100 text-base block">${s.nombre}</span>
-              <p class="text-xs text-gray-500 mt-0.5">${s.calle}</p>
-              <p class="text-xs text-gray-500">${s.ciudad}, Chile</p>
+              ${linea1 ? `<p class="text-xs text-gray-500 mt-0.5">${linea1}</p>` : ''}
+              ${linea2 ? `<p class="text-xs text-gray-500">${linea2}</p>` : ''}
             </div>
             <div class="w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);"></div>
           </button>`;
@@ -11219,6 +11230,9 @@
       btn.classList.remove('bg-[#0a0a0d]');
       btn.classList.add('bg-brand-neon/10');
       window._selectedSucursal = SHOP.sucursales.find(s => s.id === id);
+      // Ya hay sede: destapa la info-strip (ubicación + horario) que estaba
+      // oculta por la clase `sede-pendiente` que puso config.js.
+      try { document.documentElement.classList.remove('sede-pendiente'); } catch (_) {}
       // Re-render de servicios: el precio puede variar por sucursal
       // (preciosSucursal), así que la grilla debe reflejar el local elegido.
       // Sin esto queda el precio base del primer render (antes de elegir local).
@@ -12674,15 +12688,21 @@
         const sid = window._selectedSucursal.id;
         _activeBarberos = _fsBarberos.filter(b => !b.sucursalId || b.sucursalId === sid);
         _renderBarberos(_activeBarberos);
-        // Actualizar dirección en footer y strip
-        const calle = window._selectedSucursal.calle;
-        const ciudad = window._selectedSucursal.ciudad;
-        const mapsUrl = window._selectedSucursal.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(calle + ' ' + ciudad)}`;
+        // Datos por sede (multi): si el panel editó `direccion` la usamos;
+        // si no, armamos "calle, ciudad" como antes. `s.horario` (objeto por
+        // día) se convierte a texto legible para el pill del hero.
+        const s = window._selectedSucursal;
+        const direccionFull = (s.direccion && String(s.direccion).trim())
+          ? String(s.direccion).trim()
+          : [s.calle, s.ciudad].filter(Boolean).join(', ');
+        const calle  = s.calle  || direccionFull;
+        const ciudad = s.ciudad || '';
+        const mapsUrl = s.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(direccionFull)}`;
         const calleEl = document.getElementById('shopDireccionCalle');
         const ciudadEl = document.getElementById('shopDireccionCiudad');
         const heroAddr = document.getElementById('heroInfoAddrText');
         if (calleEl)  calleEl.textContent  = calle;
-        if (ciudadEl) ciudadEl.textContent = ciudad + ', Chile';
+        if (ciudadEl) ciudadEl.textContent = ciudad ? ciudad + ', Chile' : '';
         // La franja mantiene la etiqueta genérica; el dato de la sucursal
         // elegida se refleja en el modal de ubicación.
         if (heroAddr) heroAddr.textContent = 'Ubicación';
@@ -12691,9 +12711,21 @@
         const locA = document.getElementById('locationAddr');
         const locC = document.getElementById('locationCity');
         const locB = document.getElementById('locationCta');
-        if (locA) locA.textContent = calle || '';
+        if (locA) locA.textContent = direccionFull || '';
         if (locC) locC.textContent = ciudad ? ciudad + ', Chile' : '';
         if (locB) locB.setAttribute('href', mapsUrl);
+        // Horario del hero: si la sede tiene su propio objeto horario, lo
+        // convertimos a texto legible ("Lu–Vi: 09:00–20:00 · Sá: 09:00–14:00").
+        if (s.horario && typeof s.horario === 'object' && typeof _horarioObjToText === 'function') {
+          try {
+            const txt = _horarioObjToText(s.horario);
+            if (txt) window.SHOP.horario = txt;
+          } catch (_) {}
+        }
+        // WhatsApp / teléfono de la sede: si vinieron desde configuracion/main,
+        // el resto de la app los usa vía SHOP.whatsapp / SHOP.telefono.
+        if (s.whatsapp) window.SHOP.whatsapp = s.whatsapp;
+        if (s.telefono) window.SHOP.telefono = s.telefono;
         transitionStep(0, 1);
         currentStep = 1;
         updateProgress();
@@ -14550,6 +14582,30 @@
       updateProgress();
       const _loadedSettings = await initServices();   // carga servicios y config desde Firestore
       await applySettingsOverrides(_loadedSettings); // reutiliza settings ya cargado, sin segunda lectura
+      // Multi-sucursal: merge de los datos editables (dirección, teléfono,
+      // whatsapp, emailAvisos, horario) que persiste el panel en
+      // configuracion/main.sucursales[] SOBRE los defaults hardcodeados en
+      // config.js (color, banner, mapsUrl…). Se re-renderiza la lista para
+      // reflejar los cambios sin recargar. Si el fetch falla, seguimos con
+      // los defaults de config.js — fallback seguro.
+      try {
+        if (window._hasSucursales && _fsConfig && Array.isArray(_fsConfig.sucursales)) {
+          const fsMap = new Map(_fsConfig.sucursales.map(s => [s.id, s]));
+          window.SHOP.sucursales = window.SHOP.sucursales.map(base => {
+            const edits = fsMap.get(base.id);
+            if (!edits) return base;
+            return {
+              ...base,
+              ...(edits.direccion   ? { direccion:   edits.direccion   } : {}),
+              ...(edits.telefono    ? { telefono:    edits.telefono    } : {}),
+              ...(edits.whatsapp    ? { whatsapp:    edits.whatsapp    } : {}),
+              ...(edits.emailAvisos ? { emailAvisos: edits.emailAvisos } : {}),
+              ...(edits.horario     ? { horario:     edits.horario     } : {}),
+            };
+          });
+          _renderSucursales();
+        }
+      } catch (_) { /* fallback silencioso */ }
       renderCalendar();       // ahora que _fsConfig está listo
 
       // ── Deep link: ?servicioId=<id> o ?servicio=<nombre> ──
