@@ -582,6 +582,7 @@ const PUBLIC_DOMAIN = {
   alfamen:              'alfamen.synaptechspa.cl',
   barbersclub:          'barbersclub.synaptechspa.cl',
   elbarberomoderno:     'elbarberomoderno.synaptechspa.cl',
+  oren:                 'orenbarber.synaptechspa.cl',
 };
 
 function getPublicChatUrl(tenantId) {

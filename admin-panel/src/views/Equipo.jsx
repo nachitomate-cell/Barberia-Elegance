@@ -40,6 +40,7 @@ const TENANT_DOMAINS = {
   gitana:        'gitananails.synaptechspa.cl',
   mapubarbershop:'mapubarbershop.synaptechspa.cl',
   chameleon:     'chameleonbarber.synaptechspa.cl',
+  oren:          'orenbarber.synaptechspa.cl',
 };
 
 function slugify(str) {

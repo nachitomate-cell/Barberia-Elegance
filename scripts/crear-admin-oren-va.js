@@ -121,7 +121,7 @@ async function main() {
   console.log(`\n  Comunica al encargado:`);
   console.log(`     usuario  : ${EMAIL}`);
   console.log(`     password : ${password}`);
-  console.log(`     panel    : https://oren.synaptechspa.cl/gestion-interna/`);
+  console.log(`     panel    : https://orenbarber.synaptechspa.cl/gestion-interna/`);
   console.log(`\n  Al primer login, sugerir cambio de password desde el panel.\n`);
 }
 
