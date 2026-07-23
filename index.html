@@ -698,6 +698,11 @@
       pointer-events: none;
     }
 
+    /* ── Club de fidelidad oculto (flag `clubOculto` en config.js) ──────────────
+       <html class="club-oculto"> apaga banner del club y la tarjeta del paso 4. */
+    .club-oculto #clubBanner,
+    .club-oculto #step4AuthContainer { display: none !important; }
+
     /* ── Club onboarding: gamificación (fade-in-up, chispas, badge glow) ──────── */
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(18px); }
@@ -3684,6 +3689,18 @@
       border-color: #E5E7EB !important;
     }
     .tenant-oren .sucursal-option .ph-map-pin { color: #6B7280 !important; }
+
+    /* ── Oren: multi-sucursal fit & finish ─────────────────────────────
+       (1) Info-strip (Ubicación + Horario + Consultas) NO tiene sentido
+       antes de elegir sucursal: ambos datos varían por sede. Se oculta
+       en paso 0 y reaparece desde paso 1 con el detalle correcto.
+       (2) "Quiénes Somos" / "Información" (heredados de Aura) se ocultan
+       siempre en Oren — el tenant no los usa. La doble clase
+       `.tenant-oren.tenant-aura` sube la especificidad para ganarle a la
+       regla `:is(.tenant-aura,...) #aura-sobre-wrap { display: block }`
+       que viene más abajo con !important. */
+    .tenant-oren body[data-step="0"] .info-strip { display: none !important; }
+    .tenant-oren.tenant-aura #aura-sobre-wrap { display: none !important; }
 
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
     .tenant-barbersclub .info-strip { display: none !important; }
