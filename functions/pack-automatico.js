@@ -164,19 +164,47 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
 
     if (esActivacion) {
       if (packs.some(p => p.citaActivacion === citaId)) return null; // ya activado por esta cita
-      const totalSes = Math.max(1, Number(servicio.sesionesTotales) || 1);
-      const dias     = Math.max(1, Number(servicio.diasValidez)     || 30);
+      // Cantidades por servicio (opcional): { [servicioId]: n }. Si existe, define
+      // el pack como "2 cortes + 2 barbas" en vez de "4 usos de cualquiera".
+      // sesionesTotales se deriva de la suma cuando el mapa existe.
+      const cantidades = (servicio.serviciosCantidades && typeof servicio.serviciosCantidades === 'object')
+        ? servicio.serviciosCantidades : {};
+      const sumaCant = Object.values(cantidades).reduce((a, v) => a + (Number(v) || 0), 0);
+      const totalSes = Math.max(1, sumaCant || Number(servicio.sesionesTotales) || 1);
+      const dias     = Math.max(1, Number(servicio.diasValidez) || 30);
+      // Contadores mutables por servicio: se decrementarán en cada consumo. Se
+      // clona `cantidades` (si vino) y se descuenta la sesión activadora del
+      // servicio consumido en esta cita.
+      const serviciosRestantes = {};
+      Object.entries(cantidades).forEach(([sid, n]) => {
+        serviciosRestantes[sid] = Math.max(0, Number(n) || 0);
+      });
+      const svcActivador = cita.servicioId;
+      if (svcActivador && Object.prototype.hasOwnProperty.call(serviciosRestantes, svcActivador)) {
+        serviciosRestantes[svcActivador] = Math.max(0, serviciosRestantes[svcActivador] - 1);
+      }
+      // sesionesRestantes: suma de contadores por servicio si aplica, o el
+      // decremento genérico si el pack no usa cantidades (packs viejos).
+      const sesionesRestantes = sumaCant > 0
+        ? Object.values(serviciosRestantes).reduce((a, v) => a + v, 0)
+        : Math.max(0, totalSes - 1);
       const nuevoPack = {
         packId:            servicio.id,
         nombrePack:        servicio.nombre,
         sesionesTotales:   totalSes,
-        sesionesRestantes: Math.max(0, totalSes - 1), // esta cita cuenta como 1
+        sesionesRestantes,
         fechaCompra:       Timestamp.fromMillis(now),
         fechaVencimiento:  Timestamp.fromMillis(now + dias * 24 * 60 * 60 * 1000),
         citaActivacion:    citaId,
         serviciosIncluidos:          idsCubiertos,
         serviciosIncluidosSnapshot:  snapshot,
       };
+      // Solo agregamos los campos por-servicio si el pack los usa — mantiene
+      // los docs viejos limpios y no fuerza migración de user docs.
+      if (sumaCant > 0) {
+        nuevoPack.serviciosCantidades = cantidades;
+        nuevoPack.serviciosRestantes = serviciosRestantes;
+      }
       packs.push(nuevoPack);
       logPayload = {
         ...logBase, tipo: 'activacion',
@@ -195,20 +223,37 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
     }
 
     if (esConsumo) {
-      const idx = packs.findIndex(p =>
-        p.packId === cita.packRefId &&
-        (p.sesionesRestantes || 0) > 0 &&
-        (!p.fechaVencimiento || (p.fechaVencimiento.toMillis?.() || 0) > now));
-      if (idx === -1) return null; // sin pack / sin saldo / expirado
+      const svcConsumido = cita.servicioId;
+      // Selecciona el pack candidato: mismo packId, no expirado, saldo > 0 Y
+      // (si usa cantidades por servicio) saldo > 0 para el servicio consumido.
+      const idx = packs.findIndex(p => {
+        if (p.packId !== cita.packRefId) return false;
+        if ((p.sesionesRestantes || 0) <= 0) return false;
+        if (p.fechaVencimiento && (p.fechaVencimiento.toMillis?.() || 0) <= now) return false;
+        if (p.serviciosRestantes && typeof p.serviciosRestantes === 'object') {
+          const rest = Number(p.serviciosRestantes[svcConsumido] || 0);
+          if (rest <= 0) return false;
+        }
+        return true;
+      });
+      if (idx === -1) return null; // sin pack / sin saldo / expirado / sin saldo del servicio
       if (Array.isArray(packs[idx].citasConsumo) && packs[idx].citasConsumo.includes(citaId)) return null; // ya consumida
       const antes   = packs[idx].sesionesRestantes || 0;
       const despues = Math.max(0, antes - 1);
-      packs[idx] = {
+      const actualizado = {
         ...packs[idx],
         sesionesRestantes: despues,
         citasConsumo: [...(packs[idx].citasConsumo || []), citaId],
         ultimoConsumo: Timestamp.fromMillis(now),
       };
+      // Decrementa el contador del servicio consumido (si el pack usa cantidades).
+      if (packs[idx].serviciosRestantes && typeof packs[idx].serviciosRestantes === 'object') {
+        actualizado.serviciosRestantes = {
+          ...packs[idx].serviciosRestantes,
+          [svcConsumido]: Math.max(0, (packs[idx].serviciosRestantes[svcConsumido] || 0) - 1),
+        };
+      }
+      packs[idx] = actualizado;
       logPayload = {
         ...logBase, tipo: 'consumo',
         packId: packs[idx].packId, packNombre: packs[idx].nombrePack,
