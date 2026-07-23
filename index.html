@@ -3705,6 +3705,12 @@
     html.tenant-oren.sede-pendiente .info-strip { display: none !important; }
     .tenant-oren.tenant-aura #aura-sobre-wrap { display: none !important; }
 
+    /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
+       se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
+       `sede-pendiente` la pone config.js (>1 sucursal) y la quita selectSucursal().
+       Genérico a propósito — no solo Oren. */
+    html.sede-pendiente #footerContact { display: none !important; }
+
     /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
     .tenant-barbersclub .info-strip { display: none !important; }
 
@@ -11230,8 +11236,11 @@
       btn.classList.remove('bg-[#0a0a0d]');
       btn.classList.add('bg-brand-neon/10');
       window._selectedSucursal = SHOP.sucursales.find(s => s.id === id);
-      // Ya hay sede: destapa la info-strip (ubicación + horario) que estaba
-      // oculta por la clase `sede-pendiente` que puso config.js.
+      // Ya hay sede: destapa la info-strip + la card de pie (ubicación + horario)
+      // que estaban ocultas por la clase `sede-pendiente` que puso config.js.
+      // Antes de destapar, rellena la card con los datos de ESTA sede para que no
+      // aparezca con el local que quedó del merge de settings/general.
+      _applyFooterSucursal(window._selectedSucursal);
       try { document.documentElement.classList.remove('sede-pendiente'); } catch (_) {}
       // Re-render de servicios: el precio puede variar por sucursal
       // (preciosSucursal), así que la grilla debe reflejar el local elegido.
@@ -11243,6 +11252,42 @@
       if (heroAddr) heroAddr.textContent = 'Ubicación';
       updateContinueBtn();
       updateSelectionRecap();
+    }
+
+    // Rellena la card de pie (#footerContact: dirección + horario) con los datos
+    // de UNA sucursal. Necesario en tenants multi-sucursal: el pie se puebla al
+    // arranque desde settings/general (una sola sede) y hay que reescribirlo con
+    // la sede elegida. La grilla de horario se re-renderiza (el paso 0→1 solo
+    // seteaba SHOP.horario sin repintar #shopHorarioGrid). Separadores '|' y '·'.
+    function _applyFooterSucursal(s) {
+      if (!s) return;
+      const direccionFull = (s.direccion && String(s.direccion).trim())
+        ? String(s.direccion).trim()
+        : [s.calle, s.ciudad].filter(Boolean).join(', ');
+      const calle   = s.calle  || direccionFull;
+      const ciudad  = s.ciudad || '';
+      const mapsUrl = s.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(direccionFull)}`;
+      const calleEl  = document.getElementById('shopDireccionCalle');
+      const ciudadEl = document.getElementById('shopDireccionCiudad');
+      if (calleEl)  calleEl.textContent  = calle;
+      if (ciudadEl) ciudadEl.textContent = ciudad ? ciudad + ', Chile' : '';
+      document.getElementById('shopDireccionLink')?.setAttribute('href', mapsUrl);
+      // Horario de la sede → texto "Lu–Vi: … | Sá: …" y repintado de la grilla.
+      let horTxt = window.SHOP.horario || '';
+      if (s.horario && typeof s.horario === 'object' && typeof _horarioObjToText === 'function') {
+        try { const t = _horarioObjToText(s.horario); if (t) horTxt = t; } catch (_) {}
+      }
+      window.SHOP.horario = horTxt;
+      const horGrid = document.getElementById('shopHorarioGrid');
+      if (horGrid) {
+        const horParts = String(horTxt).replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '')
+          .split(/[|·]/).map(p => p.trim()).filter(Boolean);
+        horGrid.innerHTML = horParts.map(p => `
+          <div class="flex items-center gap-2">
+            <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--gold);opacity:0.5;"></span>
+            <span class="text-sm text-gray-300 font-medium">${p}</span>
+          </div>`).join('');
+      }
     }
 
     function _renderBarberos(barberos) {
@@ -12726,6 +12771,9 @@
         // el resto de la app los usa vía SHOP.whatsapp / SHOP.telefono.
         if (s.whatsapp) window.SHOP.whatsapp = s.whatsapp;
         if (s.telefono) window.SHOP.telefono = s.telefono;
+        // Defensivo: asegura la card de pie con la sede confirmada (repinta la
+        // grilla de horario) por si se llegó aquí sin pasar por selectSucursal.
+        _applyFooterSucursal(s);
         transitionStep(0, 1);
         currentStep = 1;
         updateProgress();
