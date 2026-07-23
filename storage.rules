@@ -81,6 +81,14 @@ service firebase.storage {
     }
 
     // Rutas multi-tenant (ferraza, gitana, etc.)
+    // Fotos de perfil de clientes del club — cada usuario sube solo a su propio uid
+    match /tenants/{tenantId}/avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && isImage()
+                   && isUnder5MB();
+    }
     match /tenants/{tenantId}/barberos/{imageId} {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
