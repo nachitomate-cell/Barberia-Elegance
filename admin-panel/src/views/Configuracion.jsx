@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
-  Package, Tag, PenLine, Award, Bell, Mail, Users,
+  Package, Tag, PenLine, Award, Bell, Mail, Users, SlidersHorizontal,
+  MessageCircle, Lock, Gift,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -771,6 +772,14 @@ export default function Configuracion() {
   // misma hora, en sillones paralelos. index.html lee configuracion/main.reservasGrupo.
   const [grupoEnabled, setGrupoEnabled] = useState(false);
   const [grupoMax,     setGrupoMax]     = useState(4);
+  // Opciones avanzadas de la agenda privada del barbero (agenda.html). Cada
+  // flag prende/apaga un módulo. Todos arrancan en true para que un tenant
+  // que nunca abrió esta sección tenga el comportamiento actual sin sorpresas.
+  const [opcAvanzadas, setOpcAvanzadas] = useState({
+    verWhatsAppClientes: true,
+    bloqueoHorarios:     true,
+    serviciosCortesia:   true,
+  });
   // Metas financieras — inputs como string para distinguir "" (sin definir,
   // usa el fallback automático en Inicio) de 0 (forzar a 0).
   const [metaMensual,   setMetaMensual]   = useState('');
@@ -839,6 +848,16 @@ export default function Configuracion() {
         if (cd.politicaMensaje !== undefined) setPoliticaMensaje(String(cd.politicaMensaje || ''));
         if (cd.metaMensualVentas != null) setMetaMensual(String(cd.metaMensualVentas));
         if (cd.costoDiarioFijo   != null) setCostoDiario(String(cd.costoDiarioFijo));
+        // Opciones avanzadas: solo overrideamos los flags que ya vinieron guardados;
+        // el resto conserva su default `true`. Así al agregar flags nuevos, los
+        // tenants existentes los reciben activos sin migración.
+        if (cd.opcionesAvanzadas && typeof cd.opcionesAvanzadas === 'object') {
+          setOpcAvanzadas(prev => ({
+            verWhatsAppClientes: typeof cd.opcionesAvanzadas.verWhatsAppClientes === 'boolean' ? cd.opcionesAvanzadas.verWhatsAppClientes : prev.verWhatsAppClientes,
+            bloqueoHorarios:     typeof cd.opcionesAvanzadas.bloqueoHorarios     === 'boolean' ? cd.opcionesAvanzadas.bloqueoHorarios     : prev.bloqueoHorarios,
+            serviciosCortesia:   typeof cd.opcionesAvanzadas.serviciosCortesia   === 'boolean' ? cd.opcionesAvanzadas.serviciosCortesia   : prev.serviciosCortesia,
+          }));
+        }
       }
     }).finally(() => setLoading(false));
   }, []);
@@ -927,6 +946,12 @@ export default function Configuracion() {
           politicaMensaje:         String(politicaMensaje || '').trim().slice(0, 500),
           metaMensualVentas:       parsePosInt(metaMensual),
           costoDiarioFijo:         parsePosInt(costoDiario),
+          // Opciones avanzadas de la agenda privada del barbero (agenda.html)
+          opcionesAvanzadas: {
+            verWhatsAppClientes: !!opcAvanzadas.verWhatsAppClientes,
+            bloqueoHorarios:     !!opcAvanzadas.bloqueoHorarios,
+            serviciosCortesia:   !!opcAvanzadas.serviciosCortesia,
+          },
           diasLaborales,
           diasConfig,
           horarioInicio,
@@ -1563,6 +1588,71 @@ export default function Configuracion() {
             </details>
           </div>
         )}
+      </Card>
+
+      {/* Opciones avanzadas — controla qué módulos aparecen en la agenda
+          personal (privada) de cada barbero. Todos empiezan activos. */}
+      <Card Icon={SlidersHorizontal} title="Opciones avanzadas · Agenda del barbero">
+        <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+          Prende o apaga módulos de la <strong className="text-slate-300">agenda personal</strong> de cada barbero (la vista privada en <code className="text-slate-300">/agenda</code>). Todos vienen activos por defecto.
+        </p>
+
+        {/* WhatsApp del cliente */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <MessageCircle size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Ver WhatsApp del cliente</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Muestra el botón de WhatsApp en la tarjeta de cada cita para escribirle al cliente. Apágalo para ocultar el canal de contacto (política anti-fuga de clientes).
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setOpcAvanzadas(o => ({ ...o, verWhatsAppClientes: !o.verWhatsAppClientes })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${opcAvanzadas.verWhatsAppClientes ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.verWhatsAppClientes ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Bloqueo de horas / rangos */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Lock size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Bloquear horas y rangos</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Deja que el barbero bloquee un slot puntual o un rango de horas desde su agenda. Apágalo para que solo puedan bloquear desde el panel de administración.
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setOpcAvanzadas(o => ({ ...o, bloqueoHorarios: !o.bloqueoHorarios })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${opcAvanzadas.bloqueoHorarios ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.bloqueoHorarios ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Servicios de cortesía */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Gift size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Servicios de cortesía</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Permite marcar la cita como cortesía (precio $0, método de pago “Cortesía”) al cerrarla. Apágalo si no quieres que el barbero pueda regalar servicios sin autorización.
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setOpcAvanzadas(o => ({ ...o, serviciosCortesia: !o.serviciosCortesia })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${opcAvanzadas.serviciosCortesia ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.serviciosCortesia ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
       </Card>
 
       {/* Metas financieras — alimentan la card "Meta del mes" + "Break-even" en Inicio */}
