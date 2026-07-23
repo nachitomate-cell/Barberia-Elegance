@@ -1589,6 +1589,62 @@ const SELF_SUBDOMINIOS_EXCLUIDOS = new Set([
   'www', 'empieza', 'links', 'admin', 'crea', 'demo', 'api', 'app', 'bioo',
 ]);
 
+// ── 404 de plataforma ────────────────────────────────────────────────────────
+// Subdominio {slug}.synaptechspa.cl que no es NINGÚN local (mal escrito o
+// inexistente): página de marca SynapTech en vez de disfrazarse de Elegance.
+// Estilo sobrio tipo claude.ai/404. Paleta SynapTech (lima #9CCC3C sobre
+// oscuro, neón #C6F94E solo como acento).
+function tenant404(hostname) {
+  const hostSeguro = /^[a-z0-9.-]+$/i.test(hostname) ? hostname : 'esta dirección';
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Página no encontrada · SynapTech</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0a;color:#e5e7eb;text-align:center;padding:1.5rem;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:440px}
+  .logo{width:56px;height:56px;border-radius:14px;object-fit:contain;margin-bottom:.9rem}
+  .brand{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:#f5f5f5;margin-bottom:2.2rem}
+  .brand span{color:#9CCC3C}
+  h1{font-size:1.35rem;font-weight:700;margin-bottom:.8rem;color:#f5f5f5}
+  .sub{font-size:.95rem;line-height:1.6;color:#9ca3af;margin-bottom:.6rem}
+  .sub b{color:#e5e7eb;word-break:break-all}
+  .hint{font-size:.85rem;line-height:1.6;color:#6b7280;margin-bottom:2rem}
+  .hint code{color:#C6F94E;font-family:ui-monospace,Consolas,monospace;font-size:.85em}
+  .btn{display:inline-block;background:#f5f5f5;color:#0a0a0a;font-weight:700;font-size:.9rem;
+    padding:.7rem 1.4rem;border-radius:999px;text-decoration:none;transition:filter .15s}
+  .btn:hover{filter:brightness(.9)}
+  footer{margin-top:3rem;font-size:.72rem;color:#4b5563}
+</style>
+</head>
+<body>
+<main>
+  <img class="logo" src="/synaptech/ig.png" alt="SynapTech" onerror="this.style.display='none'">
+  <p class="brand">Synap<span>Tech</span></p>
+  <h1>Página no encontrada</h1>
+  <p class="sub"><b>${hostSeguro}</b> no corresponde a ningún local activo de la plataforma.</p>
+  <p class="hint">Revisa que la dirección esté bien escrita — cada local tiene la suya, del tipo <code>tulocal.synaptechspa.cl</code>.</p>
+  <a class="btn" href="https://synaptechspa.cl">Ir a synaptechspa.cl</a>
+  <footer>Powered by SynapTech SpA · synaptechspa.cl</footer>
+</main>
+</body>
+</html>`;
+  return new Response(html, {
+    status: 404,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      // Sin caché: si el local se crea después (self-service), funciona al tiro.
+      'Cache-Control': 'no-cache, must-revalidate',
+    },
+  });
+}
+
 async function fetchSelfTenant(slug) {
   try {
     const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
@@ -1954,7 +2010,20 @@ export default async function middleware(request) {
     }
   }
 
-  if (!tenantId) tenantId = 'elegance';
+  if (!tenantId) {
+    // Subdominio de la plataforma que NO resolvió a ningún tenant (ni
+    // DOMAIN_MAP ni self-service): 404 de marca, jamás disfrazarse de
+    // Elegance (caso real: oren.synaptechspa.cl ≠ orenbarber.synaptechspa.cl).
+    // Hosts que no son subdominios de la plataforma (dominio principal,
+    // previews de Vercel, localhost) conservan el default histórico.
+    if (hostname.endsWith('.synaptechspa.cl')) {
+      const sub = hostname.slice(0, -'.synaptechspa.cl'.length);
+      if (sub && sub.indexOf('.') < 0 && !SELF_SUBDOMINIOS_EXCLUIDOS.has(sub)) {
+        return tenant404(hostname);
+      }
+    }
+    tenantId = 'elegance';
+  }
 
   // ── Sitemap XML: debe interceptarse antes de cualquier otro handler ───────────
   if (url.pathname === '/sitemap.xml') {
