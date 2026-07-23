@@ -11,6 +11,7 @@ import { activarNotificaciones } from '../hooks/useFCMToken';
 import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
+import { useSucursal } from '../contexts/SucursalContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { isDailyWelcomeDisabled, setDailyWelcomeDisabled } from '../components/DailyWelcomePanel';
 
@@ -753,8 +754,21 @@ export default function Configuracion() {
   // input libre en esas categorías.
   const { data: productos = [] } = useCollection('productos');
   const { data: servicios = [] } = useCollection('servicios');
+  const { multiSucursal, sucursales } = useSucursal();
 
   const [form,          setForm]          = useState(DEFAULT_SETTINGS);
+  // Datos POR SEDE (multi-sucursal). Los campos "del local" que varían por
+  // sede (dirección/teléfono/WhatsApp/emailAvisos/horario) viven en
+  // configuracion/main.sucursales[]. `perSede` es un map { sedeId: {...} }
+  // que refleja esos campos editables. Se materializa desde el array al
+  // cargar; el guardado hace merge back en el array. En tenants mono-sede
+  // este map queda vacío y el flujo actual (settings/general.direccion,
+  // .telefono…) sigue funcionando sin cambios.
+  const [perSede, setPerSede] = useState({});
+  // Tab de sede activa dentro de las cards por-sede. Cambia solo con el
+  // selector inline (no depende del SucursalBar del panel para no confundir
+  // con el filtro de vistas transaccionales).
+  const [sedeEdit, setSedeEdit] = useState('');
   const [intervalo,     setIntervalo]     = useState(30);
   const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
   const [customStr,     setCustomStr]     = useState('');    // valor crudo del input (solo dígitos)
@@ -858,12 +872,59 @@ export default function Configuracion() {
             serviciosCortesia:   typeof cd.opcionesAvanzadas.serviciosCortesia   === 'boolean' ? cd.opcionesAvanzadas.serviciosCortesia   : prev.serviciosCortesia,
           }));
         }
+        // Multi-sucursal: hidratar `perSede` con los datos por sede del array
+        // sucursales[]. Cada sede aporta lo suyo; los campos ausentes vienen
+        // del fallback a settings/general (data compartida) al renderizar.
+        if (Array.isArray(cd.sucursales) && cd.sucursales.length) {
+          const map = {};
+          cd.sucursales.forEach(s => {
+            if (!s || !s.id) return;
+            map[s.id] = {
+              direccion:   s.direccion   || [s.calle, s.ciudad].filter(Boolean).join(', ') || '',
+              telefono:    s.telefono    || '',
+              whatsapp:    s.whatsapp    || '',
+              emailAvisos: s.emailAvisos || '',
+              horario:     mergeHorario(s.horario),
+            };
+          });
+          setPerSede(map);
+          // Sede activa inicial: la primera del array (más natural que 'all'
+          // para editar datos concretos).
+          if (cd.sucursales[0] && cd.sucursales[0].id) {
+            setSedeEdit(cd.sucursales[0].id);
+          }
+        }
       }
     }).finally(() => setLoading(false));
   }, []);
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
   const setDia = (d, cfg) => { setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } })); setDirty(true); };
+  // Editar un campo puntual de la sede activa (dirección, teléfono, whatsapp,
+  // emailAvisos). El objeto se garantiza inicializado con setPerSede.
+  const setSedeField = (k, v) => {
+    if (!sedeEdit) return;
+    setPerSede(p => ({
+      ...p,
+      [sedeEdit]: { ...(p[sedeEdit] || {}), [k]: v },
+    }));
+    setDirty(true);
+  };
+  // Editar el horario de un día en la sede activa.
+  const setSedeDia = (d, cfg) => {
+    if (!sedeEdit) return;
+    setPerSede(p => {
+      const base = p[sedeEdit] || {};
+      const horario = { ...(base.horario || DEFAULT_SETTINGS.horario), [d]: cfg };
+      return { ...p, [sedeEdit]: { ...base, horario } };
+    });
+    setDirty(true);
+  };
+  // Datos de la sede activa, con fallback razonable (los del form común como
+  // valor inicial mientras nadie edita esa sede).
+  const sedeData = sedeEdit
+    ? (perSede[sedeEdit] || { direccion: '', telefono: '', whatsapp: '', emailAvisos: '', horario: DEFAULT_SETTINGS.horario })
+    : null;
   const setFeat      = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, [k]: v } })); setDirty(true); };
   const setFeatCourse = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, courses: { ...f.features.courses, [k]: v } } })); setDirty(true); };
   const setFeatChair  = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, chairRental: { ...f.features.chairRental, [k]: v } } })); setDirty(true); };
@@ -927,6 +988,26 @@ export default function Configuracion() {
         return Number.isFinite(n) && n >= 0 ? n : null;
       };
 
+      // Multi-sucursal: fusionar `perSede` de vuelta al array sucursales[].
+      // Solo lo hacemos si el tenant realmente ES multi-sede (sucursales > 1)
+      // y ya cargamos algo — así un tenant mono-sede jamás persiste sucursales[].
+      // Para no chocar con datos del array (color, banner, mapsUrl…) hacemos
+      // merge campo por campo, respetando lo que ya existía.
+      let sucursalesToSave = null;
+      if (multiSucursal && sucursales.length > 1 && Object.keys(perSede).length) {
+        sucursalesToSave = sucursales.map(s => {
+          const edits = perSede[s.id];
+          if (!edits) return s; // no editada — no toca
+          const merged = { ...s };
+          if (edits.direccion   !== undefined) merged.direccion   = edits.direccion;
+          if (edits.telefono    !== undefined) merged.telefono    = edits.telefono;
+          if (edits.whatsapp    !== undefined) merged.whatsapp    = edits.whatsapp;
+          if (edits.emailAvisos !== undefined) merged.emailAvisos = edits.emailAvisos;
+          if (edits.horario) merged.horario = edits.horario;
+          return merged;
+        });
+      }
+
       await Promise.all([
         setDoc(settingsRef(), form, { merge: true }),
         setDoc(confRef(), {
@@ -952,6 +1033,9 @@ export default function Configuracion() {
             bloqueoHorarios:     !!opcAvanzadas.bloqueoHorarios,
             serviciosCortesia:   !!opcAvanzadas.serviciosCortesia,
           },
+          // Sucursales editadas: SOLO se persiste si el tenant es multi-sede
+          // y hay cambios. Si sucursalesToSave === null, el spread lo omite.
+          ...(sucursalesToSave ? { sucursales: sucursalesToSave } : {}),
           diasLaborales,
           diasConfig,
           horarioInicio,
@@ -1046,27 +1130,36 @@ export default function Configuracion() {
       {/* ═══ TAB 1 · LOCAL ═══ */}
       {tab === 'local' && (
       <div className="cfg-fade-in space-y-4 sm:space-y-6" key="local">
-      {/* Información + Contacto — una sola tarjeta limpia */}
-      <Card Icon={Store} title="Datos del local">
-        <Field label="Nombre del local">
-          <input className={inp} placeholder="Nombre público de tu barbería" value={form.nombre}
+      {/* Información + Contacto */}
+      <Card Icon={Store} title={multiSucursal ? 'Datos de la marca' : 'Datos del local'}>
+        {multiSucursal && (
+          <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+            Estos datos son <strong className="text-slate-300">comunes a todas las sedes</strong>. Cada sucursal tiene su propia dirección, teléfono y horario más abajo.
+          </p>
+        )}
+        <Field label={multiSucursal ? 'Nombre de la marca' : 'Nombre del local'}>
+          <input className={inp} placeholder={multiSucursal ? 'Ej. Oren Barber' : 'Nombre público de tu barbería'} value={form.nombre}
             onChange={e => set('nombre', e.target.value)} />
         </Field>
-        <Field label="Dirección">
-          <input className={inp} placeholder="Calle, número, ciudad" value={form.direccion}
-            onChange={e => set('direccion', e.target.value)} />
-        </Field>
-        {/* Tel + WhatsApp en la misma fila (mobile-first) */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Teléfono">
-            <input className={inp} inputMode="tel" placeholder="+56 2 1234 5678" value={form.telefono}
-              onChange={e => set('telefono', e.target.value)} />
-          </Field>
-          <Field label="WhatsApp">
-            <input className={inp} inputMode="tel" placeholder="+56 9 8765 4321" value={form.whatsapp}
-              onChange={e => set('whatsapp', e.target.value)} />
-          </Field>
-        </div>
+        {/* Dirección + Tel + WhatsApp son por sede si multi. En mono siguen acá. */}
+        {!multiSucursal && (
+          <>
+            <Field label="Dirección">
+              <input className={inp} placeholder="Calle, número, ciudad" value={form.direccion}
+                onChange={e => set('direccion', e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-2 gap-2.5">
+              <Field label="Teléfono">
+                <input className={inp} inputMode="tel" placeholder="+56 2 1234 5678" value={form.telefono}
+                  onChange={e => set('telefono', e.target.value)} />
+              </Field>
+              <Field label="WhatsApp">
+                <input className={inp} inputMode="tel" placeholder="+56 9 8765 4321" value={form.whatsapp}
+                  onChange={e => set('whatsapp', e.target.value)} />
+              </Field>
+            </div>
+          </>
+        )}
         <Field label="Instagram">
           <div className="relative">
             <Instagram size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -1089,20 +1182,112 @@ export default function Configuracion() {
         </Field>
       </Card>
 
+      {/* Datos por sede (solo multi-sucursal). Tabs + inputs de la sede activa.
+          Cada campo aquí edita configuracion/main.sucursales[<sede>].*
+          (nunca settings/general), así los datos nunca se mezclan entre sedes. */}
+      {multiSucursal && sucursales.length > 1 && sedeData && (
+        <Card Icon={MapPin} title="Datos por sucursal">
+          <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+            Cambia la sede en las pestañas para editar sus datos. Cada sucursal guarda su propia dirección, teléfono y WhatsApp — nunca se mezclan.
+          </p>
+          {/* Tabs de sede */}
+          <div className="flex gap-1.5 flex-wrap p-1 bg-neutral-900/60 border border-neutral-800 rounded-lg">
+            {sucursales.map(sc => {
+              const active = sedeEdit === sc.id;
+              return (
+                <button
+                  key={sc.id}
+                  type="button"
+                  onClick={() => setSedeEdit(sc.id)}
+                  className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-neutral-800 text-primary shadow-sm'
+                      : 'text-neutral-400 hover:text-primary'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: sc.color || '#94a3b8' }}
+                  />
+                  <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <Field label="Dirección">
+            <input className={inp} placeholder="Calle, número, ciudad"
+              value={sedeData.direccion}
+              onChange={e => setSedeField('direccion', e.target.value)} />
+          </Field>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="Teléfono">
+              <input className={inp} inputMode="tel" placeholder="+56 2 1234 5678"
+                value={sedeData.telefono}
+                onChange={e => setSedeField('telefono', e.target.value)} />
+            </Field>
+            <Field label="WhatsApp">
+              <input className={inp} inputMode="tel" placeholder="+56 9 8765 4321"
+                value={sedeData.whatsapp}
+                onChange={e => setSedeField('whatsapp', e.target.value)} />
+            </Field>
+          </div>
+        </Card>
+      )}
+
       </div>
       )}
 
       {/* ═══ TAB 2 · HORARIOS ═══ */}
       {tab === 'horarios' && (
       <div className="cfg-fade-in space-y-4 sm:space-y-6" key="horarios">
-      {/* Horario de Atención */}
-      <Card Icon={Clock} title="Horario de Atención">
-        <p className="text-xs text-slate-500 -mt-1">Referencia informativa del local. La disponibilidad real de reservas la controlan los horarios individuales de cada barbero en <strong className="text-slate-400">Equipo</strong>.</p>
-        <div className="mt-2">
-          {DIAS_ORDER.map(d => (
-            <DayRow key={d} diaKey={d} config={form.horario[d]} onChange={cfg => setDia(d, cfg)} />
-          ))}
-        </div>
+      {/* Horario de Atención — mono-sede: uno solo; multi-sede: tabs por sede */}
+      <Card Icon={Clock} title={multiSucursal ? 'Horario de Atención por sucursal' : 'Horario de Atención'}>
+        <p className="text-xs text-slate-500 -mt-1">
+          {multiSucursal
+            ? 'Cada sede tiene su propio horario informativo. La disponibilidad real la sigue controlando el horario de cada barbero en Equipo.'
+            : 'Referencia informativa del local. La disponibilidad real de reservas la controlan los horarios individuales de cada barbero en Equipo.'}
+        </p>
+        {multiSucursal && sucursales.length > 1 && sedeData ? (
+          <>
+            {/* Tabs de sede */}
+            <div className="flex gap-1.5 flex-wrap p-1 bg-neutral-900/60 border border-neutral-800 rounded-lg">
+              {sucursales.map(sc => {
+                const active = sedeEdit === sc.id;
+                return (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => setSedeEdit(sc.id)}
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${
+                      active
+                        ? 'bg-neutral-800 text-primary shadow-sm'
+                        : 'text-neutral-400 hover:text-primary'
+                    }`}
+                  >
+                    <span aria-hidden="true" className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: sc.color || '#94a3b8' }} />
+                    <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2">
+              {DIAS_ORDER.map(d => (
+                <DayRow key={d} diaKey={d}
+                  config={sedeData.horario[d]}
+                  onChange={cfg => setSedeDia(d, cfg)} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="mt-2">
+            {DIAS_ORDER.map(d => (
+              <DayRow key={d} diaKey={d} config={form.horario[d]} onChange={cfg => setDia(d, cfg)} />
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Duración de Turnos — 4 pills (15/30/45/60) + Personalizado */}
@@ -1689,28 +1874,74 @@ export default function Configuracion() {
 
       {/* Preferencias del panel — locales al dispositivo */}
       {/* Correo oficial del local para avisos del sistema. Separado del correo
-          de login de cada administrador (ese no se toca desde aquí). */}
-      <Card Icon={Mail} title="Correo para avisos">
-        <Field label="Correo oficial del local">
-          <input
-            className={inp}
-            type="email"
-            inputMode="email"
-            autoComplete="off"
-            placeholder="correo@dellocal.cl"
-            value={form.emailAvisos}
-            onChange={e => set('emailAvisos', e.target.value.trim())}
-          />
-        </Field>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          Aquí llegan los avisos importantes de tu cuenta, como el vencimiento de tu mensualidad.
-          Usa un correo que revises: si no llega el aviso y el pago se atrasa, se bloquean secciones del panel.
-        </p>
-        <p className="text-[10px] text-slate-600 leading-relaxed">
-          No es el correo con el que inicias sesión. Cambiarlo aquí no afecta el acceso de nadie al panel.
-        </p>
-        {form.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailAvisos) && (
-          <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+          de login de cada administrador (ese no se toca desde aquí). En
+          multi-sucursal se edita por sede — cada local con su encargado. */}
+      <Card Icon={Mail} title={multiSucursal ? 'Correo para avisos · por sucursal' : 'Correo para avisos'}>
+        {multiSucursal && sucursales.length > 1 && sedeData ? (
+          <>
+            <div className="flex gap-1.5 flex-wrap p-1 bg-neutral-900/60 border border-neutral-800 rounded-lg">
+              {sucursales.map(sc => {
+                const active = sedeEdit === sc.id;
+                return (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => setSedeEdit(sc.id)}
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${
+                      active
+                        ? 'bg-neutral-800 text-primary shadow-sm'
+                        : 'text-neutral-400 hover:text-primary'
+                    }`}
+                  >
+                    <span aria-hidden="true" className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: sc.color || '#94a3b8' }} />
+                    <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Field label="Correo de esta sucursal">
+              <input
+                className={inp}
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                placeholder="correo@dellocal.cl"
+                value={sedeData.emailAvisos}
+                onChange={e => setSedeField('emailAvisos', e.target.value.trim())}
+              />
+            </Field>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Cada sede tiene su propio correo. Aquí llegan los avisos importantes de esa sucursal (mensualidad, alertas). No se mezcla con los correos de las otras sedes.
+            </p>
+            {sedeData.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sedeData.emailAvisos) && (
+              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <Field label="Correo oficial del local">
+              <input
+                className={inp}
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                placeholder="correo@dellocal.cl"
+                value={form.emailAvisos}
+                onChange={e => set('emailAvisos', e.target.value.trim())}
+              />
+            </Field>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Aquí llegan los avisos importantes de tu cuenta, como el vencimiento de tu mensualidad.
+              Usa un correo que revises: si no llega el aviso y el pago se atrasa, se bloquean secciones del panel.
+            </p>
+            <p className="text-[10px] text-slate-600 leading-relaxed">
+              No es el correo con el que inicias sesión. Cambiarlo aquí no afecta el acceso de nadie al panel.
+            </p>
+            {form.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailAvisos) && (
+              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+            )}
+          </>
         )}
       </Card>
 
