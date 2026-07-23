@@ -2615,6 +2615,12 @@
     :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-back:hover { background: rgba(255,255,255,0.08) !important; }
     /* Kronnos no tiene WhatsApp configurado: ocultar ese botón del slim header */
     :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-wa { display: none !important; }
+    /* Oren no ofrece consultas por WhatsApp en la agenda pública: ocultar el botón
+       del slim header Y el de "Consultas" del info-strip (hereda ambos de Aura).
+       El info-wa usa .tenant-oren.tenant-aura para superar en especificidad la
+       regla :is(.tenant-aura,...) #aura-info-wa{display:flex!important} de más abajo. */
+    .tenant-oren #aura-slim-wa,
+    .tenant-oren.tenant-aura #aura-info-wa { display: none !important; }
 
     /* ════════════════════════════════════════════════════════════════
        KRONNOS — Pulido premium: hero animado, glow de acento, shimmer
