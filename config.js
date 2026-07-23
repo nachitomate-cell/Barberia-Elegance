@@ -634,7 +634,12 @@
     // demo realista para la reunión; se reemplazan por los reales al cerrar.
     // Tema: alias 'elegance' (dark + dorado). Acceso: ?local=oren
     oren: {
-      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Club', 'Extras'],
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras'],
+      // Club de fidelidad oculto temporalmente en la agenda pública (banners,
+      // CTAs "Unirse al Club", sellos y modales). Añade la clase `.club-oculto`
+      // a <html> (ver más abajo) que apagan index.html y barbero.html por CSS,
+      // más los guards JS de los modales. Quitar este flag para reactivarlo.
+      clubOculto:      true,
       nombre:          'Oren Barber',
       nombreCorto:     'Oren',
       pageTitle:       'Oren Barber | Cortes con Estilo',
@@ -1261,6 +1266,11 @@
   document.documentElement.classList.add('tenant-' + tenantId);
   if (_themeAlias[tenantId]) {
     document.documentElement.classList.add('tenant-' + _themeAlias[tenantId]);
+  }
+  // Club de fidelidad oculto (flag `clubOculto` en la config del tenant).
+  // Las páginas apagan por CSS todo lo del club cuando <html> lleva esta clase.
+  if (_tenants[tenantId] && _tenants[tenantId].clubOculto) {
+    document.documentElement.classList.add('club-oculto');
   }
   // Modo claro/oscuro global del tenant (ver _lightTenants arriba).
   var _modoTema = _lightTenants.indexOf(tenantId) !== -1 ? 'light' : 'dark';

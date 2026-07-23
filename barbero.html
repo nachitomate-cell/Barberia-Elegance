@@ -535,6 +535,14 @@
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #clubInviteModal > div { background: #FFFFFF !important; border-color: #E5E7EB !important; }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #clubInviteModal .space-y-2 > div { background: rgba(17,24,39,0.04) !important; }
 
+    /* ── Club de fidelidad oculto (flag `clubOculto` en config.js) ──────────────
+       <html class="club-oculto"> apaga banners y nota del club; el modal se
+       corta además por JS (guard en showClubModal). */
+    .club-oculto #clubBanner,
+    .club-oculto #successClubBanner,
+    .club-oculto #clubReagendaNote,
+    .club-oculto #clubInviteModal { display: none !important; }
+
     /* ════════ STUDIO DIECISÉIS · Tema oscuro + dorado ════════ */
     /* Base dark del default queda; acá overrideamos acentos a dorado. */
     /* Paleta: #D4AF37 (gold) · #b8952c (gold sombra) · #0a0a0a (bg) */
@@ -1016,7 +1024,7 @@
         </div>
       </div>
 
-      <p class="mt-4 text-[11px] text-center text-gray-600 leading-relaxed">
+      <p id="clubReagendaNote" class="mt-4 text-[11px] text-center text-gray-600 leading-relaxed">
         <i class="ph-fill ph-info inline-block mr-0.5"></i>
         Para reagendar o cancelar tu hora en línea, regístrate en el Club de Fidelidad.
       </p>
@@ -2389,6 +2397,8 @@
   }
 
   function showClubModal(mode, prefill) {
+    // Club de fidelidad oculto para este tenant (flag `clubOculto` en config.js).
+    if (window.SHOP && window.SHOP.clubOculto) return;
     _clubModalMode = mode;
     _postReservaPrefill = prefill || null;
 
