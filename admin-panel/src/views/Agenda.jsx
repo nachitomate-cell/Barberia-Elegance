@@ -1617,18 +1617,44 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 Se cargará a la cuenta de <b className="text-primary">{form.clienteNombre || 'el cliente'}</b>: {clFmt(Number(form.precio) || 0)} + {clFmt(clRecargo)} de recargo = <b className="text-primary">{clFmt((Number(form.precio) || 0) + clRecargo)}</b>. No se cobra ahora; lo paga a fin de mes.
               </div>
             ) : (
-            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              {/* Método de pago: antes era un <select> (persiana) que obligaba
+                  a un tap extra para ver las opciones. Ahora los 4 métodos se
+                  ven de una — misma mecánica que el "Estado de la cita" para
+                  que la UI sea uniforme. Colores propios por método (verde=cash,
+                  sky=débito, violeta=crédito, ámbar=transf.) para diferenciar
+                  y no confundirlo con el bloque de Estado. */}
               <div>
                 <label className={lbl}>Método de Pago *</label>
-                <select className={field} value={form.metodoPago} onChange={e => set('metodoPago', e.target.value)}>
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Débito">Débito</option>
-                  <option value="Crédito">Crédito</option>
-                  <option value="Transferencia">Transferencia</option>
-                  {form.metodoPago === 'Tarjeta' && (
-                    <option value="Tarjeta">Tarjeta (legacy)</option>
-                  )}
-                </select>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+                    { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
+                    { v: 'Crédito',       txt: 'Crédito',       on: 'bg-violet-500/20 border-violet-500/60 text-violet-300' },
+                    { v: 'Transferencia', txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
+                  ].map(o => {
+                    const activo = form.metodoPago === o.v;
+                    return (
+                      <button
+                        key={o.v}
+                        type="button"
+                        onClick={() => set('metodoPago', o.v)}
+                        aria-pressed={activo}
+                        className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-bold transition-all active:scale-95 ${
+                          activo ? o.on : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                        }`}
+                      >
+                        {activo && <Check size={13} className="shrink-0" />}
+                        {o.txt}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.metodoPago === 'Tarjeta' && (
+                  <p className="text-[10px] text-slate-500 mt-1.5 italic">
+                    Método legacy &quot;Tarjeta&quot; — elige Débito o Crédito para reemplazarlo.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={lbl}>Monto Propina ($)</label>
