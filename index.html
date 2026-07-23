@@ -12102,9 +12102,18 @@
         const dayOff = (customConfig && customConfig.horario)
           ? !customConfig.horario[String(dw)]?.activo
           : !settings.diasLaborales.includes(dw);
+        // Disponibilidad por día del servicio (campo `diasDisponibles` en el
+        // doc del servicio, seteable en /gestion-interna/servicios). Si el
+        // servicio elegido restringe días, ocultamos los que no coincidan.
+        // `selectedAddons` sigue el mismo criterio con intersección: solo
+        // aparecen días donde TODOS los servicios elegidos están disponibles.
+        const _diasSvcElegidos = [selectedServiceObj, ...(window.selectedAddons || [])]
+          .filter(s => s && Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0);
+        const svcFueraDeDia = _diasSvcElegidos.some(s => !s.diasDisponibles.includes(dw));
         let disabled = dayOff ||
                        diasBloqConfig.includes(dateStr) ||
-                       !!_bloqueosProximos[dateStr];
+                       !!_bloqueosProximos[dateStr] ||
+                       svcFueraDeDia;
 
         if (disabled) {
           continue;
@@ -12133,6 +12142,22 @@
                 <span class="text-2xl font-bold ${textSpan2} day-num transition-all">${d.getDate()}</span>
                 <div class="dot h-1.5 w-1.5 rounded-full mt-1.5 ${dotClass} transition-all"></div>
               </button>`;
+        }
+      }
+      // Si el servicio elegido restringe días y ninguno de los próximos 20 cae
+      // dentro de los permitidos, el carrusel queda vacío. Mostramos un chip
+      // explicativo para que el cliente entienda por qué no ve fechas.
+      if (daysAdded === 0) {
+        const svcConRestriccion = [selectedServiceObj, ...(window.selectedAddons || [])]
+          .find(s => s && Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0);
+        if (svcConRestriccion) {
+          const NOM = { 0:'Domingo',1:'Lunes',2:'Martes',3:'Miércoles',4:'Jueves',5:'Viernes',6:'Sábado' };
+          const nombres = [...svcConRestriccion.diasDisponibles].sort((a,b)=>a-b).map(d => NOM[d]).join(', ');
+          carousel.innerHTML = `
+            <div class="w-full text-center px-4 py-6 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06]">
+              <p class="text-sm font-semibold text-amber-300 mb-1">Este servicio solo está disponible: ${nombres}</p>
+              <p class="text-xs text-amber-200/80">No hay fechas próximas que coincidan. Elige otro servicio o consulta al local.</p>
+            </div>`;
         }
       }
     }

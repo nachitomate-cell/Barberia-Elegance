@@ -49,6 +49,12 @@ const EMPTY = {
   // Vacío por sede = usa el precio base. Solo se muestra si multiSucursal.
   varPreciosSede: false,
   pps: {},
+  // Disponibilidad por día de la semana. Cuando `restringirDias` es true,
+  // `diasDisponibles` contiene los días (0=Dom … 6=Sáb) en los que el
+  // servicio aparece en la reserva pública. Vacío = ningún día. Toggle
+  // apagado = disponible SIEMPRE (backward-compat con servicios existentes).
+  restringirDias: false,
+  diasDisponibles: [],
   recargoSobrecupoDefault: '',
   // Servicio interno: solo el staff puede agendarlo desde el panel.
   // La reserva online pública (index.html) lo oculta. Útil para walk-ins,
@@ -246,6 +252,11 @@ export default function Servicios() {
       varPrecios: !!s.preciosPorDia, ppd,
       varPreciosSede: !!(s.preciosSucursal && Object.keys(s.preciosSucursal).length),
       pps,
+      // Días disponibles: si el doc trae `diasDisponibles` (array), el toggle
+      // arranca prendido con esos días. Si no trae nada, el servicio está
+      // disponible siempre (comportamiento previo).
+      restringirDias:  Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0,
+      diasDisponibles: Array.isArray(s.diasDisponibles) ? [...s.diasDisponibles] : [],
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
       // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
@@ -305,6 +316,17 @@ export default function Servicios() {
           if (sid && v !== '' && v != null) preciosSucursal[sid] = Math.round(Number(v));
         });
       }
+      // Días disponibles: cuando el toggle está prendido, guardamos el array
+      // saneado (enteros 0..6, únicos). Cuando está apagado, se borra el campo
+      // (servicio disponible siempre). Un array vacío también se guarda como
+      // "sin días disponibles" (el servicio queda oculto en la reserva pública).
+      const diasDisponibles = form.restringirDias
+        ? Array.from(new Set(
+            (form.diasDisponibles || [])
+              .map(d => Number(d))
+              .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
+          )).sort((a, b) => a - b)
+        : null;
       const descripcion = form.descripcion.trim();
       // Recargo por sobrecupo / horario especial: opcional. Se aplica solo si
       // el barbero activa el toggle en la agenda; el default aquí es 0.
@@ -393,6 +415,7 @@ export default function Servicios() {
           preciosSucursal: (form.varPreciosSede && Object.keys(preciosSucursal).length)
             ? preciosSucursal
             : deleteField(),
+          diasDisponibles: diasDisponibles ? diasDisponibles : deleteField(),
           // Al desactivar el pack, borramos los campos residuales para que el
           // servicio se comporte como normal en el flujo público y en Agenda.
           sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
@@ -409,6 +432,7 @@ export default function Servicios() {
         if (form.varPreciosSede && Object.keys(preciosSucursal).length) {
           newDoc.preciosSucursal = preciosSucursal;
         }
+        if (diasDisponibles) newDoc.diasDisponibles = diasDisponibles;
         if (recomendados.length) newDoc.recomendados = recomendados;
         // Create doc first to get ID, then upload image
         const docRef = await addDoc(tenantCol('servicios'), newDoc);
@@ -909,6 +933,74 @@ export default function Servicios() {
           )}
 
           {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Disponibilidad por día de la semana
+              Cuando se prende, el servicio aparece en la reserva pública SOLO
+              los días marcados. Vacío = queda oculto todos los días (útil para
+              pausas). Apagado = disponible siempre (backward-compat).
+              En modo "Nuevo pack" no se muestra: los packs no tienen calendario
+              propio, heredan la disponibilidad de los servicios que cubren.
+              ══════════════════════════════════════════════════════════ */}
+          {!form.isPack && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, restringirDias: !f.restringirDias }))}
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
+                form.restringirDias
+                  ? 'bg-slate-800/50 border-teal-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                  <span aria-hidden="true">📅</span> Disponible solo ciertos días
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Marca los días de la semana en que se ofrece este servicio.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.restringirDias ? 'bg-teal-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.restringirDias ? 'left-[22px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+            {form.restringirDias && (
+              <div className="bg-slate-900/50 border-x border-b border-teal-500/40 rounded-b-xl p-4">
+                <p className="text-xs text-slate-500 mb-3">
+                  El servicio solo aparecerá en la reserva pública en los días que marques. Los demás días queda oculto.
+                </p>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {DIAS.map(({ key, label }) => {
+                    const activo = (form.diasDisponibles || []).includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setForm(f => {
+                          const set = new Set(f.diasDisponibles || []);
+                          if (set.has(key)) set.delete(key); else set.add(key);
+                          return { ...f, diasDisponibles: Array.from(set).sort((a, b) => a - b) };
+                        })}
+                        aria-pressed={activo}
+                        className={`flex flex-col items-center gap-0.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all border ${
+                          activo
+                            ? 'bg-teal-500/15 border-teal-500/50 text-teal-200 shadow-[0_2px_10px_rgba(20,184,166,0.18)]'
+                            : `bg-slate-800/60 border-slate-700 hover:border-slate-500 ${key === 0 || key === 6 ? 'text-amber-400/70' : 'text-slate-400'}`
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(form.diasDisponibles || []).length === 0 && (
+                  <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
+                    ⚠ Sin ningún día marcado el servicio queda oculto en la reserva pública. Marca al menos uno o apaga el toggle para que esté disponible siempre.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
               TOGGLE: Precios por sucursal (solo tenants multi-sede)
               El valor por sede se guarda en preciosSucursal:{sid:precio};
               lo lee index.html vía _getPrecioEfectivo() al elegir sede.
@@ -1309,6 +1401,14 @@ function ServicioCardBody({ s, topServicio }) {
           {s.preciosSucursal && Object.keys(s.preciosSucursal).length > 0 && (
             <span className="bg-orange-400/10 text-orange-400 border border-orange-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
               📍 precio por sede
+            </span>
+          )}
+          {Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0 && (
+            <span className="bg-teal-400/10 text-teal-300 border border-teal-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              📅 {(() => {
+                const ETQ = { 0: 'Do', 1: 'Lu', 2: 'Ma', 3: 'Mi', 4: 'Ju', 5: 'Vi', 6: 'Sá' };
+                return [...s.diasDisponibles].sort((a, b) => a - b).map(d => ETQ[d]).join(' · ');
+              })()}
             </span>
           )}
           {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (
