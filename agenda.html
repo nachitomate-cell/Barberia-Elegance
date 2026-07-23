@@ -2118,16 +2118,31 @@
                 verWhatsAppClientes: o.verWhatsAppClientes !== false,
                 bloqueoHorarios:     o.bloqueoHorarios     !== false,
                 serviciosCortesia:   o.serviciosCortesia   !== false,
+                // Whitelist de barberos que sí ven el teléfono del cliente
+                // aunque el tenant esté oculto por hardcode o toggle global.
+                // Se usa en `_ocultaTelefono()` como excepción explícita.
+                verWhatsAppBarberos: Array.isArray(o.verWhatsAppBarberos) ? o.verWhatsAppBarberos : [],
             };
         }
 
         // Tenants que ocultan el teléfono del cliente a los barberos (privacidad).
-        // Además de la lista dura de tenants (política heredada), ahora respeta
-        // el toggle de configuracion/main.opcionesAvanzadas.verWhatsAppClientes.
+        // Tres capas conviviendo, en este orden:
+        //   1. Whitelist per-barbero: si el barbero autenticado está en
+        //      `opcionesAvanzadas.verWhatsAppBarberos`, VE el teléfono como
+        //      excepción — gana sobre el hardcode y sobre el toggle global.
+        //   2. Hardcode heredado: `chameleon`, `lumen`, `sionbarberia` siempre
+        //      ocultan por default (salvo excepción explícita en el paso 1).
+        //   3. Toggle global: `opcionesAvanzadas.verWhatsAppClientes === false`
+        //      oculta a TODOS los barberos del tenant.
         function _ocultaTelefono() {
             const t = window.CURRENT_TENANT_ID || 'elegance';
+            const opc = _opcionesAvanzadas();
+            const whitelist = opc.verWhatsAppBarberos;
+            if (Array.isArray(whitelist) && barberId && whitelist.map(String).includes(String(barberId))) {
+                return false;
+            }
             if (t === 'chameleon' || t === 'lumen' || t === 'sionbarberia') return true;
-            return _opcionesAvanzadas().verWhatsAppClientes === false;
+            return opc.verWhatsAppClientes === false;
         }
         // Oculta los campos de teléfono de los formularios crear/editar (conserva su
         // valor en el DOM para que el guardado no pierda el dato del cliente).

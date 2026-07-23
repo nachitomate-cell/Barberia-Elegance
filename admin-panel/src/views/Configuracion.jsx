@@ -754,6 +754,8 @@ export default function Configuracion() {
   // input libre en esas categorías.
   const { data: productos = [] } = useCollection('productos');
   const { data: servicios = [] } = useCollection('servicios');
+  // Barberos para la whitelist "Ver WhatsApp" (excepciones al toggle global).
+  const { data: barberos = [] } = useCollection('barberos');
   const { multiSucursal, sucursales } = useSucursal();
 
   const [form,          setForm]          = useState(DEFAULT_SETTINGS);
@@ -793,6 +795,10 @@ export default function Configuracion() {
     verWhatsAppClientes: true,
     bloqueoHorarios:     true,
     serviciosCortesia:   true,
+    // Whitelist de barberos que ven el teléfono aunque el toggle global esté
+    // apagado o el tenant tenga hardcode de privacidad (sionbarberia, lumen,
+    // chameleon). Array vacío = sin excepciones (comportamiento previo).
+    verWhatsAppBarberos: [],
   });
   // Metas financieras — inputs como string para distinguir "" (sin definir,
   // usa el fallback automático en Inicio) de 0 (forzar a 0).
@@ -870,6 +876,7 @@ export default function Configuracion() {
             verWhatsAppClientes: typeof cd.opcionesAvanzadas.verWhatsAppClientes === 'boolean' ? cd.opcionesAvanzadas.verWhatsAppClientes : prev.verWhatsAppClientes,
             bloqueoHorarios:     typeof cd.opcionesAvanzadas.bloqueoHorarios     === 'boolean' ? cd.opcionesAvanzadas.bloqueoHorarios     : prev.bloqueoHorarios,
             serviciosCortesia:   typeof cd.opcionesAvanzadas.serviciosCortesia   === 'boolean' ? cd.opcionesAvanzadas.serviciosCortesia   : prev.serviciosCortesia,
+            verWhatsAppBarberos: Array.isArray(cd.opcionesAvanzadas.verWhatsAppBarberos) ? cd.opcionesAvanzadas.verWhatsAppBarberos : prev.verWhatsAppBarberos,
           }));
         }
         // Multi-sucursal: hidratar `perSede` con los datos por sede del array
@@ -1032,6 +1039,12 @@ export default function Configuracion() {
             verWhatsAppClientes: !!opcAvanzadas.verWhatsAppClientes,
             bloqueoHorarios:     !!opcAvanzadas.bloqueoHorarios,
             serviciosCortesia:   !!opcAvanzadas.serviciosCortesia,
+            // Saneamos: solo strings no vacías y sin duplicados. Vacío = sin
+            // excepciones (comportamiento por default del tenant).
+            verWhatsAppBarberos: Array.from(new Set(
+              (opcAvanzadas.verWhatsAppBarberos || [])
+                .filter(bid => typeof bid === 'string' && bid.length > 0)
+            )),
           },
           // Sucursales editadas: SOLO se persiste si el tenant es multi-sede
           // y hay cambios. Si sucursalesToSave === null, el spread lo omite.
@@ -1799,6 +1812,68 @@ export default function Configuracion() {
               <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.verWhatsAppClientes ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>
           </div>
+          {/* Excepciones per-barbero: whitelist que ve el teléfono aunque el
+              toggle esté apagado o el tenant tenga política dura oculta.
+              Solo se muestra si hay barberos cargados. */}
+          {barberos.length > 0 && (
+            <div className="px-4 py-3 border-t border-slate-700/50 bg-slate-900/40">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Excepciones por barbero</span>
+                {opcAvanzadas.verWhatsAppBarberos.length > 0 && (
+                  <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-2 py-0.5">
+                    {opcAvanzadas.verWhatsAppBarberos.length} ven el número
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                Los barberos marcados aquí <strong className="text-slate-300">verán el WhatsApp del cliente</strong> aunque el toggle de arriba esté apagado. Útil para dar acceso solo a barberos de confianza sin abrirlo para todo el equipo.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {barberos
+                  .filter(b => b.activo !== false)
+                  .map(b => {
+                    const activo = opcAvanzadas.verWhatsAppBarberos.includes(b.id);
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => {
+                          setOpcAvanzadas(o => {
+                            const set = new Set(o.verWhatsAppBarberos || []);
+                            if (set.has(b.id)) set.delete(b.id); else set.add(b.id);
+                            return { ...o, verWhatsAppBarberos: Array.from(set) };
+                          });
+                          setDirty(true);
+                        }}
+                        aria-pressed={activo}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
+                          activo
+                            ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-200 shadow-[0_2px_10px_rgba(16,185,129,0.18)]'
+                            : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                        }`}
+                      >
+                        {b.foto ? (
+                          <img
+                            src={b.foto}
+                            alt=""
+                            className="w-5 h-5 rounded-full object-cover shrink-0"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="w-5 h-5 rounded-full bg-slate-700 shrink-0 flex items-center justify-center text-[10px] text-slate-300"
+                          >
+                            {(b.nombre || '?').charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="truncate">{b.nombre || 'Sin nombre'}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bloqueo de horas / rangos */}
