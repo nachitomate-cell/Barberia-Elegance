@@ -47,6 +47,10 @@ const DOMAIN_MAP = {
   'renacer.synaptechspa.cl':           'renacer',
   'orenbarber.synaptechspa.cl':        'oren',
   'orenbarbercl.synaptechspa.cl':      'oren',
+  // elegance vivía del fallback implícito "host desconocido → elegance"; con el
+  // 404 de plataforma ese fallback ya no existe para *.synaptechspa.cl y su
+  // subdominio necesita entrada explícita como todos los demás.
+  'elegance.synaptechspa.cl':          'elegance',
 };
 
 // Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
