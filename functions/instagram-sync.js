@@ -35,7 +35,7 @@ const db = admin.firestore();
 
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
-const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omega', 'memphis', 'barbersclub', 'elbarberomoderno', 'renacer', 'latincaribe', 'yugen', 'estudioluxury', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omega', 'memphis', 'barbersclub', 'elbarberomoderno', 'renacer', 'latincaribe', 'yugen', 'estudioluxury', 'oren', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
@@ -65,6 +65,7 @@ const TENANT_PANEL_URL = {
   latincaribe:          'https://thelatincaribe.synaptechspa.cl',
   yugen:                'https://yugenstudio.synaptechspa.cl',
   estudioluxury:        'https://estudioluxury.synaptechspa.cl',
+  oren:                 'https://orenbarber.synaptechspa.cl',
   kronnos_penablanca:   'https://kronnospenablanca.synaptechspa.cl',
   kronnos_limache:      'https://kronnoslimache.synaptechspa.cl',
   kronnos_woman:        'https://kronnoswoman.synaptechspa.cl',
