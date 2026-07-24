@@ -162,7 +162,8 @@ async function fetchDatosMes(mesKey) {
     withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))), 20000, 'reporte/gastos'),
   ]);
 
-  const citas = citasSnap.docs.map(d => d.data()).filter(c => c.estado === 'Completada');
+  // Excluye citas del fantasma QA (origenQA) — no cuentan como ingresos reales.
+  const citas = citasSnap.docs.map(d => d.data()).filter(c => c.estado === 'Completada' && !c.origenQA);
   const ventas = ventasSnap.docs.map(d => d.data()).filter(v => {
     if (!VENTA_OK.has(v.status)) return false;
     const ymd = fechaToYMD(v.fecha || v.creadoEn || v.createdAt);
@@ -612,6 +613,7 @@ async function cargarMovimientosMes(mesKey) {
   citasSnap.docs.forEach(d => {
     const c = d.data();
     if (c.estado !== 'Completada') return;
+    if (c.origenQA) return; // fantasma QA no ensucia la conciliación diaria
     const monto = Number(c.precio) || 0;
     if (monto > 0) ventas.push({
       _id: 'c:' + d.id, _fecha: c.fecha, _monto: monto,
@@ -978,7 +980,7 @@ export default function Caja() {
       where('fecha', '==', hoy),
     );
     const unsub1 = onSnapshot(qCitas, snap => {
-      setCitasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada'));
+      setCitasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada' && !c.origenQA));
     }, () => {});
 
     // Productos vendidos hoy

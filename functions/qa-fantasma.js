@@ -18,10 +18,10 @@
 //  Equipo.jsx, Agenda.jsx del panel). El superadmin las ve; el resto no.
 // ══════════════════════════════════════════════════════════════════
 
-const { onCall, HttpsError }      = require('firebase-functions/v2/https');
-const { onDocumentWritten }       = require('firebase-functions/v2/firestore');
-const { logger }                  = require('firebase-functions');
-const admin                       = require('firebase-admin');
+const { onCall, HttpsError }                     = require('firebase-functions/v2/https');
+const { onDocumentWritten, onDocumentCreated }   = require('firebase-functions/v2/firestore');
+const { logger }                                 = require('firebase-functions');
+const admin                                      = require('firebase-admin');
 
 const SUPERADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 const QA_DOC_ID_LEGACY = 'qaSuperadmin'; // fallback si aún no resolvió el UID
@@ -156,6 +156,78 @@ exports.sincronizarQaFantasma = onCall({ region: 'us-central1', cors: true }, as
   logger.info(`[QA] sync manual by ${email}: activo=${result.activo}, tenants=${result.tenants.length}, errores=${result.errores.length}`);
   return { ok: true, ...result };
 });
+
+// ─── Helper exportado: provisionar en UN tenant (hook para provision-tenant) ──
+// Se llama al terminar `provisionarTenantSelf` / `provisionarTenantAdmin` para
+// que un tenant recién nacido ya venga con el fantasma listo. Silencioso: no
+// levanta si el maestro no está activo o no existe (no hay nada que espejar).
+exports.provisionarQaEnTenant = async function (tenantId) {
+  if (!tenantId) return { skipped: 'no-tenant' };
+  const db = admin.firestore();
+  const masterSnap = await db.doc(MASTER_PATH).get();
+  if (!masterSnap.exists) return { skipped: 'no-master' };
+  const cfg = masterSnap.data() || {};
+  if (cfg.activo === false) return { skipped: 'inactive' };
+  try {
+    const uid = await resolveSuperadminUid();
+    const ref = tenantId === 'elegance'
+      ? db.collection('barberos').doc(uid)
+      : db.collection('tenants').doc(tenantId).collection('barberos').doc(uid);
+    await ref.set(buildBarberoDoc(uid, cfg, tenantId), { merge: true });
+    logger.info(`[QA] provisionado en tenant nuevo ${tenantId}`);
+    return { ok: true, tenantId };
+  } catch (err) {
+    logger.error(`[QA] provision en ${tenantId} falló:`, err.message);
+    return { ok: false, error: err.message };
+  }
+};
+
+// ─── Trigger: marca cita creada por el fantasma con origenQA:true ───
+// Cualquier cita del fantasma (agenda.html manual, booking público, etc.) queda
+// con origenQA:true → los agregadores del panel filtran esas para no ensuciar
+// métricas/ventas/comisiones del dueño real.
+//
+// Nota: se dispara post-write; hay una ventana chica (~500ms) donde una cita
+// del fantasma aparece "sin marca". Vistas que consumen en tiempo real la
+// verán aparecer y desaparecer una vez. Aceptable dado el volumen (~5 citas/día
+// del QA en su peor caso).
+async function _marcarCitaSiFantasma(citaRef, data) {
+  try {
+    const barberoId = data && data.barberoId;
+    if (!barberoId || data.origenQA === true) return; // ya marcada o sin barbero
+    // Descubrí el tenant desde el path del doc de cita para leer el barbero
+    // correcto — evita confundir root /barberos con tenants/*/barberos.
+    const parts = citaRef.path.split('/');
+    const barberoRef = (parts[0] === 'tenants')
+      ? admin.firestore().collection('tenants').doc(parts[1]).collection('barberos').doc(barberoId)
+      : admin.firestore().collection('barberos').doc(barberoId);
+    const bSnap = await barberoRef.get();
+    if (!bSnap.exists) return;
+    if (bSnap.data().esQA !== true) return;
+    await citaRef.set({ origenQA: true }, { merge: true });
+    logger.info(`[QA] cita marcada origenQA=${citaRef.path}`);
+  } catch (err) {
+    logger.error('[QA] marcarCitaSiFantasma:', err.message);
+  }
+}
+
+exports.marcarCitaQaElegance = onDocumentCreated(
+  { document: 'citas/{citaId}', region: 'us-central1' },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    await _marcarCitaSiFantasma(event.data.ref, data);
+  }
+);
+
+exports.marcarCitaQaTenant = onDocumentCreated(
+  { document: 'tenants/{tid}/citas/{citaId}', region: 'us-central1' },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    await _marcarCitaSiFantasma(event.data.ref, data);
+  }
+);
 
 // ─── Trigger: re-sync automático al editar el maestro ────────────
 // Si Ignacio cambia el horario / nombre / activo desde /admin (que

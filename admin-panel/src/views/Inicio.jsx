@@ -249,7 +249,9 @@ export default function Inicio() {
 
       const [citasSnap, servSnap, gastosSnap, ventasSnap, esperaSnap, cliSnap] = await Promise.all(tasks);
       if (myId !== fetchIdRef.current) return;
-      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Fantasma QA (origenQA) excluido: sus citas de test no ensucian el
+      // resumen del dueño (ingresos hoy/mes, próximas, etc.).
+      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => !c.origenQA));
       setServicios(servSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastosRaw(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setVentasRaw(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));

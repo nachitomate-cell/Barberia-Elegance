@@ -549,6 +549,15 @@ exports.provisionarTenantAdmin = onCall({ region: 'us-central1', cors: true }, a
   // 3. Claims del dueño (directo, sin esperar triggers).
   await admin.auth().setCustomUserClaims(ownerUid, { role: 'admin', tenantId: slug });
 
+  // 4. Auto-provisionar el fantasma QA si está activo en el maestro. Silencioso
+  //    ante errores — no queremos que un fallo del QA rompa la alta del tenant.
+  try {
+    const { provisionarQaEnTenant } = require('./qa-fantasma');
+    await provisionarQaEnTenant(slug);
+  } catch (err) {
+    logger.warn(`[admin-express] provision QA falló (no crítico):`, err.message);
+  }
+
   logger.info(`[admin-express] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) dueño=${duenoEmail} por=${callerEmail}`);
 
   return {
@@ -738,6 +747,14 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   // 3. Claims de admin — directo, sin esperar la propagación del trigger
   //    sincronizarClaims (mismo patrón que los seeds de credenciales).
   await admin.auth().setCustomUserClaims(uid, { role: 'admin', tenantId: slug });
+
+  // 4. Auto-provisionar el fantasma QA si está activo en el maestro. Silencioso.
+  try {
+    const { provisionarQaEnTenant } = require('./qa-fantasma');
+    await provisionarQaEnTenant(slug);
+  } catch (err) {
+    logger.warn(`[self-service] provision QA falló (no crítico):`, err.message);
+  }
 
   logger.info(`[self-service] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) owner=${email || uid}`);
 

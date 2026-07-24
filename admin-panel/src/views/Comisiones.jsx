@@ -293,7 +293,8 @@ export default function Comisiones() {
       setCitasRaw(
         snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
-          .filter(c => c.estado === 'Completada'),
+          // Excluye citas del fantasma QA (origenQA) — no pagan comisiones al barbero real.
+          .filter(c => c.estado === 'Completada' && !c.origenQA),
       );
     } catch (e) {
       console.error('[Comisiones] error cargando citas:', e);

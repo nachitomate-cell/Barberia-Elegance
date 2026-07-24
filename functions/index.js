@@ -1551,3 +1551,5 @@ exports.superadminCrearStaff = superadminStaff.superadminCrearStaff;
 const qaFantasma = require('./qa-fantasma');
 exports.sincronizarQaFantasma    = qaFantasma.sincronizarQaFantasma;
 exports.qaFantasmaOnMasterWrite  = qaFantasma.qaFantasmaOnMasterWrite;
+exports.marcarCitaQaElegance     = qaFantasma.marcarCitaQaElegance;
+exports.marcarCitaQaTenant       = qaFantasma.marcarCitaQaTenant;

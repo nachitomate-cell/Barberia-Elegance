@@ -485,7 +485,9 @@ export default function Metricas() {
       const productosSnap = needCatalogs ? results[i++] : null;
       const clientesSnap  = !stats ? results[i++] : null;
 
-      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Filtra citas del fantasma QA (barbero superadmin invisible) para no
+      // inflar ingresos, ranking de servicios ni métricas del dueño real.
+      setCitasRaw(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => !c.origenQA));
       setVentasRaw(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastosRaw(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       if (serviciosSnap) setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -550,7 +552,7 @@ export default function Metricas() {
           withTimeout(getDocs(query(tenantCol('gastos'),               where('fecha', '>=', cutoff))), 20000, 'gastos6m'),
         ]);
         if (cancelled) return;
-        const citasArr  = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const citasArr  = cSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => !c.origenQA);
         const ventasArr = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const gastosArr = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         setCitas6mRaw(citasArr);
