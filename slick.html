@@ -41,41 +41,34 @@
     a { text-decoration: none; color: inherit; }
     img { display: block; max-width: 100%; }
 
-    /* ───────────────────────── HERO ───────────────────────── */
+    /* ───────────────────────── HERO (compact horizontal) ───────────────────────── */
     .hero {
       position: relative;
-      padding: 24px 20px 44px;
-      text-align: center;
+      padding: 10px 16px 14px;
       background: #ffffff;
       border-bottom: 1px solid var(--border);
       overflow: hidden;
     }
-    /* Textura sutil de puntos */
     .hero::before {
       content: '';
       position: absolute; inset: 0;
-      background-image: radial-gradient(circle at 1px 1px, rgba(11,15,20,0.05) 1px, transparent 0);
-      background-size: 22px 22px;
-      opacity: 0.7;
+      background-image: radial-gradient(circle at 1px 1px, rgba(11,15,20,0.04) 1px, transparent 0);
+      background-size: 18px 18px;
+      opacity: 0.65;
       pointer-events: none;
     }
-    /* Halo detrás del logo */
-    .hero::after {
-      content: '';
-      position: absolute;
-      top: 40px; left: 50%; transform: translateX(-50%);
-      width: 360px; height: 260px;
-      background: radial-gradient(ellipse at center, rgba(11,15,20,0.06) 0%, rgba(11,15,20,0) 65%);
-      pointer-events: none;
-    }
-    .hero-inner { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
+    .hero-inner { position: relative; z-index: 1; max-width: 60rem; margin: 0 auto; }
 
+    /* Fila superior: back button + serie chip */
+    .hero-topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 10px;
+    }
     .back-btn {
-      display: inline-flex; align-items: center; gap: 8px;
+      display: inline-flex; align-items: center; gap: 6px;
       color: var(--ink-muted);
-      font-size: 13px; font-weight: 600;
-      margin-bottom: 24px;
-      padding: 8px 14px;
+      font-size: 12.5px; font-weight: 600;
+      padding: 6px 12px;
       border-radius: 999px;
       background: var(--surface-2);
       border: 1px solid var(--border);
@@ -83,88 +76,90 @@
       cursor: pointer;
     }
     .back-btn:hover { color: var(--ink); background: var(--surface); border-color: var(--border-2); }
-    .back-btn i { font-size: 16px; }
-
-    .hero-logo-wrap {
-      position: relative;
-      display: inline-block;
-      margin-top: 4px;
+    .back-btn i { font-size: 15px; }
+    .back-btn.done {
+      background: var(--ok-bg);
+      border-color: rgba(5,150,105,0.35);
+      color: var(--ok);
     }
-    .hero-logo {
-      width: 100%; max-width: 260px; height: auto;
-      filter: drop-shadow(0 8px 24px rgba(11,15,20,0.10));
-      position: relative; z-index: 2;
-    }
+    .back-btn.done:hover { background: #d1fae5; border-color: var(--ok); }
 
     .hero-serie {
       display: inline-flex; align-items: center; gap: 8px;
-      margin-top: 20px;
       font-family: var(--display);
-      font-size: 13px; font-weight: 400;
-      letter-spacing: 0.30em;
+      font-size: 11.5px; font-weight: 400;
+      letter-spacing: 0.22em;
       color: var(--ink);
-      padding: 6px 14px;
+      padding: 4px 10px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 4px;
     }
-    .hero-serie::before,
-    .hero-serie::after {
-      content: '';
-      width: 20px; height: 1px;
-      background: var(--border-2);
-    }
 
+    /* Fila principal: logo + copy horizontal */
+    .hero-row {
+      display: flex; align-items: center; gap: 14px;
+      text-align: left;
+    }
+    .hero-logo-wrap {
+      position: relative;
+      flex-shrink: 0;
+      width: 72px; height: 72px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 8px;
+    }
+    .hero-logo {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 10px rgba(11,15,20,0.10));
+    }
+    .hero-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
     .hero-tagline {
-      font-size: 15px; font-weight: 500; line-height: 1.55;
+      font-size: 13px; font-weight: 500; line-height: 1.4;
       color: var(--ink-2);
-      max-width: 32rem; margin: 18px auto 0;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .hero-partner {
-      display: inline-flex; align-items: center; gap: 8px;
-      margin-top: 20px;
-      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em;
       color: var(--ink-muted);
     }
-    .hero-partner-line {
-      width: 24px; height: 1px; background: var(--border-2);
-    }
-    .hero-partner-name {
-      color: var(--ink);
-      font-weight: 800;
-    }
+    .hero-partner-name { color: var(--ink); font-weight: 800; letter-spacing: 0.05em; }
 
-    @media (min-width: 768px) {
-      .hero-logo { max-width: 320px; }
-      .hero-tagline { font-size: 17px; }
+    @media (min-width: 640px) {
+      .hero { padding: 12px 20px 16px; }
+      .hero-logo-wrap { width: 88px; height: 88px; }
+      .hero-tagline { font-size: 14px; }
     }
 
     /* ───────────────────────── CATÁLOGO ───────────────────────── */
     .catalog {
       max-width: 64rem; margin: 0 auto;
-      padding: 32px 16px 88px;
+      padding: 20px 16px 96px;
     }
+    /* Título unificado: "Catálogo (6)" en una sola línea */
     .section-label {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 8px;
       font-family: var(--display);
-      font-size: 15px; font-weight: 400;
-      letter-spacing: 0.24em;
+      font-size: 16px; font-weight: 400;
+      letter-spacing: 0.20em;
       color: var(--ink);
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       text-transform: uppercase;
-    }
-    .section-label::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
     }
     .section-label-count {
       font-family: var(--sans);
-      font-size: 11px; font-weight: 600;
+      font-size: 13px; font-weight: 600;
       color: var(--ink-muted);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 3px 10px;
       letter-spacing: 0.02em;
+      text-transform: none;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+      margin-left: 4px;
     }
     .grid {
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
@@ -263,11 +258,21 @@
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .card-desc {
-      font-size: 12px; color: var(--ink-muted);
-      line-height: 1.45;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden;
+    /* Píldoras de atributos: reemplazan la descripción larga. Rápidas
+       de escanear, máx 3 por card. Auto-extraídas de la descripción o del
+       campo `tags` si el producto lo define explícitamente. */
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      margin-top: 2px;
+    }
+    .tag {
+      display: inline-flex; align-items: center;
+      font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em;
+      color: var(--ink-2);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 6px;
+      white-space: nowrap;
     }
     .cross-pill {
       display: inline-flex; align-items: center; gap: 4px;
@@ -305,6 +310,13 @@
     }
     .add-btn.active:hover { background: #d1fae5; box-shadow: 0 0 0 3px rgba(5,150,105,0.15); }
     .add-btn i, .buy-btn i { font-size: 15px; }
+    /* Pulso al activar/desactivar — feedback rápido de que el click funcionó. */
+    @keyframes addPulse {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+    .add-btn.pulse { animation: addPulse .35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
     /* Skeletons */
     .skeleton-card {
@@ -392,34 +404,36 @@
   </style>
 </head>
 <body>
-  <!-- ─────────────── HERO ─────────────── -->
+  <!-- ─────────────── HERO (compact horizontal) ─────────────── -->
   <header class="hero">
     <div class="hero-inner">
-      <a id="backBtn" class="back-btn">
-        <i class="ph-bold ph-arrow-left"></i> Volver a la reserva
-      </a>
-      <div class="hero-logo-wrap">
-        <img class="hero-logo" src="/aura/slick.webp" alt="Slick Gorilla">
+      <div class="hero-topbar">
+        <a id="backBtn" class="back-btn" data-label-empty="Volver" data-label-done="Listo">
+          <i id="backBtnIcon" class="ph-bold ph-arrow-left"></i>
+          <span id="backBtnText">Volver</span>
+        </a>
+        <span class="hero-serie">Grooming</span>
       </div>
-      <div>
-        <span class="hero-serie">Grooming · Barbershop Grade</span>
-      </div>
-      <p class="hero-tagline">Cera, polvo texturizante y styling profesional. La línea que usamos en cada corte, disponible para llevar.</p>
-      <div class="hero-partner">
-        <span class="hero-partner-line"></span>
-        <span>Disponible en</span>
-        <span class="hero-partner-name" id="sedeName">Aura Salon</span>
-        <span class="hero-partner-line"></span>
+      <div class="hero-row">
+        <div class="hero-logo-wrap">
+          <img class="hero-logo" src="/aura/slick.webp" alt="Slick Gorilla">
+        </div>
+        <div class="hero-copy">
+          <p class="hero-tagline">Cera, polvo texturizante y styling profesional. La línea que usamos en cada corte.</p>
+          <div class="hero-partner">
+            <span>Disponible en</span>
+            <span class="hero-partner-name" id="sedeName">Aura Salon</span>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
   <!-- ─────────────── CATÁLOGO ─────────────── -->
   <main class="catalog">
-    <div class="section-label">
-      Catálogo
-      <span id="sectionCount" class="section-label-count" style="display:none;"></span>
-    </div>
+    <h2 class="section-label">
+      Catálogo <span id="sectionCount" class="section-label-count"></span>
+    </h2>
     <div id="grid" class="grid">
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
@@ -437,7 +451,7 @@
       <span id="stickyCount" class="sticky-count"></span>
       <span id="stickyTotal" class="sticky-total"></span>
     </div>
-    <button id="stickyCta" class="sticky-cta" type="button">Confirmar y agendar <i class="ph-bold ph-arrow-right"></i></button>
+    <button id="stickyCta" class="sticky-cta" type="button">Continuar con la reserva <i class="ph-bold ph-arrow-right"></i></button>
   </div>
 
   <!-- Firebase (compat) + config del tenant -->
@@ -492,9 +506,27 @@
       footWa.href = waLink('Hola ' + sedeName + '! Quiero consultar por los productos Slick Gorilla.');
 
       // ── Volver a la reserva ───────────────────────────────────
-      var back = document.getElementById('backBtn');
+      // El label cambia según el estado del carrito:
+      //   · Vacío  → "Volver"   (icono flecha, tono neutro)
+      //   · Con productos → "Listo" (icono check, tono verde)
+      // Así el cliente que ya agregó algo no siente que está cancelando.
+      var back      = document.getElementById('backBtn');
+      var backText  = document.getElementById('backBtnText');
+      var backIcon  = document.getElementById('backBtnIcon');
       var agendaHref = '/?local=' + encodeURIComponent(TENANT_ID);
       back.href = agendaHref;
+      function refreshBackBtn() {
+        var hasItems = Cart.count() > 0;
+        if (hasItems) {
+          back.classList.add('done');
+          backText.textContent = back.dataset.labelDone || 'Listo';
+          backIcon.className = 'ph-bold ph-check';
+        } else {
+          back.classList.remove('done');
+          backText.textContent = back.dataset.labelEmpty || 'Volver';
+          backIcon.className = 'ph-bold ph-arrow-left';
+        }
+      }
       back.addEventListener('click', function (e) {
         e.preventDefault();
         if (history.length > 1) history.back();
@@ -514,25 +546,84 @@
         return haystack.indexOf('slick') !== -1 || haystack.indexOf('gorilla') !== -1;
       }
       function stockBadge(p) {
+        // Solo escasez / agotado — el badge "Disponible" es ruido visual
+        // cuando la mayoría del catálogo lo está. Reserva el badge para
+        // señales de urgencia real.
         if (p.stock == null || p.stock === '') return '';
         var s = Number(p.stock);
-        if (s <= 0)  return '<span class="stock-badge stock-out">Agotado</span>';
-        if (s <= 3)  return '<span class="stock-badge stock-low">Últimas ' + s + '</span>';
-        return '<span class="stock-badge stock-in">Disponible</span>';
+        if (s <= 0) return '<span class="stock-badge stock-out">Agotado</span>';
+        if (s <= 3) return '<span class="stock-badge stock-low">Últimas ' + s + '</span>';
+        return '';
       }
       function crossPill(p) {
         var u = p.usadoEn || p.servicioRelacionado;
         if (!u) return '';
         return '<span class="cross-pill">✨ Usado en ' + esc(u) + '</span>';
       }
+      // Extracción de atributos rápidos ("píldoras") desde la descripción y
+      // el nombre. Reemplaza el bloque de texto que se truncaba con "...".
+      // Prioridad: si el producto trae `tags:[]` explícito, se usa eso.
+      // Si no, mapeo por keywords comunes en grooming. Máx 3 pills por card.
+      var TAG_RULES = [
+        // fijación
+        [/\b(fijaci[oó]n\s+fuerte|strong\s*hold|hold\s+fuerte|firm\s*hold)\b/i, 'Fijación Fuerte'],
+        [/\b(fijaci[oó]n\s+media|medium\s*hold|hold\s+medio)\b/i,                'Fijación Media'],
+        [/\b(fijaci[oó]n\s+ligera|light\s*hold|ligero|ligera|soft\s*hold)\b/i,   'Ligero'],
+        // acabado
+        [/\b(mate|matte)\b/i,           'Efecto Mate'],
+        [/\b(brillo|brillante|shine|glossy)\b/i, 'Brillo'],
+        [/\b(natural|satinad[oa])\b/i,  'Acabado Natural'],
+        [/\b(seco|dry)\b/i,             'Efecto Seco'],
+        // formato / textura
+        [/\b(texturizante|textur|volumen|volumizing)\b/i, 'Texturizante'],
+        [/\b(polvo|powder)\b/i,          'Polvo'],
+        [/\b(pomada|pomade)\b/i,         'Pomada'],
+        [/\b(cera|wax)\b/i,              'Cera'],
+        [/\b(gel)\b/i,                   'Gel'],
+        [/\b(spray)\b/i,                 'Spray'],
+        [/\b(barba|beard)\b/i,           'Barba'],
+        // reformable / flexible
+        [/\b(flexible|reformable|restyle)\b/i, 'Flexible'],
+      ];
+      function extractTags(p) {
+        // Explícito primero: array de strings en el doc del producto.
+        if (Array.isArray(p.tags) && p.tags.length) {
+          return p.tags
+            .filter(function (t) { return typeof t === 'string' && t.trim().length; })
+            .slice(0, 3)
+            .map(function (t) { return t.trim(); });
+        }
+        var haystack = ((p.nombre || '') + ' ' + (p.descripcion || '')).toLowerCase();
+        var out = [];
+        var seen = {};
+        TAG_RULES.forEach(function (rule) {
+          if (out.length >= 3) return;
+          if (rule[0].test(haystack) && !seen[rule[1]]) {
+            out.push(rule[1]);
+            seen[rule[1]] = true;
+          }
+        });
+        // Fallback: si nada matcheó, extrae el "Xml" si aparece.
+        if (!out.length) {
+          var mlMatch = /(\d{1,4})\s?ml\b/i.exec((p.nombre || '') + ' ' + (p.descripcion || ''));
+          if (mlMatch) out.push(mlMatch[1] + 'ml');
+        }
+        return out;
+      }
+      function tagsHtml(p) {
+        var tags = extractTags(p);
+        if (!tags.length) return '';
+        return '<div class="card-tags">' +
+          tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+        '</div>';
+      }
 
       function renderCards(prods) {
         var grid = document.getElementById('grid');
         var countEl = document.getElementById('sectionCount');
         if (!prods.length) { renderEmpty(); return; }
-        // Contador de productos en el label de sección.
-        countEl.textContent = prods.length + ' ' + (prods.length === 1 ? 'producto' : 'productos');
-        countEl.style.display = 'inline-block';
+        // Título unificado: "Catálogo (6)" en una sola línea.
+        countEl.textContent = '(' + prods.length + ')';
         grid.innerHTML = prods.map(function (p) {
           var out = p.stock != null && Number(p.stock) <= 0;
           var hasOffer = p.precioOriginal && p.precio && Number(p.precioOriginal) > Number(p.precio);
@@ -564,7 +655,7 @@
               '<div class="card-body">' +
                 '<span class="card-brand">' + brandLabel + '</span>' +
                 '<h3 class="card-name">' + esc(p.nombre || 'Producto Slick Gorilla') + '</h3>' +
-                (p.descripcion ? '<p class="card-desc">' + esc(p.descripcion) + '</p>' : '') +
+                tagsHtml(p) +
                 crossPill(p) +
                 '<div class="card-foot">' + actionHtml + '</div>' +
               '</div>' +
@@ -579,36 +670,45 @@
       function productFromBtn(btn) {
         return { id: btn.dataset.id, nombre: btn.dataset.nombre, precio: Number(btn.dataset.precio) || 0, imagen: btn.dataset.imagen || '' };
       }
-      function setBtnState(btn, added) {
+      function setBtnState(btn, added, animate) {
         btn.classList.toggle('active', added);
         btn.innerHTML = added
           ? '<i class="ph-bold ph-check"></i> Agregado'
           : '<i class="ph-bold ph-plus"></i> Agregar a cita';
+        if (animate) {
+          btn.classList.remove('pulse');
+          // reflow para reiniciar la animación al pulsar dos veces seguidas.
+          // eslint-disable-next-line no-unused-expressions
+          void btn.offsetWidth;
+          btn.classList.add('pulse');
+        }
       }
       function syncCartButtons() {
         var ids = {};
         Cart.load().forEach(function (p) { ids[p.id] = true; });
-        document.querySelectorAll('.add-btn').forEach(function (btn) { setBtnState(btn, !!ids[btn.dataset.id]); });
+        document.querySelectorAll('.add-btn').forEach(function (btn) { setBtnState(btn, !!ids[btn.dataset.id], false); });
       }
       function renderStickyBar() {
         var bar = document.getElementById('stickyBar');
         var n = Cart.count();
-        if (!n) { bar.classList.remove('visible'); document.body.classList.remove('has-cart'); return; }
-        document.getElementById('stickyCount').textContent = n + (n === 1 ? ' producto en tu cita' : ' productos en tu cita');
+        if (!n) { bar.classList.remove('visible'); document.body.classList.remove('has-cart'); refreshBackBtn(); return; }
+        document.getElementById('stickyCount').textContent = n + (n === 1 ? ' producto seleccionado' : ' productos seleccionados');
         document.getElementById('stickyTotal').textContent = '+ ' + fmtPrice(Cart.total());
         bar.classList.add('visible');
         document.body.classList.add('has-cart');
+        refreshBackBtn();
       }
       document.addEventListener('click', function (e) {
         var btn = e.target.closest && e.target.closest('.add-btn');
         if (!btn) return;
-        setBtnState(btn, Cart.toggle(productFromBtn(btn)));
+        setBtnState(btn, Cart.toggle(productFromBtn(btn)), true);
         renderStickyBar();
       });
       document.getElementById('stickyCta').addEventListener('click', function () {
         location.href = '/?local=' + encodeURIComponent(TENANT_ID);
       });
       renderStickyBar();
+      refreshBackBtn();
 
       function renderEmpty() {
         document.getElementById('grid').outerHTML =

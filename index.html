@@ -11067,11 +11067,14 @@
         else pills.appendChild(tab);
       }
 
-      // 2) Banner in-feed tras la 1ª tarjeta de servicio.
+      // 2) Banner AL FINAL de la lista de servicios (no intercalado). El
+      //    upsell de productos no debe interrumpir la decisión del corte;
+      //    aparece después de que el cliente ya vio todo el menú de
+      //    servicios como opción de agregar a la cita.
       const grid = document.getElementById('servicesGrid');
       if (grid && !grid.querySelector('.sg-infeed')) {
-        const firstCard = grid.querySelector('.service-option');
-        if (firstCard) {
+        const serviceCards = grid.querySelectorAll('.service-option');
+        if (serviceCards.length) {
           const banner = document.createElement('a');
           banner.href = slickHref;
           banner.className = 'sg-infeed';
@@ -11081,7 +11084,8 @@
               '<p><strong>Complementa tu servicio:</strong> Cera, polvo texturizante y styling Slick Gorilla usados en tu corte.</p>' +
             '</div>' +
             '<span class="sg-infeed-cta"><i class="ph-bold ph-arrow-right"></i></span>';
-          firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
+          const lastCard = serviceCards[serviceCards.length - 1];
+          lastCard.parentNode.insertBefore(banner, lastCard.nextSibling);
         }
       }
     }
