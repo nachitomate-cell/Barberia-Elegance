@@ -1843,8 +1843,8 @@ export default async function middleware(request) {
         theme_color:      '#0f172a',
         background_color: '#0f172a',
         icons: [
-          { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icons/pwa/synaptech-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/pwa/synaptech-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       };
       return new Response(JSON.stringify(manifest, null, 2), {

@@ -47,6 +47,10 @@ const TENANTS = {
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
   memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
   renacer:              { src: 'renacer/logo.webp',               bg: '#0a0806' },
+  // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
+  // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
+  // pinta un halo distinto entre splash y app.
+  synaptech:            { src: 'synaptech/ig.png',                bg: '#0f172a' },
 };
 
 const SIZES = [192, 512];
