@@ -772,6 +772,24 @@
            Bajamos el negro 70% (rgba(0,0,0,0.7)) del backdrop a un slate 40%
            para no "quemar" la UI clara con una máscara casi opaca al abrir. */
         html.light-mode #freeSlotModal,
+        /* ── Modal Nueva Cita: optimizado para teléfonos ──
+           La card nunca supera el viewport: el cuerpo de campos scrollea y el
+           botón Guardar queda SIEMPRE visible (antes en pantallas chicas el
+           botón quedaba cortado bajo el borde). En móvil se vuelve bottom-sheet
+           pegado abajo, con safe-area para iPhones con notch. */
+        #agendarModal > div { max-height: 92vh; max-height: 92dvh; }
+        @media (max-width: 640px) {
+            #agendarModal { align-items: flex-end; padding: 0; }
+            #agendarModal > div {
+                max-width: none;
+                border-radius: 1.5rem 1.5rem 0 0;
+                padding: 1.25rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
+            }
+            /* iOS hace auto-zoom al enfocar inputs con fuente <16px — se evita
+               subiendo la fuente SOLO dentro de este modal en móvil. */
+            #agendarModal input, #agendarModal select { font-size: 16px !important; }
+        }
+
         html.light-mode #agendarModal,
         html.light-mode #editCitaOverlay,
         html.light-mode #calendarModal {
@@ -5710,15 +5728,15 @@
 
   <!-- Modal Agendar Cliente Manual -->
   <div id="agendarModal" class="hidden fixed inset-0 z-[5001] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
-    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
-      <div class="flex items-center justify-between mb-6">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in flex flex-col" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+      <div class="flex items-center justify-between mb-6 shrink-0">
         <h3 class="text-lg font-bold text-white">Nueva Cita</h3>
         <button onclick="cerrarAgendarModal()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
           <i class="ph-bold ph-x text-white/50"></i>
         </button>
       </div>
 
-      <div class="space-y-4">
+      <div class="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1 -mr-1" style="overscroll-behavior:contain;-webkit-overflow-scrolling:touch;">
         <!-- Fecha + hora como campos de primera clase: antes la hora era un
              input camuflado en el título (parecía texto) y la fecha ni existía
              — la cita caía sí o sí en el día que estabas mirando. -->
@@ -5802,8 +5820,14 @@
             <input type="number" id="manualDesc" placeholder="0" min="0" max="100" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" oninput="_onManualDescInput()">
           </div>
         </div>
-        <p id="manualError" class="text-red-400 text-xs hidden"></p>
-        <button id="manualSaveBtn" onclick="guardarCitaManual()" class="w-full py-3.5 mt-2 rounded-xl text-sm font-bold text-black bg-brand-accent hover:opacity-90 active:scale-95 transition-all">
+      </div>
+
+      <!-- Footer fijo: el error y el botón Guardar viven FUERA del área que
+           scrollea, así el CTA queda siempre a la vista aunque el teclado o
+           una pantalla chica achiquen el modal. -->
+      <div class="shrink-0 pt-3">
+        <p id="manualError" class="text-red-400 text-xs hidden mb-2"></p>
+        <button id="manualSaveBtn" onclick="guardarCitaManual()" class="w-full py-3.5 rounded-xl text-sm font-bold text-black bg-brand-accent hover:opacity-90 active:scale-95 transition-all">
           Guardar Cita Confirmada
         </button>
       </div>
