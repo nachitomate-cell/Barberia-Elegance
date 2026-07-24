@@ -65,8 +65,9 @@ if (fs.existsSync(SA_PATH)) {
   credential = admin.credential.applicationDefault();
 }
 admin.initializeApp({ credential, projectId: 'barberia-elegance' });
-const db = admin.firestore();
-const FV = admin.firestore.FieldValue;
+const db   = admin.firestore();
+const auth = admin.auth();
+const FV   = admin.firestore.FieldValue;
 
 // ── Normalizadores ──────────────────────────────────────────────────
 function normEmail(s) { return String(s || '').trim().toLowerCase(); }
@@ -108,7 +109,7 @@ function elegirGanador(grupo) {
 }
 
 // ── Detectar grupos de dupes dentro de una lista de barberos ────────
-function detectarGrupos(barberos) {
+async function detectarGrupos(barberos) {
   const grupos = [];
   const asignados = new Set(); // ids ya metidos en algún grupo
 
@@ -140,8 +141,24 @@ function detectarGrupos(barberos) {
     docs.forEach(d => asignados.add(d.id));
   }
 
-  // Fase 3 — dedupe por email normalizado (para los que no tenían authUid
-  //          asignado al mismo grupo arriba)
+  // Fase 3 — dedupe por email normalizado.
+  // OJO (aprendido a las malas 2026-07-24 en tenants/ferraza):
+  // dos docs con el mismo email PUEDEN ser entidades intencionalmente
+  // separadas:
+  //   · un doc "admin de login" cuyo docId ES el UID de Firebase Auth
+  //     del dueño (sin campo `authUid` seteado, pero el docId funciona
+  //     como mapping para AuthContext.jsx:121).
+  //   · un doc "barbero atendente" con nombre humano, que es al que
+  //     las citas apuntan por `barberoId` desde la agenda.
+  // Ambos con el mismo email por diseño (el dueño se llama igual que
+  // el nombre visible en las cards). Consolidarlos rompe el login.
+  //
+  // Por eso: para que el email sea considerado dupe REAL, además
+  // requerimos que TODOS los docs del grupo o (a) tengan `authUid`
+  // seteado en el campo, o (b) que NINGUNO tenga su docId matcheando
+  // con un user de Firebase Auth. Si hay MEZCLA (uno con docId-de-Auth
+  // y otro sin), lo tratamos como "revisar manualmente" y no se
+  // archiva automáticamente.
   const porEmail = {};
   for (const b of barberos) {
     if (asignados.has(b.id)) continue;
@@ -151,7 +168,23 @@ function detectarGrupos(barberos) {
   }
   for (const [email, docs] of Object.entries(porEmail)) {
     if (docs.length < 2) continue;
-    grupos.push({ razon: `email=${email}`, docs });
+    // Verificar cuáles docIds corresponden a users reales de Firebase Auth.
+    const authInfo = await Promise.all(docs.map(async d => {
+      try { const u = await auth.getUser(d.id); return !!u; } catch { return false; }
+    }));
+    const nAuthReal = authInfo.filter(Boolean).length;
+    if (nAuthReal > 0 && nAuthReal < docs.length) {
+      // Mezcla — pinta como "revisar", no archivamos.
+      grupos.push({
+        razon: `email=${email} (MIXTO auth+datos — REVISAR, no auto-archivar)`,
+        docs,
+        soloReportar: true,
+      });
+    } else {
+      // Homogeneo: o todos con Auth (raro pero posible: mismo user con 2 docs)
+      // o ninguno con Auth (docs importados duplicados). Sí dedupe.
+      grupos.push({ razon: `email=${email}`, docs });
+    }
     docs.forEach(d => asignados.add(d.id));
   }
 
@@ -180,12 +213,13 @@ async function procesarTenant(tid) {
   if (snap.empty) return null;
 
   const barberos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const grupos = detectarGrupos(barberos);
+  const grupos = await detectarGrupos(barberos);
   if (grupos.length === 0) return { tid, total: barberos.length, grupos: 0, archivar: [] };
 
-  // Preparar plan de archivado
+  // Preparar plan de archivado (skippea grupos marcados soloReportar)
   const archivar = [];
   for (const g of grupos) {
+    if (g.soloReportar) continue;
     const ganador = elegirGanador(g.docs);
     for (const d of g.docs) {
       if (d.id === ganador.id) continue;
@@ -202,10 +236,12 @@ async function procesarTenant(tid) {
   // Log del plan (siempre, dry-run o commit)
   console.log(`\n📁 tenants/${tid}/barberos  ·  ${barberos.length} docs  ·  ${grupos.length} grupo(s) de dupes  ·  ${archivar.length} para archivar`);
   for (const g of grupos) {
-    const ganador = elegirGanador(g.docs);
+    const ganador = g.soloReportar ? null : elegirGanador(g.docs);
     console.log(`   • ${g.razon}`);
     for (const d of g.docs) {
-      const marcador = ganador && d.id === ganador.id ? '👑 GANADOR' : '❌ archivar';
+      const marcador = g.soloReportar
+        ? '⚠️  mixto  '
+        : (ganador && d.id === ganador.id ? '👑 GANADOR' : '❌ archivar');
       console.log(`       ${marcador}  ${d.id}  ·  ${d.nombre || '(sin nombre)'}  ${d.authUid ? `[auth ${d.authUid.slice(0,8)}…]` : '[sin auth]'}  ${d.activo === false ? '(inactivo)' : ''}`);
     }
   }
