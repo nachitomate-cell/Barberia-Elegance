@@ -170,7 +170,10 @@ async function subscribeUserData(user) {
     // Referidos: card promocional (solo si el tenant activo el programa)
     renderReferralCard(data);
 
-    document.title = `Hola, ${nombre.split(' ')[0]} | ${SHOP.nombre}`;
+    // No sobreescribir document.title con "Hola, {nombre}" — leakea el nombre
+    // del cliente en el tab / historial / install prompt (Chrome/iOS lo leen
+    // como sugerencia de nombre de la app). El título estable lo setea core.js
+    // a "Mi {club} · {tenant}" al aplicar SHOP.
 
     if (user.photoURL) {
       document.getElementById('avatarContainer').innerHTML =

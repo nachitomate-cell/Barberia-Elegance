@@ -2192,6 +2192,10 @@ export default async function middleware(request) {
     const pwa512 = meta.iconPwa512 || '/icons/icon-512.png';
     const manifest = {
       ...meta.manifest,
+      // `id` fijo evita que Chrome trate cada cambio de start_url como una app
+      // nueva (histórico: sin id, el usuario que reinstala termina con dos
+      // íconos porque Chrome cambió su identifier interno). Ver web.dev/manifest-id.
+      id:          '/dashboard',
       description: meta.booking.description,
       start_url:   '/dashboard',
       scope:       '/',
@@ -2199,10 +2203,16 @@ export default async function middleware(request) {
       orientation: 'portrait',
       categories:  ['lifestyle', 'beauty'],
       author:      'SynapTech SpA',
+      // Íconos separados por purpose. Chrome installability requiere AL MENOS
+      // uno con purpose "any" (no combinado). Antes eran todos "any maskable"
+      // y Chrome en algunos casos rechazaba la instalación silenciosamente.
+      // Duplicamos el mismo PNG con purposes distintos — el archivo ya tiene
+      // safe zone 80% (ver gen-pwa-icons.js) → sirve para ambas lecturas.
       icons: [
-        { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
-        { src: pwa192, sizes: '192x192', type: mimeFromSrc(pwa192), purpose: 'any maskable' },
-        { src: pwa512, sizes: '512x512', type: mimeFromSrc(pwa512), purpose: 'any maskable' },
+        { src: pwa192, sizes: '192x192', type: mimeFromSrc(pwa192), purpose: 'any' },
+        { src: pwa512, sizes: '512x512', type: mimeFromSrc(pwa512), purpose: 'any' },
+        { src: pwa192, sizes: '192x192', type: mimeFromSrc(pwa192), purpose: 'maskable' },
+        { src: pwa512, sizes: '512x512', type: mimeFromSrc(pwa512), purpose: 'maskable' },
       ],
     };
     return new Response(JSON.stringify(manifest, null, 2), {

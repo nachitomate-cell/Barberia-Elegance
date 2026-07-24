@@ -76,7 +76,22 @@ window._citaCache   = _citaCache;
 window._minutosLimiteReagendar = 0;
 
 // ─── Aplicar Config ───────────────────────────────────────────
-document.title = `Mi ${SHOP.club}`;
+// Título estable — se usa tanto en el tab del browser como en el prompt de
+// instalación PWA (Chrome lo lee de document.title cuando el manifest name
+// no está cargado aún, y iOS lo usa como fallback si apple-mobile-web-app-title
+// está vacío). Antes usuario.js lo pisaba con "Hola, {nombre}" post-login —
+// eso ensuciaba el install prompt con el nombre del cliente. Ahora se queda
+// estable durante toda la sesión.
+document.title = `Mi ${SHOP.club} · ${SHOP.nombre}`;
+// PWA install label (iOS home screen + Chrome install prompt fallback).
+// Debe ser CORTO (Chrome trunca a ~30 chars, iOS a ~12).
+(function _syncPwaInstallLabels() {
+  const label = SHOP.club || SHOP.nombreCorto || 'Mi Club';
+  const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  const app   = document.querySelector('meta[name="application-name"]');
+  if (apple) apple.setAttribute('content', label);
+  if (app)   app.setAttribute('content', label);
+})();
 document.getElementById('shopHeaderName').textContent = SHOP.nombreCorto.toUpperCase();
 document.getElementById('shopClubName').textContent   = SHOP.club;
 

@@ -8,28 +8,30 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="theme-color" content="#050505">
-  <title>Mi Club | Elegance Barbershop</title>
-  <meta name="description" content="Tu panel personal en Elegance Barbershop. Revisa tus sellos, canjea premios y actualiza tu perfil.">
-  <meta property="og:title" content="Mi Club | Elegance Barbershop">
-  <meta property="og:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de cortes y servicios gratis.">
+  <!-- Título / meta neutrales — el middleware inyecta el título correcto por
+       tenant en el SSR y core.js lo actualiza al aplicar SHOP (~30 ms tras
+       cargar). Hardcodear "Elegance" hacía que Chrome/iOS mostraran el
+       nombre equivocado en install prompt para el resto de tenants. -->
+  <title>Mi Club</title>
+  <meta name="description" content="Panel de fidelidad. Acumula sellos, canjea premios y agenda tu próxima visita.">
+  <meta property="og:title" content="Mi Club">
+  <meta property="og:description" content="Panel de fidelidad. Acumula sellos y disfruta beneficios exclusivos.">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Elegance Barbershop">
-  <meta property="og:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
-  <meta property="og:url" content="https://barberiaelegance.synaptechspa.cl/dashboard">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Mi Club | Elegance Barbershop">
-  <meta name="twitter:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de servicios gratis.">
-  <meta name="twitter:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
+  <meta name="twitter:title" content="Mi Club">
+  <meta name="twitter:description" content="Panel de fidelidad. Acumula sellos y disfruta beneficios exclusivos.">
   <meta name="robots" content="noindex, nofollow">
   <meta name="author" content="SynapTech SpA">
 
-  <!-- PWA -->
+  <!-- PWA — meta labels dinámicas: core.js pisa apple-mobile-web-app-title y
+       application-name con SHOP.club (ver "PWA install label" abajo). El
+       apple-touch-icon lo actualiza pwa-install.js con SHOP.logo al montar. -->
   <link rel="manifest" href="/manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Elegance">
-  <meta name="application-name" content="Elegance">
+  <meta name="apple-mobile-web-app-title" content="Mi Club">
+  <meta name="application-name" content="Mi Club">
   <link rel="apple-touch-icon" href="/logo.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1460,8 +1462,8 @@
      Scripts clásicos: comparten scope global, igual que el script único original.
      EL ORDEN IMPORTA — init.js (Auth Guard) SIEMPRE al final. -->
 <script src="js/dashboard/preview.js?v=1"></script>
-<script src="js/dashboard/core.js?v=1"></script>
-<script src="js/dashboard/usuario.js?v=2"></script>
+<script src="js/dashboard/core.js?v=2"></script>
+<script src="js/dashboard/usuario.js?v=3"></script>
 <script src="js/dashboard/fidelidad.js?v=1"></script>
 <script src="js/dashboard/club.js?v=1"></script>
 <script src="js/dashboard/perfil.js?v=1"></script>
