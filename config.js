@@ -639,11 +639,9 @@
     // Tema: alias 'elegance' (dark + dorado). Acceso: ?local=oren
     oren: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras'],
-      // Club de fidelidad oculto temporalmente en la agenda pública (banners,
-      // CTAs "Unirse al Club", sellos y modales). Añade la clase `.club-oculto`
-      // a <html> (ver más abajo) que apagan index.html y barbero.html por CSS,
-      // más los guards JS de los modales. Quitar este flag para reactivarlo.
-      clubOculto:      true,
+      // Club de fidelidad reactivado (2026-07-24) — dashboard.html tiene ahora
+      // branding Oren propio (foto del local + acento ámbar). Los CTAs
+      // "Unirse al Club" y banners vuelven a verse en index.html y barbero.html.
       nombre:          'Oren Barber',
       nombreCorto:     'Oren',
       pageTitle:       'Oren Barber | Cortes con Estilo',
