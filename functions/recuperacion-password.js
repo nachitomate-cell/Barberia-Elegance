@@ -102,12 +102,12 @@ const TENANT_CONFIG = {
     from:     'Studio Dieciséis <citas@synaptechspa.cl>',
     loginUrl: 'https://studiodieciseis.synaptechspa.cl/registro',
   },
-  omegastudio: {
+  omega: {
     nombre:   'OMEGA STUDIO',
     slogan:   'Estudio atendido por profesionales',
-    color:    '#9CA3AF',
+    color:    '#D4A96A',
     from:     'OMEGA STUDIO <citas@synaptechspa.cl>',
-    loginUrl: 'https://omegastudio.synaptechspa.cl/registro',
+    loginUrl: 'https://omega.synaptechspa.cl/registro',
   },
 };
 
@@ -135,7 +135,7 @@ const DOMAIN_MAP = {
   'studiodieciseis.synaptechspa.cl':        'sionbarberia',
   'sionbarberia.synaptechspa.cl':           'sionbarberia',
   'barberiasion.synaptechspa.cl':           'sionbarberia',
-  'omegastudio.synaptechspa.cl':            'omegastudio',
+  'omega.synaptechspa.cl':                  'omega',
 };
 
 // Extrae el hostname desde un header Origin/Referer (ej. "https://x.cl/registro" → "x.cl")

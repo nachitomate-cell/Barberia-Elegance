@@ -160,16 +160,16 @@ const TENANT_CONFIG = {
     from:      'INFINITY STUDIO <citas@synaptechspa.cl>',
     dashboardUrl: 'https://infinity.synaptechspa.cl/dashboard',
   },
-  omegastudio: {
+  omega: {
     nombre:    'OMEGA STUDIO',
     slogan:    'Estudio atendido por profesionales',
     direccion: 'Av. Valparaíso 595, Local 53, 2do Piso, Viña del Mar',
-    horario:   'Lun a Sáb — Agenda tu hora',
+    horario:   'Lun–Vie 10–20h · Sáb 10–18h',
     color:     '#D4A96A',
     instagram: 'https://www.instagram.com/omegastudio.cl/',
     whatsapp:  '56972302811',
     from:      'OMEGA STUDIO <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://omegastudio.synaptechspa.cl/dashboard',
+    dashboardUrl: 'https://omega.synaptechspa.cl/dashboard',
   },
   memphis: {
     nombre:    'Memphis Salón',

@@ -37,7 +37,7 @@ const TENANTS = {
   latincaribe:          { src: 'thelatin/latin.png',              bg: '#0a0a0a' },
   machos:               { src: 'machos.png',                      bg: '#090d16' },
   infinity:             { src: 'infinity.png',                    bg: '#121214' },
-  omegastudio:          { src: 'omega.jpg',                       bg: '#0c0c0e' },
+  omega:                { src: 'omega.jpg',                       bg: '#f8f7f4' },
   sionbarberia:         { src: 'dieciseis/logo.png',              bg: '#0a0a0a' },
   kronnos:              { src: 'kronnos/studio.jpg',              bg: '#0a0a0a' },
   kronnos_woman:        { src: 'kronnos/woman.jpg',               bg: '#0a0a0a' },

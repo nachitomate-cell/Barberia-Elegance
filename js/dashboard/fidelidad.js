@@ -687,7 +687,7 @@ function renderStamps(count, historicos) {
       cell.className = 'stamp-cell prize-empty';
       cell.innerHTML = `<i class="ph-fill ph-gift text-lg" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.38);"></i>`;
     } else {
-      const isNextStamp = (i === filledCount + 1) && tid === 'omegastudio';
+      const isNextStamp = (i === filledCount + 1) && tid === 'omega';
       cell.className = 'stamp-cell empty' + (isNextStamp ? ' stamp-next' : '');
     }
 

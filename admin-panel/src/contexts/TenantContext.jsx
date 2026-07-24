@@ -28,6 +28,7 @@ const TENANT_META = {
   estudioluxury:      { name: 'Studio Luxury',             accent: 'amber',  emoji: '💈', logo: '/luxury/luxury.jpg', banner: '/luxury/banner.webp', brand: { sede: 'Talagante', tagline: 'Barbería' } },
   renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
   oren:               { name: 'Oren Barber', accent: 'amber', emoji: '✂️', logo: '/oren/oren-logo.webp', banner: '/oren/renaca.webp' },
+  omega:              { name: 'OMEGA STUDIO', accent: 'amber', emoji: '✂️', logo: '/omega.jpg' },
 };
 
 const TenantContext = createContext(null);

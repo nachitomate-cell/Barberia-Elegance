@@ -578,7 +578,7 @@ const PUBLIC_DOMAIN = {
   kronnos_penablanca:   'kronnospenablanca.synaptechspa.cl',
   kronnos_limache:      'kronnoslimache.synaptechspa.cl',
   kronnos_woman:        'kronnoswoman.synaptechspa.cl',
-  omegastudio:          'omegastudio.synaptechspa.cl',
+  omega:                'omega.synaptechspa.cl',
   alfamen:              'alfamen.synaptechspa.cl',
   barbersclub:          'barbersclub.synaptechspa.cl',
   elbarberomoderno:     'elbarberomoderno.synaptechspa.cl',

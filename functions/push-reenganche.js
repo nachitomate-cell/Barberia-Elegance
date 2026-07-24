@@ -37,7 +37,7 @@ const TENANTS = [
   { id: 'aura',           usersPath: 'tenants/aura/users',                nombre: 'Aura Salon',              bookingUrl: 'https://aurasalonmalegrooming.synaptechspa.cl' },
   { id: 'mapubarbershop', usersPath: 'tenants/mapubarbershop/users',      nombre: 'Mapu Barber Shop',        bookingUrl: 'https://mapubarbershop.synaptechspa.cl' },
   { id: 'delnero',        usersPath: 'tenants/delnero/users',             nombre: 'Del Nero Barber',         bookingUrl: 'https://delnerobarber.synaptechspa.cl' },
-  { id: 'omegastudio',    usersPath: 'tenants/omegastudio/users',         nombre: 'Omega Studio',            bookingUrl: 'https://omegastudio.synaptechspa.cl' },
+  { id: 'omega',          usersPath: 'tenants/omega/users',               nombre: 'Omega Studio',            bookingUrl: 'https://omega.synaptechspa.cl' },
 ];
 
 // Umbrales de inactividad con sus mensajes push

@@ -28,7 +28,7 @@ const PRELAUNCH = new Set([
   'alfamen',
   'memphis',
   'deluxeperfumes',
-  'omegastudio',
+  'omega',
   'kronnos_penablanca',
   'kronnos_limache',
   'kronnos_woman',

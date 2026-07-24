@@ -40,7 +40,7 @@ const DOMAIN_TENANT_MAP = {
   'studiodieciseis.synaptechspa.cl':      'sionbarberia',
   'sionbarberia.synaptechspa.cl':         'sionbarberia',
   'barberiasion.synaptechspa.cl':         'sionbarberia',
-  'omegastudio.synaptechspa.cl':          'omegastudio',
+  'omega.synaptechspa.cl':                'omega',
   'alfamen.synaptechspa.cl':              'alfamen',
   'yugenstudio.synaptechspa.cl':          'yugen',
   'yugen.synaptechspa.cl':                'yugen',

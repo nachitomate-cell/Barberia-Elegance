@@ -32,7 +32,7 @@ const ALL_TENANTS = [
   'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos',
   'infinity', 'sionbarberia',
 ];
-// (deluxeperfumes, omegastudio, memphis los dejo fuera: catálogo/no agenda)
+// (deluxeperfumes, omega, memphis los dejo fuera: catálogo/no agenda)
 
 // Filtro CLI: --tenant <id>
 const cliTenantIdx = process.argv.indexOf('--tenant');

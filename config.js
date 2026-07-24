@@ -33,7 +33,7 @@
     'studiodieciseis.synaptechspa.cl':    'sionbarberia',
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
     'barberiasion.synaptechspa.cl':       'sionbarberia',
-    'omegastudio.synaptechspa.cl':        'omegastudio',
+    'omega.synaptechspa.cl':              'omega',
     'alfamen.synaptechspa.cl':            'alfamen',
     'yugenstudio.synaptechspa.cl':        'yugen',
     'yugen.synaptechspa.cl':              'yugen',
@@ -71,6 +71,10 @@
     // Va también en _lightTenants. El hero se sobreescribe (.tenant-oren.tenant-aura
     // .booking-hero) para no heredar la foto /auralogin.png de Aura.
     oren:         'aura',
+    // Omega Studio reutiliza el tema CLARO de Aura (mismo tratamiento que Oren).
+    // Va también en _lightTenants. Sin override CSS de hero por ahora — usa el
+    // fondo default de Aura hasta que se sume una imagen propia de omega.
+    omega:        'aura',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -79,7 +83,7 @@
   // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
   // por modo (ej: el buscador de servicios en index.html / barbero.html).
   // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
-  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren'];
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega'];
 
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
@@ -831,7 +835,9 @@
         { nombre: 'Mailo Serrano', foto: null, disponible: true },
       ],
     },
-    omegastudio: {
+    // Omega Studio · Viña del Mar — recreado 2026-07-24 desde AgendaPro.
+    // Tema claro (alias de Aura, ver _themeAlias + _lightTenants arriba).
+    omega: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Otros'],
       nombre:          'OMEGA STUDIO',
       nombreCorto:     'Omega',
@@ -839,25 +845,20 @@
       slogan:          'ESTUDIO ATENDIDO POR PROFESIONALES',
       logo:            '/omega.jpg',
       direccion:       '📍 Av. Valparaíso 595, Local 53, 2do Piso | Viña del Mar',
-      horario:         '🕒 Lunes a Sábado · Agenda tu hora',
-      telefono:        '56972302811',
+      horario:         '🕒 Lun–Vie: 10–20h · Sáb: 10–18h · Dom: cerrado',
+      telefono:        '+56972302811',
       club:            'Club Omega',
-      headerSub:       'STUDIO',
-      heroLine1:       'La puntualidad<br>es nuestro',
-      heroLine2:       'estilo.',
-      watermark:       'Ω',
+      heroLine1:       'La puntualidad',
+      heroLine2:       'es nuestro estilo.',
+      headerInlineText:'OMEGA STUDIO',
       instagram:       'https://www.instagram.com/omegastudio.cl/',
       instagramHandle: '@omegastudio.cl',
       waEmoji:         '✂️',
       googleReviewUrl: '',
-      ratingGeneral:   0,
-      totalReviews:    0,
+      ratingGeneral:   5.0,
+      totalReviews:    14,
       reviews:         [],
-      barberos: [
-        { nombre: 'Julián Beltrán',  foto: null, disponible: true },
-        { nombre: 'Antonio Morales', foto: null, disponible: true },
-        { nombre: 'Thomas Castillo', foto: null, disponible: true },
-      ],
+      barberos: [],
     },
     alfamen: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Extras'],

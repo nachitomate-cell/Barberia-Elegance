@@ -50,7 +50,7 @@ const SLUGS_RESERVADOS = new Set([
   // Tenants a medida actuales (ids internos)
   'elegance', 'ferraza', 'gitana', 'mapubarbershop', 'chameleon', 'lumen',
   'delnero', 'marcelo_hairdressing', 'aura', 'latincaribe', 'yugen', 'machos',
-  'infinity', 'sionbarberia', 'omegastudio', 'memphis', 'alfamen',
+  'infinity', 'sionbarberia', 'omega', 'memphis', 'alfamen',
   'deluxeperfumes', 'kronnos', 'kronnos_penablanca', 'kronnos_limache',
   'kronnos_woman', 'kronnos_lobby', 'barbersclub', 'elbarberomoderno',
   // Subdominios en uso (DOMAIN_MAP del middleware)

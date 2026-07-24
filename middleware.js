@@ -31,7 +31,7 @@ const DOMAIN_MAP = {
   'studiodieciseis.synaptechspa.cl':   'sionbarberia',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
   'barberiasion.synaptechspa.cl':      'sionbarberia',
-  'omegastudio.synaptechspa.cl':       'omegastudio',
+  'omega.synaptechspa.cl':             'omega',
   'kronnos.synaptechspa.cl':           'kronnos_lobby',
   // NOTA: los 3 subdominios de sede siguen apuntando a los tenants legacy hasta el cutover
   // en D2/D3 (cuando el cliente maneje resolveSedeId). Después mapearán todos a 'kronnos'.
@@ -745,7 +745,7 @@ const TENANT_META = {
       ],
     },
   },
-  omegastudio: {
+  omega: {
     booking: {
       title:       'Omega Studio | Agenda tu hora',
       description: 'Reserva tu hora en Omega Studio. Cortes, barba, facial y color en Av. Valparaíso 595, Local 53, Viña del Mar.',
@@ -766,30 +766,33 @@ const TENANT_META = {
     },
     siteName:    'Omega Studio',
     ogImage:     '/omega.jpg',
-    themeColor:  '#0c0c0e',
+    // Tema claro (alias de Aura) — el theme-color acompaña el fondo del panel/PWA.
+    themeColor:  '#f8f7f4',
     appTitle:    'Omega',
     icon:        '/omega.jpg',
-    iconPwa192:  '/icons/pwa/omegastudio-192.png',
-    iconPwa512:  '/icons/pwa/omegastudio-512.png',
+    iconPwa192:  '/icons/pwa/omega-192.png',
+    iconPwa512:  '/icons/pwa/omega-512.png',
     local: {
-      telephone:       '56972302811',
+      telephone:       '+56972302811',
       streetAddress:   'Av. Valparaíso 595, Local 53',
       addressLocality: 'Viña del Mar',
       schemaType:      'HairSalon',
+      ratingGeneral:   5.0,
+      totalReviews:    14,
     },
     manifest: {
       name:             'Omega Studio',
       short_name:       'Omega',
-      theme_color:      '#0c0c0e',
-      background_color: '#0c0c0e',
+      theme_color:      '#f8f7f4',
+      background_color: '#f8f7f4',
     },
     adminManifest: {
       name:             'Panel Admin · Omega',
       short_name:       'Omega',
       description:      'Panel de administración — Omega Studio',
       theme_color:      '#d4a96a',
-      background_color: '#0c0c0e',
-      start_url:        '/gestion-interna/?local=omegastudio',
+      background_color: '#f8f7f4',
+      start_url:        '/gestion-interna/?local=omega',
       icons: [
         { src: '/omega.jpg',                   sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
