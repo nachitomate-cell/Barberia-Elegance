@@ -2512,6 +2512,69 @@
     }
     /* Ocultamos inicialmente solo en Aura */
     :is(.tenant-aura,.tenant-latincaribe) [data-aura-stagger] { opacity: 0; }
+
+    /* ══════════════════════════════════════════════════════════════
+       OREN BARBER — override sobre alias `aura` con identidad propia
+       ══════════════════════════════════════════════════════════════
+       Oren usa _themeAlias:'aura' para heredar el tema claro, pero el
+       club de fidelidad debe verse a marca (no pintar la foto de Aura
+       ni el color gris). Fondo = foto real del local (Reñaca por default,
+       misma que aparece en la agenda pública), acento ámbar #D97706
+       (mismo color de la sede Reñaca en config.js). */
+
+    /* Fondo del hero — sobrescribe imagen y color del pseudo-elemento
+       de Aura (que activa ken-burns). Mantenemos la animación con la
+       foto del local. */
+    .tenant-oren .hero-bg {
+      background-color: #0a0806 !important;
+    }
+    .tenant-oren .hero-bg::before {
+      background-image: url('/oren/renaca.webp') !important;
+      background-position: center 45% !important;
+    }
+    .tenant-oren .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(10,8,6,0.35) 0%,
+        rgba(10,8,6,0.25) 40%,
+        rgba(10,8,6,0.85) 100%) !important;
+    }
+    .tenant-oren .hero-glow-spot {
+      background: radial-gradient(circle,
+        rgba(217,119,6,0.22) 0%,
+        transparent 65%) !important;
+    }
+    /* Texto — heroLine1 blanco, heroLine2 en ámbar Oren.
+       El texto se puebla desde SHOP.heroLine1/heroLine2 vía JS chico
+       en dashboard.html (populate-hero-from-shop). */
+    .tenant-oren #heroLine1 {
+      color: #ffffff !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.55) !important;
+    }
+    .tenant-oren #heroLine2 {
+      color: #D97706 !important;
+      font-style: italic !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.45) !important;
+    }
+    /* CTA — glass button con borde ámbar. Al hover, se rellena en ámbar. */
+    .tenant-oren .hero-cta {
+      background: rgba(0,0,0,0.55) !important;
+      border-color: rgba(217,119,6,0.55) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 20px rgba(217,119,6,0.15) !important;
+      backdrop-filter: blur(14px) !important;
+      -webkit-backdrop-filter: blur(14px) !important;
+    }
+    .tenant-oren .hero-cta i    { color: #D97706 !important; }
+    .tenant-oren .hero-cta span { color: #ffffff !important; }
+    .tenant-oren .hero-cta::before {
+      border-color: rgba(217,119,6,0.55) !important;
+    }
+    .tenant-oren .hero-cta:hover {
+      background: #D97706 !important;
+      border-color: #D97706 !important;
+    }
+    .tenant-oren .hero-cta:hover i,
+    .tenant-oren .hero-cta:hover span { color: #ffffff !important; }
     /* Clases aplicadas por JS post-auth */
     .aura-animate { animation: aura-fade-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
     .aura-d0 { animation-delay: 0.00s; }

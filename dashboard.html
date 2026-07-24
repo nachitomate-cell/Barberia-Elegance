@@ -66,7 +66,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="dashboard.css?v=3">
+  <link rel="stylesheet" href="dashboard.css?v=4">
 
 <body class="font-sans antialiased min-h-screen">
 
@@ -150,6 +150,31 @@
           </div>
         </div>
       </div>
+
+      <!-- Populate hero desde SHOP config del tenant. Sin esto la vista pinta
+           el texto Elegance hardcodeado en cualquier tenant. Corre inline —
+           config.js ya seteó window.SHOP en el <head>. Casos:
+             heroLine1 definido → reemplaza (soporta <br>).
+             heroLine2 === false → oculta line2 y mueve el margin-bottom
+             (mb-7) del layout a line1 para conservar el gap con el CTA. -->
+      <script>
+        (function () {
+          try {
+            var s = window.SHOP || {};
+            var l1 = document.getElementById('heroLine1');
+            var l2 = document.getElementById('heroLine2');
+            if (l1 && s.heroLine1) l1.innerHTML = s.heroLine1;
+            if (l2 && s.heroLine2 !== undefined) {
+              if (s.heroLine2 === false || s.heroLine2 === '') {
+                l2.style.display = 'none';
+                if (l1 && !l1.classList.contains('mb-7')) l1.classList.add('mb-7');
+              } else {
+                l2.innerHTML = s.heroLine2;
+              }
+            }
+          } catch (_) { /* silencioso: si algo falla, quedan los textos default */ }
+        })();
+      </script>
 
       <!-- â”€â”€ PRÃ“XIMA CITA â”€â”€ -->
       <div id="heroProximaCitaCard" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"></div>
