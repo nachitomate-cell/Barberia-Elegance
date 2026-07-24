@@ -99,6 +99,17 @@ export function AuthProvider({ children }) {
 
       // Admin de marca — dueño con 'admin' en sus sedes (sin re-login al cambiar)
       if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
+        // Fix (2026-07-23, brand admins Kronnos no veían más que una sede):
+        // los claims de un brand admin (`{ role:'admin', tenantId:'kronnos' }`) se
+        // setean vía script server-side, pero el token cacheado en el navegador
+        // puede tener claims viejos de cuando la cuenta era sede-admin
+        // (`tenantId:'kronnos_penablanca'` + `sucursalScope:'penablanca'`). Las
+        // reads a otras sedes seguían andando por `esKronnosBrandAdmin` (email
+        // match), pero writes con `scopeSucursalOk` fallaban en silencio contra
+        // el `sucursalScope` stale. `getIdToken(true)` fuerza refresh contra el
+        // servidor → el token pasa a tener los claims actuales sin requerir
+        // logout manual. Es no-op si ya está fresco (Firebase cachea 5 min).
+        try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
         setRole('admin');
         setSucursalScope('all');
         setLoading(false);

@@ -73,9 +73,23 @@ export function resolveTenantId() {
     sessionStorage.setItem('saas_current_tenant', local);
     return local;
   }
+  // sessionStorage ANTES que DOMAIN_MAP: si en esta pestaña el user ya
+  // eligió un tenant vía ?local= (típicamente vía SedeSwitcher desde un
+  // subdomain de OTRA sede — ej. `kronnoslimache…/gestion-interna/?local=kronnos_woman`),
+  // esa elección explícita debe pisar la resolución por hostname. Sin este
+  // orden, React Router hace un <Navigate replace> al defaultRoute (agenda)
+  // apenas entrás al panel, y ese redirect DROPEA el ?local del URL — las
+  // llamadas subsiguientes a resolveTenantId() caían a DOMAIN_MAP y
+  // resolvían al tenant del subdominio, aunque TenantContext (memoizado
+  // en el mount inicial) sí tuviera el tenant correcto. Resultado: sidebar
+  // con el nombre correcto pero queries de barberos/citas/etc. yendo al
+  // tenant del subdominio (Ignacio en Woman viendo el equipo de Limache).
+  // sessionStorage es per-tab, así que no cross-contamina entre sesiones.
+  const fromSession = sessionStorage.getItem('saas_current_tenant');
+  if (fromSession) return fromSession;
   const fromDomain = DOMAIN_MAP[window.location.hostname.toLowerCase()];
   if (fromDomain) return fromDomain;
-  return sessionStorage.getItem('saas_current_tenant') || 'elegance';
+  return 'elegance';
 }
 
 // ── Resolución de sede para tenants multi-sede (Kronnos) ─────────
