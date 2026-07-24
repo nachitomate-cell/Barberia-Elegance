@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+?<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <!-- Favicon por tenant lo inyecta el Edge middleware (injectMeta). No agregar overrides aquÃ­. -->
+  <!-- Favicon por tenant lo inyecta el Edge middleware (injectMeta). No agregar overrides aquí. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -51,10 +51,10 @@
   <script src="firebaseUtils.js?v=3.1"></script>
   <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-  <!-- QR generator para el canje seguro (FidelizaciÃ³n â†’ Premios).
+  <!-- QR generator para el canje seguro (Fidelización → Premios).
        qrcode@1.5.3 NO publica bundle de navegador: todo su /lib es CommonJS
-       (`require(...)`), asÃ­ que el <script src=".../lib/browser.min.js"> tiraba
-       "require is not defined" y window.QRCode quedaba undefined â†’ el QR de
+       (`require(...)`), así que el <script src=".../lib/browser.min.js"> tiraba
+       "require is not defined" y window.QRCode quedaba undefined → el QR de
        canje nunca se dibujaba. Cargamos el build ESM y lo exponemos global. -->
   <script type="module">
     try {
@@ -62,7 +62,7 @@
       window.QRCode = m.default || m;
       window.dispatchEvent(new Event('qrcode:ready'));
     } catch (e) {
-      console.warn('[QR] no se pudo cargar la librerÃ­a:', e);
+      console.warn('[QR] no se pudo cargar la librería:', e);
     }
   </script>
 
@@ -70,16 +70,16 @@
 
 <body class="font-sans antialiased min-h-screen">
 
-  <!-- â”€â”€ Auth Guard â”€â”€ -->
+  <!-- ── Auth Guard ── -->
   <div id="authGuard" class="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center z-50">
     <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
     <span class="text-xs text-gray-500">Cargando...</span>
   </div>
 
-  <!-- â”€â”€ CONTENEDOR PRINCIPAL â”€â”€ -->
+  <!-- ── CONTENEDOR PRINCIPAL ── -->
   <div class="max-w-md mx-auto relative pb-32">
 
-    <!-- â•â•â• HEADER â•â•â• -->
+    <!-- �?�?�? HEADER �?�?�? -->
     <header class="px-5 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#050505]/96 backdrop-blur-md z-30">
       <!-- Bell -->
       <button id="btnNotifBell" onclick="toggleNotificaciones()" class="relative w-10 h-10 rounded-full bg-white/5 border border-white/8 flex items-center justify-center active:scale-95 transition-all">
@@ -99,7 +99,7 @@
       </div>
     </header>
 
-    <!-- â•â•â• BANNER: Activar notificaciones â•â•â• -->
+    <!-- �?�?�? BANNER: Activar notificaciones �?�?�? -->
     <div id="notifBanner" class="hidden mx-4 mt-3 mb-1 rounded-2xl border p-4"
          style="border-color:rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">
       <div class="flex items-start gap-3">
@@ -121,10 +121,10 @@
       </div>
     </div>
 
-    <!-- â•â•â•â•â•â•â• PESTAÃ‘A 1: FIDELIZACIÃ“N â•â•â•â•â•â•â• -->
+    <!-- �?�?�?�?�?�?�? PESTAÑA 1: FIDELIZACIÓN �?�?�?�?�?�?�? -->
     <section id="tabLoyalty" class="tab-panel animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
-      <!-- â”€â”€ HERO â”€â”€ -->
+      <!-- ── HERO ── -->
       <div data-aura-stagger class="relative mx-4 mt-2 mb-5 rounded-3xl overflow-hidden hero-bg" style="min-height:272px;">
         <!-- Dark gradient overlay sobre la foto -->
         <div class="hero-overlay absolute inset-0 z-10"></div>
@@ -152,10 +152,10 @@
       </div>
 
       <!-- Populate hero desde SHOP config del tenant. Sin esto la vista pinta
-           el texto Elegance hardcodeado en cualquier tenant. Corre inline —
-           config.js ya seteó window.SHOP en el <head>. Casos:
-             heroLine1 definido → reemplaza (soporta <br>).
-             heroLine2 === false → oculta line2 y mueve el margin-bottom
+           el texto Elegance hardcodeado en cualquier tenant. Corre inline �
+           config.js ya sete� window.SHOP en el <head>. Casos:
+             heroLine1 definido ? reemplaza (soporta <br>).
+             heroLine2 === false ? oculta line2 y mueve el margin-bottom
              (mb-7) del layout a line1 para conservar el gap con el CTA. -->
       <script>
         (function () {
@@ -176,10 +176,10 @@
         })();
       </script>
 
-      <!-- â”€â”€ PRÃ“XIMA CITA â”€â”€ -->
+      <!-- ── PRÓXIMA CITA ── -->
       <div id="heroProximaCitaCard" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"></div>
 
-      <!-- â”€â”€ TARJETA INTERACTIVA DE VALORACIÃ“N Y PROPINA (Quick Feedback & Tips) â”€â”€ -->
+      <!-- ── TARJETA INTERACTIVA DE VALORACIÓN Y PROPINA (Quick Feedback & Tips) ── -->
       <div id="interactiveFeedbackContainer" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
         <div class="rounded-3xl p-5 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid var(--gold-dim);">
           <!-- Background glow -->
@@ -187,7 +187,7 @@
           
           <div class="relative z-10 text-center">
             <p class="text-[10px] font-black uppercase tracking-[0.2em] mb-1" style="color:var(--gold);">VALORA TU VISITA</p>
-            <h3 class="text-white font-bold text-base leading-tight">Â¿QuÃ© tal estuvo tu cita con <span id="feedbackBarberoNombre" class="text-white">tu profesional</span>?</h3>
+            <h3 class="text-white font-bold text-base leading-tight">¿Qué tal estuvo tu cita con <span id="feedbackBarberoNombre" class="text-white">tu profesional</span>?</h3>
             <p class="text-[11px] text-zinc-400 mt-1 leading-snug">Califica y premia el servicio en un click.</p>
             
             <!-- Star rating selector -->
@@ -213,10 +213,10 @@
             <div id="feedbackFormContent" class="hidden mt-4 space-y-3">
               <!-- Quick review chip selector -->
               <div class="flex flex-wrap justify-center gap-1.5 mb-2">
-                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Excelente atenciÃ³n</button>
-                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Puntual y rÃ¡pido</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Excelente atención</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Puntual y rápido</button>
                 <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Gran corte de pelo</button>
-                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">SÃºper profesional</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Súper profesional</button>
               </div>
 
               <!-- Comment input -->
@@ -226,7 +226,7 @@
               <div class="flex gap-3 pt-2">
                 <button onclick="cerrarFeedbackCard()" class="flex-1 py-3 rounded-xl text-zinc-400 text-sm font-semibold border border-zinc-800 hover:bg-zinc-900/40 active:scale-[0.98] transition-all">Ahora no</button>
                 <button onclick="enviarFeedbackYPropina()" class="flex-1 py-3 rounded-xl text-sm font-bold text-black active:scale-[0.98] transition-all flex items-center justify-center gap-1.5" style="background:var(--gold);">
-                  <i class="ph-bold ph-paper-plane-right"></i> Enviar calificaciÃ³n
+                  <i class="ph-bold ph-paper-plane-right"></i> Enviar calificación
                 </button>
               </div>
             </div>
@@ -234,7 +234,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ INSTALAR APP BANNER (Big) â”€â”€ -->
+      <!-- ── INSTALAR APP BANNER (Big) ── -->
       <div id="pwaBigInstallCard" class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)]" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="instalarPWA()">
         <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
         <div class="flex items-center gap-4 relative z-10">
@@ -243,28 +243,28 @@
           </div>
           <div class="flex-1 min-w-0">
             <h3 class="text-[15px] font-black text-white leading-tight mb-1">Instala la App Oficial</h3>
-            <p class="text-xs text-white/60 leading-snug truncate">Acceso rÃ¡pido y sin ocupar memoria.</p>
+            <p class="text-xs text-white/60 leading-snug truncate">Acceso rápido y sin ocupar memoria.</p>
           </div>
           <i class="ph-bold ph-caret-right text-lg shrink-0" style="color:var(--gold);"></i>
         </div>
       </div>
 
-      <!-- â”€â”€ HERO BANNER (anuncio dinÃ¡mico desde Firestore) â”€â”€ -->
+      <!-- ── HERO BANNER (anuncio dinámico desde Firestore) ── -->
       <div id="heroBanner" class="hidden mx-4 mb-4 rounded-2xl overflow-hidden relative active:scale-[0.99] transition-all" style="min-height:170px;"></div>
 
-      <!-- â”€â”€ HERO PRÃ“XIMA CITA CARD (Dynamic) â”€â”€ -->
-      <!-- â”€â”€ MEMBERSHIP CARD â”€â”€ -->
+      <!-- ── HERO PRÓXIMA CITA CARD (Dynamic) ── -->
+      <!-- ── MEMBERSHIP CARD ── -->
       <div data-aura-stagger class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
         <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
         <!-- Watermark decorativo -->
-        <div id="membershipWatermark" class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">Ã‰</div>
+        <div id="membershipWatermark" class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">É</div>
 
         <!-- Top row: label + sellos counter -->
         <div class="flex items-start justify-between mb-1">
-          <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Tu MembresÃ­a</p>
+          <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Tu Membresía</p>
           <div class="text-right">
             <p class="text-[9px] font-bold uppercase tracking-widest text-white/30">Sellos</p>
-            <span id="stampsCount" class="text-3xl font-bold text-white leading-none">0<span class="text-sm text-white/30">/â€“</span></span>
+            <span id="stampsCount" class="text-3xl font-bold text-white leading-none">0<span class="text-sm text-white/30">/–</span></span>
           </div>
         </div>
 
@@ -277,13 +277,13 @@
           <p id="membershipDesc" class="text-xs text-gray-500 leading-relaxed"></p>
         </div>
 
-        <!-- Stamps grid â€” physical card -->
+        <!-- Stamps grid — physical card -->
         <div id="stampsGrid" class="grid grid-cols-5 gap-2 mb-3 bg-[#0a0a0e] rounded-lg p-3 border border-zinc-800/80"></div>
 
-        <!-- Onboarding hint â€” solo visible con 0 sellos -->
+        <!-- Onboarding hint — solo visible con 0 sellos -->
         <div id="sellosOnboarding" class="hidden mb-4 flex items-start gap-2.5 rounded-xl px-3 py-2.5" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
           <i class="ph-fill ph-info text-sm shrink-0 mt-0.5" style="color:var(--gold);opacity:0.6;"></i>
-          <p class="text-[11px] leading-snug" style="color:rgba(255,255,255,0.4);">Cada visita a la barberÃ­a suma un sello. Â¡Con <span id="onboardingMeta" class="font-bold text-white/70">5 sellos</span> ganas un premio gratis!</p>
+          <p class="text-[11px] leading-snug" style="color:rgba(255,255,255,0.4);">Cada visita a la barbería suma un sello. ¡Con <span id="onboardingMeta" class="font-bold text-white/70">5 sellos</span> ganas un premio gratis!</p>
         </div>
 
         <!-- Progress bar -->
@@ -293,14 +293,14 @@
 
         <!-- Bottom: label + next reward name -->
         <div class="flex items-center justify-between">
-          <p class="text-[11px] text-gray-600">Tu prÃ³xima recompensa</p>
+          <p class="text-[11px] text-gray-600">Tu próxima recompensa</p>
           <div class="flex items-center gap-1.5">
             <p id="nextRewardName" class="text-[11px] font-bold text-white"></p>
             <i class="ph-fill ph-gift text-sm" style="color:var(--gold);opacity:0.5;"></i>
           </div>
         </div>
 
-        <!-- AÃ±adir a Google Wallet â€” visible solo si el local activÃ³ el mÃ³dulo Wallet -->
+        <!-- Añadir a Google Wallet — visible solo si el local activó el módulo Wallet -->
         <button id="walletSaveBtn" onclick="guardarEnGoogleWallet()"
           class="hidden w-full mt-4 flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-sm text-black transition-transform active:scale-[0.98]"
           style="background:#ffffff;">
@@ -310,11 +310,11 @@
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          AÃ±adir a Google Wallet
+          Añadir a Google Wallet
         </button>
       </div>
 
-      <!-- â”€â”€ AURA PREMIUM CLUB / SUBSCRIPTIONS PROMO CARD (Aura Only) â”€â”€ -->
+      <!-- ── AURA PREMIUM CLUB / SUBSCRIPTIONS PROMO CARD (Aura Only) ── -->
       <div id="auraMembresiaPromoCard" data-aura-stagger class="hidden mx-4 mb-5 rounded-3xl relative overflow-hidden cursor-pointer font-sans transition-all duration-300 active:scale-[0.985]"
            onclick="abrirAuraMembresiaModal()"
            style="background:linear-gradient(145deg,#001020 0%,#001a40 45%,#002d6b 100%);box-shadow:0 16px 48px -8px rgba(0,16,50,0.6),inset 0 1px 0 rgba(255,255,255,0.07);">
@@ -362,7 +362,7 @@
 
         <!-- Footer CTA -->
         <div class="relative z-10 flex items-center justify-between px-5 py-3.5">
-          <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);">Ver planes disponibles â†’</span>
+          <span style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);">Ver planes disponibles →</span>
           <div class="flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px]" style="background:#FFFFFF;color:#001a40;box-shadow:0 4px 14px rgba(0,0,0,0.3);">
             <span>Explorar Club</span>
             <i class="ph-bold ph-arrow-right" style="font-size:11px;"></i>
@@ -370,10 +370,10 @@
         </div>
       </div>
 
-      <!-- â”€â”€ CALIFICACIÃ“N GOOGLE â”€â”€ -->
+      <!-- ── CALIFICACIÓN GOOGLE ── -->
       <div id="googleReviewCard" class="hidden mx-4 mb-5">
         <button id="googleReviewCardBtn" type="button"
-           onclick="abrirReseÃ±aGoogleDesdeCard()"
+           onclick="abrirReseñaGoogleDesdeCard()"
            class="w-full flex flex-col items-center rounded-2xl px-5 py-5 gap-4 transition-all duration-200 active:scale-[0.97]"
            style="background:linear-gradient(145deg,#0d1b3e 0%,#0a1a10 50%,#2a1200 100%);border:2px solid rgba(66,133,244,0.45);box-shadow:0 0 0 1px rgba(52,168,83,0.15),0 8px 32px rgba(66,133,244,0.18),0 2px 8px rgba(0,0,0,0.5); cursor:pointer;">
 
@@ -390,7 +390,7 @@
                 </svg>
               </div>
               <div class="text-left">
-                <p class="text-base font-black text-white tracking-tight">CalifÃ­canos en Google</p>
+                <p class="text-base font-black text-white tracking-tight">Califícanos en Google</p>
                 <div class="flex items-center gap-0.5 mt-0.5">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -407,18 +407,18 @@
           <div class="w-full h-px" style="background:linear-gradient(90deg,rgba(66,133,244,0.3),rgba(52,168,83,0.3),rgba(251,188,4,0.3),rgba(234,67,53,0.3));"></div>
 
           <!-- Texto CTA -->
-          <p class="text-[12px] font-semibold text-center leading-snug" style="color:rgba(255,255,255,0.50);">Tu reseÃ±a nos ayuda a crecer y llegar a mÃ¡s personas</p>
+          <p class="text-[12px] font-semibold text-center leading-snug" style="color:rgba(255,255,255,0.50);">Tu reseña nos ayuda a crecer y llegar a más personas</p>
         </button>
       </div>
 
-      <!-- â”€â”€ PRÃ“XIMO PREMIO â”€â”€ -->
+      <!-- ── PRÓXIMO PREMIO ── -->
       <div data-aura-stagger class="next-reward-card mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
         <!-- Product icon -->
         <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a] flex items-center justify-center">
           <i class='ph-fill ph-trophy premio-icon text-yellow-600 text-2xl'></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">PrÃ³ximo Premio</p>
+          <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">Próximo Premio</p>
           <p id="nextRewardText" class="text-sm font-bold text-white truncate">Cargando...</p>
         </div>
         <button onclick="togglePremios()"
@@ -427,20 +427,20 @@
         </button>
       </div>
 
-      <!-- â”€â”€ MIS PACKS ACTIVOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      <!-- ── MIS PACKS ACTIVOS ────────────────────────────────────
            Se llena en tiempo real desde user.packsActivos[] cuando el
            barbero completa una cita de un servicio con isPack=true.
            Muestra progreso de sesiones consumidas + vencimiento. -->
       <div id="misPacksSection" class="hidden mx-4 mb-5">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1 flex items-center gap-1.5" style="color:rgba(167,139,250,0.95);">
-          <span aria-hidden="true">ðŸ“¦</span>
+          <span aria-hidden="true">📦</span>
           Tus packs activos
           <span id="misPacksCount" class="ml-auto text-[9px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(167,139,250,0.15);color:rgba(167,139,250,1);">0</span>
         </h3>
         <div id="misPacksList" class="space-y-2.5"></div>
       </div>
 
-      <!-- â”€â”€ PREMIOS LIST (collapsible) â”€â”€ -->
+      <!-- ── PREMIOS LIST (collapsible) ── -->
       <div id="premiosSection" class="hidden mx-4 mb-5">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1" style="color:rgba(255,255,255,0.3);">Tabla de Premios</h3>
         <div id="premiosList" class="space-y-2.5">
@@ -450,7 +450,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ PERFIL DE VISITAS â”€â”€ -->
+      <!-- ── PERFIL DE VISITAS ── -->
       <div id="perfilVisitasCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4">
         <p class="text-[9px] font-black uppercase tracking-widest mb-3" style="color:var(--gold);">Tu perfil de visitas</p>
         <div class="flex items-center gap-3 mb-3">
@@ -459,7 +459,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-[10px] font-bold uppercase tracking-widest text-white/30">Servicio favorito</p>
-            <p id="perfilServicio" class="text-sm font-bold text-white mt-0.5 truncate">â€”</p>
+            <p id="perfilServicio" class="text-sm font-bold text-white mt-0.5 truncate">—</p>
           </div>
         </div>
         <div class="h-px bg-white/5 mb-3"></div>
@@ -469,18 +469,18 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-[10px] font-bold uppercase tracking-widest text-white/30">Tu barbero frecuente</p>
-            <p id="perfilBarbero" class="text-sm font-bold text-white mt-0.5 truncate">â€”</p>
+            <p id="perfilBarbero" class="text-sm font-bold text-white mt-0.5 truncate">—</p>
           </div>
         </div>
       </div>
 
-      <!-- â”€â”€ ÃšLTIMAS VISITAS â”€â”€ -->
+      <!-- ── ÚLTIMAS VISITAS ── -->
       <div id="ultimasVisitasSection" class="hidden mx-4 mb-5">
-        <p class="text-[9px] font-black uppercase tracking-widest mb-3 px-1" style="color:var(--gold);">Ãšltimas visitas</p>
+        <p class="text-[9px] font-black uppercase tracking-widest mb-3 px-1" style="color:var(--gold);">Últimas visitas</p>
         <div id="ultimasVisitasList" class="space-y-2"></div>
       </div>
 
-      <!-- â”€â”€ SERVICIO FAVORITO â”€â”€ -->
+      <!-- ── SERVICIO FAVORITO ── -->
       <div id="servicioFavoritoCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 overflow-hidden">
         <div class="px-5 pt-4 pb-3 flex items-center justify-between">
           <p class="text-[9px] font-black uppercase tracking-widest" style="color:var(--gold);">Tu foto favorita</p>
@@ -513,7 +513,7 @@
               </button>
             </div>
           </div>
-          <!-- Sin foto â€” subir la propia -->
+          <!-- Sin foto — subir la propia -->
           <div id="sfNoPhoto" class="hidden">
             <div
               onclick="document.getElementById('sfFileInput').click()"
@@ -522,7 +522,7 @@
             >
               <i class="ph-bold ph-camera text-2xl mb-2" style="color:var(--gold);opacity:0.5;"></i>
               <p class="text-xs font-semibold" style="color:var(--gold);opacity:0.6;">Sube tu foto de estilo favorito</p>
-              <p class="text-[10px] mt-1" style="color:rgba(255,255,255,0.15);">Solo la verÃ¡s tÃº</p>
+              <p class="text-[10px] mt-1" style="color:rgba(255,255,255,0.15);">Solo la verás tú</p>
             </div>
           </div>
           <!-- Cargando -->
@@ -533,8 +533,8 @@
         <input id="sfFileInput" type="file" accept="image/*" class="hidden">
       </div>
 
-      <!-- â”€â”€ REFERIDOS: card promocional (visible solo si el tenant activa
-           el programa desde /gestion-interna/configuracion) â”€â”€ -->
+      <!-- ── REFERIDOS: card promocional (visible solo si el tenant activa
+           el programa desde /gestion-interna/configuracion) ── -->
       <div id="referralCard" data-aura-stagger class="hidden mx-4 mb-6 rounded-2xl p-5 relative overflow-hidden"
            style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));
                   border:1px solid var(--gold-dim);box-shadow:0 0 24px var(--gold-glow);">
@@ -549,14 +549,14 @@
           <p id="referralMsg" class="text-white font-semibold text-sm leading-snug mb-4"></p>
           <div class="rounded-xl px-4 py-3 mb-3 inline-flex items-center gap-2"
                style="background:rgba(0,0,0,0.35);border:1px dashed var(--gold-dim);">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-white/45">Tu cÃ³digo</span>
-            <span id="referralCodeDisplay" class="text-lg font-black tracking-widest text-white">â€”</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-white/45">Tu código</span>
+            <span id="referralCodeDisplay" class="text-lg font-black tracking-widest text-white">—</span>
           </div>
           <div class="flex items-center justify-center gap-2 mt-1">
             <button id="btnCopyReferral" onclick="copyReferralCode()"
               class="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
               style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.14);">
-              <i class="ph-fill ph-clipboard-text"></i> Copiar cÃ³digo
+              <i class="ph-fill ph-clipboard-text"></i> Copiar código
             </button>
             <a id="btnShareReferralWa" href="#" onclick="shareReferralWhatsApp(event)"
               class="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
@@ -567,7 +567,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ SERVICIOS DESTACADOS â”€â”€ -->
+      <!-- ── SERVICIOS DESTACADOS ── -->
       <div data-aura-stagger class="mb-6" id="serviciosSection">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios</h3>
         <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pl-5 pr-5" id="serviciosGrid">
@@ -579,7 +579,7 @@
 
       <!-- Nota -->
       <p class="text-sm text-zinc-400 text-center mt-4 mb-6 leading-relaxed px-8">
-        Cada visita a la barberÃ­a suma un sello.<br>Tu barbero lo registra al terminar el corte.
+        Cada visita a la barbería suma un sello.<br>Tu barbero lo registra al terminar el corte.
       </p>
 
       <!-- Conoce al equipo -->
@@ -623,7 +623,7 @@
             </div>
             <div class="text-left">
               <p class="text-sm font-bold" style="color:var(--gold);">Academia Elegance</p>
-              <p class="text-[11px] text-zinc-500">FormaciÃ³n de excelencia</p>
+              <p class="text-[11px] text-zinc-500">Formación de excelencia</p>
             </div>
           </div>
           <i class="ph-bold ph-caret-right text-base shrink-0" style="color:var(--gold);opacity:0.5;"></i>
@@ -632,20 +632,20 @@
 
     </section>
 
-    <!-- â•â•â•â•â•â•â• PESTAÃ‘A 2: LOOKBOOK â•â•â•â•â•â•â• -->
+    <!-- �?�?�?�?�?�?�? PESTAÑA 2: LOOKBOOK �?�?�?�?�?�?�? -->
     <section id="tabLookbook" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
         <h2 class="text-2xl font-bold text-white tracking-tight">Estilos</h2>
-        <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barberÃ­a.</p>
+        <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barbería.</p>
       </div>
       <div class="masonry-grid" id="lookbookGrid"></div>
       <div id="lookbookEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-images text-5xl text-white/10 mb-4"></i>
-        <p class="text-sm text-gray-600 font-medium">Las fotos del lookbook<br>se subirÃ¡n pronto.</p>
+        <p class="text-sm text-gray-600 font-medium">Las fotos del lookbook<br>se subirán pronto.</p>
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â• PESTAÃ‘A: PRODUCTOS â•â•â•â•â•â•â• -->
+    <!-- �?�?�?�?�?�?�? PESTAÑA: PRODUCTOS �?�?�?�?�?�?�? -->
     <section id="tabProductos" class="tab-panel hidden px-5 pt-6 pb-32 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
         <h2 class="text-2xl font-bold text-white tracking-tight">Productos</h2>
@@ -654,31 +654,31 @@
       <div id="productosGrid" class="grid grid-cols-2 gap-3"></div>
       <div id="productosEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-shopping-bag text-5xl text-white/10 mb-4"></i>
-        <p class="text-sm text-gray-600 font-medium">No hay productos disponibles aÃºn.</p>
+        <p class="text-sm text-gray-600 font-medium">No hay productos disponibles aún.</p>
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â• PESTAÃ‘A: RECOMPENSAS â•â•â•â•â•â•â•
+    <!-- �?�?�?�?�?�?�? PESTAÑA: RECOMPENSAS �?�?�?�?�?�?�?
          Listado de redemptions con status:'pending' del cliente logueado.
          Se llena en tiempo real. El nav-tab (#navRecompensas) solo aparece
-         cuando hay â‰¥ 1 pendiente â€” renderPendingRewards controla el toggle. -->
+         cuando hay ≥ 1 pendiente — renderPendingRewards controla el toggle. -->
     <section id="tabRecompensas" class="tab-panel hidden px-5 pt-6 pb-32 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
         <div class="flex items-baseline gap-2">
           <h2 class="text-2xl font-bold text-white tracking-tight">Recompensas</h2>
           <span id="pendingRewardsCount" class="text-[10px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(251,191,36,0.15);color:rgba(251,191,36,1);">0</span>
         </div>
-        <p class="text-sm text-gray-500 mt-1">PresÃ©ntalas en el local para canjear.</p>
+        <p class="text-sm text-gray-500 mt-1">Preséntalas en el local para canjear.</p>
       </div>
       <div id="pendingRewardsList" class="space-y-2.5"></div>
       <div id="pendingRewardsEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-gift text-5xl text-white/10 mb-4"></i>
-        <p class="text-sm text-gray-600 font-medium">AÃºn no tienes recompensas.</p>
-        <p class="text-xs text-gray-700 mt-1">Cuando canjees premios o refiera amigos,<br>aparecerÃ¡n aquÃ­.</p>
+        <p class="text-sm text-gray-600 font-medium">Aún no tienes recompensas.</p>
+        <p class="text-xs text-gray-700 mt-1">Cuando canjees premios o refiera amigos,<br>aparecerán aquí.</p>
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â• PESTAÃ‘A 3: MI PERFIL â•â•â•â•â•â•â• -->
+    <!-- �?�?�?�?�?�?�? PESTAÑA 3: MI PERFIL �?�?�?�?�?�?�? -->
     <section id="tabProfile" class="tab-panel hidden px-5 pt-10 pb-40 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
       <!-- Avatar + datos -->
@@ -688,7 +688,7 @@
           <div id="profileAvatar" class="w-20 h-20 rounded-full bg-[#111115] border-2 border-neon shadow-[0_0_20px_rgba(255,255,255,0.12)] flex items-center justify-center overflow-hidden">
             <i class="ph-fill ph-user text-4xl text-gray-500"></i>
           </div>
-          <!-- BotÃ³n cÃ¡mara -->
+          <!-- Botón cámara -->
           <button
             onclick="document.getElementById('avatarFileInput').click()"
             class="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-gray-800 border border-gray-600 text-white p-1.5 rounded-full active:scale-90 transition-all hover:bg-gray-700"
@@ -700,14 +700,14 @@
         </div>
         <!-- Info col -->
         <div class="flex-1 min-w-0 pt-1">
-          <h2 id="profileName" class="text-xl font-black text-white tracking-tight leading-tight truncate">â€”</h2>
-          <p id="profileEmail" class="text-[11px] text-gray-500 mt-0.5 truncate">â€”</p>
-          <!-- Stats: rango Â· visitas Â· sellos -->
+          <h2 id="profileName" class="text-xl font-black text-white tracking-tight leading-tight truncate">—</h2>
+          <p id="profileEmail" class="text-[11px] text-gray-500 mt-0.5 truncate">—</p>
+          <!-- Stats: rango · visitas · sellos -->
           <div class="flex items-stretch gap-2 mt-3">
             <!-- Rango: gradiente de fondo para status VIP -->
             <div class="flex flex-col items-center justify-center rounded-2xl px-2 py-3 flex-1"
                  style="background:linear-gradient(135deg,var(--gold-glow) 0%,rgba(0,0,0,0) 100%),#18181b;">
-              <span id="profileTierBadge" class="text-sm font-black uppercase tracking-wide leading-none" style="color:var(--gold);">â€”</span>
+              <span id="profileTierBadge" class="text-sm font-black uppercase tracking-wide leading-none" style="color:var(--gold);">—</span>
               <span class="text-[9px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Rango</span>
             </div>
             <!-- Visitas -->
@@ -726,7 +726,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Opt-out de anuncios â”€â”€ -->
+      <!-- ── Opt-out de anuncios ── -->
       <!-- Toggle discreto que permite al cliente dejar de recibir push
            publicitario. No afecta notificaciones transaccionales (cita
            confirmada, sello ganado). Escribe en tenants/{tid}/anuncios_optout. -->
@@ -745,20 +745,20 @@
         </div>
       </div>
 
-      <!-- â”€â”€ CÃ³mo funciona el club (solo Aura) â”€â”€ -->
-      <!-- Bloque explicativo de quÃ© desbloquea cada rango. Hidden por defecto;
-           se muestra Ãºnicamente cuando html.tenant-aura estÃ¡ activo. -->
+      <!-- ── Cómo funciona el club (solo Aura) ── -->
+      <!-- Bloque explicativo de qué desbloquea cada rango. Hidden por defecto;
+           se muestra únicamente cuando html.tenant-aura está activo. -->
       <div id="rangosExplainerAura" class="mb-6 hidden">
-        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Â¿CÃ³mo funciona el club?</h3>
+        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">¿Cómo funciona el club?</h3>
         <div class="space-y-2.5">
 
           <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
             <div class="flex items-start gap-3">
-              <span class="text-base leading-none mt-0.5 shrink-0">âšª</span>
+              <span class="text-base leading-none mt-0.5 shrink-0">⚪</span>
               <div class="min-w-0">
                 <p class="text-[13px] font-bold text-white leading-tight">Silver</p>
                 <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
-                  Apenas te unes al club (gratis). AcÃ¡ desbloqueas la tarjeta de fidelidad:
+                  Apenas te unes al club (gratis). Acá desbloqueas la tarjeta de fidelidad:
                   empiezas a juntar sellos y a canjear descuentos.
                 </p>
               </div>
@@ -767,13 +767,13 @@
 
           <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
             <div class="flex items-start gap-3">
-              <span class="text-base leading-none mt-0.5 shrink-0">ðŸŸ¡</span>
+              <span class="text-base leading-none mt-0.5 shrink-0">🟡</span>
               <div class="min-w-0">
                 <p class="text-[13px] font-bold text-white leading-tight">Gold</p>
                 <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
-                  Se gana acumulando sellos y visitas (los clientes que llevan aÃ±os parten
-                  directo acÃ¡). AcÃ¡ se desbloquean las <strong>promociones y los planes</strong>
-                  â€” 2 cortes al mes y todo lo demÃ¡s.
+                  Se gana acumulando sellos y visitas (los clientes que llevan años parten
+                  directo acá). Acá se desbloquean las <strong>promociones y los planes</strong>
+                  — 2 cortes al mes y todo lo demás.
                 </p>
               </div>
             </div>
@@ -781,11 +781,11 @@
 
           <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
             <div class="flex items-start gap-3">
-              <span class="text-base leading-none mt-0.5 shrink-0">âš«</span>
+              <span class="text-base leading-none mt-0.5 shrink-0">⚫</span>
               <div class="min-w-0">
                 <p class="text-[13px] font-bold text-white leading-tight">Platinum</p>
                 <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
-                  El nivel mÃ¡ximo. Desbloquea los <strong>planes anuales</strong> y tiene todo
+                  El nivel máximo. Desbloquea los <strong>planes anuales</strong> y tiene todo
                   abierto.
                 </p>
               </div>
@@ -795,8 +795,8 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Planes anuales (sÃ³lo Aura Â· desbloqueables en Platinum) â”€â”€ -->
-      <!-- Carga dinÃ¡mica desde tenants/aura/configuracion/membresia.planes[]:
+      <!-- ── Planes anuales (sólo Aura · desbloqueables en Platinum) ── -->
+      <!-- Carga dinámica desde tenants/aura/configuracion/membresia.planes[]:
            cada plan se renderiza con su precioAnual y un badge de ahorro
            contra 12 cuotas mensuales. Hidden por defecto + CSS gate por
            tenant-aura. Loader: loadPlanesAnualesAura(). -->
@@ -813,7 +813,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ Beneficios por rango â”€â”€ -->
+      <!-- ── Beneficios por rango ── -->
       <div id="profileBenefits" class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Beneficios del Club</h3>
         <div class="space-y-2.5">
@@ -851,7 +851,7 @@
         </div>
       </div>
 
-      <!-- â”€â”€ INVITAR AMIGO AL CLUB â”€â”€ -->
+      <!-- ── INVITAR AMIGO AL CLUB ── -->
       <div class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Invita a un amigo</h3>
         <button onclick="invitarAmigoClub()"
@@ -869,11 +869,11 @@
         </button>
       </div>
 
-      <!-- â”€â”€ COMPARAR RANGO CON AMIGO â”€â”€ -->
+      <!-- ── COMPARAR RANGO CON AMIGO ── -->
       <div id="profileCompareSection" class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Comparar con un amigo</h3>
         <div class="rounded-2xl border border-white/8 bg-white/5 p-4">
-          <!-- Mis amigos guardados (se llena dinÃ¡micamente) -->
+          <!-- Mis amigos guardados (se llena dinámicamente) -->
           <div id="amigosListContainer"></div>
           <div class="flex gap-2">
             <input id="amigoEmailInput" type="text" inputmode="search" placeholder="Nombre o correo del amigo"
@@ -888,12 +888,12 @@
             </button>
           </div>
           <div id="amigoResult" class="hidden mt-4">
-            <!-- resultado dinÃ¡mico -->
+            <!-- resultado dinámico -->
           </div>
         </div>
       </div>
 
-      <!-- â”€â”€ PRÃ“XIMA CITA + HISTORIAL â”€â”€ -->
+      <!-- ── PRÓXIMA CITA + HISTORIAL ── -->
       <div id="profileCitasSection" class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Mis Citas</h3>
         <div id="profileCitasContent">
@@ -929,9 +929,9 @@
             class="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg p-3 text-gray-500 text-sm cursor-not-allowed focus:outline-none">
         </div>
 
-        <!-- TelÃ©fono -->
+        <!-- Teléfono -->
         <div>
-          <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">TelÃ©fono</label>
+          <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">Teléfono</label>
           <input id="editTelefono" type="tel" placeholder="+56 9 XXXX XXXX" inputmode="numeric" autocomplete="tel"
             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]">
         </div>
@@ -939,16 +939,16 @@
         <!-- Fecha de Nacimiento -->
         <div>
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">
-            ðŸŽ‚ Fecha de Nacimiento <span class="normal-case font-normal text-gray-700">(opcional)</span>
+            🎂 Fecha de Nacimiento <span class="normal-case font-normal text-gray-700">(opcional)</span>
           </label>
           <input id="editFechaNacimiento" type="date" autocomplete="bday"
             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]"
             style="color-scheme:dark;">
-          <p id="nacimientoLockMsg" class="text-[10px] text-gray-700 mt-1 px-1">RecibirÃ¡s 1 sello de regalo el dÃ­a de tu cumpleaÃ±os.</p>
+          <p id="nacimientoLockMsg" class="text-[10px] text-gray-700 mt-1 px-1">Recibirás 1 sello de regalo el día de tu cumpleaños.</p>
         </div>
 
       </div>
-      <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">âœ“ Datos guardados correctamente</p>
+      <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">✓ Datos guardados correctamente</p>
       <button id="btnGuardarPerfil" onclick="guardarPerfil()"
         class="w-full border rounded-lg font-bold py-3.5 text-sm transition-all mb-6 flex items-center justify-center gap-2"
         style="background:#D4AF37;color:#000;border-color:#D4AF37;">
@@ -962,7 +962,7 @@
           class="flex items-center justify-between bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
           <div class="flex items-center gap-3">
             <i class="ph-fill ph-shield-check text-gray-500 text-lg"></i>
-            <span class="text-sm font-semibold text-white">PolÃ­tica de Privacidad</span>
+            <span class="text-sm font-semibold text-white">Política de Privacidad</span>
           </div>
           <i class="ph-bold ph-arrow-right text-gray-600 text-sm"></i>
         </a>
@@ -970,18 +970,18 @@
           class="flex items-center justify-between bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
           <div class="flex items-center gap-3">
             <i class="ph-fill ph-file-text text-gray-500 text-lg"></i>
-            <span class="text-sm font-semibold text-white">TÃ©rminos y Condiciones</span>
+            <span class="text-sm font-semibold text-white">Términos y Condiciones</span>
           </div>
           <i class="ph-bold ph-arrow-right text-gray-600 text-sm"></i>
         </a>
       </div>
 
-      <!-- SesiÃ³n -->
-      <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">SesiÃ³n</h3>
+      <!-- Sesión -->
+      <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Sesión</h3>
       <div class="space-y-3">
         <button onclick="signOut()"
           class="w-full flex items-center justify-center gap-2 bg-[#111115] border border-white/10 text-gray-300 font-semibold py-4 rounded-2xl active:scale-[0.99] transition-all hover:border-white/25 hover:text-white text-sm">
-          <i class="ph-bold ph-sign-out text-base"></i> Cerrar SesiÃ³n
+          <i class="ph-bold ph-sign-out text-base"></i> Cerrar Sesión
         </button>
         <button onclick="confirmDeleteAccount()"
           class="w-full flex items-center justify-center gap-2 bg-red-950/30 border border-red-500/25 text-red-400 font-semibold py-4 rounded-2xl active:scale-[0.99] transition-all hover:border-red-400/50 hover:bg-red-950/50 text-sm">
@@ -990,7 +990,7 @@
       </div>
 
       <p class="text-[10px] text-gray-700 text-center mt-6 leading-relaxed">
-        Al eliminar tu cuenta se borran todos tus datos y sellos.<br>Esta acciÃ³n es irreversible.
+        Al eliminar tu cuenta se borran todos tus datos y sellos.<br>Esta acción es irreversible.
       </p>
     </section>
 
@@ -999,7 +999,7 @@
   <!-- FAB "Agendar Hora" removido: dejaba dos botones flotantes encimados
        (chat + agenda). Se mantiene solo el de chat. -->
 
-  <!-- â•â•â•â•â•â•â• BOTTOM NAVIGATION BAR â•â•â•â•â•â•â• -->
+  <!-- �?�?�?�?�?�?�? BOTTOM NAVIGATION BAR �?�?�?�?�?�?�? -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/97 backdrop-blur-xl border-t border-white/6" style="padding-bottom: env(safe-area-inset-bottom);">
     <div class="max-w-md mx-auto flex items-stretch relative">
       <!-- Dynamic sliding active-tab indicator line -->
@@ -1011,7 +1011,7 @@
           <i class="nav-icon ph-fill ph-house text-2xl transition-all"></i>
           <span id="loyaltyDot" class="hidden absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-red-500 border border-[#0a0a0d]"></span>
         </span>
-        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">FidelizaciÃ³n</span>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Fidelización</span>
       </button>
 
       <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
@@ -1051,7 +1051,7 @@
     </div>
   </nav>
 
-  <!-- â•â•â•â•â•â•â• MODAL ACADEMIA ELEGANCE â•â•â•â•â•â•â• -->
+  <!-- �?�?�?�?�?�?�? MODAL ACADEMIA ELEGANCE �?�?�?�?�?�?�? -->
   <div id="academiaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.80);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarAcademiaModal()">
     <div class="w-full max-w-lg bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="max-height:92dvh;">
 
@@ -1066,7 +1066,7 @@
             <i class="ph-fill ph-graduation-cap text-2xl" style="color:var(--gold);"></i>
           </div>
           <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">FormaciÃ³n de Excelencia</p>
+            <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Formación de Excelencia</p>
             <h2 class="text-lg font-bold text-white leading-tight">Academia Elegance</h2>
           </div>
         </div>
@@ -1076,8 +1076,8 @@
       <!-- Body -->
       <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
         <p class="text-sm text-zinc-300 leading-relaxed">
-          Todo nuestro equipo en ViÃ±a del Mar estÃ¡ respaldado por el programa intensivo de
-          <span class="font-bold text-white">240 horas de BarberÃ­a Profesional</span>,
+          Todo nuestro equipo en Viña del Mar está respaldado por el programa intensivo de
+          <span class="font-bold text-white">240 horas de Barbería Profesional</span>,
           asegurando que cada servicio cumpla con la promesa:
         </p>
         <p class="text-center text-sm font-bold italic px-4 py-2.5 rounded-xl" style="color:var(--gold);background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);">
@@ -1091,8 +1091,8 @@
               <i class="ph-bold ph-scissors text-lg" style="color:var(--gold);"></i>
             </div>
             <div>
-              <p class="text-sm font-bold text-white mb-1">MaestrÃ­a TÃ©cnica</p>
-              <p class="text-sm text-zinc-400 leading-relaxed">CapacitaciÃ³n experta detrÃ¡s de nuestros servicios mÃ¡s solicitados: desde el Corte Tradicional hasta nuestro popular Corte DegradÃ© y Corte con Textura.</p>
+              <p class="text-sm font-bold text-white mb-1">Maestría Técnica</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">Capacitación experta detrás de nuestros servicios más solicitados: desde el Corte Tradicional hasta nuestro popular Corte Degradé y Corte con Textura.</p>
             </div>
           </div>
           <!-- Card 2 -->
@@ -1102,7 +1102,7 @@
             </div>
             <div>
               <p class="text-sm font-bold text-white mb-1">Protocolos Premium</p>
-              <p class="text-sm text-zinc-400 leading-relaxed">DiagnÃ³stico profesional del cabello y rostro, junto con estrictos estÃ¡ndares de higiene que garantizan una experiencia segura y de primer nivel.</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">Diagnóstico profesional del cabello y rostro, junto con estrictos estándares de higiene que garantizan una experiencia segura y de primer nivel.</p>
             </div>
           </div>
           <!-- Card 3 -->
@@ -1111,8 +1111,8 @@
               <i class="ph-fill ph-medal text-lg" style="color:var(--gold);"></i>
             </div>
             <div>
-              <p class="text-sm font-bold text-white mb-1">Sinergia con tu MembresÃ­a</p>
-              <p class="text-sm text-zinc-400 leading-relaxed">La precisiÃ³n en los tiempos de ejecuciÃ³n de nuestros barberos es lo que permite que el Club Elegance GOLD funcione a la perfecciÃ³n, garantizando tus recompensas siempre a tiempo.</p>
+              <p class="text-sm font-bold text-white mb-1">Sinergia con tu Membresía</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">La precisión en los tiempos de ejecución de nuestros barberos es lo que permite que el Club Elegance GOLD funcione a la perfección, garantizando tus recompensas siempre a tiempo.</p>
             </div>
           </div>
         </div>
@@ -1134,7 +1134,7 @@
       <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);">
         <i class="ph-fill ph-calendar-dots text-2xl" style="color:var(--gold);"></i>
       </div>
-      <h3 class="text-lg font-bold text-white text-center mb-3">Â¿Reagendar tu cita?</h3>
+      <h3 class="text-lg font-bold text-white text-center mb-3">¿Reagendar tu cita?</h3>
       <div id="reagendarCitaInfo" class="bg-[#1a1a1f] rounded-2xl px-4 py-3 mb-4 text-center border border-white/6"></div>
       <p class="text-sm text-gray-500 text-center leading-relaxed mb-6">
         Cancelaremos tu hora actual y te llevaremos a elegir un nuevo horario.
@@ -1143,7 +1143,7 @@
         <button id="btnConfirmarReagendamiento" onclick="confirmarReagendamiento()"
           class="w-full font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm text-black"
           style="background:var(--gold);box-shadow:0 0 20px rgba(201,168,76,0.25);">
-          SÃ­, elegir nuevo horario
+          Sí, elegir nuevo horario
         </button>
         <button onclick="cerrarModalReagendar()"
           class="w-full bg-white/5 border border-white/10 text-gray-400 font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm hover:bg-white/10">
@@ -1159,15 +1159,15 @@
       <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
         <i class="ph-fill ph-calendar-x text-red-400 text-2xl"></i>
       </div>
-      <h3 class="text-lg font-bold text-white text-center mb-3">Â¿Cancelar tu cita?</h3>
+      <h3 class="text-lg font-bold text-white text-center mb-3">¿Cancelar tu cita?</h3>
       <div id="cancelCitaInfo" class="bg-[#1a1a1f] rounded-2xl px-4 py-3 mb-4 text-center border border-white/6"></div>
       <p class="text-sm text-gray-500 text-center leading-relaxed mb-6">
-        El horario quedarÃ¡ libre. Si cambias de opiniÃ³n, puedes reservar de nuevo.
+        El horario quedará libre. Si cambias de opinión, puedes reservar de nuevo.
       </p>
       <div class="space-y-3">
         <button id="btnConfirmarCancelacion" onclick="confirmarCancelacion()"
           class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm">
-          SÃ­, cancelar mi cita
+          Sí, cancelar mi cita
         </button>
         <button onclick="cerrarModalCancelar()"
           class="w-full bg-white/5 border border-white/10 text-gray-400 font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm hover:bg-white/10">
@@ -1183,14 +1183,14 @@
       <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
         <i class="ph-fill ph-warning text-red-400 text-2xl"></i>
       </div>
-      <h3 class="text-lg font-bold text-white text-center mb-2">Â¿Eliminar tu cuenta?</h3>
+      <h3 class="text-lg font-bold text-white text-center mb-2">¿Eliminar tu cuenta?</h3>
       <p class="text-sm text-gray-400 text-center leading-relaxed mb-6">
-        Se borrarÃ¡n todos tus datos y sellos acumulados.<br>Esta acciÃ³n <strong class="text-red-400">no se puede deshacer</strong>.
+        Se borrarán todos tus datos y sellos acumulados.<br>Esta acción <strong class="text-red-400">no se puede deshacer</strong>.
       </p>
       <div class="space-y-3">
         <button onclick="deleteAccount()"
           class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm">
-          SÃ­, eliminar mi cuenta
+          Sí, eliminar mi cuenta
         </button>
         <button onclick="closeDeleteModal()"
           class="w-full bg-white/5 border border-white/10 text-gray-400 font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm hover:bg-white/10">
@@ -1204,7 +1204,7 @@
   <div id="canjeModal" class="hidden fixed inset-0 bg-[#050505]/85 backdrop-blur-sm z-50 flex items-end justify-center px-5 pb-8" onclick="if(event.target===this)cerrarModalCanje()">
     <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-6 animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
-      <!-- â•â• Estado 1: preview + confirmaciÃ³n â•â• -->
+      <!-- �?�? Estado 1: preview + confirmación �?�? -->
       <div id="canjeInfoState">
         <div id="canjeCategoryIcon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3)">
           <i class="ph-fill ph-trophy text-2xl" style="color:#D4AF37"></i>
@@ -1215,11 +1215,11 @@
         <div class="bg-[#1a1a1f] rounded-2xl px-5 py-4 mb-6 border border-white/6 space-y-3">
           <div class="flex gap-3 items-start">
             <i class="ph-fill ph-qr-code text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
-            <p class="text-sm text-gray-300 leading-relaxed">Vamos a generarte un <strong>PIN + QR</strong> Ãºnico vÃ¡lido por 15 minutos.</p>
+            <p class="text-sm text-gray-300 leading-relaxed">Vamos a generarte un <strong>PIN + QR</strong> único válido por 15 minutos.</p>
           </div>
           <div class="flex gap-3 items-start">
             <i class="ph-fill ph-storefront text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
-            <p class="text-sm text-gray-300 leading-relaxed">MuÃ©straselo al barbero: Ã©l lo valida en su panel y confirma la entrega.</p>
+            <p class="text-sm text-gray-300 leading-relaxed">Muéstraselo al barbero: él lo valida en su panel y confirma la entrega.</p>
           </div>
           <div class="flex gap-3 items-start">
             <i class="ph-fill ph-shield-check text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
@@ -1228,14 +1228,14 @@
         </div>
         <div id="canjeError" class="hidden mb-3 text-xs text-rose-400 font-semibold text-center"></div>
 
-        <!-- Aviso "canje asistido" â€” visible cuando el dueÃ±o desactivÃ³ el
-             autoservicio desde el panel Premios. Reemplaza al botÃ³n "Generar". -->
+        <!-- Aviso "canje asistido" — visible cuando el dueño desactivó el
+             autoservicio desde el panel Premios. Reemplaza al botón "Generar". -->
         <div id="canjeAutoAviso" class="hidden mb-3 flex items-start gap-2.5 px-3 py-2.5 rounded-xl" style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.25);">
           <i class="ph-fill ph-info text-base mt-0.5" style="color:#D4AF37;"></i>
           <div class="flex-1 min-w-0">
             <p class="text-[13px] font-semibold text-white">Canje asistido</p>
             <p class="text-[11px] text-white/60 mt-0.5 leading-relaxed">
-              MuÃ©strale este premio al staff en el local â€” ellos generarÃ¡n el cÃ³digo y descontarÃ¡n tus sellos al momento.
+              Muéstrale este premio al staff en el local — ellos generarán el código y descontarán tus sellos al momento.
             </p>
           </div>
         </div>
@@ -1254,9 +1254,9 @@
         </div>
       </div>
 
-      <!-- â•â• Estado 2: QR + PIN + countdown â•â• -->
+      <!-- �?�? Estado 2: QR + PIN + countdown �?�? -->
       <div id="canjeTokenState" class="hidden">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37">MuÃ©strale esto al barbero</p>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37">Muéstrale esto al barbero</p>
         <h3 id="canjeTokenPrizeName" class="text-base font-black text-white text-center mb-4"></h3>
 
         <!-- QR canvas -->
@@ -1293,7 +1293,7 @@
   <div id="compartirStoryModal" class="hidden fixed inset-0 bg-[#050505]/92 backdrop-blur-sm z-50 flex items-center justify-center px-5" onclick="if(event.target===this)cerrarModalCompartir()">
     <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="flex items-center justify-between w-full mb-3.5">
-        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">ðŸ“² Vista Previa de Story</p>
+        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">📲 Vista Previa de Story</p>
         <button onclick="cerrarModalCompartir()" class="text-xs text-white/40 hover:text-white transition-colors">
           <i class="ph-bold ph-x text-base"></i>
         </button>
@@ -1309,7 +1309,7 @@
       </div>
       
       <p class="text-[10.5px] text-center text-white/50 mt-3.5 mb-4 leading-normal px-2">
-        Tarjeta adaptada a resoluciÃ³n 1080x1920 con el logo de tu local. DescÃ¡rgala o compÃ¡rtela directamente.
+        Tarjeta adaptada a resolución 1080x1920 con el logo de tu local. Descárgala o compártela directamente.
       </p>
       
       <div class="grid grid-cols-2 gap-2.5 w-full">
@@ -1329,7 +1329,7 @@
   <div id="focalSelectorModal" class="hidden fixed inset-0 bg-[#050505]/95 backdrop-blur-sm z-50 flex items-center justify-center px-5" onclick="if(event.target===this)cerrarFocalSelector()">
     <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="flex items-center justify-between w-full mb-3.5">
-        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">ðŸŽ¯ Ajustar Enfoque</p>
+        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">🎯 Ajustar Enfoque</p>
         <button onclick="cerrarFocalSelector()" class="text-xs text-white/40 hover:text-white transition-colors">
           <i class="ph-bold ph-x text-base"></i>
         </button>
@@ -1359,7 +1359,7 @@
     </div>
   </div>
 
-  <!-- â•â•â• Modal: Conoce al equipo â•â•â• -->
+  <!-- �?�?�? Modal: Conoce al equipo �?�?�? -->
   <div id="equipoModal" class="hidden fixed inset-0 z-50 flex flex-col">
     <div class="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm" onclick="cerrarEquipoModal()"></div>
     <div class="relative mt-auto w-full max-h-[88dvh] bg-[#111115] border-t border-white/10 rounded-t-3xl flex flex-col overflow-hidden animate-[fadeSlideUp_0.35s_cubic-bezier(0.16,1,0.3,1)_forwards]">
@@ -1390,7 +1390,7 @@
     </div>
   </div>
 
-  <!-- â•â•â• Bio Sheet â€” detalle de barbero â•â•â• -->
+  <!-- �?�?�? Bio Sheet — detalle de barbero �?�?�? -->
   <div id="barberoBioOverlay" class="hidden fixed inset-0 flex items-end" style="z-index:300;background:rgba(0,0,0,0.70);" onclick="if(event.target===this)cerrarBarberoBio()">
     <div id="barberoBioSheet" class="w-full max-w-md mx-auto rounded-t-3xl bg-[#111113] border-t border-white/10 px-6 pt-5 pb-10"
          style="transform:translateY(100%);transition:transform 0.32s cubic-bezier(.32,1,.5,1);">
@@ -1407,13 +1407,13 @@
     </div>
   </div>
 
-  <!-- â•â•â• Visor Lookbook â€” z-[80] supera chat(z-[70]) y FAB(z-50) â•â•â• -->
-  <!-- El wrapper cierra al tocar el fondo; la <img> detiene propagaciÃ³n -->
+  <!-- �?�?�? Visor Lookbook — z-[80] supera chat(z-[70]) y FAB(z-50) �?�?�? -->
+  <!-- El wrapper cierra al tocar el fondo; la <img> detiene propagación -->
   <div id="lookbookViewer" class="hidden fixed inset-0 z-[80] bg-black/95 flex items-center justify-center cursor-pointer"
        style="padding:5rem 2rem 2rem;"
        onclick="cerrarLookbookViewer()">
 
-    <!-- X: <button> real â†’ funciona siempre en touch/iOS -->
+    <!-- X: <button> real → funciona siempre en touch/iOS -->
     <button onclick="event.stopPropagation();cerrarLookbookViewer()"
             class="fixed z-[81] bg-black/70 backdrop-blur-sm text-white p-3.5 rounded-full active:scale-90 transition-transform shadow-lg"
             style="top:calc(1rem + env(safe-area-inset-top));right:1rem;"
@@ -1421,7 +1421,7 @@
       <i class="ph-bold ph-x text-xl leading-none"></i>
     </button>
 
-    <!-- stopPropagation sÃ³lo en <img>: Ã¡rea pequeÃ±a exacta de la foto -->
+    <!-- stopPropagation sólo en <img>: área pequeña exacta de la foto -->
     <img id="lookbookViewerImg" src="" alt="" loading="lazy"
          class="max-w-full max-h-full object-contain rounded-2xl select-none shadow-2xl cursor-default"
          draggable="false"
@@ -1446,7 +1446,7 @@
       <span>Ver en Instagram</span>
     </a>
 
-    <!-- BotÃ³n de like: corazÃ³n + contador, centrado abajo -->
+    <!-- Botón de like: corazón + contador, centrado abajo -->
     <button id="lbLikeBtn" onclick="event.stopPropagation();toggleLikeViewer()"
             class="hidden fixed z-[81] bg-black/70 backdrop-blur-sm text-white rounded-full shadow-lg active:opacity-80 transition-opacity flex items-center"
             style="bottom:calc(1.5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:0.7rem 1.25rem;gap:0.5rem;"
@@ -1456,9 +1456,9 @@
     </button>
   </div>
 
-<!-- â•â•â• Dashboard JS â€” mÃ³dulos extraÃ­dos del <script> inline (caching + parseo) â•â•â•
-     Scripts clÃ¡sicos: comparten scope global, igual que el script Ãºnico original.
-     EL ORDEN IMPORTA â€” init.js (Auth Guard) SIEMPRE al final. -->
+<!-- �?�?�? Dashboard JS — módulos extraídos del <script> inline (caching + parseo) �?�?�?
+     Scripts clásicos: comparten scope global, igual que el script único original.
+     EL ORDEN IMPORTA — init.js (Auth Guard) SIEMPRE al final. -->
 <script src="js/dashboard/preview.js?v=1"></script>
 <script src="js/dashboard/core.js?v=1"></script>
 <script src="js/dashboard/usuario.js?v=2"></script>
@@ -1466,7 +1466,7 @@
 <script src="js/dashboard/club.js?v=1"></script>
 <script src="js/dashboard/perfil.js?v=1"></script>
 <script src="js/dashboard/notificaciones.js?v=1"></script>
-<!-- Helper unificado de reseÃ±as Google (deep-link Maps + copiar al portapapeles + guardar interno) -->
+<!-- Helper unificado de reseñas Google (deep-link Maps + copiar al portapapeles + guardar interno) -->
 <script src="js/shared/resena-google.js?v=2"></script>
 <script src="js/dashboard/citas.js?v=1"></script>
 <script src="js/dashboard/extras.js?v=1"></script>
@@ -1482,16 +1482,16 @@
     }
   </script>
 
-  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  <!-- �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
        PWA INSTALL BANNER
-       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+       �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�? -->
   <!-- Banner principal (Android / Chrome) -->
   <div id="pwaBanner" class="hidden fixed bottom-20 left-3 right-3 z-50 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
     style="background:#1a1a1f;border:1px solid rgba(201,168,76,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(201,168,76,0.1);">
     <img id="pwaBannerIcon" src="/logo.jpg" loading="lazy" class="w-12 h-12 rounded-xl object-cover shrink-0 border border-white/10" alt="Elegance">
     <div class="flex-1 min-w-0">
       <p class="text-sm font-bold text-white leading-tight">Instala la app</p>
-      <p class="text-xs text-white/50 mt-0.5">Accede mÃ¡s rÃ¡pido desde tu pantalla de inicio</p>
+      <p class="text-xs text-white/50 mt-0.5">Accede más rápido desde tu pantalla de inicio</p>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <button id="pwaBtnInstall" onclick="instalarPWA()"
@@ -1505,10 +1505,10 @@
     </div>
   </div>
 
-  <!-- â•â• Chat Widget â•â• -->
+  <!-- �?�? Chat Widget �?�? -->
   <div id="chatWidget" class="hidden fixed z-[70] right-4" style="bottom:calc(5rem + env(safe-area-inset-bottom))">
 
-    <!-- BotÃ³n flotante -->
+    <!-- Botón flotante -->
     <div class="relative">
       <button id="chatToggleBtn" onclick="toggleChat()"
         class="w-14 h-14 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform"
@@ -1544,7 +1544,7 @@
       <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
         <div class="flex justify-start">
           <div class="max-w-[75%] text-sm rounded-2xl rounded-tl-none px-3 py-2 leading-snug" style="background:#1f2937;color:#e5e7eb">
-            Â¡Hola! Â¿En quÃ© podemos ayudarte hoy?
+            ¡Hola! ¿En qué podemos ayudarte hoy?
           </div>
         </div>
       </div>
@@ -1566,21 +1566,21 @@
     </div>
   </div>
 
-  <!-- â•â• Modal Detalle de Producto â•â• -->
+  <!-- �?�? Modal Detalle de Producto �?�? -->
   <div id="productoModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onclick="cerrarProductoModal()">
     <div class="w-full max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative flex flex-col" onclick="event.stopPropagation()">
-      <!-- BotÃ³n cerrar -->
+      <!-- Botón cerrar -->
       <button onclick="cerrarProductoModal()" class="absolute top-3 right-3 bg-black/60 text-white hover:text-gray-300 rounded-full p-2 z-10 transition-colors active:scale-90">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
-      <!-- Imagen: secciÃ³n blanca fija -->
+      <!-- Imagen: sección blanca fija -->
       <div class="bg-white w-full h-56 p-6 flex items-center justify-center flex-shrink-0">
         <img id="productoModalImg" src="" alt="" loading="lazy" class="object-contain w-full h-full">
         <i id="productoModalImgFallback" class="ph ph-shopping-bag text-6xl text-gray-300 hidden"></i>
       </div>
-      <!-- SecciÃ³n inferior: fondo explÃ­cito bg-gray-900 -->
+      <!-- Sección inferior: fondo explícito bg-gray-900 -->
       <div class="bg-gray-900 p-5 flex flex-col">
         <h3 id="productoModalNombre" class="text-xl font-bold text-white mb-2"></h3>
         <p id="productoModalDesc" class="text-sm text-gray-400 mb-6 max-h-32 overflow-y-auto pr-2 leading-relaxed"></p>
@@ -1596,7 +1596,7 @@
     </div>
   </div>
 
-  <!-- â”€â”€ MODAL MEMBRESÃAS AURA SALON â”€â”€ -->
+  <!-- ── MODAL MEMBRES�?AS AURA SALON ── -->
   <div id="auraMembresiaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);">
     <div class="w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]" 
          style="background:#F9FAFB; border:1px solid rgba(156,163,175,0.35); max-height: 90vh; display: flex; flex-direction: column;">
@@ -1634,7 +1634,7 @@
         </button>
         <a href="membresia.html" class="flex items-center gap-1.5 active:scale-95 transition-all"
            style="padding:9px 18px; border-radius:10px; font-size:12px; font-weight:700; color:#FFFFFF; background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); box-shadow: 0 3px 10px rgba(0,40,94,0.22);">
-          <span>Gestionar SuscripciÃ³n</span>
+          <span>Gestionar Suscripción</span>
           <i class="ph-bold ph-arrow-square-out" style="font-size:12px;"></i>
         </a>
       </div>
@@ -1650,18 +1650,18 @@
       <div class="space-y-3 text-left mb-6">
         <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.05);">
           <span class="pwa-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">1</span>
-          <p class="text-sm text-white/80">Toca el botÃ³n <strong class="text-white">Compartir</strong> <i class="ph ph-export inline"></i> en Safari</p>
+          <p class="text-sm text-white/80">Toca el botón <strong class="text-white">Compartir</strong> <i class="ph ph-export inline"></i> en Safari</p>
         </div>
         <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.05);">
           <span class="pwa-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">2</span>
-          <p class="text-sm text-white/80">Selecciona <strong class="text-white">Â«Agregar a pantalla de inicioÂ»</strong></p>
+          <p class="text-sm text-white/80">Selecciona <strong class="text-white">«Agregar a pantalla de inicio»</strong></p>
         </div>
       </div>
       <!-- Flecha apuntando al share button (visual) -->
       <div class="flex justify-center mb-4">
         <div class="flex items-center gap-2 text-xs text-white/30">
           <i class="ph ph-arrow-down text-base animate-bounce"></i>
-          <span>Busca este botÃ³n en la barra inferior de Safari</span>
+          <span>Busca este botón en la barra inferior de Safari</span>
         </div>
       </div>
       <button onclick="cerrarModalIOS()"
@@ -1673,13 +1673,13 @@
 
   <script src="js/dashboard/pwa-install.js?v=1"></script>
 
-  <!-- â”€â”€ Modal: Puntuar en Google â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ── Modal: Puntuar en Google ──────────────────────────────── -->
   <div id="googleReviewModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center p-4"
        style="background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);">
     <div class="w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);">
       <!-- Header con gradiente dorado -->
       <div class="px-6 pt-6 pb-5 text-center relative" style="background:linear-gradient(180deg,rgba(201,168,76,0.08) 0%,transparent 100%);">
-        <!-- Ãcono G de Google -->
+        <!-- �?cono G de Google -->
         <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
              style="background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
           <svg viewBox="0 0 48 48" width="32" height="32">
@@ -1689,9 +1689,9 @@
             <path fill="#EA4335" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C41.1 35.4 44 30.1 44 24c0-1.3-.1-2.7-.4-4z"/>
           </svg>
         </div>
-        <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">Â¡Gracias por visitarnos!</p>
-        <h3 class="text-white font-bold text-lg leading-tight">Â¿CÃ³mo fue tu experiencia?</h3>
-        <p class="text-gray-400 text-sm mt-1.5 leading-snug">Tu opiniÃ³n nos ayuda a mejorar y a que mÃ¡s personas nos encuentren.</p>
+        <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">¡Gracias por visitarnos!</p>
+        <h3 class="text-white font-bold text-lg leading-tight">¿Cómo fue tu experiencia?</h3>
+        <p class="text-gray-400 text-sm mt-1.5 leading-snug">Tu opinión nos ayuda a mejorar y a que más personas nos encuentren.</p>
         <!-- Estrellas decorativas -->
         <div class="flex justify-center gap-1 mt-3">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#D4AF37"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -1707,7 +1707,7 @@
         <textarea id="googleReviewComment"
                   rows="2"
                   maxlength="240"
-                  placeholder="Escribe algo (opcional) â€” lo copiamos y solo pegas"
+                  placeholder="Escribe algo (opcional) — lo copiamos y solo pegas"
                   class="w-full text-sm text-white placeholder-gray-500 rounded-xl px-3.5 py-3 resize-none focus:outline-none transition-colors"
                   style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); font-family:inherit;"
                   onfocus="this.style.borderColor='rgba(201,168,76,0.5)'"
@@ -1723,7 +1723,7 @@
           <svg viewBox="0 0 48 48" width="18" height="18">
             <path fill="#fff" d="M43.6 20H24v8h11.3C33.7 33.2 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
           </svg>
-          Dejar reseÃ±a en Google
+          Dejar reseña en Google
         </button>
         <button onclick="cerrarGoogleReviewModal(false)"
                 class="w-full py-2.5 rounded-xl text-gray-500 text-sm font-medium active:scale-[0.98] transition-all"
@@ -1741,8 +1741,8 @@
         <div class="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3">
           <i class="ph-fill ph-chat-circle-text text-white/60 text-xl"></i>
         </div>
-        <h3 class="text-base font-bold text-white mb-1">Â¿CÃ³mo estuvo todo?</h3>
-        <p class="text-xs text-gray-500">Tu opiniÃ³n es privada â€” solo la ve el dueÃ±o del local.</p>
+        <h3 class="text-base font-bold text-white mb-1">¿Cómo estuvo todo?</h3>
+        <p class="text-xs text-gray-500">Tu opinión es privada — solo la ve el dueño del local.</p>
       </div>
 
       <!-- Estrellas -->
@@ -1755,19 +1755,19 @@
       </div>
 
       <!-- Comentario opcional -->
-      <textarea id="pfComment" rows="2" placeholder="Â¿Algo que mejorar? (opcional)"
+      <textarea id="pfComment" rows="2" placeholder="¿Algo que mejorar? (opcional)"
         class="w-full bg-[#0a0a0e] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 mb-4 resize-none focus:outline-none focus:border-white/20"></textarea>
 
       <div class="flex gap-3">
         <button onclick="cerrarPrivateFeedback(false)" class="flex-1 py-3 rounded-xl text-sm font-semibold text-zinc-400 bg-white/5 border border-white/10 hover:bg-white/10 active:scale-[0.98] transition-all">Saltar</button>
-        <button id="pfSendBtn" onclick="enviarPrivateFeedback()" disabled class="flex-[2] py-3 rounded-xl text-sm font-bold text-black active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background:var(--gold);">Enviar reseÃ±a</button>
+        <button id="pfSendBtn" onclick="enviarPrivateFeedback()" disabled class="flex-[2] py-3 rounded-xl text-sm font-bold text-black active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background:var(--gold);">Enviar reseña</button>
       </div>
     </div>
   </div>
 
   <script src="js/dashboard/feedback-share.js?v=1"></script>
 
-  <!-- â•â•â•â•â•â•â• ELIMINAR CUENTA (Ley 19.628 / 21.719) â•â•â•â•â•â•â•
+  <!-- �?�?�?�?�?�?�? ELIMINAR CUENTA (Ley 19.628 / 21.719) �?�?�?�?�?�?�?
        Los onclicks del modal (confirmDeleteAccount / deleteAccount /
        closeDeleteModal) no estaban definidos y disparaban ReferenceError
        silencioso. Ese estado incumple lo publicado en privacidad.html:104
@@ -1793,7 +1793,7 @@
         const btn = btnConfirmarEl();
         const user = firebase.auth().currentUser;
         if (!user) {
-          alert('Tu sesiÃ³n expirÃ³. Vuelve a iniciar sesiÃ³n e intÃ©ntalo de nuevo.');
+          alert('Tu sesión expiró. Vuelve a iniciar sesión e inténtalo de nuevo.');
           window.location.href = 'registro.html';
           return;
         }
@@ -1816,12 +1816,12 @@
 
           alert(
             'Tu cuenta y tus datos fueron eliminados.\n\n' +
-            'Â· Perfil: '                 + (conteos.users             || 0) + '\n' +
-            'Â· Avatar pÃºblico: '         + (conteos.userPublic        || 0) + '\n' +
-            'Â· Ficha cliente: '          + (conteos.clientes          || 0) + '\n' +
-            'Â· Notificaciones push: '    + (conteos.fcmTokens         || 0) + '\n' +
-            'Â· Citas anonimizadas: '     + (conteos.citasAnonimizadas || 0) +
-            (conteos.bioUsers ? '\nÂ· Bioo: ' + conteos.bioUsers : '')
+            '· Perfil: '                 + (conteos.users             || 0) + '\n' +
+            '· Avatar público: '         + (conteos.userPublic        || 0) + '\n' +
+            '· Ficha cliente: '          + (conteos.clientes          || 0) + '\n' +
+            '· Notificaciones push: '    + (conteos.fcmTokens         || 0) + '\n' +
+            '· Citas anonimizadas: '     + (conteos.citasAnonimizadas || 0) +
+            (conteos.bioUsers ? '\n· Bioo: ' + conteos.bioUsers : '')
           );
           window.location.href = 'registro.html';
         } catch (err) {
@@ -1829,9 +1829,9 @@
           alert(
             'No pudimos eliminar tu cuenta:\n' +
             ((err && err.message) || 'error desconocido') +
-            '\n\nSi el problema persiste, escrÃ­benos a privacidad@synaptechspa.cl.'
+            '\n\nSi el problema persiste, escríbenos a privacidad@synaptechspa.cl.'
           );
-          if (btn) { btn.disabled = false; btn.innerHTML = 'SÃ­, eliminar mi cuenta'; }
+          if (btn) { btn.disabled = false; btn.innerHTML = 'Sí, eliminar mi cuenta'; }
         }
       };
     })();

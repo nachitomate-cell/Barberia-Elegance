@@ -244,7 +244,7 @@ function categoriaHeuristica(nombre) {
   if (/barba|bigote|afeitad/.test(n))             return 'Barba';
   if (/corte|fade|degradad/.test(n))              return 'Cortes';
   if (/color|tinte|mecha|platinad/.test(n))       return 'Color';
-  if (/manicur|u(n|Ã±)a|esmalt/.test(n))          return 'Manos';
+  if (/manicur|u(n|ñ)a|esmalt/.test(n))           return 'Manos';
   if (/pedicur/.test(n))                          return 'Pies';
   if (/masaje/.test(n))                           return 'Masajes';
   if (/limpieza facial|facial/.test(n))           return 'Facial';
