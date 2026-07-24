@@ -3,7 +3,8 @@ import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
   Package, Tag, PenLine, Award, Bell, Mail, Users, SlidersHorizontal,
-  MessageCircle, Lock, Gift,
+  MessageCircle, Lock, Gift, ChevronRight, CalendarClock,
+  Wrench, LifeBuoy,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -119,12 +120,107 @@ function mergeFeatures(saved) {
 import { resolveTenantId } from '../lib/tenantUtils';
 
 /* ─── Sub-components ─────────────────────────────────────────── */
+
+/**
+ * Section — encabezado de una sección de configuración (estilo iOS/macOS Settings).
+ * Un título grande, subtítulo opcional, y los children agrupados debajo.
+ * Se usa como wrapper superior de cada "página" de configuración.
+ */
+function Section({ Icon, title, description, children }) {
+  return (
+    <section className="space-y-5 sm:space-y-6">
+      <header className="flex items-start gap-3">
+        {Icon && (
+          <div className="mt-0.5 w-9 h-9 rounded-xl bg-white/[0.04] border border-white/5 flex items-center justify-center shrink-0">
+            <Icon size={17} className="text-slate-300" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-primary tracking-tight leading-tight">{title}</h2>
+          {description && (
+            <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">{description}</p>
+          )}
+        </div>
+      </header>
+      <div className="space-y-6">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * SettingsGroup — un "grupo" tipo iOS: caja rounded translúcida con footer opcional.
+ * Los children típicamente son SettingRow o inputs. Se separan con hairlines internas
+ * automáticamente vía `divide-y` cuando pasás la prop `divide`.
+ */
+function SettingsGroup({ label, footer, children, divide = false, className = '' }) {
+  return (
+    <div className={className}>
+      {label && (
+        <p className="px-4 sm:px-1 mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          {label}
+        </p>
+      )}
+      <div className={`bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden backdrop-blur-sm ${divide ? 'divide-y divide-white/[0.05]' : ''}`}>
+        {children}
+      </div>
+      {footer && (
+        <p className="px-4 sm:px-1 mt-2 text-[11.5px] text-slate-500 leading-relaxed">{footer}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * SettingRow — fila tipo "label a la izquierda, control a la derecha".
+ * Se usa dentro de SettingsGroup para toggles rápidos. Cuando `stackedOnMobile`
+ * es true, en móvil el control cae abajo (útil para inputs largos).
+ */
+function SettingRow({ Icon, title, description, children, stackedOnMobile = false }) {
+  return (
+    <div className={`flex ${stackedOnMobile ? 'flex-col sm:flex-row sm:items-center' : 'items-center'} justify-between gap-3 px-4 sm:px-5 py-3.5`}>
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        {Icon && (
+          <Icon size={16} className="text-slate-400 shrink-0 mt-0.5" />
+        )}
+        <div className="min-w-0">
+          <p className="text-[14px] font-medium text-primary leading-snug">{title}</p>
+          {description && (
+            <p className="text-[12px] text-slate-500 mt-0.5 leading-relaxed">{description}</p>
+          )}
+        </div>
+      </div>
+      {children && <div className={`shrink-0 ${stackedOnMobile ? 'w-full sm:w-auto' : ''}`}>{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * FormField — campo de formulario clásico: label arriba (o tag), input abajo.
+ * A diferencia de SettingRow, es para inputs largos con un label descriptivo.
+ */
+function FormField({ label, hint, children, className = '' }) {
+  return (
+    <div className={`px-4 sm:px-5 py-3.5 ${className}`}>
+      <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-[0.06em] mb-1.5">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="text-[11.5px] text-slate-500 mt-1.5 leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
+// ── Aliases retro-compatibles ────────────────────────────────────
+// Los sub-componentes DailyWelcomeToggleCard y NotificacionesToggleCard usan
+// estos nombres. Mantengo los aliases para no reescribir esos dos widgets
+// (que tienen lógica sensible: permisos de notif, localStorage). Se ven bien
+// dentro del nuevo layout porque los envuelvo en el SettingsGroup del render.
 function Card({ Icon, title, children }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800 bg-slate-800/30">
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden backdrop-blur-sm">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/[0.05]">
         <Icon size={15} className="text-slate-400 shrink-0" />
-        <h2 className="text-sm font-semibold text-primary">{title}</h2>
+        <h3 className="text-[13px] font-semibold text-primary tracking-tight">{title}</h3>
       </div>
       <div className="px-5 py-5 space-y-4">{children}</div>
     </div>
@@ -134,7 +230,7 @@ function Card({ Icon, title, children }) {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{label}</label>
+      <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-[0.06em] mb-1.5">{label}</label>
       {children}
     </div>
   );
@@ -810,8 +906,13 @@ export default function Configuracion() {
   const [dirty,     setDirty]     = useState(false);
   const [saveErr,   setSaveErr]   = useState('');
   const [showHelp,  setShowHelp]  = useState(false);
-  // Navegación por 3 pestañas — mobile-first ultra compacto
-  const [tab,       setTab]       = useState('local'); // 'local' | 'horarios' | 'prefs'
+  // Navegación por sección (rediseño 2026-07 — sidebar tipo iOS/macOS Settings).
+  // 7 secciones agrupan los ~15 cards antes apilados. Ver SECTIONS abajo para la
+  // definición y el mapeo. `tab` como nombre queda por compat interno del estado.
+  const [tab,       setTab]       = useState('general');
+  // Ref del contenedor de contenido — se scrollea al top al cambiar de sección
+  // para que el usuario no aterrice a mitad del scroll de la sección anterior.
+  const contentRef = useRef(null);
   const savedTimer = useRef(null);
   const tenantId = resolveTenantId();
 
@@ -1074,16 +1175,38 @@ export default function Configuracion() {
     </div>
   );
 
+  // ── Secciones del sidebar (rediseño 2026-07) ────────────────────
+  // Reagrupa los ~15 cards que antes se apilaban en 3 tabs. Cada sección es
+  // una "página" con encabezado grande + grupos tipo iOS. Mobile: pills
+  // scrollables arriba; desktop: rail vertical sticky a la izquierda.
+  const SECTIONS = [
+    { key: 'general',  label: 'General',            Icon: Store,         desc: 'Datos del local, contactos y correo de avisos.' },
+    { key: 'horarios', label: 'Horarios',           Icon: Clock,         desc: 'Días de atención y duración de turnos.' },
+    { key: 'reservas', label: 'Reservas online',    Icon: CalendarClock, desc: 'Cancelaciones, reservas en grupo y anti-spam.' },
+    { key: 'agenda',   label: 'Agenda del barbero', Icon: Wrench,        desc: 'Módulos internos que ven los profesionales.' },
+    { key: 'cliente',  label: 'Cliente y marca',    Icon: Sparkles,      desc: 'Qué ve el cliente en la agenda pública y programa de referidos.' },
+    { key: 'metas',    label: 'Metas y finanzas',   Icon: Target,        desc: 'Meta mensual y costo diario para tus reportes.' },
+    { key: 'sistema',  label: 'Sistema y ayuda',    Icon: LifeBuoy,      desc: 'Notificaciones del panel y contacto de soporte.' },
+  ];
+  const activeSection = SECTIONS.find(s => s.key === tab) || SECTIONS[0];
+  const changeTab = (k) => {
+    setTab(k);
+    // Al cambiar de sección, garantizamos que el usuario arranca desde el top.
+    if (contentRef.current) contentRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+  };
+
   return (
-    <div data-view="configuracion" className="max-w-2xl mx-auto pb-8">
+    <div data-view="configuracion" className="max-w-6xl mx-auto pb-10">
       <style>{`
-        @keyframes cfgFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .cfg-fade-in { animation: cfgFadeIn 0.18s ease-out; }
+        @keyframes cfgFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .cfg-fade-in { animation: cfgFadeIn 0.22s ease-out; }
+        .cfg-nav::-webkit-scrollbar { display: none; }
+        .cfg-nav { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Header sticky con "Guardar" siempre visible */}
-      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 mb-4 bg-slate-950/95 backdrop-blur flex items-center justify-between gap-3 border-b border-slate-800 sm:border-none">
-        <h1 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-1.5">
+      {/* Header sticky con título + Guardar siempre visible */}
+      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 mb-5 bg-slate-950/85 backdrop-blur-md flex items-center justify-between gap-3 border-b border-white/[0.06] sm:border-none">
+        <h1 className="text-xl sm:text-2xl font-semibold text-primary tracking-tight flex items-center gap-1.5">
           Configuración
           <HelpButton onClick={() => setShowHelp(true)} />
         </h1>
@@ -1091,7 +1214,7 @@ export default function Configuracion() {
           onClick={handleSave}
           disabled={saving || customErr}
           title={customErr ? `Duración entre ${INTERVALO_MIN} y ${INTERVALO_MAX} min.` : undefined}
-          className="relative h-9 px-4 text-sm font-semibold rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-900/20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-primary transition-all"
+          className="relative h-9 px-4 text-[13px] font-semibold rounded-full flex items-center gap-1.5 shadow-[0_4px_16px_-4px_rgba(16,185,129,0.4)] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none text-white transition-all active:scale-[0.98]"
         >
           {saving
             ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1100,49 +1223,80 @@ export default function Configuracion() {
               : <Save size={14} />}
           <span>{saved ? 'Guardado' : 'Guardar'}</span>
           {dirty && !saving && !saved && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-950" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-slate-950" />
           )}
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex rounded-xl bg-neutral-900/80 p-1 border border-neutral-800 mb-4">
-        {[
-          { key: 'local',    label: '🏢 Local' },
-          { key: 'horarios', label: '⏰ Horarios' },
-          { key: 'prefs',    label: '⚡ Preferencias' },
-        ].map(t => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex-1 h-9 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                active
-                  ? 'bg-neutral-800 text-primary shadow-sm'
-                  : 'text-neutral-400 hover:text-primary'
-              }`}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
 
-      {/* Error banner */}
-      {saveErr && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-950/50 border border-red-500/30 rounded-xl text-sm text-red-400">
-          <AlertCircle size={15} className="shrink-0" />
-          <span className="flex-1">{saveErr}</span>
-          <button onClick={() => setSaveErr('')} className="text-red-400/50 hover:text-red-400 transition-colors">
-            <Check size={13} />
-          </button>
-        </div>
-      )}
+        {/* ─── Sidebar de navegación ─────────────────────────────── */}
+        <aside className="lg:w-60 shrink-0">
+          {/* Desktop: rail vertical sticky */}
+          <nav className="hidden lg:block lg:sticky lg:top-24 space-y-1">
+            {SECTIONS.map(s => {
+              const active = tab === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => changeTab(s.key)}
+                  className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all ${
+                    active
+                      ? 'bg-white/[0.06] text-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]'
+                      : 'text-slate-400 hover:text-primary hover:bg-white/[0.03]'
+                  }`}
+                >
+                  <s.Icon size={16} className={`shrink-0 transition-colors ${active ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                  <span className="flex-1 text-left truncate">{s.label}</span>
+                  {active && <ChevronRight size={13} className="text-slate-500" />}
+                </button>
+              );
+            })}
+          </nav>
 
-      {/* ═══ TAB 1 · LOCAL ═══ */}
-      {tab === 'local' && (
-      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="local">
+          {/* Mobile: pills scrollables horizontal */}
+          <div className="lg:hidden -mx-4 px-4">
+            <div className="cfg-nav flex gap-2 overflow-x-auto pb-1">
+              {SECTIONS.map(s => {
+                const active = tab === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => changeTab(s.key)}
+                    className={`shrink-0 flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold transition-all whitespace-nowrap ${
+                      active
+                        ? 'bg-white text-slate-950 shadow-md'
+                        : 'bg-white/[0.04] text-slate-300 border border-white/[0.06] hover:bg-white/[0.07]'
+                    }`}
+                  >
+                    <s.Icon size={13} className={active ? 'text-slate-700' : 'text-slate-400'} />
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        {/* ─── Contenido de la sección activa ─────────────────────── */}
+        <div ref={contentRef} className="flex-1 min-w-0 scroll-mt-24">
+          {/* Error banner */}
+          {saveErr && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-red-950/50 border border-red-500/30 rounded-2xl text-sm text-red-400 mb-5">
+              <AlertCircle size={15} className="shrink-0" />
+              <span className="flex-1">{saveErr}</span>
+              <button onClick={() => setSaveErr('')} className="text-red-400/50 hover:text-red-400 transition-colors">
+                <Check size={13} />
+              </button>
+            </div>
+          )}
+
+      {/* ═══ SECCIÓN · GENERAL ═══ */}
+      {tab === 'general' && (
+      <div className="cfg-fade-in" key="general">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Información + Contacto */}
       <Card Icon={Store} title={multiSucursal ? 'Datos de la marca' : 'Datos del local'}>
         {multiSucursal && (
@@ -1193,6 +1347,78 @@ export default function Configuracion() {
               onChange={e => set('logo', e.target.value)} />
           </div>
         </Field>
+      </Card>
+
+      {/* Correo para avisos — MOVIDO desde "Preferencias" en el rediseño 2026-07.
+          Es un dato "del local" (destinatario de mensualidad/alertas), así que
+          va junto con nombre/dirección/etc. En multi-sucursal se edita por sede. */}
+      <Card Icon={Mail} title={multiSucursal ? 'Correo para avisos · por sucursal' : 'Correo para avisos'}>
+        {multiSucursal && sucursales.length > 1 && sedeData ? (
+          <>
+            <div className="flex gap-1.5 flex-wrap p-1 bg-neutral-900/60 border border-neutral-800 rounded-lg">
+              {sucursales.map(sc => {
+                const active = sedeEdit === sc.id;
+                return (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => setSedeEdit(sc.id)}
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${
+                      active
+                        ? 'bg-neutral-800 text-primary shadow-sm'
+                        : 'text-neutral-400 hover:text-primary'
+                    }`}
+                  >
+                    <span aria-hidden="true" className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: sc.color || '#94a3b8' }} />
+                    <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <Field label="Correo de esta sucursal">
+              <input
+                className={inp}
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                placeholder="correo@dellocal.cl"
+                value={sedeData.emailAvisos}
+                onChange={e => setSedeField('emailAvisos', e.target.value.trim())}
+              />
+            </Field>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Cada sede tiene su propio correo. Aquí llegan los avisos importantes de esa sucursal (mensualidad, alertas). No se mezcla con los correos de las otras sedes.
+            </p>
+            {sedeData.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sedeData.emailAvisos) && (
+              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <Field label="Correo oficial del local">
+              <input
+                className={inp}
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                placeholder="correo@dellocal.cl"
+                value={form.emailAvisos}
+                onChange={e => set('emailAvisos', e.target.value.trim())}
+              />
+            </Field>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Aquí llegan los avisos importantes de tu cuenta, como el vencimiento de tu mensualidad.
+              Usa un correo que revises: si no llega el aviso y el pago se atrasa, se bloquean secciones del panel.
+            </p>
+            <p className="text-[10px] text-slate-600 leading-relaxed">
+              No es el correo con el que inicias sesión. Cambiarlo aquí no afecta el acceso de nadie al panel.
+            </p>
+            {form.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailAvisos) && (
+              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
+            )}
+          </>
+        )}
       </Card>
 
       {/* Datos por sede (solo multi-sucursal). Tabs + inputs de la sede activa.
@@ -1249,12 +1475,14 @@ export default function Configuracion() {
         </Card>
       )}
 
+      </Section>
       </div>
       )}
 
-      {/* ═══ TAB 2 · HORARIOS ═══ */}
+      {/* ═══ SECCIÓN · HORARIOS ═══ */}
       {tab === 'horarios' && (
-      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="horarios">
+      <div className="cfg-fade-in" key="horarios">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Horario de Atención — mono-sede: uno solo; multi-sede: tabs por sede */}
       <Card Icon={Clock} title={multiSucursal ? 'Horario de Atención por sucursal' : 'Horario de Atención'}>
         <p className="text-xs text-slate-500 -mt-1">
@@ -1368,6 +1596,14 @@ export default function Configuracion() {
         )}
       </Card>
 
+      </Section>
+      </div>
+      )}
+
+      {/* ═══ SECCIÓN · RESERVAS ONLINE ═══ */}
+      {tab === 'reservas' && (
+      <div className="cfg-fade-in" key="reservas">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Política de Cancelación y Reagendamiento */}
       <Card Icon={Ban} title="Política de Cancelación y Reagendamiento">
         <p className="text-xs text-slate-500 -mt-1">
@@ -1582,12 +1818,38 @@ export default function Configuracion() {
 
       </Card>
 
+      {/* Multi-servicio en la reserva pública — MOVIDO desde "Preferencias" (2026-07).
+          Concep­tualmente es una regla de la reserva online, así que va acá con
+          política/grupo/antispam. */}
+      <Card Icon={Layers} title="Selección de varios servicios por reserva">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-primary">Permitir agendar más de un servicio</span>
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              Activa la selección múltiple en la agenda pública. El cliente puede marcar varios servicios y la
+              cita queda con todos sumados: el nombre se concatena (<code>Corte + Barba</code>),
+              la duración se suma y el precio total también.
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              Filtra los barberos compatibles haciendo la <strong className="text-slate-300">intersección</strong> entre los servicios elegidos.
+            </p>
+          </div>
+          <IosToggle
+            checked={form.features.hasMultiServiceSelect}
+            onChange={v => setFeat('hasMultiServiceSelect', v)}
+            size="sm"
+          />
+        </div>
+      </Card>
+
+      </Section>
       </div>
       )}
 
-      {/* ═══ TAB 3 · PREFERENCIAS ═══ */}
-      {tab === 'prefs' && (
-      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="prefs">
+      {/* ═══ SECCIÓN · CLIENTE Y MARCA ═══ */}
+      {tab === 'cliente' && (
+      <div className="cfg-fade-in" key="cliente">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Servicios Extra — Cursos/Arriendo solo Chameleon · Academia solo Elegance */}
       {(tenantId === 'chameleon' || tenantId === 'elegance') && (
       <Card Icon={GraduationCap} title="Servicios Extra">
@@ -1684,27 +1946,6 @@ export default function Configuracion() {
       </Card>
       )}
 
-      {/* Multi-servicio en la reserva pública */}
-      <Card Icon={Layers} title="Selección de varios servicios por reserva">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-semibold text-primary">Permitir agendar más de un servicio</span>
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-              Activa la selección múltiple en la agenda pública. El cliente puede marcar varios servicios y la
-              cita queda con todos sumados: el nombre se concatena (<code>Corte + Barba</code>),
-              la duración se suma y el precio total también.
-            </p>
-            <p className="text-[10px] text-slate-500 mt-1.5">
-              Filtra los barberos compatibles haciendo la <strong className="text-slate-300">intersección</strong> entre los servicios elegidos.
-            </p>
-          </div>
-          <button type="button" onClick={() => setFeat('hasMultiServiceSelect', !form.features.hasMultiServiceSelect)}
-            className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.features.hasMultiServiceSelect ? 'bg-emerald-500' : 'bg-slate-700'}`}>
-            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasMultiServiceSelect ? 'translate-x-4' : 'translate-x-0.5'}`} />
-          </button>
-        </div>
-      </Card>
-
       {/* Quiénes somos */}
       <Card Icon={Info} title="Quiénes somos">
         <div className="flex items-center justify-between">
@@ -1788,6 +2029,14 @@ export default function Configuracion() {
         )}
       </Card>
 
+      </Section>
+      </div>
+      )}
+
+      {/* ═══ SECCIÓN · AGENDA DEL BARBERO ═══ */}
+      {tab === 'agenda' && (
+      <div className="cfg-fade-in" key="agenda">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Opciones avanzadas — controla qué módulos aparecen en la agenda
           personal (privada) de cada barbero. Todos empiezan activos. */}
       <Card Icon={SlidersHorizontal} title="Opciones avanzadas · Agenda del barbero">
@@ -1915,6 +2164,14 @@ export default function Configuracion() {
         </div>
       </Card>
 
+      </Section>
+      </div>
+      )}
+
+      {/* ═══ SECCIÓN · METAS Y FINANZAS ═══ */}
+      {tab === 'metas' && (
+      <div className="cfg-fade-in" key="metas">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       {/* Metas financieras — alimentan la card "Meta del mes" + "Break-even" en Inicio */}
       <Card Icon={Target} title="Metas financieras">
         <Field label="Meta mensual de ventas (CLP)">
@@ -1947,79 +2204,14 @@ export default function Configuracion() {
         </Field>
       </Card>
 
-      {/* Preferencias del panel — locales al dispositivo */}
-      {/* Correo oficial del local para avisos del sistema. Separado del correo
-          de login de cada administrador (ese no se toca desde aquí). En
-          multi-sucursal se edita por sede — cada local con su encargado. */}
-      <Card Icon={Mail} title={multiSucursal ? 'Correo para avisos · por sucursal' : 'Correo para avisos'}>
-        {multiSucursal && sucursales.length > 1 && sedeData ? (
-          <>
-            <div className="flex gap-1.5 flex-wrap p-1 bg-neutral-900/60 border border-neutral-800 rounded-lg">
-              {sucursales.map(sc => {
-                const active = sedeEdit === sc.id;
-                return (
-                  <button
-                    key={sc.id}
-                    type="button"
-                    onClick={() => setSedeEdit(sc.id)}
-                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${
-                      active
-                        ? 'bg-neutral-800 text-primary shadow-sm'
-                        : 'text-neutral-400 hover:text-primary'
-                    }`}
-                  >
-                    <span aria-hidden="true" className="w-2 h-2 rounded-full shrink-0"
-                      style={{ background: sc.color || '#94a3b8' }} />
-                    <span className="truncate">{sc.nombreCorto || sc.nombre}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <Field label="Correo de esta sucursal">
-              <input
-                className={inp}
-                type="email"
-                inputMode="email"
-                autoComplete="off"
-                placeholder="correo@dellocal.cl"
-                value={sedeData.emailAvisos}
-                onChange={e => setSedeField('emailAvisos', e.target.value.trim())}
-              />
-            </Field>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Cada sede tiene su propio correo. Aquí llegan los avisos importantes de esa sucursal (mensualidad, alertas). No se mezcla con los correos de las otras sedes.
-            </p>
-            {sedeData.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sedeData.emailAvisos) && (
-              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
-            )}
-          </>
-        ) : (
-          <>
-            <Field label="Correo oficial del local">
-              <input
-                className={inp}
-                type="email"
-                inputMode="email"
-                autoComplete="off"
-                placeholder="correo@dellocal.cl"
-                value={form.emailAvisos}
-                onChange={e => set('emailAvisos', e.target.value.trim())}
-              />
-            </Field>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Aquí llegan los avisos importantes de tu cuenta, como el vencimiento de tu mensualidad.
-              Usa un correo que revises: si no llega el aviso y el pago se atrasa, se bloquean secciones del panel.
-            </p>
-            <p className="text-[10px] text-slate-600 leading-relaxed">
-              No es el correo con el que inicias sesión. Cambiarlo aquí no afecta el acceso de nadie al panel.
-            </p>
-            {form.emailAvisos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailAvisos) && (
-              <p className="text-[11px] text-amber-400">Revisa el formato del correo.</p>
-            )}
-          </>
-        )}
-      </Card>
+      </Section>
+      </div>
+      )}
 
+      {/* ═══ SECCIÓN · SISTEMA Y AYUDA ═══ */}
+      {tab === 'sistema' && (
+      <div className="cfg-fade-in" key="sistema">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
       <NotificacionesToggleCard />
 
       <DailyWelcomeToggleCard />
@@ -2077,8 +2269,12 @@ export default function Configuracion() {
         </div>
       </div>
 
+      </Section>
       </div>
       )}
+
+        </div>{/* /flex-1 content */}
+      </div>{/* /flex layout */}
 
       {showHelp && (
         <HelpModal title="Ayuda — Configuración" onClose={() => setShowHelp(false)}>
