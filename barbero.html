@@ -765,14 +765,21 @@
   <div class="spinner"></div>
 </div>
 
-<!-- Not found -->
-<div id="notFoundState" class="hidden min-h-screen flex flex-col items-center justify-center text-center px-6 gap-4">
-  <i class="ph ph-user-x text-5xl text-white/15"></i>
-  <h2 class="text-xl font-bold text-white/60">Barbero no encontrado</h2>
-  <p class="text-sm text-gray-600">La página que buscas no existe o el barbero no está disponible.</p>
-  <a href="/" class="mt-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-white/60 hover:text-white hover:border-white/30 transition-colors">
-    Ver agenda completa
+<!-- Not found — mismo lenguaje visual que el 404 de plataforma (middleware
+     tenant404): marca SynapTech + guía de vuelta a la agenda del local. -->
+<div id="notFoundState" class="hidden min-h-screen flex flex-col items-center justify-center text-center px-6">
+  <img src="/synaptech/ig.png" alt="SynapTech" class="w-14 h-14 rounded-2xl object-contain mb-3" onerror="this.style.display='none'">
+  <p class="text-lg font-extrabold tracking-tight text-white mb-8">Synap<span style="color:#9CCC3C;">Tech</span></p>
+  <h2 class="text-xl font-bold text-white mb-3">Página no encontrada</h2>
+  <p class="text-sm text-gray-400 max-w-sm leading-relaxed mb-2">La dirección que escribiste no existe o el profesional ya no está disponible.</p>
+  <p class="text-xs text-gray-600 max-w-sm leading-relaxed mb-8">Revisa que esté bien escrita, o vuelve a la agenda para reservar tu hora.</p>
+  <a href="/" class="px-6 py-3 rounded-full bg-white text-black text-sm font-bold hover:opacity-85 transition-opacity">
+    Ver la agenda del local
   </a>
+  <p class="mt-12 text-[11px] text-gray-700 flex items-center justify-center gap-1.5">
+    <img src="/synaptech/ig.png" alt="" class="w-3.5 h-3.5 rounded object-contain inline-block" onerror="this.style.display='none'">
+    Powered by SynapTech SpA · synaptechspa.cl
+  </p>
 </div>
 
 <!-- Error de conexión (red lenta / WebView in-app que bloquea Firestore) -->
