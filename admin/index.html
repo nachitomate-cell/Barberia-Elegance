@@ -1746,6 +1746,16 @@
     <button class="off" id="saCtxOff"><i class="ph-fill ph-pause-circle"></i> Marcar como NO funcionando</button>
   </div>
 
+  <!-- Menú contextual del listado de "Ingresos proyectados". Aparece con
+       click derecho sobre un local de la lista pagadas/pendientes y opera
+       sobre el MES que está visible en el proyector (puede no ser el actual). -->
+  <div class="sa-ctx" id="ipCtx">
+    <div class="ttl" id="ipCtxName">Local</div>
+    <button class="ok" id="ipCtxToggle"><i class="ph-fill ph-currency-circle-dollar"></i> <span id="ipCtxToggleLabel">Marcar cuota como pagada</span></button>
+    <div class="sep"></div>
+    <button class="ok" id="ipCtxOpen"><i class="ph-fill ph-arrow-square-out"></i> Abrir facturación</button>
+  </div>
+
   <!-- ══ DRAWER OVERLAY ══ -->
   <div id="drawer-overlay" onclick="closeDrawer()"></div>
 
@@ -5366,6 +5376,18 @@
     window.submitCrearStaff = submitCrearStaff;
 
     // ── Detalle de chips de ingresos: qué locales hay en cada categoría ─
+    // Formatea una fecha ISO (o YYYY-MM-DD) a "15 jul" (mismo año) o
+    // "15 jul 2026" (otro año). Devuelve '' si la fecha no es válida.
+    function _ipFmtDate(iso) {
+      if (!iso) return '';
+      let d;
+      try { d = new Date(String(iso).length === 10 ? iso + 'T00:00:00' : iso); } catch (_) { return ''; }
+      if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+      const mes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];
+      const nowY = new Date().getFullYear();
+      return d.getDate() + ' ' + mes + (d.getFullYear() !== nowY ? ' ' + d.getFullYear() : '');
+    }
+
     function ipShowChipDetail(key) {
       const box = document.getElementById('ip-chip-detail');
       if (!box) return;
@@ -5379,8 +5401,42 @@
         box.style.display = 'block';
         return;
       }
+      // Subtítulos por chip:
+      //   pagadas    → "Pagada el DD mmm" (verde)
+      //   pendientes → "Vence DD mmm"     (ámbar) o "Sin fecha definida"
+      //   sinCuota   → "Sin cuota para YYYY-MM"
+      //   suspendidos → "Local suspendido"
+      const _ip = window._incomeProjection || {};
+      const dateLabelFor = (t) => {
+        if (key === 'pagadas')    { const d = _ipFmtDate(t.pagadaEn); return d ? { text: 'Pagada el ' + d, color: '#34d399' } : { text: 'Pagada', color: '#34d399' }; }
+        if (key === 'pendientes') { const d = _ipFmtDate(t.fechaProximoPago); return d ? { text: 'Vence ' + d, color: '#f59e0b' } : { text: 'Sin fecha de pago definida', color: '#94a3b8' }; }
+        if (key === 'sinCuota')   { return { text: 'Sin cuota para ' + (_ip.monthKey || 'este mes'), color: '#94a3b8' }; }
+        if (key === 'suspendidos'){ return { text: 'Local suspendido', color: '#f87171' }; }
+        return { text: '', color: '#94a3b8' };
+      };
+      // Los items de "pagadas" y "pendientes" son right-clickeables — abren
+      // el mini menú `#ipCtx` para marcar/revertir la cuota del mes visible.
+      // Los de "sinCuota"/"suspendidos" no tienen cuota para operar.
+      const hasCtx = (key === 'pagadas' || key === 'pendientes');
+      const hint = hasCtx
+        ? '<p style="font-size:0.62rem; color:#475569; margin:0 0 0.5rem; font-style:italic;"><i class="ph ph-cursor-click" style="font-size:0.7rem;"></i> Click derecho en un local para marcar/revertir la cuota</p>'
+        : '';
       box.innerHTML = `<p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; font-weight:700; margin:0 0 0.5rem;">${titles[key] || key} · ${list.length}</p>` +
-        list.map(t => `<button type="button" onclick="closeChipDetailAndOpen('${t.tid}')" style="display:flex; align-items:center; gap:0.5rem; width:100%; text-align:left; padding:0.5rem 0.6rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:0.5rem; margin-bottom:0.3rem; color:#e2e8f0; cursor:pointer; font-size:0.82rem;"><span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(t.nombre)}</span>${t.monto ? `<span style="color:#f59e0b; font-size:0.72rem; font-weight:700;">$${Number(t.monto).toLocaleString('es-CL')}</span>` : ''}<i class="ph ph-caret-right" style="color:#475569; flex-shrink:0;"></i></button>`).join('');
+        hint +
+        list.map(t => {
+          const info = dateLabelFor(t);
+          const ctxAttr = hasCtx
+            ? ` oncontextmenu="ipOpenCtx(event, '${t.tid}', '${esc(t.nombre)}', '${t.monthKey || ''}', ${key === 'pagadas' ? 'true' : 'false'}); return false;"`
+            : '';
+          return `<button type="button" class="ip-item" data-tid="${t.tid}" onclick="closeChipDetailAndOpen('${t.tid}')"${ctxAttr} style="display:flex; align-items:center; gap:0.5rem; width:100%; text-align:left; padding:0.5rem 0.6rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:0.5rem; margin-bottom:0.3rem; color:#e2e8f0; cursor:pointer; font-size:0.82rem;">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:0.1rem;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(t.nombre)}</span>
+              <span style="font-size:0.68rem; color:${info.color}; font-weight:500; letter-spacing:0.01em;">${info.text}</span>
+            </div>
+            ${t.monto ? `<span style="color:${key === 'pagadas' ? '#34d399' : '#f59e0b'}; font-size:0.72rem; font-weight:700; flex-shrink:0;">$${Number(t.monto).toLocaleString('es-CL')}</span>` : ''}
+            <i class="ph ph-caret-right" style="color:#475569; flex-shrink:0;"></i>
+          </button>`;
+        }).join('');
       box.style.display = 'block';
     }
     function closeChipDetailAndOpen(tid) {
@@ -5981,8 +6037,17 @@
 
           const monto = Number(cuotaMes.monto);
           total += monto;
-          if (cuotaMes.pagada) { cobrado   += monto; nPagadas++;    listaPagadas.push({ tid, nombre, monto }); }
-          else                 { pendiente += monto; nPendientes++; listaPendientes.push({ tid, nombre, monto }); }
+          // Fecha por item:
+          //   · pagadas → pagadaEn (cuándo se marcó como cobrada)
+          //   · pendientes → fechaProximoPago (vencimiento a nivel tenant)
+          // Se guardan en `_ipLists` para que ipShowChipDetail las pinte y
+          // para que el context-menu (click derecho) apunte al mes correcto.
+          const pagadaEn = cuotaMes.pagadaEn || null;
+          const fpp = bill.fechaProximoPago
+            ? (bill.fechaProximoPago.toDate ? bill.fechaProximoPago.toDate().toISOString() : String(bill.fechaProximoPago))
+            : null;
+          if (cuotaMes.pagada) { cobrado   += monto; nPagadas++;    listaPagadas.push({ tid, nombre, monto, pagadaEn, monthKey }); }
+          else                 { pendiente += monto; nPendientes++; listaPendientes.push({ tid, nombre, monto, fechaProximoPago: fpp, monthKey }); }
         });
         window._ipLists = { pagadas: listaPagadas, pendientes: listaPendientes, sinCuota: listaSinCuota, suspendidos: listaSuspendidos };
 
@@ -6816,12 +6881,21 @@
     // Marca la cuota del mes en curso como pagada (o revierte si ya lo estaba).
     // Fuente de verdad: _billing/{tid}.cuotas[i].pagada.
     // Solo actúa si existe cuota con mes === YYYY-MM y monto > 0.
-    window.saMarkCuotaPagada = async function(tid){
+    // Cuando se llama desde el listado de "Ingresos proyectados" se pasa un
+    // `monthKeyOverride` para operar sobre el mes que el usuario está viendo
+    // en el proyector (puede no ser el mes actual).
+    window.saMarkCuotaPagada = async function(tid, monthKeyOverride){
       var menu = document.getElementById('saCtx'); if (menu) menu.style.display = 'none';
+      var ipMenu = document.getElementById('ipCtx'); if (ipMenu) ipMenu.style.display = 'none';
       if (!tid) return;
-      var now = new Date();
       var pad = function(n){ return String(n).padStart(2, '0'); };
-      var monthKey = now.getFullYear() + '-' + pad(now.getMonth() + 1);
+      var monthKey;
+      if (monthKeyOverride && /^\d{4}-\d{2}$/.test(monthKeyOverride)) {
+        monthKey = monthKeyOverride;
+      } else {
+        var now = new Date();
+        monthKey = now.getFullYear() + '-' + pad(now.getMonth() + 1);
+      }
       try {
         var ref = firebase.firestore().collection('_billing').doc(tid);
         var snap = await ref.get();
@@ -6883,6 +6957,64 @@
     if (b1) b1.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, true); });
     if (b2) b2.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, false); });
     setTimeout(window.saUpdateCounts, 3500);
+
+    // ── Contextmenu del listado "Ingresos proyectados" ───────────
+    // Se dispara desde ipShowChipDetail vía `oncontextmenu` inline y opera
+    // sobre el mes que el usuario está viendo (no necesariamente el actual).
+    var ipMenu   = document.getElementById('ipCtx');
+    var _ipCtxTid = null;
+    var _ipCtxMonthKey = null;
+    var _ipCtxIsPaid   = false;
+    var _mesNombres = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    window.ipOpenCtx = function(e, tid, nombre, monthKey, isPaid) {
+      if (!ipMenu || !tid) return;
+      _ipCtxTid       = tid;
+      _ipCtxMonthKey  = monthKey || null;
+      _ipCtxIsPaid    = !!isPaid;
+      // Label del local
+      var nameEl = document.getElementById('ipCtxName');
+      if (nameEl) nameEl.textContent = nombre || tid;
+      // Label del botón según estado + mes
+      var lbl = document.getElementById('ipCtxToggleLabel');
+      var btn = document.getElementById('ipCtxToggle');
+      if (lbl) {
+        var mesLabel = 'este mes';
+        if (monthKey && /^\d{4}-\d{2}$/.test(monthKey)) {
+          var y = monthKey.slice(0, 4);
+          var m = Number(monthKey.slice(5, 7)) - 1;
+          mesLabel = (_mesNombres[m] || monthKey) + ' ' + y;
+        }
+        lbl.textContent = isPaid
+          ? 'Revertir cuota de ' + mesLabel + ' a pendiente'
+          : 'Marcar cuota de ' + mesLabel + ' como pagada';
+      }
+      if (btn) {
+        btn.classList.toggle('off', !!isPaid);
+        btn.classList.toggle('ok',  !isPaid);
+      }
+      ipMenu.style.display = 'block';
+      var mw = 260, mh = ipMenu.offsetHeight || 140;
+      var maxX = window.scrollX + document.documentElement.clientWidth  - mw;
+      var maxY = window.scrollY + document.documentElement.clientHeight - mh;
+      ipMenu.style.left = Math.max(8, Math.min(e.pageX, maxX)) + 'px';
+      ipMenu.style.top  = Math.max(8, Math.min(e.pageY, maxY)) + 'px';
+    };
+    document.addEventListener('click',  function(){ if (ipMenu) ipMenu.style.display = 'none'; });
+    window.addEventListener('scroll',   function(){ if (ipMenu) ipMenu.style.display = 'none'; }, true);
+    var ipToggleBtn = document.getElementById('ipCtxToggle');
+    var ipOpenBtn   = document.getElementById('ipCtxOpen');
+    if (ipToggleBtn) ipToggleBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (ipMenu) ipMenu.style.display = 'none';
+      window.saMarkCuotaPagada(_ipCtxTid, _ipCtxMonthKey);
+    });
+    if (ipOpenBtn) ipOpenBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (ipMenu) ipMenu.style.display = 'none';
+      var box = document.getElementById('ip-chip-detail');
+      if (box) { box.style.display = 'none'; box.dataset.key = ''; }
+      openDrawer(_ipCtxTid);
+    });
   })();
   </script>
 
