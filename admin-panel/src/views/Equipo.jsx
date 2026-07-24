@@ -16,7 +16,7 @@ import {
   SortableContext, arrayMove, rectSortingStrategy, useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
@@ -1148,10 +1148,14 @@ export default function Equipo() {
     setResetSending(true);
     setResetMsg('');
     try {
-      await sendPasswordResetEmail(auth, email);
+      // CF enviarLinkAccesoStaff: link generado server-side y enviado por
+      // Resend con plantilla SynapTech en español (el template por defecto de
+      // Firebase salía de firebaseapp.com en inglés y caía a SPAM).
+      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'enviarLinkAccesoStaff');
+      await fn({ email, tenantId: resolveTenantId() });
       setResetMsg('✓ Enlace enviado a ' + email);
     } catch (err) {
-      setResetMsg(err.code === 'auth/user-not-found'
+      setResetMsg(err.code === 'functions/not-found'
         ? 'No existe una cuenta Firebase con ese email.'
         : `Error: ${err.message}`);
     } finally { setResetSending(false); }
@@ -1800,7 +1804,7 @@ export default function Equipo() {
               Dos estados:
                 (a) Barbero YA tiene cuenta (editing.authUid || editing.uid) →
                     read-only: badge "Cuenta activa" + email + botón para enviar
-                    recovery vía sendPasswordResetEmail (cliente, sin CF).
+                    recovery vía CF enviarLinkAccesoStaff (email SynapTech).
                 (b) Barbero NO tiene cuenta → toggle para habilitar + email +
                     password. Al guardar se llama a crearAccesoStaff (CF) para
                     no perder la sesión del admin actual. */}

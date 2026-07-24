@@ -1473,6 +1473,11 @@ exports.opsMetrics = opsMetricsModule.opsMetrics;
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;
 
+// Email de restablecimiento de contraseña del staff con marca SynapTech
+// (reemplaza el template por defecto de Firebase que caía a spam).
+const accesoStaffEmailModule = require('./acceso-staff-email');
+exports.enviarLinkAccesoStaff = accesoStaffEmailModule.enviarLinkAccesoStaff;
+
 // ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users
