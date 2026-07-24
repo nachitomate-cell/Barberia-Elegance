@@ -1764,6 +1764,11 @@ export const config = {
     '/gestion-interna/manifest.webmanifest',
     '/sitemap.xml',
     '/robots.txt',
+    // TWA (SynapTech Studio en Google Play): Chrome/Android GET este archivo
+    // desde app.synaptechspa.cl para verificar Digital Asset Links y confiar
+    // en la app firmada. Sin esta entrada el matcher lo excluye por el "."
+    // en la primera regla y responde 404.
+    '/.well-known/assetlinks.json',
   ],
 };
 
@@ -1790,6 +1795,73 @@ export default async function middleware(request) {
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
+    return;
+  }
+
+  // ── SynapTech Studio (app B2B en Google Play, app.synaptechspa.cl) ──
+  // No es un tenant: es el "hub" del TWA que instala el dueño desde Play Store.
+  // El TWA está registrado como package cl.synaptechspa.studio y verifica su
+  // ownership del dominio vía /.well-known/assetlinks.json (Digital Asset Links).
+  // La raíz redirige al panel; el manifest se sirve con branding SynapTech
+  // (sin tenant preseleccionado — el selector de tenant post-login vive en el SPA).
+  if (hostname === 'app.synaptechspa.cl') {
+    // Digital Asset Links: Chrome/Android lo lee al abrir el TWA para
+    // comprobar que la app firmada X es dueña legítima de este dominio.
+    // SHA256 se lee de env (TWA_ASSETLINKS_SHA256, coma-separado para
+    // soportar upload key + Play App Signing key). Sin env → array vacío
+    // (el TWA no verificará y caerá a chrome tab — comportamiento seguro).
+    if (url.pathname === '/.well-known/assetlinks.json') {
+      const raw = process.env.TWA_ASSETLINKS_SHA256 || '';
+      const fps = raw.split(',').map(s => s.trim()).filter(Boolean);
+      const body = [{
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace:    'android_app',
+          package_name: 'cl.synaptechspa.studio',
+          sha256_cert_fingerprints: fps,
+        },
+      }];
+      return new Response(JSON.stringify(body, null, 2), {
+        headers: {
+          'Content-Type':  'application/json',
+          'Cache-Control': 'public, max-age=300, s-maxage=3600',
+        },
+      });
+    }
+
+    // Manifest de SynapTech Studio (branding SynapTech, no per-tenant).
+    if (url.pathname === '/gestion-interna/manifest.webmanifest') {
+      const manifest = {
+        id:               '/gestion-interna/',
+        name:             'SynapTech Studio',
+        short_name:       'SynapTech',
+        description:      'Administra tu barbería, salón o studio desde tu celular.',
+        start_url:        '/gestion-interna/',
+        scope:            '/gestion-interna/',
+        display:          'standalone',
+        orientation:      'portrait-primary',
+        theme_color:      '#0f172a',
+        background_color: '#0f172a',
+        icons: [
+          { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
+      };
+      return new Response(JSON.stringify(manifest, null, 2), {
+        headers: {
+          'Content-Type':  'application/manifest+json',
+          'Cache-Control': 'no-cache, must-revalidate',
+        },
+      });
+    }
+
+    // Raíz → panel. El SPA maneja el selector de tenant post-login.
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      return Response.redirect(new URL('/gestion-interna/', request.url), 302);
+    }
+
+    // Resto de rutas (SPA, assets del panel) pasan crudas al build de Vite.
+    // No inyectamos meta per-tenant porque este hostname no representa a nadie.
     return;
   }
 
