@@ -59,7 +59,7 @@ async function initProductosTab() {
         const passedStock = stockVal !== null ? stockVal : 'null';
         return `
         <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}', ${passedStock})"
-             class="bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
+             class="producto-card bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
           <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
             ${p.imagen
               ? `<img src="${p.imagen}" alt="${safeNombre}" loading="lazy" class="w-full h-full object-contain">`

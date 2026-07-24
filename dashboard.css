@@ -977,6 +977,31 @@
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) button[onclick*="cerrarFeedbackCard"]:hover {
       background: #F4F4F5 !important;
     }
+    /* Tienda (productos) en tenants CLAROS: la card y el modal de detalle
+       venían con fondos dark hardcodeados (bg-[#0d0d10] / bg-gray-900) y el
+       título heredaba la tinta oscura del modo claro → texto ilegible sobre
+       fondo negro (caso real Infinity 2026-07-24). Nota: el override viejo
+       `.tenant-infinity .bg-\\[\\#0d0d10\\]` estaba roto (doble backslash en
+       el escape) y nunca aplicó — por eso ahora la card lleva la clase
+       semántica .producto-card (js/dashboard/usuario.js). Dorado #D4AF37 →
+       ámbar oscuro #A16207 para contraste sobre blanco. */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .producto-card {
+      background: #ffffff !important;
+      border-color: rgba(17, 24, 39, 0.10) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .producto-card .text-white { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .producto-card .text-gray-400 { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .producto-card span[style*="D4AF37"] { color: #A16207 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .producto-card span.border {
+      color: #A16207 !important;
+      border-color: rgba(161, 98, 7, 0.5) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModal .bg-gray-900 { background: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModalNombre { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModalDesc { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModal .border-gray-800 { border-color: rgba(17, 24, 39, 0.10) !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModalPrecio { color: #A16207 !important; }
 
 
     /* Masonry grid para Lookbook */
