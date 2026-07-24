@@ -1616,7 +1616,7 @@ function tenant404(hostname) {
     background:#0a0a0a;color:#e5e7eb;text-align:center;padding:1.5rem;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   main{max-width:440px}
-  .logo{width:56px;height:56px;border-radius:14px;object-fit:contain;margin-bottom:.9rem}
+  .logo{width:150px;height:150px;border-radius:26px;object-fit:cover;margin-bottom:1.1rem;box-shadow:0 12px 40px -12px rgba(0,0,0,.6)}
   .brand{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;color:#f5f5f5;margin-bottom:2.2rem}
   .brand span{color:#9CCC3C}
   h1{font-size:1.35rem;font-weight:700;margin-bottom:.8rem;color:#f5f5f5}
@@ -1632,7 +1632,7 @@ function tenant404(hostname) {
 </head>
 <body>
 <main>
-  <img class="logo" src="/synaptech/ig.png" alt="SynapTech" onerror="this.style.display='none'">
+  <img class="logo" src="/synaptech/mascota-perdida.png" alt="Mascota SynapTech confundida" onerror="this.style.display='none'">
   <p class="brand">Synap<span>Tech</span></p>
   <h1>Página no encontrada</h1>
   <p class="sub"><b>${hostSeguro}</b> no corresponde a ningún local activo de la plataforma.</p>
