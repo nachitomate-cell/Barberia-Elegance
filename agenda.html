@@ -2506,6 +2506,38 @@
             }
         }
 
+        // ── Horario POR SUCURSAL (multi-sucursal, ej. Oren) ──
+        // Si el barbero pertenece a una sede con horario propio
+        // (configuracion/main.sucursales[].horario — lo edita Configuración →
+        // Horarios por sucursal), ese horario manda sobre el diasConfig global.
+        // Caso real oren: la sede decía 10:00–20:00 pero la agenda usaba el
+        // global (sábado hasta 14:00) y cortaba el día a media tarde.
+        function aplicarHorarioSede(cfg, sucursalId) {
+            try {
+                if (!cfg || !sucursalId || !Array.isArray(cfg.sucursales)) return cfg;
+                const sede = cfg.sucursales.find(s => s && s.id === sucursalId);
+                const h = sede && sede.horario;
+                if (!h) return cfg;
+                const diasConfig = {}, diasLaborales = [];
+                let minIni = Infinity, maxFin = -Infinity;
+                const toM = t => { const p = String(t || '').split(':').map(Number); return p[0] * 60 + (p[1] || 0); };
+                for (let d = 0; d <= 6; d++) {
+                    const dh = h[d];
+                    if (!dh || dh.activo === false || !dh.inicio || !dh.fin) continue;
+                    diasLaborales.push(d);
+                    diasConfig[d] = { inicio: dh.inicio, fin: dh.fin, activo: true };
+                    minIni = Math.min(minIni, toM(dh.inicio));
+                    maxFin = Math.max(maxFin, toM(dh.fin));
+                }
+                if (!diasLaborales.length) return cfg;
+                const toT = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+                return Object.assign({}, cfg, {
+                    diasConfig, diasLaborales,
+                    horarioInicio: toT(minIni), horarioFin: toT(maxFin),
+                });
+            } catch (_) { return cfg; }
+        }
+
         // nombrePrecargado: si ya lo tenemos del snap inicial, evitamos usar el nombre
         // del doc — pero igual leemos el doc del barbero para el `horario` (los
         // descansos viven ahí, y no vienen precargados). Una sola lectura del doc.
@@ -2528,7 +2560,7 @@
                 fetchBarberDoc,
             ]);
 
-            globalConfig = cfg;
+            globalConfig = aplicarHorarioSede(cfg, barberDoc && barberDoc.sucursalId);
             barberConfig = rawBarberCfg; // null → renderSlots usa globalConfig
             barberHorario = (barberDoc && barberDoc.horario) || null;
 
@@ -5618,7 +5650,12 @@
   <div id="agendarModal" class="hidden fixed inset-0 z-[5001] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
     <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
       <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-white">Nueva Cita a las <span id="agendarHoraDisplay" class="text-brand-accent"></span></h3>
+        <h3 class="text-lg font-bold text-white flex items-center gap-1 flex-wrap">Nueva Cita a las
+          <input type="time" id="agendarHoraDisplay" class="text-brand-accent bg-transparent border-b border-white/10 outline-none font-bold px-1"
+            style="width:5.5rem;color-scheme:dark;"
+            oninput="_onAgendarHoraChange(this.value)"
+            aria-label="Hora de la cita">
+        </h3>
         <button onclick="cerrarAgendarModal()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
           <i class="ph-bold ph-x text-white/50"></i>
         </button>
@@ -5901,6 +5938,16 @@
     let _timeSlotSeleccionado = null;
     let _calDate = new Date();
 
+    // Setter único de la hora seleccionada: la binding léxica de este script
+    // (que lee guardarCitaManual) y AgendaState (que sincroniza window). Se
+    // usa desde el <input type="time"> del modal y desde el FAB.
+    window._onAgendarHoraChange = function (v) {
+        const t = (v || '').trim();
+        if (!t || !t.includes(':')) return;
+        _timeSlotSeleccionado = t;
+        try { AgendaState.set('timeSlotSeleccionado', t); } catch (_) {}
+    };
+
     function abrirOpcionesSlotLibre(time) {
         AgendaState.set('timeSlotSeleccionado', time);
         // Legacy: hay handlers que aún leen la variable suelta directamente.
@@ -6113,7 +6160,8 @@
     }
     function accionAgendarCliente() {
         cerrarOpcionesSlotLibre();
-        document.getElementById('agendarHoraDisplay').textContent = _timeSlotSeleccionado;
+        // El display pasó a <input type="time">: usar .value, no .textContent.
+        document.getElementById('agendarHoraDisplay').value = _timeSlotSeleccionado || '';
         document.getElementById('agendarModal').classList.remove('hidden');
         document.getElementById('manualName').value = '';
         document.getElementById('manualPhone').value = '';
@@ -7249,15 +7297,22 @@
       }
       window.abrirNuevaCitaFAB = function () {
         const time = proximaHoraDisponible();
-        // Reusamos las utilidades existentes del flujo "slot libre → agendar".
         try {
-          window._timeSlotSeleccionado = time;
+          // Sync a los DOS lugares donde vive la hora: la binding léxica del
+          // script viejo (que lee guardarCitaManual) y AgendaState (que a su
+          // vez sincroniza window._timeSlotSeleccionado vía subscribe). Sin
+          // esto guardarCitaManual abortaba con "Selecciona primero un horario".
+          if (typeof _onAgendarHoraChange === 'function') {
+            _onAgendarHoraChange(time);
+          } else {
+            window._timeSlotSeleccionado = time;
+          }
           if (typeof accionAgendarCliente === 'function') {
             accionAgendarCliente();
           } else {
-            // Fallback duro: pintar el label y mostrar el modal manualmente.
+            // Fallback duro: pintar el input y mostrar el modal manualmente.
             const disp = document.getElementById('agendarHoraDisplay');
-            if (disp) disp.textContent = time;
+            if (disp) disp.value = time;
             const m = document.getElementById('agendarModal');
             if (m) m.classList.remove('hidden');
           }

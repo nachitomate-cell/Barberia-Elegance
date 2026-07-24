@@ -4034,22 +4034,50 @@ export default function Agenda() {
       .catch(() => {});
   }, []);
 
-  // Rango de horas visible según el horario del DÍA seleccionado (respeta diasConfig).
-  // Sin esto, la agenda usaba un horarioFin global (el del primer día activo) para
-  // todos los días, recortando p. ej. el viernes que cierra más tarde.
+  const { matchSucursal, activeSucursal, sucursales: sedesList, multiSucursal: esMultiSucursal } = useSucursal();
+
+  // Rango de horas visible según el horario del DÍA seleccionado.
+  // Prioridad: horario POR SUCURSAL (sucursales[].horario, lo edita
+  // Configuración → Horarios) > diasConfig global > horarioInicio/Fin global.
+  // Caso real oren: la sede decía 10:00–20:00 pero la grilla usaba el
+  // diasConfig global (sábado hasta 14:00) y cortaba la agenda a media tarde.
+  // En "Todas" se muestra la unión (min inicio, max fin) de las sedes activas.
   useEffect(() => {
     const c = cfgHorario; if (!c) return;
     const dow = date.getDay();                         // 0=Dom … 6=Sáb
-    const dc = c.diasConfig || {};
-    const day = dc[dow] ?? dc[String(dow)] ?? null;
-    const ini = (day && day.inicio) || c.horarioInicio || '08:00';
-    const fin = (day && day.fin)    || c.horarioFin    || '20:00';
+    const horarioDia = (sede) => {
+      const h = sede && sede.horario; if (!h) return null;
+      const d = h[dow] ?? h[String(dow)];
+      return (d && d.activo !== false && d.inicio && d.fin) ? d : null;
+    };
+    let ini = null, fin = null;
+    if (activeSucursal) {
+      const d = horarioDia(activeSucursal);
+      if (d) { ini = d.inicio; fin = d.fin; }
+    } else if (esMultiSucursal && sedesList.length) {
+      const toM = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+      let a = Infinity, b = -Infinity;
+      for (const s of sedesList) {
+        const d = horarioDia(s);
+        if (d) { a = Math.min(a, toM(d.inicio)); b = Math.max(b, toM(d.fin)); }
+      }
+      if (isFinite(a) && isFinite(b)) {
+        ini = `${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
+        fin = `${String(Math.floor(b / 60)).padStart(2, '0')}:${String(b % 60).padStart(2, '0')}`;
+      }
+    }
+    if (!ini || !fin) {                                 // fallback global (histórico)
+      const dc = c.diasConfig || {};
+      const day = dc[dow] ?? dc[String(dow)] ?? null;
+      ini = (day && day.inicio) || c.horarioInicio || '08:00';
+      fin = (day && day.fin)    || c.horarioFin    || '20:00';
+    }
     const hi = parseInt(String(ini).split(':')[0], 10);
     const fp = String(fin).split(':').map(Number);
     const hf = fp[0], mf = fp[1] || 0;
     setHourStart(Number.isFinite(hi) ? hi : 8);
     setHourEnd(Number.isFinite(hf) ? (mf > 0 ? hf + 1 : hf) : 20);
-  }, [cfgHorario, date]);
+  }, [cfgHorario, date, activeSucursal, sedesList, esMultiSucursal]);
 
   const dateStr = fmt(date);
 
@@ -4066,7 +4094,6 @@ export default function Agenda() {
   }, [viewMode, weekDates, monthDates, dateStr]);
 
   const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
-  const { matchSucursal } = useSucursal();
 
   // Colación por barbero — un getDoc por profesional visible, una sola vez
   // por cambio real de la lista (dep-key estable por ids, no por identidad
