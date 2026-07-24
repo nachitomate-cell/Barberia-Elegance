@@ -8,9 +8,12 @@
       document.getElementById('pwaBigInstallCard').classList.remove('hidden');
     }
 
-    // Capturar el evento antes que el navegador lo consuma (Android/Desktop)
+    // Guardar el evento para el botón propio, SIN preventDefault: suprimirlo
+    // escondía el ícono/infobar de instalación nativo de Chrome en /dashboard
+    // (caso real: registro.html sí mostraba el ícono de instalar y dashboard
+    // no — el cliente creía que "no era PWA"). Ahora conviven las dos vías:
+    // el affordance nativo del navegador + nuestra card "Instala la App".
     window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
       _pwaPrompt = e;
       if (!_isStandalone && !_pwaDismissed) mostrarBannerPWA();
     });
@@ -242,15 +245,22 @@
         showToast("Usa 'Agregar a pantalla de inicio' en el menú del navegador", 'info');
         return;
       }
-      _pwaPrompt.prompt();
-      _pwaPrompt.userChoice.then(r => {
-        if (r.outcome === 'accepted') {
-          ocultarBannerPWA();
-          const bigCard = document.getElementById('pwaBigInstallCard');
-          if (bigCard) bigCard.classList.add('hidden');
-        }
+      // Sin preventDefault el navegador pudo haber consumido ya el prompt
+      // (infobar propio) — si prompt() lanza, caemos al mensaje del menú.
+      try {
+        _pwaPrompt.prompt();
+        _pwaPrompt.userChoice.then(r => {
+          if (r.outcome === 'accepted') {
+            ocultarBannerPWA();
+            const bigCard = document.getElementById('pwaBigInstallCard');
+            if (bigCard) bigCard.classList.add('hidden');
+          }
+          _pwaPrompt = null;
+        });
+      } catch (_) {
         _pwaPrompt = null;
-      });
+        showToast("Usa 'Agregar a pantalla de inicio' en el menú del navegador", 'info');
+      }
     }
 
     function cerrarBannerPWA() {
