@@ -2078,9 +2078,27 @@ export default function Configuracion() {
                 Los barberos marcados aquí <strong className="text-slate-300">verán el WhatsApp del cliente</strong> aunque el toggle de arriba esté apagado. Útil para dar acceso solo a barberos de confianza sin abrirlo para todo el equipo.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {barberos
-                  .filter(b => b.activo !== false)
-                  .map(b => {
+                {(() => {
+                  // Dedupe (2026-07-23): el listado mostraba barberos repetidos.
+                  // Dos causas históricas y una fix por cada capa:
+                  //  1) `_mainDocId` — docs-espejo de barberos con multi-email SSO
+                  //     (crear-vinculo-cuenta.js). Equipo.jsx:616 ya los filtra;
+                  //     replico el patrón acá para consistencia entre vistas.
+                  //  2) Docs regravados — cuentas admin recreadas con email nuevo
+                  //     sin borrar la vieja (Kronnos Limache tenía "Administración
+                  //     Limache" nuevo y "Administrador Limache" legacy). Dedupe
+                  //     por authUid > uid > nombre normalizado como red final.
+                  const vistos = new Set();
+                  return barberos
+                    .filter(b => !b._mainDocId)
+                    .filter(b => b.activo !== false)
+                    .filter(b => {
+                      const clave = String(b.authUid || b.uid || (b.nombre || '').trim().toLowerCase() || b.id);
+                      if (!clave || vistos.has(clave)) return false;
+                      vistos.add(clave);
+                      return true;
+                    });
+                })().map(b => {
                     const activo = opcAvanzadas.verWhatsAppBarberos.includes(b.id);
                     return (
                       <button
