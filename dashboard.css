@@ -944,10 +944,38 @@
       color: var(--gold) !important;
       background: rgba(201, 168, 76, 0.08) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe) .review-chip.active-chip {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .review-chip.active-chip {
       border-color: #111827 !important;
       color: #111827 !important;
       background: rgba(17, 24, 39, 0.06) !important;
+    }
+    /* Card "Valora tu visita" en tenants CLAROS: el chip normal, el textarea y
+       el botón "Ahora no" venían con clases dark hardcodeadas (bg-zinc-900/950,
+       text-white) y se veían como bloques grises ilegibles sobre la card blanca
+       (caso real Oren 2026-07-24). Aplica a la familia clara del dashboard:
+       aura (+ oren y omega vía _themeAlias), latincaribe e infinity. */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .review-chip {
+      background: #ffffff !important;
+      border-color: #E4E4E7 !important;
+      color: #52525B !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .review-chip:hover {
+      border-color: #A1A1AA !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #feedbackComment {
+      background: #ffffff !important;
+      border-color: #E4E4E7 !important;
+      color: #18181B !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #feedbackComment::placeholder {
+      color: #A1A1AA !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) button[onclick*="cerrarFeedbackCard"] {
+      color: #52525B !important;
+      border-color: #D4D4D8 !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) button[onclick*="cerrarFeedbackCard"]:hover {
+      background: #F4F4F5 !important;
     }
 
 
