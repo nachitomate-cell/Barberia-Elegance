@@ -604,8 +604,11 @@ export default function Equipo() {
   const navigate = useNavigate();
   const tenant   = useTenant();
   const waUrl    = buildWaUrl(tenant.name);
-  const { role } = useAuth();
+  const { role, user: _authUser } = useAuth();
   const isAdmin  = role === 'admin';
+  // Superadmin (Ignacio) ve el fantasma QA para editarlo/verificarlo; los
+  // dueños normales nunca lo ven en la lista de su equipo.
+  const _isSuperadmin = (_authUser?.email || '').toLowerCase() === 'ignaciiio.mate@gmail.com';
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
@@ -613,7 +616,11 @@ export default function Equipo() {
   const { matchSucursal }              = useSucursal();
   // Filtra por sede activa: un encargado de sede ve solo su equipo; el dueño
   // (Todas) los ve a todos. Barberos sin sucursalId (atienden en ambas) pasan.
-  const barberos = rawBarberos.filter(b => !b._mainDocId).filter(matchSucursal);
+  // Además: fantasma QA (esQA:true) invisible a menos que seas superadmin.
+  const barberos = rawBarberos
+    .filter(b => !b._mainDocId)
+    .filter(b => !b.esQA || _isSuperadmin)
+    .filter(matchSucursal);
 
   /* ── Pestañas (Tabs) ── */
   const [activeTab, setActiveTab] = useState('miembros');

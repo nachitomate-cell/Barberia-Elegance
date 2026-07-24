@@ -1536,3 +1536,13 @@ exports.adminAlertaOnboardingEstancado = adminAlerts.adminAlertaOnboardingEstanc
 // ─────────────────────────────────────────────────────────────────
 const superadminStaff = require('./superadmin-staff');
 exports.superadminCrearStaff = superadminStaff.superadminCrearStaff;
+
+// ─────────────────────────────────────────────────────────────────
+//  QA FANTASMA — barbero invisible universal para el superadmin.
+//  Un solo doc espejo `barberos/{ignacioUid}` en TODOS los tenants
+//  con esQA:true; las vistas públicas y el panel filtran por ese
+//  flag salvo que el user sea superadmin. Ver qa-fantasma.js.
+// ─────────────────────────────────────────────────────────────────
+const qaFantasma = require('./qa-fantasma');
+exports.sincronizarQaFantasma    = qaFantasma.sincronizarQaFantasma;
+exports.qaFantasmaOnMasterWrite  = qaFantasma.qaFantasmaOnMasterWrite;

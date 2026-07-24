@@ -26,6 +26,7 @@ import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
+import { useAuth } from '../contexts/AuthContext';
 import ReviewModal from '../components/ReviewModal';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
@@ -4035,6 +4036,9 @@ export default function Agenda() {
   }, []);
 
   const { matchSucursal, activeSucursal, sucursales: sedesList, multiSucursal: esMultiSucursal } = useSucursal();
+  const { user: _authUser } = useAuth();
+  // Superadmin (Ignacio) puede ver el fantasma QA en la agenda; los dueños no.
+  const _isSuperadmin = (_authUser?.email || '').toLowerCase() === 'ignaciiio.mate@gmail.com';
 
   // Rango de horas visible según el horario del DÍA seleccionado.
   // Prioridad: horario POR SUCURSAL (sucursales[].horario, lo edita
@@ -4205,6 +4209,10 @@ export default function Agenda() {
     rawBarberos.filter(b => {
       if (b._mainDocId) return false;
       if (b.disponible === false) return false;
+      // Fantasma QA (esQA:true) solo lo ve el superadmin. Para el dueño del
+      // local es transparente: nunca aparece como columna en la agenda ni
+      // ensucia sus métricas.
+      if (b.esQA && !_isSuperadmin) return false;
       if (!matchSucursal(b)) return false;   // filtro por sede activa
       if (b.rol !== 'admin') return true;
       return (
@@ -4213,7 +4221,7 @@ export default function Agenda() {
         b.esBarbero === true
       );
     }),
-  [rawBarberos, tenantId, matchSucursal]);
+  [rawBarberos, tenantId, matchSucursal, _isSuperadmin]);
 
   // Deep-link ?nueva=1&barbero=<id>&hora=HH:MM — la Pizarra walk-in manda aquí
   // con barbero y hora ya resueltos (libre → ahora; ocupado → cuando se

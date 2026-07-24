@@ -11935,6 +11935,10 @@
       _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
       _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
       _fsBarberos = rBarberos.status === 'fulfilled' ? rBarberos.value : SHOP.barberos;
+      // Fantasma QA del superadmin: invisible en la reserva pública. Se propaga
+      // a cada tenant vía qa-fantasma.js con esQA:true; acá lo filtramos SIEMPRE
+      // (el cliente jamás debe verlo, aunque sea barbero "activo").
+      _fsBarberos = (_fsBarberos || []).filter(b => !b.esQA);
       // Servicios internos (soloStaff:true) — ocultos en la reserva pública.
       // Solo el staff los agenda desde el panel/agenda del barbero. Ver
       // Servicios.jsx (toggle "Servicio interno").

@@ -1174,6 +1174,162 @@
     </div>
   </div>
 
+  <!-- ── QA Fantasma · barbero invisible universal para revisar agenda.html ── -->
+  <div id="qa-fantasma-wrapper" style="width:100%; max-width:660px; margin-bottom:1.5rem;">
+    <div style="background:linear-gradient(135deg,rgba(96,165,250,0.06),rgba(255,255,255,0.02)); border:1px solid rgba(96,165,250,0.2); border-radius:1rem; padding:1rem 1.125rem;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:0.75rem;">
+        <div style="min-width:0;">
+          <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#60a5fa; margin:0 0 0.15rem;">
+            <i class="ph-bold ph-user-focus" style="margin-right:0.3rem;"></i>QA · barbero fantasma
+          </p>
+          <h2 style="font-size:0.9375rem; font-weight:700; color:#f1f5f9; margin:0; letter-spacing:-0.02em;">
+            Espejo tuyo en <span id="qa-tenant-count" style="color:#60a5fa;">–</span> locales
+          </h2>
+          <p style="font-size:0.75rem; color:#64748b; margin:0.15rem 0 0;">Invisible en la reserva pública y en el panel del dueño.</p>
+        </div>
+        <label class="qa-switch" style="display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="qa-activo" style="width:2.25rem; height:1.25rem; appearance:none; background:#334155; border-radius:9999px; position:relative; cursor:pointer; transition:background 0.2s;">
+          <span id="qa-activo-label" style="font-size:0.75rem; font-weight:700; color:#94a3b8;">inactivo</span>
+        </label>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.625rem;">
+        <label style="display:flex; flex-direction:column; gap:0.25rem;">
+          <span style="font-size:0.6875rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.06em;">Nombre visible</span>
+          <input id="qa-nombre" type="text" placeholder="QA · Superadmin" maxlength="30"
+            style="background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:0.5rem; padding:0.5rem 0.625rem; color:#f1f5f9; font-size:0.8125rem; font-weight:600; outline:none;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:0.25rem;">
+          <span style="font-size:0.6875rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.06em;">Horario (lun-sáb)</span>
+          <div style="display:flex; gap:0.375rem; align-items:center;">
+            <input id="qa-inicio" type="time" value="09:00"
+              style="background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:0.5rem; padding:0.5rem 0.5rem; color:#f1f5f9; font-size:0.8125rem; color-scheme:dark; outline:none; flex:1; min-width:0;">
+            <span style="color:#475569; font-size:0.75rem;">–</span>
+            <input id="qa-fin" type="time" value="20:00"
+              style="background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:0.5rem; padding:0.5rem 0.5rem; color:#f1f5f9; font-size:0.8125rem; color-scheme:dark; outline:none; flex:1; min-width:0;">
+          </div>
+        </label>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+        <p id="qa-status" style="margin:0; font-size:0.75rem; color:#64748b; min-height:1rem;"></p>
+        <button id="qa-sync-btn" onclick="qaGuardarYSincronizar()"
+          style="background:#60a5fa; color:#0f172a; border:none; border-radius:0.5rem; padding:0.5rem 0.875rem; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:0.375rem; transition:transform 0.15s, opacity 0.15s;">
+          <i class="ph-bold ph-arrows-clockwise"></i> Guardar y sincronizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Anti-FOUC del switch: pintar el estado marcado en CSS puro
+    (function(){
+      const s = document.createElement('style');
+      s.textContent = `
+        #qa-activo:checked { background:#22c55e !important; }
+        #qa-activo::after {
+          content:''; position:absolute; top:0.125rem; left:0.125rem;
+          width:1rem; height:1rem; background:#f8fafc; border-radius:9999px;
+          transition:transform 0.2s;
+        }
+        #qa-activo:checked::after { transform:translateX(1rem); }
+      `;
+      document.head.appendChild(s);
+    })();
+
+    // Cargar estado inicial del maestro _superadmin/qaBarbero
+    async function qaCargarMaestro() {
+      try {
+        const snap = await firebase.firestore().doc('_superadmin/qaBarbero').get();
+        const d = snap.exists ? (snap.data() || {}) : {};
+        document.getElementById('qa-activo').checked = d.activo !== false && snap.exists;
+        document.getElementById('qa-nombre').value   = d.nombre || 'QA · Superadmin';
+        // Horario compacto: leemos lun (1) como representante del bloque semanal.
+        const lun = (d.horario && d.horario[1]) || { inicio: '09:00', fin: '20:00' };
+        document.getElementById('qa-inicio').value = lun.inicio || '09:00';
+        document.getElementById('qa-fin').value    = lun.fin    || '20:00';
+        qaSyncLabel();
+        // Contar tenants provisionados (barberos/{uid} con esQA:true en cada tenant).
+        // Es solo informativo — no bloquea el flujo.
+        qaContarTenants().catch(()=>{});
+      } catch (e) {
+        console.warn('[QA] cargar maestro falló:', e);
+      }
+    }
+
+    function qaSyncLabel() {
+      const on = document.getElementById('qa-activo').checked;
+      const lbl = document.getElementById('qa-activo-label');
+      lbl.textContent = on ? 'activo' : 'inactivo';
+      lbl.style.color = on ? '#22c55e' : '#94a3b8';
+    }
+    document.addEventListener('change', (ev) => {
+      if (ev.target && ev.target.id === 'qa-activo') qaSyncLabel();
+    });
+
+    async function qaContarTenants() {
+      // No es crítico — solo pinta el número visible. Si falla, deja "–".
+      // Consulta simplificada: cuenta cuántos docs `barberos/{uid}` con esQA:true
+      // hay a nivel raíz (elegance) + un sampleo rápido de tenants conocidos.
+      // El número real 100% preciso viene en el response del sync.
+      try {
+        const q = await firebase.firestore().collectionGroup('barberos').where('esQA','==',true).limit(200).get();
+        document.getElementById('qa-tenant-count').textContent = String(q.size);
+      } catch (e) {
+        document.getElementById('qa-tenant-count').textContent = '?';
+      }
+    }
+
+    window.qaGuardarYSincronizar = async function () {
+      const btn = document.getElementById('qa-sync-btn');
+      const status = document.getElementById('qa-status');
+      btn.disabled = true; btn.style.opacity = 0.6;
+      status.style.color = '#94a3b8';
+      status.textContent = 'Sincronizando…';
+
+      const inicio = document.getElementById('qa-inicio').value || '09:00';
+      const fin    = document.getElementById('qa-fin').value    || '20:00';
+      // Horario semanal: lun-sáb activo con el rango elegido; domingo cerrado.
+      const dia = (activo, i, f) => ({ activo, inicio: i, fin: f });
+      const horario = {
+        0: dia(false, '09:00', '20:00'),
+        1: dia(true, inicio, fin),
+        2: dia(true, inicio, fin),
+        3: dia(true, inicio, fin),
+        4: dia(true, inicio, fin),
+        5: dia(true, inicio, fin),
+        6: dia(true, inicio, fin),
+      };
+      const payload = {
+        activo: document.getElementById('qa-activo').checked,
+        nombre: (document.getElementById('qa-nombre').value || '').trim() || 'QA · Superadmin',
+        horario,
+      };
+      try {
+        const call = firebase.functions().httpsCallable('sincronizarQaFantasma');
+        const res = await call(payload);
+        const r = res.data || {};
+        const okCount = (r.tenants || []).length;
+        const errCount = (r.errores || []).length;
+        status.style.color = errCount ? '#f59e0b' : '#22c55e';
+        status.textContent = errCount
+          ? `Propagado a ${okCount} · ${errCount} error(es), ver logs`
+          : `Propagado a ${okCount} locales ✓`;
+        document.getElementById('qa-tenant-count').textContent = String(okCount);
+      } catch (err) {
+        console.error('[QA] sync error:', err);
+        status.style.color = '#f87171';
+        status.textContent = err.message || 'No se pudo sincronizar.';
+      } finally {
+        btn.disabled = false; btn.style.opacity = 1;
+      }
+    };
+
+    // Se ejecuta cuando el admin quedó autorizado (dispara desde el auth check
+    // más abajo). Sin sesión, la lectura del maestro falla por rules — está OK.
+    window._qaCargarAlLoguear = qaCargarMaestro;
+  </script>
+
   <!-- ── Platform Stats ── -->
   <div id="platform-stats" style="width:100%; max-width:660px; margin-bottom:2rem;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
@@ -6848,6 +7004,9 @@
         loadReferralsProgram().catch(e => {
           console.warn('[Admin] loadReferralsProgram error:', e);
         });
+        // Carga el estado del fantasma QA (nombre / horario / activo) desde
+        // _superadmin/qaBarbero. La colección está gateada por esBootstrap().
+        try { window._qaCargarAlLoguear && window._qaCargarAlLoguear(); } catch (_) {}
       }
     });
   </script>

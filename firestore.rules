@@ -159,6 +159,16 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  _superadmin — configuración del superadmin (fantasma QA, etc.)
+    //  Solo el bootstrap (ignaciiio.mate@gmail.com) puede leer/escribir.
+    //  El maestro `qaBarbero` dispara qaFantasmaOnMasterWrite → propaga
+    //  el espejo `barberos/{uid}` a todos los tenants.
+    // ═══════════════════════════════════════════════════════════════
+    match /_superadmin/{docId} {
+      allow read, write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  _ingresos — snapshot mensual de ingresos proyectados
     //  Se escribe desde /admin cada vez que se recalcula el widget.
     //  Solo SynapTech (bootstrap) puede leer y escribir.
