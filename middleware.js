@@ -1484,6 +1484,11 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   html = html.replace(/<meta\s+[^>]*name=["']?twitter:image["']?[^>]*>/gi, '');
   html = html.replace(/<link\s+[^>]*rel=["']?(?:shortcut\s+)?icon["']?[^>]*>/gi, '');
   html = html.replace(/<link\s+[^>]*rel=["']?apple-touch-icon["']?[^>]*>/gi, '');
+  // El nombre de app iOS (Agregar a Inicio) venía hardcodeado "Elegance" en el
+  // HTML estático y se filtraba a TODOS los tenants — se limpia y se inyecta
+  // el del tenant (caso real: instalar el club de Infinity ofrecía "Elegance").
+  html = html.replace(/<meta\s+[^>]*name=["']?apple-mobile-web-app-title["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?application-name["']?[^>]*>/gi, '');
 
   // 4. Resolve dynamic absolute favicon URLs and MIME type
   const absIcon = meta.icon.startsWith('http')
@@ -1493,6 +1498,9 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   // apple-touch-icon debe ser cuadrado: iOS lo usa como ícono al instalar la PWA.
   const rawApple = meta.iconPwa192 || meta.icon;
   const absApple = rawApple.startsWith('http') ? rawApple : `https://${hostname}${rawApple}`;
+  // Nombre bajo el ícono al instalar (iOS usa apple-mobile-web-app-title; sin
+  // esto tomaba el <title> dinámico "Hola, Ignacio | …").
+  const appleTitle = (meta.manifest && meta.manifest.short_name) || meta.appTitle || meta.siteName;
 
   // 5. Build clean, unified, edge-injected head block with absolute favicon and thumbnail URLs
   const seoBlock = `
@@ -1508,7 +1516,9 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   <meta name="twitter:image" content="${r(absImage)}">
   <link rel="icon" type="${mimeType}" href="${r(absIcon)}">
   <link rel="shortcut icon" type="${mimeType}" href="${r(absIcon)}">
-  <link rel="apple-touch-icon" href="${r(absApple)}">`;
+  <link rel="apple-touch-icon" href="${r(absApple)}">
+  <meta name="apple-mobile-web-app-title" content="${r(appleTitle)}">
+  <meta name="application-name" content="${r(appleTitle)}">`;
 
   // 6. Prepend this block right at the beginning of the <head>
   html = html.replace('<head>', `<head>${seoBlock}`);
