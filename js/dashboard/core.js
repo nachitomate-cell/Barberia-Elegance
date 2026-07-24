@@ -148,18 +148,32 @@ window.abrirReseñaGoogleDesdeCard = async function () {
   const wm = document.getElementById('membershipWatermark');
   if (wm) wm.textContent = SHOP.watermark || 'É';
 
-  // PWA install icons — SHOP.pwaIcon permite un ícono distinto al logo (ej: Marcelo).
+  // PWA install icons — cascada: pwaIcon (override explícito, ej: Marcelo) >
+  // PNG per-tenant generado por gen-pwa-icons.js > SHOP.logo > fallback.
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
   // pwaBannerIcon y pwaModalIcon están después → necesitan DOMContentLoaded.
-  const _pwaLogoSrc = SHOP.pwaIcon || SHOP.logo || '/logo.jpg';
+  const _tid = window.CURRENT_TENANT_ID || '';
+  const _generatedPng192 = _tid ? '/icons/pwa/' + _tid + '-192.png' : null;
+  const _pwaLogoSrc = SHOP.pwaIcon || _generatedPng192 || SHOP.logo || '/logo.jpg';
   const _pwaLogoAlt = SHOP.nombreCorto || 'App';
   const _pwaBigEl = document.getElementById('pwaBigIcon');
   if (_pwaBigEl) { _pwaBigEl.src = _pwaLogoSrc; _pwaBigEl.alt = _pwaLogoAlt; }
-  if (SHOP.pwaIcon) {
-    const _appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-    if (_appleIcon) _appleIcon.href = SHOP.pwaIcon;
+  // apple-touch-icon es lo que iOS usa al "Añadir a pantalla de inicio". Sin
+  // esto todos los tenants heredaban /logo.jpg (logo de Elegance hardcodeado
+  // en dashboard.html) porque el `if (SHOP.pwaIcon)` de antes solo aplicaba
+  // al puñado de tenants que definían pwaIcon explícito. Ahora SIEMPRE se
+  // actualiza al mejor ícono disponible.
+  const _appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+  if (_appleIcon) _appleIcon.href = _pwaLogoSrc;
+  // Favicon solo se cambia si tenemos PNG explícito (pwaIcon o el generado);
+  // no queremos setear un WEBP/JPG como favicon porque algunos browsers viejos
+  // lo ignoran en silencio y quedaba peor que mantener el default.
+  if (SHOP.pwaIcon || _generatedPng192) {
     const _faviconEl = document.querySelector('link[rel="icon"]');
-    if (_faviconEl) { _faviconEl.href = SHOP.pwaIcon; _faviconEl.type = 'image/png'; }
+    if (_faviconEl) {
+      _faviconEl.href = SHOP.pwaIcon || _generatedPng192;
+      _faviconEl.type = 'image/png';
+    }
   }
   document.addEventListener('DOMContentLoaded', function () {
     ['pwaBannerIcon', 'pwaModalIcon'].forEach(function (id) {
