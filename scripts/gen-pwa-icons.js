@@ -47,6 +47,10 @@ const TENANTS = {
   deluxeperfumes:       { src: 'logo5.jpg',                       bg: '#0a0a0a' },
   memphis:              { src: 'mem.png',                         bg: '#0a0a0a' },
   renacer:              { src: 'renacer/logo.webp',               bg: '#0a0806' },
+  // Oren: el logo REAL es oren-logo.webp (subido por el panel — cuadrado negro
+  // con wordmark blanco). Los oren-192/512 anteriores eran copias a mano del
+  // placeholder de la demo (logo.png con tijeras doradas) y no correspondían.
+  oren:                 { src: 'oren/oren-logo.webp',             bg: '#0a0a0d', fit: 'cover' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.
