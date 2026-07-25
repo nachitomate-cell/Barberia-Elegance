@@ -643,7 +643,7 @@
       // branding Oren propio (foto del local + acento ámbar). Los CTAs
       // "Unirse al Club" y banners vuelven a verse en index.html y barbero.html.
       nombre:          'Oren Barber',
-      nombreCorto:     'Oren',
+      nombreCorto:     'Oren Barber',
       pageTitle:       'Oren Barber | Cortes con Estilo',
       slogan:          'Cortes con Estilo',
       sobreNosotros:   'Oren Barber nace de la pasión por el oficio y el detalle. Con dos sucursales —Reñaca y Villa Alemana— llevamos la barbería moderna a la región de Valparaíso: cortes personalizados, barba de precisión y una experiencia pensada para que salgas renovado.<br><br>Elige tu sucursal, tu barbero y tu horario en segundos. Cortes con estilo, siempre.',

@@ -279,6 +279,21 @@ const TENANT_CONFIG = {
     from:        'Studio Luxury <citas@synaptechspa.cl>',
     dashboardUrl:'https://estudioluxury.synaptechspa.cl/dashboard',
   },
+  // Oren Barber (multi-sucursal Reñaca + Villa Alemana). El cliente pidió
+  // explícitamente que TODA firma diga "Oren Barber", nunca solo "Oren"
+  // (llegó un correo firmando 'Oren' cuando este tenant no estaba mapeado
+  // aquí y caía al fallback que deriva del doc Firestore).
+  oren: {
+    nombre:      'Oren Barber',
+    slogan:      'Cortes con Estilo',
+    direccion:   'Reñaca (Mall Plaza) · Villa Alemana (Estación Las Américas)',
+    horario:     'Lun a Dom · Reserva tu hora',
+    color:       '#D97706',
+    instagram:   'https://www.instagram.com/orenbarbercl/',
+    whatsapp:    '',
+    from:        'Oren Barber <citas@synaptechspa.cl>',
+    dashboardUrl:'https://orenbarber.synaptechspa.cl/dashboard',
+  },
 };
 
 /**
