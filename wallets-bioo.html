@@ -59,6 +59,9 @@
   @media (max-width:900px){.grid{grid-template-columns:1fr;}}
 
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .geo-map{width:100%;height:240px;border-radius:12px;overflow:hidden;border:1px solid #e2e5e0;margin-top:6px;background:#eef1ee;}
+  .geo-radius-row{margin-top:12px;}
+  .range{width:100%;accent-color:#39c313;margin-top:6px;}
   .color-field{display:flex;align-items:center;gap:8px;}
   .color-field input[type=color]{width:48px;height:48px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:4px;cursor:pointer;}
   .color-field input[type=text]{flex:1;}
@@ -189,9 +192,16 @@
           </div>
         </div>
 
+        <label style="margin-top:2px;">Geo-push — zona de activación</label>
+        <p class="pv-note" style="margin-top:2px;">Arrastra el marcador sobre tu local y ajusta el radio con el slider (o el borde del círculo). La tarjeta aparece sola en el teléfono del cliente cuando entra a esa zona.</p>
+        <div id="geo-map" class="geo-map"></div>
+        <div class="geo-radius-row">
+          <label for="f-geoRadius">Radio de cobertura: <b id="f-geoRadius-label">300 m</b></label>
+          <input type="range" id="f-geoRadius" min="0" max="1500" step="50" value="300" class="range">
+        </div>
         <div class="row2">
           <div>
-            <label for="f-lat">Latitud (geo-push)</label>
+            <label for="f-lat">Latitud</label>
             <input type="number" id="f-lat" step="any" placeholder="-33.0245">
           </div>
           <div>
@@ -199,7 +209,6 @@
             <input type="number" id="f-lng" step="any" placeholder="-71.5518">
           </div>
         </div>
-        <p class="pv-note">Con la ubicación, la tarjeta aparece sola en el teléfono del cliente cuando está cerca del local. Copia las coordenadas desde Google Maps (clic derecho sobre el local).</p>
 
         <label for="f-geoMensaje">Mensaje de cercanía (opcional)</label>
         <input type="text" id="f-geoMensaje" maxlength="90" placeholder="Estás cerca 💈 muestra tu tarjeta y suma sellos">
@@ -289,6 +298,7 @@ function show(id) {
   ['view-loading', 'view-login', 'view-denied', 'view-studio'].forEach(function (v) {
     $(v).classList.toggle('hidden', v !== id);
   });
+  if (id === 'view-studio') setTimeout(maybeInitMap, 0); // Google Maps necesita el contenedor visible
 }
 function toast(msg, esError) {
   var t = $('toast');
@@ -415,8 +425,12 @@ function llenarForm(cfg, tenantCfg) {
   $('f-bg').value = bg; $('f-bg-hex').value = bg;
   $('f-lat').value = (cfg.location && Number.isFinite(Number(cfg.location.lat))) ? cfg.location.lat : '';
   $('f-lng').value = (cfg.location && Number.isFinite(Number(cfg.location.lng))) ? cfg.location.lng : '';
+  var gr = (cfg.geoRadius != null && Number.isFinite(Number(cfg.geoRadius))) ? Number(cfg.geoRadius) : 300;
+  $('f-geoRadius').value = gr;
+  $('f-geoRadius-label').textContent = gr + ' m';
   $('f-geoMensaje').value = cfg.geoMensaje || '';
   $('f-enabled').checked = cfg.enabled === true;
+  syncMapFromForm();
 }
 
 function leerForm() {
@@ -431,7 +445,11 @@ function leerForm() {
     geoMensaje: $('f-geoMensaje').value.trim(),
     enabled: $('f-enabled').checked,
   };
-  if (Number.isFinite(lat) && Number.isFinite(lng)) cfg.location = { lat: lat, lng: lng };
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    cfg.location = { lat: lat, lng: lng };
+    var gr = parseInt($('f-geoRadius').value, 10);
+    if (Number.isFinite(gr) && gr > 0) cfg.geoRadius = gr;
+  }
   return cfg;
 }
 
@@ -501,7 +519,71 @@ function guardar() {
     });
 }
 
+// ── Mapa del geo-push (Google Maps) ───────────────────────────────
+var _geoMap = null, _geoMarker = null, _geoCircle = null, _mapsReady = false;
+var GEO_DEFAULT = { lat: -33.0472, lng: -71.6127 }; // fallback (Valparaíso aprox)
+
+window.initGeoMap = function () { _mapsReady = true; maybeInitMap(); };
+
+function maybeInitMap() {
+  if (!_mapsReady || _geoMap || !window.google) return;
+  var el = $('geo-map');
+  if (!el || el.offsetParent === null) return; // aún oculto → se reintenta al mostrar el estudio
+  var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
+  var center = (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat: lat, lng: lng } : GEO_DEFAULT;
+  var radius = parseInt($('f-geoRadius').value, 10) || 300;
+  _geoMap = new google.maps.Map(el, {
+    center: center, zoom: 15, mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+  });
+  _geoMarker = new google.maps.Marker({ position: center, map: _geoMap, draggable: true });
+  _geoCircle = new google.maps.Circle({
+    map: _geoMap, center: center, radius: radius, editable: true, draggable: false,
+    fillColor: '#39c313', fillOpacity: 0.15, strokeColor: '#2f9e12', strokeWeight: 2,
+  });
+  _geoCircle.bindTo('center', _geoMarker, 'position');
+  function applyLatLng(ll) {
+    $('f-lat').value = ll.lat().toFixed(6);
+    $('f-lng').value = ll.lng().toFixed(6);
+    renderPreview();
+  }
+  _geoMarker.addListener('dragend', function (e) { applyLatLng(e.latLng); });
+  _geoMap.addListener('click', function (e) { _geoMarker.setPosition(e.latLng); applyLatLng(e.latLng); });
+  _geoCircle.addListener('radius_changed', function () {
+    var r = Math.max(0, Math.min(1500, Math.round(_geoCircle.getRadius())));
+    $('f-geoRadius').value = r;
+    $('f-geoRadius-label').textContent = r + ' m';
+  });
+}
+
+function syncMapFromForm() {
+  if (!_geoMap) return;
+  var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
+  var radius = parseInt($('f-geoRadius').value, 10);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    _geoMarker.setPosition({ lat: lat, lng: lng });
+    _geoMap.setCenter({ lat: lat, lng: lng });
+  }
+  if (_geoCircle && Number.isFinite(radius)) _geoCircle.setRadius(radius);
+  google.maps.event.trigger(_geoMap, 'resize');
+}
+
+$('f-geoRadius').addEventListener('input', function () {
+  var r = parseInt(this.value, 10) || 0;
+  $('f-geoRadius-label').textContent = r + ' m';
+  if (_geoCircle) _geoCircle.setRadius(r);
+});
+['f-lat', 'f-lng'].forEach(function (id) {
+  $(id).addEventListener('change', function () {
+    var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && _geoMarker) {
+      _geoMarker.setPosition({ lat: lat, lng: lng });
+      _geoMap.setCenter({ lat: lat, lng: lng });
+    }
+  });
+});
+
 show('view-loading');
 </script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDuz346EJ96gCjTC7VVJvnaasPxYmEK2do&callback=initGeoMap&loading=async"></script>
 </body>
 </html>
