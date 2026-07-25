@@ -294,6 +294,58 @@ const TENANT_CONFIG = {
     from:        'Oren Barber <citas@synaptechspa.cl>',
     dashboardUrl:'https://orenbarber.synaptechspa.cl/dashboard',
   },
+  renacer: {
+    nombre:      'Peluquería y Barbería Renacer',
+    slogan:      'Acompañamos cada cambio',
+    direccion:   'Ecuador 266, Viña del Mar',
+    horario:     'Lun a Sáb: 10:00 – 20:00 hrs',
+    color:       '#8B5E3C',
+    instagram:   'https://www.instagram.com/peluqueriaybarberiarenacer/',
+    whatsapp:    '56985279282',
+    from:        'Peluquería y Barbería Renacer <citas@synaptechspa.cl>',
+    dashboardUrl:'https://renacer.synaptechspa.cl/dashboard',
+  },
+  // The Latin Caribe — tenant paralelo a `latincaribe` (contiene clientes
+  // migrados). Mismo branding para que si algún flujo cae a este tenantId
+  // no firme "thelatincaribe".
+  thelatincaribe: {
+    nombre:      'The Latin Caribe',
+    slogan:      'Más que un corte, una experiencia.',
+    direccion:   'Manuel Rodríguez 299, Copiapó',
+    horario:     'Lun–Sáb: 11:00–21:00 · Dom: 12:00–20:00',
+    color:       '#35DDE6',
+    darkHeader:  true,
+    instagram:   '',
+    whatsapp:    '',
+    from:        'The Latin Caribe <citas@synaptechspa.cl>',
+    dashboardUrl:'https://thelatincaribe.synaptechspa.cl/dashboard',
+  },
+  alfamen: {
+    nombre:      'Barbería Alfa Men',
+    slogan:      'Aesthetics For Men · Since 2017',
+    direccion:   'Av. Valparaíso #694 L. 14, Viña del Mar',
+    horario:     'Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00',
+    color:       '#DAA520',
+    darkHeader:  true,
+    instagram:   'https://www.instagram.com/barberia_alfa/',
+    whatsapp:    '',
+    from:        'Barbería Alfa Men <citas@synaptechspa.cl>',
+    dashboardUrl:'https://alfamen.synaptechspa.cl/dashboard',
+  },
+  // Kronnos legacy — el tenant original antes de dividirse en
+  // kronnos_penablanca / kronnos_limache / kronnos_woman. Se mantiene
+  // por si alguna cita antigua dispara un flujo.
+  kronnos: {
+    nombre:      'Kronnos Studio',
+    slogan:      'Un espacio unisex donde ambos mundos convergen',
+    direccion:   'Villa Alemana · Limache',
+    horario:     'Lun a Sáb · 10:30 – 19:00',
+    color:       '#e11d2a',
+    instagram:   '',
+    whatsapp:    '',
+    from:        'Kronnos Studio <citas@synaptechspa.cl>',
+    dashboardUrl:'https://kronnos.synaptechspa.cl/dashboard',
+  },
 };
 
 /**
