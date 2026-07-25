@@ -4,6 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { TENANT_META } from '../contexts/TenantContext';
+import { resolveTenantId } from '../lib/tenantUtils';
 
 // ════════════════════════════════════════════════════════════════
 //  HubTenantGate — selector de tenant por CUENTA (hub SynapTech Studio)
@@ -43,12 +44,21 @@ function needsResolution(uid) {
   return true;
 }
 
-function pinAndReload(tenantId, uid) {
+function pin(tenantId, uid) {
   try {
     sessionStorage.setItem(PIN_TENANT_KEY, tenantId);
     sessionStorage.setItem(PIN_UID_KEY, uid);
   } catch { /* ignore */ }
-  window.location.reload();
+}
+
+// Fija el tenant. Solo recarga si es DISTINTO al que ya está resuelto — así el
+// caso "ya estoy en mi local" (p.ej. el revisor en sandbox por DOMAIN_MAP) no
+// parpadea con un reload inútil.
+function pinTenant(tenantId, uid, { onSame } = {}) {
+  const alreadyHere = tenantId === resolveTenantId();
+  pin(tenantId, uid);
+  if (alreadyHere) onSame?.();
+  else window.location.reload();
 }
 
 function displayName(tenantId) {
@@ -86,7 +96,7 @@ export default function HubTenantGate({ children }) {
         const data    = res.data || {};
         const tenants = Array.isArray(data.tenants) ? data.tenants : [];
         if (data.superadmin) { setPhase('ready'); return; }   // sandbox por defecto
-        if (tenants.length === 1)      pinAndReload(tenants[0].tenantId, uid);
+        if (tenants.length === 1)      pinTenant(tenants[0].tenantId, uid, { onSame: () => setPhase('ready') });
         else if (tenants.length > 1) { setOptions(tenants); setPhase('choose'); }
         else                           setPhase('empty');
       } catch {
@@ -97,7 +107,7 @@ export default function HubTenantGate({ children }) {
   }, [phase, uid]);
 
   if (phase === 'resolving') return <Splash label="Entrando a tu local…" />;
-  if (phase === 'choose')    return <TenantPicker options={options} onPick={(t) => pinAndReload(t, uid)} />;
+  if (phase === 'choose')    return <TenantPicker options={options} onPick={(t) => pinTenant(t, uid, { onSame: () => setPhase('ready') })} />;
   if (phase === 'empty')     return <NoTenant />;
   return children;
 }
