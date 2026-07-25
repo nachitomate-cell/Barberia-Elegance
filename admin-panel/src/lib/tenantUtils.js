@@ -2,6 +2,14 @@ import { collection, doc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const DOMAIN_MAP = {
+  // ── SynapTech Studio (TWA de Google Play) ──────────────────────────
+  // El hub app.synaptechspa.cl no representa a un local: hasta que exista el
+  // selector de tenant post-login, el panel abre en el tenant `sandbox`
+  // ("Barbería Demo", datos ficticios aislados en tenants/sandbox/). Así el
+  // revisor de Play y los testers internos ven una demo limpia, no un cliente
+  // real. Es forward-compatible: ?local= y sessionStorage se resuelven ANTES
+  // que DOMAIN_MAP, así que el futuro selector lo pisa sin tocar esta línea.
+  'app.synaptechspa.cl':               'sandbox',
   'barberiaelegance.synaptechspa.cl':  'elegance',
   'barberiaferraza.synaptechspa.cl':   'ferraza',
   'gitananails.synaptechspa.cl':       'gitana',
