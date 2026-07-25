@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, collection, query, where, getCountFromServer } from 'firebase/firestore';
 import {
   Wallet, Loader2, Users, Eye, EyeOff, ExternalLink, Sparkles,
-  Crown, MapPinned, BellRing, RefreshCw, ArrowRight,
+  Crown, MapPinned, BellRing, RefreshCw, ArrowRight, Check,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { ADDONS, fmtCLP } from '../lib/precios';
@@ -114,8 +114,8 @@ export default function Wallets() {
             </span>
           </h2>
           <p className="text-sm sm:text-base text-slate-300 [html.light_&]:text-ink-600 mt-3 max-w-xl mx-auto leading-relaxed">
-            Colores, logo, geo-push y visibilidad para tus clientes: todo se personaliza en el estudio,
-            con vista previa en vivo de cómo quedará la tarjeta.
+            Colores, logo, la zona del geo-push en el mapa y la visibilidad para tus clientes: todo se
+            personaliza en el estudio, con vista previa en vivo de cómo quedará la tarjeta.
           </p>
           <a
             href={WALLETS_BIOO_URL}
@@ -160,7 +160,7 @@ export default function Wallets() {
       </div>
 
       <p className="flex items-center gap-1.5 text-xs text-slate-500 mt-6">
-        <Sparkles size={12} /> Google Wallet disponible hoy · Apple Wallet muy pronto (misma configuración).
+        <Sparkles size={12} /> Google Wallet y Apple Wallet disponibles · una sola configuración para ambos.
       </p>
     </div>
   );
@@ -183,7 +183,17 @@ function UpsellWallet({ tenantName }) {
     { Icon: MapPinned, titulo: 'Aparece cuando pasa cerca', desc: 'Su tarjeta salta sola a la pantalla de bloqueo al acercarse a tu local. El recordatorio perfecto, en el segundo perfecto.', star: true },
     { Icon: RefreshCw, titulo: 'Se llena sola', desc: 'Cada sello y su rango se actualizan en su celular sin que abra nada. Magia invisible.' },
     { Icon: BellRing, titulo: 'Le grita cuando gana', desc: 'Al desbloquear un premio, su celular se lo notifica. Y vuelve por él.' },
-    { Icon: Wallet, titulo: 'Imposible de perder', desc: 'Vive en Google Wallet, junto a sus tarjetas y pases. No se desinstala, no se olvida.' },
+    { Icon: Wallet, titulo: 'Imposible de perder', desc: 'Vive en Google Wallet y Apple Wallet, junto a sus tarjetas y pases. No se desinstala, no se olvida.' },
+  ];
+
+  // Lo que trae el módulo (checklist concreto, aparte de los ganchos).
+  const INCLUYE = [
+    'Google Wallet y Apple Wallet — ambos',
+    'Geo-push con zona configurable en el mapa',
+    'Sellos y rango que se actualizan solos',
+    'Aviso al cliente cuando desbloquea un premio',
+    'Diseño a tu marca: colores, logo y estampas',
+    'Tarjetas ilimitadas, sin costo por cliente',
   ];
 
   return (
@@ -198,7 +208,7 @@ function UpsellWallet({ tenantName }) {
 
         <div className="relative">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-full bg-amber-400/15 text-amber-300 [html.light_&]:bg-amber-100 [html.light_&]:text-amber-700 mb-6">
-            <Crown size={13} /> Módulo Premium · Google Wallet
+            <Crown size={13} /> Módulo Premium · Google + Apple Wallet
           </span>
 
           {/* Radar de geo-push */}
@@ -217,23 +227,23 @@ function UpsellWallet({ tenantName }) {
           </h1>
 
           <p className="text-base sm:text-lg text-slate-300 [html.light_&]:text-ink-600 mt-5 max-w-2xl mx-auto leading-relaxed">
-            La tarjeta de fidelidad de tu barbería, viva en el celular de cada cliente. Con <strong className="text-amber-300 [html.light_&]:text-amber-700">geo-push</strong>,
+            La tarjeta de fidelidad de tu negocio, viva en el celular de cada cliente. Con <strong className="text-amber-300 [html.light_&]:text-amber-700">geo-push</strong>,
             aparece sola en su pantalla justo cuando camina a una cuadra. Sin apps. Sin que abra nada.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-3">
             <p className="text-sm text-slate-400 [html.light_&]:text-ink-600">
-              Desde{' '}
-              <span className="text-3xl font-black text-amber-300 [html.light_&]:text-amber-600 align-middle">${PRECIO}</span>
-              <span className="text-sm font-semibold text-slate-300 [html.light_&]:text-ink-700">/mes</span>
+              <span className="text-4xl font-black text-amber-300 [html.light_&]:text-amber-600 align-middle">${PRECIO}</span>
+              <span className="text-sm font-semibold text-slate-300 [html.light_&]:text-ink-700">/mes · IVA incluido</span>
             </p>
+            <p className="text-xs text-slate-500 -mt-1.5">Tarjetas ilimitadas · sin costo por cliente</p>
             <a
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-black text-ink-900 bg-amber-400 hover:bg-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.6)] transition-transform active:scale-95"
             >
-              Quiero esto en mi barbería <ArrowRight size={18} />
+              Quiero esto en mi negocio <ArrowRight size={18} />
             </a>
             <p className="text-xs text-slate-500">Add-on mensual · lo activamos por ti en minutos</p>
           </div>
@@ -263,13 +273,28 @@ function UpsellWallet({ tenantName }) {
         ))}
       </div>
 
+      {/* ── Todo incluido (lo que trae) ── */}
+      <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-6 sm:p-7 mb-6">
+        <h3 className="font-bold text-primary [html.light_&]:text-ink-900 mb-4 flex items-center gap-2">
+          <Check size={18} className="text-emerald-400" /> Todo incluido en el módulo
+        </h3>
+        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
+          {INCLUYE.map((t) => (
+            <li key={t} className="flex items-start gap-2 text-sm text-slate-300 [html.light_&]:text-ink-700">
+              <Check size={15} className="text-emerald-400 mt-0.5 shrink-0" />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* ── Cierre + CTA ── */}
       <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-7 text-center">
         <p className="text-lg font-bold text-primary [html.light_&]:text-ink-900 mb-1">
           Fidelización que trabaja incluso con el local cerrado.
         </p>
         <p className="text-sm text-slate-400 [html.light_&]:text-ink-600 mb-5 max-w-lg mx-auto">
-          Tú atiendes; el geo-push trae a la gente de vuelta. Escríbenos y lo dejamos andando en tu barbería.
+          Tú atiendes; el geo-push trae a la gente de vuelta. Escríbenos y lo dejamos andando en tu negocio.
         </p>
         <a
           href={waUrl}
