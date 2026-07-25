@@ -276,7 +276,10 @@ var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
 var STAMP_IMG = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletStampImg';
 var WA_SYNAPTECH = 'https://wa.me/56983568212';
 
-var db = firebase.firestore();
+// `db` ya viene de firebase-config.js (const db global). NO re-declararlo:
+// desde que el fix de auth same-origin agregó firebase-config.js a esta
+// página, `var db` chocaba con esa const → "Identifier 'db' has already
+// been declared" y moría todo el script (spinner infinito).
 var _tid = null;          // tenant activo
 var _isSuper = false;
 var _addonActivo = false;
