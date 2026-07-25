@@ -1002,6 +1002,15 @@
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModalDesc { color: #6B7280 !important; }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModal .border-gray-800 { border-color: rgba(17, 24, 39, 0.10) !important; }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #productoModalPrecio { color: #A16207 !important; }
+    /* "MIS CITAS" vacío (Mi Perfil): la card bg-zinc-900 se aclara por los
+       overrides pero el texto text-zinc-500 quedaba gris tenue sobre gris
+       claro — fantasma (auditoría visual 2026-07-25, aura/latincaribe). */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #profileCitasContent .bg-zinc-900 {
+      background: #FFFFFF !important;
+      border: 1px solid #E4E4E7 !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #profileCitasContent .text-zinc-500 { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #profileCitasContent .text-white\/10 { color: rgba(17, 24, 39, 0.18) !important; }
 
 
     /* Masonry grid para Lookbook */
@@ -3785,6 +3794,16 @@
     }
     .tenant-infinity .service-card h4 { color: #111827 !important; }
     .tenant-infinity .service-card p { color: #4B5563 !important; }
+    /* Cards del feed de SERVICIOS: el scrim negro del template (pensado para
+       dark) sobre la card blanca creaba un gradiente blanco→negro con el
+       nombre gris encima = ilegible (auditoría visual 2026-07-25). Mismo velo
+       blanco que usan aura/latincaribe + tinta B&N de la marca. */
+    .tenant-infinity .service-card div[style*="linear-gradient(to top"] {
+      background: linear-gradient(to top, #FFFFFF 0%, rgba(255,255,255,0.92) 38%, rgba(255,255,255,0.55) 62%, rgba(255,255,255,0) 100%) !important;
+    }
+    .tenant-infinity .service-card img { opacity: 1 !important; }
+    .tenant-infinity .service-card .text-white { color: #111827 !important; }
+    .tenant-infinity .service-card [style*="color:var(--gold)"] { color: #111827 !important; }
 
     .tenant-infinity .bg-\\[\\#0d0d10\\] {
       background-color: rgba(255, 255, 255, 0.8) !important;
