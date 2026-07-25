@@ -1822,7 +1822,17 @@ export default async function middleware(request) {
     // (el TWA no verificará y caerá a chrome tab — comportamiento seguro).
     if (url.pathname === '/.well-known/assetlinks.json') {
       const raw = process.env.TWA_ASSETLINKS_SHA256 || '';
-      const fps = raw.split(',').map(s => s.trim()).filter(Boolean);
+      // Huellas conocidas (PÚBLICAS — se sirven en este mismo JSON): la upload key
+      // (keystore de Bubblewrap) y la Play App Signing key (Google re-firma el APK
+      // que se instala desde Play Store). AMBAS deben estar o el TWA abre con la
+      // barra de URL de Chrome en vez de pantalla completa. Se hardcodean como
+      // fallback para no depender solo del env; el env puede sumar más. La huella
+      // de Play se extrajo con `keytool -printcert -jarfile` del APK universal firmado.
+      const KNOWN_FPS = [
+        'C3:55:BA:12:79:B6:D8:5A:1D:BA:01:76:96:D3:CE:19:E5:12:EE:DC:F4:57:51:AD:7C:7C:EB:99:C0:2A:23:94', // upload key (Bubblewrap)
+        '8C:26:17:CA:96:38:ED:6D:35:E3:A9:35:80:58:24:44:CA:65:BD:3B:43:45:BC:E6:E2:89:6C:51:C3:92:6A:9A', // Play App Signing key (Google)
+      ];
+      const fps = [...new Set([...KNOWN_FPS, ...raw.split(',').map(s => s.trim()).filter(Boolean)])];
       const body = [{
         relation: ['delegate_permission/common.handle_all_urls'],
         target: {
