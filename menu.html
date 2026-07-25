@@ -421,6 +421,7 @@
         renderCatnav(categorias);
         renderMenu(categorias, items);
         wireStickyActiveCategory(categorias);
+        emitJsonLd(cfg);
         $('#loader').classList.add('hidden');
 
       }).catch(err => {
@@ -436,13 +437,16 @@
 
       // ── 6. Render: hero ──────────────────────────────────────────────────
       function renderHero(cfg, tid) {
-        // Nombre visible: primero config.nombre, sino el mapa de config.js, sino tid
+        // Firestore es la fuente de verdad (el dueño edita desde el panel).
+        // Fallback opcional al mapa de config.js si existe global (no lo hace
+        // hoy — la IIFE lo mantiene privado — pero dejamos el gancho por si
+        // en el futuro se expone window._tenants).
         const cfgTenant = (window._tenants || {})[tid] || {};
-        const nombre    = cfgTenant.nombre || (cfg.nombre) || 'Nuestra Carta';
-        const slogan    = cfgTenant.slogan || 'Menú fresco, precios claros.';
-        const horario   = cfgTenant.horario || '';
-        const direccion = cfgTenant.direccion || '';
-        const telefono  = cfgTenant.telefono || '';
+        const nombre    = cfg.nombre    || cfgTenant.nombre    || 'Nuestra Carta';
+        const slogan    = cfg.slogan    || cfgTenant.slogan    || 'Menú fresco, precios claros.';
+        const horario   = cfg.horario   || cfgTenant.horario   || '';
+        const direccion = cfg.direccion || cfgTenant.direccion || '';
+        const telefono  = cfg.telefono  || cfgTenant.telefono  || '';
 
         document.title = `Carta Digital · ${nombre}`;
         $('#hero-name').textContent    = nombre;
@@ -590,14 +594,14 @@
       document.getElementById('year').textContent = new Date().getFullYear();
 
       // ── 11. Schema.org Restaurant (JSON-LD) — sube el SEO local ──────────
-      // Se agrega dinámico para tomar el nombre correcto por tenant.
-      setTimeout(() => {
+      // Se emite después de cargar cfg de Firestore para tomar el nombre real.
+      function emitJsonLd(cfg) {
         const cfgTenant = (window._tenants || {})[tid] || {};
         const schema = {
           '@context': 'https://schema.org',
           '@type':    'Restaurant',
-          name:       cfgTenant.nombre || 'Restaurante',
-          description: cfgTenant.slogan || '',
+          name:       cfg.nombre || cfgTenant.nombre || 'Restaurante',
+          description: cfg.slogan || cfgTenant.slogan || '',
           image:      cfgTenant.logo ? (location.origin + cfgTenant.logo) : undefined,
           url:        location.origin,
           servesCuisine: 'Cocina de autor',
@@ -608,7 +612,7 @@
         s.type = 'application/ld+json';
         s.textContent = JSON.stringify(schema);
         document.head.appendChild(s);
-      }, 0);
+      }
     })();
   </script>
 </body>

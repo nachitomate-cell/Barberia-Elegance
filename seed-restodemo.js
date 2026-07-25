@@ -135,8 +135,16 @@ const MENU = [
 ].map(m => ({ ...m, activo: true, disponible: true }));
 
 // ── Config global del tenant restaurante ─────────────────────────────────────
+// Los campos `nombre/slogan/horario/direccion/telefono` viven acá (no en
+// config.js) porque son editables por el dueño en el panel. menu.html los
+// lee de aquí para hidratar el hero y el JSON-LD.
 const CONFIG = {
   tipo:              'restaurante',
+  nombre:            'Restaurante Demo',
+  slogan:            'Nuestra carta, siempre a mano',
+  horario:           'Todos los días · 12:00 – 23:00',
+  direccion:         '',
+  telefono:          '',
   categoriasMenu:    CATEGORIAS,
   tagsMenu:          TAG_LABEL,
   moneda:            'CLP',
