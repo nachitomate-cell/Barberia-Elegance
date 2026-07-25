@@ -32,7 +32,7 @@ const { renderStampStrip, renderIcon } = require('./wallet-render');
 //   1. TEAM_ID: developer.apple.com/account → Membership details.
 //   2. Crear el Pass Type ID con EXACTAMENTE este identifier (o
 //      actualizar la constante si eliges otro).
-const TEAM_ID = 'REEMPLAZAR_TEAM_ID';
+const TEAM_ID = '69M5S8Q9K8';
 const PASS_TYPE_ID = 'pass.cl.synaptechspa.fidelidad';
 
 // Web service de actualizaciones (Apple le agrega /v1/... al final).

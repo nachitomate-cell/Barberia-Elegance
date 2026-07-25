@@ -846,14 +846,22 @@ function renderMisPacks(packs) {
       : db.doc(`tenants/${tid}/configuracion/wallet`);
   }
 
+  // Apple Wallet solo existe en iPhone/iPad (incluye iPadOS 13+, que se
+  // reporta como Macintosh con touch). En Android/desktop no se muestra.
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+
   async function maybeShow() {
-    const btn = document.getElementById('walletSaveBtn');
-    if (!btn) return;
+    const gBtn = document.getElementById('walletSaveBtn');
+    const aBtn = document.getElementById('walletAppleBtn');
+    if (!gBtn && !aBtn) return;
+    let enabled = false;
     try {
       const snap = await walletCfgRef().get();
-      if (snap.exists && snap.data().enabled === true) btn.classList.remove('hidden');
-      else btn.classList.add('hidden');
-    } catch (_) { /* config no disponible → botón oculto */ }
+      enabled = snap.exists && snap.data().enabled === true;
+    } catch (_) { /* config no disponible → botones ocultos */ }
+    if (gBtn) gBtn.classList.toggle('hidden', !enabled);
+    if (aBtn) aBtn.classList.toggle('hidden', !(enabled && IS_IOS));
   }
 
   window.guardarEnGoogleWallet = async function () {
@@ -879,6 +887,32 @@ function renderMisPacks(packs) {
       console.error('[wallet] guardar:', e);
       if (typeof showToast === 'function') showToast('No pudimos generar tu tarjeta. Reintenta.', 'err');
     } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    }
+  };
+
+  window.guardarEnAppleWallet = async function () {
+    const btn = document.getElementById('walletAppleBtn');
+    if (!currentUser) {
+      if (typeof showToast === 'function') showToast('Inicia sesión para guardar tu tarjeta.', 'err');
+      return;
+    }
+    const original = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/50 border-t-transparent rounded-full animate-spin inline-block"></span> Generando...';
+    }
+    try {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const fn = firebase.functions().httpsCallable('walletAppleGenerarLink');
+      const res = await fn({ tenantId: tid });
+      const url = res.data && res.data.url;
+      if (!url) throw new Error('Respuesta sin URL de pase.');
+      // iOS: navegar al .pkpass hace que Safari abra la hoja "Agregar a Apple Wallet".
+      window.location.href = url;
+    } catch (e) {
+      console.error('[wallet apple] guardar:', e);
+      if (typeof showToast === 'function') showToast('No pudimos generar tu tarjeta. Reintenta.', 'err');
       if (btn) { btn.disabled = false; btn.innerHTML = original; }
     }
   };
