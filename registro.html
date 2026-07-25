@@ -2767,12 +2767,18 @@
       if (qTel)   document.getElementById('regTelefono').value = qTel;
     } catch (_) {}
 
-    // Back link / Booking CTA: perfume store goes to /catalogo, others go to index
+    // Back link / Booking CTA: cada vertical vuelve al home más útil.
+    // - deluxeperfumes → /catalogo (tienda)
+    // - restaurante   → /menu.html (carta)
+    // - resto         → /index.html (agenda)
     const tid = window.CURRENT_TENANT_ID;
     if (tid === 'deluxeperfumes') {
       const q = '?local=deluxeperfumes';
       document.getElementById('backLink').href = '/catalogo' + q;
       document.getElementById('backLinkText').textContent = 'VER FRAGANCIAS DISPONIBLES';
+    } else if (isRestaurante()) {
+      document.getElementById('backLink').href = '/menu.html';
+      document.getElementById('backLinkText').textContent = 'VOLVER A LA CARTA';
     } else if (tid && tid !== 'elegance') {
       document.getElementById('backLink').href = 'index.html?local=' + tid;
       document.getElementById('backLinkText').textContent = 'CONTINUAR CON MI RESERVA';
