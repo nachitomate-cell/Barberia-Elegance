@@ -2,16 +2,19 @@
 
 // functions/lib/wallet-render.js
 // ─────────────────────────────────────────────────────────────────
-//  RENDERER DE ESTAMPAS PARA GOOGLE WALLET
+//  RENDERER DE ESTAMPAS (Google heroImage + Apple strip)
 //
-//  Dibuja la "tarjeta de sellos" (circulitos que se llenan) como PNG
-//  para usarla de heroImage del LoyaltyObject. El estado es finito
-//  (filled/target/color) y se codifica en la URL del endpoint HTTP
-//  walletStampImg, así Google Wallet la cachea por URL — costo de
-//  cómputo equivalente a pre-renderizar, sin plomería de Storage.
+//  Dibuja la "tarjeta de sellos" como PNG. Diseño v2 (2026-07-26):
+//  estampas con degradado + glow (efecto moneda), vacíos como sockets
+//  con profundidad, premio = estrella con brillo, fondo con gradiente
+//  sutil, y una barra de progreso que conecta las estampas por fila.
 //
-//  Sin dependencias de fuentes: todo se dibuja con paths (arcos +
-//  strokes), para que el render sea 100% determinista en Cloud Functions.
+//  El estado es finito (filled/target/color) y se codifica en la URL
+//  del endpoint HTTP walletStampImg, así Google Wallet la cachea por
+//  URL — costo de cómputo equivalente a pre-renderizar.
+//
+//  Sin dependencias de fuentes: todo se dibuja con paths (arcos,
+//  strokes, gradientes) para que el render sea 100% determinista.
 // ─────────────────────────────────────────────────────────────────
 
 const { createCanvas } = require('@napi-rs/canvas');
@@ -19,6 +22,7 @@ const { createCanvas } = require('@napi-rs/canvas');
 // heroImage recomendado por Google: ratio ~3:1. 1032×336 es el tamaño guía.
 const W = 1032;
 const H = 336;
+const TAU = Math.PI * 2;
 
 function normHex(c, fallback) {
   const s = String(c || '').replace(/[^0-9a-fA-F]/g, '');
@@ -27,10 +31,19 @@ function normHex(c, fallback) {
   return fallback;
 }
 
-// Dibuja el tick (✓) dentro de un sello lleno, con strokes (sin fuente).
+// ── Utilidades de color (mezcla hacia blanco/negro, contraste) ────
+function toRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function toHex(a) { return '#' + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join(''); }
+function mix(hex, target, amt) { const a = toRgb(hex); return toHex(a.map((v, i) => v + (target[i] - v) * amt)); }
+const lighten = (hex, amt) => mix(hex, [255, 255, 255], amt);
+const darken  = (hex, amt) => mix(hex, [0, 0, 0], amt);
+function lum(hex) { const [r, g, b] = toRgb(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+const contrastOn = (hex) => (lum(hex) > 0.6 ? '#0b0b0b' : '#ffffff');
+
+// Tick (✓) dentro de un sello lleno, con strokes (sin fuente).
 function drawCheck(ctx, cx, cy, r, color) {
   ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(2, r * 0.18);
+  ctx.lineWidth = Math.max(2, r * 0.2);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -40,7 +53,7 @@ function drawCheck(ctx, cx, cy, r, color) {
   ctx.stroke();
 }
 
-// Estrella de 5 puntas (celda del premio cuando aún no se llena).
+// Estrella de 5 puntas (celda del premio).
 function drawStar(ctx, cx, cy, rOut, color) {
   const rIn = rOut * 0.45;
   ctx.fillStyle = color;
@@ -56,13 +69,40 @@ function drawStar(ctx, cx, cy, rOut, color) {
   ctx.fill();
 }
 
+// Sello lleno: degradado radial (efecto moneda) + glow del color de marca.
+function fillStamp(ctx, cx, cy, r, accentHex) {
+  ctx.save();
+  ctx.shadowColor = accentHex;
+  ctx.shadowBlur = r * 0.55;
+  ctx.shadowOffsetY = r * 0.05;
+  const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.05);
+  g.addColorStop(0, lighten(accentHex, 0.32));
+  g.addColorStop(0.55, accentHex);
+  g.addColorStop(1, darken(accentHex, 0.14));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+  // Brillo superior tenue (reflejo).
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = lighten(accentHex, 0.6);
+  ctx.lineWidth = Math.max(1.5, r * 0.06);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.86, Math.PI * 1.05, Math.PI * 1.75);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /**
  * Renderiza la tira de estampas y devuelve un Buffer PNG.
  * width/height permiten otros lienzos (Apple strip); por defecto
- * mantiene EXACTAMENTE las dimensiones Google (heroImage 1032×336).
- * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number}} opts
+ * mantiene las dimensiones Google (heroImage 1032×336). track=true
+ * dibuja la barra de progreso (Opción A elegida 2026-07-26).
+ * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number, track?:boolean}} opts
  */
-function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height } = {}) {
+function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, track = true } = {}) {
   const w = Math.max(100, Math.round(Number(width) || W));
   const h = Math.max(40, Math.round(Number(height) || H));
   const n = Math.max(1, Math.min(40, Math.round(Number(target) || 10)));
@@ -73,53 +113,87 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height }
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
 
-  // Fondo
-  ctx.fillStyle = bgHex;
+  // Fondo: gradiente vertical sutil (profundidad, no negro plano).
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, lighten(bgHex, 0.07));
+  bgGrad.addColorStop(1, darken(bgHex, 0.12));
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // Layout en grilla: hasta 5 por fila; con target grande usamos 2 filas.
-  // Padding proporcional (70/1032 y 60/336) → idéntico al histórico en Google.
+  // Grilla: hasta 5 por fila; con target grande, 2 filas. Padding
+  // proporcional (70/1032 y 52/336) para no romper el look en Google.
   const cols = n <= 5 ? n : Math.ceil(n / 2);
   const rows = Math.ceil(n / cols);
   const padX = Math.round(w * (70 / 1032));
-  const padY = Math.round(h * (60 / 336));
+  const padY = Math.round(h * (52 / 336));
   const cellW = (w - padX * 2) / cols;
   const cellH = (h - padY * 2) / rows;
-  const r = Math.max(14, Math.min(cellW, cellH) * 0.34);
+  const r = Math.max(14, Math.min(cellW, cellH) * 0.36);
 
-  for (let i = 0; i < n; i++) {
+  const center = (i) => {
     const rowI = Math.floor(i / cols);
     const colI = i % cols;
-    // Centrado horizontal de la última fila si queda incompleta.
     const itemsThisRow = rowI === rows - 1 ? n - cols * (rows - 1) : cols;
     const rowOffset = ((cols - itemsThisRow) * cellW) / 2;
-    const cx = padX + rowOffset + cellW * colI + cellW / 2;
-    const cy = padY + cellH * rowI + cellH / 2;
+    return { cx: padX + rowOffset + cellW * colI + cellW / 2, cy: padY + cellH * rowI + cellH / 2 };
+  };
 
+  // Barra de progreso (detrás de los círculos), por fila: track tenue
+  // completo + tramo de acento hasta la última estampa llena de la fila.
+  if (track) {
+    ctx.lineCap = 'round';
+    for (let rowI = 0; rowI < rows; rowI++) {
+      const first = rowI * cols;
+      const last = Math.min(n - 1, first + cols - 1);
+      const a = center(first);
+      const b = center(last);
+      ctx.strokeStyle = lighten(bgHex, 0.16);
+      ctx.lineWidth = Math.max(3, r * 0.18);
+      ctx.beginPath(); ctx.moveTo(a.cx, a.cy); ctx.lineTo(b.cx, b.cy); ctx.stroke();
+      const lastFilledInRow = Math.min(last, done - 1);
+      if (lastFilledInRow >= first) {
+        const c = center(lastFilledInRow);
+        ctx.strokeStyle = accentHex;
+        ctx.lineWidth = Math.max(3, r * 0.18);
+        ctx.beginPath(); ctx.moveTo(a.cx, a.cy); ctx.lineTo(c.cx, c.cy); ctx.stroke();
+      }
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    const { cx, cy } = center(i);
     const isFilled = i < done;
     const isPrize = i === n - 1;
 
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-
     if (isFilled) {
-      ctx.fillStyle = accentHex;
-      ctx.fill();
-      drawCheck(ctx, cx, cy, r, bgHex);
+      fillStamp(ctx, cx, cy, r, accentHex);
+      if (isPrize) drawStar(ctx, cx, cy, r * 0.5, contrastOn(accentHex));
+      else drawCheck(ctx, cx, cy, r, contrastOn(accentHex));
     } else if (isPrize) {
-      // Premio pendiente: aro punteado + estrella tenue del color de marca.
+      // Premio pendiente: aro punteado + estrella con brillo.
       ctx.strokeStyle = accentHex;
-      ctx.lineWidth = Math.max(2, r * 0.13);
-      ctx.setLineDash([r * 0.5, r * 0.34]);
-      ctx.stroke();
+      ctx.lineWidth = Math.max(2, r * 0.14);
+      ctx.setLineDash([r * 0.55, r * 0.36]);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.globalAlpha = 0.55;
-      drawStar(ctx, cx, cy, r * 0.5, accentHex);
-      ctx.globalAlpha = 1;
+      ctx.save();
+      ctx.shadowColor = accentHex;
+      ctx.shadowBlur = r * 0.55;
+      drawStar(ctx, cx, cy, r * 0.55, accentHex);
+      ctx.restore();
     } else {
-      ctx.strokeStyle = 'rgba(255,255,255,0.26)';
-      ctx.lineWidth = Math.max(2, r * 0.11);
-      ctx.stroke();
+      // Vacío = "socket": disco un pelo más claro que el fondo + aro
+      // sutil + punto tenue del color de marca (hint de que falta llenar).
+      ctx.fillStyle = lighten(bgHex, 0.09);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill();
+      ctx.strokeStyle = lighten(bgHex, 0.2);
+      ctx.lineWidth = Math.max(1.5, r * 0.06);
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.97, 0, TAU); ctx.stroke();
+      ctx.save();
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = accentHex;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.13, 0, TAU); ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -128,8 +202,7 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height }
 
 /**
  * Ícono cuadrado para Apple Wallet (obligatorio en el .pkpass): un sello
- * lleno con su tick, sobre el color de fondo del tenant. Sin fuentes,
- * mismo criterio determinista que la tira.
+ * lleno con su tick, con el mismo tratamiento de la tira.
  * @param {{size?:number, accent?:string, bg?:string}} opts
  */
 function renderIcon({ size = 87, accent, bg } = {}) {
@@ -140,17 +213,14 @@ function renderIcon({ size = 87, accent, bg } = {}) {
   const canvas = createCanvas(s, s);
   const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = bgHex;
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, s);
+  bgGrad.addColorStop(0, lighten(bgHex, 0.07));
+  bgGrad.addColorStop(1, darken(bgHex, 0.12));
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, s, s);
 
-  const cx = s / 2;
-  const cy = s / 2;
-  const r = s * 0.36;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = accentHex;
-  ctx.fill();
-  drawCheck(ctx, cx, cy, r, bgHex);
+  fillStamp(ctx, s / 2, s / 2, s * 0.34, accentHex);
+  drawCheck(ctx, s / 2, s / 2, s * 0.34, contrastOn(accentHex));
 
   return canvas.toBuffer('image/png');
 }
