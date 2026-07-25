@@ -56,9 +56,12 @@ async function authClient(saKey) {
 }
 
 // ── URL de la imagen de estampas para un estado dado ──────────────
-function stampImageUrl({ filled, target, accent }) {
+function stampImageUrl({ filled, target, accent, bg, icon }) {
   const c = String(accent || '#c9a84c').replace('#', '');
-  return `${IMG_BASE}?f=${Math.max(0, filled | 0)}&t=${Math.max(1, target | 0)}&c=${encodeURIComponent(c)}`;
+  let url = `${IMG_BASE}?f=${Math.max(0, filled | 0)}&t=${Math.max(1, target | 0)}&c=${encodeURIComponent(c)}`;
+  if (bg) url += `&bg=${encodeURIComponent(String(bg).replace('#', ''))}`;
+  if (icon && icon !== 'check') url += `&i=${encodeURIComponent(icon)}`;
+  return url;
 }
 
 // ── Estado de estampas (espejo de leerProxPremio en push-cliente.js) ──
@@ -113,7 +116,7 @@ function buildClass(tenantId, cfg = {}) {
   return cls;
 }
 
-function buildObject(tenantId, uid, { accountName, filled, target, rango, accent }) {
+function buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon }) {
   const obj = {
     id: objectIdFor(tenantId, uid),
     classId: classIdFor(tenantId),
@@ -121,7 +124,7 @@ function buildObject(tenantId, uid, { accountName, filled, target, rango, accent
     accountId: String(uid),
     accountName: accountName || 'Cliente',
     loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-    heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent }) } },
+    heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon }) } },
   };
   if (rango) obj.textModulesData = [{ id: 'rango', header: 'Rango', body: rango }];
   return obj;

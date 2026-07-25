@@ -154,15 +154,15 @@ async function crearPkpass({ certs, uid, serial, authToken, datos }) {
 
   // Strip de estampas (storeCard: 375×123 pts) — mismo dibujo que Google.
   const strip = (mult) => renderStampStrip({
-    filled, target, accent, bg,
+    filled, target, accent, bg, icon: cfg.stampIcon,
     width: 375 * mult, height: 123 * mult,
   });
 
   const buffers = {
     'pass.json': Buffer.from(JSON.stringify(passJson)),
-    'icon.png': renderIcon({ size: 29, accent, bg }),
-    'icon@2x.png': renderIcon({ size: 58, accent, bg }),
-    'icon@3x.png': renderIcon({ size: 87, accent, bg }),
+    'icon.png': renderIcon({ size: 29, accent, bg, icon: cfg.stampIcon }),
+    'icon@2x.png': renderIcon({ size: 58, accent, bg, icon: cfg.stampIcon }),
+    'icon@3x.png': renderIcon({ size: 87, accent, bg, icon: cfg.stampIcon }),
     'strip.png': strip(1),
     'strip@2x.png': strip(2),
     'strip@3x.png': strip(3),

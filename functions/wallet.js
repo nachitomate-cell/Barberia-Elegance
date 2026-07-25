@@ -87,7 +87,9 @@ exports.walletStampImg = onRequest({ region: 'us-central1', cors: true }, (req, 
     const filled = parseInt(req.query.f, 10) || 0;
     const target = parseInt(req.query.t, 10) || 10;
     const accent = '#' + String(req.query.c || 'c9a84c').replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-    const png = renderStampStrip({ filled, target, accent });
+    const bg = req.query.bg ? '#' + String(req.query.bg).replace(/[^0-9a-fA-F]/g, '').slice(0, 6) : undefined;
+    const icon = String(req.query.i || 'check').replace(/[^a-z]/g, '').slice(0, 12);
+    const png = renderStampStrip({ filled, target, accent, bg, icon });
     // Estado inmutable por URL → cache larga (Google Wallet cachea por su lado).
     res.set('Cache-Control', 'public, max-age=86400');
     res.set('Content-Type', 'image/png');
@@ -202,6 +204,7 @@ exports.walletGenerarPase = onCall(
     const disp = Number(u.sellosDisponibles ?? u.stamps ?? 0);
     const hist = Number(u.sellosHistoricos ?? disp);
     const accent = cfg.accent || '#c9a84c';
+    const bg = cfg.bg; const icon = cfg.stampIcon;
     const { filled, target } = core.stampState(disp, premios);
     const rango = core.rangoNombre(hist, rangosCfg);
     const accountName = u.nombre || u.displayName || 'Cliente';
@@ -211,7 +214,7 @@ exports.walletGenerarPase = onCall(
       // Asegurar la clase (idempotente) por si el admin solo activó sin provisionar.
       await core.upsertClass(key, core.buildClass(tenantId, cfg));
 
-      const obj = core.buildObject(tenantId, uid, { accountName, filled, target, rango, accent });
+      const obj = core.buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon });
       await core.upsertObject(key, obj);
 
       // Guardar el vínculo en el user doc → habilita el sync automático.
@@ -259,13 +262,14 @@ async function syncPase(tenantId, uid, before, after) {
         leerWalletCfg(tenantId),
       ]);
       const accent = cfg.accent || '#c9a84c';
+      const bg = cfg.bg; const icon = cfg.stampIcon;
       const { filled, target } = core.stampState(dispDesp, premios);
       const rango = core.rangoNombre(histDesp, rangosCfg);
 
       const key = saKey();
       await core.patchObject(key, objectId, {
         loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent }) } },
+        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon }) } },
         textModulesData: [{ id: 'rango', header: 'Rango', body: rango }],
       });
 

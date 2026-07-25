@@ -62,6 +62,14 @@
   .geo-map{width:100%;height:240px;border-radius:12px;overflow:hidden;border:1px solid #e2e5e0;margin-top:6px;background:#eef1ee;}
   .geo-radius-row{margin-top:12px;}
   .range{width:100%;accent-color:#39c313;margin-top:6px;}
+  .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .theme-btn{width:40px;height:40px;border-radius:10px;border:2px solid #e2e5e0;cursor:pointer;padding:0;transition:.15s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  .icons{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .icon-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:66px;padding:9px 4px;border-radius:12px;border:1.5px solid #e2e5e0;background:#fff;cursor:pointer;font-size:11px;color:#5c6367;transition:.15s;}
+  .icon-btn:hover{border-color:#c7ccc2;}
+  .icon-btn .em{font-size:20px;line-height:1;}
+  .icon-btn.sel{border-color:#15240b;background:#f2f6ee;color:#15240b;font-weight:700;}
   .color-field{display:flex;align-items:center;gap:8px;}
   .color-field input[type=color]{width:48px;height:48px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:4px;cursor:pointer;}
   .color-field input[type=text]{flex:1;}
@@ -192,7 +200,13 @@
           </div>
         </div>
 
-        <label style="margin-top:2px;">Geo-push — zona de activación</label>
+        <label style="margin-top:6px;">Tema rápido</label>
+        <div id="theme-presets" class="themes"></div>
+
+        <label style="margin-top:14px;">Ícono de la estampa</label>
+        <div id="icon-picker" class="icons"></div>
+
+        <label style="margin-top:14px;">Geo-push — zona de activación</label>
         <p class="pv-note" style="margin-top:2px;">Arrastra el marcador sobre tu local y ajusta el radio con el slider (o el borde del círculo). La tarjeta aparece sola en el teléfono del cliente cuando entra a esa zona.</p>
         <div id="geo-map" class="geo-map"></div>
         <div class="geo-radius-row">
@@ -430,6 +444,8 @@ function llenarForm(cfg, tenantCfg) {
   $('f-geoRadius-label').textContent = gr + ' m';
   $('f-geoMensaje').value = cfg.geoMensaje || '';
   $('f-enabled').checked = cfg.enabled === true;
+  _stampIcon = cfg.stampIcon || 'check';
+  pintarIconos();
   syncMapFromForm();
 }
 
@@ -444,6 +460,7 @@ function leerForm() {
     bg: $('f-bg-hex').value.trim(),
     geoMensaje: $('f-geoMensaje').value.trim(),
     enabled: $('f-enabled').checked,
+    stampIcon: _stampIcon,
   };
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     cfg.location = { lat: lat, lng: lng };
@@ -466,7 +483,8 @@ function renderPreview() {
   logo.style.visibility = 'visible';
   logo.src = cfg.logoUrl || '/bioo-iso.png';
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent) ? cfg.accent.slice(1) : 'c9a84c';
-  $('pv-strip').src = STAMP_IMG + '?f=' + filled + '&t=10&c=' + acc;
+  var bgc = /^#[0-9a-fA-F]{6}$/.test(cfg.bg) ? cfg.bg.slice(1) : '0a0a0a';
+  $('pv-strip').src = STAMP_IMG + '?f=' + filled + '&t=10&c=' + acc + '&bg=' + bgc + (_stampIcon !== 'check' ? '&i=' + _stampIcon : '');
   $('pv-geo').textContent = cfg.location
     ? '📍 ' + (cfg.geoMensaje || 'Aparece sola cuando el cliente está cerca del local')
     : '';
@@ -518,6 +536,60 @@ function guardar() {
       btn.textContent = 'Guardar y provisionar';
     });
 }
+
+// ── Temas rápidos + selector de ícono de estampa ──────────────────
+var THEMES = [
+  { accent: '#c9a84c', bg: '#0a0a0a' }, // negro dorado
+  { accent: '#d9a441', bg: '#1a1109' }, // café tostado
+  { accent: '#39c313', bg: '#0f1a0a' }, // verde fresco
+  { accent: '#c0392b', bg: '#1a0a0a' }, // rojo vino
+  { accent: '#4c9ac9', bg: '#0a0f1a' }, // azul noche
+  { accent: '#ec4899', bg: '#1a0a14' }, // rosa
+];
+var ICONS = [
+  { id: 'check',  em: '✓',  label: 'Check' },
+  { id: 'star',   em: '★',  label: 'Estrella' },
+  { id: 'heart',  em: '♥',  label: 'Corazón' },
+  { id: 'coffee', em: '☕', label: 'Café' },
+  { id: 'fork',   em: '🍴', label: 'Comida' },
+  { id: 'wine',   em: '🍷', label: 'Copa' },
+];
+var _stampIcon = 'check';
+
+function pintarThemes() {
+  var box = $('theme-presets'); if (!box) return;
+  box.innerHTML = '';
+  THEMES.forEach(function (t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'theme-btn'; b.title = t.accent + ' / ' + t.bg;
+    b.style.background = 'linear-gradient(135deg,' + t.bg + ' 0 50%,' + t.accent + ' 50% 100%)';
+    b.addEventListener('click', function () {
+      $('f-accent').value = t.accent; $('f-accent-hex').value = t.accent;
+      $('f-bg').value = t.bg; $('f-bg-hex').value = t.bg;
+      renderPreview();
+    });
+    box.appendChild(b);
+  });
+}
+
+function pintarIconos() {
+  var box = $('icon-picker'); if (!box) return;
+  box.innerHTML = '';
+  ICONS.forEach(function (ic) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'icon-btn' + (ic.id === _stampIcon ? ' sel' : '');
+    b.dataset.icon = ic.id;
+    b.innerHTML = '<span class="em">' + ic.em + '</span>' + ic.label;
+    b.addEventListener('click', function () {
+      _stampIcon = ic.id;
+      Array.prototype.forEach.call(box.children, function (c) { c.classList.toggle('sel', c.dataset.icon === ic.id); });
+      renderPreview();
+    });
+    box.appendChild(b);
+  });
+}
+pintarThemes();
+pintarIconos();
 
 // ── Mapa del geo-push (Google Maps) ───────────────────────────────
 var _geoMap = null, _geoMarker = null, _geoCircle = null, _mapsReady = false;

@@ -69,6 +69,68 @@ function drawStar(ctx, cx, cy, rOut, color) {
   ctx.fill();
 }
 
+// ── Íconos de estampa (glyphs) — todos con paths, sin fuentes ─────
+function drawHeart(ctx, cx, cy, s, color) {
+  ctx.fillStyle = color;
+  const r = s * 0.5;
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.55, cy - r * 0.32, r * 0.62, 0, TAU);
+  ctx.arc(cx + r * 0.55, cy - r * 0.32, r * 0.62, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 1.08, cy - r * 0.05);
+  ctx.lineTo(cx + r * 1.08, cy - r * 0.05);
+  ctx.lineTo(cx, cy + r * 1.08);
+  ctx.closePath();
+  ctx.fill();
+}
+function drawCoffee(ctx, cx, cy, r, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(2, r * 0.13);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const w = r * 0.92, h = r * 0.82, left = cx - w / 2, top = cy - h / 2 + r * 0.06;
+  ctx.beginPath();
+  ctx.moveTo(left, top); ctx.lineTo(left + w, top);
+  ctx.lineTo(left + w * 0.85, top + h); ctx.lineTo(left + w * 0.15, top + h);
+  ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(left + w + r * 0.03, top + h * 0.42, r * 0.23, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.16, top - r * 0.3); ctx.quadraticCurveTo(cx, top - r * 0.14, cx - r * 0.16, top - r * 0.02);
+  ctx.moveTo(cx + r * 0.18, top - r * 0.3); ctx.quadraticCurveTo(cx + r * 0.34, top - r * 0.14, cx + r * 0.18, top - r * 0.02);
+  ctx.stroke();
+}
+function drawFork(ctx, cx, cy, r, color) {
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(2, r * 0.11);
+  const topY = cy - r * 0.6, botY = cy + r * 0.64, fx = cx - r * 0.4;
+  for (const dx of [-r * 0.15, 0, r * 0.15]) { ctx.beginPath(); ctx.moveTo(fx + dx, topY); ctx.lineTo(fx + dx, cy - r * 0.14); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(fx - r * 0.15, cy - r * 0.14); ctx.lineTo(fx + r * 0.15, cy - r * 0.14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fx, cy - r * 0.14); ctx.lineTo(fx, botY); ctx.stroke();
+  const kx = cx + r * 0.42;
+  ctx.beginPath(); ctx.moveTo(kx, cy - r * 0.05); ctx.lineTo(kx, botY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(kx, topY); ctx.quadraticCurveTo(kx + r * 0.2, topY + r * 0.2, kx, cy - r * 0.05); ctx.quadraticCurveTo(kx - r * 0.06, cy - r * 0.3, kx, topY); ctx.closePath(); ctx.fill();
+}
+function drawWine(ctx, cx, cy, r, color) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = Math.max(2, r * 0.12);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const topY = cy - r * 0.58;
+  ctx.beginPath(); ctx.moveTo(cx - r * 0.4, topY); ctx.lineTo(cx + r * 0.4, topY); ctx.arc(cx, topY, r * 0.4, 0, Math.PI); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx, topY + r * 0.4); ctx.lineTo(cx, cy + r * 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - r * 0.32, cy + r * 0.5); ctx.lineTo(cx + r * 0.32, cy + r * 0.5); ctx.stroke();
+}
+
+// Despacha el ícono de la estampa llena (default: check).
+function drawGlyph(ctx, cx, cy, r, id, color) {
+  switch (id) {
+    case 'star':   return drawStar(ctx, cx, cy, r * 0.62, color);
+    case 'heart':  return drawHeart(ctx, cx, cy, r * 0.72, color);
+    case 'coffee': return drawCoffee(ctx, cx, cy, r, color);
+    case 'fork':   return drawFork(ctx, cx, cy, r, color);
+    case 'wine':   return drawWine(ctx, cx, cy, r, color);
+    case 'check':
+    default:       return drawCheck(ctx, cx, cy, r, color);
+  }
+}
+
 // Sello lleno: degradado radial (efecto moneda) + glow del color de marca.
 function fillStamp(ctx, cx, cy, r, accentHex) {
   ctx.save();
@@ -102,7 +164,7 @@ function fillStamp(ctx, cx, cy, r, accentHex) {
  * dibuja la barra de progreso (Opción A elegida 2026-07-26).
  * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number, track?:boolean}} opts
  */
-function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, track = true } = {}) {
+function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, track = true, icon = 'check' } = {}) {
   const w = Math.max(100, Math.round(Number(width) || W));
   const h = Math.max(40, Math.round(Number(height) || H));
   const n = Math.max(1, Math.min(40, Math.round(Number(target) || 10)));
@@ -168,7 +230,7 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, 
     if (isFilled) {
       fillStamp(ctx, cx, cy, r, accentHex);
       if (isPrize) drawStar(ctx, cx, cy, r * 0.5, contrastOn(accentHex));
-      else drawCheck(ctx, cx, cy, r, contrastOn(accentHex));
+      else drawGlyph(ctx, cx, cy, r, icon, contrastOn(accentHex));
     } else if (isPrize) {
       // Premio pendiente: aro punteado + estrella con brillo.
       ctx.strokeStyle = accentHex;
@@ -205,7 +267,7 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, 
  * lleno con su tick, con el mismo tratamiento de la tira.
  * @param {{size?:number, accent?:string, bg?:string}} opts
  */
-function renderIcon({ size = 87, accent, bg } = {}) {
+function renderIcon({ size = 87, accent, bg, icon = 'check' } = {}) {
   const s = Math.max(29, Math.round(Number(size) || 87));
   const accentHex = normHex(accent, '#c9a84c');
   const bgHex = normHex(bg, '#0a0a0a');
@@ -220,7 +282,7 @@ function renderIcon({ size = 87, accent, bg } = {}) {
   ctx.fillRect(0, 0, s, s);
 
   fillStamp(ctx, s / 2, s / 2, s * 0.34, accentHex);
-  drawCheck(ctx, s / 2, s / 2, s * 0.34, contrastOn(accentHex));
+  drawGlyph(ctx, s / 2, s / 2, s * 0.34, icon, contrastOn(accentHex));
 
   return canvas.toBuffer('image/png');
 }
