@@ -1194,6 +1194,26 @@
       border-color: var(--gold);
     }
 
+    /* Chip para preferencias dietarias (club restaurante). Tema oscuro
+       neutral — no depende del theme de un tenant específico. */
+    .reg-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 7px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      font-size: 12px; font-weight: 500;
+      color: #d4d4d8;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+    .reg-chip:hover { border-color: rgba(249,115,22,0.5); color: #fff; }
+    .reg-chip.on {
+      background: #f97316;
+      border-color: #f97316;
+      color: #fff;
+    }
+
     /* Inputs */
     .field {
       width: 100%;
@@ -1679,6 +1699,21 @@
             <i class="ph ph-eye text-xl"></i>
           </button>
         </div>
+        <!-- Preferencias dietarias — solo visible para tenants tipo restaurante
+             (se despliega desde initRestaurante() abajo). Guarda un array de
+             tags en users/{uid}.preferenciasDietarias, útil para segmentar
+             promos (ej. "Menú vegano nuevo" solo a preferencia=vegano). -->
+        <div id="restoPrefsBlock" class="hidden">
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 px-1">Preferencias (opcional)</label>
+          <div class="flex flex-wrap gap-2" id="restoPrefsChips">
+            <button type="button" data-pref="vegano"      class="reg-chip">🌱 Vegano</button>
+            <button type="button" data-pref="vegetariano" class="reg-chip">🥬 Vegetariano</button>
+            <button type="button" data-pref="sin_gluten"  class="reg-chip">🌾 Sin gluten</button>
+            <button type="button" data-pref="sin_lactosa" class="reg-chip">🥛 Sin lactosa</button>
+            <button type="button" data-pref="picante"     class="reg-chip">🌶️ Me gusta picante</button>
+          </div>
+          <p class="text-[10px] text-gray-600 mt-2 px-1">Te mostraremos platos que encajan con tus gustos.</p>
+        </div>
         <!-- Referidos: se muestra solo si el tenant activó el programa
              (settings/general.referralProgram.enabled === true) -->
         <div id="referralInputBlock" class="hidden">
@@ -1928,6 +1963,11 @@
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
       };
       if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
+      // Club restaurante: preferencias dietarias (array). Vacío = sin
+      // preferencias declaradas; no se guarda el campo para no ensuciar el doc.
+      if (Array.isArray(extra.preferenciasDietarias) && extra.preferenciasDietarias.length) {
+        data.preferenciasDietarias = extra.preferenciasDietarias;
+      }
       // Evidencia de consentimiento — Ley 19.628 art. 4 / Ley 21.719 art. 12.
       // Se guarda una sola vez al crear el doc; renovaciones futuras (nueva
       // versión de términos) se manejarán con una migración/callable aparte.
@@ -2026,6 +2066,42 @@
   // solas en el primer login (ver fallback `show-password-fallback` abajo).
   function isPasswordless() {
     return true;
+  }
+
+  // Tenants tipo restaurante — el club captura preferencias dietarias y
+  // despliega el cumpleaños por defecto (más útil que en barbería).
+  // Fuente: `configuracion/main.tipo === 'restaurante'` sembrado en el tenant.
+  // El array hardcodeado es un fallback rápido para tenants con doc raíz vacío.
+  const RESTAURANTE_TENANTS = ['restodemo'];
+  function isRestaurante() {
+    return RESTAURANTE_TENANTS.includes(window.CURRENT_TENANT_ID);
+  }
+
+  (function initClubRestaurante() {
+    if (!isRestaurante()) return;
+    // Fires cuando el DOM esté armado. Como este script vive al final del
+    // body, los IDs ya existen.
+    try {
+      const block = document.getElementById('restoPrefsBlock');
+      if (block) block.classList.remove('hidden');
+      // Cumpleaños desplegado por defecto — en restaurante lo usamos para
+      // regalar sello/descuento en el mes de cumple, así que reduce fricción
+      // que ya esté visible en vez de escondido detrás de un toggle.
+      const cumpWrap = document.getElementById('regFechaNacimientoWrap');
+      const cumpToggle = document.getElementById('regFechaNacimientoToggle');
+      if (cumpWrap) cumpWrap.classList.remove('hidden');
+      if (cumpToggle) cumpToggle.classList.add('hidden');
+      // Wire chips
+      document.querySelectorAll('#restoPrefsChips .reg-chip').forEach(btn => {
+        btn.addEventListener('click', () => btn.classList.toggle('on'));
+      });
+    } catch (e) { console.warn('[initClubRestaurante]', e); }
+  })();
+
+  function getPrefsRestaurante() {
+    if (!isRestaurante()) return null;
+    const on = document.querySelectorAll('#restoPrefsChips .reg-chip.on');
+    return Array.from(on).map(b => b.dataset.pref);
   }
   function clubPassword() {
     // Password interna fija por tenant. NO cambiar las existentes (rompería
@@ -2444,7 +2520,7 @@
           })).data || {};
           if (info.migrado) {
             const cred2 = await auth.signInWithEmailAndPassword(email, clubPassword());
-            try { await ensureUserDoc(cred2.user, { nombre, telefono, fechaNacimiento, acepto }); } catch (_) {}
+            try { await ensureUserDoc(cred2.user, { nombre, telefono, fechaNacimiento, acepto, preferenciasDietarias: getPrefsRestaurante() }); } catch (_) {}
             goToDashboard();
             return;
           }
@@ -2470,7 +2546,7 @@
       // displayName no es crítico para redirigir → fire-and-forget.
       cred.user.updateProfile({ displayName: nombre }).catch(() => {});
 
-      await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento, acepto });
+      await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento, acepto, preferenciasDietarias: getPrefsRestaurante() });
 
       // Crear/actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
       const normalizedPhone = telefono.replace(/\D/g, '');

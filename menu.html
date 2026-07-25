@@ -286,6 +286,58 @@
     .empty h3 { font-family: 'Fraunces', serif; font-size: 20px; color: var(--text-md); margin-bottom: 8px; }
     .empty p { font-size: 13px; }
 
+    /* ────────── CTA Club (banner al final del menú) ────────── */
+    .club-banner {
+      max-width: 900px; margin: 40px auto 20px; padding: 24px 20px;
+      background: linear-gradient(135deg, rgba(249,115,22,.12) 0%, rgba(180,83,9,.08) 100%);
+      border: 1px solid rgba(249,115,22,.35);
+      border-radius: var(--radius);
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .club-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at top, rgba(249,115,22,.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .club-banner-eyebrow {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--accent-hi); font-weight: 700; margin-bottom: 8px;
+      position: relative;
+    }
+    .club-banner h3 {
+      font-family: 'Fraunces', serif; font-weight: 700;
+      font-size: clamp(1.4rem, 5vw, 1.9rem);
+      line-height: 1.2; color: var(--text-hi); margin-bottom: 8px;
+      position: relative;
+    }
+    .club-banner p {
+      font-size: 13px; color: var(--text-md);
+      max-width: 440px; margin: 0 auto 20px;
+      line-height: 1.55; position: relative;
+    }
+    .club-banner .cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #fff; text-decoration: none;
+      font-weight: 700; font-size: 14px; letter-spacing: .3px;
+      border-radius: 999px;
+      box-shadow: 0 8px 24px -6px rgba(249,115,22,.55);
+      transition: transform .18s ease, box-shadow .18s ease;
+      position: relative;
+    }
+    .club-banner .cta:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -6px rgba(249,115,22,.7); }
+    .club-perks {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+      margin-top: 18px; position: relative;
+    }
+    .club-perk {
+      font-size: 11px; color: var(--text-lo);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .club-perk strong { color: var(--accent-hi); font-weight: 600; }
+
     /* ────────── Footer + Powered by ────────── */
     footer {
       padding: 32px 20px calc(20px + var(--safe-b));
@@ -339,6 +391,21 @@
 
   <!-- Grid principal -->
   <main id="menu-root"></main>
+
+  <!-- CTA · Únete al Club (banner debajo de la carta) -->
+  <aside class="club-banner" aria-label="Únete al Club">
+    <div class="club-banner-eyebrow">✨ Club de fidelidad</div>
+    <h3 id="club-title">Únete y acumula sellos</h3>
+    <p id="club-desc">Regístrate en menos de un minuto y suma sellos con cada visita. Canjéalos por postres, entradas, copas de vino y platos gratis.</p>
+    <a class="cta" href="/registro.html">
+      🎁 <span>Unirme al Club</span>
+    </a>
+    <div class="club-perks">
+      <span class="club-perk"><strong>🎂</strong> Regalo de cumpleaños</span>
+      <span class="club-perk"><strong>⭐</strong> Beneficios exclusivos</span>
+      <span class="club-perk"><strong>🎫</strong> Sin costo</span>
+    </div>
+  </aside>
 
   <!-- Footer -->
   <footer>

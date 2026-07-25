@@ -158,6 +158,16 @@ const CONFIG = {
   radioDelivery:     0,
 };
 
+// ── Premios del Club (motor reusa el de barbería: sellos → canjes) ───────────
+// La vista pública menu.html invita al club; al registrarse el cliente empieza
+// con 0 sellos y va acumulando en cada visita. Estos son los premios canjeables.
+const PREMIOS = [
+  { id: 'postre-gratis',  nombre: 'Postre Gratis',       descripcion: 'Canjea 5 sellos por un postre a elección de la carta.',   sellosRequeridos: 5,  costoSellos: 5,  activo: true, orden: 0 },
+  { id: 'entrada-gratis', nombre: 'Entrada Gratis',      descripcion: 'Canjea 8 sellos por una entrada a elección.',              sellosRequeridos: 8,  costoSellos: 8,  activo: true, orden: 1 },
+  { id: 'fondo-gratis',   nombre: 'Fondo Gratis',        descripcion: 'Canjea 15 sellos por un fondo (excluye premium/mariscos).', sellosRequeridos: 15, costoSellos: 15, activo: true, orden: 2 },
+  { id: 'copa-vino',      nombre: 'Copa de Vino',        descripcion: 'Una copa de vino tinto o blanco de nuestra selección.',    sellosRequeridos: 6,  costoSellos: 6,  activo: true, orden: 3 },
+];
+
 const SYSTEM_DOC = {
   killSwitch: false,
   plan:       'demo',
@@ -200,6 +210,19 @@ async function main() {
     if (COMMIT) await b.commit();
   }
   console.log(`  ${COMMIT ? '✅' : '🅳'} ${MENU.length} platos`);
+
+  sep('PREMIOS DEL CLUB');
+  await wipe('premios');
+  {
+    let b = db.batch();
+    for (const p of PREMIOS) {
+      const { id, ...d } = p;
+      b.set(col('premios').doc(id), { ...d, creadoEn: TS(), actualizadoEn: TS() }, { merge: true });
+      console.log(`  → ${d.nombre.padEnd(20)} · ${d.sellosRequeridos} sellos · ${d.descripcion.slice(0, 60)}...`);
+    }
+    if (COMMIT) await b.commit();
+  }
+  console.log(`  ${COMMIT ? '✅' : '🅳'} ${PREMIOS.length} premios sembrados`);
 
   sep('_SYSTEM');
   if (COMMIT) await db.collection('_system').doc(TENANT_ID).set({ ...SYSTEM_DOC, updatedAt: TS() }, { merge: true });

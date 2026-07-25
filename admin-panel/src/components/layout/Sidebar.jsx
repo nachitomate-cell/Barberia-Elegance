@@ -248,16 +248,28 @@ const NAV_GROUPS_DELUXE = [
   },
 ];
 
-// ── Restaurantes (tipo 'restaurante'): sidebar recortado a lo esencial.
-// Paso 1 (hoy): solo carta + configuración. Paso 2 (futuro): pedidos, entregas,
-// integraciones de delivery.
+// ── Restaurantes (tipo 'restaurante'): sidebar recortado.
+// Reusa el motor de sellos + premios + wallets de barbería tal cual — el
+// modelo "N visitas = premio" funciona idéntico para un club de restaurante.
+// Paso 2 (futuro): sumar pedidos/delivery en la sección Carta.
 const NAV_GROUPS_RESTO = [
   {
     id: 'carta',
     label: 'Carta',
     items: [
       { to: 'menu',      label: 'Menú',      Icon: UtensilsCrossed },
-      { to: 'mensajes',  label: 'Mensajes',  Icon: MessageCircle },
+      { to: 'mensajes',  label: 'Mensajes',  Icon: MessageCircle   },
+    ],
+  },
+  {
+    id: 'club',
+    label: 'Club',
+    items: [
+      { to: 'clientes',     label: 'Clientes',     Icon: Star,   variant: 'fideli'  },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy, variant: 'fideli'  },
+      { to: 'premios',      label: 'Premios',      Icon: Gift,   adminOnly: true    },
+      { to: 'canjes',       label: 'Canjes',       Icon: ScanLine                    },
+      { to: 'wallets',      label: 'Wallet',       Icon: Wallet, adminOnly: true    },
     ],
   },
   {
@@ -265,10 +277,11 @@ const NAV_GROUPS_RESTO = [
     label: 'Administración',
     adminOnly: true,
     items: [
+      { to: 'anuncios',      label: 'Anuncios',        Icon: BellRing,   adminOnly: true },
       { to: 'configuracion', label: 'Configuración',   Icon: Settings,   adminOnly: true },
       { to: 'consultas',     label: 'Consultas',       Icon: HelpCircle, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',         Icon: Headphones, adminOnly: true },
-      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen },
+      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen                    },
     ],
   },
 ];
