@@ -69,6 +69,7 @@ import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
+import HubTenantGate        from './components/HubTenantGate';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -95,6 +96,7 @@ function ProtectedApp() {
   if (!user) return <LoginPage />;
 
   return (
+    <HubTenantGate>
     <Routes>
       {/* Vista TV: pantalla completa, sin sidebar ni navbar */}
       <Route path="tv" element={<BarberTV />} />
@@ -167,6 +169,7 @@ function ProtectedApp() {
         </AdminLayout>
       } />
     </Routes>
+    </HubTenantGate>
   );
 }
 

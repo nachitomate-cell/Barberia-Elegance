@@ -160,6 +160,80 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
 });
 
 // ═════════════════════════════════════════════════════════════════
+//  CALLABLE: resolverMisTenants
+//
+//  Devuelve los locales (tenants) donde el usuario autenticado es
+//  miembro real — admin/jefe/barbero activo — EXCLUYENDO el barbero
+//  universal de QA (esQA). Lo usa el hub app.synaptechspa.cl (SynapTech
+//  Studio) para llevar a cada dueño a SU local tras el login, sin exponer
+//  jamás los locales de otros. NO enumera locales para el cliente: solo
+//  devuelve los del propio usuario.
+//
+//  Devuelve: { superadmin, tenants: [{ tenantId, rol }] }
+//    - superadmin=true → el hub no fuerza (Ignacio usa ?local=; su QA
+//      fantasma vive en todos los tenants y no representa membresía real).
+//
+//  Criterio de membresía = el MISMO que AuthContext usa para el rol:
+//  existe barberos/{uid} (resolviendo link-docs _mainDocId), activo y no QA.
+// ═════════════════════════════════════════════════════════════════
+// Admins de marca (acceso 'admin' a varias sedes sin doc barbero en cada
+// una). Espejo del mapa BRAND_ADMINS del cliente (AuthContext.jsx), sin el
+// marcador unificado 'kronnos' (el hub muestra sedes concretas).
+const HUB_BRAND_ADMINS = {
+  'administracionkronnos@gmail.com': ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+  'claudio.burgos91@gmail.com':      ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+  'grupo.kratos.spa@gmail.com':      ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+};
+
+exports.resolverMisTenants = onCall({ region: 'us-central1', cors: true }, async (request) => {
+  const uid   = request.auth?.uid;
+  const email = (request.auth?.token?.email || '').toLowerCase();
+  if (!uid) throw new HttpsError('unauthenticated', 'Requiere sesión.');
+
+  // Superadmin SynapTech: no forzamos un local (usa ?local=).
+  if (email === 'ignaciiio.mate@gmail.com') {
+    return { superadmin: true, tenants: [] };
+  }
+
+  const found = new Map(); // tenantId -> { tenantId, rol }
+
+  // Evalúa barberos/{uid} en una colección; resuelve link-docs (_mainDocId),
+  // ignora inactivos y el barbero universal de QA (esQA).
+  async function evalMembership(colRef, tenantId) {
+    try {
+      const snap = await colRef.doc(uid).get();
+      if (!snap.exists) return;
+      let data = snap.data();
+      if (data._mainDocId) {
+        const main = await colRef.doc(data._mainDocId).get();
+        if (main.exists) data = main.data();
+      }
+      if (data.activo === false) return;
+      if (data.esQA === true)    return;   // barbero universal invisible (QA)
+      found.set(tenantId, { tenantId, rol: normalizarRole(data.rol) });
+    } catch (err) {
+      logger.warn(`[resolverMisTenants] ${tenantId}: ${err.message}`);
+    }
+  }
+
+  // Elegance (root /barberos) + multi-tenant (/tenants/{id}/barberos).
+  // listDocuments porque los docs padre tenants/{id} pueden no existir.
+  const tasks = [evalMembership(db.collection('barberos'), 'elegance')];
+  const tenantRefs = await db.collection('tenants').listDocuments();
+  for (const tRef of tenantRefs) {
+    tasks.push(evalMembership(tRef.collection('barberos'), tRef.id));
+  }
+  await Promise.all(tasks);
+
+  // Admins de marca (acceso por email, sin doc barbero en cada sede).
+  for (const t of (HUB_BRAND_ADMINS[email] || [])) {
+    if (!found.has(t)) found.set(t, { tenantId: t, rol: 'admin' });
+  }
+
+  return { superadmin: false, tenants: Array.from(found.values()) };
+});
+
+// ═════════════════════════════════════════════════════════════════
 //  CALLABLE: crearAccesoStaff
 //
 //  Permite a un ADMIN del local crear una cuenta Firebase Auth para
