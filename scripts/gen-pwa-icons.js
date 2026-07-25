@@ -51,6 +51,9 @@ const TENANTS = {
   // con wordmark blanco). Los oren-192/512 anteriores eran copias a mano del
   // placeholder de la demo (logo.png con tijeras doradas) y no correspondían.
   oren:                 { src: 'oren/oren-logo.webp',             bg: '#0a0a0d', fit: 'cover' },
+  // Restaurante Demo: logo placeholder cálido (naranja/madera). Se reemplaza
+  // por el logo real del cliente cuando cierre; el path del manifest queda igual.
+  restodemo:            { src: 'restodemo/logo.jpg',              bg: '#100906', fit: 'cover' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.

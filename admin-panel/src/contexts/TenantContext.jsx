@@ -29,6 +29,7 @@ export const TENANT_META = {
   renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
   oren:               { name: 'Oren Barber', accent: 'amber', emoji: '✂️', logo: '/oren/oren-logo.webp', banner: '/oren/renaca.webp' },
   omega:              { name: 'OMEGA STUDIO', accent: 'amber', emoji: '✂️', logo: '/omega.jpg' },
+  restodemo:          { name: 'Restaurante Demo', accent: 'orange', emoji: '🍴', logo: '/restodemo/logo.jpg', tipo: 'restaurante' },
 };
 
 const TenantContext = createContext(null);

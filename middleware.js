@@ -47,6 +47,7 @@ const DOMAIN_MAP = {
   'renacer.synaptechspa.cl':           'renacer',
   'orenbarber.synaptechspa.cl':        'oren',
   'orenbarbercl.synaptechspa.cl':      'oren',
+  'restodemo.synaptechspa.cl':         'restodemo',
   // elegance vivía del fallback implícito "host desconocido → elegance"; con el
   // 404 de plataforma ese fallback ya no existe para *.synaptechspa.cl y su
   // subdominio necesita entrada explícita como todos los demás.
@@ -1368,6 +1369,57 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=renacer',
     },
   },
+  // ── RESTODEMO — Restaurante demo (carta digital, sin agenda) ──
+  // restodemo.synaptechspa.cl sirve /menu.html en la raíz. `booking` acá se
+  // usa como default para la vista pública (menu.html usa getPageType='booking'
+  // por defecto). No expone /dashboard ni /registro estilo barbería.
+  restodemo: {
+    booking: {
+      title:       'Carta Digital · Restaurante Demo',
+      description: 'Explora nuestra carta desde el celular. Fotos, precios claros y categorías. Pronto podrás pedir por delivery.',
+      ogTitle:     'Carta Digital · Restaurante Demo',
+      ogDesc:      'Nuestra carta, siempre a mano.',
+    },
+    dashboard: {
+      title:       'Mi Cuenta · Restaurante Demo',
+      description: 'Tu cuenta en Restaurante Demo.',
+      ogTitle:     'Mi Cuenta · Restaurante Demo',
+      ogDesc:      'Panel personal en Restaurante Demo.',
+    },
+    registro: {
+      title:       'Únete · Restaurante Demo',
+      description: 'Crea tu cuenta para pedir más rápido.',
+      ogTitle:     'Únete · Restaurante Demo',
+      ogDesc:      'Regístrate en Restaurante Demo.',
+    },
+    siteName:    'Restaurante Demo',
+    ogImage:     '/restodemo/hero.jpg',
+    themeColor:  '#100906',
+    appTitle:    'Restaurante Demo',
+    icon:        '/restodemo/logo.jpg',
+    iconPwa192:  '/icons/pwa/restodemo-192.png',
+    iconPwa512:  '/icons/pwa/restodemo-512.png',
+    local: { telephone: '', streetAddress: '', addressLocality: '', schemaType: 'Restaurant' },
+    manifest: {
+      name:             'Restaurante Demo',
+      short_name:       'Restaurante Demo',
+      theme_color:      '#100906',
+      background_color: '#100906',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Restaurante Demo',
+      short_name:       'Restaurante Demo',
+      description:      'Panel de administración — Restaurante Demo',
+      theme_color:      '#EA580C',
+      background_color: '#100906',
+      start_url:        '/gestion-interna/?local=restodemo',
+      icons: [
+        { src: '/restodemo/logo.jpg',          sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
 };
 
 function mimeFromSrc(src) {
@@ -1806,6 +1858,26 @@ export default async function middleware(request) {
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
     return;
+  }
+
+  // ── RESTODEMO — carta digital pública (restodemo.synaptechspa.cl) ──
+  // El tenant "restaurante" no usa index.html (que asume agenda). La raíz
+  // sirve /menu.html directamente. El resto de rutas (assets, /gestion-interna)
+  // pasa crudo para que el panel admin y el sitemap funcionen igual que el
+  // resto de tenants. El pipeline SEO más abajo sigue inyectando meta/manifest
+  // por hostname vía DOMAIN_MAP → TENANT_META['restodemo'].
+  if (hostname === 'restodemo.synaptechspa.cl') {
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      const rw  = new URL('/menu.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      // Dejamos que el pipeline principal inyecte meta al pasar por menu.html;
+      // pero como acá ya devolvemos, replicamos el patrón de ops.html (sin meta).
+      // El OG/SEO lo cubre el <head> de menu.html + el pipeline al pedir /menu.html
+      // directo. La raíz queda con el meta base del HTML.
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    // /gestion-interna/, /manifest.json y demás siguen al pipeline general
+    // (que sí conoce restodemo por DOMAIN_MAP).
   }
 
   // ── SynapTech Studio (app B2B en Google Play, app.synaptechspa.cl) ──

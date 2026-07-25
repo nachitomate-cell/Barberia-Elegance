@@ -124,6 +124,12 @@ service firebase.storage {
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
 
+    // Menú (tenants tipo restaurante) — fotos de platos subidas desde el panel.
+    match /tenants/{tenantId}/menu/{itemId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
     // Bloquear cualquier otra ruta
     match /{allPaths=**} {
       allow read: if false;

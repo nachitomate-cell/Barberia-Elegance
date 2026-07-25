@@ -13,6 +13,7 @@ import { useVersionManager } from './hooks/useVersionManager';
 import AdminLayout from './components/layout/AdminLayout';
 import Inicio      from './views/Inicio';
 import Servicios   from './views/Servicios';
+import Menu        from './views/Menu';
 import Agenda      from './views/Agenda';
 import Pizarra     from './views/Pizarra';
 import CitasPorCerrar from './views/CitasPorCerrar';
@@ -85,7 +86,10 @@ function TenantGate({ children }) {
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
   const { id: tenantId } = useTenant();
-  const defaultRoute = tenantId === 'deluxeperfumes' ? 'productos' : 'agenda';
+  const defaultRoute =
+    tenantId === 'deluxeperfumes' ? 'productos' :
+    tenantId === 'restodemo'      ? 'menu'      :
+    'agenda';
 
   if (loading) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -112,6 +116,7 @@ function ProtectedApp() {
             <Route path="pizarra"         element={<Pizarra />} />
             <Route path="por-cerrar"      element={<CitasPorCerrar />} />
             <Route path="servicios"       element={<Servicios />} />
+            <Route path="menu"            element={<Menu />} />
             <Route path="equipo"          element={<Equipo />} />
             <Route path="clientes"        element={<Clientes />} />
             <Route path="lista-negra"     element={<ListaNegra />} />

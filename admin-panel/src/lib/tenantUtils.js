@@ -49,6 +49,7 @@ const DOMAIN_MAP = {
   'orenbarber.synaptechspa.cl':        'oren',
   'orenbarbercl.synaptechspa.cl':      'oren',
   'omega.synaptechspa.cl':             'omega',
+  'restodemo.synaptechspa.cl':         'restodemo',
 };
 
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────

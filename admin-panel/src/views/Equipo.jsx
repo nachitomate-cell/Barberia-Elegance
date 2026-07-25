@@ -41,6 +41,7 @@ const TENANT_DOMAINS = {
   mapubarbershop:'mapubarbershop.synaptechspa.cl',
   chameleon:     'chameleonbarber.synaptechspa.cl',
   oren:          'orenbarber.synaptechspa.cl',
+  restodemo:     'restodemo.synaptechspa.cl',
 };
 
 function slugify(str) {

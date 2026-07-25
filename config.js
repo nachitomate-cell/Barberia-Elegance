@@ -52,6 +52,7 @@
     'renacer.synaptechspa.cl':            'renacer',
     'orenbarber.synaptechspa.cl':         'oren',
     'orenbarbercl.synaptechspa.cl':       'oren',
+    'restodemo.synaptechspa.cl':          'restodemo',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -1110,6 +1111,42 @@
       totalReviews:    13,
       reviews:         [],
       barberos:        [],   // se poblará en Firestore (ver seed-renacer.js — Fase 3)
+    },
+    // ── RESTODEMO — Restaurante DEMO (carta digital + delivery futuro) ──
+    // Tenant genérico para vender el módulo restaurantero. Paso 1: menú
+    // público (menu.html). Paso 2 (futuro): carrito + delivery. Sin agenda:
+    // no expone /agenda, /barbero ni /dashboard tipo barbería.
+    // Acceso: restodemo.synaptechspa.cl → sirve /menu.html
+    // Tema: cálido oscuro (madera + naranja quemado). NO alias, tema propio.
+    // Cuando se cierre con un cliente real, se renombra en el TENANT_CONFIG
+    // de correos y se cambia display name; la data (colección menu) se conserva.
+    restodemo: {
+      categoriasServicio: ['Entradas', 'Fondos', 'Postres', 'Bebidas'],
+      nombre:          'Restaurante Demo',
+      nombreCorto:     'Restaurante Demo',
+      pageTitle:       'Restaurante Demo · Carta Digital',
+      bodyBg:          '#100906',
+      slogan:          'Nuestra carta, siempre a mano',
+      sobreNosotros:   'Un restaurante pensado para que veas nuestra carta desde el celular, con fotos, precios claros y sin descargar nada. Muy pronto sumamos pedidos por delivery.',
+      logo:            '/restodemo/logo.jpg',
+      direccion:       '',
+      horario:         '🍴 Todos los días · 12:00 – 23:00',
+      telefono:        '',
+      club:            '',   // sin club en paso 1
+      heroLine1:       'Sabor',
+      heroLine2:       'y detalle en cada plato.',
+      watermark:       'R',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '🍴',
+      googleReviewUrl: '',
+      ratingGeneral:   5.0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos:        [],   // no aplica
+      // Marca este tenant como "restaurante" para que las vistas condicionen
+      // (ocultar reservar/club, mostrar carta). Fuente única de verdad.
+      tipo:            'restaurante',
     },
   };
 

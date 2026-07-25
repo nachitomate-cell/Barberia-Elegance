@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#100906" />
+  <meta name="description" content="Carta digital — fotos, precios y detalle de cada plato. Explora nuestro menú desde tu celular." />
+  <meta name="robots" content="index, follow" />
+
+  <title>Carta Digital · Restaurante</title>
+
+  <!-- Preconnect a Firebase y Google Fonts para acelerar el primer paint -->
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+
+  <!-- Serif elegante para nombre + display; sans limpia para body -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&display=swap" />
+
+  <style>
+    /* ────────── Tokens ────────── */
+    :root {
+      --bg-0:       #100906;
+      --bg-1:       #17100a;
+      --bg-card:    #1c130d;
+      --bg-elev:    #251811;
+      --border:     #3a251a;
+      --border-lo:  #2a1a12;
+      --text-hi:    #f5e6d3;
+      --text-md:    #d4b896;
+      --text-lo:    #a8896b;
+      --accent:     #f97316;
+      --accent-2:   #ea580c;
+      --accent-hi:  #fdba74;
+      --danger:     #ef4444;
+      --success:    #22c55e;
+      --shadow-lg:  0 12px 40px -8px rgba(0,0,0,.7);
+      --radius:     16px;
+      --radius-sm:  10px;
+      --safe-t:     env(safe-area-inset-top, 0);
+      --safe-b:     env(safe-area-inset-bottom, 0);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+    body {
+      background: var(--bg-0);
+      color: var(--text-hi);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* Trama sutil textura */
+      background-image:
+        radial-gradient(circle at 20% 10%, rgba(249,115,22,.05) 0, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(217,119,6,.04) 0, transparent 50%);
+    }
+
+    /* ────────── Loading skeleton ────────── */
+    #loader {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg-0);
+      display: grid; place-items: center;
+      transition: opacity .3s ease, visibility .3s ease;
+    }
+    #loader.hidden { opacity: 0; visibility: hidden; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ────────── Hero ────────── */
+    .hero {
+      padding: calc(var(--safe-t) + 40px) 20px 32px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(249,115,22,.08) 0%, transparent 100%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+      border-bottom: 1px solid var(--border-lo);
+    }
+    .hero-eyebrow {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--accent-hi); font-weight: 700; margin-bottom: 12px;
+    }
+    .hero h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 900; font-size: clamp(2rem, 8vw, 3.2rem);
+      line-height: 1.05; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-hi) 0%, var(--accent-hi) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+    .hero-slogan {
+      font-size: 14px; color: var(--text-md); max-width: 480px; margin: 0 auto 20px;
+    }
+    .hero-meta {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px;
+    }
+    .hero-meta span {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; background: rgba(249,115,22,.08);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px; color: var(--text-md); font-weight: 500;
+    }
+
+    /* ────────── Sticky nav de categorías ────────── */
+    .catnav-wrap {
+      position: sticky; top: 0; z-index: 100;
+      padding: calc(var(--safe-t) + 8px) 0 8px;
+      background: rgba(16,9,6,.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-lo);
+    }
+    .catnav {
+      display: flex; gap: 8px;
+      overflow-x: auto; overflow-y: hidden;
+      padding: 0 16px;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+    }
+    .catnav::-webkit-scrollbar { display: none; }
+    .catnav-btn {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      color: var(--text-md); cursor: pointer;
+      transition: all .18s ease;
+      white-space: nowrap;
+    }
+    .catnav-btn:hover { color: var(--text-hi); border-color: var(--accent); }
+    .catnav-btn.active {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 4px 14px -2px rgba(249,115,22,.5);
+    }
+
+    /* ────────── Sección de categoría ────────── */
+    main { padding: 24px 16px calc(80px + var(--safe-b)); max-width: 900px; margin: 0 auto; }
+    .categoria {
+      margin-bottom: 40px;
+      scroll-margin-top: 96px;
+    }
+    .categoria-header {
+      display: flex; align-items: baseline; gap: 12px;
+      margin-bottom: 20px; padding: 0 4px;
+    }
+    .categoria-header h2 {
+      font-family: 'Fraunces', serif; font-weight: 700;
+      font-size: 26px; letter-spacing: -0.01em; color: var(--text-hi);
+    }
+    .categoria-header .count {
+      font-size: 12px; color: var(--text-lo); font-weight: 500;
+    }
+    .categoria-header .rule {
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+    }
+
+    /* ────────── Grid de platos ────────── */
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-lo);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+      position: relative;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border);
+      box-shadow: var(--shadow-lg);
+    }
+    .card-img-wrap {
+      position: relative;
+      width: 100%; aspect-ratio: 16/10;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    .card-img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .5s ease;
+      display: block;
+    }
+    .card:hover .card-img { transform: scale(1.04); }
+    .card-img-fallback {
+      width: 100%; height: 100%;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--bg-elev) 0%, var(--bg-card) 100%);
+      color: var(--accent);
+      font-size: 40px;
+    }
+    .card-badge {
+      position: absolute; top: 10px; left: 10px;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 10px;
+      background: rgba(16,9,6,.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(249,115,22,.35);
+      border-radius: 999px;
+      font-size: 11px; font-weight: 700; color: var(--accent-hi);
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+
+    .card-body {
+      padding: 16px 18px 18px;
+      display: flex; flex-direction: column; gap: 8px; flex: 1;
+    }
+    .card-title {
+      font-family: 'Fraunces', serif; font-weight: 700;
+      font-size: 18px; line-height: 1.25; color: var(--text-hi);
+    }
+    .card-desc {
+      font-size: 13px; color: var(--text-md); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      margin-top: auto; padding-top: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      border-top: 1px dashed var(--border-lo);
+    }
+    .card-price {
+      font-family: 'Inter', sans-serif; font-weight: 800;
+      font-size: 18px; letter-spacing: -0.01em;
+      background: linear-gradient(135deg, var(--accent-hi) 0%, var(--accent) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      justify-content: flex-end;
+    }
+    .tag {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 3px 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border-lo);
+      border-radius: 6px;
+      font-size: 10px; font-weight: 600; color: var(--text-md);
+      letter-spacing: .3px;
+    }
+    .tag.picante  { color: #fca5a5; border-color: rgba(239,68,68,.3); }
+    .tag.vegano   { color: #86efac; border-color: rgba(34,197,94,.3); }
+    .tag.popular  { color: var(--accent-hi); border-color: rgba(249,115,22,.35); }
+    .tag.novedad  { color: #c4b5fd; border-color: rgba(139,92,246,.3); }
+
+    /* ────────── Estado NO DISPONIBLE ────────── */
+    .card.no-disponible { opacity: .55; }
+    .card.no-disponible .card-img { filter: grayscale(1); }
+    .card.no-disponible::after {
+      content: 'Agotado';
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(0,0,0,.75); color: var(--text-hi);
+      padding: 5px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* ────────── Estado vacío ────────── */
+    .empty {
+      padding: 60px 20px; text-align: center; color: var(--text-lo);
+    }
+    .empty h3 { font-family: 'Fraunces', serif; font-size: 20px; color: var(--text-md); margin-bottom: 8px; }
+    .empty p { font-size: 13px; }
+
+    /* ────────── Footer + Powered by ────────── */
+    footer {
+      padding: 32px 20px calc(20px + var(--safe-b));
+      text-align: center;
+      border-top: 1px solid var(--border-lo);
+      background: var(--bg-1);
+    }
+    footer p { font-size: 11px; color: var(--text-lo); }
+    footer a { color: var(--accent-hi); text-decoration: none; font-weight: 600; }
+    .powered {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px; padding: 8px 14px;
+      background: rgba(0,0,0,.3); border: 1px solid var(--border-lo);
+      border-radius: 999px; font-size: 11px; color: var(--text-lo);
+    }
+    .powered img { width: 14px; height: 14px; border-radius: 3px; }
+
+    /* ────────── Accessible focus ────────── */
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+    /* ────────── Motion reduce ────────── */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+
+  <!-- Firebase compat SDKs (mismo patrón que el resto del repo) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/config.js"></script>
+  <script src="/firebase-config.js"></script>
+</head>
+<body>
+
+  <!-- Loader anti-FOUC mientras Firestore trae la carta -->
+  <div id="loader"><div class="spinner" aria-label="Cargando carta"></div></div>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-eyebrow">Carta digital</div>
+    <h1 id="hero-name">—</h1>
+    <p class="hero-slogan" id="hero-slogan"></p>
+    <div class="hero-meta" id="hero-meta"></div>
+  </header>
+
+  <!-- Sticky nav categorías -->
+  <div class="catnav-wrap">
+    <nav class="catnav" id="catnav" aria-label="Categorías"></nav>
+  </div>
+
+  <!-- Grid principal -->
+  <main id="menu-root"></main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© <span id="year"></span> · Carta digital actualizada en tiempo real.</p>
+    <a class="powered" href="https://synaptechspa.cl" target="_blank" rel="noopener">
+      <img src="/synaptech/ig.png" alt="" onerror="this.style.display='none'" />
+      Powered by <strong style="color:#9CCC3C;margin-left:2px">SynapTech</strong>
+    </a>
+  </footer>
+
+  <!-- ═════════════════════════════════════════════════════════════════
+       LÓGICA · Detecta tenant, carga carta desde Firestore, renderiza.
+       Tolera fallos: si Firestore está lento o cae, muestra fallback claro.
+       ═════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // ── 1. Resolver tenant ────────────────────────────────────────────────
+      // Fuentes: window.__FORCE_TENANT__ (middleware self-service), config.js
+      // resolveTenantId() (dominio → id), ?local=xxx, default 'restodemo'.
+      const url    = new URL(window.location.href);
+      const qsTid  = url.searchParams.get('local');
+      const forced = window.__FORCE_TENANT__ || null;
+      let tid = forced
+        || qsTid
+        || (typeof window.resolveTenantId === 'function' ? window.resolveTenantId() : null)
+        || 'restodemo';
+
+      // Solo restaurantes por ahora — si alguien cae acá con un tenant no-resto,
+      // igual mostramos su carta si tiene collection `menu` (no bloqueamos).
+      window.CURRENT_TENANT_ID = tid;
+      document.documentElement.dataset.tenant = tid;
+
+      // ── 2. Referencias Firestore ──────────────────────────────────────────
+      const db = firebase.firestore();
+      const tRef = db.collection('tenants').doc(tid);
+
+      const $  = (sel) => document.querySelector(sel);
+      const el = (tag, cls, html) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (html != null) n.innerHTML = html;
+        return n;
+      };
+
+      // ── 3. Formato precio Chile ──────────────────────────────────────────
+      const fmtPrecio = (n) => {
+        const v = Number(n) || 0;
+        return '$' + v.toLocaleString('es-CL');
+      };
+
+      // ── 4. Tags → chip legible ───────────────────────────────────────────
+      let TAG_LABEL = {
+        vegano:      { label: 'Vegano',       emoji: '🌱' },
+        vegetariano: { label: 'Vegetariano',  emoji: '🥬' },
+        sin_gluten:  { label: 'Sin gluten',   emoji: '🌾' },
+        picante:     { label: 'Picante',      emoji: '🌶️' },
+        popular:     { label: 'Popular',      emoji: '⭐' },
+        novedad:     { label: 'Nuevo',        emoji: '✨' },
+      };
+
+      // ── 5. Cargar configuración + carta en paralelo ──────────────────────
+      Promise.all([
+        tRef.collection('configuracion').doc('main').get(),
+        tRef.collection('menu').get(),
+      ]).then(([cfgSnap, menuSnap]) => {
+
+        const cfg   = cfgSnap.exists ? cfgSnap.data() : {};
+        const items = menuSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(i => i.activo !== false);
+
+        if (cfg.tagsMenu && typeof cfg.tagsMenu === 'object') TAG_LABEL = { ...TAG_LABEL, ...cfg.tagsMenu };
+
+        const categorias = Array.isArray(cfg.categoriasMenu) && cfg.categoriasMenu.length
+          ? cfg.categoriasMenu
+          : [{ id: 'general', nombre: 'Nuestra Carta', emoji: '🍽️', orden: 0 }];
+
+        renderHero(cfg, tid);
+        renderCatnav(categorias);
+        renderMenu(categorias, items);
+        wireStickyActiveCategory(categorias);
+        $('#loader').classList.add('hidden');
+
+      }).catch(err => {
+        console.error('[menu] error cargando carta', err);
+        $('#loader').classList.add('hidden');
+        $('#menu-root').appendChild(
+          el('div', 'empty', `
+            <h3>No pudimos cargar la carta</h3>
+            <p>Recarga la página en unos segundos. Si el problema persiste, avísanos.</p>
+          `)
+        );
+      });
+
+      // ── 6. Render: hero ──────────────────────────────────────────────────
+      function renderHero(cfg, tid) {
+        // Nombre visible: primero config.nombre, sino el mapa de config.js, sino tid
+        const cfgTenant = (window._tenants || {})[tid] || {};
+        const nombre    = cfgTenant.nombre || (cfg.nombre) || 'Nuestra Carta';
+        const slogan    = cfgTenant.slogan || 'Menú fresco, precios claros.';
+        const horario   = cfgTenant.horario || '';
+        const direccion = cfgTenant.direccion || '';
+        const telefono  = cfgTenant.telefono || '';
+
+        document.title = `Carta Digital · ${nombre}`;
+        $('#hero-name').textContent    = nombre;
+        $('#hero-slogan').textContent  = slogan;
+
+        const meta = $('#hero-meta');
+        if (horario)   meta.appendChild(el('span', null, `<span>🕒</span>${horario.replace(/^🕒\s*/, '')}`));
+        if (direccion) meta.appendChild(el('span', null, `<span>📍</span>${direccion.replace(/^📍\s*/, '')}`));
+        if (telefono) {
+          const wa = String(telefono).replace(/[^\d]/g, '');
+          const s  = el('span', null, `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><span>💬</span>WhatsApp</a>`);
+          meta.appendChild(s);
+        }
+      }
+
+      // ── 7. Render: nav categorías ─────────────────────────────────────────
+      function renderCatnav(categorias) {
+        const nav = $('#catnav');
+        nav.innerHTML = '';
+        categorias
+          .slice()
+          .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+          .forEach((c, i) => {
+            const b = el('button', 'catnav-btn' + (i === 0 ? ' active' : ''));
+            b.innerHTML = `${c.emoji || ''} <span>${c.nombre}</span>`;
+            b.dataset.cat = c.id;
+            b.addEventListener('click', () => {
+              const target = document.getElementById('cat-' + c.id);
+              if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            nav.appendChild(b);
+          });
+      }
+
+      // ── 8. Render: grid por categoría ────────────────────────────────────
+      function renderMenu(categorias, items) {
+        const root = $('#menu-root');
+        root.innerHTML = '';
+
+        const cats = categorias.slice().sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+
+        cats.forEach(cat => {
+          const platos = items
+            .filter(i => (i.categoria || 'general') === cat.id)
+            .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+
+          if (!platos.length) return;
+
+          const sec = el('section', 'categoria');
+          sec.id = 'cat-' + cat.id;
+
+          const h = el('div', 'categoria-header');
+          h.appendChild(el('h2', null, `${cat.emoji || ''} ${cat.nombre}`));
+          h.appendChild(el('span', 'count', `${platos.length} ${platos.length === 1 ? 'plato' : 'platos'}`));
+          h.appendChild(el('div', 'rule'));
+          sec.appendChild(h);
+
+          const grid = el('div', 'grid');
+          platos.forEach(p => grid.appendChild(renderCard(p)));
+          sec.appendChild(grid);
+
+          root.appendChild(sec);
+        });
+
+        if (!root.children.length) {
+          root.appendChild(el('div', 'empty', `
+            <h3>Estamos armando la carta</h3>
+            <p>Vuelve en unos minutos.</p>
+          `));
+        }
+      }
+
+      // ── 9. Render: card de plato ─────────────────────────────────────────
+      function renderCard(p) {
+        const card = el('article', 'card' + (p.disponible === false ? ' no-disponible' : ''));
+
+        // Imagen (o fallback con emoji cálido)
+        const imgWrap = el('div', 'card-img-wrap');
+        if (p.imagen) {
+          const img = el('img', 'card-img');
+          img.src = p.imagen;
+          img.alt = p.nombre || 'Plato';
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.onerror = () => {
+            imgWrap.innerHTML = '';
+            imgWrap.appendChild(el('div', 'card-img-fallback', '🍽️'));
+          };
+          imgWrap.appendChild(img);
+        } else {
+          imgWrap.appendChild(el('div', 'card-img-fallback', '🍽️'));
+        }
+        // Badge "Popular" o "Nuevo" arriba a la izquierda
+        const tags = Array.isArray(p.tags) ? p.tags : [];
+        if (tags.includes('popular')) imgWrap.appendChild(el('div', 'card-badge', '⭐ Popular'));
+        else if (tags.includes('novedad')) imgWrap.appendChild(el('div', 'card-badge', '✨ Nuevo'));
+        card.appendChild(imgWrap);
+
+        // Body
+        const body = el('div', 'card-body');
+        body.appendChild(el('h3', 'card-title', p.nombre || '—'));
+        if (p.descripcion) body.appendChild(el('p', 'card-desc', p.descripcion));
+
+        const foot = el('div', 'card-footer');
+        foot.appendChild(el('div', 'card-price', fmtPrecio(p.precio)));
+
+        // Chips de tag (excluyendo popular/novedad que ya se muestran como badge)
+        const chipTags = tags.filter(t => t !== 'popular' && t !== 'novedad');
+        if (chipTags.length) {
+          const wrap = el('div', 'card-tags');
+          chipTags.forEach(t => {
+            const meta = TAG_LABEL[t] || { label: t, emoji: '' };
+            const chip = el('span', 'tag ' + t);
+            chip.innerHTML = `${meta.emoji || ''} ${meta.label}`;
+            wrap.appendChild(chip);
+          });
+          foot.appendChild(wrap);
+        }
+        body.appendChild(foot);
+        card.appendChild(body);
+
+        return card;
+      }
+
+      // ── 10. Sticky nav: marca la categoría activa al scrollear ───────────
+      function wireStickyActiveCategory(categorias) {
+        if (!('IntersectionObserver' in window)) return;
+        const nav = $('#catnav');
+        const io = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const id = entry.target.id.replace(/^cat-/, '');
+            nav.querySelectorAll('.catnav-btn').forEach(b => {
+              b.classList.toggle('active', b.dataset.cat === id);
+            });
+          });
+        }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+        categorias.forEach(c => {
+          const el = document.getElementById('cat-' + c.id);
+          if (el) io.observe(el);
+        });
+      }
+
+      // Año footer
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // ── 11. Schema.org Restaurant (JSON-LD) — sube el SEO local ──────────
+      // Se agrega dinámico para tomar el nombre correcto por tenant.
+      setTimeout(() => {
+        const cfgTenant = (window._tenants || {})[tid] || {};
+        const schema = {
+          '@context': 'https://schema.org',
+          '@type':    'Restaurant',
+          name:       cfgTenant.nombre || 'Restaurante',
+          description: cfgTenant.slogan || '',
+          image:      cfgTenant.logo ? (location.origin + cfgTenant.logo) : undefined,
+          url:        location.origin,
+          servesCuisine: 'Cocina de autor',
+          hasMenu:    location.href,
+          priceRange: '$$',
+        };
+        const s = document.createElement('script');
+        s.type = 'application/ld+json';
+        s.textContent = JSON.stringify(schema);
+        document.head.appendChild(s);
+      }, 0);
+    })();
+  </script>
+</body>
+</html>

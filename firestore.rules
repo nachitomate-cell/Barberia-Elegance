@@ -1106,6 +1106,14 @@ service cloud.firestore {
         allow write: if esAdmin(tid);
       }
 
+      // ── menu (carta digital tenants tipo restaurante) ─────────────
+      // Público de lectura (menu.html sin login); solo admin escribe
+      // desde el panel. Mismo patrón que /servicios y /productos.
+      match /menu/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
       // ── bloqueos ──────────────────────────────────────────────────
       match /bloqueos/{docId} {
         allow read: if true;

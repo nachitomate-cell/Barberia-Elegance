@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar, UtensilsCrossed,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -243,6 +243,31 @@ const NAV_GROUPS_DELUXE = [
       { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
       { to: 'consultas',     label: 'Consultas',     Icon: HelpCircle, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
+      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen },
+    ],
+  },
+];
+
+// ── Restaurantes (tipo 'restaurante'): sidebar recortado a lo esencial.
+// Paso 1 (hoy): solo carta + configuración. Paso 2 (futuro): pedidos, entregas,
+// integraciones de delivery.
+const NAV_GROUPS_RESTO = [
+  {
+    id: 'carta',
+    label: 'Carta',
+    items: [
+      { to: 'menu',      label: 'Menú',      Icon: UtensilsCrossed },
+      { to: 'mensajes',  label: 'Mensajes',  Icon: MessageCircle },
+    ],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    adminOnly: true,
+    items: [
+      { to: 'configuracion', label: 'Configuración',   Icon: Settings,   adminOnly: true },
+      { to: 'consultas',     label: 'Consultas',       Icon: HelpCircle, adminOnly: true },
+      { to: 'soporte',       label: 'Soporte',         Icon: Headphones, adminOnly: true },
       { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen },
     ],
   },
@@ -644,6 +669,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
   const NAV_GROUPS = (() => {
     if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
+    if (tenant.id === 'restodemo')      return NAV_GROUPS_RESTO;
 
     let base = NAV_GROUPS_DEFAULT.map(group => {
       if (group.id !== 'clientes') return group;
