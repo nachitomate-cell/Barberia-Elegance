@@ -265,12 +265,28 @@ export default function Comisiones() {
   const [comCredPct, setComCredPct] = useState(2.95);
 
   const { data: rawBarberos = [] } = useCollection('barberos');
+  // Catálogo de servicios: fuente del fallback de precio cuando la cita no
+  // tiene c.precio grabado (típico en reservas online antiguas). Mismo
+  // criterio que Metricas.jsx:589 para que ambas vistas cuadren.
+  const { data: servicios = [] } = useCollection('servicios');
   // Separación por sede (tipo Kronnos): comisiones solo del local activo — sus
   // barberos y las citas de esa sede. En "Todas" pasa todo (matchSucursal=true).
   const { matchSucursal } = useSucursal();
   const barberos = useMemo(() => rawBarberos.filter(matchSucursal), [rawBarberos, matchSucursal]);
   const citas = useMemo(() => citasRaw.filter(matchSucursal), [citasRaw, matchSucursal]);
   const ventas = useMemo(() => ventasRaw.filter(matchSucursal), [ventasRaw, matchSucursal]);
+
+  // Mapa id/nombre → precio del catálogo. Se usa como fallback cuando la cita
+  // no tiene precio grabado. Sin este mapa, las reservas online sin precio
+  // explícito pagan $0 al barbero y no aparecen en el ingreso del local.
+  const precioMap = useMemo(() => {
+    const map = {};
+    for (const s of servicios) {
+      if (s.id)     map[s.id]     = Number(s.precio) || 0;
+      if (s.nombre) map[s.nombre] = Number(s.precio) || 0;
+    }
+    return map;
+  }, [servicios]);
 
   // % de comisión del POS según el medio de pago (solo tarjeta).
   const comisionPctDe = useCallback((metodo) => {
@@ -349,7 +365,13 @@ export default function Comisiones() {
   // Precio del servicio de la cita (respeta cortesía → 0). NO suma productos;
   // los productos vienen aparte desde product_reservations para no doblar con
   // el arreglo `ticketProductos` embebido en la cita.
-  const precioServicio = useCallback((c) => (c.cortesia ? 0 : Number(c.precio) || 0), []);
+  // Fallback a `precioMap` (catálogo de servicios) cuando la cita no trae
+  // precio grabado — mismo criterio que Métricas para que ambas vistas cuadren
+  // en tenants con reservas online que solo guardan servicioId.
+  const precioServicio = useCallback(
+    (c) => c.cortesia ? 0 : (Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0),
+    [precioMap]
+  );
   // Precio de una venta de producto. Los docs de product_reservations guardan
   // el TOTAL de línea en `precio` (ya multiplicado × cantidad, con descuento
   // aplicado). Ver memoria "Ventas / plata (gotchas)".
