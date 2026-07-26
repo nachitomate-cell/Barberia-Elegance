@@ -164,24 +164,74 @@ usersConNombre.forEach(u => {
 });
 const gruposTel = [...porTel.entries()].filter(([_, g]) => g.length > 1);
 
-// Clasificar grupos-tel: fusionar (uno sin email) vs skip-familia (todos con email)
-const gruposTelFusion = [];
-const gruposTelFamilia = [];
+// Clasificar grupos-tel: fusionar SOLO si hay a lo sumo 1 email único
+// distinto en el grupo. Con 2+ emails únicos distintos = personas distintas
+// aunque haya otros docs sin email (los sin-email podrían ser cualquiera de
+// las personas, no podemos asumir a cuál pertenecen).
+//
+// Ejemplos:
+//   · 2 docs: A(email1) + B(sin email)               → 1 único → FUSIONAR (mismo humano)
+//   · 2 docs: A(email1) + B(email1)                  → 1 único → FUSIONAR
+//   · 2 docs: A(email1) + B(email2)                  → 2 únicos → SKIP FAMILIA
+//   · 3 docs: A(email1) + B(email2) + C(sin email)   → 2 únicos → SKIP FAMILIA (fix vs bug pre-aura)
+//   · 3 docs: A(sin) + B(sin) + C(sin)               → 0 únicos → FUSIONAR
+//
+// GUARD ANTI-PLACEHOLDER (2 criterios, cualquiera activa el skip):
+//
+//  A) Grupo grande — ≥5 docs con nombres distintos: casi seguro es el tel
+//     de la barbería usado como placeholder para walk-ins sin tel real.
+//     Detectado en oren: 78 personas al mismo tel.
+//
+//  B) Tel evidentemente placeholder — patrones típicos: "999999999",
+//     "000000000", 8+ dígitos iguales, secuencias "123456789". Aplica
+//     aunque el grupo sea pequeño (2-4). Detectado en oren:
+//     "999999999" con 4 personas distintas colapsándose en "CLIENTE GENERICO".
+//
+// En ambos casos: SKIP + _reviewReason:posible-placeholder-tel.
+const PLACEHOLDER_TEL_THRESHOLD = 5;
+function _esTelPlaceholder(tel) {
+  if (!tel || tel.length < 8) return false;
+  // Todo el mismo dígito: 99999999, 00000000, 11111111...
+  if (/^(\d)\1{7,}$/.test(tel)) return true;
+  // Empieza con "99999" o "00000" (5+ del mismo dígito al inicio)
+  if (/^([09])\1{4,}/.test(tel)) return true;
+  // Secuencia ascendente/descendente completa (123456789, 987654321)
+  if (tel === '123456789' || tel === '987654321') return true;
+  return false;
+}
+// GUARD ADICIONAL — Umbral estricto de fusión por tel: solo grupos de
+// EXACTAMENTE 2 docs. Con 3+ personas al mismo tel la probabilidad de que
+// sean el mismo humano baja mucho; es más común que sean familia,
+// placeholder oculto, o casos ambiguos. Prefiero perder algunos casos
+// legítimos (ej: Sebastián Marrodan x3 en oren, que sí es el mismo humano)
+// y dejarlos como _needsReview, que fusionar 4 personas distintas por
+// accidente en el mismo doc (ej: tel=972833955 con 4 humanos distintos).
+// El humano revisa el _needsReview y decide fusionar a mano si aplica.
+const FUSION_MAX_GROUP_SIZE = 2;
+
+const gruposTelFusion   = [];
+const gruposTelFamilia  = [];
+const gruposPlaceholder = [];
 gruposTel.forEach(([tel, g]) => {
-  const conEmail    = g.filter(u => normEmail(u.data().email));
-  const todosConEmail = conEmail.length === g.length;
-  const emailsUnicos = new Set(conEmail.map(u => normEmail(u.data().email)));
-  if (todosConEmail && emailsUnicos.size === g.length) {
-    // Todos con email distinto → familia → skip
-    gruposTelFamilia.push([tel, g]);
-  } else {
-    // Al menos uno sin email O emails iguales → fusionar
+  const nombresUnicos = new Set(g.map(u => (u.data().nombre || '').trim().toLowerCase()).filter(Boolean));
+  const grupoGrande = g.length >= PLACEHOLDER_TEL_THRESHOLD && nombresUnicos.size >= PLACEHOLDER_TEL_THRESHOLD;
+  const telSospechoso = _esTelPlaceholder(tel) && nombresUnicos.size >= 2;
+  if (grupoGrande || telSospechoso) {
+    gruposPlaceholder.push([tel, g]);
+    return;
+  }
+  const emailsUnicos = new Set(g.map(u => normEmail(u.data().email)).filter(Boolean));
+  const grupoChico = g.length <= FUSION_MAX_GROUP_SIZE;
+  if (emailsUnicos.size <= 1 && grupoChico) {
     gruposTelFusion.push([tel, g]);
+  } else {
+    gruposTelFamilia.push([tel, g]);
   }
 });
 console.log(`[3/5] Grupos por tel: ${gruposTel.length} total`);
-console.log(`      · A fusionar (al menos uno sin email): ${gruposTelFusion.length}`);
-console.log(`      · Familia (skip + _needsReview): ${gruposTelFamilia.length}\n`);
+console.log(`      · A fusionar (0-1 email único): ${gruposTelFusion.length}`);
+console.log(`      · Familia (skip + _needsReview): ${gruposTelFamilia.length}`);
+console.log(`      · PLACEHOLDER (≥${PLACEHOLDER_TEL_THRESHOLD} personas · skip + _needsReview): ${gruposPlaceholder.length}\n`);
 
 // ── 4. Walk-ins en clientes/ sin match en users/ ─────────────────────
 console.log('[4/5] Buscando walk-ins de clientes/ sin match en users/ ...');
@@ -202,7 +252,7 @@ console.log(`      Walk-ins a migrar: ${walkins.length}\n`);
 console.log(`[5/5] ${APPLY ? 'Ejecutando' : 'Simulando'} plan (limit=${LIMIT} ops)...\n`);
 
 let opsUsed = 0;
-const log = { fusiones: [], skipFamilia: [], migraciones: [], reasignaciones: 0, errores: [] };
+const log = { fusiones: [], skipFamilia: [], skipPlaceholder: [], migraciones: [], reasignaciones: 0, errores: [] };
 
 async function procesarGrupoFusion(razon, grupo) {
   if (opsUsed >= LIMIT) return;
@@ -272,6 +322,24 @@ async function procesarSkipFamilia(tel, grupo) {
   }
 }
 
+async function procesarPlaceholder(tel, grupo) {
+  const entry = { tel, count: grupo.length, sampleNombres: grupo.slice(0, 5).map(u => u.data().nombre) };
+  log.skipPlaceholder.push(entry);
+  console.log(`      · SKIP PLACEHOLDER tel=${tel}: ${grupo.length} personas (probable tel de la barbería o "999...", muestras: ${entry.sampleNombres.join(', ')}...)`);
+  if (APPLY) {
+    // Chunks de 400 para no exceder batch cap (500).
+    for (let i = 0; i < grupo.length; i += 400) {
+      const batch = db.batch();
+      grupo.slice(i, i + 400).forEach(u => batch.update(u.ref, {
+        _needsReview: true,
+        _reviewReason: 'posible-placeholder-tel',
+      }));
+      try { await batch.commit(); } catch (e) { log.errores.push({ tel, error: e.message }); break; }
+    }
+    opsUsed += grupo.length;
+  }
+}
+
 async function procesarWalkin(c) {
   if (opsUsed >= LIMIT) return;
   const data = c.data();
@@ -297,10 +365,11 @@ async function procesarWalkin(c) {
   }
 }
 
-for (const [email, g] of gruposEmail)     await procesarGrupoFusion(`email=${email}`, g);
-for (const [tel,   g] of gruposTelFusion) await procesarGrupoFusion(`tel=${tel}`,     g);
-for (const [tel,   g] of gruposTelFamilia) await procesarSkipFamilia(tel, g);
-for (const c        of walkins)            await procesarWalkin(c);
+for (const [email, g] of gruposEmail)       await procesarGrupoFusion(`email=${email}`, g);
+for (const [tel,   g] of gruposTelFusion)   await procesarGrupoFusion(`tel=${tel}`,     g);
+for (const [tel,   g] of gruposTelFamilia)  await procesarSkipFamilia(tel, g);
+for (const [tel,   g] of gruposPlaceholder) await procesarPlaceholder(tel, g);
+for (const c         of walkins)             await procesarWalkin(c);
 
 // ── Resumen final + guardar log ─────────────────────────────────────
 const summary = {
@@ -313,6 +382,8 @@ const summary = {
   fusiones_email: log.fusiones.filter(f => f.razon.startsWith('email=')).length,
   fusiones_tel:   log.fusiones.filter(f => f.razon.startsWith('tel=')).length,
   skip_familia: log.skipFamilia.length,
+  skip_placeholder: log.skipPlaceholder.length,
+  users_marcados_placeholder: log.skipPlaceholder.reduce((s, e) => s + e.count, 0),
   migraciones_walkin: log.migraciones.length,
   citas_reasignadas: log.reasignaciones,
   errores: log.errores.length,
