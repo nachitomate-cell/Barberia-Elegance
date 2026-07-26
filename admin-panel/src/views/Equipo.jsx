@@ -2052,9 +2052,9 @@ export default function Equipo() {
 
                 {/* Arriendo por servicio (modelo invertido): el barbero cobra el
                     100% al cliente y le paga un monto fijo al local por cada
-                    servicio. Precede al override % y al % global. Solo visible
-                    para tenant Oren por ahora — el resto no tiene este modelo. */}
-                {tenant?.id === 'oren' && (() => {
+                    servicio. Precede al override % y al % global. Visible en
+                    Oren (uso real) y delnero (sandbox oficial de tests). */}
+                {(tenant?.id === 'oren' || tenant?.id === 'delnero') && (() => {
                   const arriendos = form.arriendoPorServicio || {};
                   const numRent = Object.values(arriendos).filter(v => v != null && v !== '' && Number(v) > 0).length;
                   const svcDelBarbero = (form.serviciosIds && form.serviciosIds.length > 0)
