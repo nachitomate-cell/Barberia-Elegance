@@ -145,8 +145,15 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
     if (s.exists) servicio = { id: s.id, ...s.data() };
   }
 
-  const esActivacion = !!(servicio && servicio.isPack);
+  // Consumo tiene prioridad sobre activación: si la cita ya trae marcas
+  // de consumo, NO activamos aunque el servicio del catálogo sea `isPack`.
+  // Este caso pasa cuando el mismo servicio-pack se puede consumir (ej.
+  // "3 cortes al mes" activa el pack en la 1a visita y las siguientes 2
+  // visitas también son servicioId=pack pero con consumeSesionPack:true).
+  // Sin esta prioridad, la 2a y 3a visita ACTIVABAN nuevos packs además
+  // de consumir → packs duplicados y sesiones fantasma.
   const esConsumo    = !!cita.consumeSesionPack && !!cita.packRefId;
+  const esActivacion = !esConsumo && !!(servicio && servicio.isPack);
 
   if (!esActivacion && !esConsumo) {
     // Cita normal: nada que hacer, pero marcamos para no re-evaluar.
