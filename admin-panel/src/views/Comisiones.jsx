@@ -395,6 +395,10 @@ export default function Comisiones() {
       // % de comisión: servicio y producto se calculan por separado (el barbero
       // puede tener tarifas distintas). Ver Equipo.jsx:142-145 para los campos.
       comisionPct:            Number(b?.comision) || 0,
+      // Override opcional { servicioId: pct }. Si un servicio está acá, se usa
+      // ese % en vez del global. Servicios no listados caen al global.
+      comisionPorServicio: (b?.comisionPorServicio && typeof b.comisionPorServicio === 'object')
+        ? b.comisionPorServicio : {},
       comisionProductosPct:   b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10,
       comisionProductosMonto: Number(b?.comisionProductosMonto) || 0,
       sueldoBase: Number(b?.sueldoBase) || 0,
@@ -423,13 +427,23 @@ export default function Comisiones() {
       return '_sin';
     };
 
+    // % de comisión aplicable a una cita: si el barbero tiene override para
+    // ese servicioId, lo usa; si no, cae al % global. Vacío o inválido → global.
+    const pctPara = (bucket, servicioId) => {
+      const ovr = bucket?.comisionPorServicio?.[servicioId];
+      const n = Number(ovr);
+      return (ovr != null && ovr !== '' && Number.isFinite(n) && n >= 0)
+        ? n
+        : (bucket?.comisionPct || 0);
+    };
+
     // Servicios: precio de la cita (0 si cortesía) × %comisión servicio.
     citas.forEach(c => {
       const key = resolverBarbero(c.barberoId, c.barbero);
       const precio = precioServicio(c);
       map[key].citas++;
       map[key].ingresosServicios += precio;
-      map[key].comisionServicios += precio * (map[key].comisionPct / 100);
+      map[key].comisionServicios += precio * (pctPara(map[key], c.servicioId) / 100);
       const propina = Number(c.propina) || 0;
       if (propina > 0) {
         map[key].propinas += propina;
@@ -1141,11 +1155,16 @@ export default function Comisiones() {
                   <StatItem
                     label="Comisión"
                     value={formatCLP(barbero.montoComision)}
-                    subValue={
-                      barbero.comisionProductos > 0
-                        ? `${barbero.comisionPct}% servicio · ${barbero.comisionProductosPct}%${barbero.comisionProductosMonto > 0 ? ` + ${formatCLP(barbero.comisionProductosMonto)}/venta` : ''} producto`
-                        : `${barbero.comisionPct}% servicio`
-                    }
+                    subValue={(() => {
+                      const numOvr = Object.values(barbero.comisionPorServicio || {})
+                        .filter(v => v != null && v !== '' && Number.isFinite(Number(v))).length;
+                      const svcLabel = numOvr > 0
+                        ? `${barbero.comisionPct}% servicio (${numOvr} con % propio)`
+                        : `${barbero.comisionPct}% servicio`;
+                      return barbero.comisionProductos > 0
+                        ? `${svcLabel} · ${barbero.comisionProductosPct}%${barbero.comisionProductosMonto > 0 ? ` + ${formatCLP(barbero.comisionProductosMonto)}/venta` : ''} producto`
+                        : svcLabel;
+                    })()}
                   />
                   <StatItem label="Sueldo base" value={formatCLP(barbero.sueldoBase)} />
                   {barbero.adelantos > 0 && (

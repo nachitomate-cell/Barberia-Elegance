@@ -613,6 +613,16 @@ export default function Metricas() {
     return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
   }, [precioMap]);
 
+  /* % de comisión aplicable a una cita: si el barbero tiene override
+     para ese servicioId (Equipo.jsx → barbero.comisionPorServicio),
+     lo usa; sino cae al `barbero.comision` global. */
+  const pctComisionServicio = useCallback((barbero, servicioId) => {
+    const ovr = barbero?.comisionPorServicio?.[servicioId];
+    const n = Number(ovr);
+    if (ovr != null && ovr !== '' && Number.isFinite(n) && n >= 0) return n;
+    return Number(barbero?.comision) || 0;
+  }, []);
+
   /* ── 1. Rendimiento Comercial Memoized KPIs and Stats ── */
   const stats = useMemo(() => {
     const rangeCitas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin);
@@ -712,7 +722,7 @@ export default function Metricas() {
     }, 0);
     const prevComSvc = completadas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      return s + (getPrice(c) * (Number(b?.comision) || 0) / 100);
+      return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
     }, 0);
     const prevComProd = prevVentas.reduce((s, v) => {
       const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
@@ -729,7 +739,7 @@ export default function Metricas() {
     const prevUtilidadNeta = prevIngBrutos - prevTotalCostos;
 
     return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion, utilidadNeta: prevUtilidadNeta };
-  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr]);
+  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio]);
 
   /* Calcula delta % entre actual y previo */
   const pctDelta = useCallback((curr, prev) => {
@@ -961,8 +971,7 @@ export default function Metricas() {
     // Service commissions in range
     const serviceCommissions = rangeCompletas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      const pct = Number(b?.comision) || 0;
-      return s + (getPrice(c) * pct / 100);
+      return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
     }, 0);
 
     // Product commissions in range
@@ -1050,7 +1059,7 @@ export default function Metricas() {
       rangeGastos,
       propinas,
     };
-  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr]);
+  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio]);
 
   // 6-Month P&L Historical Trend AreaChart data.
   // Fuente: citas6m/ventas6m/gastos6m (cache dedicado). Fallback a los
@@ -1092,8 +1101,7 @@ export default function Metricas() {
       // Comisiones Mes
       const sComm = mc.reduce((s, c) => {
         const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-        const pct = Number(b?.comision) || 0;
-        return s + (getPrice(c) * pct / 100);
+        return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
       }, 0);
 
       const pComm = mv.reduce((s, v) => {
@@ -1122,7 +1130,7 @@ export default function Metricas() {
         'Utilidad Neta': Math.round(utilidadNeta),
       };
     });
-  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr]);
+  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio]);
 
   /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
   const paymentBreakdown = useMemo(() => {
