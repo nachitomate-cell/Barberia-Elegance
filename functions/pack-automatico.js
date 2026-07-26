@@ -40,7 +40,7 @@ const marca                 = require('./lib/kronnos-marca');
 // Marcador de versión — se ve en Cloud Logging al arrancar la CF y sirve
 // para confirmar qué build está corriendo si el resultado no coincide con
 // la lógica esperada. Incrementar cuando haya cambios importantes.
-const CF_PACK_BUILD = '2026-07-26-r2-mapa-por-servicio';
+const CF_PACK_BUILD = '2026-07-26-r3-antirace-tx';
 
 const db = admin.firestore();
 
@@ -212,6 +212,15 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   // La tx devuelve los campos a denormalizar en la cita (badge), o null si no
   // hubo cambio (user sin doc / pack sin saldo / ya procesado en el array).
   const denorm = await db.runTransaction(async (tx) => {
+    // Idempotencia FUERTE dentro de la tx: releemos la cita para detectar
+    // si otra ejecución del trigger ya la marcó packProcesado. `debesProcesar`
+    // filtra por el snapshot before/after del trigger, pero cuando el trigger
+    // dispara dos veces por la misma escritura (visto en logs: 2.5ms de
+    // diferencia), ambas ven `packProcesado:false` en su snapshot y las dos
+    // ejecutan la lógica. Este check leído dentro de la tx corta esa carrera.
+    const cSnap = await tx.get(citaRef);
+    if (cSnap.exists && cSnap.data()?.packProcesado === true) return null;
+
     const uSnap = await tx.get(userRef);
     // Nota: upsertUserFromCita() corre antes fuera de la tx, así que el doc
     // debería existir. Si por algún error no existe (upsert falló), la tx
@@ -333,12 +342,24 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
     // no existe; set-merge lo crea si hace falta y preserva el resto.
     tx.set(userRef, { packsActivos: packs, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     if (logPayload) tx.set(logRef, logPayload);
+    // Marcar packProcesado DENTRO de la tx: la 2ª ejecución del trigger
+    // que corra en paralelo al releer la cita adentro de su propia tx
+    // verá esta marca y saldrá temprano (ver check en línea ~218).
+    tx.update(citaRef, {
+      packProcesado: true,
+      ...(denormFields || {}),
+    });
     return denormFields;
   });
 
-  // Una sola escritura a la cita, siempre: los campos del badge (si hubo) +
-  // packProcesado. Si la tx no hizo nada, igual marcamos procesada.
-  await citaRef.update({ ...(denorm || {}), packProcesado: true });
+  // Si la tx no hizo nada (cita sin userId, ya procesada, etc.), igual
+  // marcamos packProcesado:true para no re-evaluar la cita en escrituras
+  // futuras. Cuando la tx SÍ procesó, ya escribió packProcesado dentro
+  // de la misma transacción — este update es no-op en ese caso.
+  if (denorm === null) {
+    try { await citaRef.update({ packProcesado: true }); }
+    catch (e) { logger.warn(`[Pack] ${citaId}: no se pudo marcar packProcesado:`, e.message); }
+  }
 }
 
 // ── Export 1: elegance root (/citas/{citaId}) ─────────────────────
