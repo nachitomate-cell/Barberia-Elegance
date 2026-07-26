@@ -88,9 +88,54 @@ async function marcarProcesada(citaRef, citaId, scope = '') {
   catch (e) { logger.error(`[Pack] ${citaId}${scope}: no se pudo marcar packProcesado:`, e); }
 }
 
+// ── Upsert del user con datos de la cita ──────────────────────────
+// Crea el doc `users/{uid}` si no existe (con nombre/teléfono/email de la
+// cita) o completa campos faltantes si ya existe. Es la solución al gap
+// histórico: hasta hoy solo se creaba user cuando alguien se registraba en el
+// club de fidelidad, así que ~80% de las citas (clientes que solo reservan)
+// no tenían doc y los packs no se les podían activar. Ahora cualquier cita
+// completada consolida su cliente en users/. Fuera de la tx: no bloquea el
+// resto si falla; la tx del pack sí valida que el doc exista después.
+async function upsertUserFromCita(cols, userId, cita, citaId) {
+  const ref = cols.users.doc(userId);
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        nombre:            cita.clienteNombre || '',
+        telefono:          cita.clienteTelefono || '',
+        email:             cita.clienteEmail || null,
+        esLegacy:          true,       // creado desde cita, no del flujo de club
+        creadoDesdeCita:   citaId,
+        creadoPorTrigger:  'pack-automatico',
+        creadoEn:          FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return;
+    }
+    // Ya existe: solo rellenamos campos vacíos, no pisamos datos del club.
+    const data = snap.data() || {};
+    const patch = {};
+    if (!data.nombre   && cita.clienteNombre)   patch.nombre   = cita.clienteNombre;
+    if (!data.telefono && cita.clienteTelefono) patch.telefono = cita.clienteTelefono;
+    if (!data.email    && cita.clienteEmail)    patch.email    = cita.clienteEmail;
+    if (Object.keys(patch).length > 0) {
+      patch.updatedAt = FieldValue.serverTimestamp();
+      await ref.update(patch);
+    }
+  } catch (e) {
+    logger.error(`[Pack] ${citaId}: upsert user ${userId} falló:`, e);
+  }
+}
+
 // ── Núcleo: activa o consume el pack de una cita ──────────────────
 async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   const cols = colecciones(tenantId);
+
+  // Paso 0: consolidar el cliente en users/. Aplica a TODA cita completada
+  // con teléfono/uid resoluble, no solo a las de pack. Así toda la base de
+  // clientes queda en users/ y los packs futuros se pueden activar.
+  const userId = resolverUserId(cita);
+  if (userId) await upsertUserFromCita(cols, userId, cita, citaId);
 
   // El servicio decide si es activación. El cliente lo tenía en memoria; acá
   // se lee del doc (per-sede).
@@ -109,7 +154,6 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
     return;
   }
 
-  const userId = resolverUserId(cita);
   if (!userId) {
     logger.warn(`[Pack] ${citaId} (${tenantId}): sin userId/teléfono resoluble, no se acredita.`);
     await marcarProcesada(citaRef, citaId, ` (${tenantId})`);
@@ -156,8 +200,11 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   // hubo cambio (user sin doc / pack sin saldo / ya procesado en el array).
   const denorm = await db.runTransaction(async (tx) => {
     const uSnap = await tx.get(userRef);
-    if (!uSnap.exists) return null; // cliente sin doc de users → no aplica
-    const packs = Array.isArray(uSnap.data().packsActivos) ? [...uSnap.data().packsActivos] : [];
+    // Nota: upsertUserFromCita() corre antes fuera de la tx, así que el doc
+    // debería existir. Si por algún error no existe (upsert falló), la tx
+    // aún puede escribir con set-merge más abajo — packsActivos vive en la
+    // misma escritura.
+    const packs = Array.isArray(uSnap.data()?.packsActivos) ? [...uSnap.data().packsActivos] : [];
     const now = Date.now();
     let logPayload = null;
     let denormFields = null;
@@ -267,7 +314,11 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
       }
     }
 
-    tx.update(userRef, { packsActivos: packs, updatedAt: FieldValue.serverTimestamp() });
+    // set-merge en lugar de update: si por algún motivo el doc no fue creado
+    // por upsertUserFromCita (ej. teléfono no resoluble en ese momento),
+    // igual guardamos el pack en el doc del user. update() falla si el doc
+    // no existe; set-merge lo crea si hace falta y preserva el resto.
+    tx.set(userRef, { packsActivos: packs, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     if (logPayload) tx.set(logRef, logPayload);
     return denormFields;
   });

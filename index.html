@@ -13880,6 +13880,12 @@
 
         // Si el usuario está logueado en el Club y su perfil no tiene teléfono,
         // guardar el que ingresó en la reserva para completar su perfil.
+        //
+        // Para el caso opuesto (cliente NO logueado, ~80% de las citas),
+        // NO creamos el doc users/{tel} desde acá: las rules requieren
+        // autenticación. La CF `pack-automatico.js` hace el upsert con
+        // Admin SDK cuando el barbero completa la cita, así que el cliente
+        // queda consolidado en users/ apenas la visita termina.
         if (citaGuardada && typeof db !== 'undefined' && telDigitos.length >= 9) {
           const authUser = firebase.auth().currentUser;
           if (authUser) {

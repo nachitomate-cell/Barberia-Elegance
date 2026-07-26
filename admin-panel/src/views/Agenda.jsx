@@ -83,6 +83,56 @@ function resolverUserIdCita(cita) {
   return digs.length >= 11 ? digs : '';
 }
 
+/* Upsert de `users/{uid}` cuando el barbero crea/edita una cita.
+ *
+ * Hasta antes de esto, solo se creaba doc en users/ cuando el cliente se
+ * registraba en el club de fidelidad. El barbero podía crear cientos de
+ * citas escribiendo "Nombre + Teléfono" a mano y ninguna quedaba consolidada
+ * en un doc único de cliente → los packs no se les activaban (no había
+ * dónde guardarlos), no había CRM, no había historial por cliente.
+ *
+ * Ahora cada vez que se guarda una cita, si el teléfono se puede resolver
+ * a un uid (formato chileno 11 dígitos), se hace set-merge:
+ *  - Si no existe → crea el doc con nombre/teléfono/email.
+ *  - Si ya existe → deja intacto lo que tenga y solo actualiza `updatedAt`.
+ *
+ * Falla silenciosa: si por algún motivo el write no puede completarse, no
+ * bloquea el guardado de la cita.
+ */
+async function upsertUserDesdeCita(cita) {
+  const uid = resolverUserIdCita(cita);
+  if (!uid) return;
+  try {
+    const ref = doc(tenantCol('users'), uid);
+    const snap = await withTimeout(getDoc(ref), 8000, 'agenda/upsert-user');
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        nombre:            cita.clienteNombre || '',
+        telefono:          cita.clienteTelefono || '',
+        email:             cita.clienteEmail || null,
+        esLegacy:          true,
+        creadoDesdeCita:   true,
+        creadoPorTrigger:  'agenda-jsx',
+        creadoEn:          serverTimestamp(),
+      }, { merge: true });
+      return;
+    }
+    // Ya existe: solo rellenamos campos vacíos, no pisamos datos del club.
+    const data = snap.data() || {};
+    const patch = {};
+    if (!data.nombre   && cita.clienteNombre)   patch.nombre   = cita.clienteNombre;
+    if (!data.telefono && cita.clienteTelefono) patch.telefono = cita.clienteTelefono;
+    if (!data.email    && cita.clienteEmail)    patch.email    = cita.clienteEmail;
+    if (Object.keys(patch).length > 0) {
+      patch.updatedAt = serverTimestamp();
+      await setDoc(ref, patch, { merge: true });
+    }
+  } catch (e) {
+    // No bloqueamos el guardado de la cita si el upsert falla.
+    console.warn('[Agenda] upsert user desde cita falló:', e?.message || e);
+  }
+}
+
 async function procesarPackDeCita({ servicio, cita, tenantId, barberos, servicios = [] }) {
   const userId = resolverUserIdCita(cita);
   if (!userId) return { skip: 'sin-userId' };
@@ -1066,6 +1116,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         } else {
           await addDoc(tenantCol('citas'), { ...payload, slotLockId: null });
         }
+        // Consolidar el cliente en users/. Async fire-and-forget: no
+        // bloquea el cierre del modal ni frena si falla.
+        upsertUserDesdeCita(payload);
         onClose();
       } else {
         const yaEraCompletada = cita?.estado === 'Completada';
@@ -1174,6 +1227,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         } else {
           await updateDoc(citaRef, payload);
         }
+        // Consolidar el cliente en users/. Idempotente y fire-and-forget: si
+        // el user ya existía no toca nada crítico, solo actualiza campos
+        // vacíos. Es especialmente relevante acá porque al pasar la cita a
+        // Completada el motor de packs necesita el doc para acreditar.
+        upsertUserDesdeCita({ ...cita, ...payload });
 
         if (applyingGC) {
           const gcDescuento = Math.min(gcFound.saldo, totalTicket);

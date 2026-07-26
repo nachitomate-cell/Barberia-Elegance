@@ -1386,10 +1386,15 @@ service cloud.firestore {
       }
 
       // ── users ─────────────────────────────────────────────────────
+      // create: el propio cliente (registro al club) o el staff (creando la
+      // ficha "legacy" desde Agenda/Clientes cuando el cliente no es socio
+      // del club). En ambos casos se prohíben campos peligrosos (role,
+      // tenantId, etc.) para que ni el propio user ni el staff se escalen
+      // permisos por accidente.
       match /users/{userId} {
         allow read: if autenticado() && (uid() == userId || esStaff(tid));
         allow create: if autenticado()
-                      && uid() == userId
+                      && (uid() == userId || esStaff(tid))
                       && !request.resource.data.keys().hasAny(['role', 'tenantId', 'rol', 'adminOverride']);
         allow update: if autenticado()
                       && (uid() == userId || esStaff(tid))
