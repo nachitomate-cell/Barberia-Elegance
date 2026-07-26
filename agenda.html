@@ -6410,6 +6410,15 @@
                 }
             } catch(_e) {}
         }
+        // Setear el value programáticamente NO dispara `oninput`, así que el
+        // handler del chip de pack (_onManualPhoneInput) no correría. Lo
+        // llamamos explícitamente. Si además el cliente tiene uid del club,
+        // buscamos packs por ese uid directo (más preciso).
+        if (typeof _onManualPhoneInput === 'function') _onManualPhoneInput();
+        if (c.uid && typeof _agendaBuscarPack === 'function') {
+            // Búsqueda extra por uid del club (por si no matcheara por teléfono).
+            _agendaBuscarPack(c.uid, () => false);
+        }
     }
 
     // ── SERVICIOS DESDE FIRESTORE ───────────────────────────────────
