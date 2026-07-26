@@ -2592,6 +2592,10 @@
             globalConfig = aplicarHorarioSede(cfg, barberDoc && barberDoc.sucursalId);
             barberConfig = rawBarberCfg; // null → renderSlots usa globalConfig
             barberHorario = (barberDoc && barberDoc.horario) || null;
+            // Guardamos el doc completo para que el chip "cliente propio del
+            // barbero" pueda leer sufijoClientePropio / arriendoPorServicio
+            // sin refetch. Ver _agendaRenderChipCartera() más abajo.
+            window._agendaBarberoDoc = barberDoc || null;
 
             const nombre = nombrePrecargado || (barberDoc && barberDoc.nombre) || null;
             if (nombre) {
@@ -5784,6 +5788,12 @@
              al escribir el teléfono. Cuando el barbero elige un servicio del pack, la cita
              queda marcada como consumo y se guarda con precio $0. -->
         <div id="packChipAgenda" class="hidden"></div>
+        <!-- Chip "cliente propio del barbero" (Oren-Pablo). Aparece cuando el
+             nombre del cliente matchea el sufijo configurado del barbero
+             (ej. "cp"). No cambia el guardado — es solo feedback visual: le
+             recuerda al barbero que este cliente NO acumula sello y (si aplica)
+             cuánto arriendo pagará al local por el servicio elegido. -->
+        <div id="carteraChipAgenda" class="hidden"></div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
           <input type="email" id="manualEmail" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" autocomplete="off">
@@ -6383,6 +6393,9 @@
         await _loadClientes();
         const q = (document.getElementById('manualName') || {}).value || '';
         _renderSugerencias(_getSugerencias(q));
+        // Chip cliente propio del barbero (Oren-Pablo): reevaluar en cada
+        // keystroke por si acaban de escribir el sufijo (o lo borraron).
+        if (typeof _agendaRenderChipCartera === 'function') _agendaRenderChipCartera();
     }
 
     async function seleccionarClienteManual(clienteId) {
@@ -6419,6 +6432,8 @@
             // Búsqueda extra por uid del club (por si no matcheara por teléfono).
             _agendaBuscarPack(c.uid, () => false);
         }
+        // Idem: setear nameEl.value programáticamente no dispara `oninput`.
+        if (typeof _agendaRenderChipCartera === 'function') _agendaRenderChipCartera();
     }
 
     // ── SERVICIOS DESDE FIRESTORE ───────────────────────────────────
@@ -6948,6 +6963,8 @@
             durSel.innerHTML = sorted.map(o => `<option value="${o.v}" style="background:#111">${o.t}</option>`).join('');
             durSel.value = dur;
         }
+        // Chip cliente propio: re-render por si el arriendo depende del servicio.
+        if (typeof _agendaRenderChipCartera === 'function') _agendaRenderChipCartera();
     }
 
     // Cuando cambia el servicio en el modal, autocompletar precio base
@@ -7047,6 +7064,61 @@
         } catch (e) {
             // sin permiso / red / etc. — silencio.
         }
+    }
+
+    // ── Chip "cliente propio del barbero" (Oren-Pablo) ────────────────
+    // Aparece cuando el barbero tiene sufijoClientePropio configurado en su
+    // doc y el nombre escrito matchea. Sirve como feedback visual: le
+    // recuerda que NO va a acumular sello y (si el servicio elegido tiene
+    // arriendo) cuánto le pagará al local. La cita se guarda igual, sin
+    // flags extra: la CF de sellos y las vistas de reportes leen el mismo
+    // sufijo del barbero para tomar la decisión.
+    const OREN_CARTERA_TENANTS_UI = new Set(['oren', 'delnero']);
+
+    function _agendaEsClientePropio(nombre, sufijo) {
+        if (!nombre || !sufijo) return false;
+        const rx = new RegExp('(^|\\s)' + sufijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i');
+        return rx.test(String(nombre).trim());
+    }
+
+    function _agendaRenderChipCartera() {
+        const chip = document.getElementById('carteraChipAgenda');
+        if (!chip) return;
+        // Gate por tenant estricto (oren real + delnero para pruebas).
+        const tid = window.CURRENT_TENANT_ID || '';
+        if (!OREN_CARTERA_TENANTS_UI.has(tid)) { chip.classList.add('hidden'); return; }
+        const b = window._agendaBarberoDoc;
+        const suf = String((b && b.sufijoClientePropio) || '').trim().toLowerCase();
+        if (!suf) { chip.classList.add('hidden'); return; }
+        const nombre = (document.getElementById('manualName') || {}).value || '';
+        if (!_agendaEsClientePropio(nombre, suf)) { chip.classList.add('hidden'); return; }
+
+        // Servicio elegido → ¿tiene arriendo configurado?
+        const svcSel = document.getElementById('manualServiceSelect');
+        const svcId  = svcSel ? svcSel.value : '';
+        const rentRaw = (b.arriendoPorServicio && svcId) ? Number(b.arriendoPorServicio[svcId]) : NaN;
+        const hasRent = Number.isFinite(rentRaw) && rentRaw > 0;
+
+        const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+        const rentLine = hasRent
+            ? `<span style="color:#fcd34d;font-weight:700;">Arriendo al local: $${Math.round(rentRaw).toLocaleString('es-CL')}</span> por este servicio.`
+            : `<span style="color:#94a3b8;">Sin arriendo configurado para este servicio → se cobra la comisión normal.</span>`;
+        const sellosLine = tid === 'oren'
+            ? `<span style="color:#94a3b8;">No suma sello al club.</span>`
+            : `<span style="color:#94a3b8;">(En Oren no sumaría sello. En delnero sandbox sí acumula, es solo prueba visual.)</span>`;
+
+        chip.innerHTML = `
+            <div style="margin-top:8px;padding:10px 12px;border:1px solid rgba(251,191,36,0.4);background:rgba(251,191,36,0.08);border-radius:12px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#fcd34d;">
+                    <i class="ph-fill ph-tag" style="font-size:14px;"></i>
+                    Cliente de tu cartera (${esc(suf)})
+                </div>
+                <div style="margin-top:6px;font-size:11px;line-height:1.4;">
+                    ${rentLine}<br>${sellosLine}
+                </div>
+            </div>
+        `;
+        chip.classList.remove('hidden');
     }
 
     function _agendaRenderChipPack(activos) {
