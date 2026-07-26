@@ -2101,7 +2101,7 @@ export default function Equipo() {
                               placeholder="ej: cp"
                               value={form.sufijoClientePropio || ''}
                               onChange={e => set('sufijoClientePropio', e.target.value.trim())}
-                              className="w-32 bg-slate-900 border border-amber-800/40 rounded px-2 py-1 text-[12px] text-amber-100 focus:outline-none focus:border-amber-500/60"
+                              className="w-32 bg-slate-900 border border-amber-500/40 rounded px-2 py-1 text-[12px] text-amber-100 focus:outline-none focus:border-amber-500/60"
                             />
                             <p className="text-[10px] text-slate-500 mt-1">
                               Detecta clientes al final del nombre (case-insensitive): "Jorgito xuni <strong>cp</strong>" matchea con sufijo <code>cp</code>.
@@ -2111,7 +2111,7 @@ export default function Equipo() {
                               )}
                             </p>
                           </div>
-                          <hr className="border-amber-900/30" />
+                          <hr className="border-amber-500/30" />
                           <p className="text-[10px] text-amber-400/80">
                             Monto que el barbero le paga al local por cada servicio a un cliente propio. Deja vacío para NO cobrar arriendo por ese servicio (aunque el cliente sea propio, se cobra la comisión normal).
                           </p>
