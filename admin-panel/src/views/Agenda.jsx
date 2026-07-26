@@ -615,6 +615,16 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     propina:         cita?.propina != null ? Number(cita.propina) : '',
     porcentajeDescuento: cita?.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : '',
     cortesia:        cita?.cortesia || false,
+    // Consumo de pack — la mayoría de las citas NO son consumo, pero cuando lo
+    // son la agenda debe persistir estas marcas para que la CF pack-automatico
+    // descuente la sesión. Se hidratan desde la cita al editar, o desde el
+    // botón "Usar sesión del pack" del chip de pack activo detectado.
+    consumeSesionPack:    !!cita?.consumeSesionPack,
+    packRefId:            cita?.packRefId || null,
+    packNombre:           cita?.packNombre || null,
+    packSesionIndex:      cita?.packSesionIndex ?? null,
+    packSesionTotal:      cita?.packSesionTotal ?? null,
+    packFechaVencimiento: cita?.packFechaVencimiento || null,
   });
   const [sobrecupoActivo, setSobrecupoActivo] = useState(!!sobrecupo || cita?.sobrecupo === true);
   const [recargoSobrecupo, setRecargoSobrecupo] = useState(initialRecargo);
@@ -719,6 +729,111 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       }
     }
   }, [rangoDesc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Auto-detección de pack activo del cliente ─────────────────────
+     Cuando el barbero está creando/editando la cita, si el cliente
+     (por uid o teléfono normalizado) tiene un pack activo con saldo,
+     mostramos un chip arriba del formulario con la opción de canjear
+     una sesión. Cubre el caso "cliente sin registro al club": el
+     banner del flujo público no aparece porque no hay auth, pero
+     desde el panel el barbero sí puede identificar al cliente por
+     teléfono y aplicar el consumo.
+
+     packDisponible = { pack, servicios: [{svc, restante}], uid } | null */
+  const [packDisponible, setPackDisponible] = useState(null);
+  useEffect(() => {
+    // Si la cita ya trae marcas de consumo (fue armada desde el flujo
+    // público o desde este mismo chip), no interferimos.
+    if (form.consumeSesionPack) { setPackDisponible(null); return; }
+    // Cortesía o Corte al Lápiz tienen su propio flujo — no ofrecemos pack encima.
+    if (form.cortesia || usarCorteLapiz) { setPackDisponible(null); return; }
+
+    let cancel = false;
+    (async () => {
+      try {
+        let uid = form.clienteId || cita?.userId || cita?.clienteUid || null;
+        if (!uid) {
+          const digs = sanitizarTelefonoCL(form.clienteTelefono || '').replace(/\D/g, '');
+          if (digs.length >= 11) uid = digs;
+        }
+        if (!uid) { if (!cancel) setPackDisponible(null); return; }
+
+        const uSnap = await withTimeout(getDoc(doc(tenantCol('users'), uid)), 8000, 'agenda/pack-activo');
+        if (!uSnap.exists()) { if (!cancel) setPackDisponible(null); return; }
+
+        const packs = Array.isArray(uSnap.data().packsActivos) ? uSnap.data().packsActivos : [];
+        const now = Date.now();
+        const activos = packs.filter(p => {
+          const rest = Number(p.sesionesRestantes || 0);
+          const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+          return rest > 0 && (!vencMs || vencMs > now);
+        });
+        if (activos.length === 0) { if (!cancel) setPackDisponible(null); return; }
+
+        // MVP: elegimos el primer pack activo. Un cliente con múltiples packs
+        // activos en simultáneo es un caso raro; si aparece, el barbero
+        // puede editar la cita a mano.
+        const p = activos[0];
+        const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+        const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+        const svcOpts = incluidosIds
+          .map(sid => servicios.find(s => s.id === sid))
+          .filter(Boolean)
+          .map(s => ({
+            svc: s,
+            restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null,
+          }));
+
+        if (!cancel) setPackDisponible({ pack: p, servicios: svcOpts, uid });
+      } catch (e) {
+        if (!cancel) setPackDisponible(null);
+        // Sin permiso / red / etc. → silencioso.
+      }
+    })();
+    return () => { cancel = true; };
+  }, [form.clienteId, form.clienteTelefono, form.consumeSesionPack, form.cortesia, usarCorteLapiz, tenantId, servicios, cita]);
+
+  /* Aplica el consumo de un pack (opcional: para el servicio elegido).
+     Setea todas las marcas que la CF pack-automatico necesita para
+     descontar la sesión al completar la cita. */
+  const _canjearPackAgenda = (svcElegido = null) => {
+    if (!packDisponible) return;
+    const p = packDisponible.pack;
+    const dur = Number((svcElegido && svcElegido.duracion) || p.duracionSesion) || 30;
+    setForm(f => ({
+      ...f,
+      servicioId:           svcElegido?.id || p.packId,
+      servicioNombre:       svcElegido?.nombre || p.nombrePack,
+      precio:               0,
+      duracion:             dur,
+      consumeSesionPack:    true,
+      packRefId:            p.packId,
+      packNombre:           p.nombrePack,
+      packSesionIndex:      Math.max(1, (Number(p.sesionesTotales) || 1) - Number(p.sesionesRestantes || 0) + 1),
+      packSesionTotal:      Number(p.sesionesTotales) || 1,
+      packFechaVencimiento: p.fechaVencimiento || null,
+      cortesia:             false,
+      porcentajeDescuento:  '',
+      metodoPago:           f.metodoPago === 'Cortesía' ? 'Efectivo' : f.metodoPago,
+    }));
+  };
+
+  /* Deshace el canje: vuelve al servicio original del pack (o al primero
+     del catálogo) con su precio de lista. */
+  const _quitarCanjePack = () => {
+    setForm(f => ({
+      ...f,
+      consumeSesionPack:    false,
+      packRefId:            null,
+      packNombre:           null,
+      packSesionIndex:      null,
+      packSesionTotal:      null,
+      packFechaVencimiento: null,
+      // Restaurar precio y duración del servicio del catálogo.
+      precio:               Number(servicios.find(s => s.id === f.servicioId)?.precio) || 0,
+      duracion:             Number(servicios.find(s => s.id === f.servicioId)?.duracion) || 30,
+    }));
+  };
 
   function addProductoAlTicket() {
     const p = productosDisponibles.find(x => x.id === newProductId);
@@ -1546,6 +1661,85 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
         )}
       </div>
+
+      {/* ═══ CHIP DE PACK ACTIVO DETECTADO ═══
+          Se muestra cuando el cliente (por uid o teléfono) tiene un pack
+          activo en users/{uid}.packsActivos[] con saldo > 0 y no vencido.
+          Fundamental para el flujo "sin registro": el flujo público del
+          cliente no puede identificarlo sin login, así que el barbero
+          canjea desde acá. */}
+      {packDisponible && !form.consumeSesionPack && (() => {
+        const p = packDisponible.pack;
+        const rest = Number(p.sesionesRestantes || 0);
+        const total = Number(p.sesionesTotales || rest);
+        const opciones = packDisponible.servicios.length > 0
+          ? packDisponible.servicios
+          : [{ svc: null, restante: null }]; // fallback: pack sin serviciosIncluidos
+        return (
+          <div className="rounded-xl border border-violet-500/40 bg-violet-500/[0.08] p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(167,139,250,0.20)' }}>
+                <span className="text-xl leading-none" aria-hidden="true">📦</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">Pack activo detectado</p>
+                <p className="text-sm font-bold text-primary truncate">{p.nombrePack}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Le quedan <b className="text-primary">{rest}</b> de {total} sesión{total !== 1 ? 'es' : ''} · Vence {p.fechaVencimiento?.toDate ? p.fechaVencimiento.toDate().toLocaleDateString('es-CL') : 'sin fecha'}
+                </p>
+              </div>
+            </div>
+            <p className="text-[11.5px] text-slate-400 leading-snug">
+              Este cliente pagó un pack. Podés canjear una sesión ahora — la cita se guarda en $0 y descuenta del saldo al completarla.
+            </p>
+            <div className="flex flex-col gap-2">
+              {opciones.map(({ svc, restante }, i) => {
+                const agotado = restante !== null && restante <= 0;
+                const nombre = svc?.nombre || p.nombrePack;
+                const saldoTxt = restante === null ? '' : (agotado ? ' · Sin sesiones' : ` · ${restante} disponible${restante !== 1 ? 's' : ''}`);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={agotado}
+                    onClick={() => _canjearPackAgenda(svc)}
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${agotado
+                      ? 'bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed'
+                      : 'bg-violet-500/15 text-violet-100 border-violet-500/40 hover:bg-violet-500/25'
+                    }`}
+                  >
+                    <span className="truncate">
+                      Canjear · <span className="font-normal opacity-90">{nombre}</span>
+                      {saldoTxt && <span className="text-[10.5px] opacity-80">{saldoTxt}</span>}
+                    </span>
+                    <span aria-hidden="true">{agotado ? '—' : '→'}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══ CHIP DE CANJE APLICADO ═══
+          Cuando el barbero ya tocó "Canjear", cambiamos el chip anterior
+          por este que resume qué se está por consumir y ofrece deshacer. */}
+      {form.consumeSesionPack && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.08] p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(52,211,153,0.20)' }}>
+            <span className="text-lg leading-none" aria-hidden="true">✓</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Consumo de pack aplicado</p>
+            <p className="text-[12.5px] text-slate-300 mt-0.5">
+              <b className="text-primary">{form.servicioNombre}</b> · Sesión {form.packSesionIndex || '?'}/{form.packSesionTotal || '?'} · Precio $0
+            </p>
+          </div>
+          <button type="button" onClick={_quitarCanjePack} className="shrink-0 text-[11px] font-semibold text-emerald-200 hover:text-white underline underline-offset-2">
+            Deshacer
+          </button>
+        </div>
+      )}
 
       {/* ═══ BLOQUE 3 · FINANZAS Y NOTAS ═══ */}
       <div className={section}>
