@@ -5777,8 +5777,13 @@
         </div>
         <div id="manualPhoneWrap">
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono / WhatsApp</label>
-          <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);">
+          <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" oninput="_onManualPhoneInput()">
         </div>
+
+        <!-- Chip auto-detección de pack activo del cliente. Se popula por _agendaBuscarPack
+             al escribir el teléfono. Cuando el barbero elige un servicio del pack, la cita
+             queda marcada como consumo y se guarda con precio $0. -->
+        <div id="packChipAgenda" class="hidden"></div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
           <input type="email" id="manualEmail" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);" autocomplete="off">
@@ -6283,6 +6288,10 @@
         document.getElementById('manualNameSugg').classList.add('hidden');
         _selectedClienteId = null;
         _manualEmail = '';
+        // Reset del estado de pack (chip y flags) para que no arrastre
+        // datos entre citas — sin esto, si el barbero cerró un modal con
+        // canje aplicado y abrió otro, la nueva cita iba a heredar el canje.
+        if (typeof _agendaResetPackState === 'function') _agendaResetPackState();
         // Precarga en background para que estén listos al abrir el modal
         _loadClientes();
         _loadServicios();
@@ -6949,6 +6958,275 @@
         document.getElementById('manualPrecio').value = precioFinal;
     }
 
+    /* ═══════════════════════════════════════════════════════════════
+       PACKS EN AGENDA.HTML — port de Agenda.jsx del panel admin
+       ═══════════════════════════════════════════════════════════════
+
+       Estado interno de la cita en construcción. Se resetea al abrir el
+       modal manual y se lee al guardar. El flujo es:
+        1. Barbero escribe teléfono → _onManualPhoneInput() dispara
+           _agendaBuscarPack() que lee users/{tel569}.packsActivos.
+        2. Si hay pack activo, se muestra el chip violeta con botones
+           "Canjear · <servicio>". Al hacer click, _agendaCanjearPack()
+           setea _agendaPackState y actualiza servicio/precio en el form.
+        3. Alternativa: barbero elige un servicio-pack multi en el
+           dropdown → _onManualServiceChange abre el modal
+           "¿Qué servicio hoy?" con las opciones del pack.
+        4. guardarCitaManual() lee _agendaPackState y agrega los flags
+           correctos al docData (activaPackId o consumeSesionPack). */
+    let _agendaPackState = null;
+    // { mode: 'venta'|'consumo', packId, packNombre, servicioId, servicioNombre,
+    //   duracion, pack (obj completo) }
+
+    function _agendaResetPackState() {
+        _agendaPackState = null;
+        const chip = document.getElementById('packChipAgenda');
+        if (chip) { chip.innerHTML = ''; chip.classList.add('hidden'); }
+    }
+
+    // Normaliza teléfono al formato chileno 11 dígitos (569XXXXXXXX).
+    function _agendaNormTel(raw) {
+        const digs = String(raw || '').replace(/\D/g, '');
+        if (digs.length === 11 && digs.startsWith('56')) return digs;
+        if (digs.length === 9) return `56${digs}`;
+        if (digs.length >= 11) return digs;
+        return '';
+    }
+
+    let _agendaPackBusquedaCancel = null;
+    async function _onManualPhoneInput() {
+        // Si el usuario canjeó un pack y ahora cambia el teléfono, invalidar canje.
+        if (_agendaPackState) _agendaResetPackState();
+
+        const tel = document.getElementById('manualPhone')?.value || '';
+        const uid = _agendaNormTel(tel);
+        if (!uid) return;
+        // Cancelar búsqueda anterior si estaba en curso.
+        if (_agendaPackBusquedaCancel) _agendaPackBusquedaCancel();
+        let cancelled = false;
+        _agendaPackBusquedaCancel = () => { cancelled = true; };
+        await _agendaBuscarPack(uid, () => cancelled);
+    }
+
+    async function _agendaBuscarPack(uid, isCancelled) {
+        try {
+            const snap = await tenantCol('users').doc(uid).get();
+            if (isCancelled?.()) return;
+            if (!snap.exists) return;
+            const packs = Array.isArray(snap.data().packsActivos) ? snap.data().packsActivos : [];
+            const now = Date.now();
+            const activos = packs.filter(p => {
+                const rest = Number(p.sesionesRestantes || 0);
+                const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+                return rest > 0 && (!vencMs || vencMs > now);
+            });
+            if (isCancelled?.()) return;
+            if (!activos.length) return;
+            // MVP: tomamos el 1er pack. Si aparece múltiple, el barbero puede
+            // editar la cita después desde el panel admin.
+            const p = activos[0];
+            _agendaRenderChipPack(p);
+        } catch (e) {
+            // sin permiso / red / etc. — silencio.
+        }
+    }
+
+    function _agendaRenderChipPack(p) {
+        const chip = document.getElementById('packChipAgenda');
+        if (!chip) return;
+        const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+        const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+        const svcs = incluidosIds
+            .map(sid => (_servicios || []).find(s => s.id === sid))
+            .filter(Boolean)
+            .map(s => ({ svc: s, restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null }));
+        const total = Math.max(1, Number(p.sesionesTotales || 1));
+        const rest  = Number(p.sesionesRestantes || 0);
+        const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+        // Guardamos el pack en window para que el handler onclick lo pueda leer sin closures.
+        window.__agendaPackTemp = { p, svcs };
+
+        const botones = svcs.length > 0 ? svcs.map((op, i) => {
+            const agotado = op.restante !== null && op.restante <= 0;
+            const saldo = op.restante === null ? '' : ` · ${op.restante} ${op.restante === 1 ? 'disp.' : 'disp.'}`;
+            return `<button type="button" ${agotado ? 'disabled' : ''}
+                onclick="_agendaCanjearPack(${i})"
+                style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:${agotado ? 'rgba(255,255,255,0.03)' : 'rgba(167,139,250,0.15)'};border:1px solid ${agotado ? 'rgba(255,255,255,0.06)' : 'rgba(167,139,250,0.40)'};color:${agotado ? 'rgba(255,255,255,0.35)' : '#fff'};font-size:12.5px;font-weight:600;${agotado ? 'cursor:not-allowed;' : 'cursor:pointer;'}">
+                <span>Canjear · <span style="font-weight:400;opacity:0.9;">${esc(op.svc.nombre)}</span>${saldo}</span>
+                <span aria-hidden="true">${agotado ? '—' : '→'}</span>
+            </button>`;
+        }).join('') : `<button type="button" onclick="_agendaCanjearPack(-1)"
+                style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.40);color:#fff;font-size:12.5px;font-weight:600;">
+                Canjear sesión →
+            </button>`;
+
+        chip.innerHTML = `
+            <div style="border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(167,139,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📦</div>
+                    <div style="flex:1;min-width:0;">
+                        <p style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(167,139,250,0.95);margin:0;">Pack activo detectado</p>
+                        <p style="font-size:13px;font-weight:700;color:#fff;margin:1px 0 0;line-height:1.2;">${esc(p.nombrePack)}</p>
+                        <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:3px 0 0;">${rest} de ${total} sesión${total !== 1 ? 'es' : ''} · vence ${p.fechaVencimiento?.toDate ? p.fechaVencimiento.toDate().toLocaleDateString('es-CL') : 's/f'}</p>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">${botones}</div>
+            </div>
+        `;
+        chip.classList.remove('hidden');
+    }
+
+    window._agendaCanjearPack = function(idx) {
+        const data = window.__agendaPackTemp;
+        if (!data) return;
+        const p = data.p;
+        const svc = idx >= 0 && idx < data.svcs.length ? data.svcs[idx].svc : null;
+        _agendaPackState = {
+            mode: 'consumo',
+            packId: p.packId,
+            packNombre: p.nombrePack,
+            packFechaVencimiento: p.fechaVencimiento || null,
+            packSesionIndex: Math.max(1, (Number(p.sesionesTotales) || 1) - Number(p.sesionesRestantes || 0) + 1),
+            packSesionTotal: Number(p.sesionesTotales) || 1,
+            servicioId: svc?.id || p.packId,
+            servicioNombre: svc?.nombre || p.nombrePack,
+            duracion: Number(svc?.duracion || p.duracionSesion) || 30,
+        };
+        // Reflejar en el form.
+        const svcSel = document.getElementById('manualServiceSelect');
+        if (svcSel && svc?.id) svcSel.value = svc.id;
+        const durSel = document.getElementById('manualDuration');
+        if (durSel) durSel.value = _agendaPackState.duracion;
+        const precioInput = document.getElementById('manualPrecio');
+        if (precioInput) precioInput.value = 0;
+        const descInput = document.getElementById('manualDesc');
+        if (descInput) descInput.value = 0;
+        // Cambiar el chip a confirmación verde.
+        const chip = document.getElementById('packChipAgenda');
+        if (chip) {
+            chip.innerHTML = `
+                <div style="border:1px solid rgba(52,211,153,0.4);background:rgba(52,211,153,0.08);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;">
+                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(52,211,153,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">✓</div>
+                    <div style="flex:1;min-width:0;">
+                        <p style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(52,211,153,0.95);margin:0;">Consumo de pack aplicado</p>
+                        <p style="font-size:12px;color:rgba(255,255,255,0.85);margin:1px 0 0;">${_agendaPackState.servicioNombre} · Sesión ${_agendaPackState.packSesionIndex}/${_agendaPackState.packSesionTotal} · $0</p>
+                    </div>
+                    <button type="button" onclick="_agendaDeshacerCanje()" style="flex-shrink:0;font-size:10.5px;font-weight:700;color:rgba(52,211,153,0.95);background:none;border:none;text-decoration:underline;cursor:pointer;">Deshacer</button>
+                </div>
+            `;
+        }
+    };
+
+    window._agendaDeshacerCanje = function() {
+        _agendaResetPackState();
+        // Re-disparar la búsqueda para que aparezca el chip violeta de nuevo.
+        _onManualPhoneInput();
+    };
+
+    // Wrap del handler original de cambio de servicio: si el servicio elegido es
+    // un pack multi-servicio, abrir el modal "¿qué servicio hacés hoy?" para
+    // que el barbero elija qué consumir en la venta (Modelo B).
+    const _origSvcChange = _onManualServiceChange;
+    window._onManualServiceChange = function() {
+        _origSvcChange();
+        // Si el servicio elegido es un pack con múltiples serviciosIncluidos,
+        // proponer selector "servicio de hoy".
+        const sel = document.getElementById('manualServiceSelect');
+        const svcObj = (_servicios || []).find(s => s.id === sel?.value);
+        if (!svcObj || !svcObj.isPack) return;
+        const incluidos = Array.isArray(svcObj.serviciosIncluidos) ? svcObj.serviciosIncluidos : [];
+        if (incluidos.length < 2) return;
+        const opts = incluidos
+            .map(sid => (_servicios || []).find(s => s.id === sid))
+            .filter(Boolean);
+        if (opts.length < 2) return;
+        _agendaAbrirModalServicioHoy(svcObj, opts);
+    };
+
+    function _agendaAbrirModalServicioHoy(pack, opciones) {
+        const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+        const previo = document.getElementById('packModalOverlayAgenda');
+        if (previo) previo.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'packModalOverlayAgenda';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+
+        const card = document.createElement('div');
+        card.style.cssText = 'width:100%;max-width:480px;background:#111827;border:1px solid rgba(96,165,250,0.4);border-radius:20px;padding:20px;max-height:90vh;overflow-y:auto;';
+        card.innerHTML = `
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+                <div style="width:44px;height:44px;border-radius:14px;background:rgba(96,165,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">✂️</div>
+                <div style="flex:1;min-width:0;">
+                    <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0;">¿Qué servicio hace hoy?</p>
+                    <p style="font-size:15px;font-weight:700;color:#fff;margin:2px 0 0;line-height:1.25;">${esc(pack.nombre)}</p>
+                    <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">Elegí el servicio de hoy. Las sesiones restantes se canjean cuando el cliente vuelva.</p>
+                </div>
+            </div>
+            <div id="agendaHoyList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+            <button type="button" id="agendaHoyCancel"
+                style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:14px;cursor:pointer;">
+                Elegir después / Solo vender el pack
+            </button>
+        `;
+
+        const list = card.querySelector('#agendaHoyList');
+        opciones.forEach((svc) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.cssText = 'width:100%;text-align:left;padding:14px;border-radius:14px;background:rgba(96,165,250,0.10);border:1px solid rgba(96,165,250,0.30);display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;';
+            btn.innerHTML = `
+                <div style="flex:1;min-width:0;">
+                    <p style="font-size:14px;font-weight:700;margin:0;line-height:1.25;">${esc(svc.nombre)}</p>
+                    <p style="font-size:11px;color:rgba(255,255,255,0.55);margin:2px 0 0;">${Number(svc.duracion) || 30} min · incluido en el pack</p>
+                </div>
+                <span style="flex-shrink:0;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,0.35);">Elegir →</span>
+            `;
+            btn.addEventListener('click', () => {
+                overlay.remove();
+                // Setear estado: cita = venta de pack + servicio de hoy (activaPackId).
+                _agendaPackState = {
+                    mode: 'venta',
+                    packId: pack.id,
+                    packNombre: pack.nombre,
+                    servicioId: svc.id,
+                    servicioNombre: svc.nombre,
+                    duracion: Number(svc.duracion) || 30,
+                };
+                // Reflejar en form: precio queda en el DEL PACK (no del servicio).
+                const durSel = document.getElementById('manualDuration');
+                if (durSel) durSel.value = _agendaPackState.duracion;
+                // Precio se queda en el del pack (ya fue seteado por _origSvcChange).
+                // Notificar al barbero con un pequeño banner.
+                const chip = document.getElementById('packChipAgenda');
+                if (chip) {
+                    chip.innerHTML = `
+                        <div style="border:1px solid rgba(96,165,250,0.4);background:rgba(96,165,250,0.10);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;">
+                            <div style="width:32px;height:32px;border-radius:8px;background:rgba(96,165,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">📦</div>
+                            <div style="flex:1;min-width:0;">
+                                <p style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0;">Venta de pack + hoy</p>
+                                <p style="font-size:12px;color:rgba(255,255,255,0.85);margin:1px 0 0;">${esc(svc.nombre)} · el resto se canjea después</p>
+                            </div>
+                            <button type="button" onclick="_agendaResetVentaPack()" style="flex-shrink:0;font-size:10.5px;font-weight:700;color:rgba(96,165,250,0.95);background:none;border:none;text-decoration:underline;cursor:pointer;">Deshacer</button>
+                        </div>
+                    `;
+                    chip.classList.remove('hidden');
+                }
+            });
+            list.appendChild(btn);
+        });
+
+        card.querySelector('#agendaHoyCancel').addEventListener('click', () => overlay.remove());
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+    }
+
+    window._agendaResetVentaPack = function() {
+        _agendaResetPackState();
+        // El servicio del catálogo (el pack) queda seleccionado igual, sin flags.
+    };
+
     async function guardarCitaManual() {
         const btn = document.getElementById('manualSaveBtn');
         const err = document.getElementById('manualError');
@@ -7026,6 +7304,33 @@
                 if (selCliente?.uid) docData.clienteUid = selCliente.uid;
             }
             if (lockId) docData.slotLockId = lockId;
+
+            // Packs: si el barbero armó un canje o una venta con "servicio de
+            // hoy" desde el chip, agregamos los flags correspondientes al
+            // docData. La CF pack-automatico se encarga del resto al completar.
+            if (_agendaPackState) {
+                if (_agendaPackState.mode === 'consumo') {
+                    docData.consumeSesionPack    = true;
+                    docData.packRefId            = _agendaPackState.packId;
+                    docData.packNombre           = _agendaPackState.packNombre;
+                    docData.packSesionIndex      = _agendaPackState.packSesionIndex;
+                    docData.packSesionTotal      = _agendaPackState.packSesionTotal;
+                    docData.packFechaVencimiento = _agendaPackState.packFechaVencimiento || null;
+                    // El servicio real (no el pack) queda como servicioId — así
+                    // la CF decrementa el contador correcto en serviciosRestantes.
+                    docData.servicioId     = _agendaPackState.servicioId;
+                    docData.servicioNombre = _agendaPackState.servicioNombre;
+                    docData.precio         = 0;
+                } else if (_agendaPackState.mode === 'venta') {
+                    // Venta de pack multi + servicio de hoy (Modelo B).
+                    // servicioId = servicio real, activaPackId = pack, precio = precio del pack.
+                    docData.activaPackId  = _agendaPackState.packId;
+                    docData.packNombre    = _agendaPackState.packNombre;
+                    docData.servicioId    = _agendaPackState.servicioId;
+                    docData.servicioNombre = _agendaPackState.servicioNombre;
+                    // Precio se queda en el del pack (que ya vino del svcObj).
+                }
+            }
 
             if (lockId) {
                 const batch = db.batch();
