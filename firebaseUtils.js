@@ -524,12 +524,65 @@ const FDB = (() => {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
+  // Lazy-load firebase-functions-compat cuando se necesita (para llamar
+  // upsertCliente en el flujo público). No engorda la carga inicial del
+  // sitio de reserva porque solo se descarga al agendar la primera cita.
+  function _ensureFunctionsSDK() {
+    if (typeof firebase !== 'undefined' && firebase.functions) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Resuelve el cliente en users/ vía CF upsertCliente para obtener el uid
+  // canónico ANTES de guardar la cita. Reemplaza el modelo antiguo donde el
+  // cliente público no tenía doc en users/ hasta que un CF post-cita lo
+  // creaba (o hasta que se registraba al club). Con esto la cita queda
+  // linkeada al cliente correcto desde el primer write.
+  //
+  // Fail-safe: si el CF falla (red/quota/tenant sin funciones), devuelve null
+  // y la cita se guarda igual con datos sueltos (backward compat).
+  async function _resolverClienteUid({ nombre, email, telefono, tenantId }) {
+    if (!nombre || (!email && !telefono)) return null;
+    try {
+      await _ensureFunctionsSDK();
+      const call = firebase.functions().httpsCallable('upsertCliente');
+      const res  = await call({
+        tenantId: tenantId || (window.CURRENT_TENANT_ID || 'elegance'),
+        nombre,
+        email:    email    || '',
+        telefono: telefono || '',
+      });
+      return res?.data?.uid || null;
+    } catch (e) {
+      console.warn('[FDB] upsertCliente falló (no bloqueante):', e?.message || e);
+      return null;
+    }
+  }
+
   // Legacy: el flujo publico multi-tenant usa BookingService.createBooking().
   // Se mantiene temporalmente para compatibilidad con vistas antiguas.
   async function addCita(cita) {
     const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
     const startMin = toMins(cita.hora);
     const dur = Number(cita.duracionServicio) || 30;
+
+    // Resolver el cliente en users/ ANTES de reservar el slot. Si el caller
+    // ya pasó clienteUid explícito (típico: admin desde agenda), lo
+    // respetamos. Sino, upsertCliente devuelve el uid canónico (crea el doc
+    // si no existe, reusa si matchea por email/tel con la regla híbrida).
+    if (!cita.clienteUid) {
+      const uid = await _resolverClienteUid({
+        nombre:   cita.clienteNombre,
+        email:    cita.clienteEmail,
+        telefono: cita.clienteTelefono,
+      });
+      if (uid) cita.clienteUid = uid;
+    }
 
     // Sobrecupo público: un cliente reservó un cupo VIP (opt-in del barbero).
     // Regla invariante: NUNCA toma un slotLock propio — se apoya en el lock de
@@ -624,13 +677,17 @@ const FDB = (() => {
     if (cita.servicioId)             citaData.servicioId             = cita.servicioId;
     if (cita.clienteUid)             citaData.clienteUid             = cita.clienteUid;
     if (cita.clienteTelefonoSuf9)    citaData.clienteTelefonoSuf9    = cita.clienteTelefonoSuf9;
-    // userId: si el caller pasó uno explícito, respetarlo. Si no, y hay
-    // sesión iniciada (cliente del club logueado), guardar auth uid.
-    // Sin este campo, la CF pack-automatico resuelve el usuario por teléfono
-    // y cae al doc legacy — que puede no ser el mismo doc del cliente
-    // registrado en el club → el pack no se activa/consume en el doc correcto.
+    // userId: precedencia (más confiable → menos):
+    //  1. cita.userId explícito del caller.
+    //  2. cita.clienteUid recién resuelto por upsertCliente (uid canónico
+    //     del doc en users/, correcto aunque el auth uid sea distinto).
+    //  3. auth uid del cliente logueado (fallback).
+    // Sin userId, la CF pack-automatico cae al doc legacy por teléfono, que
+    // puede no ser el mismo del cliente registrado → pack en doc incorrecto.
     if (cita.userId) {
       citaData.userId = cita.userId;
+    } else if (cita.clienteUid) {
+      citaData.userId = cita.clienteUid;
     } else {
       try {
         const _uAuth = firebase?.auth?.().currentUser;
@@ -733,6 +790,18 @@ const FDB = (() => {
     const safeHora = (base.hora || '').replace(':', '');
     const grupoId  = tenantCol(COL.CITAS).doc().id;   // id compartido del grupo
 
+    // Resolver el cliente reservante en users/ (mismo patrón que addCita).
+    // Solo la cita principal (idx=0) lleva email/tel; el resto son
+    // acompañantes anónimos. Por eso el uid se linkea SOLO a la principal.
+    if (!base.clienteUid) {
+      const uid = await _resolverClienteUid({
+        nombre:   base.clienteNombre,
+        email:    base.clienteEmail,
+        telefono: base.clienteTelefono,
+      });
+      if (uid) base.clienteUid = uid;
+    }
+
     function _genCodigo() {
       const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
       let code = '';
@@ -799,6 +868,10 @@ const FDB = (() => {
           grupoIndex:       it.idx,
           grupoTotal:       items.length,
           waOptIn:          esPrincipal,   // confirmación WhatsApp solo al reservante
+          // Solo la cita principal se linkea al cliente reservante (los
+          // acompañantes son anónimos). Sin esto la reserva grupal queda
+          // "huérfana" en users/.
+          ...(esPrincipal && base.clienteUid ? { clienteUid: base.clienteUid, userId: base.clienteUid } : {}),
           ...(base.sucursalId     ? { sucursalId: base.sucursalId } : {}),
           ...(base.sucursalNombre ? { sucursalNombre: base.sucursalNombre } : {}),
           ...(base.aceptaTerminos != null ? { aceptaTerminos: base.aceptaTerminos } : {}),
