@@ -2,6 +2,11 @@
 /* ─── Productos tab ──────────────────────────────────────────── */
 let _isProductsEnabled = false;
 let _productosUnsub    = null;
+// Filtro de categoría activo. 'all' = mostrar todos. Se resetea cuando la
+// categoría seleccionada desaparece (ej: se ocultó el último producto de esa
+// categoría). Ver renderProductosGrid abajo.
+let _productosCatSel   = 'all';
+let _productosLista    = [];
 
 // Delega en FDB.tenantCol para heredar el redirect marca-aware Kronnos (D3, Camino 1.5).
 // Colecciones marca-level (users/sellos/premios/rangos/canjes) en tenants Kronnos legacy
@@ -25,64 +30,133 @@ async function initProductosTab() {
     if (navBtn) navBtn.classList.remove('hidden');
 
     // Subscribe to products
-    const grid  = document.getElementById('productosGrid');
-    const empty = document.getElementById('productosEmpty');
     if (_productosUnsub) { _productosUnsub(); _productosUnsub = null; }
     _productosUnsub = _tenantCol('productos').onSnapshot(snap2 => {
-      const lista = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (!grid || !empty) return;
-      if (lista.length === 0) {
-        grid.innerHTML = '';
-        empty.classList.remove('hidden');
-        empty.style.display = 'flex';
-        return;
-      }
-      empty.classList.add('hidden');
-      empty.style.display = '';
-      grid.innerHTML = lista.map(p => {
-        const safeNombre = (p.nombre || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        const safeDesc   = (p.descripcion || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-        const precio     = Number(p.precio || 0).toLocaleString('es-CL');
-        const stockVal   = p.stock !== undefined && p.stock !== null && p.stock !== '' ? Number(p.stock) : null;
-        const stockHtml  = stockVal !== null
-          ? (stockVal > 0
-              ? `<p class="text-[10px] text-gray-400 font-semibold mt-1">Stock: ${stockVal}</p>`
-              : `<p class="text-[10px] text-red-500 font-bold mt-1">Agotado</p>`)
-          : '';
-        // Badge de sede — si el producto pertenece a una sede específica
-        // (multi-sede, opción B), lo dejamos claro antes de que el cliente
-        // decida comprarlo. El nombre viene denormalizado del panel admin.
-        const sedeHtml = p.sucursalNombre
-          ? `<p class="text-[10px] font-bold mt-1" style="color:#fdba74;">📍 Solo en ${String(p.sucursalNombre).replace(/</g, '&lt;')}</p>`
-          : '';
-        const passedStock = stockVal !== null ? stockVal : 'null';
-        return `
-        <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}', ${passedStock})"
-             class="producto-card bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
-          <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
-            ${p.imagen
-              ? `<img src="${p.imagen}" alt="${safeNombre}" loading="lazy" class="w-full h-full object-contain">`
-              : `<i class="ph ph-shopping-bag text-4xl text-gray-300"></i>`}
-          </div>
-          <div class="p-3 flex flex-col flex-1 pointer-events-none">
-            <p class="text-sm font-bold text-white leading-tight">${p.nombre || ''}</p>
-            ${p.descripcion
-              ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
-              : ''}
-            ${stockHtml}
-            ${sedeHtml}
-            <div class="flex items-center justify-between mt-auto pt-3">
-              <span class="text-lg font-bold" style="color:#D4AF37;">$${precio}</span>
-              <span class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold">Ver detalle</span>
-            </div>
-          </div>
-        </div>`;
-      }).join('');
+      _productosLista = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderProductosCategorias();
+      renderProductosGrid();
     });
   } catch (e) {
     console.warn('[Productos] Error:', e.message);
   }
+}
+
+// Categorías únicas en uso (sin categoría → no cuenta). Ordenadas por
+// nombre; devuelven [{ nombre, count }, ...]. Los productos que el admin
+// activó con `activo:false` aún no entran acá porque no se rendrean.
+function _productosCategoriasEnUso() {
+  const map = new Map();
+  _productosLista.forEach(p => {
+    if (p.activo === false) return;
+    const cat = (p.categoria || '').trim();
+    if (!cat) return;
+    map.set(cat, (map.get(cat) || 0) + 1);
+  });
+  return [...map.entries()]
+    .map(([nombre, count]) => ({ nombre, count }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+function renderProductosCategorias() {
+  const row = document.getElementById('productosCategorias');
+  if (!row) return;
+  const cats = _productosCategoriasEnUso();
+  // Si no hay ninguna categoría en uso, ocultamos toda la fila (no aporta).
+  if (cats.length === 0) {
+    row.classList.add('hidden');
+    row.innerHTML = '';
+    _productosCatSel = 'all';
+    return;
+  }
+  // Si la categoría seleccionada dejó de existir, volvemos a "Todos".
+  if (_productosCatSel !== 'all' && !cats.some(c => c.nombre === _productosCatSel)) {
+    _productosCatSel = 'all';
+  }
+  row.classList.remove('hidden');
+  const totalActivos = _productosLista.filter(p => p.activo !== false).length;
+  const chip = (id, label, count, active) => `
+    <button type="button" data-cat="${id.replace(/"/g, '&quot;')}"
+      class="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+        active
+          ? 'bg-[#D4AF37] border-[#D4AF37] text-black'
+          : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+      }">${label} <span class="ml-1 opacity-70">${count}</span></button>`;
+  row.innerHTML = [
+    chip('all', 'Todos', totalActivos, _productosCatSel === 'all'),
+    ...cats.map(c => chip(c.nombre, c.nombre, c.count, _productosCatSel === c.nombre)),
+  ].join('');
+  // Delegar clicks: cada chip cambia _productosCatSel y re-renderea.
+  row.querySelectorAll('button[data-cat]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _productosCatSel = btn.getAttribute('data-cat') || 'all';
+      renderProductosCategorias();
+      renderProductosGrid();
+    });
+  });
+}
+
+function renderProductosGrid() {
+  const grid  = document.getElementById('productosGrid');
+  const empty = document.getElementById('productosEmpty');
+  if (!grid || !empty) return;
+  const visibles = _productosLista.filter(p => p.activo !== false);
+  const lista = _productosCatSel === 'all'
+    ? visibles
+    : visibles.filter(p => (p.categoria || '').trim() === _productosCatSel);
+  if (lista.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.classList.add('hidden');
+  empty.style.display = '';
+  grid.innerHTML = lista.map(p => {
+    const safeNombre = (p.nombre || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    const safeDesc   = (p.descripcion || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    const precio     = Number(p.precio || 0).toLocaleString('es-CL');
+    const stockVal   = p.stock !== undefined && p.stock !== null && p.stock !== '' ? Number(p.stock) : null;
+    const stockHtml  = stockVal !== null
+      ? (stockVal > 0
+          ? `<p class="text-[10px] text-gray-400 font-semibold mt-1">Stock: ${stockVal}</p>`
+          : `<p class="text-[10px] text-red-500 font-bold mt-1">Agotado</p>`)
+      : '';
+    // Badge de sede — si el producto pertenece a una sede específica
+    // (multi-sede, opción B), lo dejamos claro antes de que el cliente
+    // decida comprarlo. El nombre viene denormalizado del panel admin.
+    const sedeHtml = p.sucursalNombre
+      ? `<p class="text-[10px] font-bold mt-1" style="color:#fdba74;">📍 Solo en ${String(p.sucursalNombre).replace(/</g, '&lt;')}</p>`
+      : '';
+    // Badge de categoría (arriba del nombre) para que el cliente
+    // ubique el producto en el mismo esquema que los chips de filtro.
+    const catHtml = (p.categoria && String(p.categoria).trim())
+      ? `<span class="inline-block text-[9px] font-semibold uppercase tracking-widest text-[#D4AF37]/80 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full px-2 py-0.5 mb-1.5 self-start">${String(p.categoria).replace(/</g, '&lt;')}</span>`
+      : '';
+    const passedStock = stockVal !== null ? stockVal : 'null';
+    return `
+    <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}', ${passedStock})"
+         class="producto-card bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
+      <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
+        ${p.imagen
+          ? `<img src="${p.imagen}" alt="${safeNombre}" loading="lazy" class="w-full h-full object-contain">`
+          : `<i class="ph ph-shopping-bag text-4xl text-gray-300"></i>`}
+      </div>
+      <div class="p-3 flex flex-col flex-1 pointer-events-none">
+        ${catHtml}
+        <p class="text-sm font-bold text-white leading-tight">${p.nombre || ''}</p>
+        ${p.descripcion
+          ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
+          : ''}
+        ${stockHtml}
+        ${sedeHtml}
+        <div class="flex items-center justify-between mt-auto pt-3">
+          <span class="text-lg font-bold" style="color:#D4AF37;">$${precio}</span>
+          <span class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold">Ver detalle</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 
