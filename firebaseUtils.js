@@ -544,24 +544,40 @@ const FDB = (() => {
   // creaba (o hasta que se registraba al club). Con esto la cita queda
   // linkeada al cliente correcto desde el primer write.
   //
-  // Fail-safe: si el CF falla (red/quota/tenant sin funciones), devuelve null
-  // y la cita se guarda igual con datos sueltos (backward compat).
+  // Retry: 2 intentos con backoff (0ms + 400ms) para absorber picos de red
+  // que dejaban citas huérfanas en producción (visto en test de delnero:
+  // 1 de 2 reservas seguidas perdía el uid). El CF es idempotente
+  // (docId determinístico), así que retriar es seguro.
+  //
+  // Fail-safe: si ambos intentos fallan, devuelve null y la cita se guarda
+  // igual con datos sueltos (backward compat). La CF pack-automatico
+  // reconciliará al Completar la cita.
   async function _resolverClienteUid({ nombre, email, telefono, tenantId }) {
     if (!nombre || (!email && !telefono)) return null;
-    try {
-      await _ensureFunctionsSDK();
-      const call = firebase.functions().httpsCallable('upsertCliente');
-      const res  = await call({
-        tenantId: tenantId || (window.CURRENT_TENANT_ID || 'elegance'),
-        nombre,
-        email:    email    || '',
-        telefono: telefono || '',
-      });
-      return res?.data?.uid || null;
-    } catch (e) {
-      console.warn('[FDB] upsertCliente falló (no bloqueante):', e?.message || e);
-      return null;
+    const payload = {
+      tenantId: tenantId || (window.CURRENT_TENANT_ID || 'elegance'),
+      nombre,
+      email:    email    || '',
+      telefono: telefono || '',
+    };
+    const MAX_ATTEMPTS = 2;
+    let lastErr = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        if (attempt > 0) {
+          await new Promise(r => setTimeout(r, 400));
+        }
+        await _ensureFunctionsSDK();
+        const call = firebase.functions().httpsCallable('upsertCliente');
+        const res  = await call(payload);
+        return res?.data?.uid || null;
+      } catch (e) {
+        lastErr = e;
+        // Loguear solo el último error para no llenar la consola.
+      }
     }
+    console.warn('[FDB] upsertCliente falló tras retries (no bloqueante):', lastErr?.message || lastErr);
+    return null;
   }
 
   // Legacy: el flujo publico multi-tenant usa BookingService.createBooking().

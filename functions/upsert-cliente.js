@@ -51,6 +51,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { FieldValue }         = require('firebase-admin/firestore');
+const crypto                 = require('crypto');
 
 const db = admin.firestore();
 
@@ -190,6 +191,17 @@ const EXTRA_FIELDS_WHITELIST = new Set([
   'fechaRegistroOriginal', 'importedFrom',
 ]);
 
+// Doc id determinístico basado en email (identificador único humano) o tel
+// normalizado como fallback. Previene race conditions donde 2 requests
+// concurrentes que no encuentran match creen 2 docs distintos: ambos
+// calculan el mismo id, ambos hacen set() con merge, Firestore last-write-wins
+// → 1 solo doc. Prefijo 'ac_' (auto-computed) distingue visualmente estos ids
+// de los legacy (docId=tel puro) y de los Firebase Auth uids (28 chars).
+function _determId(email, telNorm) {
+  const key = email ? `e:${email}` : `t:${telNorm}`;
+  return 'ac_' + crypto.createHash('sha1').update(key).digest('hex').slice(0, 18);
+}
+
 // Lookup puro (sin escrituras) — reusable por upsertClienteCore, por el
 // trigger dedupeOnCreateTenant y por el guard client-side en registro.html.
 // Aplica la regla híbrida: email exacto → siempre match; tel único con
@@ -292,7 +304,29 @@ async function upsertClienteCore(data = {}) {
         dryRun:     true,
       };
     }
-    const newRef = col.doc(); // Firestore auto-id
+    // Id determinístico (hash de email o tel) para inmunidad a race
+    // conditions: dos ejecuciones concurrentes calculan el mismo id, ambas
+    // hacen set() con merge → 1 solo doc. Ver _determId arriba.
+    const finalId = _determId(email, normPhone(telRaw));
+    const newRef  = col.doc(finalId);
+    // Guard adicional: chequeamos si otra ejecución concurrente ya lo creó
+    // en la ventana desde resolveMatch hasta ahora. Si sí, fusionamos en
+    // vez de sobreescribir; garantiza que no perdamos datos del "otro lado".
+    const existingSnap = await newRef.get();
+    if (existingSnap.exists) {
+      const existingData = existingSnap.data();
+      const update = calcularUpdate(existingData, { nombre, email, telefono: telRaw, ...extras });
+      const camposActualizados = Object.keys(update).filter(k => k !== 'updatedAt' && k !== 'upsertedAt');
+      await newRef.set(update, { merge: true });
+      logger.info(`[upsertCliente] ${tenantId}: MERGE ${finalId} (race-avoid) campos=[${camposActualizados.join(',')}]`);
+      return {
+        uid:        finalId,
+        wasCreated: false,
+        wasMerged:  true,
+        matchedBy:  'concurrent-create',
+        updatedFields: camposActualizados,
+      };
+    }
     const createData = {
       nombre,
       email:    email  || '',
@@ -303,9 +337,9 @@ async function upsertClienteCore(data = {}) {
       upsertedAt: FieldValue.serverTimestamp(),
     };
     await newRef.set(createData);
-    logger.info(`[upsertCliente] ${tenantId}: CREATE ${newRef.id} nombre="${nombre}" email="${email}" tel="${telRaw}" matchedBy=${matchedBy || 'none'}`);
+    logger.info(`[upsertCliente] ${tenantId}: CREATE ${finalId} nombre="${nombre}" email="${email}" tel="${telRaw}" matchedBy=${matchedBy || 'none'}`);
     return {
-      uid:        newRef.id,
+      uid:        finalId,
       wasCreated: true,
       wasMerged:  false,
       matchedBy:  matchedBy || null,
