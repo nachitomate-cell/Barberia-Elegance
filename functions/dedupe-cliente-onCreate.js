@@ -177,14 +177,44 @@ async function procesarDedup({ tenantId, uid, data }) {
     ...new Set(legacies.flatMap(l => [l.data().telefono, l.id]).map(normPhone).filter(Boolean)),
   ];
 
+  // Reasignar citas históricas: si el legacy tenía citas apuntando a él
+  // (clienteUid/userId = legacyId), hay que reapuntarlas al doc canónico
+  // ANTES de borrarlo, sino quedan huérfanas (bug detectado en test E2E
+  // manual delnero: agenda pre-registro linkeaba al ac_, luego el registro
+  // absorbía el ac_ y borraba el legacy dejando la cita huérfana).
+  //
+  // Firestore batch límite = 500 ops. Para tenants con muchas citas legacy,
+  // hacemos paginación de 200 en 200.
+  const citasCol = tenantId === 'elegance'
+    ? db.collection('citas')
+    : db.collection(`tenants/${tenantId}/citas`);
+  const legacyIds = legacies.map(l => l.id);
+  const reasignaciones = []; // [{ ref, data }]
+  for (const legacyId of legacyIds) {
+    // Buscar por clienteUid y por userId. Puede haber solape (misma cita en
+    // ambas); dedup por ref path.
+    const [byCli, byUsr] = await Promise.all([
+      citasCol.where('clienteUid', '==', legacyId).limit(200).get().catch(() => ({ docs: [] })),
+      citasCol.where('userId',     '==', legacyId).limit(200).get().catch(() => ({ docs: [] })),
+    ]);
+    const seen = new Set();
+    [...byCli.docs, ...byUsr.docs].forEach(d => {
+      if (!seen.has(d.ref.path)) {
+        seen.add(d.ref.path);
+        reasignaciones.push(d);
+      }
+    });
+  }
+
   const batch = db.batch();
   batch.set(usersCol.doc(uid), mergeUpdate, { merge: true });
+  reasignaciones.forEach(c => batch.update(c.ref, { clienteUid: uid, userId: uid }));
   legacies.forEach(l => batch.delete(l.ref));
   telefonosLegacy.forEach(tel => batch.delete(clientesCol.doc(tel)));
 
   try {
     await batch.commit();
-    logger.info(`[Dedup] ${tenantId}/${uid}: OK. Borrados ${legacies.length} legacy(s) en users/ + ${telefonosLegacy.length} en clientes/. Sellos hist ${currentHist}→${finalHist}, disp ${currentDisp}→${finalDisp}.`);
+    logger.info(`[Dedup] ${tenantId}/${uid}: OK. Borrados ${legacies.length} legacy(s), ${telefonosLegacy.length} mirrors, reasignadas ${reasignaciones.length} citas. Sellos hist ${currentHist}→${finalHist}, disp ${currentDisp}→${finalDisp}.`);
   } catch (e) {
     logger.error(`[Dedup] ${tenantId}/${uid}: error al fusionar:`, e);
   }

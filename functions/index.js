@@ -1257,6 +1257,16 @@ const upsertClienteModule = require('./upsert-cliente');
 exports.upsertCliente = upsertClienteModule.upsertCliente;
 
 // ─────────────────────────────────────────────────────────────────
+//  RESCATE CLIENTE EN CITA — ver rescate-cliente-cita.js
+//  Segunda línea de defensa: si una cita se crea sin clienteUid
+//  (fallo del CF client-side), este trigger lo resuelve server-side
+//  llamando internamente a upsertCliente y actualiza la cita.
+// ─────────────────────────────────────────────────────────────────
+const rescateModule = require('./rescate-cliente-cita');
+exports.rescateClienteCitaElegance = rescateModule.rescateClienteCitaElegance;
+exports.rescateClienteCitaTenant   = rescateModule.rescateClienteCitaTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  LIBERAR SLOT AL CANCELAR — ver liberar-slot-on-cancel.js
 //  Cliente puede cancelar pero no tiene permiso para borrar slotLocks.
 //  Esta CF lo libera server-side cuando una cita pasa a Cancelada.
