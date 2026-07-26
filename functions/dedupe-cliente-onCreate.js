@@ -47,7 +47,17 @@ function colClientes(tenantId) {
 }
 
 function isLegacyDoc(docId, data) {
-  return (data && data.uid === docId) || (data && data.importedFrom === 'agendapro');
+  // 3 tipos de doc que este trigger puede absorber al crearse un doc canónico
+  // (típicamente un registro nuevo del club con Firebase Auth uid):
+  //  1. Legacy AgendaPro migrado: uid === docId (formato +56XXXXXXXXX).
+  //  2. Legacy AgendaPro con marca explícita: importedFrom === 'agendapro'.
+  //  3. Auto-computed por upsertCliente: docId con prefijo 'ac_'. Estos se
+  //     crean cuando el cliente agendó o reservó ANTES de registrarse al club.
+  //     Al registrarse queremos consolidar TODO en el doc con el authUid como
+  //     docId (que es el que la app lee por currentUser.uid).
+  return (data && data.uid === docId)
+      || (data && data.importedFrom === 'agendapro')
+      || (typeof docId === 'string' && docId.startsWith('ac_'));
 }
 
 async function procesarDedup({ tenantId, uid, data }) {
