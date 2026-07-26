@@ -762,6 +762,19 @@ export default function Metricas() {
     return rangeVentas.reduce((s, v) => s + (Number(v.precio) || Number(v.total) || 0), 0);
   }, [rangeVentas]);
 
+  // Ingresos por VENTA de packs (activaciones). El precio de la cita del pack
+  // ya está incluido en stats.ingresos (getPrice sobre citas Completada), pero
+  // el dueño quiere ver el ingreso desglosado: cuánta plata vino de venta de
+  // packs vs servicios sueltos. Filtramos las citas del rango marcadas con
+  // esActivacionPack:true (denormalizado por la CF pack-automatico).
+  const ingresosPacks = useMemo(() => {
+    const rangeCitas = citas.filter(c =>
+      c.fecha >= fechaInicio && c.fecha <= fechaFin &&
+      c.estado === 'Completada' && !c.origenQA && c.esActivacionPack === true
+    );
+    return rangeCitas.reduce((s, c) => s + getPrice(c), 0);
+  }, [citas, fechaInicio, fechaFin, getPrice]);
+
   // Chart data for 6 months (Historical trend for Comercial Tab).
   // Fuente: citas6m (cache dedicado independiente del rango de filtro).
   // Fallback a `citas` si el cache aún no hidrató.
@@ -1520,7 +1533,13 @@ export default function Metricas() {
                   <DeltaBadge delta={delta} />
                 </div>
                 <p className="text-xs text-slate-500">
-                  Servicios <span className="text-slate-300 font-medium">{fmtCLP(stats.ingresos)}</span>
+                  Servicios <span className="text-slate-300 font-medium">{fmtCLP(stats.ingresos - ingresosPacks)}</span>
+                  {ingresosPacks > 0 && (
+                    <>
+                      <span className="text-slate-700 mx-1.5">·</span>
+                      Packs vendidos <span className="text-violet-300 font-medium">{fmtCLP(ingresosPacks)}</span>
+                    </>
+                  )}
                   <span className="text-slate-700 mx-1.5">·</span>
                   Productos <span className="text-slate-300 font-medium">{fmtCLP(ingresosProductos)}</span>
                   {delta != null && (

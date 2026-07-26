@@ -770,21 +770,25 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         });
         if (activos.length === 0) { if (!cancel) setPackDisponible(null); return; }
 
-        // MVP: elegimos el primer pack activo. Un cliente con múltiples packs
-        // activos en simultáneo es un caso raro; si aparece, el barbero
-        // puede editar la cita a mano.
-        const p = activos[0];
-        const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
-        const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
-        const svcOpts = incluidosIds
-          .map(sid => servicios.find(s => s.id === sid))
-          .filter(Boolean)
-          .map(s => ({
-            svc: s,
-            restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null,
-          }));
+        // Renderizamos TODOS los packs activos (no solo el 1er). Poco común
+        // pero pasa cuando un cliente compra un pack nuevo antes de agotar
+        // el anterior o cuando el barbero le vende un pack extra por
+        // temporada. El chip renderiza uno debajo del otro con sus botones
+        // "Canjear" propios; el barbero elige de qué pack descontar.
+        const packsProcesados = activos.map(p => {
+          const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+          const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+          const svcOpts = incluidosIds
+            .map(sid => servicios.find(s => s.id === sid))
+            .filter(Boolean)
+            .map(s => ({
+              svc: s,
+              restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null,
+            }));
+          return { pack: p, servicios: svcOpts };
+        });
 
-        if (!cancel) setPackDisponible({ pack: p, servicios: svcOpts, uid });
+        if (!cancel) setPackDisponible({ packs: packsProcesados, uid });
       } catch (e) {
         if (!cancel) setPackDisponible(null);
         // Sin permiso / red / etc. → silencioso.
@@ -795,10 +799,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   /* Aplica el consumo de un pack (opcional: para el servicio elegido).
      Setea todas las marcas que la CF pack-automatico necesita para
-     descontar la sesión al completar la cita. */
-  const _canjearPackAgenda = (svcElegido = null) => {
+     descontar la sesión al completar la cita.
+     Recibe el pack específico elegido (para el caso de múltiples packs
+     activos simultáneos). Si no se pasa, cae al primero. */
+  const _canjearPackAgenda = (svcElegido = null, packEspecifico = null) => {
     if (!packDisponible) return;
-    const p = packDisponible.pack;
+    const p = packEspecifico || (Array.isArray(packDisponible.packs) ? packDisponible.packs[0]?.pack : null);
+    if (!p) return;
     const dur = Number((svcElegido && svcElegido.duracion) || p.duracionSesion) || 30;
     setForm(f => ({
       ...f,
@@ -1668,30 +1675,35 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           Fundamental para el flujo "sin registro": el flujo público del
           cliente no puede identificarlo sin login, así que el barbero
           canjea desde acá. */}
-      {packDisponible && !form.consumeSesionPack && (() => {
-        const p = packDisponible.pack;
+      {packDisponible && !form.consumeSesionPack && Array.isArray(packDisponible.packs) && packDisponible.packs.map((packInfo, packIdx) => {
+        const p = packInfo.pack;
         const rest = Number(p.sesionesRestantes || 0);
         const total = Number(p.sesionesTotales || rest);
-        const opciones = packDisponible.servicios.length > 0
-          ? packDisponible.servicios
+        const opciones = packInfo.servicios.length > 0
+          ? packInfo.servicios
           : [{ svc: null, restante: null }]; // fallback: pack sin serviciosIncluidos
+        const hayMultiplesPacks = packDisponible.packs.length > 1;
         return (
-          <div className="rounded-xl border border-violet-500/40 bg-violet-500/[0.08] p-4 space-y-3">
+          <div key={p.citaActivacion || packIdx} className="rounded-xl border border-violet-500/40 bg-violet-500/[0.08] p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(167,139,250,0.20)' }}>
                 <span className="text-xl leading-none" aria-hidden="true">📦</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">Pack activo detectado</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">
+                  Pack activo detectado{hayMultiplesPacks ? ` · ${packIdx + 1} de ${packDisponible.packs.length}` : ''}
+                </p>
                 <p className="text-sm font-bold text-primary truncate">{p.nombrePack}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   Le quedan <b className="text-primary">{rest}</b> de {total} sesión{total !== 1 ? 'es' : ''} · Vence {p.fechaVencimiento?.toDate ? p.fechaVencimiento.toDate().toLocaleDateString('es-CL') : 'sin fecha'}
                 </p>
               </div>
             </div>
-            <p className="text-[11.5px] text-slate-400 leading-snug">
-              Este cliente pagó un pack. Podés canjear una sesión ahora — la cita se guarda en $0 y descuenta del saldo al completarla.
-            </p>
+            {packIdx === 0 && (
+              <p className="text-[11.5px] text-slate-400 leading-snug">
+                Este cliente pagó un pack. Podés canjear una sesión ahora — la cita se guarda en $0 y descuenta del saldo al completarla.
+              </p>
+            )}
             <div className="flex flex-col gap-2">
               {opciones.map(({ svc, restante }, i) => {
                 const agotado = restante !== null && restante <= 0;
@@ -1702,7 +1714,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     key={i}
                     type="button"
                     disabled={agotado}
-                    onClick={() => _canjearPackAgenda(svc)}
+                    onClick={() => _canjearPackAgenda(svc, p, packInfo)}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${agotado
                       ? 'bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed'
                       : 'bg-violet-500/15 text-violet-100 border-violet-500/40 hover:bg-violet-500/25'
@@ -1719,7 +1731,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             </div>
           </div>
         );
-      })()}
+      })}
 
       {/* ═══ CHIP DE CANJE APLICADO ═══
           Cuando el barbero ya tocó "Canjear", cambiamos el chip anterior

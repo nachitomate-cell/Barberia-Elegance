@@ -1493,6 +1493,87 @@
     if (btn) btn.classList.add('selected');
     updateContinueBtn();
     updateRecap();
+    // Modelo B: si eligió un pack multi-servicio, ofrecer elegir cuál servicio
+    // hace hoy. La cita queda con servicioId = servicio real + activaPackId = pack.
+    _barberoPreguntarServicioHoy();
+  }
+
+  /* Al elegir un servicio isPack:true con múltiples serviciosIncluidos, abrir
+     modal para elegir qué servicio hace hoy. Sin esto, el barbero (o cliente)
+     compraría el pack pero la CF no sabría cuál servicio decrementar del mapa.
+     Espejo minimal de _preguntarServicioDeHoyPack de index.html. */
+  function _barberoPreguntarServicioHoy() {
+    if (!_selectedService || !_selectedService.isPack) return;
+    const incluidos = Array.isArray(_selectedService.serviciosIncluidos) ? _selectedService.serviciosIncluidos : [];
+    if (incluidos.length < 2) return;
+    const catalogo = _allServices || [];
+    const opts = incluidos.map(sid => catalogo.find(s => s.id === sid)).filter(Boolean);
+    if (opts.length < 2) return;
+    _barberoAbrirModalServicioHoy(_selectedService, opts);
+  }
+
+  function _barberoAbrirModalServicioHoy(pack, opciones) {
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const previo = document.getElementById('barberoPackModal');
+    if (previo) previo.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'barberoPackModal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'width:100%;max-width:480px;background:#111827;border:1px solid rgba(96,165,250,0.4);border-radius:20px;padding:20px;max-height:90vh;overflow-y:auto;';
+    card.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+        <div style="width:44px;height:44px;border-radius:14px;background:rgba(96,165,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">✂️</div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0;">¿Qué servicio te hacés hoy?</p>
+          <p style="font-size:15px;font-weight:700;color:#fff;margin:2px 0 0;line-height:1.25;">${esc(pack.nombre)}</p>
+          <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">Elegí el servicio para tu visita de hoy. Las sesiones restantes las canjeás cuando vuelvas.</p>
+        </div>
+      </div>
+      <div id="barberoHoyList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+      <button type="button" id="barberoHoyCancel"
+        style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:14px;cursor:pointer;">
+        Elegir después / Solo comprar el pack
+      </button>
+    `;
+
+    const list = card.querySelector('#barberoHoyList');
+    opciones.forEach((svc) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = 'width:100%;text-align:left;padding:14px;border-radius:14px;background:rgba(96,165,250,0.10);border:1px solid rgba(96,165,250,0.30);display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;';
+      btn.innerHTML = `
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:14px;font-weight:700;margin:0;line-height:1.25;">${esc(svc.nombre)}</p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.55);margin:2px 0 0;">${Number(svc.duracion) || 30} min · incluido en tu pack</p>
+        </div>
+        <span style="flex-shrink:0;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,0.35);">Elegir →</span>
+      `;
+      btn.addEventListener('click', () => {
+        overlay.remove();
+        // Reemplazar _selectedService: el id ahora es el del servicio real,
+        // pero mantenemos precio y activaPackId del pack. La duración pasa
+        // a ser la del servicio (más precisa para el cálculo de slots).
+        _selectedService = {
+          id:              svc.id,
+          nombre:          svc.nombre,
+          duracion:        Number(svc.duracion) || 30,
+          precio:          Number(pack.precio) || 0,
+          activaPackId:    pack.id,
+          packNombre:      pack.nombre,
+          serviciosIncluidos: pack.serviciosIncluidos,
+        };
+        updateContinueBtn();
+        updateRecap();
+      });
+      list.appendChild(btn);
+    });
+
+    card.querySelector('#barberoHoyCancel').addEventListener('click', () => overlay.remove());
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
   }
 
   function dateToStr(d) {
@@ -2086,6 +2167,13 @@
         estado:           'Confirmada',
         origen:           'barbero-page',
         ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
+        // Modelo B: si eligió un pack multi-servicio con "servicio de hoy",
+        // pasamos activaPackId para que la CF pack-automatico active el pack
+        // Y consuma 1 sesión del servicio real (servicioId).
+        ...(_selectedService.activaPackId ? {
+          activaPackId: _selectedService.activaPackId,
+          packNombre:   _selectedService.packNombre,
+        } : {}),
       });
 
       // Track for spam guard

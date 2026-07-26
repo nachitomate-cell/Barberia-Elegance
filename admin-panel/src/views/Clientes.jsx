@@ -916,6 +916,86 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         </div>
       )}
 
+      {/* Packs activos del cliente (con acción de anular).
+          Muestra saldo total + desglose por servicio + vencimiento. El
+          botón "Anular" borra el pack del array packsActivos con
+          confirmación explícita — sirve para casos de reclamo o error
+          de venta que hoy se resolvía tocando Firestore a mano. */}
+      {Array.isArray(data.packsActivos) && data.packsActivos.filter(p => (Number(p.sesionesRestantes) || 0) > 0).length > 0 && (
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Packs activos</p>
+          <div className="space-y-2">
+            {data.packsActivos
+              .filter(p => (Number(p.sesionesRestantes) || 0) > 0)
+              .map((p, idx) => {
+                const total = Number(p.sesionesTotales) || 0;
+                const rest  = Number(p.sesionesRestantes) || 0;
+                const vencMs = p.fechaVencimiento?.toMillis?.() ?? (p.fechaVencimiento?.seconds ? p.fechaVencimiento.seconds * 1000 : 0);
+                const dias = vencMs ? Math.ceil((vencMs - Date.now()) / (24 * 60 * 60 * 1000)) : null;
+                const vencido = dias !== null && dias < 0;
+                const restPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+                const snap = Array.isArray(p.serviciosIncluidosSnapshot) ? p.serviciosIncluidosSnapshot : [];
+
+                const anular = async () => {
+                  const confirmMsg = `¿Anular el pack "${p.nombrePack}" de este cliente?\n\nSesiones restantes: ${rest}/${total}\n\nSe borra del pack pero el historial en packConsumos y las citas del cliente se mantienen para auditoría. Usalo para reclamos o errores de venta.`;
+                  if (!(await confirmDialog(confirmMsg))) return;
+                  try {
+                    const nuevosPacks = (data.packsActivos || []).filter((_, i) => i !== idx);
+                    await updateDoc(doc(tenantCol('users'), data.uid), {
+                      packsActivos: nuevosPacks,
+                      // Audit trail: guardamos el pack anulado en un array aparte.
+                      packsAnulados: [
+                        ...(Array.isArray(data.packsAnulados) ? data.packsAnulados : []),
+                        {
+                          ...p,
+                          anuladoEn: new Date().toISOString(),
+                          anuladoPor: 'admin',
+                        },
+                      ],
+                    });
+                    setData(d => ({ ...d, packsActivos: nuevosPacks }));
+                  } catch (e) {
+                    alert('No se pudo anular el pack: ' + (e?.message || e));
+                  }
+                };
+
+                return (
+                  <div key={p.citaActivacion || idx} className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-3">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-primary truncate">{p.nombrePack}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          <span className="font-semibold text-violet-300">{rest} de {total}</span> sesiones restantes
+                          {vencMs && ` · vence en ${vencido ? 'VENCIDO' : `${dias}d`}`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={anular}
+                        className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-md bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20 transition-colors"
+                      >
+                        Anular
+                      </button>
+                    </div>
+                    {restPorSvc && snap.length >= 2 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {snap.map(s => {
+                          const r = Number(restPorSvc[s.id] || 0);
+                          const agotado = r <= 0;
+                          return (
+                            <span key={s.id} className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${agotado ? 'bg-white/[0.04] text-slate-600 line-through' : 'bg-violet-500/15 text-violet-300'}`}>
+                              {s.nombre} · {r}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Historial */}
       {historial.length > 0 && (
         <div>

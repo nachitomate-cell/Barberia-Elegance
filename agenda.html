@@ -7031,66 +7031,76 @@
             });
             if (isCancelled?.()) return;
             if (!activos.length) return;
-            // MVP: tomamos el 1er pack. Si aparece múltiple, el barbero puede
-            // editar la cita después desde el panel admin.
-            const p = activos[0];
-            _agendaRenderChipPack(p);
+            // Renderizamos TODOS los packs activos (loop). Cliente con 2+
+            // packs activos es raro pero pasa: el barbero elige de cuál
+            // descontar tocando el botón del pack correspondiente.
+            _agendaRenderChipPack(activos);
         } catch (e) {
             // sin permiso / red / etc. — silencio.
         }
     }
 
-    function _agendaRenderChipPack(p) {
+    function _agendaRenderChipPack(activos) {
         const chip = document.getElementById('packChipAgenda');
         if (!chip) return;
-        const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
-        const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
-        const svcs = incluidosIds
-            .map(sid => (_servicios || []).find(s => s.id === sid))
-            .filter(Boolean)
-            .map(s => ({ svc: s, restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null }));
-        const total = Math.max(1, Number(p.sesionesTotales || 1));
-        const rest  = Number(p.sesionesRestantes || 0);
         const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-        // Guardamos el pack en window para que el handler onclick lo pueda leer sin closures.
-        window.__agendaPackTemp = { p, svcs };
+        // Guardamos TODOS los packs en window para que los handlers onclick
+        // los puedan leer por packIdx + svcIdx sin closures.
+        const packsProc = activos.map(p => {
+            const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+            const restantesPorSvc = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+            const svcs = incluidosIds
+                .map(sid => (_servicios || []).find(s => s.id === sid))
+                .filter(Boolean)
+                .map(s => ({ svc: s, restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null }));
+            return { p, svcs };
+        });
+        window.__agendaPacksTemp = packsProc;
 
-        const botones = svcs.length > 0 ? svcs.map((op, i) => {
-            const agotado = op.restante !== null && op.restante <= 0;
-            const saldo = op.restante === null ? '' : ` · ${op.restante} ${op.restante === 1 ? 'disp.' : 'disp.'}`;
-            return `<button type="button" ${agotado ? 'disabled' : ''}
-                onclick="_agendaCanjearPack(${i})"
-                style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:${agotado ? 'rgba(255,255,255,0.03)' : 'rgba(167,139,250,0.15)'};border:1px solid ${agotado ? 'rgba(255,255,255,0.06)' : 'rgba(167,139,250,0.40)'};color:${agotado ? 'rgba(255,255,255,0.35)' : '#fff'};font-size:12.5px;font-weight:600;${agotado ? 'cursor:not-allowed;' : 'cursor:pointer;'}">
-                <span>Canjear · <span style="font-weight:400;opacity:0.9;">${esc(op.svc.nombre)}</span>${saldo}</span>
-                <span aria-hidden="true">${agotado ? '—' : '→'}</span>
-            </button>`;
-        }).join('') : `<button type="button" onclick="_agendaCanjearPack(-1)"
-                style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.40);color:#fff;font-size:12.5px;font-weight:600;">
-                Canjear sesión →
-            </button>`;
-
-        chip.innerHTML = `
-            <div style="border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-                <div style="display:flex;gap:10px;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:rgba(167,139,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📦</div>
-                    <div style="flex:1;min-width:0;">
-                        <p style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(167,139,250,0.95);margin:0;">Pack activo detectado</p>
-                        <p style="font-size:13px;font-weight:700;color:#fff;margin:1px 0 0;line-height:1.2;">${esc(p.nombrePack)}</p>
-                        <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:3px 0 0;">${rest} de ${total} sesión${total !== 1 ? 'es' : ''} · vence ${p.fechaVencimiento?.toDate ? p.fechaVencimiento.toDate().toLocaleDateString('es-CL') : 's/f'}</p>
+        const hayMultiples = packsProc.length > 1;
+        const html = packsProc.map(({ p, svcs }, packIdx) => {
+            const total = Math.max(1, Number(p.sesionesTotales || 1));
+            const rest  = Number(p.sesionesRestantes || 0);
+            const botones = svcs.length > 0 ? svcs.map((op, i) => {
+                const agotado = op.restante !== null && op.restante <= 0;
+                const saldo = op.restante === null ? '' : ` · ${op.restante} disp.`;
+                return `<button type="button" ${agotado ? 'disabled' : ''}
+                    onclick="_agendaCanjearPack(${packIdx}, ${i})"
+                    style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:${agotado ? 'rgba(255,255,255,0.03)' : 'rgba(167,139,250,0.15)'};border:1px solid ${agotado ? 'rgba(255,255,255,0.06)' : 'rgba(167,139,250,0.40)'};color:${agotado ? 'rgba(255,255,255,0.35)' : '#fff'};font-size:12.5px;font-weight:600;${agotado ? 'cursor:not-allowed;' : 'cursor:pointer;'}">
+                    <span>Canjear · <span style="font-weight:400;opacity:0.9;">${esc(op.svc.nombre)}</span>${saldo}</span>
+                    <span aria-hidden="true">${agotado ? '—' : '→'}</span>
+                </button>`;
+            }).join('') : `<button type="button" onclick="_agendaCanjearPack(${packIdx}, -1)"
+                    style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.40);color:#fff;font-size:12.5px;font-weight:600;">
+                    Canjear sesión →
+                </button>`;
+            const contadorMulti = hayMultiples ? ` · ${packIdx + 1} de ${packsProc.length}` : '';
+            return `
+                <div style="border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;gap:10px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(167,139,250,0.20);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📦</div>
+                        <div style="flex:1;min-width:0;">
+                            <p style="font-size:9px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(167,139,250,0.95);margin:0;">Pack activo detectado${contadorMulti}</p>
+                            <p style="font-size:13px;font-weight:700;color:#fff;margin:1px 0 0;line-height:1.2;">${esc(p.nombrePack)}</p>
+                            <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:3px 0 0;">${rest} de ${total} sesión${total !== 1 ? 'es' : ''} · vence ${p.fechaVencimiento?.toDate ? p.fechaVencimiento.toDate().toLocaleDateString('es-CL') : 's/f'}</p>
+                        </div>
                     </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">${botones}</div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">${botones}</div>
-            </div>
-        `;
+            `;
+        }).join('<div style="height:8px;"></div>');
+
+        chip.innerHTML = html;
         chip.classList.remove('hidden');
     }
 
-    window._agendaCanjearPack = function(idx) {
-        const data = window.__agendaPackTemp;
-        if (!data) return;
+    window._agendaCanjearPack = function(packIdx, svcIdx) {
+        const packs = window.__agendaPacksTemp;
+        if (!packs || !packs[packIdx]) return;
+        const data = packs[packIdx];
         const p = data.p;
-        const svc = idx >= 0 && idx < data.svcs.length ? data.svcs[idx].svc : null;
+        const svc = svcIdx >= 0 && svcIdx < data.svcs.length ? data.svcs[svcIdx].svc : null;
         _agendaPackState = {
             mode: 'consumo',
             packId: p.packId,

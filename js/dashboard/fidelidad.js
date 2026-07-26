@@ -811,6 +811,26 @@ function renderMisPacks(packs) {
       const label = dias <= 0 ? 'vence hoy' : `${dias}d`;
       vencChip = `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full" style="background:${urgente ? 'rgba(239,68,68,0.15)' : 'rgba(167,139,250,0.15)'};color:${urgente ? 'rgba(252,165,165,1)' : 'rgba(167,139,250,1)'};">${label}</span>`;
     }
+    // Desglose por servicio: si el pack usa mapa serviciosCantidades, el
+    // cliente ve exactamente cuántas sesiones tiene de cada tipo (ej. "1
+    // corte + 2 barbas" en vez de "3 de 4"). Solo se muestra si el mapa
+    // tiene al menos 2 servicios distintos — con 1 solo servicio no
+    // aporta info y ensucia el card.
+    let desgloseHtml = '';
+    const restPorSvc = (p.serviciosRestantes && typeof p.serviciosRestantes === 'object') ? p.serviciosRestantes : null;
+    const snapshot = Array.isArray(p.serviciosIncluidosSnapshot) ? p.serviciosIncluidosSnapshot : [];
+    if (restPorSvc && snapshot.length >= 2) {
+      const items = snapshot.map(s => {
+        const r = Number(restPorSvc[s.id] || 0);
+        const nombreSvc = String(s.nombre || s.id || '').replace(/</g, '&lt;');
+        const agotado = r <= 0;
+        return `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style="background:${agotado ? 'rgba(255,255,255,0.04)' : 'rgba(167,139,250,0.12)'};color:${agotado ? 'rgba(255,255,255,0.35)' : 'rgba(167,139,250,0.95)'};${agotado ? 'text-decoration:line-through;' : ''}">
+          ${nombreSvc} · ${r}
+        </span>`;
+      }).join('');
+      desgloseHtml = `<div class="mt-2 flex flex-wrap gap-1">${items}</div>`;
+    }
+
     return `
       <div class="rounded-2xl px-4 py-3 flex items-center gap-3 select-none"
         style="background:linear-gradient(135deg, rgba(167,139,250,0.10) 0%, rgba(167,139,250,0.04) 100%);border:1px solid rgba(167,139,250,0.25);">
@@ -828,6 +848,7 @@ function renderMisPacks(packs) {
           <div class="mt-1.5 h-1 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
             <div class="h-full transition-all" style="width:${pctUsadas}%;background:linear-gradient(90deg, rgba(167,139,250,0.85), rgba(139,92,246,1));"></div>
           </div>
+          ${desgloseHtml}
         </div>
       </div>`;
   }).join('');
