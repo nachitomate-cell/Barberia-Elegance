@@ -758,8 +758,17 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         }
         if (!uid) { if (!cancel) setPackDisponible(null); return; }
 
-        const uSnap = await withTimeout(getDoc(doc(tenantCol('users'), uid)), 8000, 'agenda/pack-activo');
+        let uSnap = await withTimeout(getDoc(doc(tenantCol('users'), uid)), 8000, 'agenda/pack-activo');
         if (!uSnap.exists()) { if (!cancel) setPackDisponible(null); return; }
+
+        // Si el doc está fusionado con otra cuenta (legacy → Auth tras registro
+        // al club), seguir el pointer al doc canónico. Sin esto el chip no
+        // aparece porque el legacy queda vaciado (packsActivos:[]) tras el merge.
+        const fusion = uSnap.data().fusionadoCon;
+        if (fusion && fusion !== uid) {
+          const canon = await withTimeout(getDoc(doc(tenantCol('users'), fusion)), 8000, 'agenda/pack-activo-canon');
+          if (canon.exists()) uSnap = canon;
+        }
 
         const packs = Array.isArray(uSnap.data().packsActivos) ? uSnap.data().packsActivos : [];
         const now = Date.now();

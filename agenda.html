@@ -7019,9 +7019,18 @@
 
     async function _agendaBuscarPack(uid, isCancelled) {
         try {
-            const snap = await tenantCol('users').doc(uid).get();
+            let snap = await tenantCol('users').doc(uid).get();
             if (isCancelled?.()) return;
             if (!snap.exists) return;
+            // Seguir el pointer si el doc está fusionado con Auth (legacy →
+            // registró al club). Sin esto, los packs no aparecen porque el
+            // doc legacy queda vaciado tras el merge.
+            const fusion = snap.data().fusionadoCon;
+            if (fusion && fusion !== uid) {
+                const canon = await tenantCol('users').doc(fusion).get();
+                if (isCancelled?.()) return;
+                if (canon.exists) snap = canon;
+            }
             const packs = Array.isArray(snap.data().packsActivos) ? snap.data().packsActivos : [];
             const now = Date.now();
             const activos = packs.filter(p => {
