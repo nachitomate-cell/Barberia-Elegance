@@ -953,8 +953,15 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     if (!isNew && form.estado === 'Completada' && cita?.estado !== 'Completada') {
       const svc = servicios.find(s => s.id === form.servicioId)
                || servicios.find(s => (s.nombre || '') === form.servicioNombre);
-      const esActivacion = !!(svc && svc.isPack);
+      // Consumo tiene prioridad sobre activación: si la cita ya trae flags
+      // de consumo (reserva pública detectó pack activo y ofreció canjear),
+      // NO ofrecemos activar aunque el servicio del catálogo sea `isPack:true`.
+      // Esto pasa cuando el mismo servicio es el pack (ej: "3 cortes al mes"):
+      // la 1ª cita lo activa, las siguientes 2 lo consumen — todas con el
+      // mismo servicioId. Antes el prompt "¿Activar pack?" aparecía en las
+      // 3, confundiendo al barbero (creía que se estaba re-activando).
       const esConsumo    = !!cita?.consumeSesionPack && !!cita?.packRefId;
+      const esActivacion = !esConsumo && !!(svc && svc.isPack);
 
       if (esActivacion) {
         const totalSes = Math.max(1, Number(svc.sesionesTotales) || 1);
