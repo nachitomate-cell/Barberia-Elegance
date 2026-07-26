@@ -37,6 +37,11 @@ const admin                 = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const marca                 = require('./lib/kronnos-marca');
 
+// Marcador de versión — se ve en Cloud Logging al arrancar la CF y sirve
+// para confirmar qué build está corriendo si el resultado no coincide con
+// la lógica esperada. Incrementar cuando haya cambios importantes.
+const CF_PACK_BUILD = '2026-07-26-r2-mapa-por-servicio';
+
 const db = admin.firestore();
 
 // ── Colecciones según tenant (marca-aware para Kronnos) ───────────
@@ -129,6 +134,7 @@ async function upsertUserFromCita(cols, userId, cita, citaId) {
 
 // ── Núcleo: activa o consume el pack de una cita ──────────────────
 async function procesarPack({ tenantId, citaId, citaRef, cita }) {
+  logger.info(`[Pack ${CF_PACK_BUILD}] procesar ${tenantId}/${citaId}`);
   const cols = colecciones(tenantId);
 
   // Paso 0: consolidar el cliente en users/. Aplica a TODA cita completada
