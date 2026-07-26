@@ -1567,8 +1567,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             Antes se registraban "cortesías a mano" bajando el precio a 0 sin
             tildar el checkbox → Métricas/Comisiones no las distinguían de un
             servicio pago que quedó en $0 por error. Ahora avisamos y ofrecemos
-            marcarla como cortesía de un click. */}
-        {Number(form.precio) === 0 && !form.cortesia && Number(form.porcentajeDescuento) < 100 && (
+            marcarla como cortesía de un click.
+            NO mostrar el aviso si la cita es consumo de un pack (ahí el $0
+            es legítimo: el pack lo cubre) ni si es venta de un pack activador
+            (esas se cobran, pero acá el `precio` puede ser el del pack). */}
+        {Number(form.precio) === 0 && !form.cortesia && Number(form.porcentajeDescuento) < 100 && !cita?.consumeSesionPack && !cita?.esActivacionPack && (
           <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/40 bg-amber-500/[0.08]">
             <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-400" />
             <div className="flex-1 text-[12px] leading-snug text-amber-200">

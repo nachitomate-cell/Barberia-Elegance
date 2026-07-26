@@ -624,6 +624,19 @@ const FDB = (() => {
     if (cita.servicioId)             citaData.servicioId             = cita.servicioId;
     if (cita.clienteUid)             citaData.clienteUid             = cita.clienteUid;
     if (cita.clienteTelefonoSuf9)    citaData.clienteTelefonoSuf9    = cita.clienteTelefonoSuf9;
+    // userId: si el caller pasó uno explícito, respetarlo. Si no, y hay
+    // sesión iniciada (cliente del club logueado), guardar auth uid.
+    // Sin este campo, la CF pack-automatico resuelve el usuario por teléfono
+    // y cae al doc legacy — que puede no ser el mismo doc del cliente
+    // registrado en el club → el pack no se activa/consume en el doc correcto.
+    if (cita.userId) {
+      citaData.userId = cita.userId;
+    } else {
+      try {
+        const _uAuth = firebase?.auth?.().currentUser;
+        if (_uAuth?.uid) citaData.userId = _uAuth.uid;
+      } catch (_) { /* firebase no disponible en este contexto: skip */ }
+    }
     // Motor de packs: la reserva pública marca la cita como consumo de sesión
     // cuando el cliente tiene un pack activo que cubre este servicio. Sin
     // estos campos, el motor procesarPackDeCita() en el panel no descuenta
