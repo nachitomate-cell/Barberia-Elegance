@@ -140,6 +140,10 @@ const BARBER_EMPTY = {
   nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
   color: '',   // hex del barbero en la agenda; '' = verde por defecto de siempre
   comision: 0,
+  // Override opcional de comisión por servicio: { [servicioId]: pct }. Si el
+  // servicio de la cita está acá, se usa ese %; si no, cae al `comision`
+  // global. Barberos legacy sin el campo siguen igual (fallback global).
+  comisionPorServicio: {},
   sueldoBase: 0,
   comisionProductos: 10,
   comisionProductosMonto: 0, // monto fijo en $ que se suma al % por cada venta de producto
@@ -978,6 +982,8 @@ export default function Equipo() {
   const [accesoEnabled,  setAccesoEnabled]  = useState(false);
   const [accesoPassword, setAccesoPassword] = useState('');
   const [accesoMsg,      setAccesoMsg]      = useState('');
+  // Toggle para expandir el editor de comisiones por servicio (override).
+  const [showSvcComm,    setShowSvcComm]    = useState(false);
   const fileRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1005,6 +1011,8 @@ export default function Equipo() {
       email:        b.email        || '',
       whatsapp:     b.whatsapp     || '',
       comision:     b.comision     ?? 0,
+      comisionPorServicio: (b.comisionPorServicio && typeof b.comisionPorServicio === 'object')
+        ? b.comisionPorServicio : {},
       sueldoBase:   b.sueldoBase   ?? 0,
       comisionProductos:      b.comisionProductos      ?? 10,
       comisionProductosMonto: b.comisionProductosMonto ?? 0,
@@ -1020,6 +1028,7 @@ export default function Equipo() {
     setAccesoEnabled(false);
     setAccesoPassword('');
     setAccesoMsg('');
+    setShowSvcComm(false);
     setSlide(true);
   };
 
@@ -1960,6 +1969,75 @@ export default function Equipo() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
                   </div>
                   <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre cada servicio realizado.</p>
+
+                  {/* Overrides por servicio: si el barbero cobra distinto según
+                      el servicio (ej. 80% en corte, 70% en barba), aquí se
+                      define el % por servicio. Los servicios sin valor caen al
+                      % global de arriba. */}
+                  {(() => {
+                    const overrides = form.comisionPorServicio || {};
+                    const numOvr = Object.values(overrides).filter(v => v != null && v !== '').length;
+                    const svcDelBarbero = (form.serviciosIds && form.serviciosIds.length > 0)
+                      ? servicios.filter(s => form.serviciosIds.includes(s.id))
+                      : servicios;
+                    return (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowSvcComm(v => !v)}
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                        >
+                          {showSvcComm ? '−' : '+'} Ajustar por servicio
+                          {numOvr > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[10px]">
+                              {numOvr} con % propio
+                            </span>
+                          )}
+                        </button>
+                        {showSvcComm && (
+                          <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/40 p-3 space-y-2">
+                            <p className="text-[10px] text-slate-500">
+                              Servicios sin valor usan el <strong>{Number(form.comision) || 0}%</strong> global. Deja vacío para volver al global.
+                            </p>
+                            {svcDelBarbero.length === 0 ? (
+                              <p className="text-[11px] text-slate-500 italic">Sin servicios asignados. Asignalos primero en "Servicios que ofrece".</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                                {svcDelBarbero.map(s => {
+                                  const val = overrides[s.id];
+                                  return (
+                                    <div key={s.id} className="flex items-center gap-2">
+                                      <span className="flex-1 text-[12px] text-slate-300 truncate" title={s.nombre}>
+                                        {s.nombre}
+                                      </span>
+                                      <div className="relative w-24">
+                                        <input
+                                          type="number" min="0" max="100" step="1"
+                                          placeholder={`${Number(form.comision) || 0}`}
+                                          value={val ?? ''}
+                                          onChange={e => {
+                                            const raw = e.target.value;
+                                            setForm(f => {
+                                              const map = { ...(f.comisionPorServicio || {}) };
+                                              if (raw === '' || raw == null) delete map[s.id];
+                                              else map[s.id] = Number(raw);
+                                              return { ...f, comisionPorServicio: map };
+                                            });
+                                          }}
+                                          className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[12px] text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">%</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div>

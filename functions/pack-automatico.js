@@ -75,6 +75,19 @@ function resolverUserId(cita) {
   return digs.length >= 11 ? digs : '';
 }
 
+// Si el user candidato es un doc legacy fusionado con una cuenta Auth
+// (linkLegacyTenant escribe `fusionadoCon: authUid` al fusionar), devuelve
+// el authUid canónico. Sin esto, el pack-automatico busca packsActivos en
+// el doc vacío y no encuentra saldo → falso "sin pack".
+async function resolverUserIdCanonico(cols, uid) {
+  if (!uid) return uid;
+  try {
+    const s = await cols.users.doc(uid).get();
+    const f = s.exists ? s.data().fusionadoCon : null;
+    return (f && f !== uid) ? f : uid;
+  } catch { return uid; }
+}
+
 // ── Guard: solo la transición a completada, una sola vez ──────────
 function debesProcesar(before, after) {
   if (!after) return false; // doc eliminado
@@ -140,7 +153,10 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   // Paso 0: consolidar el cliente en users/. Aplica a TODA cita completada
   // con teléfono/uid resoluble, no solo a las de pack. Así toda la base de
   // clientes queda en users/ y los packs futuros se pueden activar.
-  const userId = resolverUserId(cita);
+  // Si el candidato es un doc legacy fusionado, saltamos al Auth canónico
+  // para no leer/escribir en el doc vacío.
+  const uidBruto = resolverUserId(cita);
+  const userId   = await resolverUserIdCanonico(cols, uidBruto);
   if (userId) await upsertUserFromCita(cols, userId, cita, citaId);
 
   // El servicio decide si es activación. Dos formas de indicar activación:
