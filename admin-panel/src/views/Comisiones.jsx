@@ -213,9 +213,15 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
             <span className="font-medium text-slate-300">{formatCLP(barbero.sueldoBase)}</span>
           </div>
           <div className="flex justify-between text-slate-400">
-            <span>Comisiones ({barbero.comisionPct}%)</span>
-            <span className="font-medium text-slate-300">{formatCLP(barbero.montoComision)}</span>
+            <span>Comisión servicios ({barbero.comisionPct}%)</span>
+            <span className="font-medium text-slate-300">{formatCLP(barbero.comisionServicios)}</span>
           </div>
+          {barbero.comisionProductos > 0 && (
+            <div className="flex justify-between text-slate-400">
+              <span>Comisión productos ({barbero.comisionProductosPct}%{barbero.comisionProductosMonto > 0 ? ` + ${formatCLP(barbero.comisionProductosMonto)}/venta` : ''})</span>
+              <span className="font-medium text-slate-300">{formatCLP(barbero.comisionProductos)}</span>
+            </div>
+          )}
           {barbero.adelantos > 0 && (
             <div className="flex justify-between text-slate-400">
               <span>Adelantos del período</span>
@@ -244,6 +250,7 @@ export default function Comisiones() {
   const [fechaInicio, setFechaInicio] = useState(firstOfMonth());
   const [fechaFin, setFechaFin] = useState(today());
   const [citasRaw, setCitasRaw] = useState([]);
+  const [ventasRaw, setVentasRaw] = useState([]);
   const [adelantos, setAdelantos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
@@ -263,6 +270,7 @@ export default function Comisiones() {
   const { matchSucursal } = useSucursal();
   const barberos = useMemo(() => rawBarberos.filter(matchSucursal), [rawBarberos, matchSucursal]);
   const citas = useMemo(() => citasRaw.filter(matchSucursal), [citasRaw, matchSucursal]);
+  const ventas = useMemo(() => ventasRaw.filter(matchSucursal), [ventasRaw, matchSucursal]);
 
   // % de comisión del POS según el medio de pago (solo tarjeta).
   const comisionPctDe = useCallback((metodo) => {
@@ -303,6 +311,25 @@ export default function Comisiones() {
     }
   }, [fechaInicio, fechaFin]);
 
+  // Ventas de productos entregadas — misma fuente que Métricas y Equipo/Sueldos
+  // para que las tres vistas cuadren. Filtramos rango en cliente (el campo
+  // `fecha` puede ser string o Timestamp según la ruta que creó la venta).
+  const loadVentas = useCallback(async () => {
+    try {
+      const q = query(tenantCol('product_reservations'), where('status', '==', 'delivered'));
+      const snap = await withTimeout(getDocs(q), 20000, 'comisiones/ventas');
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const inRange = all.filter(v => {
+        const raw = v.fecha || v.createdAt || v.creadoEn;
+        const s = fechaToStr(raw);
+        return s && s >= fechaInicio && s <= fechaFin;
+      });
+      setVentasRaw(inRange);
+    } catch (e) {
+      console.error('[Comisiones] error cargando ventas:', e);
+    }
+  }, [fechaInicio, fechaFin]);
+
   // Los adelantos son gastos con tipo='adelanto'. Igualdad de campo único →
   // sin índice compuesto. Filtramos el rango de fecha en el cliente.
   const loadAdelantos = useCallback(async () => {
@@ -316,59 +343,85 @@ export default function Comisiones() {
   }, []);
 
   useEffect(() => { loadCitas(); }, [loadCitas]);
+  useEffect(() => { loadVentas(); }, [loadVentas]);
   useEffect(() => { loadAdelantos(); }, [loadAdelantos]);
 
-  const getPrice = useCallback((c) => {
-    const base = Number(c.precio) || 0;
-    const extras = Array.isArray(c.ticketProductos)
-      ? c.ticketProductos.reduce((s, p) => s + (Number(p.totalLinea) || 0), 0)
-      : 0;
-    return base + extras;
-  }, []);
+  // Precio del servicio de la cita (respeta cortesía → 0). NO suma productos;
+  // los productos vienen aparte desde product_reservations para no doblar con
+  // el arreglo `ticketProductos` embebido en la cita.
+  const precioServicio = useCallback((c) => (c.cortesia ? 0 : Number(c.precio) || 0), []);
+  // Precio de una venta de producto. Los docs de product_reservations guardan
+  // el TOTAL de línea en `precio` (ya multiplicado × cantidad, con descuento
+  // aplicado). Ver memoria "Ventas / plata (gotchas)".
+  const precioVenta = useCallback((v) => Number(v.precio) || Number(v.total) || 0, []);
+  // Alias legacy usado por los CSV/HTML de exportación (mismo criterio que
+  // Métricas: solo servicio de la cita, sin productos).
+  const getPrice = precioServicio;
 
   const data = useMemo(() => {
     const map = {};
-
-    barberos.forEach(b => {
-      map[b.id] = {
-        id: b.id,
-        nombre: b.nombre || 'Sin nombre',
-        foto: b.foto || null,
-        comisionPct: Number(b.comision) || 0,
-        sueldoBase: Number(b.sueldoBase) || 0,
-        citas: 0,
-        ingresos: 0,
-        montoComision: 0,
-        adelantos: 0,
-        propinas: 0,
-        propinasCount: 0,
-        total: 0,
-      };
+    const nuevoBucket = (b) => ({
+      id: b?.id || '_sin',
+      nombre: b?.nombre || 'Sin barbero',
+      foto: b?.foto || null,
+      // % de comisión: servicio y producto se calculan por separado (el barbero
+      // puede tener tarifas distintas). Ver Equipo.jsx:142-145 para los campos.
+      comisionPct:            Number(b?.comision) || 0,
+      comisionProductosPct:   b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10,
+      comisionProductosMonto: Number(b?.comisionProductosMonto) || 0,
+      sueldoBase: Number(b?.sueldoBase) || 0,
+      citas: 0,
+      ventas: 0,
+      ingresosServicios: 0,
+      ingresosProductos: 0,
+      ingresos: 0,
+      comisionServicios: 0,
+      comisionProductos: 0,
+      montoComision: 0,
+      adelantos: 0,
+      propinas: 0,
+      propinasCount: 0,
+      total: 0,
     });
+    barberos.forEach(b => { map[b.id] = nuevoBucket(b); });
 
+    // Resuelve el bucket del barbero de una cita/venta. Si la referencia no
+    // matchea ningún barbero cargado, cae en un bucket genérico "_sin".
+    const resolverBarbero = (barberoId, barberoNombre) => {
+      if (barberoId && map[barberoId]) return barberoId;
+      const found = barberos.find(b => b.id === barberoId || b.nombre === barberoNombre);
+      if (found) return found.id;
+      if (!map['_sin']) map['_sin'] = nuevoBucket(null);
+      return '_sin';
+    };
+
+    // Servicios: precio de la cita (0 si cortesía) × %comisión servicio.
     citas.forEach(c => {
-      let key = null;
-      if (c.barberoId && map[c.barberoId]) {
-        key = c.barberoId;
-      } else {
-        const found = barberos.find(b => b.nombre === c.barbero || b.id === c.barberoId);
-        if (found) key = found.id;
-      }
-      if (!key) {
-        if (!map['_sin']) {
-          map['_sin'] = { id: '_sin', nombre: 'Sin barbero', foto: null, comisionPct: 0, sueldoBase: 0, citas: 0, ingresos: 0, montoComision: 0, adelantos: 0, propinas: 0, propinasCount: 0, total: 0 };
-        }
-        key = '_sin';
-      }
-      const precio = getPrice(c);
+      const key = resolverBarbero(c.barberoId, c.barbero);
+      const precio = precioServicio(c);
       map[key].citas++;
-      map[key].ingresos += precio;
-      map[key].montoComision += precio * (map[key].comisionPct / 100);
+      map[key].ingresosServicios += precio;
+      map[key].comisionServicios += precio * (map[key].comisionPct / 100);
       const propina = Number(c.propina) || 0;
       if (propina > 0) {
         map[key].propinas += propina;
         map[key].propinasCount++;
       }
+    });
+
+    // Productos: cada venta paga %comisión producto + monto fijo por venta.
+    ventas.forEach(v => {
+      const key = resolverBarbero(v.barberoId, v.barberoNombre);
+      const monto = precioVenta(v);
+      map[key].ventas++;
+      map[key].ingresosProductos += monto;
+      map[key].comisionProductos += monto * (map[key].comisionProductosPct / 100) + map[key].comisionProductosMonto;
+    });
+
+    // Consolidados por barbero: ingresos y comisión totales para la fila.
+    Object.values(map).forEach(b => {
+      b.ingresos = b.ingresosServicios + b.ingresosProductos;
+      b.montoComision = b.comisionServicios + b.comisionProductos;
     });
 
     // Acumular adelantos del período por barbero.
@@ -417,6 +470,10 @@ export default function Comisiones() {
         return {
           ...b,
           ingresos: Math.round(b.ingresos),
+          ingresosServicios: Math.round(b.ingresosServicios),
+          ingresosProductos: Math.round(b.ingresosProductos),
+          comisionServicios: Math.round(b.comisionServicios),
+          comisionProductos: Math.round(b.comisionProductos),
           montoComision: Math.round(b.montoComision),
           adelantos: adel,
           propinas: Math.round(b.propinas),
@@ -425,19 +482,24 @@ export default function Comisiones() {
           saldoPendiente: neto < 0 ? -neto : 0,
         };
       })
-      .filter(b => b.citas > 0 || b.adelantos > 0 || b.propinas > 0)
+      .filter(b => b.citas > 0 || b.ventas > 0 || b.adelantos > 0 || b.propinas > 0)
       .sort((a, b) => b.ingresos - a.ingresos);
-  }, [citas, adelantos, barberos, getPrice, fechaInicio, fechaFin]);
+  }, [citas, ventas, adelantos, barberos, precioServicio, precioVenta, fechaInicio, fechaFin]);
 
   const totals = useMemo(() => data.reduce((acc, b) => ({
     citas: acc.citas + b.citas,
+    ventas: acc.ventas + b.ventas,
+    ingresosServicios: acc.ingresosServicios + b.ingresosServicios,
+    ingresosProductos: acc.ingresosProductos + b.ingresosProductos,
     ingresos: acc.ingresos + b.ingresos,
+    comisionServicios: acc.comisionServicios + b.comisionServicios,
+    comisionProductos: acc.comisionProductos + b.comisionProductos,
     montoComision: acc.montoComision + b.montoComision,
     sueldoBase: acc.sueldoBase + b.sueldoBase,
     adelantos: acc.adelantos + b.adelantos,
     propinas: acc.propinas + b.propinas,
     total: acc.total + b.total,
-  }), { citas: 0, ingresos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, propinas: 0, total: 0 }), [data]);
+  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, propinas: 0, total: 0 }), [data]);
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
@@ -510,9 +572,17 @@ export default function Comisiones() {
 
     /* ── Sección 1: Comisiones por barbero ── */
     pushRow(['COMISIONES POR BARBERO']);
-    pushRow(['Barbero', 'Citas', 'Ingresos', 'Comisión %', 'Monto Comisión', 'Sueldo Base', 'Adelantos', 'Total a Pagar']);
-    data.forEach(b => pushRow([b.nombre, b.citas, b.ingresos, b.comisionPct, b.montoComision, b.sueldoBase, b.adelantos, b.total]));
-    pushRow(['TOTAL', totals.citas, totals.ingresos, '', totals.montoComision, totals.sueldoBase, totals.adelantos, totals.total]);
+    pushRow(['Barbero', 'Citas', 'Ingresos Servicios', '% Serv.', 'Comisión Serv.', 'Ventas', 'Ingresos Productos', '% Prod.', '$ fijo/venta', 'Comisión Prod.', 'Ingresos Totales', 'Sueldo Base', 'Adelantos', 'Total a Pagar']);
+    data.forEach(b => pushRow([
+      b.nombre, b.citas, b.ingresosServicios, b.comisionPct, b.comisionServicios,
+      b.ventas, b.ingresosProductos, b.comisionProductosPct, b.comisionProductosMonto, b.comisionProductos,
+      b.ingresos, b.sueldoBase, b.adelantos, b.total,
+    ]));
+    pushRow([
+      'TOTAL', totals.citas, totals.ingresosServicios, '', totals.comisionServicios,
+      totals.ventas, totals.ingresosProductos, '', '', totals.comisionProductos,
+      totals.ingresos, totals.sueldoBase, totals.adelantos, totals.total,
+    ]);
 
     /* ── Desglose por medio de pago ── */
     // Normaliza el método de pago de cada cita y resuelve los presentes.
@@ -784,8 +854,10 @@ export default function Comisiones() {
         <h2>${esc(b.nombre)}</h2>
         <p class="sub">${b.citas} cita${b.citas !== 1 ? 's' : ''}</p>
         <div class="kv">
-          <span>Ingresos</span><b>${formatCLP(b.ingresos)}</b>
-          <span>Comisión (${b.comisionPct}%)</span><b>${formatCLP(b.montoComision)}</b>
+          <span>Ingresos servicios</span><b>${formatCLP(b.ingresosServicios)}</b>
+          ${b.ingresosProductos > 0 ? `<span>Ingresos productos</span><b>${formatCLP(b.ingresosProductos)}</b>` : ''}
+          <span>Comisión servicios (${b.comisionPct}%)</span><b>${formatCLP(b.comisionServicios)}</b>
+          ${b.comisionProductos > 0 ? `<span>Comisión productos (${b.comisionProductosPct}%${b.comisionProductosMonto > 0 ? ` + ${formatCLP(b.comisionProductosMonto)}/venta` : ''})</span><b>${formatCLP(b.comisionProductos)}</b>` : ''}
           <span>Sueldo base</span><b>${formatCLP(b.sueldoBase)}</b>
           ${b.adelantos > 0 ? `<span>Adelantos</span><b class="neg">− ${formatCLP(b.adelantos)}</b>` : ''}
           <span class="big">Total a pagar</span><b class="big pos">${formatCLP(b.total)}</b>
@@ -949,7 +1021,7 @@ export default function Comisiones() {
               </div>
             )}
           </div>
-          <button onClick={() => { loadCitas(); loadAdelantos(); }} disabled={loading}
+          <button onClick={() => { loadCitas(); loadVentas(); loadAdelantos(); }} disabled={loading}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 disabled:opacity-50 transition-all">
             <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Cargando...' : 'Actualizar'}
@@ -1033,8 +1105,20 @@ export default function Comisiones() {
 
                 {/* Stats */}
                 <div className="flex flex-1 flex-wrap gap-4 items-center">
-                  <StatItem label="Ingresos" value={formatCLP(barbero.ingresos)} />
-                  <StatItem label={`Comisión (${barbero.comisionPct}%)`} value={formatCLP(barbero.montoComision)} />
+                  <StatItem
+                    label="Ingresos"
+                    value={formatCLP(barbero.ingresos)}
+                    subValue={barbero.ingresosProductos > 0 ? `Servicios ${formatCLP(barbero.ingresosServicios)} · Productos ${formatCLP(barbero.ingresosProductos)}` : null}
+                  />
+                  <StatItem
+                    label="Comisión"
+                    value={formatCLP(barbero.montoComision)}
+                    subValue={
+                      barbero.comisionProductos > 0
+                        ? `${barbero.comisionPct}% servicio · ${barbero.comisionProductosPct}%${barbero.comisionProductosMonto > 0 ? ` + ${formatCLP(barbero.comisionProductosMonto)}/venta` : ''} producto`
+                        : `${barbero.comisionPct}% servicio`
+                    }
+                  />
                   <StatItem label="Sueldo base" value={formatCLP(barbero.sueldoBase)} />
                   {barbero.adelantos > 0 && (
                     <StatItem label="Adelantos" value={`− ${formatCLP(barbero.adelantos)}`} valueClass="text-orange-400" />
@@ -1167,11 +1251,12 @@ export default function Comisiones() {
   );
 }
 
-function StatItem({ label, value, valueClass = 'text-primary' }) {
+function StatItem({ label, value, valueClass = 'text-primary', subValue = null }) {
   return (
     <div className="min-w-[100px]">
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`text-sm font-bold mt-0.5 ${valueClass}`}>{value}</p>
+      {subValue && <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{subValue}</p>}
     </div>
   );
 }
