@@ -1250,34 +1250,26 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           }).catch(() => {});
         }
 
-        // Motor de packs: dispara solo al pasar a Completada por primera vez.
-        // No bloquea el flujo si falla (el pack queda para procesarse manual/
-        // desde soporte). Se ejecuta después del batch principal para que la
-        // cita ya exista con el estado final antes de tocar users.packsActivos.
-        if (form.estado === 'Completada' && !yaEraCompletada) {
-          try {
-            const svc = servicios.find(s => s.id === form.servicioId)
-                     || servicios.find(s => (s.nombre || '') === form.servicioNombre);
-            const res = await procesarPackDeCita({
-              servicio: svc,
-              cita:     { ...cita, ...payload, id: cita.id },
-              tenantId,
-              barberos,
-              servicios,
-            });
-            // El motor devuelve {skip:'...'} en vez de tirar: el catch de abajo
-            // nunca se enteraba y el pack moría en silencio. Ahora al menos
-            // queda en consola con el motivo.
-            if (res?.skip && res.skip !== 'ni-activacion-ni-consumo') {
-              console.warn(`[pack] no se procesó (${res.skip}) — cita ${cita.id}`, {
-                clienteNombre: payload.clienteNombre,
-                tieneTelefono: !!payload.clienteTelefono,
-              });
-            }
-          } catch (err) {
-            console.error('[pack] procesarPackDeCita:', err);
-          }
-        }
+        // Motor de packs: DESACTIVADO en el cliente.
+        //
+        // Antes corría acá `procesarPackDeCita` en paralelo con la CF
+        // `pack-automatico` (server-side). Los dos leían el mismo doc
+        // users/{uid}.packsActivos[] y competían por escribir; el último
+        // en llegar pisaba al anterior.
+        //
+        // Este motor cliente-side NUNCA recibió la lógica de mapa por
+        // servicio (serviciosRestantes) que la CF sí tiene → cuando el
+        // cliente ganaba la carrera, el mapa NO se decrementaba y quedaba
+        // desincronizado (ej. barba consumida pero `barba` en el mapa
+        // seguía intacta, permitiendo un canje extra).
+        //
+        // La CF es idempotente (packProcesado + citasConsumo array) y
+        // dispara automático al completarse la cita, así que no hace
+        // falta procesar acá. Si la CF no existiera (elegance root en
+        // otra época), la reactivación de este bloque debería sincronizar
+        // primero la lógica de mapa por servicio.
+        // TODO: eliminar `procesarPackDeCita` y helpers cuando estemos
+        // seguros que la CF cubre el 100% de los tenants activos.
 
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
           onComplete({ ...cita, ...payload });
