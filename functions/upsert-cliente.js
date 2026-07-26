@@ -190,6 +190,56 @@ const EXTRA_FIELDS_WHITELIST = new Set([
   'fechaRegistroOriginal', 'importedFrom',
 ]);
 
+// Lookup puro (sin escrituras) — reusable por upsertClienteCore, por el
+// trigger dedupeOnCreateTenant y por el guard client-side en registro.html.
+// Aplica la regla híbrida: email exacto → siempre match; tel único con
+// al menos uno sin email → match; tel ambiguo o emails distintos → no match.
+//
+// Params:
+//   col   — CollectionReference de users del tenant
+//   email — string normalizado (lowercase trim, puede ser '')
+//   tel   — string raw (puede ser '')
+//   opts.excludeDocId — string, si viene se excluye del match (útil para
+//     evitar que un doc se matchee consigo mismo desde un trigger onCreate)
+//
+// Returns: { target: DocSnap|null, matchedBy: string|null }
+//   matchedBy ∈ {null, 'email', 'tel', 'tel-ambiguo', 'tel-diff-email'}
+async function resolveMatch(col, { email, telefono }, opts = {}) {
+  const excludeId = opts.excludeDocId || null;
+  let matchedBy   = null;
+  let candidates  = [];
+
+  if (email) {
+    candidates = await findByEmail(col, email);
+    if (excludeId) candidates = candidates.filter(d => d.id !== excludeId);
+    if (candidates.length) matchedBy = 'email';
+  }
+
+  if (!candidates.length && telefono) {
+    let byTel = await findByTel(col, telefono);
+    if (excludeId) byTel = byTel.filter(d => d.id !== excludeId);
+
+    if (byTel.length > 1) {
+      matchedBy = 'tel-ambiguo';
+    } else if (byTel.length === 1) {
+      const other      = byTel[0].data();
+      const otherEmail = (other.email || '').toLowerCase();
+      // Regla híbrida: emails distintos → personas distintas (familia).
+      if (email && otherEmail && email !== otherEmail) {
+        matchedBy = 'tel-diff-email';
+      } else {
+        candidates = byTel;
+        matchedBy  = 'tel';
+      }
+    }
+  }
+
+  return {
+    target:    candidates[0] || null,
+    matchedBy: matchedBy,
+  };
+}
+
 // Handler puro (sin wrapper CF) — reutilizable desde tests y desde otros
 // CFs que necesiten resolver un cliente sin pasar por la red. Recibe los
 // mismos datos que el callable y devuelve el mismo shape. Tira HttpsError
@@ -199,6 +249,7 @@ async function upsertClienteCore(data = {}) {
   const telRaw = (data.telefono || '').trim();
   const nombre = (data.nombre   || '').trim();
   const tenantId = data.tenantId;
+  const dryRun   = data.dryRun === true;
 
   // Validaciones
   if (!tenantId || typeof tenantId !== 'string') {
@@ -222,39 +273,25 @@ async function upsertClienteCore(data = {}) {
   const col = colUsers(tenantId);
   const payload = { nombre, email, telefono: telRaw, ...extras };
 
-  // ── Lookup ──────────────────────────────────────────────────
-  let matchedBy  = null;
-  let candidates = [];
-
-  // 1) Email exacto (identificador único humano)
-  if (email) {
-    candidates = await findByEmail(col, email);
-    if (candidates.length) matchedBy = 'email';
-  }
-
-  // 2) Sin match por email → buscar por tel variants
-  if (!candidates.length && telRaw) {
-    const byTel = await findByTel(col, telRaw);
-
-    if (byTel.length > 1) {
-      // Ambiguo (familia / tel compartido) → crear nuevo
-      matchedBy = 'tel-ambiguo';
-    } else if (byTel.length === 1) {
-      const other      = byTel[0].data();
-      const otherEmail = (other.email || '').toLowerCase();
-      // Regla híbrida: si ambos tienen email y son distintos, son
-      // personas distintas que comparten tel → crear nuevo.
-      if (email && otherEmail && email !== otherEmail) {
-        matchedBy = 'tel-diff-email';
-      } else {
-        candidates = byTel;
-        matchedBy  = 'tel';
-      }
-    }
-  }
+  // ── Lookup (delegado a resolveMatch, mismo criterio que el trigger) ──
+  const { target, matchedBy } = await resolveMatch(col, { email, telefono: telRaw });
+  const candidates = target ? [target] : [];
 
   // ── Sin match → CREATE ─────────────────────────────────────
   if (candidates.length === 0) {
+    if (dryRun) {
+      // Preview: retorna qué HARÍA sin escribir. uid queda null porque
+      // no hay doc real. El caller decide si proceder o abortar.
+      return {
+        uid:        null,
+        wasCreated: false,
+        wasMerged:  false,
+        wouldCreate: true,
+        wouldMerge:  false,
+        matchedBy:  matchedBy || null,
+        dryRun:     true,
+      };
+    }
     const newRef = col.doc(); // Firestore auto-id
     const createData = {
       nombre,
@@ -276,10 +313,32 @@ async function upsertClienteCore(data = {}) {
   }
 
   // ── Match → MERGE en el target ──────────────────────────────
-  const target     = candidates[0];
+  // (target ya viene resuelto de resolveMatch arriba)
   const targetData = target.data();
   const update     = calcularUpdate(targetData, payload);
   const camposActualizados = Object.keys(update).filter(k => k !== 'updatedAt' && k !== 'upsertedAt');
+
+  if (dryRun) {
+    // Preview del match sin escribir. Devolvemos el uid encontrado + los
+    // campos que se fusionarían. El caller usa esto para decidir UX
+    // (por ej: "ya tenés cuenta con este email → iniciá sesión").
+    return {
+      uid:              target.id,
+      wasCreated:       false,
+      wasMerged:        false,
+      wouldCreate:      false,
+      wouldMerge:       true,
+      matchedBy,
+      updatedFields:    camposActualizados,
+      targetPreview: {
+        nombre:   targetData.nombre   || '',
+        email:    targetData.email    || '',
+        telefono: targetData.telefono || '',
+        sellosHistoricos: Number(targetData.sellosHistoricos ?? targetData.stamps ?? 0),
+      },
+      dryRun: true,
+    };
+  }
 
   await target.ref.set(update, { merge: true });
   logger.info(`[upsertCliente] ${tenantId}: MERGE ${target.id} matchedBy=${matchedBy} campos=[${camposActualizados.join(',')}]`);
@@ -305,6 +364,10 @@ exports.upsertCliente = onCall(
   }
 );
 
-// Export interno para tests locales que corren contra Firestore real sin
-// pasar por la red. Usado por functions/_test-upsert-delnero.mjs.
+// Export interno para tests locales y para el trigger dedupeOnCreateTenant
+// (misma regla de matching en ambos flujos: cero divergencia).
 exports._upsertClienteCore = upsertClienteCore;
+exports._resolveMatch      = resolveMatch;
+exports._colUsers          = colUsers;
+exports._calcularUpdate    = calcularUpdate;
+exports._normPhone         = normPhone;

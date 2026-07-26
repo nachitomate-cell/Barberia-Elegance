@@ -2476,6 +2476,29 @@
     showLoading('Creando cuenta...');
     _registering = true;
 
+    // ── Peek de perfil legacy (upsertCliente dryRun) ───────────────────────
+    // Antes de crear la cuenta, preguntamos al CF si ya existe un perfil
+    // (migrado de AgendaPro o de una sesión anónima previa) que matchee por
+    // email/tel con la regla híbrida. Si lo hay Y tiene sellos históricos,
+    // actualizamos el spinner para tranquilizar al usuario ("heredarás X
+    // sellos"). No bloquea nada: el trigger dedupeOnCreateTenant se encarga
+    // de la fusión post-registro. Fail-silent: si el CF falla, seguimos igual.
+    try {
+      const peekFn = firebase.app().functions('us-central1').httpsCallable('upsertCliente');
+      const peekRes = (await peekFn({
+        tenantId: window.CURRENT_TENANT_ID,
+        nombre, email, telefono,
+        dryRun:   true,
+      })).data || {};
+      const sellosPrev = Number(peekRes.targetPreview?.sellosHistoricos || 0);
+      if (peekRes.wouldMerge && sellosPrev > 0) {
+        showLoading(`Creando cuenta... (heredarás ${sellosPrev} sello${sellosPrev !== 1 ? 's' : ''})`);
+      }
+    } catch (peekErr) {
+      // Fail-silent: el flujo procede sin el hint. Log para debugging.
+      console.warn('[registro] peek upsertCliente falló:', peekErr?.message || peekErr);
+    }
+
     // ── Blindaje anti-cuelgue ───────────────────────────────────────────────
     // La cuenta se crea en Auth ANTES de escribir en Firestore. Sin persistencia
     // offline, esas escrituras esperan al servidor y en redes móviles lentas

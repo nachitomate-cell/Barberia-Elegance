@@ -5,23 +5,26 @@
 //  DEDUP AUTOMÁTICO AL REGISTRARSE UN CLIENTE
 //
 //  Dispara cuando se crea un doc en /tenants/{tid}/users/{uid} o
-//  /users/{uid} (elegance). Si el cliente recién registrado
-//  comparte email con un perfil "legacy" creado por la migración
-//  de AgendaPro (users/{telefono} con uid === telefono o
-//  importedFrom === 'agendapro'), fusiona los sellos/historial del
-//  legacy al nuevo doc y borra el legacy de users/ y clientes/.
+//  /users/{uid} (elegance). Si el cliente recién registrado matchea
+//  con un perfil "legacy" (uid === docId por migración AgendaPro, o
+//  importedFrom === 'agendapro'), fusiona sellos/historial en el
+//  doc nuevo y borra el legacy en users/ + clientes/.
 //
-//  Idempotente: el script manual (migraciones/dedupe-chameleon-...)
-//  sigue funcionando como red de seguridad — esta CF solo cubre
-//  el caso "nuevo registro" para evitar correr el script a mano.
+//  Aplica la MISMA regla híbrida que upsertCliente:
+//    · Match por email exacto (identificador único humano).
+//    · Match por tel solo si NO hay match por email Y el otro doc
+//      tampoco tiene email (evita colapsar familia/tel compartido).
+//
+//  Reutiliza `resolveMatch` de upsert-cliente.js para tener una sola
+//  fuente de verdad de la lógica de matching entre este trigger y el
+//  callable manual. Un cambio en la regla se hace en un solo lugar.
+//
+//  Idempotente. El script de cleanup (Fase 2) sigue funcionando como
+//  red de seguridad para tenants con backlog anterior a este CF.
 //
 //  Exports:
 //    dedupeOnCreateElegance — trigger /users/{uid}
 //    dedupeOnCreateTenant   — trigger /tenants/{tid}/users/{uid}
-//
-//  DEPLOY:
-//    firebase deploy --only \
-//      functions:dedupeOnCreateElegance,functions:dedupeOnCreateTenant
 // ─────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
@@ -29,105 +32,66 @@ const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { FieldValue }        = require('firebase-admin/firestore');
 
+const {
+  _resolveMatch: resolveMatch,
+  _colUsers:     colUsers,
+  _normPhone:    normPhone,
+} = require('./upsert-cliente');
+
 const db = admin.firestore();
 
-function colecciones(tenantId) {
-  const isElegance = tenantId === 'elegance';
-  return {
-    users:    db.collection(isElegance ? 'users'    : `tenants/${tenantId}/users`),
-    clientes: db.collection(isElegance ? 'clientes' : `tenants/${tenantId}/clientes`),
-  };
+function colClientes(tenantId) {
+  return tenantId === 'elegance'
+    ? db.collection('clientes')
+    : db.collection(`tenants/${tenantId}/clientes`);
 }
 
 function isLegacyDoc(docId, data) {
-  return data.uid === docId || data.importedFrom === 'agendapro';
-}
-
-function normalizePhone(phone) {
-  return (phone || '').replace(/\D/g, '');
-}
-
-// Devuelve TODAS las variantes razonables de un teléfono para hacer lookups
-// robustos. Esto cubre los casos:
-//   - Migración guardó IDs con '+' (ej. '+56982682794')
-//   - Nuevo registro usa otro formato (sin '+', con/sin código de país, con espacios)
-//   - Cliente escribió +56 9 8268 2794 vs +56982682794 vs 982682794
-function phoneVariants(rawPhone) {
-  const variants = new Set();
-  if (!rawPhone) return [];
-  const raw  = String(rawPhone).trim();
-  const norm = raw.replace(/\D/g, '');
-  if (raw)  variants.add(raw);
-  if (norm) {
-    variants.add(norm);
-    variants.add('+' + norm);
-    // Chile: 56XXXXXXXXX ↔ XXXXXXXXX (móvil 9 dígitos)
-    if (norm.startsWith('56') && norm.length >= 10) {
-      const sin56 = norm.slice(2);
-      variants.add(sin56);
-      variants.add('+' + sin56);
-    }
-    if (!norm.startsWith('56') && norm.length === 9) {
-      variants.add('56' + norm);
-      variants.add('+56' + norm);
-    }
-  }
-  return [...variants].filter(Boolean);
+  return (data && data.uid === docId) || (data && data.importedFrom === 'agendapro');
 }
 
 async function procesarDedup({ tenantId, uid, data }) {
   // Silenciosos (estos paths disparan en cada user create sin hacer nada):
   if (isLegacyDoc(uid, data)) return;
-  const email   = (data.email    || '').toLowerCase().trim();
-  const telNorm = normalizePhone(data.telefono);
-  if (!email && !telNorm) return;
 
-  const cols = colecciones(tenantId);
-  const legaciesMap = new Map(); // dedup por doc.id en caso de match cruzado
+  const email    = (data.email    || '').toLowerCase().trim();
+  const telefono = (data.telefono || '').trim();
+  if (!email && !telefono) return;
 
-  // 1) Buscar legacies por email (cuando el cliente conserva email)
-  if (email) {
-    const q = await cols.users.where('email', '==', email).limit(10).get();
-    q.docs.forEach(d => {
-      if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
-    });
+  const usersCol = colUsers(tenantId);
+
+  // Lookup con la MISMA regla híbrida que upsertCliente. Excluimos el
+  // propio doc recién creado para que no matchee consigo mismo.
+  const primer = await resolveMatch(usersCol, { email, telefono }, { excludeDocId: uid });
+
+  // Recolectamos hasta 2 legacies: uno por email + uno por tel (si el
+  // registro nuevo cambió de tel pero mantuvo email, o viceversa). Un
+  // humano típicamente tiene MAX 1 legacy migrado, pero cubrimos el caso.
+  const legaciesMap = new Map();
+  if (primer.target && isLegacyDoc(primer.target.id, primer.target.data())) {
+    legaciesMap.set(primer.target.id, primer.target);
   }
-
-  // 2) Buscar legacies por teléfono normalizado (cuando el email es distinto o ausente,
-  //    pero el cliente conserva el mismo número que tenía en AgendaPro).
-  //    Probamos VARIAS variantes porque la migración usó el formato original
-  //    (con '+', sin normalizar) y el nuevo registro puede traer otro.
-  if (data.telefono) {
-    const variants = phoneVariants(data.telefono);
-
-    // 2a) Match por doc.id (el legacy tiene id == su telefono tal cual del Excel).
-    const idLookups = await Promise.all(variants.map(v => cols.users.doc(v).get().catch(() => null)));
-    idLookups.forEach(snap => {
-      if (snap && snap.exists && snap.id !== uid && isLegacyDoc(snap.id, snap.data())) {
-        legaciesMap.set(snap.id, snap);
-      }
-    });
-
-    // 2b) Match por campo `telefono` con cada variante (cubre formatos distintos).
-    const fieldLookups = await Promise.all(
-      variants.map(v =>
-        cols.users.where('telefono', '==', v).limit(5).get().catch(() => ({ docs: [] }))
-      )
-    );
-    fieldLookups.forEach(q => {
-      q.docs.forEach(d => {
-        if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
-      });
-    });
+  // Si el primer match fue por email, buscar también por tel excluyendo
+  // ambos (uid nuevo + uid del primer match).
+  if (primer.matchedBy === 'email' && telefono) {
+    const excludeIds = new Set([uid, primer.target?.id].filter(Boolean));
+    const segundo = await resolveMatch(usersCol, { email: '', telefono }, { excludeDocId: uid });
+    if (segundo.target
+        && !excludeIds.has(segundo.target.id)
+        && isLegacyDoc(segundo.target.id, segundo.target.data())) {
+      legaciesMap.set(segundo.target.id, segundo.target);
+    }
   }
 
   const legacies = [...legaciesMap.values()];
+  if (legacies.length === 0) return;
 
-  if (legacies.length === 0) return; // silencioso: ningún legacy = caso esperado
+  logger.info(`[Dedup] ${tenantId}/${uid}: matched ${legacies.length} legacy(s) via ${primer.matchedBy}. Fusionando…`);
 
-  logger.info(`[Dedup] ${tenantId}/${uid}: encontrados ${legacies.length} legacy(s) (match email/tel). Fusionando…`);
-
-  // Acumular cambios
+  // Acumular cambios: sumar sellos históricos + disponibles + stamps
+  // (los tres campos coexisten por retrocompatibilidad). Historial
+  // se une con arrayUnion (dedup por deep-equal). fechaOriginal y
+  // teléfono anterior solo si el nuevo doc no los tiene.
   const sellosHist = legacies.reduce((s, l) => s + (Number(l.data().sellosHistoricos) || 0), 0);
   const sellosDisp = legacies.reduce((s, l) => s + (Number(l.data().sellosDisponibles) || 0), 0);
   const stamps     = legacies.reduce((s, l) => s + (Number(l.data().stamps)            || 0), 0);
@@ -147,9 +111,7 @@ async function procesarDedup({ tenantId, uid, data }) {
   if (fechaOrig && !data.fechaRegistroOriginal) mergeUpdate.fechaRegistroOriginal = fechaOrig;
   if (telPrev   && !data.telefonoAnterior)      mergeUpdate.telefonoAnterior      = telPrev;
 
-  // Tenants multi-sede (kronnos): sumar los contadores por sede de los
-  // legacies al doc real. Sin esto la fusión perdía sellosPorSede y el
-  // cálculo de sede predominante partía de cero tras registrarse.
+  // Tenants multi-sede (kronnos): consolidar contadores por sede.
   const sedeTotales = {};
   legacies.forEach(l => {
     const sps = l.data().sellosPorSede;
@@ -164,16 +126,16 @@ async function procesarDedup({ tenantId, uid, data }) {
     mergeUpdate[`sellosPorSede.${sede}`] = FieldValue.increment(n);
   });
 
-  // IDs de docs en clientes/ a borrar
+  // IDs de docs en clientes/ (mirror por tel) a borrar
+  const clientesCol = colClientes(tenantId);
   const telefonosLegacy = [
-    ...new Set(legacies.flatMap(l => [l.data().telefono, l.id]).map(normalizePhone).filter(Boolean)),
+    ...new Set(legacies.flatMap(l => [l.data().telefono, l.id]).map(normPhone).filter(Boolean)),
   ];
 
-  // Aplicar en batch
   const batch = db.batch();
-  batch.set(cols.users.doc(uid), mergeUpdate, { merge: true });
+  batch.set(usersCol.doc(uid), mergeUpdate, { merge: true });
   legacies.forEach(l => batch.delete(l.ref));
-  telefonosLegacy.forEach(tel => batch.delete(cols.clientes.doc(tel)));
+  telefonosLegacy.forEach(tel => batch.delete(clientesCol.doc(tel)));
 
   try {
     await batch.commit();
