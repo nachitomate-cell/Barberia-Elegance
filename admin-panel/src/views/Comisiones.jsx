@@ -362,16 +362,22 @@ export default function Comisiones() {
   useEffect(() => { loadVentas(); }, [loadVentas]);
   useEffect(() => { loadAdelantos(); }, [loadAdelantos]);
 
-  // Precio del servicio de la cita (respeta cortesía → 0). NO suma productos;
-  // los productos vienen aparte desde product_reservations para no doblar con
-  // el arreglo `ticketProductos` embebido en la cita.
-  // Fallback a `precioMap` (catálogo de servicios) cuando la cita no trae
-  // precio grabado — mismo criterio que Métricas para que ambas vistas cuadren
-  // en tenants con reservas online que solo guardan servicioId.
-  const precioServicio = useCallback(
-    (c) => c.cortesia ? 0 : (Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0),
-    [precioMap]
-  );
+  // Precio del servicio de la cita. Mismo criterio que Métricas para que
+  // ambas vistas cuadren:
+  //  - cortesía → 0
+  //  - c.precio explícito (incluye 0) → respetar. Un `precio:0` registrado a
+  //    mano es "cortesía sin flag" (promo 2x1 antigua de aura donde el 2°
+  //    corte se marcaba $0 en vez de tildar cortesía). Sumar el precio del
+  //    catálogo acá infla el ingreso real y por consecuencia la comisión.
+  //  - c.precio null/undefined → fallback al catálogo (reservas online que
+  //    guardan solo servicioId sin precio).
+  // NO suma productos: los productos vienen aparte desde product_reservations
+  // para no doblar con el arreglo `ticketProductos` embebido en la cita.
+  const precioServicio = useCallback((c) => {
+    if (c.cortesia) return 0;
+    if (c.precio != null) return Number(c.precio) || 0;
+    return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
+  }, [precioMap]);
   // Precio de una venta de producto. Los docs de product_reservations guardan
   // el TOTAL de línea en `precio` (ya multiplicado × cantidad, con descuento
   // aplicado). Ver memoria "Ventas / plata (gotchas)".

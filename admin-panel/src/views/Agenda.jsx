@@ -1505,6 +1505,30 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
         </div>
 
+        {/* Aviso: precio $0 sin marcar cortesía.
+            Antes se registraban "cortesías a mano" bajando el precio a 0 sin
+            tildar el checkbox → Métricas/Comisiones no las distinguían de un
+            servicio pago que quedó en $0 por error. Ahora avisamos y ofrecemos
+            marcarla como cortesía de un click. */}
+        {Number(form.precio) === 0 && !form.cortesia && Number(form.porcentajeDescuento) < 100 && (
+          <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/40 bg-amber-500/[0.08]">
+            <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-400" />
+            <div className="flex-1 text-[12px] leading-snug text-amber-200">
+              <p className="font-semibold text-amber-100">Precio $0 sin marcar cortesía</p>
+              <p className="mt-0.5 text-amber-200/85">
+                Si el cliente no pagó porque es cortesía (ej: 2° corte del mes), marcala como <b>Cortesía</b> abajo. Así queda registrada correctamente y no aparece como servicio con precio $0 en los reportes.
+              </p>
+              <button
+                type="button"
+                onClick={() => toggleCortesia(true)}
+                className="mt-2 text-[11px] font-semibold text-amber-100 underline underline-offset-2 hover:text-white"
+              >
+                Marcar como cortesía →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Rango descuento chip */}
         {rangoDesc && !form.cortesia && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">

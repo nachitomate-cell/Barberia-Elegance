@@ -599,10 +599,19 @@ export default function Metricas() {
     return map;
   }, [servicios]);
 
-  const getPrice = useCallback(c =>
-    c.cortesia ? 0 : (Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0),
-    [precioMap]
-  );
+  // Precio del servicio de la cita:
+  //  - cortesía → 0
+  //  - c.precio explícito (incluye 0) → respetar. Un `precio:0` registrado a
+  //    mano por el barbero es una "cortesía sin flag" (típico de aura con la
+  //    promo 2x1 antigua: el 2° corte se marcaba $0 en vez de tildar
+  //    cortesía). Sumarlo con el precio del catálogo infla el ingreso real.
+  //  - c.precio null/undefined → fallback al catálogo (reservas online que
+  //    guardan solo servicioId sin precio).
+  const getPrice = useCallback(c => {
+    if (c.cortesia) return 0;
+    if (c.precio != null) return Number(c.precio) || 0;
+    return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
+  }, [precioMap]);
 
   /* ── 1. Rendimiento Comercial Memoized KPIs and Stats ── */
   const stats = useMemo(() => {
