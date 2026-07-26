@@ -60,6 +60,25 @@ async function procesarDedup({ tenantId, uid, data }) {
 
   const usersCol = colUsers(tenantId);
 
+  // ── Idempotencia doble ─────────────────────────────────────────────
+  //  Cloud Functions onDocumentCreated tiene garantía at-least-once y
+  //  puede reejecutar el trigger. Además dos invocaciones concurrentes
+  //  pueden leer el estado "sin dedupedAt" simultáneamente (race). Dos
+  //  capas de defensa:
+  //   (a) Guard opportunistic: si el doc ya tiene dedupedAt → skip.
+  //       Bloquea el caso serial (retry tras completar).
+  //   (b) Valores ABSOLUTOS en vez de FieldValue.increment(): dos
+  //       ejecuciones concurrentes que calculan `dispActual + 3 = 3`
+  //       y setean el mismo valor NO duplican. Idempotente por diseño.
+  const meRef  = usersCol.doc(uid);
+  const meSnap = await meRef.get();
+  if (!meSnap.exists) return; // ya borrado
+  const meData = meSnap.data() || {};
+  if (meData.dedupedAt) {
+    logger.info(`[Dedup] ${tenantId}/${uid}: ya deduplicado (dedupedAt presente), skip.`);
+    return;
+  }
+
   // Lookup con la MISMA regla híbrida que upsertCliente. Excluimos el
   // propio doc recién creado para que no matchee consigo mismo.
   const primer = await resolveMatch(usersCol, { email, telefono }, { excludeDocId: uid });
@@ -88,30 +107,45 @@ async function procesarDedup({ tenantId, uid, data }) {
 
   logger.info(`[Dedup] ${tenantId}/${uid}: matched ${legacies.length} legacy(s) via ${primer.matchedBy}. Fusionando…`);
 
-  // Acumular cambios: sumar sellos históricos + disponibles + stamps
-  // (los tres campos coexisten por retrocompatibilidad). Historial
-  // se une con arrayUnion (dedup por deep-equal). fechaOriginal y
-  // teléfono anterior solo si el nuevo doc no los tiene.
-  const sellosHist = legacies.reduce((s, l) => s + (Number(l.data().sellosHistoricos) || 0), 0);
-  const sellosDisp = legacies.reduce((s, l) => s + (Number(l.data().sellosDisponibles) || 0), 0);
-  const stamps     = legacies.reduce((s, l) => s + (Number(l.data().stamps)            || 0), 0);
-  const historial  = legacies.flatMap(l => l.data().historialSellos || []);
-  const fechaOrig  = legacies.map(l => l.data().fechaRegistroOriginal).filter(Boolean)[0];
-  const telPrev    = legacies.map(l => l.data().telefono).filter(t => t && t !== data.telefono)[0];
+  // Sumar sellos de todos los legacies encontrados. Historial se une
+  // con arrayUnion (dedup por deep-equal). fechaOriginal y teléfono
+  // anterior solo si el nuevo doc no los tiene.
+  const sellosHistLegacies = legacies.reduce((s, l) => s + (Number(l.data().sellosHistoricos) || 0), 0);
+  const sellosDispLegacies = legacies.reduce((s, l) => s + (Number(l.data().sellosDisponibles) || 0), 0);
+  const stampsLegacies     = legacies.reduce((s, l) => s + (Number(l.data().stamps)            || 0), 0);
+  const historial          = legacies.flatMap(l => l.data().historialSellos || []);
+  const fechaOrig          = legacies.map(l => l.data().fechaRegistroOriginal).filter(Boolean)[0];
+  const telPrev            = legacies.map(l => l.data().telefono).filter(t => t && t !== data.telefono)[0];
+
+  // VALORES ABSOLUTOS (no increment): idempotente ante ejecuciones
+  // concurrentes. `meData` es el snapshot del doc ACTUAL (post-write
+  // del registro pero pre-fusión). Sumamos meData + legacies y seteamos
+  // el resultado final. Si otra ejecución concurrente hace lo mismo,
+  // llega al mismo número absoluto → no duplica.
+  const currentHist  = Number(meData.sellosHistoricos  ?? 0);
+  const currentDisp  = Number(meData.sellosDisponibles ?? 0);
+  const currentStmp  = Number(meData.stamps            ?? 0);
+  const finalHist    = currentHist + sellosHistLegacies;
+  const finalDisp    = currentDisp + sellosDispLegacies;
+  const finalStmp    = currentStmp + stampsLegacies;
 
   const mergeUpdate = {
     importedFrom: 'agendapro',
     dedupedAt:    FieldValue.serverTimestamp(),
     updatedAt:    FieldValue.serverTimestamp(),
   };
-  if (sellosHist) mergeUpdate.sellosHistoricos  = FieldValue.increment(sellosHist);
-  if (sellosDisp) mergeUpdate.sellosDisponibles = FieldValue.increment(sellosDisp);
-  if (stamps)     mergeUpdate.stamps            = FieldValue.increment(stamps);
+  if (finalHist !== currentHist) mergeUpdate.sellosHistoricos  = finalHist;
+  if (finalDisp !== currentDisp) mergeUpdate.sellosDisponibles = finalDisp;
+  if (finalStmp !== currentStmp) mergeUpdate.stamps            = finalStmp;
   if (historial.length)        mergeUpdate.historialSellos       = FieldValue.arrayUnion(...historial);
   if (fechaOrig && !data.fechaRegistroOriginal) mergeUpdate.fechaRegistroOriginal = fechaOrig;
   if (telPrev   && !data.telefonoAnterior)      mergeUpdate.telefonoAnterior      = telPrev;
 
   // Tenants multi-sede (kronnos): consolidar contadores por sede.
+  // También en absoluto (currentSede + legaciesSede) por idempotencia.
+  const currentSede = (meData.sellosPorSede && typeof meData.sellosPorSede === 'object')
+    ? meData.sellosPorSede
+    : {};
   const sedeTotales = {};
   legacies.forEach(l => {
     const sps = l.data().sellosPorSede;
@@ -123,7 +157,8 @@ async function procesarDedup({ tenantId, uid, data }) {
     }
   });
   Object.entries(sedeTotales).forEach(([sede, n]) => {
-    mergeUpdate[`sellosPorSede.${sede}`] = FieldValue.increment(n);
+    const final = (Number(currentSede[sede]) || 0) + n;
+    mergeUpdate[`sellosPorSede.${sede}`] = final;
   });
 
   // IDs de docs en clientes/ (mirror por tel) a borrar
@@ -139,7 +174,7 @@ async function procesarDedup({ tenantId, uid, data }) {
 
   try {
     await batch.commit();
-    logger.info(`[Dedup] ${tenantId}/${uid}: OK. Borrados ${legacies.length} legacy(s) en users/ + ${telefonosLegacy.length} en clientes/. Sellos acumulados: +${sellosHist}.`);
+    logger.info(`[Dedup] ${tenantId}/${uid}: OK. Borrados ${legacies.length} legacy(s) en users/ + ${telefonosLegacy.length} en clientes/. Sellos hist ${currentHist}→${finalHist}, disp ${currentDisp}→${finalDisp}.`);
   } catch (e) {
     logger.error(`[Dedup] ${tenantId}/${uid}: error al fusionar:`, e);
   }
