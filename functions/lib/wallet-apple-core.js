@@ -26,7 +26,7 @@ const http2 = require('http2');
 const { PKPass } = require('passkit-generator');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { renderStampStrip, renderIcon } = require('./wallet-render');
-const { geofencePoints } = require('./wallet-geo');
+const { geofencePointsMulti, locationsFromConfig } = require('./wallet-geo');
 
 // ── Identidad Apple (completar al terminar el enrollment) ─────────
 //  TODO(Ignacio): cuando Apple apruebe la cuenta:
@@ -135,7 +135,7 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
   // Geo NATIVO de Apple: el pase aparece en pantalla bloqueada cerca
   // del local (espejo de locations del LoyaltyClass).
   // Centro + anillo de puntos si hay geoRadius (espejo del LoyaltyClass).
-  const geoPts = geofencePoints(cfg.location && cfg.location.lat, cfg.location && cfg.location.lng, cfg.geoRadius);
+  const geoPts = geofencePointsMulti(locationsFromConfig(cfg));
   if (geoPts.length) {
     const relevantText = cfg.geoMensaje || `Estás cerca de ${organizationName} 💈 Muestra tu tarjeta y suma sellos.`;
     p.locations = geoPts.map((pt) => ({ ...pt, relevantText }));

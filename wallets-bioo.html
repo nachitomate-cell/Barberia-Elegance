@@ -62,6 +62,18 @@
   .geo-map{width:100%;height:240px;border-radius:12px;overflow:hidden;border:1px solid #e2e5e0;margin-top:6px;background:#eef1ee;}
   .geo-radius-row{margin-top:12px;}
   .range{width:100%;accent-color:#39c313;margin-top:6px;}
+  .geo-locs{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .geo-loc{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1.5px solid #e2e5e0;background:#fff;cursor:pointer;font-size:13px;color:#5c6367;transition:.15s;}
+  .geo-loc:hover{border-color:#c7ccc2;}
+  .geo-loc.sel{border-color:#15240b;background:#f2f6ee;color:#15240b;font-weight:600;}
+  .geo-loc .dot{width:20px;height:20px;border-radius:50%;background:#39c313;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .geo-loc .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .geo-loc .del{border:none;background:transparent;color:#b91c1c;cursor:pointer;font-size:15px;line-height:1;padding:3px 6px;border-radius:6px;flex-shrink:0;}
+  .geo-loc .del:hover{background:rgba(185,28,28,.1);}
+  .geo-add{margin-top:8px;width:100%;padding:10px;border-radius:10px;border:1.5px dashed #c7ccc2;background:#fafbfa;color:#15240b;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;}
+  .geo-add:hover{border-color:#39c313;background:#f2f6ee;}
+  .geo-add:disabled{opacity:.5;cursor:not-allowed;}
+  .geo-empty{font-size:12.5px;color:#8b9199;margin-top:8px;font-style:italic;}
   .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .theme-btn{width:40px;height:40px;border-radius:10px;border:2px solid #e2e5e0;cursor:pointer;padding:0;transition:.15s;}
   .theme-btn:hover{transform:translateY(-1px);}
@@ -206,11 +218,13 @@
         <label style="margin-top:14px;">Ícono de la estampa</label>
         <div id="icon-picker" class="icons"></div>
 
-        <label style="margin-top:14px;">Geo-push — zona de activación</label>
-        <p class="pv-note" style="margin-top:2px;">Arrastra el marcador sobre tu local y ajusta el radio con el slider (o el borde del círculo). La tarjeta aparece sola en el teléfono del cliente cuando entra a esa zona.</p>
+        <label style="margin-top:14px;">Geo-push — zonas de activación</label>
+        <p class="pv-note" style="margin-top:2px;">Agrega uno o más locales. Toca "Agregar ubicación", arrastra cada marcador sobre su local y ajusta el radio. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas.</p>
         <div id="geo-map" class="geo-map"></div>
+        <div id="geo-locs" class="geo-locs"></div>
+        <button type="button" id="geo-add" class="geo-add">+ Agregar ubicación</button>
         <div class="geo-radius-row">
-          <label for="f-geoRadius">Radio de cobertura: <b id="f-geoRadius-label">300 m</b></label>
+          <label for="f-geoRadius">Radio de la ubicación seleccionada: <b id="f-geoRadius-label">300 m</b></label>
           <input type="range" id="f-geoRadius" min="0" max="1500" step="50" value="300" class="range">
         </div>
         <div class="row2">
@@ -437,21 +451,35 @@ function llenarForm(cfg, tenantCfg) {
   var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
   $('f-accent').value = acc; $('f-accent-hex').value = acc;
   $('f-bg').value = bg; $('f-bg-hex').value = bg;
-  $('f-lat').value = (cfg.location && Number.isFinite(Number(cfg.location.lat))) ? cfg.location.lat : '';
-  $('f-lng').value = (cfg.location && Number.isFinite(Number(cfg.location.lng))) ? cfg.location.lng : '';
-  var gr = (cfg.geoRadius != null && Number.isFinite(Number(cfg.geoRadius))) ? Number(cfg.geoRadius) : 300;
-  $('f-geoRadius').value = gr;
-  $('f-geoRadius-label').textContent = gr + ' m';
+  _locs = locsFromCfg(cfg);
+  _selIdx = _locs.length ? 0 : -1;
   $('f-geoMensaje').value = cfg.geoMensaje || '';
   $('f-enabled').checked = cfg.enabled === true;
   _stampIcon = cfg.stampIcon || 'check';
   pintarIconos();
-  syncMapFromForm();
+  renderLocs();
+  recenterMap();
+}
+
+// Deriva el arreglo de zonas desde la config (nuevo cfg.locations[] o el
+// legacy cfg.location + cfg.geoRadius). Radio inválido → 300 m por defecto.
+function locsFromCfg(cfg) {
+  function norm(lat, lng, rad) {
+    var r = (rad != null && Number.isFinite(Number(rad)) && Number(rad) > 0) ? Number(rad) : 300;
+    return { lat: Number(lat), lng: Number(lng), radius: r };
+  }
+  if (cfg && Array.isArray(cfg.locations) && cfg.locations.length) {
+    return cfg.locations
+      .map(function (l) { return norm(l.lat, l.lng, l.radius); })
+      .filter(function (l) { return Number.isFinite(l.lat) && Number.isFinite(l.lng); });
+  }
+  if (cfg && cfg.location && Number.isFinite(Number(cfg.location.lat)) && Number.isFinite(Number(cfg.location.lng))) {
+    return [norm(cfg.location.lat, cfg.location.lng, cfg.geoRadius)];
+  }
+  return [];
 }
 
 function leerForm() {
-  var lat = parseFloat($('f-lat').value);
-  var lng = parseFloat($('f-lng').value);
   var cfg = {
     programName: $('f-programName').value.trim() || 'Club de Fidelidad',
     issuerName: $('f-issuerName').value.trim() || 'SynapTech',
@@ -462,10 +490,13 @@ function leerForm() {
     enabled: $('f-enabled').checked,
     stampIcon: _stampIcon,
   };
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    cfg.location = { lat: lat, lng: lng };
-    var gr = parseInt($('f-geoRadius').value, 10);
-    if (Number.isFinite(gr) && gr > 0) cfg.geoRadius = gr;
+  if (_locs.length) {
+    cfg.locations = _locs.map(function (l) {
+      return { lat: l.lat, lng: l.lng, radius: (Number.isFinite(l.radius) && l.radius > 0) ? l.radius : 300 };
+    });
+    // Espejo legacy (primera zona) para cualquier lector antiguo del cfg.
+    cfg.location = { lat: _locs[0].lat, lng: _locs[0].lng };
+    if (Number.isFinite(_locs[0].radius) && _locs[0].radius > 0) cfg.geoRadius = _locs[0].radius;
   }
   return cfg;
 }
@@ -591,8 +622,10 @@ function pintarIconos() {
 pintarThemes();
 pintarIconos();
 
-// ── Mapa del geo-push (Google Maps) ───────────────────────────────
-var _geoMap = null, _geoMarker = null, _geoCircle = null, _mapsReady = false;
+// ── Mapa del geo-push (Google Maps, multi-ubicación) ──────────────
+var _geoMap = null, _mapsReady = false;
+var _locs = [], _selIdx = -1, _markers = [], _circles = [];
+var MAX_GEO_LOCS = 10;                              // tope de Apple por pase
 var GEO_DEFAULT = { lat: -33.0472, lng: -71.6127 }; // fallback (Valparaíso aprox)
 
 window.initGeoMap = function () { _mapsReady = true; maybeInitMap(); };
@@ -601,56 +634,157 @@ function maybeInitMap() {
   if (!_mapsReady || _geoMap || !window.google) return;
   var el = $('geo-map');
   if (!el || el.offsetParent === null) return; // aún oculto → se reintenta al mostrar el estudio
-  var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
-  var center = (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat: lat, lng: lng } : GEO_DEFAULT;
-  var radius = parseInt($('f-geoRadius').value, 10) || 300;
+  var center = _locs.length ? { lat: _locs[0].lat, lng: _locs[0].lng } : GEO_DEFAULT;
   _geoMap = new google.maps.Map(el, {
     center: center, zoom: 15, mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
   });
-  _geoMarker = new google.maps.Marker({ position: center, map: _geoMap, draggable: true });
-  _geoCircle = new google.maps.Circle({
-    map: _geoMap, center: center, radius: radius, editable: true, draggable: false,
-    fillColor: '#39c313', fillOpacity: 0.15, strokeColor: '#2f9e12', strokeWeight: 2,
+  _geoMap.addListener('click', function (e) {
+    // Sin selección → crea la primera zona; con selección → mueve la actual.
+    if (_selIdx < 0 || !_locs.length) { addLocAt(e.latLng.lat(), e.latLng.lng()); return; }
+    _locs[_selIdx].lat = +e.latLng.lat().toFixed(6);
+    _locs[_selIdx].lng = +e.latLng.lng().toFixed(6);
+    renderLocs();
   });
-  _geoCircle.bindTo('center', _geoMarker, 'position');
-  function applyLatLng(ll) {
-    $('f-lat').value = ll.lat().toFixed(6);
-    $('f-lng').value = ll.lng().toFixed(6);
-    renderPreview();
-  }
-  _geoMarker.addListener('dragend', function (e) { applyLatLng(e.latLng); });
-  _geoMap.addListener('click', function (e) { _geoMarker.setPosition(e.latLng); applyLatLng(e.latLng); });
-  _geoCircle.addListener('radius_changed', function () {
-    var r = Math.max(0, Math.min(1500, Math.round(_geoCircle.getRadius())));
-    $('f-geoRadius').value = r;
-    $('f-geoRadius-label').textContent = r + ' m';
+  buildOverlays();
+}
+
+// (Re)crea marcadores y círculos según _locs. La zona seleccionada se ve
+// destacada y su círculo es editable (se arrastra el borde para el radio).
+function buildOverlays() {
+  if (!_geoMap || !window.google) return;
+  _markers.forEach(function (m) { m.setMap(null); });
+  _circles.forEach(function (c) { c.setMap(null); });
+  _markers = []; _circles = [];
+  _locs.forEach(function (l, i) {
+    var pos = { lat: l.lat, lng: l.lng };
+    var sel = (i === _selIdx);
+    var marker = new google.maps.Marker({
+      position: pos, map: _geoMap, draggable: true, label: String(i + 1), opacity: sel ? 1 : 0.6,
+    });
+    var circle = new google.maps.Circle({
+      map: _geoMap, center: pos, radius: l.radius || 300, editable: sel, draggable: false,
+      fillColor: '#39c313', fillOpacity: sel ? 0.16 : 0.07,
+      strokeColor: sel ? '#2f9e12' : '#7bbf63', strokeWeight: sel ? 2 : 1,
+    });
+    circle.bindTo('center', marker, 'position');
+    marker.addListener('click', function () { selectLoc(i); });
+    marker.addListener('dragend', function (e) {
+      _locs[i].lat = +e.latLng.lat().toFixed(6);
+      _locs[i].lng = +e.latLng.lng().toFixed(6);
+      selectLoc(i);
+    });
+    circle.addListener('radius_changed', function () {
+      if (i !== _selIdx) return;
+      var r = Math.max(0, Math.min(1500, Math.round(circle.getRadius())));
+      _locs[i].radius = r;
+      $('f-geoRadius').value = r;
+      $('f-geoRadius-label').textContent = r + ' m';
+      updateSelRowText();
+    });
+    _markers.push(marker);
+    _circles.push(circle);
   });
 }
 
-function syncMapFromForm() {
-  if (!_geoMap) return;
-  var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
-  var radius = parseInt($('f-geoRadius').value, 10);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    _geoMarker.setPosition({ lat: lat, lng: lng });
-    _geoMap.setCenter({ lat: lat, lng: lng });
+// Reconstruye la lista de zonas + sincroniza mapa, slider e inputs.
+function renderLocs() {
+  var wrap = $('geo-locs');
+  wrap.innerHTML = '';
+  if (!_locs.length) {
+    var empty = document.createElement('p');
+    empty.className = 'geo-empty';
+    empty.textContent = 'Sin zonas aún. Toca "Agregar ubicación" o el mapa para crear la primera.';
+    wrap.appendChild(empty);
   }
-  if (_geoCircle && Number.isFinite(radius)) _geoCircle.setRadius(radius);
-  google.maps.event.trigger(_geoMap, 'resize');
+  _locs.forEach(function (l, i) {
+    var row = document.createElement('div');
+    row.className = 'geo-loc' + (i === _selIdx ? ' sel' : '');
+    row.innerHTML =
+      '<span class="dot">' + (i + 1) + '</span>' +
+      '<span class="txt">Ubicación ' + (i + 1) + ' · ' + (l.radius || 300) + ' m</span>' +
+      '<button type="button" class="del" title="Quitar esta zona">✕</button>';
+    row.addEventListener('click', function () { selectLoc(i); });
+    row.querySelector('.del').addEventListener('click', function (e) { e.stopPropagation(); removeLoc(i); });
+    wrap.appendChild(row);
+  });
+  $('geo-add').disabled = _locs.length >= MAX_GEO_LOCS;
+  syncSelInputs();
+  buildOverlays();
+  renderPreview();
 }
+
+// Refresca lat/lng/radio de la zona seleccionada en el formulario.
+function syncSelInputs() {
+  var l = _locs[_selIdx];
+  if (l) {
+    $('f-lat').value = l.lat;
+    $('f-lng').value = l.lng;
+    $('f-geoRadius').value = l.radius || 300;
+    $('f-geoRadius-label').textContent = (l.radius || 300) + ' m';
+  } else {
+    $('f-lat').value = '';
+    $('f-lng').value = '';
+  }
+}
+
+// Actualiza en vivo el texto de la fila seleccionada (sin reconstruir la lista).
+function updateSelRowText() {
+  var l = _locs[_selIdx];
+  if (!l) return;
+  var row = $('geo-locs').children[_selIdx];
+  if (!row) return;
+  var t = row.querySelector('.txt');
+  if (t) t.textContent = 'Ubicación ' + (_selIdx + 1) + ' · ' + (l.radius || 300) + ' m';
+}
+
+function selectLoc(i) {
+  _selIdx = i;
+  if (_geoMap && _locs[i]) _geoMap.panTo({ lat: _locs[i].lat, lng: _locs[i].lng });
+  renderLocs();
+}
+
+function addLocAt(lat, lng) {
+  if (_locs.length >= MAX_GEO_LOCS) return;
+  _locs.push({ lat: +Number(lat).toFixed(6), lng: +Number(lng).toFixed(6), radius: 300 });
+  _selIdx = _locs.length - 1;
+  renderLocs();
+}
+
+function removeLoc(i) {
+  _locs.splice(i, 1);
+  if (_selIdx >= _locs.length) _selIdx = _locs.length - 1;
+  renderLocs();
+}
+
+function recenterMap() {
+  if (_geoMap && _locs.length) _geoMap.setCenter({ lat: _locs[0].lat, lng: _locs[0].lng });
+}
+
+$('geo-add').addEventListener('click', function () {
+  var lat = GEO_DEFAULT.lat, lng = GEO_DEFAULT.lng;
+  if (_geoMap) { var c = _geoMap.getCenter(); lat = c.lat(); lng = c.lng(); }
+  addLocAt(lat, lng);
+});
 
 $('f-geoRadius').addEventListener('input', function () {
   var r = parseInt(this.value, 10) || 0;
   $('f-geoRadius-label').textContent = r + ' m';
-  if (_geoCircle) _geoCircle.setRadius(r);
+  if (_locs[_selIdx]) {
+    _locs[_selIdx].radius = r;
+    if (_circles[_selIdx]) _circles[_selIdx].setRadius(r);
+    updateSelRowText();
+  }
 });
+
 ['f-lat', 'f-lng'].forEach(function (id) {
   $(id).addEventListener('change', function () {
     var lat = parseFloat($('f-lat').value), lng = parseFloat($('f-lng').value);
-    if (Number.isFinite(lat) && Number.isFinite(lng) && _geoMarker) {
-      _geoMarker.setPosition({ lat: lat, lng: lng });
-      _geoMap.setCenter({ lat: lat, lng: lng });
-    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if (_selIdx < 0) { addLocAt(lat, lng); return; }
+    _locs[_selIdx].lat = +lat.toFixed(6);
+    _locs[_selIdx].lng = +lng.toFixed(6);
+    renderLocs();
+    recenterMap();
   });
 });
 

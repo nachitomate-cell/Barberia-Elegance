@@ -18,7 +18,7 @@
 
 const { GoogleAuth } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-const { geofencePoints } = require('./wallet-geo');
+const { geofencePointsMulti, locationsFromConfig } = require('./wallet-geo');
 
 const ISSUER_ID = '3388000000023126417';
 const API = 'https://walletobjects.googleapis.com/walletobjects/v1';
@@ -111,7 +111,7 @@ function buildClass(tenantId, cfg = {}) {
   };
   if (cfg.logoUrl) cls.programLogo = { sourceUri: { uri: cfg.logoUrl } };
   // Geo-push: centro + anillo de puntos si hay geoRadius (ver wallet-geo.js).
-  const geoPts = geofencePoints(cfg.location && cfg.location.lat, cfg.location && cfg.location.lng, cfg.geoRadius);
+  const geoPts = geofencePointsMulti(locationsFromConfig(cfg));
   if (geoPts.length) cls.locations = geoPts;
   return cls;
 }
