@@ -12258,9 +12258,10 @@
     }
 
     function _abrirModalServicioDeHoy(pack, opciones) {
+      console.warn('[modal-hoy] enter · pack=', pack?.id, 'opts=', opciones?.length);
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
       const previo = document.getElementById('packModalOverlay');
-      if (previo) previo.remove();
+      if (previo) { console.warn('[modal-hoy] removiendo previo'); previo.remove(); }
 
       const overlay = document.createElement('div');
       overlay.id = 'packModalOverlay';
@@ -12332,7 +12333,16 @@
         // sesiones quedan disponibles para próximas visitas.
       });
 
+      console.warn('[modal-hoy] antes de appendChild · card children=', card.children?.length);
+      overlay.appendChild(card);
+      console.warn('[modal-hoy] después de overlay.appendChild(card) · overlay hijos=', overlay.children?.length);
       document.body.appendChild(overlay);
+      console.warn('[modal-hoy] después de body.appendChild(overlay) · overlay hijos=', overlay.children?.length, 'body last child:', document.body.lastElementChild?.id);
+      // Chequear en el próximo tick si sigue estando
+      setTimeout(() => {
+        const still = document.getElementById('packModalOverlay');
+        console.warn('[modal-hoy] +100ms · still exists=', !!still, 'hijos=', still?.children?.length);
+      }, 100);
     }
 
     /* Modal para elegir qué servicio consumir de un pack multi-servicio.
