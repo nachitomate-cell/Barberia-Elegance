@@ -160,6 +160,10 @@ const BARBER_EMPTY = {
   sueldoBase: 0,
   comisionProductos: 10,
   comisionProductosMonto: 0, // monto fijo en $ que se suma al % por cada venta de producto
+  // Override opcional de comisión por producto: { [productoId]: pct }. Si la
+  // venta es de un producto listado acá, se usa ese %; sino cae al
+  // `comisionProductos` global. Mismo patrón que comisionPorServicio.
+  comisionPorProducto: {},
   sucursalId: '',
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
@@ -630,6 +634,7 @@ export default function Equipo() {
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
+  const { data: productos }            = useCollection('productos');
   const sucursales                     = useSucursales();
   const { matchSucursal }              = useSucursal();
   // Filtra por sede activa: un encargado de sede ve solo su equipo; el dueño
@@ -999,6 +1004,8 @@ export default function Equipo() {
   const [showSvcComm,    setShowSvcComm]    = useState(false);
   // Toggle para el editor de arriendo por servicio (solo tenant Oren por ahora).
   const [showSvcRent,    setShowSvcRent]    = useState(false);
+  // Toggle para expandir el editor de comisiones por producto (override).
+  const [showProdComm,   setShowProdComm]   = useState(false);
   const fileRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1035,6 +1042,8 @@ export default function Equipo() {
       sueldoBase:   b.sueldoBase   ?? 0,
       comisionProductos:      b.comisionProductos      ?? 10,
       comisionProductosMonto: b.comisionProductosMonto ?? 0,
+      comisionPorProducto: (b.comisionPorProducto && typeof b.comisionPorProducto === 'object')
+        ? b.comisionPorProducto : {},
       sucursalId:   b.sucursalId   || '',
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
@@ -1049,6 +1058,7 @@ export default function Equipo() {
     setAccesoMsg('');
     setShowSvcComm(false);
     setShowSvcRent(false);
+    setShowProdComm(false);
     setSlide(true);
   };
 
@@ -1245,6 +1255,15 @@ export default function Equipo() {
   const comisionServicioPorc  = selectedBarber ? (selectedBarber.comision || 0) : 0;
   const comisionProductoPorc  = selectedBarber ? (selectedBarber.comisionProductos ?? 10) : 10;
   const comisionProductoMonto = selectedBarber ? (selectedBarber.comisionProductosMonto ?? 0) : 0;
+  const comisionPorProductoMap = (selectedBarber?.comisionPorProducto && typeof selectedBarber.comisionPorProducto === 'object')
+    ? selectedBarber.comisionPorProducto : {};
+  // % aplicable a UNA venta: si el productoId tiene override, se usa ese;
+  // sino, cae al % global del barbero.
+  const pctProductoPara = (productId) => {
+    const raw = comisionPorProductoMap[productId];
+    const n = Number(raw);
+    return (raw != null && raw !== '' && Number.isFinite(n) && n >= 0) ? n : comisionProductoPorc;
+  };
   const sueldoBaseMonto = selectedBarber ? (selectedBarber.sueldoBase || 0) : 0;
 
   // Precio de referencia por servicio (id o nombre) para citas completadas SIN
@@ -1266,8 +1285,9 @@ export default function Equipo() {
 
   const productosBruto = ventasSueldos.reduce((acc, curr) => acc + (curr.precioTotal || curr.precio || 0), 0);
   // Comisión por venta = (precio × %) + monto fijo. El monto se aplica una vez por venta.
+  // El % puede ser override por producto (comisionPorProducto[productId]) o el global.
   const productosComision = ventasSueldos.reduce(
-    (acc, curr) => acc + ((curr.precioTotal || curr.precio || 0) * comisionProductoPorc / 100) + comisionProductoMonto,
+    (acc, curr) => acc + ((curr.precioTotal || curr.precio || 0) * pctProductoPara(curr.productId) / 100) + comisionProductoMonto,
     0,
   );
 
@@ -1676,7 +1696,8 @@ export default function Equipo() {
                     <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                       {ventasSueldos.map(v => {
                         const precioVenta = v.precioTotal || v.precio || 0;
-                        const comisionMonto = precioVenta * comisionProductoPorc / 100 + comisionProductoMonto;
+                        const pctAplicado = pctProductoPara(v.productId);
+                        const comisionMonto = precioVenta * pctAplicado / 100 + comisionProductoMonto;
                         const itemDate = v.fecha || v.createdAt || v.creadoEn;
                         const dateStr = typeof itemDate === 'string' ? itemDate.slice(0, 10) : (itemDate?.toDate ? itemDate.toDate().toLocaleDateString('es-CL') : '');
                         return (
@@ -1687,7 +1708,12 @@ export default function Equipo() {
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-primary">{fmtCurrency(precioVenta)}</p>
-                              <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
+                              <p className="text-[10px] text-emerald-400 mt-0.5">
+                                Comisión: {fmtCurrency(comisionMonto)}
+                                {pctAplicado !== comisionProductoPorc && (
+                                  <span className="ml-1 text-amber-400" title="Override por producto">({pctAplicado}%)</span>
+                                )}
+                              </p>
                             </div>
                           </div>
                         );
@@ -2164,6 +2190,82 @@ export default function Equipo() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
                   </div>
                   <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre la venta de productos (por defecto 10%).</p>
+
+                  {/* Overrides por producto: si el barbero cobra distinto según
+                      el producto (ej. 15% en Pomada, 5% en Perfume), aquí se
+                      define el % por producto. Productos sin valor caen al
+                      % global de arriba. Espeja comisionPorServicio. */}
+                  {(() => {
+                    const overrides = form.comisionPorProducto || {};
+                    const numOvr = Object.values(overrides).filter(v => v != null && v !== '').length;
+                    // Filtra productos activos (los ocultos siguen apareciendo
+                    // en la lista para poder ajustar comisiones históricas).
+                    const productosOrdenados = [...(productos || [])].sort((a, b) => {
+                      const na = (a.nombre || '').toLowerCase();
+                      const nb = (b.nombre || '').toLowerCase();
+                      return na.localeCompare(nb);
+                    });
+                    return (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowProdComm(v => !v)}
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                        >
+                          {showProdComm ? '−' : '+'} Ajustar por producto
+                          {numOvr > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[10px]">
+                              {numOvr} con % propio
+                            </span>
+                          )}
+                        </button>
+                        {showProdComm && (
+                          <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/40 p-3 space-y-2">
+                            <p className="text-[10px] text-slate-500">
+                              Productos sin valor usan el <strong>{Number(form.comisionProductos) || 0}%</strong> global. Deja vacío para volver al global.
+                            </p>
+                            {productosOrdenados.length === 0 ? (
+                              <p className="text-[11px] text-slate-500 italic">Sin productos configurados aún. Crealos primero en Productos.</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                                {productosOrdenados.map(p => {
+                                  const val = overrides[p.id];
+                                  return (
+                                    <div key={p.id} className="flex items-center gap-2">
+                                      <span className="flex-1 text-[12px] text-slate-300 truncate" title={p.nombre}>
+                                        {p.nombre}
+                                        {p.activo === false && (
+                                          <span className="ml-1 text-[9px] text-slate-500 uppercase">(oculto)</span>
+                                        )}
+                                      </span>
+                                      <div className="relative w-24">
+                                        <input
+                                          type="number" min="0" max="100" step="1"
+                                          placeholder={`${Number(form.comisionProductos) || 0}`}
+                                          value={val ?? ''}
+                                          onChange={e => {
+                                            const raw = e.target.value;
+                                            setForm(f => {
+                                              const map = { ...(f.comisionPorProducto || {}) };
+                                              if (raw === '' || raw == null) delete map[p.id];
+                                              else map[p.id] = Number(raw);
+                                              return { ...f, comisionPorProducto: map };
+                                            });
+                                          }}
+                                          className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[12px] text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">%</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div>

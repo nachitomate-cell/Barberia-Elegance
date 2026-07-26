@@ -413,6 +413,10 @@ export default function Comisiones() {
       arriendoCount: 0,
       comisionProductosPct:   b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10,
       comisionProductosMonto: Number(b?.comisionProductosMonto) || 0,
+      // Override opcional { productoId: pct }. Si una venta usa un producto
+      // listado acá, se aplica ese %; sino cae al pct global.
+      comisionPorProducto: (b?.comisionPorProducto && typeof b.comisionPorProducto === 'object')
+        ? b.comisionPorProducto : {},
       sueldoBase: Number(b?.sueldoBase) || 0,
       citas: 0,
       ventas: 0,
@@ -499,13 +503,23 @@ export default function Comisiones() {
       }
     });
 
-    // Productos: cada venta paga %comisión producto + monto fijo por venta.
+    // % aplicable a UNA venta: si el barbero tiene override para ese productoId,
+    // se usa ese; sino cae al pct global. Mismo patrón que pctPara(bucket, svc).
+    const pctProdPara = (bucket, productoId) => {
+      const raw = bucket?.comisionPorProducto?.[productoId];
+      const n = Number(raw);
+      return (raw != null && raw !== '' && Number.isFinite(n) && n >= 0)
+        ? n
+        : (bucket?.comisionProductosPct || 0);
+    };
+
+    // Productos: cada venta paga %comisión producto (override o global) + monto fijo por venta.
     ventas.forEach(v => {
       const key = resolverBarbero(v.barberoId, v.barberoNombre);
       const monto = precioVenta(v);
       map[key].ventas++;
       map[key].ingresosProductos += monto;
-      map[key].comisionProductos += monto * (map[key].comisionProductosPct / 100) + map[key].comisionProductosMonto;
+      map[key].comisionProductos += monto * (pctProdPara(map[key], v.productId) / 100) + map[key].comisionProductosMonto;
     });
 
     // Consolidados por barbero: ingresos y comisión totales para la fila.

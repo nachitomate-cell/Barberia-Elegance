@@ -9,6 +9,7 @@ import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import { useCollection } from '../hooks/useCollection';
+import { useConfig } from '../hooks/useConfig';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, ellipsize } from '../lib/storyCanvas';
@@ -489,6 +490,17 @@ export default function Productos() {
   const isDeluxe = tenant.id === 'deluxeperfumes';
 
   const { data: productos, loading } = useCollection('productos', [orderBy('createdAt', 'asc')]);
+  const { config: tenantConfig, updateConfig } = useConfig();
+
+  // Categorías personalizadas por tenant (persisten en configuracion/main.categoriasProducto)
+  const categoriasCustom = Array.isArray(tenantConfig.categoriasProducto) ? tenantConfig.categoriasProducto : [];
+  const categoriasList = isDeluxe
+    ? [...CATEGORIAS_DELUXE, ...categoriasCustom.filter(c => !CATEGORIAS_DELUXE.includes(c))]
+    : categoriasCustom;
+
+  const [showNuevaCategoria, setShowNuevaCategoria]   = useState(false);
+  const [nuevaCategoriaInput, setNuevaCategoriaInput] = useState('');
+  const [savingCategoria, setSavingCategoria]         = useState(false);
 
   const [slide,      setSlide]      = useState(false);
   const [showHelp,   setShowHelp]   = useState(false);
@@ -855,6 +867,40 @@ export default function Productos() {
     await deleteDoc(doc(tenantCol('productos'), id));
     if (prod?.imagenPath) {
       try { await deleteObject(storageRef(storage, prod.imagenPath)); } catch (_) {}
+    }
+  };
+
+  const agregarCategoria = async () => {
+    const nombre = nuevaCategoriaInput.trim();
+    if (!nombre) return;
+    // Case-insensitive: evita duplicados como "Aceites" y "aceites"
+    const yaExiste = categoriasList.some(c => c.toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+      alert('Esa categoría ya existe.');
+      return;
+    }
+    setSavingCategoria(true);
+    try {
+      const nueva = [...categoriasCustom, nombre];
+      await updateConfig({ categoriasProducto: nueva });
+      setForm(f => ({ ...f, categoria: nombre }));
+      setNuevaCategoriaInput('');
+      setShowNuevaCategoria(false);
+    } catch (err) {
+      alert('No se pudo guardar la categoría: ' + err.message);
+    } finally {
+      setSavingCategoria(false);
+    }
+  };
+
+  const eliminarCategoria = async (nombre) => {
+    if (!(await confirmDialog(`¿Eliminar la categoría "${nombre}"?\n\nLos productos que la usan mantendrán el texto guardado, pero ya no aparecerá como opción.`))) return;
+    try {
+      const nueva = categoriasCustom.filter(c => c !== nombre);
+      await updateConfig({ categoriasProducto: nueva });
+      if (form.categoria === nombre) setForm(f => ({ ...f, categoria: '' }));
+    } catch (err) {
+      alert('No se pudo eliminar: ' + err.message);
     }
   };
 
@@ -1281,22 +1327,94 @@ export default function Productos() {
             <label className={lbl}>Nombre *</label>
             <input className={field} placeholder={isDeluxe ? 'Chanel N°5 EDP 100ml' : 'Pomada para el cabello'} value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
           </div>
-          {/* Deluxe: Marca + Categoría */}
+          {/* Marca (solo Deluxe) */}
           {isDeluxe && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={lbl}>Marca</label>
-                <input className={field} placeholder="Chanel, Dior, YSL..." value={form.marca} onChange={e => setForm(f => ({ ...f, marca: e.target.value }))} />
-              </div>
-              <div>
-                <label className={lbl}>Categoría</label>
-                <select className={field} value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-                  <option value="">Sin categoría</option>
-                  {CATEGORIAS_DELUXE.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+            <div>
+              <label className={lbl}>Marca</label>
+              <input className={field} placeholder="Chanel, Dior, YSL..." value={form.marca} onChange={e => setForm(f => ({ ...f, marca: e.target.value }))} />
             </div>
           )}
+          {/* Categoría (todos los tenants) — permite crear categorías personalizadas
+              que quedan guardadas en configuracion/main.categoriasProducto */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Categoría</label>
+              {!showNuevaCategoria && (
+                <button
+                  type="button"
+                  onClick={() => { setShowNuevaCategoria(true); setNuevaCategoriaInput(''); }}
+                  className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 uppercase tracking-wide flex items-center gap-1"
+                >
+                  <Plus size={11} /> Nueva
+                </button>
+              )}
+            </div>
+            {showNuevaCategoria ? (
+              <div className="flex gap-2">
+                <input
+                  className={field}
+                  autoFocus
+                  autoComplete="off"
+                  placeholder="Nombre de la nueva categoría"
+                  value={nuevaCategoriaInput}
+                  onChange={e => setNuevaCategoriaInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { e.preventDefault(); agregarCategoria(); }
+                    if (e.key === 'Escape') { setShowNuevaCategoria(false); setNuevaCategoriaInput(''); }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={agregarCategoria}
+                  disabled={savingCategoria || !nuevaCategoriaInput.trim()}
+                  className="shrink-0 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
+                >
+                  {savingCategoria
+                    ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <CheckCircle2 size={12} />}
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowNuevaCategoria(false); setNuevaCategoriaInput(''); }}
+                  className="shrink-0 px-3 py-2 bg-slate-800 border border-slate-700 text-slate-400 hover:text-primary text-xs rounded-lg transition-colors"
+                  title="Cancelar"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <select
+                className={field}
+                value={form.categoria}
+                onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
+              >
+                <option value="">Sin categoría</option>
+                {categoriasList.map(c => <option key={c} value={c}>{c}</option>)}
+                {form.categoria && !categoriasList.some(c => c.toLowerCase() === form.categoria.toLowerCase()) && (
+                  <option value={form.categoria}>{form.categoria} (heredada)</option>
+                )}
+              </select>
+            )}
+            {categoriasCustom.length > 0 && !showNuevaCategoria && (
+              <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] text-slate-500 uppercase tracking-wide mr-0.5">Personalizadas:</span>
+                {categoriasCustom.map(c => (
+                  <span key={c} className="inline-flex items-center gap-1 text-[10px] bg-slate-800 border border-slate-700 text-slate-300 pl-2 pr-1 py-0.5 rounded-full">
+                    {c}
+                    <button
+                      type="button"
+                      onClick={() => eliminarCategoria(c)}
+                      className="text-slate-500 hover:text-red-400 transition-colors p-0.5"
+                      title={`Eliminar "${c}"`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Descripción */}
           <div>
             <label className={lbl}>Descripción</label>

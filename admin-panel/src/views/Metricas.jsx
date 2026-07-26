@@ -623,6 +623,16 @@ export default function Metricas() {
     return Number(barbero?.comision) || 0;
   }, []);
 
+  /* % de comisión aplicable a UNA venta: si el barbero tiene override
+     para ese productoId (Equipo.jsx → barbero.comisionPorProducto), lo
+     usa; sino cae al `barbero.comisionProductos` global (default 10%). */
+  const pctComisionProducto = useCallback((barbero, productoId) => {
+    const ovr = barbero?.comisionPorProducto?.[productoId];
+    const n = Number(ovr);
+    if (ovr != null && ovr !== '' && Number.isFinite(n) && n >= 0) return n;
+    return barbero?.comisionProductos !== undefined ? Number(barbero.comisionProductos) : 10;
+  }, []);
+
   /* ¿La cita es de un cliente de la cartera propia del barbero?
      Detecta por sufijo al final del nombre. Sin sufijo → false. */
   const esClientePropio = useCallback((barbero, clienteNombre) => {
@@ -757,7 +767,7 @@ export default function Metricas() {
     }, 0);
     const prevComProd = prevVentas.reduce((s, v) => {
       const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
-      const pct = b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10;
+      const pct = pctComisionProducto(b, v.productId);
       return s + ((Number(v.precio) || Number(v.total) || 0) * pct / 100);
     }, 0);
     const dStart = new Date(prevRange.inicio);
@@ -770,7 +780,7 @@ export default function Metricas() {
     const prevUtilidadNeta = prevIngBrutos - prevTotalCostos;
 
     return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion, utilidadNeta: prevUtilidadNeta };
-  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio, comisionServicioCita]);
+  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   /* Calcula delta % entre actual y previo */
   const pctDelta = useCallback((curr, prev) => {
@@ -1008,7 +1018,7 @@ export default function Metricas() {
     // Product commissions in range
     const productCommissions = rangeVentas.reduce((s, v) => {
       const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
-      const pct = b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10;
+      const pct = pctComisionProducto(b, v.productId);
       const amt = Number(v.precio) || Number(v.total) || 0;
       return s + (amt * pct / 100);
     }, 0);
@@ -1090,7 +1100,7 @@ export default function Metricas() {
       rangeGastos,
       propinas,
     };
-  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita]);
+  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   // 6-Month P&L Historical Trend AreaChart data.
   // Fuente: citas6m/ventas6m/gastos6m (cache dedicado). Fallback a los
@@ -1137,7 +1147,7 @@ export default function Metricas() {
 
       const pComm = mv.reduce((s, v) => {
         const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
-        const pct = b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10;
+        const pct = pctComisionProducto(b, v.productId);
         const amt = Number(v.precio) || Number(v.total) || 0;
         return s + (amt * pct / 100);
       }, 0);
@@ -1161,7 +1171,7 @@ export default function Metricas() {
         'Utilidad Neta': Math.round(utilidadNeta),
       };
     });
-  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita]);
+  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
   const paymentBreakdown = useMemo(() => {
