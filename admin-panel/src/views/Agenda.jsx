@@ -2534,9 +2534,14 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
           const cls = u.nivel === 'critico' || u.nivel === 'expirado' ? 'text-red-300'
                     : u.nivel === 'urgente' ? 'text-amber-300'
                     : 'text-violet-300';
+          // "3/3" era ambiguo (¿quedan 3 o es la 3ª?). Ahora "Sesión N de M"
+          // y "(última)" cuando corresponde para dejar cero duda al barbero.
+          const idx = Number(cita.packSesionIndex);
+          const tot = Number(cita.packSesionTotal);
+          const esUltima = idx === tot;
           return (
             <span className={`ml-1 ${cls} font-semibold`}>
-              · Sesión {cita.packSesionIndex}/{cita.packSesionTotal}
+              · Sesión {idx} de {tot}{esUltima ? ' (última)' : ''}
               {u.label && <span className="ml-1 opacity-90">· {u.label}</span>}
             </span>
           );
