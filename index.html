@@ -13913,6 +13913,11 @@
             clienteEmail:     email,
             ..._reservaAcepto,
             ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
+            // servicioId crítico para el motor de packs: sin él la CF no puede
+            // detectar isPack (no activa el pack) ni identificar qué servicio
+            // se consumió del mapa multi-servicio. La rama grupal ya lo pasaba;
+            // acá se estaba omitiendo por un lapsus histórico.
+            servicioId:       selectedServiceObj.id,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
             precio:           _totalAdd,   // total (== precioTotal) — compat con Caja/Comisiones/Métricas
