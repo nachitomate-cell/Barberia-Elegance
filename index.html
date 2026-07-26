@@ -9340,6 +9340,59 @@
     setTimeout(hideBootLoader, 12000);
   </script>
 
+  <!-- Overlay de reserva en curso: bloquea toda la UI mientras la cita se
+       está creando. Previene:
+        · Doble tap del botón "Confirmar" (crea 2 citas en red lenta).
+        · Retroceder mid-guardado (deja cita en estado inconsistente).
+        · Clicks en steps anteriores del wizard.
+       Se activa/desactiva desde nextStep() al entrar/salir del step 4. -->
+  <div id="reservaLockOverlay" style="position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+    <div style="width:56px;height:56px;border:4px solid rgba(255,255,255,0.15);border-top-color:#fff;border-radius:50%;animation:reservaSpin .8s linear infinite;"></div>
+    <div id="reservaLockLabel" style="color:#fff;font-size:14px;font-weight:600;letter-spacing:0.02em;text-align:center;padding:0 32px;">Confirmando tu reserva…</div>
+    <div style="color:rgba(255,255,255,0.55);font-size:11px;font-weight:500;text-align:center;padding:0 32px;max-width:280px;line-height:1.5;">No cierres esta página ni toques atrás. Terminamos en un momento.</div>
+  </div>
+  <style>@keyframes reservaSpin{to{transform:rotate(360deg)}}</style>
+  <script>
+    // Lock/unlock UI durante la creación de la cita. Además del overlay
+    // visual, intercepta el botón "Atrás" del navegador para que el usuario
+    // no navegue mid-guardado. El estado empujado se limpia al desbloquear.
+    let _reservaEnCurso = false;
+    let _reservaPopstateHandler = null;
+    function _lockReservaUI(mensaje) {
+      if (_reservaEnCurso) return;
+      _reservaEnCurso = true;
+      const ov = document.getElementById('reservaLockOverlay');
+      const lb = document.getElementById('reservaLockLabel');
+      if (lb && mensaje) lb.textContent = mensaje;
+      if (ov) ov.style.display = 'flex';
+      // Intercepta el botón atrás del navegador (Android/gesto móvil).
+      try {
+        history.pushState({ reservaLock: true }, '');
+        _reservaPopstateHandler = () => {
+          // Vuelve a pushear el state → el back queda "sin efecto" hasta que
+          // liberemos con _unlockReservaUI. UX suave: sin alert intrusivo.
+          history.pushState({ reservaLock: true }, '');
+        };
+        window.addEventListener('popstate', _reservaPopstateHandler);
+      } catch (_) {}
+    }
+    function _unlockReservaUI() {
+      if (!_reservaEnCurso) return;
+      _reservaEnCurso = false;
+      const ov = document.getElementById('reservaLockOverlay');
+      if (ov) ov.style.display = 'none';
+      if (_reservaPopstateHandler) {
+        try { window.removeEventListener('popstate', _reservaPopstateHandler); } catch (_) {}
+        _reservaPopstateHandler = null;
+        // Pop del state que empujamos al lockear (best-effort).
+        try { history.back(); } catch (_) {}
+      }
+    }
+    window._lockReservaUI   = _lockReservaUI;
+    window._unlockReservaUI = _unlockReservaUI;
+    window._isReservaEnCurso = () => _reservaEnCurso;
+  </script>
+
   <div id="bookingFrame" class="max-w-md mx-auto relative overflow-hidden">
 
     <!-- ── BOOKING HERO ── -->
@@ -13713,6 +13766,12 @@
         updateSelectionRecap();
 
       } else if (currentStep === 4) {
+        // Guard doble-tap: si ya hay una reserva en curso, ignorar clicks.
+        // En redes lentas el usuario puede pulsar "Confirmar" varias veces
+        // creando 2 citas del mismo cliente. También bloqueado por el
+        // overlay que _lockReservaUI muestra encima de todo.
+        if (typeof window._isReservaEnCurso === 'function' && window._isReservaEnCurso()) return;
+
         const nombre = document.getElementById('clientName').value.trim();
         let tel = document.getElementById('clientPhone').value.trim();
         const email = document.getElementById('clientEmail').value.trim();
@@ -13721,6 +13780,11 @@
         if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
+
+        // A partir de acá comienza la creación real de la cita → lockeamos
+        // la UI. Se libera solo en catch (rendering async o fetch a MP);
+        // en éxito el flujo redirige a success-state y no importa el unlock.
+        if (typeof window._lockReservaUI === 'function') window._lockReservaUI('Confirmando tu reserva…');
         // Consentimiento pasivo: confirmar la reserva ES la acción afirmativa
         // (clickwrap). La evidencia se adjunta al doc de cita (Ley 21.719).
         // Al cambiar los términos, bumpear esta versión y refrescar dashboards.
@@ -13927,17 +13991,20 @@
                 transitionStep(4, 3); currentStep = 3; updateProgress(); updateContinueBtn();
                 renderHours(_activeBarberConfig); _subscribeSlotLocks(currentDateStr);
                 if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+                if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
                 return;
               } else {
                 console.error('[CorteLapiz] respuesta inesperada', _data);
                 showToast('No se pudo agendar con Corte al Lápiz. Intenta nuevamente.');
                 if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+                if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
                 return;
               }
             } catch (e) {
               console.error('[CorteLapiz] error', e);
               showToast('No se pudo conectar. Revisa tu conexión.');
               if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+              if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
               return;
             }
             // citaGuardada === true → NO retornamos: cae al bloque de éxito de abajo.
@@ -13959,6 +14026,7 @@
               showToast('No se pudo conectar con la pasarela de pago. Revisa tu conexión.');
             }
             if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+            if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
             return; // no creamos la cita si el pago no se inició
           }
         }
@@ -14086,6 +14154,7 @@
             updateContinueBtn();
             renderHours(_activeBarberConfig);
             _subscribeSlotLocks(currentDateStr);
+            if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
             return;
           }
           // Grupo: SIN fallback offline. Guardar localmente UNA cita no
@@ -14101,6 +14170,7 @@
             updateContinueBtn();
             renderHours(_activeBarberConfig);
             _subscribeSlotLocks(currentDateStr);
+            if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
             return;
           }
           console.warn('[Reservar] Sin conexión, guardando en localStorage:', e.message);
@@ -14177,6 +14247,10 @@
         const successEl = document.getElementById('success-state');
         successEl.classList.remove('hidden');
         successEl.classList.add('flex');
+        // Cita creada OK → liberar el lock del overlay y el interceptor del
+        // botón atrás. Al llegar acá el usuario ya no puede duplicar la cita
+        // (el step4 quedó hidden), pero mantener el overlay pegado sería raro.
+        if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
 
         // Ajustar la vista al inicio de la confirmación (no al hero).
         window.scrollTo({

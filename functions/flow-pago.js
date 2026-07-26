@@ -32,6 +32,7 @@ const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
 const crypto                            = require('crypto');
 const { FieldValue }                    = require('firebase-admin/firestore');
+const { _upsertClienteCore: upsertClienteCore } = require('./upsert-cliente');
 
 const db = admin.firestore();
 
@@ -176,6 +177,30 @@ exports.flowCrearPago = onRequest(
 async function confirmarReserva(tid, orderId) {
   const ref = pagosPendientesCol(tid).doc(orderId);
 
+  // Pre-fetch fuera de transacción para resolver clienteUid antes (upsert
+  // usa .where() y transacciones Firestore no lo soportan). Fallback silencioso:
+  // si el CF falla, la cita se guarda sin uid y el trigger rescate la agarra.
+  const preSnap = await ref.get();
+  if (!preSnap.exists) { logger.warn(`[Flow] pendiente ${orderId} no existe`); return null; }
+  const preData = preSnap.data();
+  if (preData.citaId) return preData.citaId;
+  const preCita = preData.cita || {};
+
+  let clienteUid = preCita.clienteUid || null;
+  if (!clienteUid && preCita.clienteNombre && (preCita.clienteEmail || preCita.clienteTelefono)) {
+    try {
+      const res = await upsertClienteCore({
+        tenantId: tid,
+        nombre:   preCita.clienteNombre,
+        email:    preCita.clienteEmail || '',
+        telefono: preCita.clienteTelefono || '',
+      });
+      clienteUid = res?.uid || null;
+    } catch (e) {
+      logger.warn(`[Flow] upsertCliente falló ${orderId} (fallback rescate):`, e?.message || e);
+    }
+  }
+
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) { logger.warn(`[Flow] pendiente ${orderId} no existe`); return null; }
@@ -189,6 +214,7 @@ async function confirmarReserva(tid, orderId) {
       estado:   'Confirmada',
       origen:   cita.origen || 'web-flow',
       creadoEn: FieldValue.serverTimestamp(),
+      ...(clienteUid ? { clienteUid, userId: clienteUid } : {}),
       pago: {
         proveedor: 'flow',
         estado:    'pagado',

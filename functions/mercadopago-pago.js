@@ -38,6 +38,7 @@ const { defineSecret }                  = require('firebase-functions/params');
 const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
 const { FieldValue }                    = require('firebase-admin/firestore');
+const { _upsertClienteCore: upsertClienteCore } = require('./upsert-cliente');
 
 const db = admin.firestore();
 
@@ -195,6 +196,32 @@ exports.mpCrearPago = onRequest(
 async function confirmarReserva(tid, orderId, pago) {
   const ref = pagosPendientesCol(tid).doc(orderId);
 
+  // Pre-fetch fuera de transacción para poder resolver el clienteUid antes
+  // (transacciones Firestore no aceptan .where() queries que hace el
+  // upsertCliente internamente).
+  const preSnap = await ref.get();
+  if (!preSnap.exists) { logger.warn(`[MP] pendiente ${orderId} no existe`); return null; }
+  const preData = preSnap.data();
+  if (preData.citaId) return preData.citaId; // ya procesado (idempotencia)
+  const preCita = preData.cita || {};
+
+  // Resolver clienteUid ANTES de la transacción. Si el CF falla, fallback
+  // silencioso: la cita se guarda sin uid y el trigger rescate la agarra.
+  let clienteUid = preCita.clienteUid || null;
+  if (!clienteUid && preCita.clienteNombre && (preCita.clienteEmail || preCita.clienteTelefono)) {
+    try {
+      const res = await upsertClienteCore({
+        tenantId: tid,
+        nombre:   preCita.clienteNombre,
+        email:    preCita.clienteEmail || '',
+        telefono: preCita.clienteTelefono || '',
+      });
+      clienteUid = res?.uid || null;
+    } catch (e) {
+      logger.warn(`[MP] upsertCliente falló para ${orderId} (fallback rescate):`, e?.message || e);
+    }
+  }
+
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) { logger.warn(`[MP] pendiente ${orderId} no existe`); return null; }
@@ -222,6 +249,9 @@ async function confirmarReserva(tid, orderId, pago) {
       estado:   'Confirmada',
       origen:   cita.origen || 'web-mercadopago',
       creadoEn: FieldValue.serverTimestamp(),
+      // Linkeamos al cliente canónico resuelto pre-transacción. Si el upsert
+      // falló, quedan NULL y el trigger rescate onCreate los completa.
+      ...(clienteUid ? { clienteUid, userId: clienteUid } : {}),
       pago: {
         proveedor:   'mercadopago',
         estado:      'pagado',

@@ -38,6 +38,7 @@ const {
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
 const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
+const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 
 const db = admin.firestore();
 
@@ -327,6 +328,22 @@ async function ejecutarTool(name, input, ctx) {
     const lockRef = slotLocksCol(tid).doc(lockId);
     const citaRef = citasCol(tid).doc();
 
+    // Resolver clienteUid canónico ANTES del write (fuera de transacción
+    // porque upsert usa .where() que no funciona dentro). Fallback silencioso:
+    // si el CF falla, la cita se guarda sin uid y el trigger rescate la agarra.
+    let clienteUidBot = null;
+    try {
+      const res = await upsertClienteCore({
+        tenantId: tid,
+        nombre,
+        email:    '',
+        telefono, // el bot siempre tiene el tel del cliente WhatsApp
+      });
+      clienteUidBot = res?.uid || null;
+    } catch (e) {
+      logger.warn(`[cerebro] upsertCliente falló para ${nombre}/${telefono} (fallback rescate):`, e?.message || e);
+    }
+
     const citaData = {
       fecha,
       hora,
@@ -334,6 +351,7 @@ async function ejecutarTool(name, input, ctx) {
       clienteTelefono:  telefono,
       clienteTelefonoSuf9: String(telefono).replace(/\D/g, '').slice(-9), // para consultar_mis_citas + agenda
       clienteEmail:     '',
+      ...(clienteUidBot ? { clienteUid: clienteUidBot, userId: clienteUidBot } : {}),
       servicioNombre:   svc.nombre,
       servicioId:       svc.id,
       duracionServicio: svc.duracion,
