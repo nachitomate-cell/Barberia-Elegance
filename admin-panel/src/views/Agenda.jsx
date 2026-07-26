@@ -18,8 +18,9 @@ import {
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
+import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { withTimeout } from '../lib/firestore-helpers';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
@@ -85,51 +86,39 @@ function resolverUserIdCita(cita) {
 
 /* Upsert de `users/{uid}` cuando el barbero crea/edita una cita.
  *
- * Hasta antes de esto, solo se creaba doc en users/ cuando el cliente se
- * registraba en el club de fidelidad. El barbero podía crear cientos de
- * citas escribiendo "Nombre + Teléfono" a mano y ninguna quedaba consolidada
- * en un doc único de cliente → los packs no se les activaban (no había
- * dónde guardarlos), no había CRM, no había historial por cliente.
+ * Delega la resolución al CF `upsertCliente` que aplica la regla híbrida
+ * (email exacto → match; tel único con al menos uno sin email → merge;
+ * emails distintos o tel ambiguo → personas distintas). Esto reemplaza la
+ * lógica antigua que dedupeaba SOLO por tel y colapsaba a hermanos/parejas
+ * con tel compartido en el mismo doc.
  *
- * Ahora cada vez que se guarda una cita, si el teléfono se puede resolver
- * a un uid (formato chileno 11 dígitos), se hace set-merge:
- *  - Si no existe → crea el doc con nombre/teléfono/email.
- *  - Si ya existe → deja intacto lo que tenga y solo actualiza `updatedAt`.
+ * Devuelve el uid canónico (o null si no aplica / si falla). El caller lo
+ * usa para setear `payload.clienteId` y `payload.clienteUid` ANTES de guardar
+ * la cita — así la cita queda linkeada al cliente correcto desde el primer
+ * write.
  *
- * Falla silenciosa: si por algún motivo el write no puede completarse, no
- * bloquea el guardado de la cita.
+ * Fail-safe: si el CF falla (red/quota), devuelve null y la cita se guarda
+ * igual con datos sueltos (backward compat).
  */
 async function upsertUserDesdeCita(cita) {
-  const uid = resolverUserIdCita(cita);
-  if (!uid) return;
+  const nombre   = (cita?.clienteNombre   || '').trim();
+  const email    = (cita?.clienteEmail    || '').trim();
+  const telefono = (cita?.clienteTelefono || '').trim();
+  // Sin nombre no podemos crear un doc que tenga sentido; sin email ni tel
+  // el CF rechaza. En cualquiera de los dos casos: no-op.
+  if (!nombre || (!email && !telefono)) return null;
   try {
-    const ref = doc(tenantCol('users'), uid);
-    const snap = await withTimeout(getDoc(ref), 8000, 'agenda/upsert-user');
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        nombre:            cita.clienteNombre || '',
-        telefono:          cita.clienteTelefono || '',
-        email:             cita.clienteEmail || null,
-        esLegacy:          true,
-        creadoDesdeCita:   true,
-        creadoPorTrigger:  'agenda-jsx',
-        creadoEn:          serverTimestamp(),
-      }, { merge: true });
-      return;
-    }
-    // Ya existe: solo rellenamos campos vacíos, no pisamos datos del club.
-    const data = snap.data() || {};
-    const patch = {};
-    if (!data.nombre   && cita.clienteNombre)   patch.nombre   = cita.clienteNombre;
-    if (!data.telefono && cita.clienteTelefono) patch.telefono = cita.clienteTelefono;
-    if (!data.email    && cita.clienteEmail)    patch.email    = cita.clienteEmail;
-    if (Object.keys(patch).length > 0) {
-      patch.updatedAt = serverTimestamp();
-      await setDoc(ref, patch, { merge: true });
-    }
+    const call = httpsCallable(getFunctions(undefined, 'us-central1'), 'upsertCliente');
+    const res  = await call({
+      tenantId: resolveTenantId(),
+      nombre,
+      email,
+      telefono,
+    });
+    return res?.data?.uid || null;
   } catch (e) {
-    // No bloqueamos el guardado de la cita si el upsert falla.
-    console.warn('[Agenda] upsert user desde cita falló:', e?.message || e);
+    console.warn('[Agenda] upsertCliente falló (no bloqueante):', e?.message || e);
+    return null;
   }
 }
 
@@ -1231,6 +1220,17 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       }
       if (isNew) {
         payload.creadoEn = serverTimestamp();
+        // Resolver el uid canónico del cliente ANTES de guardar la cita, así
+        // clienteId/clienteUid del payload apuntan al doc correcto desde el
+        // primer write. Si el CF falla (red/quota), la cita se guarda igual
+        // con datos sueltos como antes (backward compat).
+        if (!payload.clienteUid) {
+          const uidResuelto = await upsertUserDesdeCita(payload);
+          if (uidResuelto) {
+            payload.clienteUid = uidResuelto;
+            payload.clienteId  = uidResuelto;
+          }
+        }
         // Regla invariante: un sobrecupo NUNCA toma un slotLock público. Así
         // el horario ya reservado por la cita "dueña" del slot sigue siendo
         // la única referencia visible para el flujo de reserva del cliente.
@@ -1254,9 +1254,6 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         } else {
           await addDoc(tenantCol('citas'), { ...payload, slotLockId: null });
         }
-        // Consolidar el cliente en users/. Async fire-and-forget: no
-        // bloquea el cierre del modal ni frena si falla.
-        upsertUserDesdeCita(payload);
         onClose();
       } else {
         const yaEraCompletada = cita?.estado === 'Completada';
