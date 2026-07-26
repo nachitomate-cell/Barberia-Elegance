@@ -1018,6 +1018,16 @@ exports.packsElegance = packAutomatico.packsElegance;
 exports.packsTenant   = packAutomatico.packsTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  AUTO-MERGE LEGACY → AUTH — ver link-legacy-on-auth.js
+//  Cuando un cliente que ya tenía sellos/packs (por teléfono, sin
+//  registro) se registra al club, esta CF fusiona su doc legacy con
+//  el nuevo doc de Auth. Sin esto, el dashboard aparece vacío.
+// ─────────────────────────────────────────────────────────────────
+const linkLegacy = require('./link-legacy-on-auth');
+exports.linkLegacyElegance = linkLegacy.linkLegacyElegance;
+exports.linkLegacyTenant   = linkLegacy.linkLegacyTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECOMPENSA POR REFERIDO (B2C) — ver referidos-recompensa.js
 //  Otorga sellos o crea redemptions pendientes al crear la primera
 //  cita de un cliente que se registró con `referredByCode`.
