@@ -341,7 +341,12 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     });
   }
 
-  let uid = clienteData?.uid ?? null;
+  // Prioridad 1: cita.userId si viene (cliente logueado — la reserva pública
+  // ahora lo guarda; ver firebaseUtils.addCita). Es el uid autoritativo del
+  // cliente en el sistema. Sin este check, cuando había 2 docs (legacy por
+  // teléfono + Auth del club) el fallback por teléfono podía devolver el
+  // legacy → sellos iban al doc equivocado.
+  let uid = cita.userId || clienteData?.uid || null;
 
   // Si el doc de clientes existe pero no tiene uid, buscar en users por teléfono o email.
   // Esto ocurre cuando la cita fue creada con un formato de teléfono distinto al del registro
@@ -397,6 +402,24 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: fallback uid por email falló: ${e.message}`);
+    }
+  }
+
+  // Seguir puntero de fusión: si el uid resuelto apunta a un doc legacy que
+  // fue fusionado con la cuenta del club (users/{authUid}), redirigir al
+  // canónico. Sin esto, los sellos siguen yendo al legacy tras la fusión.
+  if (uid) {
+    try {
+      const uSnap = await cols.users.doc(uid).get();
+      const fusionadoCon = uSnap.exists ? uSnap.data()?.fusionadoCon : null;
+      if (fusionadoCon && fusionadoCon !== uid) {
+        logger.info(`[Sello] ${citaId}: uid ${uid} está fusionado con ${fusionadoCon} — redirigo sellos al canónico`);
+        uid = fusionadoCon;
+        // Actualizar clientes/{tel}.uid para que las próximas citas resuelvan al canónico directo.
+        try { await clienteRef.update({ uid }); } catch (_) { /* si no existe, se creó ya con set */ }
+      }
+    } catch (e) {
+      logger.warn(`[Sello] ${citaId}: no se pudo verificar fusionadoCon: ${e.message}`);
     }
   }
 
