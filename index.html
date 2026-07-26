@@ -12238,30 +12238,21 @@
          precio = precio del pack ($50k, no del servicio)
        La CF activa el pack Y consume 1 sesión del servicio elegido. */
     function _preguntarServicioDeHoyPack() {
-      console.warn('[pack-hoy] llamada · svc=', selectedServiceObj?.id, 'isPack=', selectedServiceObj?.isPack, 'incluidos=', selectedServiceObj?.serviciosIncluidos);
-      if (!selectedServiceObj || !selectedServiceObj.isPack) { console.warn('[pack-hoy] sale: no es pack'); return; }
+      if (!selectedServiceObj || !selectedServiceObj.isPack) return;
       const incluidos = Array.isArray(selectedServiceObj.serviciosIncluidos) ? selectedServiceObj.serviciosIncluidos : [];
-      if (incluidos.length < 2) { console.warn('[pack-hoy] sale: mono-servicio, incluidos=', incluidos.length); return; }
+      if (incluidos.length < 2) return; // mono-servicio: no requiere elección
       const catalogo = (window._fsServices || _fsServices || []);
       const opciones = incluidos
         .map(sid => catalogo.find(s => s.id === sid))
         .filter(Boolean);
-      console.warn('[pack-hoy] opciones encontradas=', opciones.length, opciones.map(s => s.id));
-      if (opciones.length < 2) { console.warn('[pack-hoy] sale: <2 opciones'); return; }
-      console.warn('[pack-hoy] abriendo modal');
+      if (opciones.length < 2) return;
       _abrirModalServicioDeHoy(selectedServiceObj, opciones);
-      // Verificar post-render
-      setTimeout(() => {
-        const o = document.getElementById('packModalOverlay');
-        console.warn('[pack-hoy] post-render · overlay hijos=', o?.children?.length, 'exists=', !!o);
-      }, 100);
     }
 
     function _abrirModalServicioDeHoy(pack, opciones) {
-      console.warn('[modal-hoy] enter · pack=', pack?.id, 'opts=', opciones?.length);
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
       const previo = document.getElementById('packModalOverlay');
-      if (previo) { console.warn('[modal-hoy] removiendo previo'); previo.remove(); }
+      if (previo) previo.remove();
 
       const overlay = document.createElement('div');
       overlay.id = 'packModalOverlay';
@@ -12333,16 +12324,8 @@
         // sesiones quedan disponibles para próximas visitas.
       });
 
-      console.warn('[modal-hoy] antes de appendChild · card children=', card.children?.length);
       overlay.appendChild(card);
-      console.warn('[modal-hoy] después de overlay.appendChild(card) · overlay hijos=', overlay.children?.length);
       document.body.appendChild(overlay);
-      console.warn('[modal-hoy] después de body.appendChild(overlay) · overlay hijos=', overlay.children?.length, 'body last child:', document.body.lastElementChild?.id);
-      // Chequear en el próximo tick si sigue estando
-      setTimeout(() => {
-        const still = document.getElementById('packModalOverlay');
-        console.warn('[modal-hoy] +100ms · still exists=', !!still, 'hijos=', still?.children?.length);
-      }, 100);
     }
 
     /* Modal para elegir qué servicio consumir de un pack multi-servicio.
