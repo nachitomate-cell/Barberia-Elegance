@@ -623,22 +623,36 @@ export default function Metricas() {
     return Number(barbero?.comision) || 0;
   }, []);
 
+  /* ¿La cita es de un cliente de la cartera propia del barbero?
+     Detecta por sufijo al final del nombre. Sin sufijo → false. */
+  const esClientePropio = useCallback((barbero, clienteNombre) => {
+    const suf = (typeof barbero?.sufijoClientePropio === 'string')
+      ? barbero.sufijoClientePropio.trim().toLowerCase() : '';
+    if (!suf) return false;
+    const nombre = String(clienteNombre || '').trim().toLowerCase();
+    if (!nombre) return false;
+    const rx = new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i');
+    return rx.test(nombre);
+  }, []);
+
   /* Comisión final (en $) que le paga el local al barbero por 1 cita.
-     Aplica precedencia:
-      1) Si el barbero tiene arriendoPorServicio[svcId] > 0 (modelo Oren-Pablo)
-         → comisión = precio − arriendo (fee-fill, capea a 0).
+     Precedencia:
+      1) Si es cliente propio (sufijo match) Y arriendoPorServicio[svcId] > 0
+         → comisión = precio − arriendo (modelo Oren-Pablo).
       2) Sino, precio × pctComisionServicio / 100 (override o global).
-     Devuelve siempre un número no negativo. Precio 0 (cortesía) → 0. */
-  const comisionServicioCita = useCallback((barbero, servicioId, precio) => {
+     Precio 0 (cortesía) → 0. */
+  const comisionServicioCita = useCallback((barbero, servicioId, precio, clienteNombre) => {
     const p = Number(precio) || 0;
     if (p <= 0) return 0;
-    const raw = barbero?.arriendoPorServicio?.[servicioId];
-    const rent = Number(raw);
-    if (raw != null && raw !== '' && Number.isFinite(rent) && rent > 0) {
-      return Math.max(0, p - rent);
+    if (esClientePropio(barbero, clienteNombre)) {
+      const raw = barbero?.arriendoPorServicio?.[servicioId];
+      const rent = Number(raw);
+      if (raw != null && raw !== '' && Number.isFinite(rent) && rent > 0) {
+        return Math.max(0, p - rent);
+      }
     }
     return p * pctComisionServicio(barbero, servicioId) / 100;
-  }, [pctComisionServicio]);
+  }, [pctComisionServicio, esClientePropio]);
 
   /* ── 1. Rendimiento Comercial Memoized KPIs and Stats ── */
   const stats = useMemo(() => {
@@ -739,7 +753,7 @@ export default function Metricas() {
     }, 0);
     const prevComSvc = completadas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      return s + comisionServicioCita(b, c.servicioId, getPrice(c));
+      return s + comisionServicioCita(b, c.servicioId, getPrice(c), c.clienteNombre);
     }, 0);
     const prevComProd = prevVentas.reduce((s, v) => {
       const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
@@ -988,7 +1002,7 @@ export default function Metricas() {
     // Service commissions in range
     const serviceCommissions = rangeCompletas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      return s + comisionServicioCita(b, c.servicioId, getPrice(c));
+      return s + comisionServicioCita(b, c.servicioId, getPrice(c), c.clienteNombre);
     }, 0);
 
     // Product commissions in range
@@ -1118,7 +1132,7 @@ export default function Metricas() {
       // Comisiones Mes
       const sComm = mc.reduce((s, c) => {
         const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-        return s + comisionServicioCita(b, c.servicioId, getPrice(c));
+        return s + comisionServicioCita(b, c.servicioId, getPrice(c), c.clienteNombre);
       }, 0);
 
       const pComm = mv.reduce((s, v) => {

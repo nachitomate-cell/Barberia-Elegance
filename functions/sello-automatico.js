@@ -199,11 +199,44 @@ async function sellosPorVisita(tenantId, historicos) {
 }
 
 // ── Lógica principal ──────────────────────────────────────────────
+// ── Cliente propio del barbero (cartera externa) ──────────────────
+//  En Oren, los barberos pueden traer su propia cartera de clientes que
+//  marcan con un sufijo en el nombre (ej. Pablo → "Jorgito xuni cp").
+//  Esos clientes NO son del club de fidelidad del local: no acumulan
+//  sellos, no descuentan membresía, no entran a Corte al Lápiz. La
+//  detección requiere:
+//    (1) tenantId === 'oren' (gate estricto, no accidental en otros tenants)
+//    (2) el barbero de la cita tiene sufijoClientePropio configurado
+//    (3) el nombre del cliente termina con ese sufijo (case-insensitive)
+//  Si cualquiera falla → sigue el flujo normal de sellos.
+const OREN_CARTERA_TENANTS = new Set(['oren']);
+
+async function esClientePropioDelBarbero({ tenantId, barberoId, clienteNombre }) {
+  if (!OREN_CARTERA_TENANTS.has(tenantId)) return false;
+  if (!barberoId || !clienteNombre) return false;
+  try {
+    const bSnap = await db.doc(`tenants/${tenantId}/barberos/${barberoId}`).get();
+    if (!bSnap.exists) return false;
+    const suf = String(bSnap.data()?.sufijoClientePropio || '').trim().toLowerCase();
+    if (!suf) return false;
+    const nombre = String(clienteNombre).trim().toLowerCase();
+    const rx = new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i');
+    return rx.test(nombre);
+  } catch (_) { return false; }
+}
+
 async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const cols = colecciones(tenantId);
 
   const telefono      = normalizePhone(cita.clienteTelefono);
   const clienteNombre = cita.clienteNombre || cita.nombre || 'Cliente';
+
+  // Skip TOTAL para clientes propios del barbero (Oren + sufijo). Ver comentario
+  // del helper: cartera externa del barbero, no del club.
+  if (await esClientePropioDelBarbero({ tenantId, barberoId: cita.barberoId, clienteNombre })) {
+    logger.info(`[Sello] ${citaId} (${tenantId}): SKIP cliente propio del barbero (${clienteNombre}). No acumula sellos ni membresía.`);
+    return;
+  }
   const clienteEmail  = cita.clienteEmail  || cita.email  || null;
   const servicioNombre = cita.servicioNombre || cita.servicio || '';
   const servicioId     = cita.servicioId || null;

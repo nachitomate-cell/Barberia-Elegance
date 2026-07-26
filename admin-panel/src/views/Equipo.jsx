@@ -146,9 +146,17 @@ const BARBER_EMPTY = {
   comisionPorServicio: {},
   // Arriendo por servicio (modelo invertido: barbero cobra el 100% y le
   // paga un fee FIJO al local por servicio). { [servicioId]: monto_al_local }.
-  // Tiene precedencia sobre comisionPorServicio y sobre `comision` global:
-  // comisión al barbero = precio − monto_al_local. Solo Oren lo usa hoy.
+  // Solo se activa cuando la cita es de un cliente propio del barbero,
+  // detectado por sufijo en el nombre (ver sufijoClientePropio abajo).
+  // Sin sufijo configurado, arriendo NUNCA se aplica (fail-safe).
   arriendoPorServicio: {},
+  // Sufijo del nombre para reconocer clientes de la cartera propia del
+  // barbero (ej: "cp" → "Jorgito xuni cp" matchea). Case-insensitive,
+  // admite espacios al final. Si vacío, arriendo desactivado y las citas
+  // se cobran a la comisión normal (% override o global). En Oren
+  // también se usa para EXCLUIR de sellos a estos clientes (son cartera
+  // externa del barbero, no del club de fidelidad del local).
+  sufijoClientePropio: '',
   sueldoBase: 0,
   comisionProductos: 10,
   comisionProductosMonto: 0, // monto fijo en $ que se suma al % por cada venta de producto
@@ -1022,6 +1030,8 @@ export default function Equipo() {
         ? b.comisionPorServicio : {},
       arriendoPorServicio: (b.arriendoPorServicio && typeof b.arriendoPorServicio === 'object')
         ? b.arriendoPorServicio : {},
+      sufijoClientePropio: (typeof b.sufijoClientePropio === 'string')
+        ? b.sufijoClientePropio : '',
       sueldoBase:   b.sueldoBase   ?? 0,
       comisionProductos:      b.comisionProductos      ?? 10,
       comisionProductosMonto: b.comisionProductosMonto ?? 0,
@@ -2075,13 +2085,35 @@ export default function Equipo() {
                         )}
                       </button>
                       <p className="text-[10px] text-slate-600 mt-1">
-                        Modelo invertido: el barbero cobra el 100% al cliente y le paga un monto fijo al local por cada servicio.
-                        Si un servicio tiene arriendo, se ignora el % de comisión (comisión al barbero = precio − arriendo).
+                        Modelo invertido: el barbero cobra el 100% al cliente y le paga un monto fijo al local por cada servicio,
+                        pero <strong>solo</strong> con los clientes de su cartera propia (identificados por sufijo en el nombre).
+                        Los clientes agendados por el local siguen pagando la comisión normal.
                       </p>
                       {showSvcRent && (
-                        <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3 space-y-2">
+                        <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3 space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-amber-300 mb-1">
+                              Sufijo del nombre de sus clientes propios
+                            </label>
+                            <input
+                              type="text"
+                              maxLength="6"
+                              placeholder="ej: cp"
+                              value={form.sufijoClientePropio || ''}
+                              onChange={e => set('sufijoClientePropio', e.target.value.trim())}
+                              className="w-32 bg-slate-900 border border-amber-800/40 rounded px-2 py-1 text-[12px] text-amber-100 focus:outline-none focus:border-amber-500/60"
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1">
+                              Detecta clientes al final del nombre (case-insensitive): "Jorgito xuni <strong>cp</strong>" matchea con sufijo <code>cp</code>.
+                              <br/><strong className="text-amber-400/80">Sin sufijo → arriendo desactivado</strong> (fail-safe: no cobra arriendo a clientes del local por error).
+                              {tenant?.id === 'oren' && (
+                                <><br/><span className="text-amber-400/80">En Oren estos clientes tampoco acumulan sellos del club (cartera externa del barbero).</span></>
+                              )}
+                            </p>
+                          </div>
+                          <hr className="border-amber-900/30" />
                           <p className="text-[10px] text-amber-400/80">
-                            Servicios sin monto NO tienen arriendo (usan el % de comisión normal). Deja vacío para desactivar.
+                            Monto que el barbero le paga al local por cada servicio a un cliente propio. Deja vacío para NO cobrar arriendo por ese servicio (aunque el cliente sea propio, se cobra la comisión normal).
                           </p>
                           {svcDelBarbero.length === 0 ? (
                             <p className="text-[11px] text-slate-500 italic">Sin servicios asignados. Asignalos primero en "Servicios que ofrece".</p>

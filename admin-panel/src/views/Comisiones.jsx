@@ -400,11 +400,13 @@ export default function Comisiones() {
       comisionPorServicio: (b?.comisionPorServicio && typeof b.comisionPorServicio === 'object')
         ? b.comisionPorServicio : {},
       // Arriendo por servicio { servicioId: monto_al_local }. Modelo invertido:
-      // el barbero cobra el 100% y paga fee fijo al local. Precede al %
-      // override y al % global. Solo Oren lo usa hoy pero la lógica es
-      // transversal (si no existe, no hace nada).
+      // el barbero cobra el 100% y paga fee fijo al local, PERO solo con
+      // clientes de su cartera propia (detectados por sufijoClientePropio en
+      // el nombre). Sin sufijo, arriendo NUNCA aplica (fail-safe).
       arriendoPorServicio: (b?.arriendoPorServicio && typeof b.arriendoPorServicio === 'object')
         ? b.arriendoPorServicio : {},
+      sufijoClientePropio: (typeof b?.sufijoClientePropio === 'string' && b.sufijoClientePropio.trim())
+        ? b.sufijoClientePropio.trim().toLowerCase() : '',
       // Contadores para el reporte de arriendo (cuánto pagó el barbero al
       // local por servicio-cita, y cuántos servicios entraron por este canal).
       arriendoTotal: 0,
@@ -447,24 +449,40 @@ export default function Comisiones() {
         : (bucket?.comisionPct || 0);
     };
 
-    // Arriendo fijo por servicio (modelo Oren-Pablo): si el barbero tiene
-    // monto para ese servicioId, ese es el fee que le paga al local por la
-    // cita. Precede al % override y al % global.
-    // Devuelve monto>0 si aplica, o 0 si no hay arriendo.
-    const arriendoDe = (bucket, servicioId) => {
+    // ¿Es cliente de la cartera propia del barbero? Match del sufijo al final
+    // del nombre del cliente (case-insensitive, admite espacios). Si el
+    // barbero no tiene sufijo configurado → SIEMPRE false (fail-safe: no
+    // dispara arriendo por accidente).
+    const esClientePropio = (bucket, clienteNombre) => {
+      const suf = bucket?.sufijoClientePropio;
+      if (!suf) return false;
+      const nombre = String(clienteNombre || '').trim().toLowerCase();
+      if (!nombre) return false;
+      // Regex: fin de string, precedido por espacio (o inicio), el sufijo literal.
+      const rx = new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i');
+      return rx.test(nombre);
+    };
+
+    // Arriendo fijo por servicio (modelo Oren-Pablo): si el servicioId tiene
+    // monto > 0 en el mapa, ese es el fee al local. Se aplica SOLO si el
+    // cliente de la cita es de la cartera propia (esClientePropio); sino
+    // se cobra la comisión normal aunque el mapa tenga valor.
+    // Devuelve monto>0 si aplica, o 0 si no.
+    const arriendoDe = (bucket, servicioId, clienteNombre) => {
+      if (!esClientePropio(bucket, clienteNombre)) return 0;
       const raw = bucket?.arriendoPorServicio?.[servicioId];
       const n = Number(raw);
       return (raw != null && raw !== '' && Number.isFinite(n) && n > 0) ? n : 0;
     };
 
-    // Servicios: si el servicio tiene arriendo → comisión = precio − arriendo
-    // (fee-fill, no %). Sino → precio × % (override o global). Cortesía = $0.
+    // Servicios: si el servicio tiene arriendo (Y cliente propio) → comisión =
+    // precio − arriendo. Sino → precio × % (override o global). Cortesía = $0.
     citas.forEach(c => {
       const key = resolverBarbero(c.barberoId, c.barbero);
       const precio = precioServicio(c);
       map[key].citas++;
       map[key].ingresosServicios += precio;
-      const feeArriendo = arriendoDe(map[key], c.servicioId);
+      const feeArriendo = arriendoDe(map[key], c.servicioId, c.clienteNombre);
       if (feeArriendo > 0 && precio > 0) {
         // El barbero cobra `precio` al cliente y paga `feeArriendo` al local.
         // Su neto = precio − feeArriendo (cap a 0 por seguridad).
