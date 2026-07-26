@@ -1244,6 +1244,19 @@ exports.dedupeOnCreateElegance = dedupeCliente.dedupeOnCreateElegance;
 exports.dedupeOnCreateTenant   = dedupeCliente.dedupeOnCreateTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  UPSERT CLIENTE — ver upsert-cliente.js
+//  Single entry point para crear/reusar un cliente. Reemplaza el
+//  modelo "escribí y ya arreglará el CF dedupe después" por
+//  "lookup canónico ANTES de escribir". Cablearlo en:
+//    · agenda.html → guardarCitaManual
+//    · registro.html → registro del club
+//    · booking público de reservas
+//    · imports futuros
+// ─────────────────────────────────────────────────────────────────
+const upsertClienteModule = require('./upsert-cliente');
+exports.upsertCliente = upsertClienteModule.upsertCliente;
+
+// ─────────────────────────────────────────────────────────────────
 //  LIBERAR SLOT AL CANCELAR — ver liberar-slot-on-cancel.js
 //  Cliente puede cancelar pero no tiene permiso para borrar slotLocks.
 //  Esta CF lo libera server-side cuando una cita pasa a Cancelada.

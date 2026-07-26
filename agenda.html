@@ -1699,6 +1699,21 @@
             });
         }
 
+        // Lazy-loads firebase-functions-compat.js — usado por upsertCliente
+        // en guardarCitaManual. Cargar en el head hubiera engordado el bundle
+        // inicial (~5KB) sin beneficio; el barbero solo lo necesita al
+        // agendar manualmente, no al ver la agenda.
+        function _ensureFunctionsSDK() {
+            if (typeof firebase !== 'undefined' && firebase.functions) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js';
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
         // ── COLECCIÓN TENANT-AWARE (misma lógica que firebaseUtils.js) ──
         function tenantCol(name) {
             const tid = window.CURRENT_TENANT_ID || 'elegance';
@@ -6331,33 +6346,60 @@
                 tenantCol('clientes').get(),
                 tenantCol('users').get(),
             ]);
-            const norm = (t) => (t || '').replace(/\D/g, '');
+            // Normalizamos a los últimos 9 dígitos (número nacional chileno).
+            // Sin esto, "+56 9 59646603" y "959646603" (mismo humano) quedan
+            // con claves distintas y no dedupean. Ver useClubUsers.js.
+            const norm = (t) => {
+                const d = (t || '').replace(/\D/g, '');
+                if (!d) return '';
+                return d.length > 9 ? d.slice(-9) : d;
+            };
             const seenTel   = new Map();
             const seenEmail = new Map();
             const merged = [];
-            uSnap.docs.forEach(d => {
-                const raw = { id: d.id, ...d.data() };
-                if (!(raw.nombre || '').trim()) return; // ignora anónimos
-                const tel   = norm(raw.telefono);
-                const email = (raw.email || '').toLowerCase();
-                if (tel   && seenTel.has(tel))     return;
-                if (email && seenEmail.has(email)) return;
-                // Marcamos el uid explícito por si el doc no lo trae en el
-                // campo (docId ES el uid en el flujo Firebase Auth normal).
-                const rec = { ...raw, uid: raw.uid || raw.id };
+            // Regla de dedupe híbrida + fusión: email siempre gana (identificador
+            // único humano); tel dedupea SOLO si al menos uno de los dos no
+            // tiene email (evita colapsar familiares con tel compartido). En
+            // cualquier dedupe fusionamos campos no-vacíos del descartado en
+            // el que se queda (email/foto/uid) para no perder datos cuando la
+            // migración AgendaPro dejó legacy + registro club del mismo humano.
+            // Ver admin-panel/src/hooks/useClubUsers.js para el racional completo.
+            const fusionar = (dest, src) => {
+                if (!dest.email && src.email) dest.email = src.email;
+                if (!dest.uid   && src.uid)   dest.uid   = src.uid;
+                if (!dest.photoURL && src.photoURL) dest.photoURL = src.photoURL;
+                if (!dest.telefono && src.telefono) dest.telefono = src.telefono;
+            };
+            const tryPush = (rec) => {
+                const tel   = norm(rec.telefono || rec.id);
+                const email = (rec.email || '').toLowerCase();
+                if (email && seenEmail.has(email)) {
+                    fusionar(seenEmail.get(email), rec);
+                    return false;
+                }
+                if (tel && seenTel.has(tel)) {
+                    const other      = seenTel.get(tel);
+                    const otherEmail = (other.email || '').toLowerCase();
+                    if (!email || !otherEmail) {
+                        fusionar(other, rec);
+                        if (email) seenEmail.set(email, other);
+                        return false;
+                    }
+                }
                 merged.push(rec);
                 if (tel)   seenTel.set(tel, rec);
                 if (email) seenEmail.set(email, rec);
+                return true;
+            };
+            uSnap.docs.forEach(d => {
+                const raw = { id: d.id, ...d.data() };
+                if (!(raw.nombre || '').trim()) return; // ignora anónimos
+                // Marcamos el uid explícito por si el doc no lo trae en el
+                // campo (docId ES el uid en el flujo Firebase Auth normal).
+                tryPush({ ...raw, uid: raw.uid || raw.id });
             });
             cSnap.docs.forEach(d => {
-                const raw = { id: d.id, ...d.data() };
-                const tel   = norm(raw.telefono || raw.id);
-                const email = (raw.email || '').toLowerCase();
-                if (tel   && seenTel.has(tel))     return;
-                if (email && seenEmail.has(email)) return;
-                merged.push(raw);
-                if (tel)   seenTel.set(tel, raw);
-                if (email) seenEmail.set(email, raw);
+                tryPush({ id: d.id, ...d.data() });
             });
             _clientes = merged;
             // Invalidar el lookup por id para que _getClienteFromCita
@@ -7442,6 +7484,31 @@
                 docData.clienteId = _selectedClienteId;
                 const selCliente = (_clientes || []).find(c => c.id === _selectedClienteId);
                 if (selCliente?.uid) docData.clienteUid = selCliente.uid;
+            } else if (email || phone) {
+                // Nuevo cliente escrito a mano (no seleccionó sugerencia).
+                // Llamamos a upsertCliente para resolver a un uid canónico:
+                //  - Si ya existe alguien con ese email/tel → retorna su uid (evita
+                //    crear duplicados en users/).
+                //  - Si no existe → crea el doc y retorna el uid nuevo.
+                // Fail-safe: si el CF falla (red/quota), guardamos la cita igual
+                // con datos sueltos como antes; el próximo dedupe la recupera.
+                try {
+                    await _ensureFunctionsSDK();
+                    const call = firebase.functions().httpsCallable('upsertCliente');
+                    const res  = await call({
+                        tenantId: window.CURRENT_TENANT_ID || 'elegance',
+                        nombre:   name,
+                        email:    email || '',
+                        telefono: phone || '',
+                    });
+                    const uid = res?.data?.uid;
+                    if (uid) {
+                        docData.clienteId  = uid;
+                        docData.clienteUid = uid;
+                    }
+                } catch (upsertErr) {
+                    console.warn('[agenda] upsertCliente falló (no bloqueante):', upsertErr?.message || upsertErr);
+                }
             }
             if (lockId) docData.slotLockId = lockId;
 
