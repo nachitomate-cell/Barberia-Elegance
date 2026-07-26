@@ -12151,42 +12151,163 @@
       }
     }
 
-    /* Al elegir usar una sesión del pack: arma un servicio virtual con
-       precio 0 + marcas del pack y avanza al step siguiente (barbero). */
+    /* Al elegir usar una sesión del pack:
+       - Si el pack cubre un solo servicio → arma la selección y avanza directo.
+       - Si el pack cubre múltiples servicios (ej. "2 cortes + 2 barbas al mes"),
+         abre un modal para que el cliente elija cuál agendar. El modal muestra
+         cada servicio con nombre, duración, saldo restante (si el pack usa
+         `serviciosRestantes` por servicio) y un botón "Reservar".
+
+       Guardar `servicioId` como el ID del servicio REAL elegido (no el packId)
+       es lo que hace posible que la CF decremente el contador por servicio
+       correcto cuando el pack usa `serviciosCantidades`. */
     window._usarSesionDelPack = function (idx) {
       const packs = window._packsActivosClient || [];
       const p = packs[idx];
       if (!p) return;
-      // Buscar duración de referencia: el catálogo del servicio original.
-      // Si el pack tiene `duracionSesion` guardada, usarla; sino default 30.
-      const dur = Number(p.duracionSesion) || 30;
+
+      const incluidosIds = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+      const catalogo = (window._fsServices || _fsServices || []);
+      const restantesPorSvc = (p.serviciosRestantes && typeof p.serviciosRestantes === 'object') ? p.serviciosRestantes : null;
+
+      // Servicios reales del catálogo cubiertos por este pack + info de saldo.
+      let servicios = incluidosIds
+        .map(sid => catalogo.find(s => s.id === sid))
+        .filter(Boolean)
+        .map(s => ({
+          svc:      s,
+          restante: restantesPorSvc ? Number(restantesPorSvc[s.id] || 0) : null,
+        }));
+
+      // Fallback: el pack no trae serviciosIncluidos (packs viejos). Usamos
+      // el propio packId como "servicio" para no romper el flujo antiguo.
+      if (servicios.length === 0) {
+        _reservarConPack(p, null);
+        return;
+      }
+
+      // Si solo hay un servicio elegible (por catálogo o por saldo), sin modal.
+      const elegibles = restantesPorSvc
+        ? servicios.filter(x => x.restante === null || x.restante > 0)
+        : servicios;
+      if (elegibles.length === 1) {
+        _reservarConPack(p, elegibles[0].svc);
+        return;
+      }
+
+      // Múltiples opciones → modal.
+      _abrirModalPackServicios(p, servicios);
+    };
+
+    /* Arma el `selectedServiceObj` para reservar consumiendo una sesión.
+       Si viene `svc` (servicio real del catálogo) usa su id/nombre/duración —
+       así la cita queda con el servicioId correcto y el reporte del barbero
+       muestra qué se hizo (no solo "consumo de pack"). Si no viene, fallback
+       al modo viejo (paquete monoservicio antiguo). */
+    function _reservarConPack(p, svc) {
+      const dur = Number((svc && svc.duracion) || p.duracionSesion) || 30;
       selectedServiceObj = {
-        id:               p.packId,          // referencia al servicio-pack original
-        nombre:           p.nombrePack,
-        precio:           0,                 // sesión cortesía
+        id:               svc?.id || p.packId,
+        nombre:           svc?.nombre || p.nombrePack,
+        precio:           0,
         duracion:         dur,
-        // Marcas que consumirá procesarPackDeCita en el panel:
         consumeSesionPack: true,
         packRefId:         p.packId,
         packNombre:        p.nombrePack,
         packSesionIndex:   Math.max(1, (Number(p.sesionesTotales) || 1) - Number(p.sesionesRestantes || 0) + 1),
         packSesionTotal:   Number(p.sesionesTotales) || 1,
-        // Denormalizado para que el badge de la agenda muestre urgencia
-        // sin tener que refetchear users/{uid}.packsActivos[]. Es una foto
-        // del vencimiento al momento de la reserva — no cambia después.
         packFechaVencimiento: p.fechaVencimiento || null,
       };
-      // Reset campos que dependen del servicio.
       selectedAddons = [];
       selectedTimeStr = null;
       _selectedSlotInfo = null;
-      // Avanzar al step 2 (barbero) igual que si eligiera un servicio del catálogo.
       if (typeof transitionStep === 'function') transitionStep(1, 2);
       else if (typeof goToStep === 'function') goToStep(2);
       currentStep = 2;
       if (typeof updateProgress === 'function') updateProgress();
       if (typeof updateContinueBtn === 'function') updateContinueBtn();
-    };
+    }
+
+    /* Modal para elegir qué servicio consumir de un pack multi-servicio.
+       Se crea dinámicamente en el body — no requiere HTML estático. */
+    function _abrirModalPackServicios(p, servicios) {
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const fmt = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+      const total = Math.max(1, Number(p.sesionesTotales || 1));
+      const rest  = Number(p.sesionesRestantes || 0);
+
+      // Cierra cualquier modal previo (evita duplicados si el usuario reabre).
+      const previo = document.getElementById('packModalOverlay');
+      if (previo) previo.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'packModalOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+      const card = document.createElement('div');
+      card.style.cssText = 'width:100%;max-width:480px;background:#111827;border:1px solid rgba(167,139,250,0.35);border-radius:20px;padding:20px;max-height:90vh;overflow-y:auto;';
+      card.innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+          <div style="width:44px;height:44px;border-radius:14px;background:rgba(167,139,250,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:24px;line-height:1;" aria-hidden="true">📦</span>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(167,139,250,0.95);margin:0 0 2px;">Usar tu pack</p>
+            <p style="font-size:15px;font-weight:700;color:#fff;margin:0;line-height:1.25;word-break:break-word;">${esc(p.nombrePack)}</p>
+            <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">
+              Te quedan <b style="color:#fff;">${rest}</b> de ${total} sesión${total !== 1 ? 'es' : ''}. Elegí qué servicio querés reservar:
+            </p>
+          </div>
+        </div>
+
+        <div id="packSvcList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+
+        <button type="button" id="packModalCancel"
+          style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:14px;">
+          Cancelar
+        </button>
+      `;
+
+      const list = card.querySelector('#packSvcList');
+      servicios.forEach(({ svc, restante }, i) => {
+        const agotado = restante !== null && restante <= 0;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.disabled = agotado;
+        btn.style.cssText = 'width:100%;text-align:left;padding:14px;border-radius:14px;background:' + (agotado ? 'rgba(255,255,255,0.03)' : 'rgba(167,139,250,0.10)') + ';border:1px solid ' + (agotado ? 'rgba(255,255,255,0.06)' : 'rgba(167,139,250,0.30)') + ';display:flex;align-items:center;gap:12px;color:#fff;transition:background 0.15s;' + (agotado ? 'opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;');
+
+        const precioOriginal = Number(svc.precio) || 0;
+        const saldoTxt = restante === null
+          ? ''
+          : (agotado ? '<span style="color:#f87171;font-weight:600;">Sin sesiones</span>' : `<span style="color:rgba(167,139,250,0.95);font-weight:600;">${restante} sesi${restante === 1 ? 'ón' : 'ones'} disponible${restante === 1 ? '' : 's'}</span>`);
+
+        btn.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:14px;font-weight:700;margin:0 0 2px;line-height:1.25;word-break:break-word;">${esc(svc.nombre || 'Servicio')}</p>
+            <p style="font-size:11px;color:rgba(255,255,255,0.55);margin:0;">
+              ${Number(svc.duracion) || 30} min${precioOriginal > 0 ? ` · <span style="text-decoration:line-through;">${fmt(precioOriginal)}</span> <b style="color:#4ade80;">$0</b>` : ' · <b style="color:#4ade80;">$0</b>'}
+              ${saldoTxt ? ' · ' + saldoTxt : ''}
+            </p>
+          </div>
+          <span style="flex-shrink:0;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;background:${agotado ? 'rgba(255,255,255,0.08)' : 'rgba(167,139,250,0.35)'};color:#fff;">
+            ${agotado ? '—' : 'Reservar →'}
+          </span>
+        `;
+
+        if (!agotado) {
+          btn.addEventListener('click', () => {
+            overlay.remove();
+            _reservarConPack(p, svc);
+          });
+        }
+        list.appendChild(btn);
+      });
+
+      card.querySelector('#packModalCancel').addEventListener('click', () => overlay.remove());
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+    }
 
     function renderCalendar(customConfig = null) {
       const carousel = document.querySelector('#calendarCarousel');
