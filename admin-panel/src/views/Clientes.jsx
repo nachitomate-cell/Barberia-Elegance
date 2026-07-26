@@ -114,8 +114,13 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
   const [delLoad,     setDelLoad]     = useState(false);
   const [delMsg,      setDelMsg]      = useState('');
 
-  /* Real-time subscription for this client */
+  /* Real-time subscription for this client.
+     Walk-ins (docs solo en `clientes`, sin espejo en `users`) no tienen uid →
+     el `doc()` tiraría si init.uid es undefined. Salteamos la subscripción;
+     `data` se queda con lo que vino de `init` y el render muestra un banner
+     "sin cuenta del club" en vez de exponer acciones que fallarían al escribir. */
   useEffect(() => {
+    if (!init.uid) return;
     const ref = doc(tenantCol('users'), init.uid);
     const unsub = onSnapshot(ref, snap => {
       if (snap.exists()) {
@@ -570,6 +575,33 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
   };
 
   const historial = [...(data.historialSellos || [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+
+  // Walk-in sin cuenta del club: doc solo en `clientes`, no en `users`.
+  // Mostramos vista mínima de lectura para que no crashee y el admin pueda
+  // ver los datos básicos. La gestión de sellos/canjes/edición requiere doc
+  // de users (fallarían al escribir).
+  if (!data.uid) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+            <span className="text-sm font-bold text-slate-400">{initials(data.nombre || data.email || '?')}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-primary truncate">{data.nombre || '—'}</h2>
+            {data.email    && <p className="text-xs text-slate-400 truncate mt-0.5">{data.email}</p>}
+            {data.telefono && <p className="text-xs text-slate-400 truncate mt-0.5 font-mono">{data.telefono}</p>}
+          </div>
+        </div>
+        <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/25 text-amber-300 text-xs leading-relaxed">
+          <p className="font-semibold text-sm mb-1">Cliente walk-in (sin cuenta del club)</p>
+          <p className="text-amber-200/80">
+            Este cliente vive solo en la colección <code className="text-amber-200 bg-amber-500/10 px-1 rounded">clientes</code> (mirror por teléfono). Para gestionar sellos, canjes o edición del perfil necesita registrarse en el club — puede hacerlo desde el <code className="text-amber-200 bg-amber-500/10 px-1 rounded">/registro.html</code> del local con su teléfono.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

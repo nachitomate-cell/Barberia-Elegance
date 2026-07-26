@@ -6302,6 +6302,10 @@
         // datos entre citas — sin esto, si el barbero cerró un modal con
         // canje aplicado y abrió otro, la nueva cita iba a heredar el canje.
         if (typeof _agendaResetPackState === 'function') _agendaResetPackState();
+        // Mismo motivo con el chip cartera: si el modal anterior cerró con
+        // "Juan cp" visible, el chip amarillo queda pintado hasta el primer
+        // keystroke. Forzamos re-evaluación (nombre vacío → chip se oculta).
+        if (typeof _agendaRenderChipCartera === 'function') _agendaRenderChipCartera();
         // Precarga en background para que estén listos al abrir el modal
         _loadClientes();
         _loadServicios();
@@ -6318,8 +6322,44 @@
     async function _loadClientes() {
         if (_clientes !== null) return;
         try {
-            const snap = await tenantCol('clientes').get();
-            _clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Antes: solo leía `clientes` (walk-ins con docId = tel). Los users
+            // del club (registrados por email/passwordless) quedaban invisibles
+            // en el buscador. Ahora unimos ambas fuentes dedupeando por tel
+            // normalizado y, como fallback, por email. `users` gana (trae
+            // sellos, uid, packs); `clientes` aporta los walk-ins sin cuenta.
+            const [cSnap, uSnap] = await Promise.all([
+                tenantCol('clientes').get(),
+                tenantCol('users').get(),
+            ]);
+            const norm = (t) => (t || '').replace(/\D/g, '');
+            const seenTel   = new Map();
+            const seenEmail = new Map();
+            const merged = [];
+            uSnap.docs.forEach(d => {
+                const raw = { id: d.id, ...d.data() };
+                if (!(raw.nombre || '').trim()) return; // ignora anónimos
+                const tel   = norm(raw.telefono);
+                const email = (raw.email || '').toLowerCase();
+                if (tel   && seenTel.has(tel))     return;
+                if (email && seenEmail.has(email)) return;
+                // Marcamos el uid explícito por si el doc no lo trae en el
+                // campo (docId ES el uid en el flujo Firebase Auth normal).
+                const rec = { ...raw, uid: raw.uid || raw.id };
+                merged.push(rec);
+                if (tel)   seenTel.set(tel, rec);
+                if (email) seenEmail.set(email, rec);
+            });
+            cSnap.docs.forEach(d => {
+                const raw = { id: d.id, ...d.data() };
+                const tel   = norm(raw.telefono || raw.id);
+                const email = (raw.email || '').toLowerCase();
+                if (tel   && seenTel.has(tel))     return;
+                if (email && seenEmail.has(email)) return;
+                merged.push(raw);
+                if (tel)   seenTel.set(tel, raw);
+                if (email) seenEmail.set(email, raw);
+            });
+            _clientes = merged;
             // Invalidar el lookup por id para que _getClienteFromCita
             // lo reconstruya con los datos frescos, y re-renderizar la
             // vista día para que aparezcan los chips de tier ahora que
