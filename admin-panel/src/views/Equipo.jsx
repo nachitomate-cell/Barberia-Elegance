@@ -144,6 +144,11 @@ const BARBER_EMPTY = {
   // servicio de la cita está acá, se usa ese %; si no, cae al `comision`
   // global. Barberos legacy sin el campo siguen igual (fallback global).
   comisionPorServicio: {},
+  // Arriendo por servicio (modelo invertido: barbero cobra el 100% y le
+  // paga un fee FIJO al local por servicio). { [servicioId]: monto_al_local }.
+  // Tiene precedencia sobre comisionPorServicio y sobre `comision` global:
+  // comisión al barbero = precio − monto_al_local. Solo Oren lo usa hoy.
+  arriendoPorServicio: {},
   sueldoBase: 0,
   comisionProductos: 10,
   comisionProductosMonto: 0, // monto fijo en $ que se suma al % por cada venta de producto
@@ -984,6 +989,8 @@ export default function Equipo() {
   const [accesoMsg,      setAccesoMsg]      = useState('');
   // Toggle para expandir el editor de comisiones por servicio (override).
   const [showSvcComm,    setShowSvcComm]    = useState(false);
+  // Toggle para el editor de arriendo por servicio (solo tenant Oren por ahora).
+  const [showSvcRent,    setShowSvcRent]    = useState(false);
   const fileRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1013,6 +1020,8 @@ export default function Equipo() {
       comision:     b.comision     ?? 0,
       comisionPorServicio: (b.comisionPorServicio && typeof b.comisionPorServicio === 'object')
         ? b.comisionPorServicio : {},
+      arriendoPorServicio: (b.arriendoPorServicio && typeof b.arriendoPorServicio === 'object')
+        ? b.arriendoPorServicio : {},
       sueldoBase:   b.sueldoBase   ?? 0,
       comisionProductos:      b.comisionProductos      ?? 10,
       comisionProductosMonto: b.comisionProductosMonto ?? 0,
@@ -1029,6 +1038,7 @@ export default function Equipo() {
     setAccesoPassword('');
     setAccesoMsg('');
     setShowSvcComm(false);
+    setShowSvcRent(false);
     setSlide(true);
   };
 
@@ -2039,6 +2049,79 @@ export default function Equipo() {
                     );
                   })()}
                 </div>
+
+                {/* Arriendo por servicio (modelo invertido): el barbero cobra el
+                    100% al cliente y le paga un monto fijo al local por cada
+                    servicio. Precede al override % y al % global. Solo visible
+                    para tenant Oren por ahora — el resto no tiene este modelo. */}
+                {tenant?.id === 'oren' && (() => {
+                  const arriendos = form.arriendoPorServicio || {};
+                  const numRent = Object.values(arriendos).filter(v => v != null && v !== '' && Number(v) > 0).length;
+                  const svcDelBarbero = (form.serviciosIds && form.serviciosIds.length > 0)
+                    ? servicios.filter(s => form.serviciosIds.includes(s.id))
+                    : servicios;
+                  return (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowSvcRent(v => !v)}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
+                      >
+                        {showSvcRent ? '−' : '+'} Arriendo por servicio ($ al local)
+                        {numRent > 0 && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px]">
+                            {numRent} con arriendo
+                          </span>
+                        )}
+                      </button>
+                      <p className="text-[10px] text-slate-600 mt-1">
+                        Modelo invertido: el barbero cobra el 100% al cliente y le paga un monto fijo al local por cada servicio.
+                        Si un servicio tiene arriendo, se ignora el % de comisión (comisión al barbero = precio − arriendo).
+                      </p>
+                      {showSvcRent && (
+                        <div className="mt-2 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3 space-y-2">
+                          <p className="text-[10px] text-amber-400/80">
+                            Servicios sin monto NO tienen arriendo (usan el % de comisión normal). Deja vacío para desactivar.
+                          </p>
+                          {svcDelBarbero.length === 0 ? (
+                            <p className="text-[11px] text-slate-500 italic">Sin servicios asignados. Asignalos primero en "Servicios que ofrece".</p>
+                          ) : (
+                            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                              {svcDelBarbero.map(s => {
+                                const val = arriendos[s.id];
+                                return (
+                                  <div key={s.id} className="flex items-center gap-2">
+                                    <span className="flex-1 text-[12px] text-slate-300 truncate" title={s.nombre}>
+                                      {s.nombre}
+                                    </span>
+                                    <div className="relative w-28">
+                                      <DollarSign size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+                                      <input
+                                        type="number" min="0" step="100"
+                                        placeholder="0"
+                                        value={val ?? ''}
+                                        onChange={e => {
+                                          const raw = e.target.value;
+                                          setForm(f => {
+                                            const map = { ...(f.arriendoPorServicio || {}) };
+                                            if (raw === '' || raw == null || Number(raw) <= 0) delete map[s.id];
+                                            else map[s.id] = Number(raw);
+                                            return { ...f, arriendoPorServicio: map };
+                                          });
+                                        }}
+                                        className="w-full bg-slate-900 border border-slate-800 rounded pl-6 pr-2 py-1 text-[12px] text-slate-200 focus:outline-none focus:border-amber-500/50"
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div>
                   <label className={lbl}>Porcentaje de comisión por productos</label>

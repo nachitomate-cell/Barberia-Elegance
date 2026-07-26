@@ -399,6 +399,16 @@ export default function Comisiones() {
       // ese % en vez del global. Servicios no listados caen al global.
       comisionPorServicio: (b?.comisionPorServicio && typeof b.comisionPorServicio === 'object')
         ? b.comisionPorServicio : {},
+      // Arriendo por servicio { servicioId: monto_al_local }. Modelo invertido:
+      // el barbero cobra el 100% y paga fee fijo al local. Precede al %
+      // override y al % global. Solo Oren lo usa hoy pero la lógica es
+      // transversal (si no existe, no hace nada).
+      arriendoPorServicio: (b?.arriendoPorServicio && typeof b.arriendoPorServicio === 'object')
+        ? b.arriendoPorServicio : {},
+      // Contadores para el reporte de arriendo (cuánto pagó el barbero al
+      // local por servicio-cita, y cuántos servicios entraron por este canal).
+      arriendoTotal: 0,
+      arriendoCount: 0,
       comisionProductosPct:   b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10,
       comisionProductosMonto: Number(b?.comisionProductosMonto) || 0,
       sueldoBase: Number(b?.sueldoBase) || 0,
@@ -437,13 +447,33 @@ export default function Comisiones() {
         : (bucket?.comisionPct || 0);
     };
 
-    // Servicios: precio de la cita (0 si cortesía) × %comisión servicio.
+    // Arriendo fijo por servicio (modelo Oren-Pablo): si el barbero tiene
+    // monto para ese servicioId, ese es el fee que le paga al local por la
+    // cita. Precede al % override y al % global.
+    // Devuelve monto>0 si aplica, o 0 si no hay arriendo.
+    const arriendoDe = (bucket, servicioId) => {
+      const raw = bucket?.arriendoPorServicio?.[servicioId];
+      const n = Number(raw);
+      return (raw != null && raw !== '' && Number.isFinite(n) && n > 0) ? n : 0;
+    };
+
+    // Servicios: si el servicio tiene arriendo → comisión = precio − arriendo
+    // (fee-fill, no %). Sino → precio × % (override o global). Cortesía = $0.
     citas.forEach(c => {
       const key = resolverBarbero(c.barberoId, c.barbero);
       const precio = precioServicio(c);
       map[key].citas++;
       map[key].ingresosServicios += precio;
-      map[key].comisionServicios += precio * (pctPara(map[key], c.servicioId) / 100);
+      const feeArriendo = arriendoDe(map[key], c.servicioId);
+      if (feeArriendo > 0 && precio > 0) {
+        // El barbero cobra `precio` al cliente y paga `feeArriendo` al local.
+        // Su neto = precio − feeArriendo (cap a 0 por seguridad).
+        map[key].comisionServicios += Math.max(0, precio - feeArriendo);
+        map[key].arriendoTotal     += feeArriendo;
+        map[key].arriendoCount     += 1;
+      } else {
+        map[key].comisionServicios += precio * (pctPara(map[key], c.servicioId) / 100);
+      }
       const propina = Number(c.propina) || 0;
       if (propina > 0) {
         map[key].propinas += propina;
@@ -1158,14 +1188,28 @@ export default function Comisiones() {
                     subValue={(() => {
                       const numOvr = Object.values(barbero.comisionPorServicio || {})
                         .filter(v => v != null && v !== '' && Number.isFinite(Number(v))).length;
-                      const svcLabel = numOvr > 0
-                        ? `${barbero.comisionPct}% servicio (${numOvr} con % propio)`
+                      const numRent = Object.values(barbero.arriendoPorServicio || {})
+                        .filter(v => v != null && v !== '' && Number(v) > 0).length;
+                      const marks = [
+                        numOvr  > 0 ? `${numOvr} con % propio` : null,
+                        numRent > 0 ? `${numRent} con arriendo` : null,
+                      ].filter(Boolean).join(' · ');
+                      const svcLabel = marks
+                        ? `${barbero.comisionPct}% servicio (${marks})`
                         : `${barbero.comisionPct}% servicio`;
                       return barbero.comisionProductos > 0
                         ? `${svcLabel} · ${barbero.comisionProductosPct}%${barbero.comisionProductosMonto > 0 ? ` + ${formatCLP(barbero.comisionProductosMonto)}/venta` : ''} producto`
                         : svcLabel;
                     })()}
                   />
+                  {barbero.arriendoTotal > 0 && (
+                    <StatItem
+                      label="Arriendo pagado al local"
+                      value={formatCLP(barbero.arriendoTotal)}
+                      subValue={`${barbero.arriendoCount} servicio${barbero.arriendoCount !== 1 ? 's' : ''}`}
+                      valueClass="text-amber-400"
+                    />
+                  )}
                   <StatItem label="Sueldo base" value={formatCLP(barbero.sueldoBase)} />
                   {barbero.adelantos > 0 && (
                     <StatItem label="Adelantos" value={`− ${formatCLP(barbero.adelantos)}`} valueClass="text-orange-400" />

@@ -623,6 +623,23 @@ export default function Metricas() {
     return Number(barbero?.comision) || 0;
   }, []);
 
+  /* Comisión final (en $) que le paga el local al barbero por 1 cita.
+     Aplica precedencia:
+      1) Si el barbero tiene arriendoPorServicio[svcId] > 0 (modelo Oren-Pablo)
+         → comisión = precio − arriendo (fee-fill, capea a 0).
+      2) Sino, precio × pctComisionServicio / 100 (override o global).
+     Devuelve siempre un número no negativo. Precio 0 (cortesía) → 0. */
+  const comisionServicioCita = useCallback((barbero, servicioId, precio) => {
+    const p = Number(precio) || 0;
+    if (p <= 0) return 0;
+    const raw = barbero?.arriendoPorServicio?.[servicioId];
+    const rent = Number(raw);
+    if (raw != null && raw !== '' && Number.isFinite(rent) && rent > 0) {
+      return Math.max(0, p - rent);
+    }
+    return p * pctComisionServicio(barbero, servicioId) / 100;
+  }, [pctComisionServicio]);
+
   /* ── 1. Rendimiento Comercial Memoized KPIs and Stats ── */
   const stats = useMemo(() => {
     const rangeCitas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin);
@@ -722,7 +739,7 @@ export default function Metricas() {
     }, 0);
     const prevComSvc = completadas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
+      return s + comisionServicioCita(b, c.servicioId, getPrice(c));
     }, 0);
     const prevComProd = prevVentas.reduce((s, v) => {
       const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
@@ -739,7 +756,7 @@ export default function Metricas() {
     const prevUtilidadNeta = prevIngBrutos - prevTotalCostos;
 
     return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion, utilidadNeta: prevUtilidadNeta };
-  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio]);
+  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio, comisionServicioCita]);
 
   /* Calcula delta % entre actual y previo */
   const pctDelta = useCallback((curr, prev) => {
@@ -971,7 +988,7 @@ export default function Metricas() {
     // Service commissions in range
     const serviceCommissions = rangeCompletas.reduce((s, c) => {
       const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-      return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
+      return s + comisionServicioCita(b, c.servicioId, getPrice(c));
     }, 0);
 
     // Product commissions in range
@@ -1059,7 +1076,7 @@ export default function Metricas() {
       rangeGastos,
       propinas,
     };
-  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio]);
+  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita]);
 
   // 6-Month P&L Historical Trend AreaChart data.
   // Fuente: citas6m/ventas6m/gastos6m (cache dedicado). Fallback a los
@@ -1101,7 +1118,7 @@ export default function Metricas() {
       // Comisiones Mes
       const sComm = mc.reduce((s, c) => {
         const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
-        return s + (getPrice(c) * pctComisionServicio(b, c.servicioId) / 100);
+        return s + comisionServicioCita(b, c.servicioId, getPrice(c));
       }, 0);
 
       const pComm = mv.reduce((s, v) => {
@@ -1130,7 +1147,7 @@ export default function Metricas() {
         'Utilidad Neta': Math.round(utilidadNeta),
       };
     });
-  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio]);
+  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita]);
 
   /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
   const paymentBreakdown = useMemo(() => {
