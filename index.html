@@ -12238,15 +12238,23 @@
          precio = precio del pack ($50k, no del servicio)
        La CF activa el pack Y consume 1 sesión del servicio elegido. */
     function _preguntarServicioDeHoyPack() {
-      if (!selectedServiceObj || !selectedServiceObj.isPack) return;
+      console.warn('[pack-hoy] llamada · svc=', selectedServiceObj?.id, 'isPack=', selectedServiceObj?.isPack, 'incluidos=', selectedServiceObj?.serviciosIncluidos);
+      if (!selectedServiceObj || !selectedServiceObj.isPack) { console.warn('[pack-hoy] sale: no es pack'); return; }
       const incluidos = Array.isArray(selectedServiceObj.serviciosIncluidos) ? selectedServiceObj.serviciosIncluidos : [];
-      if (incluidos.length < 2) return; // mono-servicio: no requiere elección
+      if (incluidos.length < 2) { console.warn('[pack-hoy] sale: mono-servicio, incluidos=', incluidos.length); return; }
       const catalogo = (window._fsServices || _fsServices || []);
       const opciones = incluidos
         .map(sid => catalogo.find(s => s.id === sid))
         .filter(Boolean);
-      if (opciones.length < 2) return;
+      console.warn('[pack-hoy] opciones encontradas=', opciones.length, opciones.map(s => s.id));
+      if (opciones.length < 2) { console.warn('[pack-hoy] sale: <2 opciones'); return; }
+      console.warn('[pack-hoy] abriendo modal');
       _abrirModalServicioDeHoy(selectedServiceObj, opciones);
+      // Verificar post-render
+      setTimeout(() => {
+        const o = document.getElementById('packModalOverlay');
+        console.warn('[pack-hoy] post-render · overlay hijos=', o?.children?.length, 'exists=', !!o);
+      }, 100);
     }
 
     function _abrirModalServicioDeHoy(pack, opciones) {
