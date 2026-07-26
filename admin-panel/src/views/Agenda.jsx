@@ -756,11 +756,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           const digs = sanitizarTelefonoCL(form.clienteTelefono || '').replace(/\D/g, '');
           if (digs.length >= 11) uid = digs;
         }
-        console.log('[agenda/pack-lookup] uid=', uid, 'tel=', form.clienteTelefono, 'clienteId=', form.clienteId);
         if (!uid) { if (!cancel) setPackDisponible(null); return; }
 
         const uSnap = await withTimeout(getDoc(doc(tenantCol('users'), uid)), 8000, 'agenda/pack-activo');
-        console.log('[agenda/pack-lookup] user exists?', uSnap.exists(), 'uid=', uid);
         if (!uSnap.exists()) { if (!cancel) setPackDisponible(null); return; }
 
         const packs = Array.isArray(uSnap.data().packsActivos) ? uSnap.data().packsActivos : [];
@@ -770,7 +768,6 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
           return rest > 0 && (!vencMs || vencMs > now);
         });
-        console.log('[agenda/pack-lookup] packs=', packs.length, 'activos=', activos.length);
         if (activos.length === 0) { if (!cancel) setPackDisponible(null); return; }
 
         // MVP: elegimos el primer pack activo. Un cliente con múltiples packs

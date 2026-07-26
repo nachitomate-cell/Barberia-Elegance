@@ -645,6 +645,11 @@ const FDB = (() => {
     if (cita.consumeSesionPack)      citaData.consumeSesionPack      = true;
     if (cita.packRefId)              citaData.packRefId              = cita.packRefId;
     if (cita.packNombre)             citaData.packNombre             = cita.packNombre;
+    // Modelo B: venta de pack + servicio de hoy. La cita apunta al servicio
+    // real elegido (servicioId) y marca el pack a activar en activaPackId.
+    // La CF pack-automatico usa esa marca para saber que hay que activar
+    // el pack (además de tratar la cita como consumo del servicio real).
+    if (cita.activaPackId)           citaData.activaPackId           = cita.activaPackId;
     if (cita.packSesionIndex != null) citaData.packSesionIndex       = Number(cita.packSesionIndex) || 0;
     if (cita.packSesionTotal != null) citaData.packSesionTotal       = Number(cita.packSesionTotal) || 0;
     // Vencimiento del pack denormalizado — el badge de la agenda lo usa

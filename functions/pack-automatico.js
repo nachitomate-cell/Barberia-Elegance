@@ -40,7 +40,7 @@ const marca                 = require('./lib/kronnos-marca');
 // Marcador de versión — se ve en Cloud Logging al arrancar la CF y sirve
 // para confirmar qué build está corriendo si el resultado no coincide con
 // la lógica esperada. Incrementar cuando haya cambios importantes.
-const CF_PACK_BUILD = '2026-07-26-r3-antirace-tx';
+const CF_PACK_BUILD = '2026-07-26-r5-modelo-b';
 
 const db = admin.firestore();
 
@@ -143,23 +143,38 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   const userId = resolverUserId(cita);
   if (userId) await upsertUserFromCita(cols, userId, cita, citaId);
 
-  // El servicio decide si es activación. El cliente lo tenía en memoria; acá
-  // se lee del doc (per-sede).
+  // El servicio decide si es activación. Dos formas de indicar activación:
+  //
+  //  (a) LEGACY / mono-servicio: cita.servicioId apunta al doc de un servicio
+  //      con isPack:true. La cita del pack "es" el pack (ej: "3 cortes al
+  //      mes" cuando el servicio del pack es también el consumible).
+  //
+  //  (b) NUEVO / multi-servicio con "servicio de hoy": cita.servicioId apunta
+  //      al servicio REAL elegido por el cliente en la venta (ej: Corte de
+  //      cabello), y cita.activaPackId apunta al pack que se está comprando
+  //      (ej: "2 cortes y 2 barbas al mes"). La cita activa el pack Y
+  //      consume 1 sesión del servicio real elegido, en la misma visita.
+  //      Modelo pedido por aura: el cliente paga el pack + se lleva 1
+  //      servicio esa misma visita, y le quedan las restantes para el mes.
   let servicio = null;
   if (cita.servicioId) {
     const s = await cols.servicios.doc(cita.servicioId).get();
     if (s.exists) servicio = { id: s.id, ...s.data() };
   }
+  let servicioPack = null;
+  if (cita.activaPackId && cita.activaPackId !== cita.servicioId) {
+    const s = await cols.servicios.doc(cita.activaPackId).get();
+    if (s.exists && s.data().isPack) servicioPack = { id: s.id, ...s.data() };
+  }
+  logger.info(`[Pack ${CF_PACK_BUILD}] ${citaId} · servicioId=${cita.servicioId} · isPack=${!!servicio?.isPack} · activaPackId=${cita.activaPackId || 'n/a'} · svcPack=${servicioPack?.id || 'n/a'}`);
 
   // Consumo tiene prioridad sobre activación: si la cita ya trae marcas
-  // de consumo, NO activamos aunque el servicio del catálogo sea `isPack`.
-  // Este caso pasa cuando el mismo servicio-pack se puede consumir (ej.
-  // "3 cortes al mes" activa el pack en la 1a visita y las siguientes 2
-  // visitas también son servicioId=pack pero con consumeSesionPack:true).
-  // Sin esta prioridad, la 2a y 3a visita ACTIVABAN nuevos packs además
-  // de consumir → packs duplicados y sesiones fantasma.
+  // de consumo (2ª visita del pack), NO activamos aunque el servicio del
+  // catálogo sea `isPack`. Ver historia del bug en el commit de referencia.
   const esConsumo    = !!cita.consumeSesionPack && !!cita.packRefId;
-  const esActivacion = !esConsumo && !!(servicio && servicio.isPack);
+  // Activación: forma legacy (a) o nueva (b).
+  const packServ = servicioPack || (servicio?.isPack ? servicio : null);
+  const esActivacion = !esConsumo && !!packServ;
 
   if (!esActivacion && !esConsumo) {
     // Cita normal: nada que hacer, pero marcamos para no re-evaluar.
@@ -179,7 +194,7 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
   let idsCubiertos = [];
   let snapshot = [];
   if (esActivacion) {
-    idsCubiertos = Array.isArray(servicio.serviciosIncluidos) ? servicio.serviciosIncluidos : [];
+    idsCubiertos = Array.isArray(packServ.serviciosIncluidos) ? packServ.serviciosIncluidos : [];
     const docs = await Promise.all(
       idsCubiertos.map(id => cols.servicios.doc(id).get().catch(() => null)),
     );
@@ -236,20 +251,25 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
       // Cantidades por servicio (opcional): { [servicioId]: n }. Si existe, define
       // el pack como "2 cortes + 2 barbas" en vez de "4 usos de cualquiera".
       // sesionesTotales se deriva de la suma cuando el mapa existe.
-      const cantidades = (servicio.serviciosCantidades && typeof servicio.serviciosCantidades === 'object')
-        ? servicio.serviciosCantidades : {};
+      const cantidades = (packServ.serviciosCantidades && typeof packServ.serviciosCantidades === 'object')
+        ? packServ.serviciosCantidades : {};
       const sumaCant = Object.values(cantidades).reduce((a, v) => a + (Number(v) || 0), 0);
-      const totalSes = Math.max(1, sumaCant || Number(servicio.sesionesTotales) || 1);
-      const dias     = Math.max(1, Number(servicio.diasValidez) || 30);
-      // Contadores mutables por servicio: se decrementarán en cada consumo. Se
-      // clona `cantidades` (si vino) y se descuenta la sesión activadora del
-      // servicio consumido en esta cita.
+      const totalSes = Math.max(1, sumaCant || Number(packServ.sesionesTotales) || 1);
+      const dias     = Math.max(1, Number(packServ.diasValidez) || 30);
+      // Contadores mutables por servicio. Se decrementará 1 si la 1ra visita
+      // incluye un servicio consumible (Modelo B: pack + "servicio de hoy").
       const serviciosRestantes = {};
       Object.entries(cantidades).forEach(([sid, n]) => {
         serviciosRestantes[sid] = Math.max(0, Number(n) || 0);
       });
+      // Servicio consumido en la propia venta:
+      //  - Modelo B (multi-svc): cita.activaPackId apunta al pack, cita.servicioId
+      //    al servicio REAL elegido (ej. sandbox-corte-prueba). Ese es el activador.
+      //  - Modelo A (legacy mono-svc): cita.servicioId es el propio pack (isPack:true)
+      //    y también aparece en el mapa (mismo id). Ese decrementa igual.
       const svcActivador = cita.servicioId;
-      if (svcActivador && Object.prototype.hasOwnProperty.call(serviciosRestantes, svcActivador)) {
+      const activadorEnMapa = svcActivador && Object.prototype.hasOwnProperty.call(serviciosRestantes, svcActivador);
+      if (activadorEnMapa) {
         serviciosRestantes[svcActivador] = Math.max(0, serviciosRestantes[svcActivador] - 1);
       }
       // sesionesRestantes: suma de contadores por servicio si aplica, o el
@@ -258,8 +278,8 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
         ? Object.values(serviciosRestantes).reduce((a, v) => a + v, 0)
         : Math.max(0, totalSes - 1);
       const nuevoPack = {
-        packId:            servicio.id,
-        nombrePack:        servicio.nombre,
+        packId:            packServ.id,
+        nombrePack:        packServ.nombre,
         sesionesTotales:   totalSes,
         sesionesRestantes,
         fechaCompra:       Timestamp.fromMillis(now),
@@ -275,6 +295,13 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
         nuevoPack.serviciosRestantes = serviciosRestantes;
       }
       packs.push(nuevoPack);
+      // Cuántas sesiones cuentan como consumidas en esta venta:
+      // 1 si el activador matchea un servicio del mapa (Modelo B o legacy mono),
+      // 0 si el activador es el propio pack sin match en el mapa (poco común
+      // en Modelo B; se da en packs multi cuando servicioId=packId).
+      const sesionesConsumidasEnVenta = sumaCant > 0
+        ? (activadorEnMapa ? 1 : 0)
+        : 1; // fallback: pack sin mapa siempre descuenta 1
       logPayload = {
         ...logBase, tipo: 'activacion',
         packId: nuevoPack.packId, packNombre: nuevoPack.nombrePack,
@@ -284,8 +311,8 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
       };
       denormFields = {
         esActivacionPack:     true,
-        packNombre:           servicio.nombre || null,
-        packSesionIndex:      1,
+        packNombre:           packServ.nombre || null,
+        packSesionIndex:      Math.max(1, sesionesConsumidasEnVenta),
         packSesionTotal:      totalSes,
         packFechaVencimiento: nuevoPack.fechaVencimiento,
       };
