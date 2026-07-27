@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { getDocs, query, where, addDoc, deleteDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { getDocs, getDoc, setDoc, query, where, addDoc, deleteDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
   Plus, Minus, Trash2, Pencil,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import SlideOver from '../components/ui/SlideOver';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -76,15 +76,23 @@ function BarberAvatar({ foto, nombre }) {
 }
 
 /* ── AdelantoModal ────────────────────────────────────────────────── */
-function AdelantoModal({ barbero, onConfirm, onClose }) {
-  const [monto, setMonto] = useState('');
-  const [fecha, setFecha] = useState(today());
-  const [metodoPago, setMetodoPago] = useState('Efectivo');
-  const [nota, setNota] = useState('');
+//  `adelanto` opcional → si viene, es edición (soporta actualizar los
+//  campos y hasta reasignar cuotas). Sin él, es creación nueva.
+function AdelantoModal({ barbero, adelanto, onConfirm, onClose }) {
+  const editing = !!adelanto;
+  const [monto, setMonto] = useState(editing ? String(adelanto.monto) : '');
+  const [fecha, setFecha] = useState(editing ? (fechaToStr(adelanto.fecha) || today()) : today());
+  const [metodoPago, setMetodoPago] = useState(editing ? (adelanto.metodoPago || 'Efectivo') : 'Efectivo');
+  // Notas: al crear se persiste como parte de la descripción. Al editar,
+  // separamos la nota original de la descripción "Adelanto NOMBRE" prefix.
+  const notaInicial = editing
+    ? String(adelanto.descripcion || '').replace(/^Adelanto [^—]*—\s*/i, '').trim()
+    : '';
+  const [nota, setNota] = useState(notaInicial);
   // Cuotas: 1 = adelanto plano (se descuenta todo del próximo pago). N > 1
   // distribuye el descuento en N meses consecutivos a partir de `fecha`.
   // La salida de caja sigue siendo el día `fecha` por el total.
-  const [cuotas, setCuotas] = useState(1);
+  const [cuotas, setCuotas] = useState(editing ? (Number(adelanto.cuotasTotal) || 1) : 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -95,7 +103,10 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
     setLoading(true);
     setError('');
     try {
-      await onConfirm({ monto: Math.round(m), fecha, metodoPago, nota: nota.trim(), cuotas: c });
+      await onConfirm({
+        id: adelanto?.id || null,
+        monto: Math.round(m), fecha, metodoPago, nota: nota.trim(), cuotas: c,
+      });
       onClose();
     } catch {
       setError('Error al registrar. Intenta de nuevo.');
@@ -110,14 +121,14 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
     <SheetModal
       icon={Wallet}
       tone="amber"
-      titulo="Registrar adelanto"
+      titulo={editing ? 'Editar adelanto' : 'Registrar adelanto'}
       sub={barbero.nombre}
       onClose={onClose}
       footer={
         <>
           <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
           <button onClick={handle} disabled={loading} className={`${sheetBtn.base} ${sheetBtn.warn}`}>
-            {loading ? 'Registrando…' : 'Registrar'}
+            {loading ? 'Guardando…' : (editing ? 'Guardar' : 'Registrar')}
           </button>
         </>
       }
@@ -177,6 +188,321 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
     </SheetModal>
   );
 }
+
+/* ── ConciliarTuuModal ────────────────────────────────────────────── */
+//  Importa el CSV de exportación de TUU (POS chileno común) y matchea
+//  cada transacción contra las citas del período con método débito/
+//  crédito. Reporta: OK, diferencia de monto, huérfano en TUU, falta en
+//  TUU. No persiste — es análisis efímero, se descarga como CSV.
+//
+//  Formatos aceptados: separador auto-detectado (';' o ','), headers
+//  case-insensitive. Busca columnas por sinónimos comunes: fecha, monto,
+//  hora (opcional), tipo/medio (opcional).
+function ConciliarTuuModal({ citas, precioServicio, fechaInicio, fechaFin, onClose }) {
+  const [file, setFile]         = useState(null);
+  const [rows, setRows]         = useState([]);
+  const [error, setError]       = useState('');
+  const [parsing, setParsing]   = useState(false);
+  const [toleranciaMin, setTolMin] = useState(30); // ventana ± minutos para match por hora
+
+  const handleFile = (f) => {
+    setError(''); setRows([]); setFile(f);
+    if (!f) return;
+    setParsing(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const txt = String(reader.result || '');
+        const parsed = parseTuuCsv(txt);
+        if (!parsed.length) throw new Error('No se detectaron transacciones. Verifica que el archivo tenga columnas de fecha y monto.');
+        setRows(parsed);
+      } catch (e) {
+        setError(e.message || 'No se pudo leer el archivo.');
+      } finally {
+        setParsing(false);
+      }
+    };
+    reader.onerror = () => { setError('Error leyendo el archivo.'); setParsing(false); };
+    reader.readAsText(f, 'utf-8');
+  };
+
+  // Match cada transacción de TUU contra citas del rango con método tarjeta.
+  const conciliacion = useMemo(() => {
+    if (!rows.length) return { transacciones: [], huerfanasEnAgenda: [] };
+    const citasTarjeta = citas
+      .filter(c => c.metodoPago === 'Débito' || c.metodoPago === 'Crédito')
+      .map(c => ({
+        id: c.id, fecha: c.fecha, hora: c.hora, metodo: c.metodoPago,
+        monto: precioServicio(c),
+        cliente: c.clienteNombre || c.nombre || '',
+        matched: false,
+      }));
+    const transacciones = rows.map(r => {
+      // Match: mismo día + monto exacto (± $1 para redondeos). Si hora en TUU,
+      // preferir la cita con hora más cercana dentro de toleranciaMin.
+      const candidatos = citasTarjeta.filter(c =>
+        !c.matched && c.fecha === r.fecha && Math.abs(c.monto - r.monto) <= 1,
+      );
+      let match = null;
+      if (candidatos.length) {
+        if (r.hora) {
+          const minsTuu = tuuHoraToMins(r.hora);
+          const conDist = candidatos.map(c => ({ c, dist: Math.abs(citaHoraToMins(c.hora) - minsTuu) }))
+                                    .sort((a, b) => a.dist - b.dist);
+          if (conDist[0] && conDist[0].dist <= toleranciaMin) match = conDist[0].c;
+        } else {
+          match = candidatos[0];
+        }
+      }
+      if (match) match.matched = true;
+      return {
+        tuu: r,
+        status: match ? 'ok' : 'huerfano_en_tuu',
+        match,
+      };
+    });
+    const huerfanasEnAgenda = citasTarjeta.filter(c => !c.matched);
+    return { transacciones, huerfanasEnAgenda };
+  }, [rows, citas, precioServicio, toleranciaMin]);
+
+  const stats = useMemo(() => ({
+    total:     conciliacion.transacciones.length,
+    ok:        conciliacion.transacciones.filter(t => t.status === 'ok').length,
+    huerfanas: conciliacion.transacciones.filter(t => t.status === 'huerfano_en_tuu').length,
+    faltantes: conciliacion.huerfanasEnAgenda.length,
+    montoTuu:      conciliacion.transacciones.reduce((s, t) => s + t.tuu.monto, 0),
+    montoMatched:  conciliacion.transacciones.filter(t => t.match).reduce((s, t) => s + t.tuu.monto, 0),
+    montoFaltantes: conciliacion.huerfanasEnAgenda.reduce((s, c) => s + c.monto, 0),
+  }), [conciliacion]);
+
+  const descargar = () => {
+    const rows = [];
+    const push = arr => rows.push(arr.map(csvEscape).join(';'));
+    push([`Conciliación TUU ↔ Agenda · ${fechaInicio} al ${fechaFin}`]);
+    push([`Total TUU: ${stats.total} · OK: ${stats.ok} · Huérfanas TUU: ${stats.huerfanas} · Faltan en TUU: ${stats.faltantes}`]);
+    rows.push('');
+    push(['Fuente', 'Fecha', 'Hora', 'Monto', 'Estado', 'Cliente cita', 'Detalle']);
+    conciliacion.transacciones.forEach(t => push([
+      'TUU', t.tuu.fecha, t.tuu.hora || '', t.tuu.monto,
+      t.status === 'ok' ? 'OK · conciliado' : 'HUÉRFANO · no está en la agenda',
+      t.match?.cliente || '',
+      t.tuu.raw || '',
+    ]));
+    conciliacion.huerfanasEnAgenda.forEach(c => push([
+      'Agenda', c.fecha, c.hora, c.monto, 'FALTA EN TUU · cita cobrada con tarjeta sin match',
+      c.cliente, `${c.metodo}`,
+    ]));
+    const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `conciliacion-tuu-${fechaInicio}_${fechaFin}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <SlideOver
+      isOpen
+      onClose={onClose}
+      maxWidth="max-w-3xl"
+      title="Conciliar con TUU"
+      subtitle={`Rango del análisis: ${fechaInicio} al ${fechaFin} · matches contra citas con método Débito o Crédito`}
+      footer={
+        <div className="flex justify-between items-center gap-3">
+          <button onClick={descargar} disabled={!rows.length}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 disabled:opacity-40">
+            <Download size={14} /> Descargar reporte
+          </button>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cerrar</button>
+        </div>
+      }
+    >
+      {/* Upload */}
+      <div className="rounded-xl border border-dashed border-slate-700 p-5 mb-5 text-center bg-slate-800/30">
+        <p className="text-[13px] text-slate-300 mb-3">
+          Sube el CSV exportado desde el portal de TUU. Solo se compara con las citas ya cargadas en el rango de fechas de la vista.
+        </p>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={e => handleFile(e.target.files?.[0] || null)}
+          className="block mx-auto text-[12.5px] text-slate-300
+                     file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0
+                     file:text-sm file:font-semibold file:bg-slate-700 file:text-slate-200
+                     hover:file:bg-slate-600 cursor-pointer"
+        />
+        {file && !error && (
+          <p className="text-[11px] text-slate-500 mt-2">
+            {file.name} · {parsing ? 'procesando…' : `${rows.length} transacciones detectadas`}
+          </p>
+        )}
+        <div className="flex items-center justify-center gap-2 mt-3 text-[11.5px] text-slate-500">
+          <label>Tolerancia hora ±</label>
+          <input type="number" min="0" max="120" value={toleranciaMin} onChange={e => setTolMin(Number(e.target.value) || 0)}
+            className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-300 text-center" />
+          <span>min</span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-400 flex items-center gap-2 mb-4">
+          <AlertCircle size={15} /> {error}
+        </div>
+      )}
+
+      {/* Resultados */}
+      {rows.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5 text-[12px]">
+            <StatBox label="Transacciones TUU" val={stats.total} tone="slate" />
+            <StatBox label="Conciliadas" val={stats.ok} tone="emerald" />
+            <StatBox label="Huérfanas TUU" val={stats.huerfanas} tone="amber"
+              hint="Están en TUU pero no coinciden con ninguna cita" />
+            <StatBox label="Faltan en TUU" val={stats.faltantes} tone="rose"
+              hint="Citas cobradas con tarjeta que no aparecen en TUU" />
+          </div>
+
+          {stats.huerfanas > 0 && (
+            <section className="mb-5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">Huérfanas en TUU (revisar)</h3>
+              <div className="rounded-lg border border-amber-500/25 overflow-x-auto">
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-slate-800/60 text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-semibold">Fecha</th>
+                      <th className="text-left py-2 px-3 font-semibold">Hora</th>
+                      <th className="text-right py-2 px-3 font-semibold">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {conciliacion.transacciones.filter(t => t.status === 'huerfano_en_tuu').map((t, i) => (
+                      <tr key={i} className="hover:bg-slate-800/30">
+                        <td className="py-1.5 px-3 text-slate-400">{t.tuu.fecha}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{t.tuu.hora || '—'}</td>
+                        <td className="py-1.5 px-3 text-right text-amber-400 tabular-nums font-semibold">{formatCLP(t.tuu.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {stats.faltantes > 0 && (
+            <section className="mb-5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-2">Faltan en TUU (cobradas con tarjeta en agenda)</h3>
+              <div className="rounded-lg border border-rose-500/25 overflow-x-auto">
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-slate-800/60 text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="text-left py-2 px-3 font-semibold">Fecha · Hora</th>
+                      <th className="text-left py-2 px-3 font-semibold">Cliente</th>
+                      <th className="text-left py-2 px-3 font-semibold">Método</th>
+                      <th className="text-right py-2 px-3 font-semibold">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {conciliacion.huerfanasEnAgenda.map(c => (
+                      <tr key={c.id} className="hover:bg-slate-800/30">
+                        <td className="py-1.5 px-3 text-slate-400 whitespace-nowrap">{c.fecha} · {c.hora}</td>
+                        <td className="py-1.5 px-3 text-slate-300 truncate max-w-[180px]" title={c.cliente}>{c.cliente}</td>
+                        <td className="py-1.5 px-3 text-slate-500">{c.metodo}</td>
+                        <td className="py-1.5 px-3 text-right text-rose-400 tabular-nums font-semibold">{formatCLP(c.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </SlideOver>
+  );
+}
+
+function StatBox({ label, val, tone, hint }) {
+  const toneMap = {
+    slate:   'border-slate-700 text-slate-200',
+    emerald: 'border-emerald-500/30 text-emerald-400',
+    amber:   'border-amber-500/30 text-amber-400',
+    rose:    'border-rose-500/30 text-rose-400',
+  };
+  return (
+    <div className={`rounded-lg border ${toneMap[tone]} bg-slate-900 p-3`}>
+      <p className="text-[10px] uppercase tracking-wide text-slate-500 font-bold">{label}</p>
+      <p className={`text-lg font-bold mt-0.5 tabular-nums ${toneMap[tone].split(' ').pop()}`}>{val}</p>
+      {hint && <p className="text-[10.5px] text-slate-500 mt-1 leading-tight">{hint}</p>}
+    </div>
+  );
+}
+
+// ── Parser CSV TUU (flexible) ─────────────────────────────────────
+//  Auto-detecta separador ; o ,. Match de columnas por sinónimos
+//  case-insensitive. Devuelve { fecha:YYYY-MM-DD, hora:HH:MM?, monto:number, raw }.
+function parseTuuCsv(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
+  const splitLine = (line) => {
+    // parser CSV mínimo que respeta comillas
+    const out = []; let cur = ''; let q = false;
+    for (const ch of line) {
+      if (ch === '"') q = !q;
+      else if (ch === sep && !q) { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map(s => s.trim().replace(/^"|"$/g, ''));
+  };
+  const header = splitLine(lines[0]).map(h => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
+  const findCol = (candidatos) => header.findIndex(h => candidatos.some(c => h.includes(c)));
+  const iFecha = findCol(['fecha']);
+  const iMonto = findCol(['monto', 'total', 'importe', 'valor']);
+  const iHora  = findCol(['hora']);
+  if (iFecha < 0 || iMonto < 0) return []; // sin columnas mínimas
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = splitLine(lines[i]);
+    const fechaRaw = cells[iFecha]; const montoRaw = cells[iMonto];
+    const horaRaw = iHora >= 0 ? cells[iHora] : '';
+    const fecha = normalizarFecha(fechaRaw);
+    const monto = normalizarMonto(montoRaw);
+    if (!fecha || monto <= 0) continue;
+    out.push({ fecha, hora: normalizarHora(horaRaw), monto, raw: lines[i].slice(0, 100) });
+  }
+  return out;
+}
+function normalizarFecha(s) {
+  if (!s) return '';
+  // ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // DD/MM/YYYY o DD-MM-YYYY
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m) {
+    const dd = m[1].padStart(2, '0');
+    const mm = m[2].padStart(2, '0');
+    let yyyy = m[3];
+    if (yyyy.length === 2) yyyy = '20' + yyyy;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return '';
+}
+function normalizarHora(s) {
+  if (!s) return '';
+  const m = String(s).match(/(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  return `${m[1].padStart(2, '0')}:${m[2]}`;
+}
+function normalizarMonto(s) {
+  if (!s) return 0;
+  // Quitar $, espacios, . de miles. Aceptar , decimal (Chile) → convertir a punto.
+  const clean = String(s).replace(/[$\s]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+  const n = Number(clean);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+function tuuHoraToMins(h) { const [hh, mm] = String(h).split(':').map(Number); return (hh || 0) * 60 + (mm || 0); }
+function citaHoraToMins(h) { return tuuHoraToMins(h); }
 
 /* ── ComisionManualModal ──────────────────────────────────────────── */
 //  Ajustes al pago del barbero fuera de citas: cortes previos a la agenda,
@@ -286,6 +612,7 @@ function ComisionManualModal({ barbero, ajuste, onConfirm, onClose }) {
 function DetalleBarberoDrawer({
   isOpen, onClose, barbero, citas, ventas, adelantos,
   precioServicio, precioVenta, fechaInicio, fechaFin,
+  onEditarAdelanto, onBorrarAdelanto,
 }) {
   const detalle = useMemo(() => {
     if (!barbero) return { citas: [], ventas: [], adelantos: [] };
@@ -344,6 +671,8 @@ function DetalleBarberoDrawer({
         cuotasTotal: Math.max(1, Number(a.cuotasTotal) || 1),
         montoPorCuota: Number(a.montoPorCuota) || (Number(a.monto) || 0),
         nota: a.descripcion || '',
+        metodoPago: a.metodoPago || 'Efectivo',
+        descripcion: a.descripcion || '',
       }))
       .filter(a => {
         // Adelanto de una sola cuota: entra si su fecha está en el rango.
@@ -581,6 +910,28 @@ function DetalleBarberoDrawer({
                   </p>
                 </div>
                 <span className="font-semibold text-orange-400 tabular-nums shrink-0">− {formatCLP(a.monto)}</span>
+                {(onEditarAdelanto || onBorrarAdelanto) && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onEditarAdelanto && (
+                      <button
+                        onClick={() => onEditarAdelanto(a)}
+                        className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-slate-200"
+                        title="Editar"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {onBorrarAdelanto && (
+                      <button
+                        onClick={() => onBorrarAdelanto(a.id)}
+                        className="p-1 rounded hover:bg-rose-500/10 text-slate-400 hover:text-rose-400"
+                        title="Borrar"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -687,6 +1038,7 @@ export default function Comisiones() {
   // { barbero, ajuste? } — ajuste presente = edit; ausente = nuevo.
   const [ajusteTarget, setAjusteTarget] = useState(null);
   const [detalleTarget, setDetalleTarget] = useState(null);
+  const [tuuOpen, setTuuOpen] = useState(false);
   const [pagados, setPagados] = useState(new Set());
 
   // Parámetros para calcular el NETO de los pagos con tarjeta.
@@ -694,6 +1046,38 @@ export default function Comisiones() {
   const [ivaPct, setIvaPct]         = useState(19);
   const [comDebPct, setComDebPct]   = useState(1.19);
   const [comCredPct, setComCredPct] = useState(2.95);
+
+  // Toggle "cortesías pagan comisión": vive en configuracion/comisiones y aplica
+  // solo al tenant. Default OFF (comportamiento histórico: cortesía = $0 al
+  // barbero). Cuando está ON, la comisión de una cita cortesía se calcula sobre
+  // el precio del catálogo (como si el servicio se hubiera cobrado).
+  const [cortesiaPagaComision, setCortesiaPagaComision] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await withTimeout(getDoc(tenantDoc('configuracion', 'comisiones')), 10000, 'configuracion/comisiones');
+        if (snap.exists() && typeof snap.data()?.cortesiaPagaComision === 'boolean') {
+          setCortesiaPagaComision(snap.data().cortesiaPagaComision);
+        }
+      } catch (e) {
+        console.warn('[Comisiones] no se pudo leer configuracion/comisiones:', e?.message);
+      }
+    })();
+  }, []);
+  const toggleCortesiaPagaComision = async () => {
+    const nuevo = !cortesiaPagaComision;
+    setCortesiaPagaComision(nuevo);   // optimista
+    try {
+      await setDoc(tenantDoc('configuracion', 'comisiones'), {
+        cortesiaPagaComision: nuevo,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('[Comisiones] error guardando configuracion/comisiones:', e);
+      setCortesiaPagaComision(!nuevo); // revertir
+      alert('No se pudo guardar el ajuste. Intenta de nuevo.');
+    }
+  };
 
   const { data: rawBarberos = [] } = useCollection('barberos');
   // Catálogo de servicios: fuente del fallback de precio cuando la cita no
@@ -818,10 +1202,18 @@ export default function Comisiones() {
   // NO suma productos: los productos vienen aparte desde product_reservations
   // para no doblar con el arreglo `ticketProductos` embebido en la cita.
   const precioServicio = useCallback((c) => {
-    if (c.cortesia) return 0;
+    // Cortesía: por default paga $0 al barbero (comportamiento histórico).
+    // Si el toggle `cortesiaPagaComision` está ON, la comisión se calcula
+    // sobre el precio del catálogo — como si el servicio se hubiera cobrado.
+    // Ojo: esto NO cambia el ingreso del local (Métricas sigue mostrando $0);
+    // solo cambia el pago al barbero.
+    if (c.cortesia) {
+      if (!cortesiaPagaComision) return 0;
+      return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
+    }
     if (c.precio != null) return Number(c.precio) || 0;
     return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
-  }, [precioMap]);
+  }, [precioMap, cortesiaPagaComision]);
   // Precio de una venta de producto. Los docs de product_reservations guardan
   // el TOTAL de línea en `precio` (ya multiplicado × cantidad, con descuento
   // aplicado). Ver memoria "Ventas / plata (gotchas)".
@@ -1149,20 +1541,21 @@ export default function Comisiones() {
     await loadAjustesManuales();
   };
 
-  const handleAdelanto = async ({ monto, fecha, metodoPago, nota, cuotas }) => {
+  const handleAdelanto = async ({ id, monto, fecha, metodoPago, nota, cuotas }) => {
     if (!adelantoTarget) return;
+    // adelantoTarget puede ser { barbero, adelanto? } (nuevo) o barbero directo (legado).
+    const barb = adelantoTarget.barbero || adelantoTarget;
     const c = Math.max(1, Math.round(Number(cuotas) || 1));
     const montoPorCuota = c > 1 ? Math.round(monto / c) : monto;
-    await addDoc(tenantCol('gastos'), {
-      descripcion: `Adelanto ${adelantoTarget.nombre}${c > 1 ? ` (${c} cuotas)` : ''}${nota ? ` — ${nota}` : ''}`,
+    const payload = {
+      descripcion: `Adelanto ${barb.nombre}${c > 1 ? ` (${c} cuotas)` : ''}${nota ? ` — ${nota}` : ''}`,
       monto,
       categoria: 'Sueldos',
       tipo: 'adelanto',
       metodoPago,
       fecha: Timestamp.fromDate(new Date(fecha + 'T12:00:00')),
-      barberoId: adelantoTarget.id,
-      barberoNombre: adelantoTarget.nombre,
-      creadoEn: serverTimestamp(),
+      barberoId: barb.id,
+      barberoNombre: barb.nombre,
       creadoPor: user?.uid || 'admin',
       // Si c > 1, el descuento del bruto del barbero se prorratea: la misma
       // suma `montoPorCuota` aparece en `barbero.adelantos` durante c meses
@@ -1170,7 +1563,20 @@ export default function Comisiones() {
       // siendo el día `fecha` por el total, eso no cambia.
       cuotasTotal: c,
       montoPorCuota,
-    });
+    };
+    if (id) {
+      // Edit: borrar el anterior y crear nuevo (más simple que updateDoc con
+      // toggle de merge para campos que pueden desaparecer al reducir cuotas).
+      await deleteDoc(doc(db, `${tenantCol('gastos').path}/${id}`));
+    }
+    await addDoc(tenantCol('gastos'), { ...payload, creadoEn: serverTimestamp() });
+    await loadAdelantos();
+  };
+
+  const handleBorrarAdelanto = async (adelantoId) => {
+    if (!adelantoId) return;
+    if (!window.confirm('¿Borrar este adelanto?')) return;
+    await deleteDoc(doc(db, `${tenantCol('gastos').path}/${adelantoId}`));
     await loadAdelantos();
   };
 
@@ -1620,6 +2026,15 @@ export default function Comisiones() {
             <Download size={14} />
             Exportar CSV
           </button>
+          <button
+            onClick={() => setTuuOpen(true)}
+            disabled={citas.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 disabled:opacity-40 transition-all"
+            title="Comparar el CSV exportado desde el portal de TUU con las citas de tarjeta del período"
+          >
+            <Banknote size={14} />
+            Conciliar TUU
+          </button>
         </div>
       </div>
 
@@ -1662,6 +2077,39 @@ export default function Comisiones() {
             {loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
+      </div>
+
+      {/* Reglas del pago — flags por tenant */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={15} className="text-blue-400" />
+          <p className="text-sm font-bold text-primary">Reglas del pago</p>
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer select-none group">
+          <button
+            type="button"
+            onClick={toggleCortesiaPagaComision}
+            role="switch"
+            aria-checked={cortesiaPagaComision}
+            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              cortesiaPagaComision ? 'bg-emerald-500' : 'bg-slate-700'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+              cortesiaPagaComision ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+          <div onClick={toggleCortesiaPagaComision} className="flex-1">
+            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
+              Las cortesías pagan comisión al barbero
+            </p>
+            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
+              {cortesiaPagaComision
+                ? 'Cada cita marcada como cortesía suma comisión al barbero (usa el precio del catálogo). El ingreso del local sigue en $0 — solo cambia el pago al equipo.'
+                : 'Las cortesías NO generan comisión al barbero (comportamiento por defecto). Activa el toggle si tu política es pagarle igual por el servicio.'}
+            </p>
+          </div>
+        </label>
       </div>
 
       {/* Cálculo del neto (IVA + comisión POS) — se usa al exportar */}
@@ -1969,6 +2417,8 @@ export default function Comisiones() {
         precioVenta={precioVenta}
         fechaInicio={fechaInicio}
         fechaFin={fechaFin}
+        onEditarAdelanto={(a) => setAdelantoTarget({ barbero: detalleTarget, adelanto: a })}
+        onBorrarAdelanto={handleBorrarAdelanto}
       />
       {ajusteTarget && (
         <ComisionManualModal
@@ -1980,9 +2430,19 @@ export default function Comisiones() {
       )}
       {adelantoTarget && (
         <AdelantoModal
-          barbero={adelantoTarget}
+          barbero={adelantoTarget.barbero || adelantoTarget}
+          adelanto={adelantoTarget?.adelanto || null}
           onConfirm={handleAdelanto}
           onClose={() => setAdelantoTarget(null)}
+        />
+      )}
+      {tuuOpen && (
+        <ConciliarTuuModal
+          citas={citas}
+          precioServicio={precioServicio}
+          fechaInicio={fechaInicio}
+          fechaFin={fechaFin}
+          onClose={() => setTuuOpen(false)}
         />
       )}
       {pagarTarget && (
