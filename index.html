@@ -12035,13 +12035,30 @@
         }
       } catch (e) {}
 
-      // Cargar productos y bloqueos en paralelo.
-      // Acotado con timeout: estas lecturas son de enriquecimiento (productos,
-      // bloqueos, servicio más pedido) y NO deben bloquear el render si el SDK
-      // de Firestore se cuelga (caso WebView in-app de Instagram/Facebook).
+      // ── PINTAR YA ────────────────────────────────────────────────
+      // El paso 1 solo necesita servicios + barberos + config, que ya están.
+      // Antes el render esperaba (hasta 7 s) tres lecturas de enriquecimiento
+      // que NO hacen falta para pintarlo:
+      //   · precargarBloqueos() → se usa en renderCalendar, PASO 3
+      //   · productos           → se usan en step4XSell, PASO 4
+      //   · query de 300 citas  → solo alimenta el badge "Más solicitado", y
+      //     en la reserva pública SIEMPRE da PERMISSION_DENIED: firestore.rules
+      //     exige esStaff() o ser dueño del doc para leer /citas (verificado:
+      //     HTTP 403). O sea, el catálogo esperaba por datos que no llegan.
+      renderCategories(_fsServices);
+      _renderServicesGrid(_fsServices);
+      _wireSvcSearch();    // buscador en tiempo real (idempotente si ya hay listener)
+      _injectVikingUI();   // pestaña VIP + banner in-feed (solo sedes masculinas Kronnos)
+      _injectSlickUI();    // pestaña + banner Slick Gorilla (solo Aura)
+      _renderBarberos(_fsBarberos);
+      // Renderizar packs activos del user logueado (si aplica). No bloqueante.
+      _renderPacksActivosBanner().catch(err => console.warn('[packs] render banner:', err.message));
+
+      // ── ENRIQUECIMIENTO EN SEGUNDO PLANO ─────────────────────────
+      // Ya con el catálogo en pantalla. Todo esto llega a tiempo de sobra para
+      // los pasos donde se usa; si falla, cada consumidor ya tiene su fallback.
       _isProductsEnabled = !!_fsConfig?.productosActivos;
-      await Promise.race([
-        Promise.allSettled([
+      Promise.allSettled([
         _isProductsEnabled
           ? _tenantProductos().limit(6).get()
               .then(snap => {
@@ -12068,20 +12085,16 @@
               .catch(() => {});
           } catch(_) { return Promise.resolve(); }
         })()
-        ]),
-        // Tope: render asegurado pase lo que pase. Si ya sabemos que el
-        // transporte del SDK está colgado (WebView in-app), no tiene sentido
-        // regalarle 7 s más al cliente — estas lecturas van a fallar igual.
-        new Promise(r => setTimeout(r, (FDB.sdkHung && FDB.sdkHung()) ? 1200 : 7000))
-      ]);
-      renderCategories(_fsServices);
-      _renderServicesGrid(_fsServices);
-      _wireSvcSearch();    // buscador en tiempo real (idempotente si ya hay listener)
-      _injectVikingUI();   // pestaña VIP + banner in-feed (solo sedes masculinas Kronnos)
-      _injectSlickUI();    // pestaña + banner Slick Gorilla (solo Aura)
-      _renderBarberos(_fsBarberos);
-      // Renderizar packs activos del user logueado (si aplica). No bloqueante.
-      _renderPacksActivosBanner().catch(err => console.warn('[packs] render banner:', err.message));
+      ]).then(() => {
+        // Si el badge "Más solicitado" llegó (solo staff, por las reglas),
+        // repintamos para mostrarlo — pero únicamente si el cliente sigue en el
+        // paso 1 sin elegir nada: repintar el grid borraría su selección.
+        if (window._topServiceNombre && currentStep === 1 && !selectedServiceObj) {
+          _renderServicesGrid(_fsServices);
+          filterServicesByCategory(window._activeCategory || 'Todos');
+          _injectSlickUI();
+        }
+      });
       return _shopSettings;
     }
 

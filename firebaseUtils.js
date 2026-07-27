@@ -141,14 +141,29 @@ const FDB = (() => {
       clearTimeout(t);
     }
   }
+  // Dedupe de lecturas REST EN VUELO (no es caché: se libera al resolver, así
+  // que nunca sirve datos viejos). Evita bajar la misma colección N veces
+  // cuando varias llamadas concurrentes caen al fallback a la vez —
+  // precargarBloqueos() lanza 3 getBloqueosMes en paralelo, y sin esto cada
+  // una se traía la colección `bloqueos` entera (~240 KB) por separado.
+  const _restEnVuelo = new Map();
+
   // Lee una colección del tenant vía REST → [{ id, ...data }]
-  async function _restGetCollection(colName) {
-    const res = await _restFetch(_restUrl(colName, '&pageSize=300'));
-    if (!res.ok) throw new Error('REST ' + res.status);
-    const json = await res.json();
-    return (json.documents || []).map(d => Object.assign(
-      { id: d.name.split('/').pop() }, _restFields(d.fields || {})
-    ));
+  function _restGetCollection(colName) {
+    const clave = _restPath(colName);
+    if (_restEnVuelo.has(clave)) return _restEnVuelo.get(clave);
+    const p = (async () => {
+      const res = await _restFetch(_restUrl(colName, '&pageSize=300'));
+      if (!res.ok) throw new Error('REST ' + res.status);
+      const json = await res.json();
+      return (json.documents || []).map(d => Object.assign(
+        { id: d.name.split('/').pop() }, _restFields(d.fields || {})
+      ));
+    })().finally(() => _restEnVuelo.delete(clave));
+    _restEnVuelo.set(clave, p);
+    // Copia por llamador: getServicios/getPremios ordenan con .sort(), que muta
+    // in-place. Sin el slice() se pisarían el array compartido entre sí.
+    return p.then(arr => arr.slice());
   }
   // Lee un documento del tenant vía REST → data (o null si no existe)
   async function _restGetDoc(colName, docId) {
