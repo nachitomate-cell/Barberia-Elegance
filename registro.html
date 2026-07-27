@@ -1962,7 +1962,15 @@
         stamps:    0,
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
       };
-      if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
+      if (extra.fechaNacimiento) {
+        data.fechaNacimiento = extra.fechaNacimiento;
+        // cumpleDia "MM-DD" — campo indexado que consulta el cron selloCumpleanos.
+        // Fase 3.C: se lee de users/ directo (antes vivía en clientes/ mirror).
+        const _fnParts = String(extra.fechaNacimiento).split('-'); // ["YYYY","MM","DD"]
+        if (_fnParts.length === 3 && _fnParts[1] && _fnParts[2]) {
+          data.cumpleDia = `${_fnParts[1]}-${_fnParts[2]}`;
+        }
+      }
       // Club restaurante: preferencias dietarias (array). Vacío = sin
       // preferencias declaradas; no se guarda el campo para no ensuciar el doc.
       if (Array.isArray(extra.preferenciasDietarias) && extra.preferenciasDietarias.length) {
@@ -2356,15 +2364,6 @@
     }
   }
 
-  // ── Helper: ref a clientes/{phone} respetando el tenant ─────────
-  function clientesDocRef(normalizedPhone) {
-    const tid = window.CURRENT_TENANT_ID || 'elegance';
-    const fs  = firebase.firestore();
-    return tid === 'elegance'
-      ? fs.collection('clientes').doc(normalizedPhone)
-      : fs.collection('tenants').doc(tid).collection('clientes').doc(normalizedPhone);
-  }
-
   // ── Guardar teléfono post-Google ─────────────────────────────
   async function saveGooglePhone() {
     const telefono = document.getElementById('googleTelefono').value.trim();
@@ -2393,37 +2392,8 @@
         waOptInAt:          firebase.firestore.FieldValue.serverTimestamp(),
         waOptInMetodo:      'google',
       });
-      // Crear/actualizar clientes/{phone} igual que en registerWithEmail
-      const fs = firebase.firestore();
-      const tid = window.CURRENT_TENANT_ID || 'elegance';
-      const normalizedPhone = telefono.replace(/\D/g, '');
-      const clienteRef = tid === 'elegance'
-        ? fs.collection('clientes').doc(normalizedPhone)
-        : fs.collection('tenants').doc(tid).collection('clientes').doc(normalizedPhone);
-      try {
-        const clienteSnap = await clienteRef.get();
-        if (!clienteSnap.exists) {
-          await clienteRef.set({
-            nombre:              user.displayName || '',
-            telefono,
-            email:               user.email || '',
-            uid:                 user.uid,
-            sellosDisponibles:   0,
-            sellosHistoricos:    0,
-            historial:           [],
-            creadoEn:            firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt:           firebase.firestore.FieldValue.serverTimestamp(),
-            aceptoTerminosAt:    firebase.firestore.FieldValue.serverTimestamp(),
-            aceptoPrivacidadAt:  firebase.firestore.FieldValue.serverTimestamp(),
-            terminosVersion:     TERMINOS_VERSION,
-            signupMetodo:        'google',
-          });
-        } else {
-          await clienteRef.update({ uid: user.uid, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        }
-      } catch (e) {
-        console.warn('[registro] clientes write skipped:', e.code);
-      }
+      // Fase 3.C: ya NO escribimos a clientes/{phone} — el update de users/{uid}
+      // arriba ya persiste el tel + evidencia legal. clientes/ quedó deprecated.
       goToDashboard();
     } catch (err) {
       hideLoading();
@@ -2570,34 +2540,9 @@
       cred.user.updateProfile({ displayName: nombre }).catch(() => {});
 
       await ensureUserDoc(cred.user, { nombre, telefono, fechaNacimiento, acepto, preferenciasDietarias: getPrefsRestaurante() });
-
-      // Crear/actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
-      const normalizedPhone = telefono.replace(/\D/g, '');
-      if (normalizedPhone) {
-        const clienteData = {
-          nombre,
-          telefono,
-          email:               cred.user.email || '',
-          uid:                 cred.user.uid,
-          sellosDisponibles:   0,
-          sellosHistoricos:    0,
-          historial:           [],
-          creadoEn:            firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt:           firebase.firestore.FieldValue.serverTimestamp(),
-          aceptoTerminosAt:    firebase.firestore.FieldValue.serverTimestamp(),
-          aceptoPrivacidadAt:  firebase.firestore.FieldValue.serverTimestamp(),
-          terminosVersion:     TERMINOS_VERSION,
-          signupMetodo:        'email',
-          waOptIn,
-          waOptInAt:           firebase.firestore.FieldValue.serverTimestamp(),
-        };
-        if (fechaNacimiento) {
-          const parts = fechaNacimiento.split('-'); // ["YYYY","MM","DD"]
-          clienteData.fechaNacimiento = fechaNacimiento;
-          clienteData.cumpleDia       = `${parts[1]}-${parts[2]}`;
-        }
-        await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
-      }
+      // Fase 3.C: ya NO escribimos a clientes/{phone} — ensureUserDoc arriba
+      // ya persiste nombre/tel/email/fechaNacimiento/cumpleDia/waOptIn en
+      // users/{uid}, que es la fuente de verdad. clientes/ quedó deprecated.
     } catch (e) {
       // La cuenta existe; una escritura fallida NO debe frenar la entrada.
       console.warn('[registro] escritura post-registro falló:', e && (e.code || e.message));
