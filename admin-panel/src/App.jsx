@@ -71,6 +71,7 @@ import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
+import TuuSandboxHost      from './components/ui/TuuSandboxHost';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
 import HubTenantGate        from './components/HubTenantGate';
 
@@ -244,6 +245,7 @@ export default function App() {
                 </Routes>
               </BrowserRouter>
               <ConfirmHost />
+              <TuuSandboxHost />
             </SucursalProvider>
           </AuthProvider>
         </TenantGate>

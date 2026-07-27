@@ -23,6 +23,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
+import { tuuSandboxDialog } from '../lib/tuuSandbox';
 import { withTimeout } from '../lib/firestore-helpers';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -1152,6 +1153,29 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         });
         if (!ok) return;
       }
+    }
+
+    // ── Sandbox visual TUU (POS presencial) — SOLO delnero ────────────
+    // Demo interno del flujo propuesto: al pasar a Completada aparece un
+    // modal preguntando el medio de pago (POS TUU / Efectivo / Cortesia).
+    // NO llama a TUU ni persiste medio de pago aun — es 100% visual para
+    // validar la UX antes de escribir backend real y disparar cobros.
+    // Gate: solo se muestra en delnero, cita no nueva y no marcada cortesia.
+    if (!isNew
+        && form.estado === 'Completada'
+        && cita?.estado !== 'Completada'
+        && tenantId === 'delnero'
+        && !form.cortesia) {
+      const svcSand   = servicios.find(s => s.id === form.servicioId)
+                     || servicios.find(s => (s.nombre || '') === form.servicioNombre);
+      const montoSand = Number(form.precio) || Number(svcSand?.precio) || 0;
+      const medio     = await tuuSandboxDialog({
+        cliente:  form.clienteNombre,
+        monto:    montoSand,
+        servicio: svcSand?.nombre || form.servicioNombre || '',
+      });
+      if (medio === 'cancel') return;
+      // Sandbox: no persistimos el medio elegido. Continuamos el save normal.
     }
 
     setSaving(true);
