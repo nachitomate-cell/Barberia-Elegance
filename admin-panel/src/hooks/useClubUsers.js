@@ -46,11 +46,15 @@ function _ensureSubscription() {
   _cache.unsub = onSnapshot(
     tenantCol('users'),
     snap => {
-      // Filtro: descartar users sin nombre (residuos anónimos) directamente
-      // acá — más simple que hacerlo en cada consumer.
+      // Filtros:
+      //  · sin nombre → residuo anónimo, descartar
+      //  · fusionadoCon → doc legacy ya absorbido por un authUid; el canónico
+      //    ya está en la lista. Sin este filtro, un cliente que hizo walk-in
+      //    (ac_hash) + después login passwordless (authUid) aparecía 2 veces
+      //    en el buscador de agenda.
       _cache.data = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(u => (u.nombre || '').trim());
+        .filter(u => (u.nombre || '').trim() && !u.fusionadoCon);
       _cache.loaded = true;
       _emit();
     },

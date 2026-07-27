@@ -133,7 +133,23 @@ async function recalcularSuggestion(citasCol, usersCol, clienteUid, telefonoFall
     return;
   }
 
-  const userRef      = usersCol.doc(clienteUid);
+  // Seguir puntero de fusión: si el clienteUid apunta a un legacy que fue
+  // fusionado con la cuenta del club (users/{authUid}), redirigir al
+  // canónico. Sin esto los recordatorios quedan en el doc fusionado y el
+  // push nunca sale (el fcmToken vive en el authUid).
+  let uidDestino = clienteUid;
+  try {
+    const legacySnap = await usersCol.doc(clienteUid).get();
+    const fusionadoCon = legacySnap.exists ? legacySnap.data()?.fusionadoCon : null;
+    if (fusionadoCon && fusionadoCon !== clienteUid) {
+      logger.info(`[Haircut] ${clienteUid} fusionado con ${fusionadoCon} — redirigo recordatorio al canónico`);
+      uidDestino = fusionadoCon;
+    }
+  } catch (e) {
+    logger.warn(`[Haircut] no se pudo verificar fusionadoCon de ${clienteUid}: ${e.message}`);
+  }
+
+  const userRef      = usersCol.doc(uidDestino);
   const existingSnap = await userRef.get();
   const writeData = {
     ultimaCitaFecha:    Timestamp.fromDate(ultimaCitaFecha),
@@ -151,7 +167,7 @@ async function recalcularSuggestion(citasCol, usersCol, clienteUid, telefonoFall
   }
   await userRef.set(writeData, { merge: true });
 
-  logger.info(`[Haircut] users/${clienteUid} → avg=${avgIntervalDias}d next=${nextDate.toISOString().split('T')[0]}`);
+  logger.info(`[Haircut] users/${uidDestino} → avg=${avgIntervalDias}d next=${nextDate.toISOString().split('T')[0]}`);
 }
 
 // ── Trigger: /citas/{citaId} (elegance root) ──────────────────────
