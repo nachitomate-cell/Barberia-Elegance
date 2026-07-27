@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
+  Calendar, CalendarPlus, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical, Coffee,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
@@ -167,6 +167,10 @@ const BARBER_EMPTY = {
   sucursalId: '',
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
+  // Fechas puntuales que HABILITAN al barbero fuera del horario semanal
+  // (ej: un sábado que atiende excepcionalmente). Array de strings
+  // 'YYYY-MM-DD'. Ver DiasExtraEditor + esDiaLibre en Agenda/Pizarra.
+  diasExtra: [],
   ausencias: [],
   permitirSobrecupoPublico: false,
   tramosVip: [], // [{ inicio: 'HH:MM', fin: 'HH:MM' }] declarados explícitamente
@@ -191,6 +195,79 @@ function initHorario(b) {
     });
   }
   return base;
+}
+
+/* ─── DiasExtraEditor ──────────────────────────────────────
+   Editor de fechas puntuales que HABILITAN al barbero fuera de su
+   horario semanal. Sirve para sábados eventuales, cubrir a un
+   compañero, o cualquier turno extraordinario sin tocar la jornada
+   base. Guarda un array de strings 'YYYY-MM-DD' en
+   barberos/{id}.diasExtra.
+   El input soporta agregar de a una fecha; ya guardadas se listan
+   como chips removibles. Auto-ordena y evita duplicados. */
+function DiasExtraEditor({ value = [], onChange }) {
+  const [nueva, setNueva] = useState('');
+  const hoy = new Date().toISOString().split('T')[0];
+  const fechas = Array.isArray(value) ? [...value].sort() : [];
+
+  const agregar = () => {
+    if (!nueva) return;
+    if (fechas.includes(nueva)) { setNueva(''); return; }
+    onChange([...fechas, nueva].sort());
+    setNueva('');
+  };
+  const quitar = (f) => onChange(fechas.filter(x => x !== f));
+
+  const fmt = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <input
+          type="date"
+          value={nueva}
+          min={hoy}
+          onChange={e => setNueva(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } }}
+          className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={agregar}
+          disabled={!nueva}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
+        >
+          <Plus size={13} /> Agregar
+        </button>
+      </div>
+      {fechas.length === 0 ? (
+        <p className="text-[11.5px] text-slate-600 italic">
+          Sin fechas extra. Los días marcados como no laborales en su horario semanal seguirán bloqueados.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {fechas.map(f => (
+            <div key={f} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[12px] font-semibold">
+              <CalendarPlus size={11} className="shrink-0" />
+              <span>{fmt(f)}</span>
+              <button
+                type="button"
+                onClick={() => quitar(f)}
+                className="ml-0.5 -mr-0.5 w-5 h-5 flex items-center justify-center rounded-full hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-100"
+                aria-label={`Quitar ${fmt(f)}`}
+              >
+                <X size={11} strokeWidth={2.5} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ─── Section accordion ──────────────────────────────────── */
@@ -1047,6 +1124,7 @@ export default function Equipo() {
       sucursalId:   b.sucursalId   || '',
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
+      diasExtra:    Array.isArray(b.diasExtra) ? b.diasExtra : [],
       ausencias:    b.ausencias    || [],
       permitirSobrecupoPublico: !!b.permitirSobrecupoPublico,
       tramosVip: Array.isArray(b.tramosVip) ? b.tramosVip : [],
@@ -2302,6 +2380,18 @@ export default function Equipo() {
                   onChange={cfg => setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } }))} />
               ))}
             </div>
+          </Section>
+
+          {/* ── Días extra (excepciones fuera del horario semanal) ── */}
+          <Section title="Días extra" Icon={CalendarPlus}>
+            <p className="text-[10px] text-slate-500 -mt-1 mb-2">
+              Habilita fechas puntuales aunque su horario semanal las marque como no laborales
+              (ej: un sábado que atiende excepcionalmente). No afecta el horario semanal.
+            </p>
+            <DiasExtraEditor
+              value={Array.isArray(form.diasExtra) ? form.diasExtra : []}
+              onChange={arr => setForm(f => ({ ...f, diasExtra: arr }))}
+            />
           </Section>
 
           {/* ── Servicios ── */}

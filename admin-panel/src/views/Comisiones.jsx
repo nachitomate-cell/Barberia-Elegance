@@ -1365,21 +1365,35 @@ export default function Comisiones() {
       return (raw != null && raw !== '' && Number.isFinite(n) && n > 0) ? n : 0;
     };
 
-    // Servicios: si el servicio tiene arriendo (Y cliente propio) → comisión =
-    // precio − arriendo. Sino → precio × % (override o global). Cortesía = $0.
+    // Servicios: dos modelos según si es cliente de cartera propia (CP) o no.
+    //
+    // Modelo NORMAL: el cliente paga al local → local ingresa precio completo,
+    //   comisión al barbero = precio × % (override o global). Cortesía = $0.
+    //
+    // Modelo CP (arriendo, cartera propia del barbero): el cliente le paga TODO
+    //   al barbero directo, el barbero le debe al local un arriendo fijo por
+    //   ese servicio. Entonces:
+    //     · Ingreso del local = arriendo (NO el precio — no pasa por caja del local)
+    //     · Comisión al barbero desde el local = 0 (el barbero ya cobró todo)
+    //     · Arriendo contabilizado aparte (arriendoTotal) para saber cuánto le
+    //       debe el barbero al local.
+    //   Se detecta por sufijoClientePropio en el nombre del cliente + arriendo
+    //   configurado para ese servicio en barberos/{id}.arriendoPorServicio.
     citas.forEach(c => {
       const key = resolverBarbero(c.barberoId, c.barbero);
       const precio = precioServicio(c);
       map[key].citas++;
-      map[key].ingresosServicios += precio;
       const feeArriendo = arriendoDe(map[key], c.servicioId, c.clienteNombre);
-      if (feeArriendo > 0 && precio > 0) {
-        // El barbero cobra `precio` al cliente y paga `feeArriendo` al local.
-        // Su neto = precio − feeArriendo (cap a 0 por seguridad).
-        map[key].comisionServicios += Math.max(0, precio - feeArriendo);
+      const esCP = feeArriendo > 0 && precio > 0;
+      if (esCP) {
+        // Ingreso del local = solo el arriendo. El precio va al barbero directo.
+        map[key].ingresosServicios += feeArriendo;
         map[key].arriendoTotal     += feeArriendo;
         map[key].arriendoCount     += 1;
+        // comisionServicios: no se suma (el barbero ya cobró íntegro al cliente)
       } else {
+        // Modelo normal: local ingresa el precio y paga comisión al barbero.
+        map[key].ingresosServicios += precio;
         map[key].comisionServicios += precio * (pctPara(map[key], c.servicioId) / 100);
       }
       const propina = Number(c.propina) || 0;

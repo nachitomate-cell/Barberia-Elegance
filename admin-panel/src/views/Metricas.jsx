@@ -645,10 +645,12 @@ export default function Metricas() {
     return rx.test(nombre);
   }, []);
 
-  /* Comisión final (en $) que le paga el local al barbero por 1 cita.
+  /* Comisión final (en $) que le paga el LOCAL al barbero por 1 cita.
      Precedencia:
       1) Si es cliente propio (sufijo match) Y arriendoPorServicio[svcId] > 0
-         → comisión = precio − arriendo (modelo Oren-Pablo).
+         → comisión = 0 (modelo CP: el cliente paga TODO al barbero
+         directo, el barbero le debe al local el arriendo. El local no
+         "paga" nada al barbero por esa cita — solo recibe el arriendo).
       2) Sino, precio × pctComisionServicio / 100 (override o global).
      Precio 0 (cortesía) → 0. */
   const comisionServicioCita = useCallback((barbero, servicioId, precio, clienteNombre) => {
@@ -658,18 +660,38 @@ export default function Metricas() {
       const raw = barbero?.arriendoPorServicio?.[servicioId];
       const rent = Number(raw);
       if (raw != null && raw !== '' && Number.isFinite(rent) && rent > 0) {
-        return Math.max(0, p - rent);
+        return 0;
       }
     }
     return p * pctComisionServicio(barbero, servicioId) / 100;
   }, [pctComisionServicio, esClientePropio]);
+
+  /* Ingreso del LOCAL por 1 cita.
+      · CP con arriendo → solo el arriendo (el precio se lo lleva el barbero directo)
+      · Modelo normal   → precio completo
+     Sirve para separar "lo que gastó el cliente" (precio) de "lo que entra a la
+     caja del local" (arriendo o precio). */
+  const ingresoLocalCita = useCallback((cita) => {
+    const p = Number(cita.cortesia ? 0 : (cita.precio ?? getPrice(cita))) || 0;
+    if (p <= 0) return 0;
+    // Necesitamos el barbero de la cita para saber si es CP.
+    const b = barberos.find(x => x.id === cita.barberoId);
+    if (b && esClientePropio(b, cita.clienteNombre)) {
+      const raw = b?.arriendoPorServicio?.[cita.servicioId];
+      const rent = Number(raw);
+      if (raw != null && raw !== '' && Number.isFinite(rent) && rent > 0) {
+        return rent;
+      }
+    }
+    return p;
+  }, [barberos, esClientePropio, getPrice]);
 
   /* ── 1. Rendimiento Comercial Memoized KPIs and Stats ── */
   const stats = useMemo(() => {
     const rangeCitas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin);
     const completadas = rangeCitas.filter(c => c.estado === 'Completada');
     const canceladas  = rangeCitas.filter(c => c.estado === 'Cancelada');
-    const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
+    const ingresos    = completadas.reduce((s, c) => s + ingresoLocalCita(c), 0);
     const ticket      = completadas.length ? ingresos / completadas.length : 0;
 
     // Clientes recurrentes (>1 cita global)
@@ -730,7 +752,7 @@ export default function Metricas() {
       barberRanking,
       ingresosBar,
     };
-  }, [citas, fechaInicio, fechaFin, getPrice]);
+  }, [citas, fechaInicio, fechaFin, getPrice, ingresoLocalCita]);
 
   /* ── Período anterior equivalente (para deltas) ── */
   const prevRange = useMemo(() => getPrevRange(fechaInicio, fechaFin), [fechaInicio, fechaFin]);
@@ -742,7 +764,7 @@ export default function Metricas() {
     const r = citas.filter(c => c.fecha >= prevRange.inicio && c.fecha <= prevRange.fin);
     const completadas = r.filter(c => c.estado === 'Completada');
     const canceladas  = r.filter(c => c.estado === 'Cancelada');
-    const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
+    const ingresos    = completadas.reduce((s, c) => s + ingresoLocalCita(c), 0);
     const ticket      = completadas.length ? ingresos / completadas.length : 0;
     const ocupacion   = r.length ? (completadas.length / r.length) * 100 : 0;
 
@@ -780,7 +802,7 @@ export default function Metricas() {
     const prevUtilidadNeta = prevIngBrutos - prevTotalCostos;
 
     return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion, utilidadNeta: prevUtilidadNeta };
-  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
+  }, [citas, prevRange, getPrice, ingresoLocalCita, gastos, ventas, productos, barberos, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   /* Calcula delta % entre actual y previo */
   const pctDelta = useCallback((curr, prev) => {
@@ -796,10 +818,10 @@ export default function Metricas() {
       const d = new Date(end.getTime() - i * 86400000);
       const key = dateToStr(d);
       const dayCitas = citas.filter(c => c.fecha === key && c.estado === 'Completada');
-      out.push({ fecha: key, v: dayCitas.reduce((s, c) => s + getPrice(c), 0) });
+      out.push({ fecha: key, v: dayCitas.reduce((s, c) => s + ingresoLocalCita(c), 0) });
     }
     return out;
-  }, [citas, fechaFin, getPrice]);
+  }, [citas, fechaFin, getPrice, ingresoLocalCita]);
 
   // Product sales inside range
   const rangeVentas = useMemo(() => {
@@ -823,8 +845,8 @@ export default function Metricas() {
       c.fecha >= fechaInicio && c.fecha <= fechaFin &&
       c.estado === 'Completada' && !c.origenQA && c.esActivacionPack === true
     );
-    return rangeCitas.reduce((s, c) => s + getPrice(c), 0);
-  }, [citas, fechaInicio, fechaFin, getPrice]);
+    return rangeCitas.reduce((s, c) => s + ingresoLocalCita(c), 0);
+  }, [citas, fechaInicio, fechaFin, getPrice, ingresoLocalCita]);
 
   // Chart data for 6 months (Historical trend for Comercial Tab).
   // Fuente: citas6m (cache dedicado independiente del rango de filtro).
@@ -844,11 +866,11 @@ export default function Metricas() {
       const mc = source.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
       return {
         mes:       label,
-        servicios: mc.reduce((s, c) => s + getPrice(c), 0),
+        servicios: mc.reduce((s, c) => s + ingresoLocalCita(c), 0),
         citas:     mc.length,
       };
     });
-  }, [citas6m, citas, getPrice]);
+  }, [citas6m, citas, getPrice, ingresoLocalCita]);
 
   const hayPrecios = chartData.some(d => d.servicios > 0);
 
@@ -985,7 +1007,7 @@ export default function Metricas() {
   /* ── 2. Pérdidas y Ganancias (P&L) Dashboard Memo ── */
   const pnl = useMemo(() => {
     const rangeCompletas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin && c.estado === 'Completada');
-    const servicesRevenue = rangeCompletas.reduce((s, c) => s + getPrice(c), 0);
+    const servicesRevenue = rangeCompletas.reduce((s, c) => s + ingresoLocalCita(c), 0);
     const rangeGastos = gastos.filter(g => {
       const d = parseDateStr(g.fecha || g.creadoEn);
       return d >= fechaInicio && d <= fechaFin;
@@ -1100,7 +1122,7 @@ export default function Metricas() {
       rangeGastos,
       propinas,
     };
-  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
+  }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, ingresoLocalCita, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   // 6-Month P&L Historical Trend AreaChart data.
   // Fuente: citas6m/ventas6m/gastos6m (cache dedicado). Fallback a los
@@ -1121,7 +1143,7 @@ export default function Metricas() {
 
     return months.map(({ key, label }) => {
       const mc = cSrc.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
-      const sRev = mc.reduce((s, c) => s + getPrice(c), 0);
+      const sRev = mc.reduce((s, c) => s + ingresoLocalCita(c), 0);
 
       const mv = vSrc.filter(v => {
         const d = parseDateStr(v.fecha || v.createdAt || v.creadoEn);
@@ -1171,7 +1193,7 @@ export default function Metricas() {
         'Utilidad Neta': Math.round(utilidadNeta),
       };
     });
-  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
+  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, ingresoLocalCita, parseDateStr, pctComisionServicio, comisionServicioCita, pctComisionProducto]);
 
   /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
   const paymentBreakdown = useMemo(() => {
@@ -1238,7 +1260,7 @@ export default function Metricas() {
       const bCitas     = rangeCitas.filter(c => c.barberoId === b.id || c.barbero === b.nombre);
       const completadas = bCitas.filter(c => c.estado === 'Completada');
       const canceladas  = bCitas.filter(c => c.estado === 'Cancelada');
-      const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
+      const ingresos    = completadas.reduce((s, c) => s + ingresoLocalCita(c), 0);
       const ticket      = completadas.length ? ingresos / completadas.length : 0;
       const propinas    = completadas.reduce((s, c) => s + (Number(c.propina) || 0), 0);
       const comisionPct = Number(b.comision) || 0;
@@ -1267,7 +1289,7 @@ export default function Metricas() {
           c.estado === 'Completada' &&
           (c.barberoId === b.id || c.barbero === b.nombre)
         );
-        meses.push({ mes: label, citas: mc.length, ingresos: mc.reduce((s, c) => s + getPrice(c), 0) });
+        meses.push({ mes: label, citas: mc.length, ingresos: mc.reduce((s, c) => s + ingresoLocalCita(c), 0) });
       }
 
       const clienteMap = {};
@@ -1318,7 +1340,7 @@ export default function Metricas() {
       ]),
     ];
     downloadCSV(`metricas_citas_${fechaInicio}_${fechaFin}.csv`, rows);
-  }, [citas, fechaInicio, fechaFin, getPrice]);
+  }, [citas, fechaInicio, fechaFin, getPrice, ingresoLocalCita]);
 
   const handlePrint = useCallback(() => window.print(), []);
 

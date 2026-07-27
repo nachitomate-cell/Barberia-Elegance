@@ -2714,10 +2714,20 @@ function descansosDe(barbero, dateObj) {
 /* ¿El barbero tiene DÍA LIBRE en esta fecha? El horario semanal (Equipo →
    "Horario semanal") marca cada día con `activo`. activo === false = día libre.
    Sin `horario` configurado, o sin entrada para ese día → asumimos que trabaja
-   (retrocompat: barberos viejos sin horario NO se marcan como libres). */
+   (retrocompat: barberos viejos sin horario NO se marcan como libres).
+
+   Excepción "día extra": el barbero puede tener fechas específicas en
+   `barberos/{id}.diasExtra: ['YYYY-MM-DD', ...]` que HABILITAN esa fecha aunque
+   su horario semanal la marque inactiva. Sirve para tomar turnos puntuales
+   fuera de la jornada normal (feriados, sábados eventuales, cubrir a otro). */
 function esDiaLibre(barbero, dateObj) {
   const dia = barbero?.horario?.[String(dateObj.getDay())];
-  return !!dia && dia.activo === false;
+  if (!dia || dia.activo !== false) return false;
+  // Día marcado como no laboral en el horario → chequear excepción positiva
+  const fechaISO = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+  const extras = Array.isArray(barbero?.diasExtra) ? barbero.diasExtra : [];
+  if (extras.includes(fechaISO)) return false;
+  return true;
 }
 
 /* ── ColacionBlock ───────────────────────────────────────────────

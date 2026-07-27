@@ -56,11 +56,14 @@ function durOfCita(c) {
 //   'colacion'   → en break de colación
 // Incluye "hasta cuándo" (mins), "cuánto falta" para desocuparse (mins) y,
 // si está ocupado, el cliente + servicio actual para el chip.
-function computeEstadoBarbero({ barberoId, citas, nowMin, colacion, horarioHoy }) {
+function computeEstadoBarbero({ barberoId, citas, nowMin, colacion, horarioHoy, esExcepcionExtra }) {
   // 0) ¿Día libre? El horario semanal del barbero marca este día como inactivo.
   //    Prioridad máxima: aunque tenga colación configurada o cita mal cargada,
   //    si su día no está activo, es día libre.
-  if (horarioHoy && horarioHoy.activo === false) {
+  //    EXCEPCIÓN: `diasExtra` (fechas puntuales que habilitan al barbero fuera
+  //    de su jornada semanal) revierte el "día libre" y lo trata como día
+  //    normal (empieza el flujo de detección de ocupado/colación/libre).
+  if (horarioHoy && horarioHoy.activo === false && !esExcepcionExtra) {
     return { estado: 'dia_libre' };
   }
   const misCitas = citas
@@ -382,12 +385,16 @@ export default function Pizarra() {
     const colacionesBarbero = (config && config.colacionesBarbero) || {};
     const colacionGlobal    = (config && config.colacion) || null;
     const dowStr = String(now.getDay()); // '0' dom .. '6' sab
+    const fechaISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const arr = barberosVisibles.map(b => {
       const propia   = colacionesBarbero[b.id];
       const colacion = (propia && propia.inicio && propia.fin) ? propia : colacionGlobal;
       const horarioHoy = b.horario?.[dowStr] || null;
+      // Excepción positiva: día extra habilitado puntualmente para HOY.
+      const extras = Array.isArray(b?.diasExtra) ? b.diasExtra : [];
+      const esExcepcionExtra = extras.includes(fechaISO);
       const estado = computeEstadoBarbero({
-        barberoId: b.id, citas, nowMin, colacion, horarioHoy,
+        barberoId: b.id, citas, nowMin, colacion, horarioHoy, esExcepcionExtra,
       });
       return { b, estado, _prio: priorityKey(estado) };
     });
