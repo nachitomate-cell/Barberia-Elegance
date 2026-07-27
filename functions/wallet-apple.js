@@ -105,7 +105,7 @@ async function generarPkpass(tenantId, uid) {
   const u = uSnap.exists ? uSnap.data() : {};
   const disp = Number(u.sellosDisponibles ?? u.stamps ?? 0);
   const hist = Number(u.sellosHistoricos ?? disp);
-  const { filled, target } = core.stampState(disp, ctx.premios);
+  const { filled, target, hitos } = core.stampState(disp, ctx.premios);
   const rango = core.rangoNombre(hist, ctx.rangosCfg);
   const accountName = u.nombre || u.displayName || 'Cliente';
 
@@ -122,7 +122,7 @@ async function generarPkpass(tenantId, uid) {
     uid,
     serial,
     authToken,
-    datos: { accountName, filled, target, rango, cfg: ctx.cfg },
+    datos: { accountName, filled, target, rango, cfg: ctx.cfg, premios: ctx.premios, hitos },
   });
   const updatedAt = paseSnap.exists ? paseSnap.data().updatedAt : meta.updatedAt;
   return { buf, serial, updatedAt };

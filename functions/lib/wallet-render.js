@@ -162,15 +162,27 @@ function fillStamp(ctx, cx, cy, r, accentHex) {
  * width/height permiten otros lienzos (Apple strip); por defecto
  * mantiene las dimensiones Google (heroImage 1032×336). track=true
  * dibuja la barra de progreso (Opción A elegida 2026-07-26).
- * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number, track?:boolean}} opts
+ *
+ * hitos: array 1-indexed de casillas que son "premio intermedio" (⭐ en
+ * vez del glyph normal). No incluye el `target` (esa siempre es ⭐).
+ * Sirve para el modelo "sello 3 → 10% dcto, sello 5 → café gratis…":
+ * el cliente ve dónde están las recompensas sin tener que ir al reverso.
+ *
+ * @param {{filled:number, target:number, accent?:string, bg?:string, width?:number, height?:number, track?:boolean, icon?:string, hitos?:number[]}} opts
  */
-function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, track = true, icon = 'check' } = {}) {
+function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, track = true, icon = 'check', hitos = [] } = {}) {
   const w = Math.max(100, Math.round(Number(width) || W));
   const h = Math.max(40, Math.round(Number(height) || H));
   const n = Math.max(1, Math.min(40, Math.round(Number(target) || 10)));
   const done = Math.max(0, Math.min(n, Math.round(Number(filled) || 0)));
   const accentHex = normHex(accent, '#c9a84c');
   const bgHex = normHex(bg, '#0a0a0a');
+  // Set de hitos válidos (1-indexed, dentro de rango, excluye el target).
+  const hitosSet = new Set(
+    (Array.isArray(hitos) ? hitos : [])
+      .map((x) => Math.round(Number(x)))
+      .filter((x) => Number.isFinite(x) && x >= 1 && x < n),
+  );
 
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
@@ -226,10 +238,11 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, 
     const { cx, cy } = center(i);
     const isFilled = i < done;
     const isPrize = i === n - 1;
+    const isHito = hitosSet.has(i + 1);
 
     if (isFilled) {
       fillStamp(ctx, cx, cy, r, accentHex);
-      if (isPrize) drawStar(ctx, cx, cy, r * 0.5, contrastOn(accentHex));
+      if (isPrize || isHito) drawStar(ctx, cx, cy, r * 0.5, contrastOn(accentHex));
       else drawGlyph(ctx, cx, cy, r, icon, contrastOn(accentHex));
     } else if (isPrize) {
       // Premio pendiente: aro punteado + estrella con brillo.
@@ -242,6 +255,20 @@ function renderStampStrip({ filled = 0, target = 10, accent, bg, width, height, 
       ctx.shadowColor = accentHex;
       ctx.shadowBlur = r * 0.55;
       drawStar(ctx, cx, cy, r * 0.55, accentHex);
+      ctx.restore();
+    } else if (isHito) {
+      // Hito pendiente: aro punteado + estrella un poco más chica que el prize
+      // final (para diferenciarlo del premio grande). Mismo lenguaje visual.
+      ctx.strokeStyle = accentHex;
+      ctx.lineWidth = Math.max(2, r * 0.12);
+      ctx.setLineDash([r * 0.4, r * 0.28]);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.shadowColor = accentHex;
+      ctx.shadowBlur = r * 0.4;
+      drawStar(ctx, cx, cy, r * 0.42, accentHex);
       ctx.restore();
     } else {
       // Vacío = "socket": disco un pelo más claro que el fondo + aro

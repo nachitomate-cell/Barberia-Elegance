@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Wallets — bioo · Tarjetas de fidelidad</title>
-<meta name="description" content="Diseña la tarjeta de fidelidad digital de tu local: Google Wallet y Apple Wallet, personalizada con tu marca.">
+<title>Wallo · Estudio — diseña tu tarjeta de fidelidad</title>
+<meta name="description" content="Wallo: diseña la tarjeta de fidelidad digital de tu local en 5 minutos. Google Wallet y Apple Wallet, con geo-push.">
 <link rel="icon" type="image/png" href="/bioo-iso.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -176,7 +176,7 @@
 <body>
 
 <header class="top">
-  <div class="wordmark">bioo <span class="pill">wallets</span></div>
+  <div class="wordmark">wallo <span class="pill">estudio</span></div>
   <div class="session hidden" id="session">
     <span id="session-email"></span>
     <button onclick="salir()">Salir</button>
@@ -190,7 +190,7 @@
   <!-- Login -->
   <div id="view-login" class="login-wrap hidden">
     <div class="card">
-      <h1>Wallets</h1>
+      <h1>Wallo · Estudio</h1>
       <p class="sub">Diseña la tarjeta de fidelidad digital de tu local. Entra con tu cuenta de administrador.</p>
       <label for="login-email">Correo</label>
       <input type="email" id="login-email" autocomplete="username" placeholder="tu@correo.cl">
@@ -394,6 +394,7 @@ var _tid = null;          // tenant activo
 var _isSuper = false;
 var _addonActivo = false;
 var _dirty = false;       // hay cambios sin guardar (para beforeunload)
+var _premios = [];        // premios activos del tenant → alimentan hitos ⭐
 
 function marcarDirty() { _dirty = true; }
 function limpiarDirty() { _dirty = false; }
@@ -428,6 +429,11 @@ function cfgRef(tid) {
   return tid === 'elegance'
     ? db.collection('configuracion').doc('wallet')
     : db.collection('tenants').doc(tid).collection('configuracion').doc('wallet');
+}
+function premiosCol(tid) {
+  return tid === 'elegance'
+    ? db.collection('premios')
+    : db.collection('tenants').doc(tid).collection('premios');
 }
 
 // ── Sesión ────────────────────────────────────────────────────────
@@ -544,9 +550,16 @@ function cargarTenant(tid) {
   Promise.all([
     db.collection('_billing').doc(tid).get().catch(function () { return null; }),
     cfgRef(tid).get().catch(function () { return null; }),
+    premiosCol(tid).get().catch(function () { return null; }),
   ]).then(function (r) {
     var billing = r[0];
     var cfgSnap = r[1];
+    var premiosSnap = r[2];
+    // Costos de sellos por premio activo — alimentan los ⭐ del preview.
+    _premios = premiosSnap
+      ? premiosSnap.docs.map(function (d) { return d.data(); })
+          .filter(function (p) { return Number(p.costoSellos) > 0 && (p.activo === undefined || p.activo === true); })
+      : [];
     _addonActivo = !!(billing && billing.exists && billing.data().walletActivo === true);
 
     var badge = $('addon-badge');
@@ -633,20 +646,46 @@ function leerForm() {
 }
 
 // ── Preview en vivo ───────────────────────────────────────────────
+// Calcula el estado de sellos (target + hitos) igual que stampState del
+// backend, para que el mockup se vea idéntico al pase real.
+function calcPreviewState(filled) {
+  var costos = _premios.map(function (p) { return Number(p.costoSellos); })
+    .filter(function (n) { return isFinite(n) && n > 0; })
+    .sort(function (a, b) { return a - b; });
+  if (!costos.length) return { target: 10, hitos: [] };
+  var proximo = null;
+  for (var i = 0; i < costos.length; i++) if (filled < costos[i]) { proximo = costos[i]; break; }
+  var target = proximo != null ? proximo : costos[costos.length - 1];
+  var hitos = costos.filter(function (c) { return c < target; });
+  return { target: target, hitos: hitos };
+}
 function renderPreview() {
   var cfg = leerForm();
   var filled = parseInt($('pv-range').value, 10) || 0;
+  var state = calcPreviewState(filled);
+  // El slider del preview va 0-10 pero el target puede ser mayor si hay
+  // premios grandes. Ajustamos el label para que refleje la meta real.
   $('pv-range-label').textContent = filled + (filled === 1 ? ' sello' : ' sellos');
   $('pv-card').style.background = /^#[0-9a-fA-F]{6}$/.test(cfg.bg) ? cfg.bg : '#0a0a0a';
   $('pv-program').textContent = cfg.programName;
   $('pv-issuer').textContent = cfg.issuerName;
-  $('pv-sellos').textContent = filled + ' / 10';
+  $('pv-sellos').textContent = filled + ' / ' + state.target;
   var logo = $('pv-logo');
   logo.style.visibility = 'visible';
   logo.src = cfg.logoUrl || '/bioo-iso.png';
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent) ? cfg.accent.slice(1) : 'c9a84c';
   var bgc = /^#[0-9a-fA-F]{6}$/.test(cfg.bg) ? cfg.bg.slice(1) : '0a0a0a';
-  $('pv-strip').src = STAMP_IMG + '?f=' + filled + '&t=10&c=' + acc + '&bg=' + bgc + (_stampIcon !== 'check' ? '&i=' + _stampIcon : '');
+  var url = STAMP_IMG + '?f=' + Math.min(filled, state.target) + '&t=' + state.target + '&c=' + acc + '&bg=' + bgc;
+  if (_stampIcon !== 'check') url += '&i=' + _stampIcon;
+  if (state.hitos.length) url += '&h=' + state.hitos.join(',');
+  $('pv-strip').src = url;
+  // Slider del demo sigue al target actual: si el próximo premio son 15
+  // sellos, el rango 0-15 (con paso 1) muestra el llenado real.
+  var rangeEl = $('pv-range');
+  if (rangeEl && Number(rangeEl.max) !== state.target) {
+    rangeEl.max = state.target;
+    if (Number(rangeEl.value) > state.target) rangeEl.value = state.target;
+  }
   $('pv-geo').textContent = cfg.location
     ? '📍 ' + (cfg.geoMensaje || 'Aparece sola cuando el cliente está cerca del local')
     : '';

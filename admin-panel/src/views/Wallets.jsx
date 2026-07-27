@@ -113,7 +113,7 @@ export default function Wallets() {
           <h2 className="text-2xl sm:text-3xl font-black leading-tight tracking-tight text-primary [html.light_&]:text-ink-900">
             Diseña tu tarjeta en{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">
-              Wallets · bioo
+              Wallo
             </span>
           </h2>
           <p className="text-sm sm:text-base text-slate-300 [html.light_&]:text-ink-600 mt-3 max-w-xl mx-auto leading-relaxed">
@@ -128,7 +128,7 @@ export default function Wallets() {
           >
             Abrir el estudio <ExternalLink size={17} />
           </a>
-          <p className="text-xs text-slate-500 mt-3">wallets.bioo.cl · entra con esta misma cuenta</p>
+          <p className="text-xs text-slate-500 mt-3">Estudio Wallo · entra con esta misma cuenta</p>
         </div>
       </div>
 

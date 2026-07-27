@@ -91,8 +91,19 @@ async function fetchLogoPng(url) {
   }
 }
 
+// Lista textual de recompensas por hito (espejo de recompensasListText de
+// wallet-core.js) — igual formato para consistencia entre pases.
+function recompensasListText(premios) {
+  const list = (premios || [])
+    .filter((p) => Number(p.costoSellos) > 0 && (p.activo === undefined || p.activo === true))
+    .map((p) => ({ costo: Number(p.costoSellos), nombre: String(p.nombre || 'Premio').slice(0, 60) }))
+    .sort((a, b) => a.costo - b.costo);
+  if (!list.length) return null;
+  return list.map((p) => `Sello ${p.costo} · ${p.nombre}`).join('\n');
+}
+
 // ── pass.json (storeCard = el "LoyaltyObject" de Apple) ───────────
-function buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg = {} }) {
+function buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg = {}, premios = [] }) {
   const organizationName = cfg.issuerName || 'SynapTech';
   const p = {
     formatVersion: 1,
@@ -117,17 +128,26 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
         { key: 'cliente', label: 'CLIENTE', value: accountName || 'Cliente' },
         { key: 'rango', label: 'RANGO', value: rango || 'Silver', changeMessage: 'Nuevo rango: %@' },
       ],
-      backFields: [
-        {
-          key: 'como',
-          label: '¿Cómo funciona?',
-          value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
-        },
+      backFields: (function () {
+        const arr = [
+          {
+            key: 'como',
+            label: '¿Cómo funciona?',
+            value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
+          },
+        ];
+        // Lista de recompensas por hito (si el local cargó premios). El
+        // cliente ve qué gana en cada sello sin tener que preguntar.
+        const recompensasBody = recompensasListText(premios);
+        if (recompensasBody) {
+          arr.push({ key: 'recompensas', label: 'Recompensas', value: recompensasBody });
+        }
         // Tap-away a wallo.cl/crea: cuando el amigo del cliente ve la tarjeta
         // y toca el link del reverso, aterriza en el wizard de creación en
         // 1 toque. Motor viral compuesto — cada pase Apple es un cartel andante.
-        { key: 'wallo', label: 'Tarjeta digital', value: 'Wallo · Crea tu tarjeta digital gratis en wallo.cl/crea' },
-      ],
+        arr.push({ key: 'wallo', label: 'Tarjeta digital', value: 'Wallo · Crea tu tarjeta digital gratis en wallo.cl/crea' });
+        return arr;
+      })(),
     },
     // QR con el uid (espejo del accountId de Google) para canje en local.
     barcodes: [
@@ -149,15 +169,16 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
 // ── Construye y FIRMA el .pkpass → Buffer listo para servir ───────
 //  certs = { wwdr, signerCert, signerKey } (PEM strings).
 async function crearPkpass({ certs, uid, serial, authToken, datos }) {
-  const { accountName, filled, target, rango, cfg = {} } = datos || {};
+  const { accountName, filled, target, rango, cfg = {}, premios = [], hitos = [] } = datos || {};
   const accent = cfg.accent || '#c9a84c';
   const bg = cfg.bg || '#0a0a0a';
 
-  const passJson = buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg });
+  const passJson = buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg, premios });
 
-  // Strip de estampas (storeCard: 375×123 pts) — mismo dibujo que Google.
+  // Strip de estampas (storeCard: 375×123 pts) — mismo dibujo que Google,
+  // con hitos ⭐ para consistencia visual entre los dos wallets.
   const strip = (mult) => renderStampStrip({
-    filled, target, accent, bg, icon: cfg.stampIcon,
+    filled, target, accent, bg, icon: cfg.stampIcon, hitos,
     width: 375 * mult, height: 123 * mult,
   });
 

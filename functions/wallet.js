@@ -89,7 +89,12 @@ exports.walletStampImg = onRequest({ region: 'us-central1', cors: true }, (req, 
     const accent = '#' + String(req.query.c || 'c9a84c').replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
     const bg = req.query.bg ? '#' + String(req.query.bg).replace(/[^0-9a-fA-F]/g, '').slice(0, 6) : undefined;
     const icon = String(req.query.i || 'check').replace(/[^a-z]/g, '').slice(0, 12);
-    const png = renderStampStrip({ filled, target, accent, bg, icon });
+    // Hitos (opcional): "?h=3,5,10" → estrella en esas casillas intermedias.
+    const hitos = String(req.query.h || '')
+      .split(',')
+      .map((x) => parseInt(x, 10))
+      .filter((x) => Number.isFinite(x) && x >= 1 && x <= 40);
+    const png = renderStampStrip({ filled, target, accent, bg, icon, hitos });
     // Estado inmutable por URL → cache larga (Google Wallet cachea por su lado).
     res.set('Cache-Control', 'public, max-age=86400');
     res.set('Content-Type', 'image/png');
@@ -205,7 +210,7 @@ exports.walletGenerarPase = onCall(
     const hist = Number(u.sellosHistoricos ?? disp);
     const accent = cfg.accent || '#c9a84c';
     const bg = cfg.bg; const icon = cfg.stampIcon;
-    const { filled, target } = core.stampState(disp, premios);
+    const { filled, target, hitos } = core.stampState(disp, premios);
     const rango = core.rangoNombre(hist, rangosCfg);
     const accountName = u.nombre || u.displayName || 'Cliente';
 
@@ -214,7 +219,7 @@ exports.walletGenerarPase = onCall(
       // Asegurar la clase (idempotente) por si el admin solo activó sin provisionar.
       await core.upsertClass(key, core.buildClass(tenantId, cfg));
 
-      const obj = core.buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon });
+      const obj = core.buildObject(tenantId, uid, { accountName, filled, target, hitos, premios, rango, accent, bg, icon });
       await core.upsertObject(key, obj);
 
       // Guardar el vínculo en el user doc → habilita el sync automático.
@@ -263,14 +268,19 @@ async function syncPase(tenantId, uid, before, after) {
       ]);
       const accent = cfg.accent || '#c9a84c';
       const bg = cfg.bg; const icon = cfg.stampIcon;
-      const { filled, target } = core.stampState(dispDesp, premios);
+      const { filled, target, hitos } = core.stampState(dispDesp, premios);
       const rango = core.rangoNombre(histDesp, rangosCfg);
+
+      // Módulos: rango + recompensas por hito (si hay premios cargados).
+      const textModules = [{ id: 'rango', header: 'Rango', body: rango }];
+      const recompensasBody = core.recompensasListText(premios);
+      if (recompensasBody) textModules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
 
       const key = saKey();
       await core.patchObject(key, objectId, {
         loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon }) } },
-        textModulesData: [{ id: 'rango', header: 'Rango', body: rango }],
+        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon, hitos }) } },
+        textModulesData: textModules,
         // Backfill del QR en pases viejos (los nuevos ya lo traen desde buildObject).
         barcode: {
           type: 'QR_CODE',

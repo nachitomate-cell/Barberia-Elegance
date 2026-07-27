@@ -66,11 +66,18 @@ async function authClient(saKey) {
 }
 
 // ── URL de la imagen de estampas para un estado dado ──────────────
-function stampImageUrl({ filled, target, accent, bg, icon }) {
+function stampImageUrl({ filled, target, accent, bg, icon, hitos }) {
   const c = String(accent || '#c9a84c').replace('#', '');
   let url = `${IMG_BASE}?f=${Math.max(0, filled | 0)}&t=${Math.max(1, target | 0)}&c=${encodeURIComponent(c)}`;
   if (bg) url += `&bg=${encodeURIComponent(String(bg).replace('#', ''))}`;
   if (icon && icon !== 'check') url += `&i=${encodeURIComponent(icon)}`;
+  // Hitos intermedios (⭐ en esas casillas). Filtramos <target y unicos.
+  if (Array.isArray(hitos) && hitos.length) {
+    const t = Math.max(1, target | 0);
+    const hs = Array.from(new Set(hitos.map((x) => Number(x)).filter((x) => Number.isFinite(x) && x >= 1 && x < t)))
+      .sort((a, b) => a - b);
+    if (hs.length) url += `&h=${hs.join(',')}`;
+  }
   return url;
 }
 
@@ -83,10 +90,13 @@ function stampState(sellosDisp, premios) {
     .map((p) => Number(p.costoSellos))
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => a - b);
-  if (!arr.length) return { filled: Math.min(disp, 10), target: 10 };
+  if (!arr.length) return { filled: Math.min(disp, 10), target: 10, hitos: [] };
   const proximo = arr.find((c) => disp < c);
   const target = proximo != null ? proximo : arr[arr.length - 1];
-  return { filled: Math.min(disp, target), target };
+  // Hitos = premios anteriores al target (⭐ intermedias en la tira).
+  // El target ya se pinta con ⭐ por su lado (isPrize en el renderer).
+  const hitos = arr.filter((c) => c < target);
+  return { filled: Math.min(disp, target), target, hitos };
 }
 
 // ── ¿Cruzó a un premio nuevo? (espejo de desbloqueoNuevo) ─────────
@@ -135,7 +145,7 @@ function staffBarcodeValue(tenantId, uid) {
   return `SPTW:${safe(tenantId)}:${safe(uid)}`;
 }
 
-function buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon }) {
+function buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon, hitos, premios }) {
   const obj = {
     id: objectIdFor(tenantId, uid),
     classId: classIdFor(tenantId),
@@ -143,7 +153,7 @@ function buildObject(tenantId, uid, { accountName, filled, target, rango, accent
     accountId: String(uid),
     accountName: accountName || 'Cliente',
     loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-    heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon }) } },
+    heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon, hitos }) } },
     // QR escaneable por el staff (wallets.bioo.cl/staff). Sin esto el pase
     // no muestra código y el flujo standalone (sin agenda) no funciona.
     barcode: {
@@ -157,8 +167,24 @@ function buildObject(tenantId, uid, { accountName, filled, target, rango, accent
     // heredarían el link desde la clase.
     linksModuleData: { uris: [WALLO_LINK] },
   };
-  if (rango) obj.textModulesData = [{ id: 'rango', header: 'Rango', body: rango }];
+  const modules = [];
+  if (rango) modules.push({ id: 'rango', header: 'Rango', body: rango });
+  const recompensasBody = recompensasListText(premios);
+  if (recompensasBody) modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+  if (modules.length) obj.textModulesData = modules;
   return obj;
+}
+
+// Texto humano con la lista de recompensas por hito. Devuelve null si no
+// hay premios definidos, para que buildObject no meta un módulo vacío.
+// Ordena por costoSellos asc; corta nombres largos para no romper el pase.
+function recompensasListText(premios) {
+  const list = (premios || [])
+    .filter((p) => Number(p.costoSellos) > 0 && (p.activo === undefined || p.activo === true))
+    .map((p) => ({ costo: Number(p.costoSellos), nombre: String(p.nombre || 'Premio').slice(0, 60) }))
+    .sort((a, b) => a.costo - b.costo);
+  if (!list.length) return null;
+  return list.map((p) => `Sello ${p.costo} · ${p.nombre}`).join('\n');
 }
 
 // ── CRUD contra la API (upsert idempotente por GET→PUT / POST) ─────
@@ -234,4 +260,5 @@ module.exports = {
   addMessage,
   buildSaveUrl,
   staffBarcodeValue,
+  recompensasListText,
 };
