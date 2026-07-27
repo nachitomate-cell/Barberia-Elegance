@@ -99,6 +99,23 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />;
 
+  // Barberos puros NO acceden a gestion-interna. Se redirigen a la agenda
+  // pública del local, donde tienen su propio login para ver SU día. Motivo:
+  //  · Evita fuga de la base de clientes (memoria feedback_no_exponer_whatsapp_cliente)
+  //  · Un barbero no debería ver la agenda de sus compañeros ni las métricas del local
+  //  · Los admins y "admin-barbero" (Omar Chameleon-tipo) siguen entrando porque
+  //    su claim es role='admin', no 'barbero'
+  if (role === 'barbero') {
+    const suffix = tenantId && tenantId !== 'elegance' ? `?local=${tenantId}` : '';
+    window.location.replace(`/agenda.html${suffix}`);
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400 gap-3">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm">Llevándote a tu agenda…</p>
+      </div>
+    );
+  }
+
   return (
     <HubTenantGate>
     <Routes>
