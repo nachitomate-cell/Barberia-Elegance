@@ -2663,10 +2663,10 @@
       if (hasAuth) {
         // El usuario YA tiene cuenta en Firebase Auth → no es "crear", es "iniciar sesión".
         const saludo = primerNombre ? `¡Hola ${primerNombre}! ` : '';
-        $m.innerHTML = `${saludo}Ya tenés cuenta en ${window.SHOP?.club || 'el club'}. `
+        $m.innerHTML = `${saludo}Ya tienes cuenta en ${window.SHOP?.club || 'el club'}. `
           + `<button type="button" class="underline font-semibold" onclick="switchTab('login');`
           + `document.getElementById('loginEmail').value=document.getElementById('regEmail').value;">`
-          + `Ingresá acá</button>.`;
+          + `Inicia sesión aquí</button>.`;
       } else {
         $m.textContent = primerNombre
           ? `¡Hola ${primerNombre}! Ya te teníamos registrado — confirma tus datos y crea tu cuenta.`
