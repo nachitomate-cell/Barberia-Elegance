@@ -2647,8 +2647,9 @@
     }
   }
 
-  function _applyClienteMigradoPrefill(c) {
+  function _applyClienteMigradoPrefill(c, opts = {}) {
     if (!c) return;
+    const { hasAuth = false } = opts;
     const $n = document.getElementById('regNombre');
     const $e = document.getElementById('regEmail');
     const $t = document.getElementById('regTelefono');
@@ -2659,10 +2660,34 @@
     if ($t && !$t.value.trim() && c.telefono) $t.value = c.telefono;
     if ($m) {
       const primerNombre = String(c.nombre || '').split(/\s+/)[0] || '';
-      $m.textContent = primerNombre
-        ? `¡Hola ${primerNombre}! Ya te teníamos registrado — confirma tus datos y crea tu cuenta.`
-        : 'Ya te teníamos registrado — confirma tus datos y crea tu cuenta.';
+      if (hasAuth) {
+        // El usuario YA tiene cuenta en Firebase Auth → no es "crear", es "iniciar sesión".
+        const saludo = primerNombre ? `¡Hola ${primerNombre}! ` : '';
+        $m.innerHTML = `${saludo}Ya tenés cuenta en ${window.SHOP?.club || 'el club'}. `
+          + `<button type="button" class="underline font-semibold" onclick="switchTab('login');`
+          + `document.getElementById('loginEmail').value=document.getElementById('regEmail').value;">`
+          + `Ingresá acá</button>.`;
+      } else {
+        $m.textContent = primerNombre
+          ? `¡Hola ${primerNombre}! Ya te teníamos registrado — confirma tus datos y crea tu cuenta.`
+          : 'Ya te teníamos registrado — confirma tus datos y crea tu cuenta.';
+      }
       $m.classList.remove('hidden');
+    }
+  }
+
+  // Devuelve true si el email YA tiene una cuenta en Firebase Auth (independiente
+  // del método: passwordless, google, password). Silencia errores porque la
+  // consulta a Auth puede fallar por rate-limit o red — en ese caso caemos al
+  // mensaje de "crea tu cuenta" (comportamiento previo, no rompe nada).
+  async function _emailTieneCuenta(email) {
+    if (!email || !email.includes('@')) return false;
+    try {
+      const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+      return Array.isArray(methods) && methods.length > 0;
+    } catch (err) {
+      console.warn('[registro] fetchSignInMethodsForEmail:', err.code || err.message);
+      return false;
     }
   }
 
@@ -2671,9 +2696,19 @@
     if (_lookedUp.has(key) || _lookupInFlight) return;
     _lookupInFlight = true;
     try {
-      const c = await _lookupClienteMigrado({ email, telefono });
+      // Paralelo: lookup (para prefill) + auth check (para distinguir signup vs login).
+      // Solo chequeamos auth cuando hay email — fetchSignInMethodsForEmail no
+      // tiene equivalente por teléfono.
+      const [c, hasAuth] = await Promise.all([
+        _lookupClienteMigrado({ email, telefono }),
+        email ? _emailTieneCuenta(email) : Promise.resolve(false),
+      ]);
       _lookedUp.add(key);
-      if (c) _applyClienteMigradoPrefill(c);
+      // Si el usuario tiene cuenta pero el lookup no devolvió nada (edge case:
+      // authUid sin doc de users/ o email diferente al del profile), igual
+      // mostramos el mensaje de "ingresá acá" con lo que tengamos.
+      if (c) _applyClienteMigradoPrefill(c, { hasAuth });
+      else if (hasAuth && email) _applyClienteMigradoPrefill({ email }, { hasAuth: true });
     } finally {
       _lookupInFlight = false;
     }
