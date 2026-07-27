@@ -74,6 +74,8 @@
   .geo-add:hover{border-color:#39c313;background:#f2f6ee;}
   .geo-add:disabled{opacity:.5;cursor:not-allowed;}
   .geo-empty{font-size:12.5px;color:#8b9199;margin-top:8px;font-style:italic;}
+  .geo-hint{font-size:12px;color:#8b9199;margin-top:8px;line-height:1.45;}
+  .geo-hint.warn{color:#7c4a12;}
   .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .theme-btn{width:40px;height:40px;border-radius:10px;border:2px solid #e2e5e0;cursor:pointer;padding:0;transition:.15s;}
   .theme-btn:hover{transform:translateY(-1px);}
@@ -219,10 +221,11 @@
         <div id="icon-picker" class="icons"></div>
 
         <label style="margin-top:14px;">Geo-push — zonas de activación</label>
-        <p class="pv-note" style="margin-top:2px;">Agrega uno o más locales. Toca "Agregar ubicación", arrastra cada marcador sobre su local y ajusta el radio. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas.</p>
+        <p class="pv-note" style="margin-top:2px;">Agrega hasta <b>5 locales</b>. Toca "Agregar ubicación", arrastra cada marcador sobre su local y ajusta el radio. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas. Mientras menos zonas, mayor es el alcance de cada una.</p>
         <div id="geo-map" class="geo-map"></div>
         <div id="geo-locs" class="geo-locs"></div>
         <button type="button" id="geo-add" class="geo-add">+ Agregar ubicación</button>
+        <p id="geo-hint" class="geo-hint"></p>
         <div class="geo-radius-row">
           <label for="f-geoRadius">Radio de la ubicación seleccionada: <b id="f-geoRadius-label">300 m</b></label>
           <input type="range" id="f-geoRadius" min="0" max="1500" step="50" value="300" class="range">
@@ -625,7 +628,9 @@ pintarIconos();
 // ── Mapa del geo-push (Google Maps, multi-ubicación) ──────────────
 var _geoMap = null, _mapsReady = false;
 var _locs = [], _selIdx = -1, _markers = [], _circles = [];
-var MAX_GEO_LOCS = 10;                              // tope de Apple por pase
+var MAX_GEO_LOCS = 5;                               // tope usable: hasta acá el radio de cada zona SÍ se emite.
+                                                    // Apple da 10 puntos/pase; desde la 6ª zona el anillo cae a 0
+                                                    // (ringPer=0) y el radio se ignora → no dejamos llegar ahí.
 var GEO_DEFAULT = { lat: -33.0472, lng: -71.6127 }; // fallback (Valparaíso aprox)
 
 window.initGeoMap = function () { _mapsReady = true; maybeInitMap(); };
@@ -708,9 +713,29 @@ function renderLocs() {
     wrap.appendChild(row);
   });
   $('geo-add').disabled = _locs.length >= MAX_GEO_LOCS;
+  updateHint();
   syncSelInputs();
   buildOverlays();
   renderPreview();
+}
+
+// Aviso de cobertura: mientras más zonas, menos anillo por zona (Apple da
+// 10 puntos/pase). Le explica al dueño el alcance real de lo que configura.
+function updateHint() {
+  var hint = $('geo-hint');
+  if (!hint) return;
+  var n = _locs.length;
+  hint.classList.remove('warn');
+  if (!n) { hint.textContent = ''; return; }
+  if (n === 1) {
+    hint.textContent = 'Cobertura amplia: esta zona usa todo el radio que definas.';
+  } else if (n <= 3) {
+    hint.textContent = n + ' zonas · buena cobertura por zona.';
+  } else {
+    hint.textContent = n + ' zonas · el alcance de cada una baja (Apple limita a 10 puntos por tarjeta). Para máximo radio, usa menos zonas.';
+    hint.classList.add('warn');
+  }
+  if (n >= MAX_GEO_LOCS) hint.textContent += ' Llegaste al máximo de ' + MAX_GEO_LOCS + '.';
 }
 
 // Refresca lat/lng/radio de la zona seleccionada en el formulario.
