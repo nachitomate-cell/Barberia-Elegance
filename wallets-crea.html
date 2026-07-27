@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Crea tu tarjeta de fidelidad · bioo</title>
+<meta name="description" content="Empieza en 3 minutos: tarjeta de fidelidad digital para tu local en Google Wallet y Apple Wallet, sin apps ni tarjetas físicas.">
+<link rel="icon" type="image/png" href="/bioo-iso.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Marca bioo — espejo del editor + staff app. */
+  :root{
+    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
+    --ok:#16a34a; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  a{color:var(--ink);}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;max-width:1100px;width:100%;margin:0 auto;}
+  .wordmark{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.5px;}
+  .wordmark .pill{font-size:12px;font-weight:700;letter-spacing:.4px;background:var(--ink);color:#fff;border-radius:999px;padding:4px 10px;}
+  header.top a.login{font-size:13.5px;font-weight:700;color:var(--soft);text-decoration:none;padding:8px 14px;border-radius:10px;transition:.15s;}
+  header.top a.login:hover{background:#eef1ee;color:var(--ink);}
+
+  main{flex:1;width:100%;max-width:1100px;margin:0 auto;padding:16px 22px 40px;display:grid;grid-template-columns:1fr 460px;gap:38px;}
+  @media (max-width:900px){ main{grid-template-columns:1fr;padding-top:8px;} }
+
+  /* Pitch (izquierda) */
+  .pitch h1{font-size:38px;line-height:1.05;font-weight:800;letter-spacing:-1px;margin-bottom:14px;}
+  .pitch h1 .hl{color:var(--ok);}
+  .pitch p.lead{font-size:16.5px;color:var(--soft);line-height:1.55;margin-bottom:22px;max-width:520px;}
+  .bullets{display:flex;flex-direction:column;gap:14px;margin-bottom:26px;}
+  .bullet{display:flex;align-items:flex-start;gap:12px;}
+  .bullet .icon{width:34px;height:34px;border-radius:9px;background:rgba(22,163,74,.12);color:var(--ok);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;}
+  .bullet .t{font-size:15px;font-weight:700;letter-spacing:-.2px;}
+  .bullet .d{font-size:13.5px;color:var(--soft);margin-top:2px;line-height:1.45;}
+  .price{display:inline-flex;align-items:baseline;gap:8px;padding:12px 18px;border-radius:14px;background:#fff;border:1px solid var(--line);}
+  .price .amt{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+  .price .unit{font-size:12.5px;color:var(--soft);font-weight:600;}
+  .price .free{font-size:12px;color:var(--ok);font-weight:700;background:rgba(22,163,74,.1);padding:3px 9px;border-radius:999px;margin-left:6px;}
+
+  /* Card wizard (derecha) */
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 6px 26px rgba(21,36,11,.06);position:sticky;top:20px;}
+  .card h2{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px;}
+  .card p.sub{font-size:13.5px;color:var(--soft);margin-bottom:20px;line-height:1.45;}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:13px 0 6px;letter-spacing:.2px;}
+  input[type=text],input[type=email],input[type=password],input[type=tel],input[type=url]{
+    width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 14px;font-size:15px;
+    font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border .15s;
+  }
+  input:focus{border-color:var(--ink);}
+  .slug-wrap{position:relative;}
+  .slug-wrap input{padding-right:150px;}
+  .slug-suffix{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--muted);font-weight:600;pointer-events:none;}
+  .field-hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;min-height:16px;}
+  .field-hint.ok{color:var(--ok);}
+  .field-hint.err{color:var(--err);}
+  .field-hint.warn{color:var(--warn);}
+
+  .terms{display:flex;align-items:flex-start;gap:10px;margin-top:16px;font-size:12.5px;color:var(--soft);line-height:1.5;}
+  .terms input{margin-top:2px;flex-shrink:0;width:16px;height:16px;accent-color:var(--ok);}
+  .terms a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:2px;}
+
+  .btn{width:100%;height:52px;border:0;border-radius:14px;background:var(--ink);color:#fff;font-size:15.5px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.2px;box-shadow:0 4px 14px rgba(21,36,11,.18);font-family:inherit;margin-top:20px;}
+  .btn:hover{background:#1d3411;transform:translateY(-1px);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.55;cursor:default;transform:none;}
+  .msg-err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;display:none;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  /* Éxito */
+  .ok-card{background:#fff;border:2px solid var(--ok);border-radius:20px;padding:28px;text-align:center;box-shadow:0 8px 26px rgba(22,163,74,.15);animation:pop .3s ease-out;}
+  @keyframes pop{ from{transform:scale(.95);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .ok-card .emoji{font-size:52px;margin-bottom:6px;}
+  .ok-card h2{font-size:24px;font-weight:800;margin-bottom:6px;letter-spacing:-.4px;}
+  .ok-card .who{font-size:14px;color:var(--soft);margin-bottom:20px;}
+  .cta-list{display:flex;flex-direction:column;gap:9px;}
+  .cta-list a{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:#fafbfa;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14px;font-weight:700;text-align:left;transition:.15s;}
+  .cta-list a:hover{border-color:var(--ink);background:#f2f6ee;}
+  .cta-list a .em{font-size:22px;flex-shrink:0;}
+  .cta-list a .txt{flex:1;line-height:1.3;}
+  .cta-list a .txt small{display:block;font-size:12px;color:var(--soft);font-weight:500;margin-top:2px;}
+  .ok-note{margin-top:16px;font-size:12.5px;color:var(--soft);line-height:1.5;padding:12px 14px;background:#fafbfa;border-radius:10px;border:1px solid var(--line);}
+
+  footer.powered{display:flex;align-items:center;justify-content:center;gap:7px;padding:22px;font-size:12px;color:var(--muted);}
+  footer.powered img{width:16px;height:16px;border-radius:4px;}
+
+  .spin-inline{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:8px;}
+  @keyframes sp{ to{ transform:rotate(360deg); } }
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="/firebase-config.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wordmark">bioo <span class="pill">wallets</span></div>
+  <a href="/" class="login">Ya tengo cuenta →</a>
+</header>
+
+<main>
+  <!-- Pitch -->
+  <div class="pitch">
+    <h1>Tu tarjeta de fidelidad <span class="hl">digital</span>,<br>viva en el celular de cada cliente.</h1>
+    <p class="lead">
+      Google Wallet + Apple Wallet, sin apps ni tarjetas físicas.
+      Empieza en 3 minutos: nombre, tu correo y listo — pruébala 14 días gratis, sin tarjeta de crédito.
+    </p>
+
+    <div class="bullets">
+      <div class="bullet">
+        <div class="icon">📲</div>
+        <div>
+          <div class="t">Aparece sola cuando tu cliente pasa cerca</div>
+          <div class="d">Geo-push: la tarjeta salta en su pantalla de bloqueo a media cuadra del local. Recordatorio invisible.</div>
+        </div>
+      </div>
+      <div class="bullet">
+        <div class="icon">🎁</div>
+        <div>
+          <div class="t">Sella escaneando el QR desde tu celular</div>
+          <div class="d">Tu equipo abre la app del staff, apunta al QR del cliente y suma. Sin lector especial, sin hardware extra.</div>
+        </div>
+      </div>
+      <div class="bullet">
+        <div class="icon">✨</div>
+        <div>
+          <div class="t">Se actualiza sola en el celular del cliente</div>
+          <div class="d">Cada sello y cada premio se refleja al toque, sin que él abra nada. Cuando desbloquea un premio, su celular le avisa.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="price">
+      <span class="amt">$9.990</span>
+      <span class="unit">/mes · Google + Apple, tarjetas ilimitadas</span>
+      <span class="free">14 días gratis</span>
+    </div>
+  </div>
+
+  <!-- Wizard -->
+  <div>
+    <div class="card" id="form-card">
+      <h2>Crea tu tarjeta</h2>
+      <p class="sub">Sin tarjeta de crédito. Cancelas cuando quieras.</p>
+
+      <label for="f-nombre">Nombre de tu local</label>
+      <input type="text" id="f-nombre" maxlength="60" autocomplete="organization" placeholder="Café Aroma, Panadería Don Pedro…">
+
+      <label for="f-slug">Tu dirección web</label>
+      <div class="slug-wrap">
+        <input type="text" id="f-slug" maxlength="30" autocomplete="off" placeholder="tu-local">
+        <span class="slug-suffix">.synaptechspa.cl</span>
+      </div>
+      <p id="f-slug-hint" class="field-hint">3–30 caracteres, sin espacios ni acentos.</p>
+
+      <div class="row2">
+        <div>
+          <label for="f-email">Correo del dueño</label>
+          <input type="email" id="f-email" autocomplete="email" placeholder="tu@correo.cl">
+        </div>
+        <div>
+          <label for="f-pass">Contraseña</label>
+          <input type="password" id="f-pass" autocomplete="new-password" placeholder="mínimo 6" minlength="6">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="f-dueno">Tu nombre <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+          <input type="text" id="f-dueno" maxlength="60" autocomplete="name" placeholder="Ignacio">
+        </div>
+        <div>
+          <label for="f-tel">WhatsApp <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+          <input type="tel" id="f-tel" maxlength="15" autocomplete="tel" placeholder="+56 9 …">
+        </div>
+      </div>
+
+      <div class="terms">
+        <input type="checkbox" id="f-acepto">
+        <label for="f-acepto" style="margin:0;font-size:12.5px;color:var(--soft);font-weight:500;letter-spacing:normal;">
+          Acepto el <a href="/terminos-saas.html" target="_blank" rel="noopener">Contrato SaaS</a>, el
+          <a href="/terminos-saas.html#dpa" target="_blank" rel="noopener">Anexo DPA</a> y la
+          <a href="/privacidad.html" target="_blank" rel="noopener">Política de Privacidad</a>.
+        </label>
+      </div>
+
+      <button class="btn" id="submit-btn" onclick="crear()">Crear mi tarjeta gratis</button>
+      <p class="msg-err" id="form-err"></p>
+    </div>
+
+    <!-- Éxito (oculto hasta OK) -->
+    <div class="ok-card" id="ok-card" style="display:none;">
+      <div class="emoji">🎉</div>
+      <h2>¡Listo!</h2>
+      <p class="who">Tu tarjeta está creada. Estos son tus 3 accesos:</p>
+      <div class="cta-list" id="ok-links"></div>
+      <p class="ok-note">Guarda esta pantalla. También te llegará por correo. Tu prueba dura 14 días: si te gusta, activamos la mensualidad; si no, no cobramos nada.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="powered">
+  <img src="/synaptech/ig.png" alt="SynapTech">
+  Powered by SynapTech
+</footer>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────────────────────────────
+//  WIZARD /crea — wallets.bioo.cl/crea → provisiona tenant wallet-only
+//
+//  Flujo (una sola pantalla):
+//    1. Usuario llena form.
+//    2. Slug se auto-genera del nombre + check en vivo (verificarSlugLibre).
+//    3. Submit: crea cuenta Firebase (o reusa si el email ya existía) +
+//       callable provisionarTenantWalletSelf.
+//    4. Muestra pantalla de éxito con 3 CTAs: panel, editor, scanner.
+// ─────────────────────────────────────────────────────────────────
+
+var TERMS_VERSION = '2026-07-27';
+var DOCS_ACEPTADOS = ['contrato-saas', 'dpa', 'privacidad'];
+
+function $(id) { return document.getElementById(id); }
+
+// ── Slugify + auto-fill desde el nombre ──────────────────────────
+function slugify(s) {
+  return String(s || '')
+    .toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 30);
+}
+var _slugManuallyEdited = false;
+$('f-nombre').addEventListener('input', function () {
+  if (_slugManuallyEdited) return;
+  var s = slugify(this.value);
+  $('f-slug').value = s;
+  checkSlug(s);
+});
+$('f-slug').addEventListener('input', function () {
+  _slugManuallyEdited = true;
+  var s = slugify(this.value);
+  if (s !== this.value) this.value = s;   // fuerza formato válido
+  checkSlug(s);
+});
+
+// ── Check slug en vivo (debounced) ───────────────────────────────
+var _slugTimer = null;
+var _slugOk = false;
+function setSlugHint(cls, msg) {
+  var h = $('f-slug-hint');
+  h.className = 'field-hint' + (cls ? ' ' + cls : '');
+  h.textContent = msg || '';
+}
+function checkSlug(s) {
+  clearTimeout(_slugTimer);
+  _slugOk = false;
+  if (!s) { setSlugHint('', '3–30 caracteres, sin espacios ni acentos.'); return; }
+  if (s.length < 3) { setSlugHint('warn', 'Muy corta (mínimo 3 caracteres).'); return; }
+  setSlugHint('', 'Verificando disponibilidad…');
+  _slugTimer = setTimeout(function () {
+    var fn = firebase.app().functions('us-central1').httpsCallable('verificarSlugLibre');
+    fn({ slug: s }).then(function (r) {
+      var d = r.data || {};
+      if (d.libre) { _slugOk = true; setSlugHint('ok', '✓ Disponible.'); }
+      else         { setSlugHint('err', d.motivo || 'No disponible.'); }
+    }).catch(function () { setSlugHint('warn', 'No pudimos verificar ahora. Igual puedes seguir.'); _slugOk = true; });
+  }, 400);
+}
+
+// ── Submit ───────────────────────────────────────────────────────
+function crear() {
+  var nombre  = ($('f-nombre').value || '').trim();
+  var slug    = slugify($('f-slug').value || '');
+  var email   = ($('f-email').value || '').trim().toLowerCase();
+  var pass    = $('f-pass').value || '';
+  var dueno   = ($('f-dueno').value || '').trim();
+  var tel     = ($('f-tel').value || '').replace(/\D/g, '');
+  var acepto  = $('f-acepto').checked;
+  var err     = $('form-err');
+  err.style.display = 'none';
+
+  if (!nombre)   { fail('Escribe el nombre de tu local.', 'f-nombre'); return; }
+  if (!slug)     { fail('Elige tu dirección web.', 'f-slug'); return; }
+  if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) { fail('Correo inválido.', 'f-email'); return; }
+  if (!pass || pass.length < 6) { fail('La contraseña debe tener al menos 6 caracteres.', 'f-pass'); return; }
+  if (!acepto)   { fail('Debes aceptar el contrato SaaS y la política de privacidad.'); return; }
+
+  var btn = $('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-inline"></span>Creando tu cuenta…';
+
+  // Paso 1: crear (o reusar) cuenta Firebase.
+  firebase.auth().createUserWithEmailAndPassword(email, pass)
+    .catch(function (e) {
+      if (e && e.code === 'auth/email-already-in-use') {
+        // Reusar cuenta existente: intenta login con la password provista.
+        return firebase.auth().signInWithEmailAndPassword(email, pass)
+          .catch(function () {
+            throw new Error('Ese correo ya tiene cuenta con otra contraseña. Ingresa la correcta o usa un correo distinto.');
+          });
+      }
+      if (e && e.code === 'auth/weak-password')  throw new Error('La contraseña es muy débil (mínimo 6 caracteres).');
+      if (e && e.code === 'auth/invalid-email')  throw new Error('El correo no es válido.');
+      throw new Error('No pudimos crear tu cuenta. Reintenta en un momento.');
+    })
+    .then(function () {
+      // Paso 2: provisionar tenant.
+      btn.innerHTML = '<span class="spin-inline"></span>Activando tu tarjeta…';
+      var fn = firebase.app().functions('us-central1').httpsCallable('provisionarTenantWalletSelf');
+      return fn({
+        slug: slug,
+        nombre: nombre,
+        telefono: tel,
+        nombreDueno: dueno,
+        acepto: {
+          version: TERMS_VERSION,
+          documentos: DOCS_ACEPTADOS,
+          ua: (navigator.userAgent || '').slice(0, 500),
+        },
+      });
+    })
+    .then(function (r) {
+      var d = (r && r.data) || {};
+      mostrarExito(d, nombre);
+    })
+    .catch(function (e) {
+      var msg = (e && e.message) ? e.message : 'Algo salió mal. Reintenta o escríbenos por WhatsApp.';
+      // Errores de la callable → e.message ya viene amigable.
+      if (e && e.details && typeof e.details === 'string') msg = e.details;
+      err.textContent = msg;
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = 'Crear mi tarjeta gratis';
+    });
+}
+function fail(msg, focusId) {
+  var err = $('form-err');
+  err.textContent = msg;
+  err.style.display = 'block';
+  if (focusId) $(focusId).focus();
+}
+
+function mostrarExito(d, nombre) {
+  $('form-card').style.display = 'none';
+  var box = $('ok-card');
+  var links = $('ok-links');
+  var editorUrl = d.urlEditor || 'https://wallets.bioo.cl';
+  var staffUrl  = d.urlStaff  || 'https://wallets.bioo.cl/staff';
+  var panelUrl  = d.urlPanel  || '#';
+  var html = ''
+    + linkRow('🎨', 'Diseña tu tarjeta', 'Colores, logo, geo-push y premios', editorUrl)
+    + linkRow('📲', 'Abre el escáner del staff', 'Con esto sumas sellos a los clientes', staffUrl)
+    + linkRow('⚙️', 'Entra a tu panel admin', 'Clientes, canjes, métricas', panelUrl);
+  links.innerHTML = html;
+  box.style.display = 'block';
+  document.title = '¡' + nombre + ' listo! · bioo wallets';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function linkRow(em, t, sub, url) {
+  return '<a href="' + url + '" target="_blank" rel="noopener">'
+    + '<span class="em">' + em + '</span>'
+    + '<span class="txt">' + t + '<small>' + sub + '</small></span>'
+    + '<span style="color:var(--soft);">→</span></a>';
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && $('form-card').style.display !== 'none') {
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && t.type !== 'checkbox') { e.preventDefault(); crear(); }
+  }
+});
+</script>
+</body>
+</html>

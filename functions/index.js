@@ -1535,6 +1535,12 @@ exports.provisionarTenantAdmin = provisionTenant.provisionarTenantAdmin;
 // parcial) para prellenar el wizard del alta express. Solo bootstrap.
 exports.importarNegocioExterno = provisionTenant.importarNegocioExterno;
 
+// Wallet-only self-service (wallets.bioo.cl/crea) — producto standalone.
+// Alta express de tenants SIN agenda: recibe email + slug + nombre y deja
+// listo _billing.plan='wallet-only' + configuracion/wallet + trial 14 días.
+// Ver functions/provision-tenant-wallet.js.
+exports.provisionarTenantWalletSelf = require('./provision-tenant-wallet').provisionarTenantWalletSelf;
+
 // ─────────────────────────────────────────────────────────────────
 //  CHAT — disponibilidad de horas para el bot de /chat (callable).
 //  Ver functions/chat-horas-disponibles.js.

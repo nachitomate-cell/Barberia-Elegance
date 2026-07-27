@@ -1985,6 +1985,13 @@ export default async function middleware(request) {
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
+    // Wizard self-serve: /crea → wallets-crea.html. Provisiona tenant
+    // wallet-only en 1 pantalla (form + callable provisionarTenantWalletSelf).
+    if (url.pathname === '/crea' || url.pathname === '/crea/') {
+      const rw  = new URL('/wallets-crea.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
     return;
   }
 
