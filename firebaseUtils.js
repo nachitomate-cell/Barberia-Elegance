@@ -130,10 +130,11 @@ const FDB = (() => {
            '?key=' + opt.apiKey + (extra || '');
   }
   // fetch acotado: el fallback REST es la última red de seguridad, así que
-  // tampoco puede quedar colgado esperando para siempre.
+  // tampoco puede quedar colgado esperando para siempre. 6 s para que
+  // (timeout SDK 5 s + REST 6 s) siga cabiendo bajo el tope de initServices.
   async function _restFetch(url, ms) {
     const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-    const t = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, ms || 8000);
+    const t = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, ms || 6000);
     try {
       return await fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
     } finally {

@@ -11978,15 +11978,28 @@
     }
 
     async function initServices() {
-      const [rConfig, rServices, rBarberos, rSettings] = await Promise.allSettled([
-        FDB.getConfig(),
-        FDB.getServicios(),
-        FDB.getBarberos(),
-        typeof FDB.getShopSettings === 'function' ? FDB.getShopSettings() : Promise.resolve(null)
+      // Cada lectura va acotada POR SEPARADO. Antes esto era un
+      // Promise.allSettled crudo: bastaba con que UNA de las cuatro no
+      // seteara nunca (el SDK de Firestore se cuelga en el WebView in-app de
+      // Instagram/Facebook, no rechaza: queda esperando) para que el await
+      // no volviera jamás y el paso 1 se quedara en skeleton gris para
+      // siempre, con el botón "Selecciona un servicio" deshabilitado.
+      // Con el tope, la peor lectura degrada a su fallback y la agenda
+      // SIEMPRE renderiza.
+      const _cap = (p, ms) => Promise.race([
+        Promise.resolve(p).catch(() => null),
+        new Promise(r => setTimeout(() => r(null), ms)),
       ]);
-      _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
-      _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
-      _fsBarberos = rBarberos.status === 'fulfilled' ? rBarberos.value : SHOP.barberos;
+      const TOPE = 12000;   // holgado: FDB ya reintenta y cae a REST internamente
+      const [rConfig, rServices, rBarberos, rSettings] = await Promise.all([
+        _cap(FDB.getConfig(), TOPE),
+        _cap(FDB.getServicios(), TOPE),
+        _cap(FDB.getBarberos(), TOPE),
+        _cap(typeof FDB.getShopSettings === 'function' ? FDB.getShopSettings() : null, TOPE)
+      ]);
+      _fsConfig   = rConfig   || DB.getSettings();
+      _fsServices = rServices || DB.getServices();
+      _fsBarberos = rBarberos || SHOP.barberos;
       // Fantasma QA del superadmin: invisible en la reserva pública. Se propaga
       // a cada tenant vía qa-fantasma.js con esQA:true; acá lo filtramos SIEMPRE
       // (el cliente jamás debe verlo, aunque sea barbero "activo").
@@ -12000,7 +12013,7 @@
       _activeBarberos = _fsBarberos;
       window._fsServices = _fsServices;
 
-      const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
+      const _shopSettings = rSettings || null;
       _fsSettings = _shopSettings;
       _renderFeaturesStrip(_shopSettings?.features);
       _renderGrupoSelector();   // reserva en grupo (solo si el local la activó)
@@ -12056,7 +12069,10 @@
           } catch(_) { return Promise.resolve(); }
         })()
         ]),
-        new Promise(r => setTimeout(r, 7000)) // tope: render asegurado pase lo que pase
+        // Tope: render asegurado pase lo que pase. Si ya sabemos que el
+        // transporte del SDK está colgado (WebView in-app), no tiene sentido
+        // regalarle 7 s más al cliente — estas lecturas van a fallar igual.
+        new Promise(r => setTimeout(r, (FDB.sdkHung && FDB.sdkHung()) ? 1200 : 7000))
       ]);
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
