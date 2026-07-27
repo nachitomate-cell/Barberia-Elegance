@@ -1432,6 +1432,15 @@ exports.mpTenantOAuthCallback = paymentsMpTenant.mpTenantOAuthCallback;
 exports.mpTenantDisconnect    = paymentsMpTenant.mpTenantDisconnect;
 
 // ─────────────────────────────────────────────────────────────────
+//  BARBERÍAS — configuración TUU (POS presencial Haulmer) por tenant.
+//  ONBOARDING VISUAL: guarda apiKey + serial. Aún NO dispara cobro.
+//  ver payments-tuu-tenant.js
+// ─────────────────────────────────────────────────────────────────
+const paymentsTuuTenant = require('./payments-tuu-tenant');
+exports.tuuGuardarConfig = paymentsTuuTenant.tuuGuardarConfig;
+exports.tuuDesconectar   = paymentsTuuTenant.tuuDesconectar;
+
+// ─────────────────────────────────────────────────────────────────
 //  BIOO — cobros SINGLE-SELLER de plataforma (SynapTech cobra al
 //  creador). Producto inicial: "Quitar marca de agua" $4.990 CLP.
 //  ver payments-mp-platform.js — usa MP_PLATFORM_ACCESS_TOKEN.

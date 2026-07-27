@@ -671,6 +671,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── /tenant_tuu — API key de TUU (POS presencial Haulmer) por tenant ──
+    // Mismo patrón que tenant_mp. CERRADO al cliente: solo el Admin SDK
+    // (Cloud Functions vía tuuGuardarConfig) lee/escribe la key. El estado
+    // público "configurado/serial" vive en _system/tuu_{tid} (no sensible).
+    match /tenant_tuu/{tid} {
+      allow read, write: if false;
+    }
+
     // ── /facturacion_secrets — apikey OpenFactura por tenant (arriendo) ──
     // CERRADO: solo el Admin SDK (Cloud Functions) lee/escribe la key. El
     // panel sabe si está configurada por el flag no sensible
