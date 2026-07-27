@@ -2,18 +2,23 @@
 
 // functions/cumpleanos.js
 // ─────────────────────────────────────────────────────────────────
-//  SELLO AUTOMÁTICO DE CUMPLEAÑOS
+//  SELLO AUTOMÁTICO DE CUMPLEAÑOS — Fase 3.C
 //
 //  Cron diario 9:00 AM America/Santiago.
 //  Para cada tenant busca clientes con cumpleDia === "MM-DD" de hoy,
-//  suma +1 sello en users/{uid} y manda push FCM si hay token.
+//  suma +1 sello y manda push FCM si hay token.
 //
-//  Campos requeridos en clientes/{phone}:
-//    cumpleDia:          "MM-DD"       — campo de query (ej: "05-10")
-//    fechaNacimiento:    "YYYY-MM-DD"  — para display
-//    uid:                string        — link a users/{uid}
-//    fcmToken:           string|null   — push token del cliente
-//    ultimoSelloCumple:  "YYYY-MM-DD"  — idempotencia
+//  Fase 3.C: Query directo sobre users/ (post cleanup+backfill toda
+//  la data vive ahí). Antes leía clientes/ mirror y hacía indirección
+//  vía cliente.uid → users/{uid}. Ahora es directo.
+//
+//  Campos en users/{docId}:
+//    cumpleDia:          "MM-DD"       — campo indexado del query
+//    fechaNacimiento:    "YYYY-MM-DD"  — display
+//    fcmToken:           string|null
+//    ultimoSelloCumple:  "YYYY-MM-DD"  — idempotencia por año
+//    historialSellos:    []            — doble check para idempotencia
+//                                        durante la transición
 //
 //  DEPLOY:
 //    firebase deploy --only functions:selloCumpleanos
@@ -30,107 +35,100 @@ const messaging = admin.messaging();
 
 const TIMEZONE = 'America/Santiago';
 
+// Sólo el usersPath — clientes/ ya no se lee.
 const TENANTS = [
-  { id: 'elegance',            clientesPath: 'clientes',                              usersPath: 'users'                              },
-  { id: 'gitana',              clientesPath: 'tenants/gitana/clientes',               usersPath: 'tenants/gitana/users'               },
-  { id: 'ferraza',             clientesPath: 'tenants/ferraza/clientes',              usersPath: 'tenants/ferraza/users'              },
-  { id: 'chameleon',           clientesPath: 'tenants/chameleon/clientes',            usersPath: 'tenants/chameleon/users'            },
-  { id: 'aura',                clientesPath: 'tenants/aura/clientes',                 usersPath: 'tenants/aura/users'                 },
-  { id: 'lumen',               clientesPath: 'tenants/lumen/clientes',                usersPath: 'tenants/lumen/users'                },
-  { id: 'mapubarbershop',      clientesPath: 'tenants/mapubarbershop/clientes',       usersPath: 'tenants/mapubarbershop/users'       },
-  { id: 'delnero',             clientesPath: 'tenants/delnero/clientes',              usersPath: 'tenants/delnero/users'              },
-  { id: 'marcelo_hairdressing',clientesPath: 'tenants/marcelo_hairdressing/clientes', usersPath: 'tenants/marcelo_hairdressing/users' },
-  { id: 'machos',              clientesPath: 'tenants/machos/clientes',               usersPath: 'tenants/machos/users'               },
-  { id: 'infinity',            clientesPath: 'tenants/infinity/clientes',             usersPath: 'tenants/infinity/users'             },
-  { id: 'sionbarberia',        clientesPath: 'tenants/sionbarberia/clientes',         usersPath: 'tenants/sionbarberia/users'         },
-  { id: 'deluxeperfumes',      clientesPath: 'tenants/deluxeperfumes/clientes',       usersPath: 'tenants/deluxeperfumes/users'       },
+  { id: 'elegance',             usersPath: 'users' },
+  { id: 'gitana',               usersPath: 'tenants/gitana/users' },
+  { id: 'ferraza',              usersPath: 'tenants/ferraza/users' },
+  { id: 'chameleon',            usersPath: 'tenants/chameleon/users' },
+  { id: 'aura',                 usersPath: 'tenants/aura/users' },
+  { id: 'lumen',                usersPath: 'tenants/lumen/users' },
+  { id: 'mapubarbershop',       usersPath: 'tenants/mapubarbershop/users' },
+  { id: 'delnero',              usersPath: 'tenants/delnero/users' },
+  { id: 'marcelo_hairdressing', usersPath: 'tenants/marcelo_hairdressing/users' },
+  { id: 'machos',               usersPath: 'tenants/machos/users' },
+  { id: 'infinity',             usersPath: 'tenants/infinity/users' },
+  { id: 'sionbarberia',         usersPath: 'tenants/sionbarberia/users' },
+  { id: 'deluxeperfumes',       usersPath: 'tenants/deluxeperfumes/users' },
 ];
 
 exports.selloCumpleanos = onSchedule(
   { schedule: '0 9 * * *', timeZone: TIMEZONE },
   async () => {
-    // Fecha actual en zona Santiago (independiente del servidor UTC)
     const santiagoDt = new Intl.DateTimeFormat('en-CA', {
-      timeZone: TIMEZONE,
-      year:  'numeric',
-      month: '2-digit',
-      day:   '2-digit',
+      timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(new Date());
-
-    const parts    = santiagoDt.split('-');   // ["2026","05","10"]
-    const mmdd     = `${parts[1]}-${parts[2]}`;   // "05-10"
-    const todayISO = santiagoDt;                  // "2026-05-10"
+    const parts    = santiagoDt.split('-');     // ["2026","05","10"]
+    const mmdd     = `${parts[1]}-${parts[2]}`; // "05-10"
+    const todayISO = santiagoDt;                // "2026-05-10"
+    const ano      = parts[0];
 
     logger.info(`[Cumple] Iniciando para ${todayISO} (cumpleDia=${mmdd})`);
-
     let totalProcesados = 0;
 
     for (const tenant of TENANTS) {
-      const clientesCol = db.collection(tenant.clientesPath);
-      const usersCol    = db.collection(tenant.usersPath);
-
-      const snap = await clientesCol
-        .where('cumpleDia', '==', mmdd)
-        .get();
+      const usersCol = db.collection(tenant.usersPath);
+      const snap = await usersCol.where('cumpleDia', '==', mmdd).get();
 
       if (snap.empty) {
         logger.info(`[Cumple] ${tenant.id}: sin cumpleaños hoy`);
         continue;
       }
+      logger.info(`[Cumple] ${tenant.id}: ${snap.size} user(s)`);
 
-      logger.info(`[Cumple] ${tenant.id}: ${snap.size} cliente(s)`);
+      for (const userDoc of snap.docs) {
+        const user     = userDoc.data();
+        const uid      = userDoc.id;
+        const nombre   = user.nombre   || 'Cliente';
+        const fcmToken = user.fcmToken ?? null;
 
-      for (const clienteDoc of snap.docs) {
-        const cliente  = clienteDoc.data();
-        const phone    = clienteDoc.id;
-        const nombre   = cliente.nombre   || 'Cliente';
-        const uid      = cliente.uid      ?? null;
-        const fcmToken = cliente.fcmToken ?? null;
-
-        // ── Idempotencia: un sello por año calendario ───────────
-        // Se compara el AÑO (no el día) para que cambiar la fecha
-        // de nacimiento no permita canjear el sello más de una vez.
-        const anoUltimoSello = (cliente.ultimoSelloCumple || '').substring(0, 4);
-        if (anoUltimoSello === parts[0]) {
-          logger.info(`[Cumple] ${phone}: ya recibió sello de cumpleaños en ${parts[0]}, omitiendo`);
+        // ── Idempotencia doble ─────────────────────────────────────
+        //  1) ultimoSelloCumple en el user (marca canónica post-Fase 3).
+        //  2) historialSellos: durante la transición, algunos users tenían
+        //     la marca solo en clientes/ mirror. Chequear historial evita
+        //     duplicar si el sello del año ya se registró por el CF viejo.
+        const anoUltimoSello = (user.ultimoSelloCumple || '').substring(0, 4);
+        if (anoUltimoSello === ano) {
+          logger.info(`[Cumple] ${uid}: ya recibió sello en ${ano} (ultimoSelloCumple), skip`);
+          continue;
+        }
+        const historial = Array.isArray(user.historialSellos) ? user.historialSellos : [];
+        const yaEsteAno = historial.some(h =>
+          h && h.nota === '🎂 Regalo de cumpleaños' && (h.fecha || '').startsWith(ano)
+        );
+        if (yaEsteAno) {
+          logger.info(`[Cumple] ${uid}: sello ya en historial ${ano}, backfill de ultimoSelloCumple`);
+          await userDoc.ref.update({ ultimoSelloCumple: todayISO, updatedAt: Timestamp.now() });
           continue;
         }
 
-        // Marcar inmediatamente para evitar doble-proceso si la función se interrumpe
-        await clienteDoc.ref.update({
-          ultimoSelloCumple: todayISO,
-          updatedAt: Timestamp.now(),
-        });
-
-        // ── Sello en users/{uid} (lo que lee el admin panel y el dashboard) ──
-        if (uid) {
-          try {
-            await usersCol.doc(uid).update({
-              sellosDisponibles: FieldValue.increment(1),
-              sellosHistoricos:  FieldValue.increment(1),
-              stamps:            FieldValue.increment(1),  // campo legacy UI
-              historialSellos:   FieldValue.arrayUnion({
-                fecha:    todayISO,
-                tipo:     'suma',
-                cantidad: 1,
-                nota:     '🎂 Regalo de cumpleaños',
-              }),
-            });
-            logger.info(`[Cumple] +1 sello → ${nombre} (${phone}, uid=${uid})`);
-            totalProcesados++;
-          } catch (err) {
-            logger.error(`[Cumple] Error sumando sello a ${phone}:`, err.message);
-          }
-        } else {
-          logger.warn(`[Cumple] ${phone}: sin uid — cliente sin cuenta. Sello no sumado.`);
+        // ── Sumar sello ─────────────────────────────────────────────
+        try {
+          await userDoc.ref.update({
+            sellosDisponibles: FieldValue.increment(1),
+            sellosHistoricos:  FieldValue.increment(1),
+            stamps:            FieldValue.increment(1),  // legacy UI
+            ultimoSelloCumple: todayISO,
+            historialSellos:   FieldValue.arrayUnion({
+              fecha:    todayISO,
+              tipo:     'suma',
+              cantidad: 1,
+              nota:     '🎂 Regalo de cumpleaños',
+            }),
+            updatedAt: Timestamp.now(),
+          });
+          logger.info(`[Cumple] +1 sello → ${nombre} (${uid})`);
+          totalProcesados++;
+        } catch (err) {
+          logger.error(`[Cumple] Error sumando sello a ${uid}:`, err.message);
+          continue;
         }
 
-        // ── Push FCM ────────────────────────────────────────────
+        // ── Push FCM ────────────────────────────────────────────────
         if (!fcmToken) {
-          logger.info(`[Cumple] ${phone}: sin FCM token`);
+          logger.info(`[Cumple] ${uid}: sin FCM token`);
           continue;
         }
-
         try {
           await messaging.send({
             token: fcmToken,
@@ -160,11 +158,11 @@ exports.selloCumpleanos = onSchedule(
             type:    'push_cumpleanos',
             channel: 'push',
             status:  'sent',
-            to:      { nombre, telefono: phone },
+            to:      { nombre, telefono: user.telefono || '' },
             meta:    {},
           });
         } catch (err) {
-          logger.warn(`[Cumple] Push fallido para ${phone}: ${err.code || err.message}`);
+          logger.warn(`[Cumple] Push fallido para ${uid}: ${err.code || err.message}`);
         }
       }
     }

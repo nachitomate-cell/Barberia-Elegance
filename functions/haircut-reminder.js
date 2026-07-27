@@ -1,6 +1,6 @@
 // functions/haircut-reminder.js
 // ─────────────────────────────────────────────────────────────────
-//  SISTEMA DE RECORDATORIOS DE CORTE
+//  SISTEMA DE RECORDATORIOS DE CORTE — Fase 3.C
 //
 //  Dos exports:
 //    actualizarSuggestionElegance  — trigger en /citas/{id}
@@ -9,10 +9,14 @@
 //
 //  Flujo:
 //    Cuando una cita cambia a 'completada' → recalcula nextSuggestionDate
-//    del cliente en /clientes/{telefono} (o /tenants/{tid}/clientes/{tel}).
+//    en users/{clienteUid} (post Fase 1 toda cita tiene clienteUid).
 //
-//    El cron solo consulta WHERE nextSuggestionDate <= hoy — nunca escanea
-//    todas las citas; es O(clientes_a_notificar).
+//    El cron consulta WHERE nextSuggestionDate <= hoy sobre users/.
+//    Nunca escanea todas las citas; es O(users_a_notificar).
+//
+//  Fase 3.C: migrado de clientes/ a users/. Los recordatorios "en vuelo"
+//  (calculados antes del deploy) se recalculan al próximo trigger de
+//  cita completada. Impacto acotado (~21 días).
 // ─────────────────────────────────────────────────────────────────
 
 'use strict';
@@ -27,24 +31,25 @@ const { writeNotifLog }     = require('./lib/notif-log');
 const db        = admin.firestore();
 const messaging = admin.messaging();
 
-const ADVANCE_DAYS  = 3;   // notificar N días antes del corte predicho
-const MIN_CITAS_AVG = 2;   // mínimo de citas completadas para calcular promedio
-const MAX_CITAS_AVG = 4;   // ventana de citas para el rolling average
+const ADVANCE_DAYS  = 3;
+const MIN_CITAS_AVG = 2;
+const MAX_CITAS_AVG = 4;
 const TIMEZONE      = 'America/Santiago';
 
+// Fase 3.C: solo el path de users/. clientes/ ya no se lee.
 const TENANTS = [
-  { id: 'elegance',            citasPath: 'citas',                              clientesPath: 'clientes'                              },
-  { id: 'gitana',              citasPath: 'tenants/gitana/citas',               clientesPath: 'tenants/gitana/clientes'               },
-  { id: 'ferraza',             citasPath: 'tenants/ferraza/citas',              clientesPath: 'tenants/ferraza/clientes'              },
-  { id: 'chameleon',           citasPath: 'tenants/chameleon/citas',            clientesPath: 'tenants/chameleon/clientes'            },
-  { id: 'aura',                citasPath: 'tenants/aura/citas',                 clientesPath: 'tenants/aura/clientes'                 },
-  { id: 'lumen',               citasPath: 'tenants/lumen/citas',                clientesPath: 'tenants/lumen/clientes'                },
-  { id: 'mapubarbershop',      citasPath: 'tenants/mapubarbershop/citas',       clientesPath: 'tenants/mapubarbershop/clientes'       },
-  { id: 'delnero',             citasPath: 'tenants/delnero/citas',              clientesPath: 'tenants/delnero/clientes'              },
-  { id: 'marcelo_hairdressing',citasPath: 'tenants/marcelo_hairdressing/citas', clientesPath: 'tenants/marcelo_hairdressing/clientes' },
-  { id: 'machos',              citasPath: 'tenants/machos/citas',               clientesPath: 'tenants/machos/clientes'               },
-  { id: 'infinity',            citasPath: 'tenants/infinity/citas',             clientesPath: 'tenants/infinity/clientes'             },
-  { id: 'sionbarberia',        citasPath: 'tenants/sionbarberia/citas',         clientesPath: 'tenants/sionbarberia/clientes'         },
+  { id: 'elegance',             citasPath: 'citas',                              usersPath: 'users' },
+  { id: 'gitana',               citasPath: 'tenants/gitana/citas',               usersPath: 'tenants/gitana/users' },
+  { id: 'ferraza',              citasPath: 'tenants/ferraza/citas',              usersPath: 'tenants/ferraza/users' },
+  { id: 'chameleon',            citasPath: 'tenants/chameleon/citas',            usersPath: 'tenants/chameleon/users' },
+  { id: 'aura',                 citasPath: 'tenants/aura/citas',                 usersPath: 'tenants/aura/users' },
+  { id: 'lumen',                citasPath: 'tenants/lumen/citas',                usersPath: 'tenants/lumen/users' },
+  { id: 'mapubarbershop',       citasPath: 'tenants/mapubarbershop/citas',       usersPath: 'tenants/mapubarbershop/users' },
+  { id: 'delnero',              citasPath: 'tenants/delnero/citas',              usersPath: 'tenants/delnero/users' },
+  { id: 'marcelo_hairdressing', citasPath: 'tenants/marcelo_hairdressing/citas', usersPath: 'tenants/marcelo_hairdressing/users' },
+  { id: 'machos',               citasPath: 'tenants/machos/citas',               usersPath: 'tenants/machos/users' },
+  { id: 'infinity',             citasPath: 'tenants/infinity/citas',             usersPath: 'tenants/infinity/users' },
+  { id: 'sionbarberia',         citasPath: 'tenants/sionbarberia/citas',         usersPath: 'tenants/sionbarberia/users' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -52,8 +57,8 @@ const TENANTS = [
 function toDate(value) {
   if (!value) return null;
   if (value instanceof Date)   return value;
-  if (value.toDate)            return value.toDate();        // Firestore Timestamp
-  if (typeof value === 'string') return new Date(value);     // 'YYYY-MM-DD'
+  if (value.toDate)            return value.toDate();
+  if (typeof value === 'string') return new Date(value);
   return null;
 }
 
@@ -67,31 +72,32 @@ function daysBetween(d1, d2) {
   return Math.round(Math.abs(toDate(d2) - toDate(d1)) / 86_400_000);
 }
 
-// Normaliza teléfono para usar como ID de documento en /clientes
-function normalizePhone(phone) {
-  return (phone || '').replace(/\D/g, '');
-}
+// ── Core: recalcular nextSuggestionDate en users/{uid} ────────────
 
-// ── Core: recalcular nextSuggestionDate para un cliente ───────────
+async function recalcularSuggestion(citasCol, usersCol, clienteUid, telefonoFallback, clienteNombre) {
+  // Buscar por clienteUid (Fase 1: agenda/booking/registro linkean la
+  // cita con el uid). Si por alguna razón la cita no tiene clienteUid,
+  // fallback a buscar por teléfono (data legacy).
+  const queries = [];
+  if (clienteUid) {
+    queries.push(citasCol
+      .where('clienteUid', '==', clienteUid)
+      .where('estado', 'in', ['Completada', 'completada'])
+      .orderBy('fecha', 'desc')
+      .limit(MAX_CITAS_AVG)
+      .get());
+  }
+  if (telefonoFallback) {
+    queries.push(citasCol
+      .where('clienteTelefono', '==', telefonoFallback)
+      .where('estado', 'in', ['Completada', 'completada'])
+      .orderBy('fecha', 'desc')
+      .limit(MAX_CITAS_AVG)
+      .get());
+  }
+  if (!queries.length) return;
 
-async function recalcularSuggestion(citasCol, clientesCol, telefono, clienteNombre) {
-  const phone = normalizePhone(telefono);
-  if (!phone) return;
-
-  // Buscar con ambos formatos (crudo y normalizado) para no perder citas históricas
-  const variantes = [...new Set([telefono, phone].filter(Boolean))];
-  const snaps = await Promise.all(
-    variantes.map(v =>
-      citasCol
-        .where('clienteTelefono', '==', v)
-        .where('estado', 'in', ['Completada', 'completada'])
-        .orderBy('fecha', 'desc')
-        .limit(MAX_CITAS_AVG)
-        .get()
-    )
-  );
-
-  // Unir y deduplicar por id de doc
+  const snaps = await Promise.all(queries);
   const seen = new Set();
   const docs = [];
   for (const snap of snaps) {
@@ -99,50 +105,53 @@ async function recalcularSuggestion(citasCol, clientesCol, telefono, clienteNomb
       if (!seen.has(d.id)) { seen.add(d.id); docs.push(d); }
     }
   }
-
   if (!docs.length) return;
 
   const fechas = docs
     .map(d => toDate(d.data().fecha))
     .filter(Boolean)
-    .sort((a, b) => b - a)   // desc
+    .sort((a, b) => b - a)
     .slice(0, MAX_CITAS_AVG);
-
   if (!fechas.length) return;
 
   const ultimaCitaFecha = fechas[0];
 
-  // Promedio de intervalos entre citas consecutivas
-  let avgIntervalDias = 21; // fallback: 3 semanas
+  let avgIntervalDias = 21;
   if (fechas.length >= MIN_CITAS_AVG) {
     const intervals = [];
     for (let i = 0; i < fechas.length - 1; i++) {
       intervals.push(daysBetween(fechas[i], fechas[i + 1]));
     }
     avgIntervalDias = Math.round(intervals.reduce((s, v) => s + v, 0) / intervals.length);
-    avgIntervalDias = Math.max(7, Math.min(60, avgIntervalDias)); // clamp 7–60 días
+    avgIntervalDias = Math.max(7, Math.min(60, avgIntervalDias));
   }
 
-  // nextSuggestionDate = última cita + promedio - anticipo
   const nextDate = addDays(ultimaCitaFecha, avgIntervalDias - ADVANCE_DAYS);
 
-  // Una sola lectura: activar notificaciones solo si el campo no existe aún
-  const clienteRef    = clientesCol.doc(phone);
-  const existingSnap  = await clienteRef.get();
+  if (!clienteUid) {
+    logger.info(`[Haircut] cita sin clienteUid (tel=${telefonoFallback}) — skip escritura, no hay uid destino`);
+    return;
+  }
+
+  const userRef      = usersCol.doc(clienteUid);
+  const existingSnap = await userRef.get();
   const writeData = {
-    nombre:             clienteNombre || null,
-    telefono,
     ultimaCitaFecha:    Timestamp.fromDate(ultimaCitaFecha),
     avgIntervalDias,
     nextSuggestionDate: Timestamp.fromDate(nextDate),
     updatedAt:          Timestamp.now(),
   };
+  // Activar notificaciones solo si el campo no existe aún (opt-out sticky).
   if (!existingSnap.exists || existingSnap.data()?.notificacionesActivas === undefined) {
     writeData.notificacionesActivas = true;
   }
-  await clienteRef.set(writeData, { merge: true });
+  // Rellenar nombre si el user no lo tiene (raro post-cleanup pero por si acaso)
+  if (clienteNombre && existingSnap.exists && !existingSnap.data()?.nombre) {
+    writeData.nombre = clienteNombre;
+  }
+  await userRef.set(writeData, { merge: true });
 
-  logger.info(`[Haircut] ${phone} → avg=${avgIntervalDias}d next=${nextDate.toISOString().split('T')[0]}`);
+  logger.info(`[Haircut] users/${clienteUid} → avg=${avgIntervalDias}d next=${nextDate.toISOString().split('T')[0]}`);
 }
 
 // ── Trigger: /citas/{citaId} (elegance root) ──────────────────────
@@ -151,20 +160,17 @@ exports.actualizarSuggestionElegance = onDocumentWritten('citas/{citaId}', async
   const before = event.data?.before?.data();
   const after  = event.data?.after?.data();
 
-  if (!after)                                              return null; // doc eliminado
+  if (!after)                                              return null;
   if (!['Completada', 'completada'].includes(after.estado)) return null;
   if (['Completada', 'completada'].includes(before?.estado)) return null;
-  if (after.cierreMasivo) return null; // cierre retroactivo en lote — no recalcular recordatorios
-
-  const telefono      = after.clienteTelefono;
-  const clienteNombre = after.clienteNombre || after.nombre || '';
-  if (!telefono) return null;
+  if (after.cierreMasivo) return null;
 
   await recalcularSuggestion(
     db.collection('citas'),
-    db.collection('clientes'),
-    telefono,
-    clienteNombre,
+    db.collection('users'),
+    after.clienteUid || after.userId || null,
+    after.clienteTelefono,
+    after.clienteNombre || after.nombre || '',
   );
   return null;
 });
@@ -180,18 +186,15 @@ exports.actualizarSuggestionTenant = onDocumentWritten(
     if (!after)                                               return null;
     if (!['Completada', 'completada'].includes(after.estado))  return null;
     if (['Completada', 'completada'].includes(before?.estado))  return null;
-    if (after.cierreMasivo) return null; // cierre retroactivo en lote — no recalcular recordatorios
+    if (after.cierreMasivo) return null;
 
-    const { tid }       = event.params;
-    const telefono      = after.clienteTelefono;
-    const clienteNombre = after.clienteNombre || after.nombre || '';
-    if (!telefono) return null;
-
+    const { tid } = event.params;
     await recalcularSuggestion(
       db.collection(`tenants/${tid}/citas`),
-      db.collection(`tenants/${tid}/clientes`),
-      telefono,
-      clienteNombre,
+      db.collection(`tenants/${tid}/users`),
+      after.clienteUid || after.userId || null,
+      after.clienteTelefono,
+      after.clienteNombre || after.nombre || '',
     );
     return null;
   },
@@ -205,52 +208,62 @@ exports.enviarRecordatoriosCorte = onSchedule(
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayTs  = Timestamp.fromDate(todayStart);
-    // fecha en citas se guarda como string "YYYY-MM-DD", no como Timestamp
     const todayStr = todayStart.toISOString().split('T')[0];
 
     let totalEnviados = 0;
 
     for (const tenant of TENANTS) {
-      const clientesCol = db.collection(tenant.clientesPath);
-      const citasCol    = db.collection(tenant.citasPath);
+      const usersCol = db.collection(tenant.usersPath);
+      const citasCol = db.collection(tenant.citasPath);
 
-      // Consulta eficiente: solo clientes cuyo recordatorio vence hoy o antes
-      const snap = await clientesCol
+      const snap = await usersCol
         .where('notificacionesActivas', '==', true)
         .where('nextSuggestionDate', '<=', todayTs)
         .get();
 
       if (snap.empty) continue;
 
-      const batchWrite  = db.batch();
+      const batchWrite = db.batch();
       const pushPromises = [];
 
-      for (const clienteDoc of snap.docs) {
-        const cliente  = clienteDoc.data();
-        const telefono = cliente.telefono;
-        const nombre   = cliente.nombre || 'Cliente';
-        const fcmToken = cliente.fcmToken || null;
-        const avgDias  = cliente.avgIntervalDias || 21;
+      for (const userDoc of snap.docs) {
+        const user     = userDoc.data();
+        const uid      = userDoc.id;
+        const telefono = user.telefono || '';
+        const nombre   = user.nombre || 'Cliente';
+        const fcmToken = user.fcmToken || null;
+        const avgDias  = user.avgIntervalDias || 21;
 
-        // Verificar que no tenga cita futura ya agendada
-        // fecha se compara como string "YYYY-MM-DD" (no como Timestamp)
-        const futuraCita = await citasCol
-          .where('clienteTelefono', '==', telefono)
-          .where('estado', 'in', ['Pendiente', 'pendiente', 'Confirmada', 'confirmada', 'Confirmado'])
-          .where('fecha', '>', todayStr)
-          .limit(1)
-          .get();
+        // Verificar que no tenga cita futura ya agendada (por uid o tel)
+        const futurasQueries = [
+          citasCol
+            .where('clienteUid', '==', uid)
+            .where('estado', 'in', ['Pendiente', 'pendiente', 'Confirmada', 'confirmada', 'Confirmado'])
+            .where('fecha', '>', todayStr)
+            .limit(1)
+            .get(),
+        ];
+        if (telefono) {
+          futurasQueries.push(citasCol
+            .where('clienteTelefono', '==', telefono)
+            .where('estado', 'in', ['Pendiente', 'pendiente', 'Confirmada', 'confirmada', 'Confirmado'])
+            .where('fecha', '>', todayStr)
+            .limit(1)
+            .get());
+        }
+        const futuras = await Promise.all(futurasQueries);
 
         // Avanzar nextSuggestionDate un ciclo (evita spam mañana)
         const nextCycle = Timestamp.fromDate(addDays(todayStart, avgDias));
-        batchWrite.update(clienteDoc.ref, { nextSuggestionDate: nextCycle });
+        batchWrite.update(userDoc.ref, { nextSuggestionDate: nextCycle });
 
-        if (!futuraCita.empty) continue; // ya tiene turno → no molestar
+        if (futuras.some(f => !f.empty)) continue; // ya tiene turno
 
-        // Crear doc en notifications_queue (auditoría)
+        // notifications_queue (auditoría)
         const notifRef = db.collection('notifications_queue').doc();
         batchWrite.set(notifRef, {
           tenantId:        tenant.id,
+          clienteUid:      uid,
           clienteTelefono: telefono,
           clienteNombre:   nombre,
           fcmToken:        fcmToken || null,
@@ -259,7 +272,7 @@ exports.enviarRecordatoriosCorte = onSchedule(
           createdAt:       Timestamp.now(),
         });
 
-        if (!fcmToken) continue; // sin token no hay push
+        if (!fcmToken) continue;
 
         pushPromises.push(
           messaging.send({
@@ -289,7 +302,7 @@ exports.enviarRecordatoriosCorte = onSchedule(
               to:      { nombre, telefono },
               meta:    {},
             }))
-            .catch(err => logger.warn(`[Haircut FCM] ${telefono}: ${err.code}`)),
+            .catch(err => logger.warn(`[Haircut FCM] ${uid}: ${err.code}`)),
         );
       }
 

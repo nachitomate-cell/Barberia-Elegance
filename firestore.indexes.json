@@ -202,6 +202,50 @@
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "clienteUid", "order": "ASCENDING" },
+        { "fieldPath": "estado",     "order": "ASCENDING" },
+        { "fieldPath": "fecha",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteUid", "order": "ASCENDING" },
+        { "fieldPath": "estado",     "order": "ASCENDING" },
+        { "fieldPath": "fecha",      "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
+        { "fieldPath": "estado",          "order": "ASCENDING" },
+        { "fieldPath": "fecha",           "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
+        { "fieldPath": "estado",          "order": "ASCENDING" },
+        { "fieldPath": "fecha",           "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "notificacionesActivas", "order": "ASCENDING" },
+        { "fieldPath": "nextSuggestionDate",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
         {
           "fieldPath": "fecha",
           "order": "ASCENDING"

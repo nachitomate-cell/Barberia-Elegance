@@ -60,7 +60,9 @@ function colecciones(tenantId) {
     users:        db.collection(isEle ? 'users' : `tenants/${tenantId}/users`),
     packConsumos: db.collection(isEle ? 'packConsumos' : `tenants/${tenantId}/packConsumos`),
     citas:        db.collection(isEle ? 'citas' : `tenants/${tenantId}/citas`),
-    clientes:     db.collection(isEle ? 'clientes' : `tenants/${tenantId}/clientes`),
+    // Fase 3.C: clientes/ deprecated. Este CF ya no escribe ahí (la
+    // sincronización del uid en el mirror era relevante cuando el buscador
+    // de agenda leía clientes/; ahora lee users/ directo).
   };
 }
 
@@ -180,12 +182,8 @@ async function fusionar({ tenantId, authUid, authData }) {
     }
   }
 
-  // Actualizar clientes/{tel}.uid → apunta al canónico.
-  for (const t of telsPosibles) {
-    const cRef = cols.clientes.doc(t);
-    const cSnap = await cRef.get();
-    if (cSnap.exists) batch.update(cRef, { uid: authUid });
-  }
+  // (Fase 3.C: se removió el update de clientes/{tel}.uid — el buscador
+  // ya lee users/ directo post cleanup+backfill.)
 
   // Marcar cada legacy como fusionado + limpiar sellos/packs para que
   // ninguna CF vuelva a escribir ahí por accidente.

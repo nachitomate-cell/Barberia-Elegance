@@ -2,7 +2,7 @@
 
 // functions/sello-automatico.js
 // ─────────────────────────────────────────────────────────────────
-//  SELLO AUTOMÁTICO AL COMPLETAR CITA
+//  SELLO AUTOMÁTICO AL COMPLETAR CITA — Fase 3.C
 //
 //  Dispara cuando cita.estado cambia a 'completada' (o 'Completada').
 //  Decide si corresponde sello de fidelidad o descuento de membresía:
@@ -10,10 +10,17 @@
 //    1. Si el cliente tiene membresía activa con usos del servicio
 //       → decrementa remainingServices[key] (NO suma sello)
 //    2. Si no tiene membresía
-//       → incrementa sellosDisponibles y sellosHistoricos en +1
+//       → incrementa sellosDisponibles y sellosHistoricos según su rango
 //
 //  Idempotente: escribe selloProcesado=true en la cita para evitar
 //  doble procesamiento si la función se re-ejecuta.
+//
+//  Fase 3.C: fuente de verdad = users/. Antes escribía en paralelo a
+//  clientes/{tel} (mirror histórico) y users/{uid}; ahora solo users/.
+//  El clienteUid ya viene resuelto en la mayoría de citas gracias a la
+//  Fase 1 (upsertCliente en client-side) + rescate-cliente-cita.js
+//  (trigger server-side de rescate al crear cita). Solo quedan
+//  fallbacks para citas legacy sin clienteUid.
 //
 //  Exports:
 //    sellosElegance  — trigger en /citas/{citaId}
@@ -62,16 +69,14 @@ function normalizePhone(phone) {
 }
 
 // ── Colecciones según tenant ──────────────────────────────────────
-// Kronnos (Camino 1.5): users es marca-level → tenants/kronnos/users para todos los legacy.
-// clientes también es marca-level (lookup por teléfono cross-sede). citas queda per-sede.
+// Kronnos (Camino 1.5): users es marca-level → tenants/kronnos/users para
+// todos los legacy. citas queda per-sede.
 function colecciones(tenantId) {
   const isElegance = tenantId === 'elegance';
-  const usersTid    = marca.marcaAwareTenant(tenantId, 'users');
-  const clientesTid = marca.marcaAwareTenant(tenantId, 'clientes');
+  const usersTid   = marca.marcaAwareTenant(tenantId, 'users');
   return {
-    clientes: db.collection(isElegance ? 'clientes' : `tenants/${clientesTid}/clientes`),
-    users:    db.collection(isElegance ? 'users'    : `tenants/${usersTid}/users`),
-    citas:    db.collection(isElegance ? 'citas'    : `tenants/${tenantId}/citas`),
+    users: db.collection(isElegance ? 'users' : `tenants/${usersTid}/users`),
+    citas: db.collection(isElegance ? 'citas' : `tenants/${tenantId}/citas`),
   };
 }
 
@@ -198,7 +203,6 @@ async function sellosPorVisita(tenantId, historicos) {
   return 1;
 }
 
-// ── Lógica principal ──────────────────────────────────────────────
 // ── Cliente propio del barbero (cartera externa) ──────────────────
 //  En Oren, los barberos pueden traer su propia cartera de clientes que
 //  marcan con un sufijo en el nombre (ej. Pablo → "Jorgito xuni cp").
@@ -225,222 +229,83 @@ async function esClientePropioDelBarbero({ tenantId, barberoId, clienteNombre })
   } catch (_) { return false; }
 }
 
+// ── Resolver uid en users/ para citas legacy (sin clienteUid) ─────
+//  Flujo canónico Fase 1+: la cita YA trae clienteUid gracias a
+//  upsertCliente (client-side) o rescate-cliente-cita.js (server-side).
+//  Este fallback cubre citas viejas o edge-cases donde ambos fallaron.
+//
+//  Orden de resolución:
+//    1. email exacto (identificador humano único)
+//    2. telefonoSuf9 (últimos 9 dígitos — evita bugs de formato "+56 9 ..." vs "9...")
+//    3. telefono exacto en variantes (raw, normalizado)
+//
+//  NOTA: no aplicamos la regla híbrida anti-familia acá porque este
+//  es un fallback muy defensivo; si hay ambigüedad devolvemos el
+//  primer match y confiamos en que rescate-cliente-cita.js ya hizo
+//  el trabajo bien la mayoría del tiempo.
+async function resolverUidEnUsers(usersCol, cita) {
+  const email = String(cita.clienteEmail || cita.email || '').toLowerCase().trim();
+  if (email) {
+    try {
+      const q = await usersCol.where('email', '==', email).limit(1).get();
+      if (!q.empty) return q.docs[0].id;
+    } catch (_) {}
+  }
+
+  const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
+  const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
+  if (suf9) {
+    try {
+      const q = await usersCol.where('telefonoSuf9', '==', suf9).limit(1).get();
+      if (!q.empty) return q.docs[0].id;
+    } catch (_) {}
+  }
+
+  const rawTel = String(cita.clienteTelefono || '').trim();
+  const telN   = normalizePhone(cita.clienteTelefono);
+  const variants = [...new Set([rawTel, telN].filter(Boolean))];
+  for (const v of variants) {
+    try {
+      const q = await usersCol.where('telefono', '==', v).limit(1).get();
+      if (!q.empty) return q.docs[0].id;
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+// ── Lógica principal ──────────────────────────────────────────────
 async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const cols = colecciones(tenantId);
 
-  const telefono      = normalizePhone(cita.clienteTelefono);
-  const clienteNombre = cita.clienteNombre || cita.nombre || 'Cliente';
-
-  // Skip TOTAL para clientes propios del barbero (Oren + sufijo). Ver comentario
-  // del helper: cartera externa del barbero, no del club.
-  if (await esClientePropioDelBarbero({ tenantId, barberoId: cita.barberoId, clienteNombre })) {
-    logger.info(`[Sello] ${citaId} (${tenantId}): SKIP cliente propio del barbero (${clienteNombre}). No acumula sellos ni membresía.`);
-    return;
-  }
-  const clienteEmail  = cita.clienteEmail  || cita.email  || null;
+  const telefono       = normalizePhone(cita.clienteTelefono);
+  const clienteNombre  = cita.clienteNombre || cita.nombre || 'Cliente';
   const servicioNombre = cita.servicioNombre || cita.servicio || '';
   const servicioId     = cita.servicioId || null;
   const barberoId      = cita.barberoId  || null;
 
-  if (!telefono) {
-    // Sin teléfono: intentar resolver uid desde otros campos de la cita.
-    let uidSinTel = cita.clienteUid || null;
-    if (!uidSinTel && cita.clienteId) {
-      if (cita.clienteId.length > 20) {
-        uidSinTel = cita.clienteId; // Firebase UID
-      } else {
-        // Puede ser el teléfono usado como docId en clientes (e.g. "56999335412")
-        try {
-          const cliSnap = await cols.clientes.doc(cita.clienteId).get();
-          if (cliSnap.exists && cliSnap.data()?.uid) uidSinTel = cliSnap.data().uid;
-        } catch (_) {}
-      }
-    }
-    if (!uidSinTel) {
-      const email = (cita.clienteEmail || '').toLowerCase().trim();
-      if (email) {
-        try {
-          const q = await cols.users.where('email', '==', email).limit(1).get();
-          if (!q.empty) uidSinTel = q.docs[0].id;
-        } catch (_) {}
-      }
-    }
-
-    if (uidSinTel) {
-      // Corte al Lápiz: sumar el servicio a la cuota del miembro (sin teléfono).
-      await acreditarCorteLapiz({ tenantId, uid: uidSinTel, telefono: null, cita, citaId });
-
-      const svcNombre = cita.servicioNombre || cita.servicio || '';
-      const svcKey    = servicioAKey(svcNombre);
-      const membresia = svcKey
-        ? await verificarMembresia(cols.users, uidSinTel, svcKey)
-        : { aplicable: false };
-      const tipo = membresia.aplicable ? 'membresia' : 'sello';
-      const userRef = cols.users.doc(uidSinTel);
-
-      if (membresia.aplicable) {
-        await userRef.update({
-          [`subscription.remainingServices.${svcKey}`]: FieldValue.increment(-1),
-          'subscription.ultimoUso': Timestamp.now(),
-        });
-      } else {
-        // Sellos según el rango del cliente (sellosPorVisita).
-        let histSinTel = 0;
-        try {
-          const us = await userRef.get();
-          if (us.exists) histSinTel = Number(us.data().sellosHistoricos ?? us.data().stamps) || 0;
-        } catch (_) {}
-        const nSellos   = await sellosPorVisita(tenantId, histSinTel);
-        const notaSello = nSellos === 1
-          ? `Cita completada: ${svcNombre}`
-          : `Cita completada (+${nSellos} sellos): ${svcNombre}`;
-        // Kronnos: incrementa sellosPorSede[sedeId] para calcular sede predominante.
-        const sedeOrigenSt = marca.sedeIdFromLegacy(tenantId);
-        const updSt = {
-          sellosDisponibles: FieldValue.increment(nSellos),
-          sellosHistoricos:  FieldValue.increment(nSellos),
-          stamps:            FieldValue.increment(nSellos),
-          ultimoSello:       Timestamp.now().toDate().toISOString(),
-          historialSellos:   FieldValue.arrayUnion({
-            fecha:    Timestamp.now().toDate().toISOString(),
-            tipo:     'suma',
-            cantidad: nSellos,
-            nota:     notaSello,
-            citaId,
-            ...(sedeOrigenSt ? { sedeId: sedeOrigenSt } : {}),
-          }),
-        };
-        if (sedeOrigenSt) updSt[`sellosPorSede.${sedeOrigenSt}`] = FieldValue.increment(nSellos);
-        await userRef.update(updSt);
-      }
-      await citaRef.update({
-        selloProcesado:      true,
-        selloProcesadoEn:    Timestamp.now(),
-        selloProcesadoTipo:  tipo,
-        pendingGoogleReview: true,
-      });
-      logger.info(`[Sello] ${citaId}: procesado sin teléfono (uid=${uidSinTel}, tipo=${tipo})`);
-    } else {
-      logger.warn(`[Sello] ${citaId}: sin teléfono ni uid identificable. No suma sello.`);
-      try {
-        await citaRef.update({
-          selloProcesado:      true,
-          selloProcesadoEn:    Timestamp.now(),
-          selloProcesadoTipo:  'omitido_sin_identificacion',
-          pendingGoogleReview: true,
-        });
-      } catch (e) {
-        logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview:`, e);
-      }
-    }
+  // Skip TOTAL para clientes propios del barbero (Oren + sufijo). Ver comentario
+  // del helper: cartera externa del barbero, no del club.
+  if (await esClientePropioDelBarbero({ tenantId, barberoId, clienteNombre })) {
+    logger.info(`[Sello] ${citaId} (${tenantId}): SKIP cliente propio del barbero (${clienteNombre}). No acumula sellos ni membresía.`);
     return;
   }
 
-  const servicioKey = servicioAKey(servicioNombre);
-
-  // ── 1. Obtener o crear doc del cliente ─────────────────────────
-  // El doc de clientes usa el teléfono normalizado (sin símbolo +, con código de país).
-  // Intentamos primero con el teléfono tal como viene de la cita; si no existe,
-  // probamos la variante con/sin código de país '56' para manejar formatos distintos
-  // entre el formulario de reserva y el de registro.
-  let clienteRef  = cols.clientes.doc(telefono);
-  let clienteSnap = await clienteRef.get();
-
-  if (!clienteSnap.exists) {
-    const alt = telefono.startsWith('56') && telefono.length >= 10
-      ? telefono.slice(2)                          // 56912345678 → 912345678
-      : (telefono.length === 9 ? '56' + telefono : null); // 912345678 → 56912345678
-    if (alt) {
-      const altSnap = await cols.clientes.doc(alt).get();
-      if (altSnap.exists) {
-        clienteRef  = cols.clientes.doc(alt);
-        clienteSnap = altSnap;
-      }
-    }
-  }
-
-  const clienteData = clienteSnap.exists ? clienteSnap.data() : null;
-
-  if (!clienteSnap.exists) {
-    await clienteRef.set({
-      nombre:   clienteNombre,
-      telefono: cita.clienteTelefono,
-      email:    clienteEmail,
-      sellosDisponibles:  0,
-      sellosHistoricos:   0,
-      historial:          [],
-      creadoEn:           Timestamp.now(),
-      updatedAt:          Timestamp.now(),
-    });
-  }
-
-  // Prioridad 1: cita.userId si viene (cliente logueado — la reserva pública
-  // ahora lo guarda; ver firebaseUtils.addCita). Es el uid autoritativo del
-  // cliente en el sistema. Sin este check, cuando había 2 docs (legacy por
-  // teléfono + Auth del club) el fallback por teléfono podía devolver el
-  // legacy → sellos iban al doc equivocado.
-  let uid = cita.userId || clienteData?.uid || null;
-
-  // Si el doc de clientes existe pero no tiene uid, buscar en users por teléfono o email.
-  // Esto ocurre cuando la cita fue creada con un formato de teléfono distinto al del registro
-  // (ej: "+56977669503" vs "+56 9 77669503"), o cuando el user guardó su tel con espacios/+.
+  // ── 1. Resolver uid del cliente ────────────────────────────────
+  // Prioridad: clienteUid (Fase 1) → userId legacy → búsqueda en users/.
+  let uid = cita.clienteUid || cita.userId || null;
   if (!uid) {
-    try {
-      const rawPhone = (cita.clienteTelefono || '').trim();
-      const variants = [...new Set([rawPhone, telefono, clienteRef.id])].filter(Boolean);
-      for (const v of variants) {
-        const q = await cols.users.where('telefono', '==', v).limit(1).get();
-        if (!q.empty) {
-          uid = q.docs[0].id;
-          await clienteRef.update({ uid });
-          break;
-        }
-      }
-    } catch (e) {
-      logger.warn(`[Sello] ${citaId}: fallback uid por teléfono falló: ${e.message}`);
+    uid = await resolverUidEnUsers(cols.users, cita);
+    if (uid) {
+      logger.info(`[Sello] ${citaId}: uid resuelto por fallback (${uid}) — cita legacy sin clienteUid`);
+      // Backfill del clienteUid en la cita para que Métricas/panel también lo vean
+      try { await citaRef.update({ clienteUid: uid }); } catch (_) {}
     }
   }
 
-  // Fallback por sufijo de 9 dígitos (soluciona bug histórico donde el
-  // registro guardó "958856719" y la cita "+56 9 5885 6719" → exact match
-  // fallaba). Requiere que el user tenga `telefonoSuf9` denormalizado
-  // (backfill vía scripts/backfill-users-telefonoSuf9.js).
-  if (!uid) {
-    try {
-      const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
-      const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
-      if (suf9) {
-        const q = await cols.users.where('telefonoSuf9', '==', suf9).limit(1).get();
-        if (!q.empty) {
-          uid = q.docs[0].id;
-          await clienteRef.update({ uid });
-          logger.info(`[Sello] ${citaId}: uid resuelto por telefonoSuf9 (${suf9})`);
-        }
-      }
-    } catch (e) {
-      logger.warn(`[Sello] ${citaId}: fallback uid por telefonoSuf9 falló: ${e.message}`);
-    }
-  }
-
-  // Fallback final: buscar por email si aún no se encontró uid.
-  // Cubre el caso en que el teléfono almacenado en users tiene un formato
-  // diferente al de la cita (espacios, +, largo distinto).
-  if (!uid && clienteEmail) {
-    try {
-      const q = await cols.users.where('email', '==', clienteEmail.toLowerCase().trim()).limit(1).get();
-      if (!q.empty) {
-        uid = q.docs[0].id;
-        await clienteRef.update({ uid });
-        logger.info(`[Sello] ${citaId}: uid resuelto por email (${clienteEmail})`);
-      }
-    } catch (e) {
-      logger.warn(`[Sello] ${citaId}: fallback uid por email falló: ${e.message}`);
-    }
-  }
-
-  // Seguir puntero de fusión: si el uid resuelto apunta a un doc legacy que
-  // fue fusionado con la cuenta del club (users/{authUid}), redirigir al
-  // canónico. Sin esto, los sellos siguen yendo al legacy tras la fusión.
+  // Seguir puntero de fusión: si el uid apunta a un doc legacy que fue
+  // fusionado con la cuenta del club (users/{authUid}), redirigir al canónico.
+  // Sin esto, los sellos siguen yendo al legacy tras la fusión.
   if (uid) {
     try {
       const uSnap = await cols.users.doc(uid).get();
@@ -448,130 +313,107 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       if (fusionadoCon && fusionadoCon !== uid) {
         logger.info(`[Sello] ${citaId}: uid ${uid} está fusionado con ${fusionadoCon} — redirigo sellos al canónico`);
         uid = fusionadoCon;
-        // Actualizar clientes/{tel}.uid para que las próximas citas resuelvan al canónico directo.
-        try { await clienteRef.update({ uid }); } catch (_) { /* si no existe, se creó ya con set */ }
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: no se pudo verificar fusionadoCon: ${e.message}`);
     }
   }
 
-  // Sincronización preventiva de telefonoSuf9 en users/{uid} para próximas
-  // resoluciones — solo si logramos identificar al usuario y aún no lo tiene.
-  if (uid) {
+  // ── 2. Corte al Lápiz: sumar el servicio a la cuota del miembro ─
+  await acreditarCorteLapiz({ tenantId, uid, telefono: telefono || null, cita, citaId });
+
+  // ── 3. Sin uid: no podemos sumar sello en users/ ────────────────
+  if (!uid) {
+    logger.warn(`[Sello] ${citaId} (${tenantId}): sin uid identificable (nombre="${clienteNombre}", tel="${cita.clienteTelefono || ''}", email="${cita.clienteEmail || ''}"). Marco pendingGoogleReview pero NO sumo sello.`);
     try {
-      const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
-      const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
-      if (suf9) {
-        const userSnap = await cols.users.doc(uid).get();
-        if (userSnap.exists && userSnap.data()?.telefonoSuf9 !== suf9) {
-          await cols.users.doc(uid).update({ telefonoSuf9: suf9 });
-        }
+      await citaRef.update({
+        selloProcesado:      true,
+        selloProcesadoEn:    Timestamp.now(),
+        selloProcesadoTipo:  'omitido_sin_identificacion',
+        pendingGoogleReview: true,
+      });
+    } catch (e) {
+      logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview:`, e);
+    }
+    return;
+  }
+
+  // ── 4. Sincronizar telefonoSuf9 en users/{uid} para próximas resoluciones ─
+  const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
+  const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
+  if (suf9) {
+    try {
+      const userSnap = await cols.users.doc(uid).get();
+      if (userSnap.exists && userSnap.data()?.telefonoSuf9 !== suf9) {
+        await cols.users.doc(uid).update({ telefonoSuf9: suf9 });
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: no se pudo sincronizar telefonoSuf9: ${e.message}`);
     }
   }
 
-  // ── Corte al Lápiz: sumar el servicio a la cuota del miembro ────
-  await acreditarCorteLapiz({ tenantId, uid, telefono, cita, citaId });
-
-  // ── 2. Verificar membresía ─────────────────────────────────────
-  const membresia = uid && servicioKey
+  // ── 5. Verificar membresía ─────────────────────────────────────
+  const servicioKey = servicioAKey(servicioNombre);
+  const membresia   = servicioKey
     ? await verificarMembresia(cols.users, uid, servicioKey)
     : { aplicable: false };
 
-  // Entrada de historial (se añade en ambas ramas)
-  const entradaHistorial = {
-    citaId,
-    fecha:       cita.fecha      || Timestamp.now().toDate().toISOString().split('T')[0],
-    hora:        cita.hora       || null,
-    servicioId,
-    servicioNombre,
-    barberoId,
-    tipo:        membresia.aplicable ? 'membresia' : 'sello',
-    procesadoEn: Timestamp.now(),
-  };
+  const userRef = cols.users.doc(uid);
 
   if (membresia.aplicable) {
-    // ── Rama A: descontar uso de membresía ──────────────────────
-    const userRef = cols.users.doc(uid);
+    // ── Rama A: descontar uso de membresía ───────────────────────
     await userRef.update({
       [`subscription.remainingServices.${servicioKey}`]: FieldValue.increment(-1),
       'subscription.ultimoUso': Timestamp.now(),
     });
-
-    await clienteRef.update({
-      historial: FieldValue.arrayUnion(entradaHistorial),
-      updatedAt: Timestamp.now(),
-    });
+    logger.info(`[Sello] ${citaId} (${tenantId}): -1 uso de membresía (${servicioKey}) para ${uid}`);
   } else {
-    // ── Rama B: sumar sello(s) de fidelidad según el rango ──────
-    // La cantidad depende del rango actual del cliente (sellosPorVisita).
-    const historicos = Number(clienteData?.sellosHistoricos) || 0;
-    const nSellos    = await sellosPorVisita(tenantId, historicos);
-    const notaSello  = nSellos === 1
+    // ── Rama B: sumar sello(s) de fidelidad según el rango ───────
+    let historicos = 0;
+    try {
+      const us = await userRef.get();
+      if (us.exists) {
+        const d = us.data();
+        historicos = Number(d.sellosHistoricos ?? d.stamps) || 0;
+      }
+    } catch (_) {}
+
+    const nSellos   = await sellosPorVisita(tenantId, historicos);
+    const notaSello = nSellos === 1
       ? `Cita completada: ${servicioNombre}`
       : `Cita completada (+${nSellos} sellos): ${servicioNombre}`;
 
-    // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web).
-    // Usamos set(..., merge:true) en vez de update() para evitar fallos silenciosos
-    // cuando el doc no existe (caso raro observado en yugen: cita antigua cuyo
-    // clientes/{tel} fue borrado o nunca se creó por race con otra CF).
-    try {
-      await clienteRef.set({
-        sellosDisponibles:  FieldValue.increment(nSellos),
-        sellosHistoricos:   FieldValue.increment(nSellos),
-        historial:          FieldValue.arrayUnion(entradaHistorial),
-        updatedAt:          Timestamp.now(),
-        // Aseguramos identidad mínima si el doc se creó recién con este merge
-        telefono:           cita.clienteTelefono || telefono,
-        ...(clienteNombre ? { nombre: clienteNombre } : {}),
-      }, { merge: true });
-    } catch (e) {
-      logger.error(`[Sello] ${citaId}: fallo escritura en clientes/${clienteRef.id}: ${e.message}`);
-      // No abortamos: seguimos con users/ que es lo que ve el cliente final
-    }
+    // Kronnos: sedeId de origen (la sede donde ocurrió la cita) para
+    // sellosPorSede[sedeId] + marca en historial (canje predominante).
+    const sedeOrigen = marca.sedeIdFromLegacy(tenantId);
+    const upd = {
+      sellosDisponibles: FieldValue.increment(nSellos),
+      sellosHistoricos:  FieldValue.increment(nSellos),
+      stamps:            FieldValue.increment(nSellos),
+      ultimoSello:       Timestamp.now().toDate().toISOString(),
+      historialSellos:   FieldValue.arrayUnion({
+        fecha:    Timestamp.now().toDate().toISOString(),
+        tipo:     'suma',
+        cantidad: nSellos,
+        nota:     notaSello,
+        citaId,
+        ...(sedeOrigen ? { sedeId: sedeOrigen } : {}),
+      }),
+    };
+    if (sedeOrigen) upd[`sellosPorSede.${sedeOrigen}`] = FieldValue.increment(nSellos);
 
-    // Sincronizar en users/{uid} para que el panel admin muestre el sello al instante
-    // (mismos campos que usa el botón "Añadir sello" en /gestion-interna/clientes)
-    if (uid) {
-      try {
-        const userRef = cols.users.doc(uid);
-        // Kronnos: sedeId de origen (la sede donde ocurrió la cita) para
-        // sellosPorSede[sedeId] + marca en historial (canje predominante).
-        const sedeOrigen = marca.sedeIdFromLegacy(tenantId);
-        const upd = {
-          sellosDisponibles: FieldValue.increment(nSellos),
-          sellosHistoricos:  FieldValue.increment(nSellos),
-          stamps:            FieldValue.increment(nSellos),
-          ultimoSello:       Timestamp.now().toDate().toISOString(),
-          historialSellos:   FieldValue.arrayUnion({
-            fecha:    Timestamp.now().toDate().toISOString(),
-            tipo:     'suma',
-            cantidad: nSellos,
-            nota:     notaSello,
-            citaId,
-            ...(sedeOrigen ? { sedeId: sedeOrigen } : {}),
-          }),
-        };
-        if (sedeOrigen) upd[`sellosPorSede.${sedeOrigen}`] = FieldValue.increment(nSellos);
-        await userRef.update(upd);
-      } catch (e) {
-        // Este es el fallo crítico: el sello suma en clientes/ pero no llega al
-        // dashboard del cliente. Loggeamos con nivel error para alertar al admin.
-        logger.error(`[Sello] ${citaId}: fallo escritura en users/${uid}: ${e.message}`, {
-          citaId, uid, tenantId, telefono, nSellos,
-        });
-      }
-    } else {
-      // Advertencia visible en Cloud Logging cuando el sello queda huérfano en clientes/
-      // (nunca se pudo resolver el uid del cliente registrado). Facilita el debug.
-      logger.warn(`[Sello] ${citaId}: sumado en clientes/${clienteRef.id} pero SIN uid — el cliente no verá el sello en su panel. Revisar telefonoSuf9 / registro.`);
+    try {
+      await userRef.update(upd);
+      logger.info(`[Sello] ${citaId} (${tenantId}): +${nSellos} sello(s) a users/${uid}`);
+    } catch (e) {
+      // Este es el fallo crítico. Loggeamos con nivel error para alertar.
+      logger.error(`[Sello] ${citaId}: fallo escritura en users/${uid}: ${e.message}`, {
+        citaId, uid, tenantId, telefono, nSellos,
+      });
     }
   }
 
-  // ── 3. Marcar la cita como procesada (idempotencia atómica) ─────
+  // ── 6. Marcar la cita como procesada (idempotencia atómica) ─────
   // Usamos transacción para evitar race condition si la CF se reintenta
   // antes de que selloProcesado=true quede persistido.
   const yaProc = await db.runTransaction(async tx => {
@@ -597,7 +439,7 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
 function debesProcesar(before, after, citaId) {
   if (!after) return false; // doc eliminado
 
-  const estadoAntes  = (before?.estado  || '').toLowerCase();
+  const estadoAntes   = (before?.estado || '').toLowerCase();
   const estadoDespues = (after.estado   || '').toLowerCase();
 
   if (estadoDespues !== 'completada') return false;   // no es completada
