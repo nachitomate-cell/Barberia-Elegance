@@ -728,6 +728,7 @@ function DetalleBarberoDrawer({
     push(['Ajustes +', barbero.ajustesSuma]);
     push(['Ajustes −', barbero.ajustesResta]);
     push(['Adelantos', barbero.adelantos]);
+    if (barbero.arriendoTotal > 0) push(['Arriendo debido al local', barbero.arriendoTotal]);
     push(['TOTAL A PAGAR', barbero.total]);
     const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
@@ -779,6 +780,12 @@ function DetalleBarberoDrawer({
             <p className="text-slate-500">Adelantos</p>
             <p className="font-semibold text-orange-400 tabular-nums">− {formatCLP(barbero.adelantos)}</p>
           </div>
+          {barbero.arriendoTotal > 0 && (
+            <div>
+              <p className="text-slate-500">Arriendo local</p>
+              <p className="font-semibold text-amber-400 tabular-nums">− {formatCLP(barbero.arriendoTotal)}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1490,12 +1497,15 @@ export default function Comisiones() {
         const adel   = Math.round(b.adelantos);
         const ajSum  = Math.round(b.ajustesSuma);
         const ajRes  = Math.round(b.ajustesResta);
+        const rent   = Math.round(b.arriendoTotal);
         const bruto  = Math.round(b.sueldoBase + b.montoComision);
         // Ajustes manuales se aplican ANTES de restar adelantos: primero
         // "cuánto debería cobrar" (con bonos/descuentos), y de ahí sale la
-        // resta de adelantos ya tomados.
+        // resta de adelantos ya tomados. El arriendo (cliente propio) se
+        // descuenta al final: el barbero ya lo cobró íntegro al cliente y le
+        // debe al local $X por cada corte CP.
         const brutoAjustado = bruto + ajSum - ajRes;
-        const neto   = brutoAjustado - adel;
+        const neto   = brutoAjustado - adel - rent;
         // Ordenar líneas del período por fecha ascendente para display estable.
         b.ajustesLineas.sort((x, y) => (x.fecha || '').localeCompare(y.fecha || ''));
         return {
@@ -1534,8 +1544,9 @@ export default function Comisiones() {
     ajustesSuma:  acc.ajustesSuma  + b.ajustesSuma,
     ajustesResta: acc.ajustesResta + b.ajustesResta,
     propinas: acc.propinas + b.propinas,
+    arriendoTotal: acc.arriendoTotal + (b.arriendoTotal || 0),
     total: acc.total + b.total,
-  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, ajustesSuma: 0, ajustesResta: 0, propinas: 0, total: 0 }), [data]);
+  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, ajustesSuma: 0, ajustesResta: 0, propinas: 0, arriendoTotal: 0, total: 0 }), [data]);
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
@@ -2035,6 +2046,7 @@ export default function Comisiones() {
           ${b.comisionProductos > 0 ? `<span>Comisión productos (${b.comisionProductosPct}%${b.comisionProductosMonto > 0 ? ` + ${formatCLP(b.comisionProductosMonto)}/venta` : ''})</span><b>${formatCLP(b.comisionProductos)}</b>` : ''}
           <span>Sueldo base</span><b>${formatCLP(b.sueldoBase)}</b>
           ${b.adelantos > 0 ? `<span>Adelantos</span><b class="neg">− ${formatCLP(b.adelantos)}</b>` : ''}
+          ${b.arriendoTotal > 0 ? `<span>Arriendo debido al local</span><b class="neg">− ${formatCLP(b.arriendoTotal)}</b>` : ''}
           <span class="big">Total a pagar</span><b class="big pos">${formatCLP(b.total)}</b>
         </div>
         <h3>Medios de pago</h3>
@@ -2062,6 +2074,7 @@ export default function Comisiones() {
           <span>Ingresos totales</span><b>${formatCLP(totals.ingresos)}</b>
           <span>Total comisiones</span><b>${formatCLP(totals.montoComision)}</b>
           <span>Adelantos</span><b class="neg">− ${formatCLP(totals.adelantos)}</b>
+          ${totals.arriendoTotal > 0 ? `<span>Arriendo cobrado (cliente propio)</span><b class="neg">− ${formatCLP(totals.arriendoTotal)}</b>` : ''}
           <span class="big">Total a pagar</span><b class="big pos">${formatCLP(totals.total)}</b>
         </div>
         <h3>Medios de pago (todo el local)</h3>
@@ -2357,8 +2370,8 @@ export default function Comisiones() {
                   />
                   {barbero.arriendoTotal > 0 && (
                     <StatItem
-                      label="Arriendo pagado al local"
-                      value={formatCLP(barbero.arriendoTotal)}
+                      label="Arriendo debido al local"
+                      value={`− ${formatCLP(barbero.arriendoTotal)}`}
                       subValue={`${barbero.arriendoCount} servicio${barbero.arriendoCount !== 1 ? 's' : ''}`}
                       valueClass="text-amber-400"
                     />
