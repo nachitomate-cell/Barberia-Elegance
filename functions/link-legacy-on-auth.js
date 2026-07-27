@@ -108,7 +108,12 @@ async function fusionar({ tenantId, authUid, authData }) {
       logger.warn(`[link-legacy] ${tenantId}/${uid} ya está fusionado con ${data.fusionadoCon}, no toco.`);
       continue;
     }
-    const esLegacy = data.esLegacy === true || /^\d+$/.test(uid);
+    // Un doc es fusionable si:
+    //  · esLegacy:true (marca explícita del CF viejo pack-automatico)
+    //  · docId puramente numérico (legacy tel-as-uid, walk-in antiguo)
+    //  · docId con prefijo 'ac_' (creado por upsertCliente pre-Auth: walk-in
+    //    o reserva pública que no llegó a registrarse al club aún)
+    const esLegacy = data.esLegacy === true || /^\d+$/.test(uid) || /^ac_/.test(uid);
     if (!esLegacy) continue;
     legacyDocs.push({ uid, data });
   }
@@ -156,39 +161,22 @@ async function fusionar({ tenantId, authUid, authData }) {
   if (addSellosHistoricos)  authPatch.sellosHistoricos  = FieldValue.increment(addSellosHistoricos);
   if (addSellosDisponibles) authPatch.stamps            = FieldValue.increment(addSellosDisponibles);
   if (historial.length)     authPatch.historialSellos   = FieldValue.arrayUnion(...historial);
-  await authRef.update(authPatch);
 
-  // Actualizar logs packConsumos: userId legacy → authUid.
-  const batch = db.batch();
+  // ── ORDEN DE ESCRITURA — evita double-counting ────────────────────
+  //  1) batch1: vaciar cada legacy + marcar fusionadoCon.
+  //     Si esto falla → ABORT: no aplicamos sellos al auth, así el
+  //     legacy queda intacto y un reintento futuro puede recuperar.
+  //  2) authRef.update(sellos+historial+packs): aplicar recién ahora.
+  //  3) batch2: reasignar citas y packConsumos (nice-to-have; si falla,
+  //     la cita queda apuntando al uid legacy pero el auth ya heredó).
+  //
+  //  Antes: authRef.update() PRIMERO, batch DESPUÉS. Si el batch fallaba
+  //  (ej. legacy borrado por race), el auth ya tenía sellos y el legacy
+  //  seguía con sellos → double-count silencioso.
+
+  const batch1 = db.batch();
   for (const { uid } of legacyDocs) {
-    const q = await cols.packConsumos.where('userId', '==', uid).get();
-    for (const d of q.docs) batch.update(d.ref, { userId: authUid, userIdLegacy: uid });
-  }
-
-  // Actualizar citas: userId legacy o clienteTelefono coincidente → apuntan al auth.
-  const telsPosibles = new Set([tel, `+${tel}`, authData?.telefono].filter(Boolean));
-  const citasIds = new Set();
-  for (const { uid } of legacyDocs) {
-    const q = await cols.citas.where('userId', '==', uid).get();
-    for (const d of q.docs) { citasIds.add(d.id); batch.update(d.ref, { userId: authUid, userIdLegacy: uid }); }
-  }
-  for (const t of telsPosibles) {
-    const q = await cols.citas.where('clienteTelefono', '==', t).get();
-    for (const d of q.docs) {
-      if (citasIds.has(d.id)) continue;
-      citasIds.add(d.id);
-      // Solo tocamos userId si aún no lo tiene, para no pisar auths distintos.
-      batch.update(d.ref, { userId: authUid });
-    }
-  }
-
-  // (Fase 3.C: se removió el update de clientes/{tel}.uid — el buscador
-  // ya lee users/ directo post cleanup+backfill.)
-
-  // Marcar cada legacy como fusionado + limpiar sellos/packs para que
-  // ninguna CF vuelva a escribir ahí por accidente.
-  for (const { uid } of legacyDocs) {
-    batch.update(cols.users.doc(uid), {
+    batch1.update(cols.users.doc(uid), {
       fusionadoCon:      authUid,
       fusionadoEn:       FieldValue.serverTimestamp(),
       packsActivos:      [],
@@ -198,8 +186,44 @@ async function fusionar({ tenantId, authUid, authData }) {
       historialSellos:   [],
     });
   }
+  try {
+    await batch1.commit();
+  } catch (e) {
+    logger.warn(`[link-legacy] ${tenantId}/${authUid}: no se pudo vaciar legacy (${e.code || e.message}) — abort sin aplicar sellos al auth. Puede reintentar futuro.`);
+    return;
+  }
 
-  await batch.commit();
+  // Legacy vaciado OK → ahora sí, aplicar todo al auth.
+  await authRef.update(authPatch);
+
+  // Best effort: reasignar citas y packConsumos. Si falla, no rollback
+  // (el auth ya heredó sellos que era lo importante).
+  const batch2 = db.batch();
+  for (const { uid } of legacyDocs) {
+    const q = await cols.packConsumos.where('userId', '==', uid).get();
+    for (const d of q.docs) batch2.update(d.ref, { userId: authUid, userIdLegacy: uid });
+  }
+  const telsPosibles = new Set([tel, `+${tel}`, authData?.telefono].filter(Boolean));
+  const citasIds = new Set();
+  for (const { uid } of legacyDocs) {
+    const q = await cols.citas.where('userId', '==', uid).get();
+    for (const d of q.docs) { citasIds.add(d.id); batch2.update(d.ref, { userId: authUid, userIdLegacy: uid }); }
+  }
+  for (const t of telsPosibles) {
+    const q = await cols.citas.where('clienteTelefono', '==', t).get();
+    for (const d of q.docs) {
+      if (citasIds.has(d.id)) continue;
+      citasIds.add(d.id);
+      // Solo tocamos userId si aún no lo tiene, para no pisar auths distintos.
+      batch2.update(d.ref, { userId: authUid, userIdLegacy: legacyDocs[0].uid });
+    }
+  }
+  try {
+    await batch2.commit();
+  } catch (e) {
+    logger.warn(`[link-legacy] ${tenantId}/${authUid}: fusión de sellos OK pero fallo reasignar citas (${e.code || e.message}). Auth heredó sellos; citas quedan apuntando a legacy.`);
+  }
+
   logger.info(`[link-legacy] ${tenantId}/${authUid}: fusión completa. Packs=${authPacks.length} · +sellos=${addSellosDisponibles}`);
 }
 

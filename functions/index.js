@@ -1235,13 +1235,18 @@ exports.googleReviewsVincular      = googleReviews.googleReviewsVincular;
 exports.googleReviewsSetBaseline   = googleReviews.googleReviewsSetBaseline;
 
 // ─────────────────────────────────────────────────────────────────
-//  DEDUP CLIENTE — ver dedupe-cliente-onCreate.js
-//  Al registrarse un cliente, fusiona automáticamente con su perfil
-//  legacy (creado por la migración de AgendaPro) si comparte email.
+//  DEDUP CLIENTE — RETIRADO (Fase 3.B)
+//  dedupe-cliente-onCreate.js quedó redundante y peligroso:
+//   · Fase 1 (upsertCliente) previene duplicados EN ORIGEN con docId
+//     determinístico `ac_<hash>`. Nunca se crea un duplicado nuevo.
+//   · linkLegacy fusiona el ac_hash → authUid al hacer login passwordless.
+//   · Este CF borraba los ac_hash como "legacies" y absorbía sellos en
+//     paralelo con linkLegacy → double-count silencioso (detectado en
+//     smoke de fusión: auth quedaba con sellos=2 y ac_hash borrado antes
+//     que linkLegacy pudiera marcar fusionadoCon).
+//  Los triggers ya desplegados se eliminan con:
+//     firebase functions:delete dedupeOnCreateElegance dedupeOnCreateTenant
 // ─────────────────────────────────────────────────────────────────
-const dedupeCliente = require('./dedupe-cliente-onCreate');
-exports.dedupeOnCreateElegance = dedupeCliente.dedupeOnCreateElegance;
-exports.dedupeOnCreateTenant   = dedupeCliente.dedupeOnCreateTenant;
 
 // ─────────────────────────────────────────────────────────────────
 //  UPSERT CLIENTE — ver upsert-cliente.js
