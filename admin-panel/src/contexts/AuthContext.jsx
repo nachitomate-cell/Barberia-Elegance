@@ -117,21 +117,29 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        // El rol del equipo se guarda en barberos/{uid}
+        // El rol del equipo se guarda en barberos/{uid} (rol del panel).
+        // Pero los custom claims son source of truth (los setea el script
+        // server-side y no son manipulables desde el cliente). Si los
+        // claims dicen 'admin' → gana sobre el doc (que puede quedar stale,
+        // como pasó con Omar Chameleon: claim admin pero doc sin campo rol).
+        const rolClaims = await roleFromClaims(firebaseUser);
         const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 10000, 'auth/role');
         if (snap.exists()) {
           const data = snap.data();
           // Si es doc de enlace (_mainDocId), leer el doc principal
+          let rolDoc, scope;
           if (data._mainDocId) {
             const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 10000, 'auth/role-link');
-            setRole(main.exists() ? (main.data().rol || 'barbero') : 'barbero');
-            setSucursalScope(main.exists() ? scopeFromDoc(main.data()) : 'all');
+            rolDoc = main.exists() ? (main.data().rol || 'barbero') : 'barbero';
+            scope  = main.exists() ? scopeFromDoc(main.data()) : 'all';
           } else {
-            setRole(data.rol || 'barbero');
-            setSucursalScope(scopeFromDoc(data));
+            rolDoc = data.rol || 'barbero';
+            scope  = scopeFromDoc(data);
           }
+          setRole(rolClaims === 'admin' ? 'admin' : rolDoc);
+          setSucursalScope(scope);
         } else {
-          setRole(await roleFromClaims(firebaseUser) || 'barbero');
+          setRole(rolClaims || 'barbero');
           setSucursalScope('all');
         }
       } catch {
