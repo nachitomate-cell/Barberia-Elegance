@@ -21,6 +21,7 @@ dist/
 
 # Test/debug screenshots en la raíz
 /error.png
+/restodemo-*.png
 
 # Logs de import batch (scripts/import-*-<timestamp>.jsonl/.stats.json)
 scripts/import-*.jsonl
@@ -33,3 +34,17 @@ scripts/audit-*.json
 # Scripts de un solo uso: rutas absolutas hardcodeadas y se despliegan con
 # las functions sin que nadie los importe.
 functions/_temp-*.js
+
+# Herramientas ad-hoc de diagnostico/backfill (prefijo `_`) — nunca se
+# importan desde el resto del codigo, viven en local y se tiran.
+functions/_*.mjs
+functions/_snapshots/
+/_*.mjs
+admin-panel/_*.mjs
+
+# CSVs de backfill/import: suelen tener datos de clientes reales
+# (nombres, telefonos, citas). Nunca versionar.
+functions/*.csv
+
+# Artifacts del MCP server de Playwright (cache y screenshots temporales).
+.playwright-mcp/
