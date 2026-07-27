@@ -63,6 +63,17 @@
 
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .geo-map{width:100%;height:240px;border-radius:12px;overflow:hidden;border:1px solid #e2e5e0;margin-top:6px;background:#eef1ee;}
+  .geo-search{position:relative;margin-top:6px;}
+  .geo-search input{padding-left:38px;}
+  .geo-search::before{content:'📍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;opacity:.7;}
+  /* Panel de sugerencias de Google Places — encaja con el tema del editor. */
+  .pac-container{border-radius:12px;box-shadow:0 6px 22px rgba(21,36,11,.14);border:1px solid var(--line);margin-top:4px;font-family:'Plus Jakarta Sans',sans-serif;}
+  .pac-item{padding:10px 14px;font-size:13.5px;line-height:1.35;cursor:pointer;border-top:1px solid #f2f3f0;}
+  .pac-item:first-child{border-top:0;}
+  .pac-item:hover{background:#f2f6ee;}
+  .pac-icon{display:none;}
+  .pac-item-query{font-size:14px;font-weight:600;color:var(--ink);}
+  .pac-matched{font-weight:800;}
   .geo-radius-row{margin-top:12px;}
   .range{width:100%;accent-color:#39c313;margin-top:6px;}
   .geo-locs{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
@@ -212,7 +223,7 @@
     <!-- Selector de tenant (solo superadmin) -->
     <div id="tenant-picker" class="hidden" style="margin-bottom:18px;">
       <label for="tenant-select">Local</label>
-      <select id="tenant-select" onchange="cargarTenant(this.value)"></select>
+      <select id="tenant-select" onchange="cambiarDeLocal(this)"></select>
     </div>
 
     <div class="banner warn hidden" id="addon-banner"></div>
@@ -254,7 +265,10 @@
         <div id="icon-picker" class="icons"></div>
 
         <label style="margin-top:14px;">Geo-push — zonas de activación</label>
-        <p class="pv-note" style="margin-top:2px;">Agrega hasta <b>5 locales</b>. Toca "Agregar ubicación", arrastra cada marcador sobre su local y ajusta el radio. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas. Mientras menos zonas, mayor es el alcance de cada una.</p>
+        <p class="pv-note" style="margin-top:2px;">Agrega hasta <b>5 locales</b>. Escribe la dirección abajo o toca el mapa. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas. Mientras menos zonas, mayor es el alcance de cada una.</p>
+        <div class="geo-search">
+          <input type="text" id="f-geo-buscar" autocomplete="off" placeholder="Busca la dirección de tu local…">
+        </div>
         <div id="geo-map" class="geo-map"></div>
         <div id="geo-locs" class="geo-locs"></div>
         <button type="button" id="geo-add" class="geo-add">+ Agregar ubicación</button>
@@ -379,6 +393,19 @@ function tidFromUrl() {
 var _tid = null;          // tenant activo
 var _isSuper = false;
 var _addonActivo = false;
+var _dirty = false;       // hay cambios sin guardar (para beforeunload)
+
+function marcarDirty() { _dirty = true; }
+function limpiarDirty() { _dirty = false; }
+// Firefox y algunos navegadores móviles necesitan returnValue asignado.
+// El texto en sí no se muestra (los browsers ignoran el mensaje custom
+// desde 2015 por privacidad), pero el diálogo aparece igual.
+window.addEventListener('beforeunload', function (e) {
+  if (!_dirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+  return '';
+});
 
 function $(id) { return document.getElementById(id); }
 function show(id) {
@@ -477,6 +504,19 @@ firebase.auth().onAuthStateChanged(function (user) {
 });
 
 // ── Selector de local (superadmin) ────────────────────────────────
+// Wrapper que protege contra cambio accidental con cambios sin guardar.
+// Si el user cancela, vuelve el select al tenant anterior para que no
+// parezca que cambió.
+function cambiarDeLocal(sel) {
+  var nuevoTid = sel.value;
+  if (_dirty && _tid && nuevoTid !== _tid) {
+    var ok = window.confirm('Tienes cambios sin guardar en este local. ¿Cambiar sin guardarlos?');
+    if (!ok) { sel.value = _tid; return; }
+  }
+  limpiarDirty();
+  cargarTenant(nuevoTid);
+}
+
 function initTenantPicker() {
   var sel = $('tenant-select');
   var all = window.ALL_TENANTS || {};
@@ -548,6 +588,8 @@ function llenarForm(cfg, tenantCfg) {
   pintarIconos();
   renderLocs();
   recenterMap();
+  // El form ahora refleja lo persistido — nada que guardar.
+  limpiarDirty();
 }
 
 // Deriva el arreglo de zonas desde la config (nuevo cfg.locations[] o el
@@ -611,17 +653,20 @@ function renderPreview() {
 }
 
 // Sincronizar color pickers ↔ hex y refrescar preview con cada cambio.
+// También marcamos dirty en cada edición → beforeunload avisa si el user
+// cierra la pestaña sin guardar (evita perder minutos de branding).
 [['f-accent', 'f-accent-hex'], ['f-bg', 'f-bg-hex']].forEach(function (par) {
-  $(par[0]).addEventListener('input', function () { $(par[1]).value = this.value; renderPreview(); });
+  $(par[0]).addEventListener('input', function () { $(par[1]).value = this.value; renderPreview(); marcarDirty(); });
   $(par[1]).addEventListener('input', function () {
     if (/^#[0-9a-fA-F]{6}$/.test(this.value)) $(par[0]).value = this.value;
     renderPreview();
+    marcarDirty();
   });
 });
 ['f-programName', 'f-issuerName', 'f-logoUrl', 'f-lat', 'f-lng', 'f-geoMensaje'].forEach(function (id) {
-  $(id).addEventListener('input', renderPreview);
+  $(id).addEventListener('input', function () { renderPreview(); marcarDirty(); });
 });
-$('f-enabled').addEventListener('change', renderPreview);
+$('f-enabled').addEventListener('change', function () { renderPreview(); marcarDirty(); });
 
 // ── Preflight del logo (Google LoyaltyClass exige cuadrado ≥ 660×660) ──
 // Debounce para no bombardear la CDN mientras el dueño escribe la URL.
@@ -681,6 +726,7 @@ function guardar() {
     .then(function (res) {
       toast('✓ Tarjeta guardada y provisionada en Google Wallet');
       console.log('[Wallets] provisionada:', res.data);
+      limpiarDirty();
     })
     .catch(function (e) {
       toast(e && e.message ? e.message : 'No se pudo guardar. Intenta de nuevo.', true);
@@ -746,13 +792,17 @@ document.addEventListener('keydown', function (e) {
 });
 
 // ── Temas rápidos + selector de ícono de estampa ──────────────────
+// Cada tema lleva un nombre humano que aparece como tooltip (title) al
+// hover del círculo — el dueño ya no adivina qué combinación va con qué
+// vertical. Los hex también van al final entre paréntesis para el que
+// pega colores desde otra herramienta.
 var THEMES = [
-  { accent: '#c9a84c', bg: '#0a0a0a' }, // negro dorado
-  { accent: '#d9a441', bg: '#1a1109' }, // café tostado
-  { accent: '#39c313', bg: '#0f1a0a' }, // verde fresco
-  { accent: '#c0392b', bg: '#1a0a0a' }, // rojo vino
-  { accent: '#4c9ac9', bg: '#0a0f1a' }, // azul noche
-  { accent: '#ec4899', bg: '#1a0a14' }, // rosa
+  { name: 'Negro dorado',    accent: '#c9a84c', bg: '#0a0a0a' },
+  { name: 'Café tostado',    accent: '#d9a441', bg: '#1a1109' },
+  { name: 'Verde fresco',    accent: '#39c313', bg: '#0f1a0a' },
+  { name: 'Rojo vino',       accent: '#c0392b', bg: '#1a0a0a' },
+  { name: 'Azul noche',      accent: '#4c9ac9', bg: '#0a0f1a' },
+  { name: 'Rosa vibrante',   accent: '#ec4899', bg: '#1a0a14' },
 ];
 var ICONS = [
   { id: 'check',  em: '✓',  label: 'Check' },
@@ -769,12 +819,16 @@ function pintarThemes() {
   box.innerHTML = '';
   THEMES.forEach(function (t) {
     var b = document.createElement('button');
-    b.type = 'button'; b.className = 'theme-btn'; b.title = t.accent + ' / ' + t.bg;
+    b.type = 'button'; b.className = 'theme-btn';
+    // title = nombre + hex (tooltip nativo del browser al hover).
+    b.title = t.name + ' · ' + t.accent + ' / ' + t.bg;
+    b.setAttribute('aria-label', t.name);
     b.style.background = 'linear-gradient(135deg,' + t.bg + ' 0 50%,' + t.accent + ' 50% 100%)';
     b.addEventListener('click', function () {
       $('f-accent').value = t.accent; $('f-accent-hex').value = t.accent;
       $('f-bg').value = t.bg; $('f-bg-hex').value = t.bg;
       renderPreview();
+      marcarDirty();
     });
     box.appendChild(b);
   });
@@ -792,6 +846,7 @@ function pintarIconos() {
       _stampIcon = ic.id;
       Array.prototype.forEach.call(box.children, function (c) { c.classList.toggle('sel', c.dataset.icon === ic.id); });
       renderPreview();
+      marcarDirty();
     });
     box.appendChild(b);
   });
@@ -819,15 +874,52 @@ function maybeInitMap() {
   });
   _geoMap.addListener('click', function (e) {
     // Sin selección → crea la primera zona; con selección → mueve la actual.
-    if (_selIdx < 0 || !_locs.length) { addLocAt(e.latLng.lat(), e.latLng.lng()); return; }
+    if (_selIdx < 0 || !_locs.length) { addLocAt(e.latLng.lat(), e.latLng.lng()); marcarDirty(); return; }
     _locs[_selIdx].lat = +e.latLng.lat().toFixed(6);
     _locs[_selIdx].lng = +e.latLng.lng().toFixed(6);
     renderLocs();
+    marcarDirty();
   });
   buildOverlays();
   // Sin zonas → intentar centrar en la dirección del tenant (geocoder de Google).
   // Evita que un tenant de Santiago o Iquique arranque en Valparaíso.
   if (!_locs.length) tryCenterOnTenantAddress();
+  // Places autocomplete: buscar dirección, tap → centra + crea zona.
+  initPlacesAutocomplete();
+}
+
+// Autocomplete de Google Places: al elegir una sugerencia, centra el mapa
+// y crea (o mueve) la primera zona geo con lat/lng auto. Reduce fricción
+// enorme para dueños que no saben leer coordenadas en un mapa.
+var _placesReady = false;
+function initPlacesAutocomplete() {
+  if (_placesReady || !window.google || !google.maps.places) return;
+  var input = $('f-geo-buscar');
+  if (!input) return;
+  var ac = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'cl' },
+    fields: ['geometry', 'formatted_address', 'name'],
+    types: ['geocode', 'establishment'],
+  });
+  ac.addListener('place_changed', function () {
+    var p = ac.getPlace();
+    if (!p || !p.geometry || !p.geometry.location) return;
+    var lat = +p.geometry.location.lat().toFixed(6);
+    var lng = +p.geometry.location.lng().toFixed(6);
+    if (_geoMap) _geoMap.panTo({ lat: lat, lng: lng });
+    if (_geoMap) _geoMap.setZoom(16);
+    // Sin zonas aún → crear la primera; con selección → mover la seleccionada.
+    if (_selIdx < 0 || !_locs.length) addLocAt(lat, lng);
+    else {
+      _locs[_selIdx].lat = lat;
+      _locs[_selIdx].lng = lng;
+      renderLocs();
+    }
+    // Limpiar el buscador para el próximo uso, no dejar el texto pegado.
+    setTimeout(function () { input.value = ''; }, 100);
+    marcarDirty();
+  });
+  _placesReady = true;
 }
 
 // Geocoder es best-effort: si falla, el mapa queda en GEO_DEFAULT. Corre 1×
@@ -874,6 +966,7 @@ function buildOverlays() {
       _locs[i].lat = +e.latLng.lat().toFixed(6);
       _locs[i].lng = +e.latLng.lng().toFixed(6);
       selectLoc(i);
+      marcarDirty();
     });
     circle.addListener('radius_changed', function () {
       if (i !== _selIdx) return;
@@ -882,6 +975,7 @@ function buildOverlays() {
       $('f-geoRadius').value = r;
       $('f-geoRadius-label').textContent = r + ' m';
       updateSelRowText();
+      marcarDirty();
     });
     _markers.push(marker);
     _circles.push(circle);
@@ -976,6 +1070,7 @@ function removeLoc(i) {
   _locs.splice(i, 1);
   if (_selIdx >= _locs.length) _selIdx = _locs.length - 1;
   renderLocs();
+  marcarDirty();
 }
 
 function recenterMap() {
@@ -986,6 +1081,7 @@ $('geo-add').addEventListener('click', function () {
   var lat = GEO_DEFAULT.lat, lng = GEO_DEFAULT.lng;
   if (_geoMap) { var c = _geoMap.getCenter(); lat = c.lat(); lng = c.lng(); }
   addLocAt(lat, lng);
+  marcarDirty();
 });
 
 $('f-geoRadius').addEventListener('input', function () {
@@ -995,6 +1091,7 @@ $('f-geoRadius').addEventListener('input', function () {
     _locs[_selIdx].radius = r;
     if (_circles[_selIdx]) _circles[_selIdx].setRadius(r);
     updateSelRowText();
+    marcarDirty();
   }
 });
 
@@ -1012,6 +1109,6 @@ $('f-geoRadius').addEventListener('input', function () {
 
 show('view-loading');
 </script>
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDuz346EJ96gCjTC7VVJvnaasPxYmEK2do&callback=initGeoMap&loading=async"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDuz346EJ96gCjTC7VVJvnaasPxYmEK2do&callback=initGeoMap&loading=async&libraries=places"></script>
 </body>
 </html>
