@@ -8,6 +8,7 @@ import {
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
+import SlideOver from '../components/ui/SlideOver';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
@@ -278,6 +279,317 @@ function ComisionManualModal({ barbero, ajuste, onConfirm, onClose }) {
   );
 }
 
+/* ── DetalleBarberoDrawer ─────────────────────────────────────────── */
+//  Drill-down: al abrirlo desde el card, muestra TODAS las citas + ventas
+//  + ajustes + adelantos del barbero en el período. Permite al dueño y al
+//  barbero verificar exactamente por qué se paga X. Pedido #3 de OREN.
+function DetalleBarberoDrawer({
+  isOpen, onClose, barbero, citas, ventas, adelantos,
+  precioServicio, precioVenta, fechaInicio, fechaFin,
+}) {
+  const detalle = useMemo(() => {
+    if (!barbero) return { citas: [], ventas: [], adelantos: [] };
+    // Filtrar por el ID del barbero. Alineado con `resolverBarbero` del memo
+    // principal: primero por barberoId exacto, luego por barberoNombre.
+    const matchCita = c => (c.barberoId === barbero.id) || (!c.barberoId && c.barbero === barbero.nombre);
+    const matchVenta = v => (v.barberoId === barbero.id) || (!v.barberoId && v.barberoNombre === barbero.nombre);
+    const citasB = citas
+      .filter(matchCita)
+      .map(c => {
+        const precio  = precioServicio(c);
+        // % de comisión: override por servicioId si existe, sino global.
+        const ovr     = barbero.comisionPorServicio?.[c.servicioId];
+        const pct     = (ovr != null && ovr !== '' && Number.isFinite(Number(ovr)))
+          ? Number(ovr) : (barbero.comisionPct || 0);
+        return {
+          id: c.id, fecha: c.fecha, hora: c.hora,
+          cliente: c.clienteNombre || c.nombre || 'Sin nombre',
+          servicio: c.servicioNombre || c.servicio || '',
+          servicioId: c.servicioId,
+          metodoPago: c.metodoPago || 'Sin dato',
+          cortesia: !!c.cortesia,
+          precio,
+          pct,
+          comision: Math.round(precio * pct / 100),
+          propina: Number(c.propina) || 0,
+        };
+      })
+      .sort((a, b) => (a.fecha + ' ' + a.hora).localeCompare(b.fecha + ' ' + b.hora));
+
+    const ventasB = ventas
+      .filter(matchVenta)
+      .map(v => {
+        const monto = precioVenta(v);
+        const ovr   = barbero.comisionPorProducto?.[v.productId];
+        const pct   = (ovr != null && ovr !== '' && Number.isFinite(Number(ovr)))
+          ? Number(ovr) : (barbero.comisionProductosPct || 0);
+        return {
+          id: v.id,
+          fecha: fechaToStr(v.fecha || v.createdAt || v.creadoEn),
+          producto: v.productoNombre || v.productName || v.producto || 'Producto',
+          cantidad: Number(v.cantidad) || 1,
+          monto,
+          pct,
+          comision: Math.round(monto * pct / 100) + (barbero.comisionProductosMonto || 0),
+        };
+      })
+      .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+
+    const adelantosB = adelantos
+      .filter(a => a.barberoId === barbero.id)
+      .map(a => ({
+        id: a.id,
+        fecha: fechaToStr(a.fecha),
+        monto: Number(a.monto) || 0,
+        cuotasTotal: Math.max(1, Number(a.cuotasTotal) || 1),
+        montoPorCuota: Number(a.montoPorCuota) || (Number(a.monto) || 0),
+        nota: a.descripcion || '',
+      }))
+      .filter(a => {
+        // Adelanto de una sola cuota: entra si su fecha está en el rango.
+        if (a.cuotasTotal <= 1) return a.fecha >= fechaInicio && a.fecha <= fechaFin;
+        // Multicuota: entra si alguna de sus cuotas cae en el rango.
+        const base = new Date((a.fecha || today()) + 'T12:00:00');
+        for (let i = 0; i < a.cuotasTotal; i++) {
+          const d = new Date(base.getFullYear(), base.getMonth() + i, base.getDate());
+          const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          if (ymd >= fechaInicio && ymd <= fechaFin) return true;
+        }
+        return false;
+      })
+      .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+
+    return { citas: citasB, ventas: ventasB, adelantos: adelantosB };
+  }, [barbero, citas, ventas, adelantos, precioServicio, precioVenta, fechaInicio, fechaFin]);
+
+  const exportCSV = () => {
+    if (!barbero) return;
+    const rows = [];
+    const push = arr => rows.push(arr.map(csvEscape).join(';'));
+    push([`Detalle de ${barbero.nombre} · ${fechaInicio} al ${fechaFin}`]);
+    rows.push('');
+    push(['CITAS']);
+    push(['Fecha', 'Hora', 'Cliente', 'Servicio', 'Método', 'Precio', '% Comisión', 'Comisión $', 'Propina']);
+    detalle.citas.forEach(c => push([c.fecha, c.hora, c.cliente, c.servicio + (c.cortesia ? ' (cortesía)' : ''), c.metodoPago, c.precio, c.pct, c.comision, c.propina]));
+    if (detalle.ventas.length) {
+      rows.push('');
+      push(['VENTAS DE PRODUCTOS']);
+      push(['Fecha', 'Producto', 'Cantidad', 'Monto', '% Comisión', 'Comisión $']);
+      detalle.ventas.forEach(v => push([v.fecha, v.producto, v.cantidad, v.monto, v.pct, v.comision]));
+    }
+    if (barbero.ajustesLineas.length) {
+      rows.push('');
+      push(['AJUSTES MANUALES']);
+      push(['Fecha', 'Tipo', 'Concepto', 'Monto']);
+      barbero.ajustesLineas.forEach(l => push([l.fecha, l.signo === '+' ? 'Suma' : 'Descuento', l.concepto, l.monto]));
+    }
+    if (detalle.adelantos.length) {
+      rows.push('');
+      push(['ADELANTOS DEL PERÍODO']);
+      push(['Fecha', 'Monto', 'Cuotas', 'Descripción']);
+      detalle.adelantos.forEach(a => push([a.fecha, a.monto, a.cuotasTotal, a.nota]));
+    }
+    rows.push('');
+    push(['RESUMEN']);
+    push(['Ingresos servicios', barbero.ingresosServicios]);
+    push(['Comisión servicios', barbero.comisionServicios]);
+    push(['Ingresos productos', barbero.ingresosProductos]);
+    push(['Comisión productos', barbero.comisionProductos]);
+    push(['Sueldo base', barbero.sueldoBase]);
+    push(['Ajustes +', barbero.ajustesSuma]);
+    push(['Ajustes −', barbero.ajustesResta]);
+    push(['Adelantos', barbero.adelantos]);
+    push(['TOTAL A PAGAR', barbero.total]);
+    const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `detalle-${barbero.nombre.replace(/\s+/g, '-')}-${fechaInicio}_${fechaFin}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  if (!barbero) return null;
+
+  return (
+    <SlideOver
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-3xl"
+      title={`Detalle · ${barbero.nombre}`}
+      subtitle={`${fechaInicio} al ${fechaFin} · ${detalle.citas.length} cita${detalle.citas.length !== 1 ? 's' : ''}${detalle.ventas.length ? ` · ${detalle.ventas.length} venta${detalle.ventas.length !== 1 ? 's' : ''}` : ''}`}
+      footer={
+        <div className="flex justify-between items-center gap-3">
+          <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            <Download size={14} /> Exportar CSV
+          </button>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cerrar</button>
+        </div>
+      }
+    >
+      {/* Resumen arriba (grande) */}
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total a pagar</p>
+        <p className="text-3xl font-black text-emerald-400 mt-1 tabular-nums">{formatCLP(barbero.total)}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-[12.5px]">
+          <div>
+            <p className="text-slate-500">Comisión servicios</p>
+            <p className="font-semibold text-slate-200 tabular-nums">{formatCLP(barbero.comisionServicios)}</p>
+          </div>
+          <div>
+            <p className="text-slate-500">Comisión productos</p>
+            <p className="font-semibold text-slate-200 tabular-nums">{formatCLP(barbero.comisionProductos)}</p>
+          </div>
+          <div>
+            <p className="text-slate-500">Ajustes netos</p>
+            <p className={`font-semibold tabular-nums ${(barbero.ajustesSuma - barbero.ajustesResta) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {(barbero.ajustesSuma - barbero.ajustesResta) >= 0 ? '+ ' : '− '}
+              {formatCLP(Math.abs(barbero.ajustesSuma - barbero.ajustesResta))}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-500">Adelantos</p>
+            <p className="font-semibold text-orange-400 tabular-nums">− {formatCLP(barbero.adelantos)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Citas */}
+      <section className="mb-6">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+          <Scissors size={13} className="text-emerald-400" /> Citas ({detalle.citas.length})
+        </h3>
+        {detalle.citas.length === 0 ? (
+          <p className="text-[13px] text-slate-500 italic">Sin citas completadas en el período.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-slate-800">
+            <table className="w-full text-[12.5px]">
+              <thead className="bg-slate-800/60 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr>
+                  <th className="text-left py-2 px-3 font-semibold">Fecha</th>
+                  <th className="text-left py-2 px-3 font-semibold">Cliente</th>
+                  <th className="text-left py-2 px-3 font-semibold">Servicio</th>
+                  <th className="text-left py-2 px-3 font-semibold hidden sm:table-cell">Método</th>
+                  <th className="text-right py-2 px-3 font-semibold">Precio</th>
+                  <th className="text-right py-2 px-3 font-semibold hidden sm:table-cell">%</th>
+                  <th className="text-right py-2 px-3 font-semibold">Comisión</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {detalle.citas.map(c => (
+                  <tr key={c.id} className="hover:bg-slate-800/30">
+                    <td className="py-2 px-3 text-slate-400 whitespace-nowrap">{c.fecha}<span className="text-slate-600"> · {c.hora}</span></td>
+                    <td className="py-2 px-3 text-slate-200 truncate max-w-[140px]" title={c.cliente}>{c.cliente}</td>
+                    <td className="py-2 px-3 text-slate-300">
+                      {c.servicio}
+                      {c.cortesia && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">cortesía</span>}
+                    </td>
+                    <td className="py-2 px-3 text-slate-500 hidden sm:table-cell">{c.metodoPago}</td>
+                    <td className="py-2 px-3 text-right text-slate-300 tabular-nums">{formatCLP(c.precio)}</td>
+                    <td className="py-2 px-3 text-right text-slate-500 tabular-nums hidden sm:table-cell">{c.pct}%</td>
+                    <td className="py-2 px-3 text-right font-semibold text-emerald-400 tabular-nums">{formatCLP(c.comision)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-slate-800/40 font-bold">
+                <tr>
+                  <td colSpan={4} className="py-2 px-3 text-slate-300 hidden sm:table-cell">TOTAL</td>
+                  <td colSpan={2} className="py-2 px-3 text-slate-300 sm:hidden">TOTAL</td>
+                  <td className="py-2 px-3 text-right text-slate-200 tabular-nums">{formatCLP(barbero.ingresosServicios)}</td>
+                  <td className="py-2 px-3 hidden sm:table-cell" />
+                  <td className="py-2 px-3 text-right text-emerald-400 tabular-nums">{formatCLP(barbero.comisionServicios)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Ventas de productos */}
+      {detalle.ventas.length > 0 && (
+        <section className="mb-6">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <TrendingUp size={13} className="text-blue-400" /> Ventas de productos ({detalle.ventas.length})
+          </h3>
+          <div className="overflow-x-auto rounded-lg border border-slate-800">
+            <table className="w-full text-[12.5px]">
+              <thead className="bg-slate-800/60 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr>
+                  <th className="text-left py-2 px-3 font-semibold">Fecha</th>
+                  <th className="text-left py-2 px-3 font-semibold">Producto</th>
+                  <th className="text-right py-2 px-3 font-semibold">Cant.</th>
+                  <th className="text-right py-2 px-3 font-semibold">Monto</th>
+                  <th className="text-right py-2 px-3 font-semibold">Comisión</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {detalle.ventas.map(v => (
+                  <tr key={v.id} className="hover:bg-slate-800/30">
+                    <td className="py-2 px-3 text-slate-400">{v.fecha}</td>
+                    <td className="py-2 px-3 text-slate-200">{v.producto}</td>
+                    <td className="py-2 px-3 text-right text-slate-300 tabular-nums">{v.cantidad}</td>
+                    <td className="py-2 px-3 text-right text-slate-300 tabular-nums">{formatCLP(v.monto)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-blue-400 tabular-nums">{formatCLP(v.comision)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Ajustes manuales */}
+      {barbero.ajustesLineas.length > 0 && (
+        <section className="mb-6">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <FileText size={13} className="text-slate-400" /> Ajustes manuales ({barbero.ajustesLineas.length})
+          </h3>
+          <div className="space-y-1.5">
+            {barbero.ajustesLineas.map(l => (
+              <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 bg-slate-800/40 text-[12.5px]">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold ${
+                    l.signo === '+' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  }`}>{l.signo}</span>
+                  <span className="text-slate-300 truncate">{l.concepto || '(sin concepto)'}</span>
+                  <span className="text-slate-500 shrink-0">· {l.fecha}</span>
+                </div>
+                <span className={`font-semibold tabular-nums shrink-0 ${
+                  l.signo === '+' ? 'text-emerald-400' : 'text-amber-400'
+                }`}>
+                  {l.signo} {formatCLP(l.monto)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Adelantos */}
+      {detalle.adelantos.length > 0 && (
+        <section className="mb-2">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <Wallet size={13} className="text-orange-400" /> Adelantos del período ({detalle.adelantos.length})
+          </h3>
+          <div className="space-y-1.5">
+            {detalle.adelantos.map(a => (
+              <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 bg-slate-800/40 text-[12.5px]">
+                <div className="min-w-0 flex-1">
+                  <p className="text-slate-300 truncate">{a.nota || 'Adelanto'}</p>
+                  <p className="text-slate-500 text-[11px]">
+                    {a.fecha}
+                    {a.cuotasTotal > 1 && ` · ${a.cuotasTotal} cuotas de ${formatCLP(a.montoPorCuota)}`}
+                  </p>
+                </div>
+                <span className="font-semibold text-orange-400 tabular-nums shrink-0">− {formatCLP(a.monto)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </SlideOver>
+  );
+}
+
 /* ── PagarModal ───────────────────────────────────────────────────── */
 function PagarModal({ barbero, periodo, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -374,6 +686,7 @@ export default function Comisiones() {
   const [adelantoTarget, setAdelantoTarget] = useState(null);
   // { barbero, ajuste? } — ajuste presente = edit; ausente = nuevo.
   const [ajusteTarget, setAjusteTarget] = useState(null);
+  const [detalleTarget, setDetalleTarget] = useState(null);
   const [pagados, setPagados] = useState(new Set());
 
   // Parámetros para calcular el NETO de los pagos con tarjeta.
@@ -1416,14 +1729,18 @@ export default function Comisiones() {
           {data.map(barbero => (
             <div key={barbero.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-all">
               <div className="flex items-center gap-4 flex-wrap">
-                {/* Avatar + nombre */}
-                <div className="flex items-center gap-3 min-w-[160px]">
+                {/* Avatar + nombre — clic abre detalle */}
+                <button
+                  onClick={() => setDetalleTarget(barbero)}
+                  className="flex items-center gap-3 min-w-[160px] text-left rounded-lg -m-1 p-1 hover:bg-slate-800/40 transition-colors"
+                  title="Ver detalle de citas y comisiones"
+                >
                   <BarberAvatar foto={barbero.foto} nombre={barbero.nombre} />
                   <div>
-                    <p className="text-sm font-bold text-primary">{barbero.nombre}</p>
-                    <p className="text-xs text-slate-500">{barbero.citas} cita{barbero.citas !== 1 ? 's' : ''}</p>
+                    <p className="text-sm font-bold text-primary hover:text-emerald-400 transition-colors">{barbero.nombre}</p>
+                    <p className="text-xs text-slate-500">{barbero.citas} cita{barbero.citas !== 1 ? 's' : ''} · ver detalle</p>
                   </div>
-                </div>
+                </button>
 
                 {/* Stats */}
                 <div className="flex flex-1 flex-wrap gap-4 items-center">
@@ -1641,6 +1958,18 @@ export default function Comisiones() {
       )}
 
       {/* Modales */}
+      <DetalleBarberoDrawer
+        isOpen={!!detalleTarget}
+        onClose={() => setDetalleTarget(null)}
+        barbero={detalleTarget}
+        citas={citas}
+        ventas={ventas}
+        adelantos={adelantos}
+        precioServicio={precioServicio}
+        precioVenta={precioVenta}
+        fechaInicio={fechaInicio}
+        fechaFin={fechaFin}
+      />
       {ajusteTarget && (
         <ComisionManualModal
           barbero={ajusteTarget.barbero}
