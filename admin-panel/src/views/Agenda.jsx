@@ -2946,8 +2946,31 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
     }
   };
 
+  // Tooltip nativo on hover — muestra estado + cliente + servicio + hora de fin
+  // sin ocupar espacio en la card. Útil en columnas angostas donde el texto se
+  // trunca. El browser lo renderiza tras ~500ms de hover.
+  const _horaFin = (() => {
+    const [hh, mm] = String(cita.hora || '0:0').split(':').map(Number);
+    const minsFin = (hh * 60 + mm) + (Number(cita.duracion || cita.duracionServicio) || 30);
+    return `${String(Math.floor(minsFin / 60)).padStart(2, '0')}:${String(minsFin % 60).padStart(2, '0')}`;
+  })();
+  const _estadoLabel = STATUS_LABEL[cita.estado] || cita.estado || 'Confirmada';
+  const _tooltip = [
+    `Estado: ${_estadoLabel}`,
+    `Cliente: ${cita.clienteNombre || 'Sin nombre'}`,
+    `Servicio: ${cita.servicioNombre || cita.servicio || '—'}`,
+    `Horario: ${cita.hora} → ${_horaFin}`,
+    cita.cortesia         && '🎁 Cortesía',
+    cita.sobrecupo        && '⚡ Sobrecupo',
+    cita.consumeSesionPack && '📦 Consume sesión de pack',
+    cita.esActivacionPack && '📦 Activa nuevo pack',
+    cita.corteLapiz       && '✏️ Corte al Lápiz',
+    estimada              && 'ℹ️ Hora estimada (no fijada aún)',
+  ].filter(Boolean).join('\n');
+
   return (
     <div
+      title={_tooltip}
       // El color del barbero va en la barra izquierda de 4px (el border-l-4 que
       // la card ya tenía); el fondo lo sigue decidiendo el estado de la cita.
       //
@@ -5126,7 +5149,7 @@ export default function Agenda() {
           <button
             onClick={() => moveDay(-1)}
             aria-label="Día anterior"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
+            className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
           >
             <ChevronLeft size={16} />
           </button>
@@ -5138,7 +5161,7 @@ export default function Agenda() {
           <button
             onClick={() => moveDay(1)}
             aria-label="Día siguiente"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
+            className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-primary transition-all shrink-0"
           >
             <ChevronRight size={16} />
           </button>
@@ -5155,7 +5178,7 @@ export default function Agenda() {
         >
           <button
             onClick={() => setDate(new Date())}
-            className="h-8 px-3 text-xs font-semibold rounded-md transition-colors text-slate-400 hover:text-primary hover:bg-slate-800 shrink-0"
+            className="h-10 md:h-8 px-3 text-xs font-semibold rounded-md transition-colors text-slate-400 hover:text-primary hover:bg-slate-800 shrink-0"
           >
             Hoy
           </button>
@@ -5175,7 +5198,7 @@ export default function Agenda() {
                   setViewMode(opt.key);
                   try { localStorage.setItem('agenda_admin_view', opt.key); } catch { /* noop */ }
                 }}
-                className={`h-8 px-3 text-xs font-semibold rounded-md transition-colors ${
+                className={`h-10 md:h-8 px-3 text-xs font-semibold rounded-md transition-colors ${
                   active
                     ? 'bg-slate-800 text-primary shadow-sm'
                     : 'text-slate-400 hover:text-primary hover:bg-slate-800'
@@ -5656,13 +5679,13 @@ export default function Agenda() {
                         <div
                           ref={setNodeRef}
                           style={style}
-                          className={`flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0 ${isDragging ? 'shadow-2xl ring-1 ring-emerald-500/40' : ''}`}
+                          className={`flex-1 min-w-[110px] md:min-w-[160px] border-r border-slate-800 last:border-r-0 ${isDragging ? 'shadow-2xl ring-1 ring-emerald-500/40' : ''}`}
                         >
                           {/* Cabecera: tocar = ver solo este barbero. La manija ⠿ (izquierda) = arrastrar para reordenar. */}
                           <div
                             onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
                             title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
-                            className="group relative flex flex-col items-center justify-center py-3 px-2 border-b border-neutral-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
+                            className="group relative flex flex-col items-center justify-center py-2 md:py-3 px-1.5 md:px-2 border-b border-neutral-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
                           >
                             {/* Manija de arrastre — esquina superior izquierda */}
                             <span
@@ -5671,7 +5694,7 @@ export default function Agenda() {
                               onClick={e => e.stopPropagation()}
                               title="Mantén presionado y arrastra para reordenar"
                               aria-label={`Reordenar a ${b.nombre}`}
-                              className="absolute top-1.5 left-1.5 text-slate-600 hover:text-emerald-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                              className="hidden md:block absolute top-1.5 left-1.5 text-slate-600 hover:text-emerald-400 cursor-grab active:cursor-grabbing touch-none select-none"
                             >
                               <GripVertical size={14} />
                             </span>
