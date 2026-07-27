@@ -48,10 +48,20 @@ function durOfCita(c) {
   return Number(c.duracion || c.duracionServicio || 30) || 30;
 }
 
-// Devuelve el estado del barbero AHORA: 'libre' | 'ocupado' | 'colacion'.
+// Devuelve el estado del barbero AHORA:
+//   'dia_libre'  → el barbero no trabaja hoy según su horario semanal
+//   'libre'      → puede tomar un walk-in ahora mismo
+//   'ocupado'    → está en cita
+//   'colacion'   → en break de colación
 // Incluye "hasta cuándo" (mins), "cuánto falta" para desocuparse (mins) y,
 // si está ocupado, el cliente + servicio actual para el chip.
-function computeEstadoBarbero({ barberoId, citas, nowMin, colacion }) {
+function computeEstadoBarbero({ barberoId, citas, nowMin, colacion, horarioHoy }) {
+  // 0) ¿Día libre? El horario semanal del barbero marca este día como inactivo.
+  //    Prioridad máxima: aunque tenga colación configurada o cita mal cargada,
+  //    si su día no está activo, es día libre.
+  if (horarioHoy && horarioHoy.activo === false) {
+    return { estado: 'dia_libre' };
+  }
   const misCitas = citas
     .filter(c => c.barberoId === barberoId)
     .filter(c => ESTADOS_OCUPAN.has(c.estado || 'Confirmada'))
@@ -135,10 +145,10 @@ function priorityKey(e) {
     // -Infinity primero. libreDuranteMin puede ser Infinity (resto del día) → mejor.
     return [0, -(e.libreDuranteMin === Infinity ? 999 : e.libreDuranteMin)];
   }
-  if (e.estado === 'ocupado') {
-    return [1, e.faltaMin];
-  }
-  return [2, e.faltaMin]; // colación
+  if (e.estado === 'ocupado')  return [1, e.faltaMin];
+  if (e.estado === 'colacion') return [2, e.faltaMin];
+  // 'dia_libre' al final — no acepta walk-in.
+  return [3, 0];
 }
 
 function formatWait(mins) {
@@ -155,12 +165,15 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
   const isLibre    = estado.estado === 'libre';
   const isOcupado  = estado.estado === 'ocupado';
   const isColacion = estado.estado === 'colacion';
+  const isDiaLibre = estado.estado === 'dia_libre';
 
   const wrap = isLibre
     ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_40px_-15px_rgba(16,185,129,0.5)]'
     : isColacion
       ? 'bg-amber-500/10 border-amber-500/40'
-      : 'bg-slate-800/40 border-slate-700/50';
+      : isDiaLibre
+        ? 'bg-slate-800/20 border-slate-700/40 opacity-70'
+        : 'bg-slate-800/40 border-slate-700/50';
 
   const iniciales = String(b.nombre || '?')
     .split(/\s+/).filter(Boolean).slice(0, 2)
@@ -202,9 +215,30 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
               <Coffee size={14} /> En colación
             </p>
           )}
+          {isDiaLibre && (
+            <p className="text-slate-400 text-xs md:text-sm font-semibold uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
+              <CalendarOff size={14} /> Día libre
+            </p>
+          )}
         </div>
       </div>
 
+      {/* Día libre: mensaje simple y CTA cortada (sin walk-in posible). */}
+      {isDiaLibre ? (
+        <div className="mt-5">
+          <p className="text-slate-300 text-lg md:text-xl font-bold leading-tight">
+            Hoy no atiende
+          </p>
+          <p className="text-slate-500 text-xs md:text-sm mt-1">
+            Su agenda semanal marca este día como no laborable.
+          </p>
+          <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700/40 bg-slate-800/20 px-3 py-2.5 text-xs md:text-sm font-semibold text-slate-500">
+            <CalendarOff size={15} className="shrink-0" />
+            <span>No disponible para walk-in</span>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Contador grande — el dato que el barbero grita al cliente */}
       <div className="mt-5 flex items-baseline gap-2">
         {isLibre ? (
@@ -282,6 +316,8 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
           <span>Sin espacio libre hoy</span>
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
@@ -325,11 +361,13 @@ export default function Pizarra() {
   const cards = useMemo(() => {
     const colacionesBarbero = (config && config.colacionesBarbero) || {};
     const colacionGlobal    = (config && config.colacion) || null;
+    const dowStr = String(now.getDay()); // '0' dom .. '6' sab
     const arr = barberosVisibles.map(b => {
       const propia   = colacionesBarbero[b.id];
       const colacion = (propia && propia.inicio && propia.fin) ? propia : colacionGlobal;
+      const horarioHoy = b.horario?.[dowStr] || null;
       const estado = computeEstadoBarbero({
-        barberoId: b.id, citas, nowMin, colacion,
+        barberoId: b.id, citas, nowMin, colacion, horarioHoy,
       });
       return { b, estado, _prio: priorityKey(estado) };
     });
