@@ -306,17 +306,48 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   // Seguir puntero de fusión: si el uid apunta a un doc legacy que fue
   // fusionado con la cuenta del club (users/{authUid}), redirigir al canónico.
   // Sin esto, los sellos siguen yendo al legacy tras la fusión.
+  //
+  // Además chequeamos aquí el flag `noSumaSellos`: si el user tiene ese flag
+  // (típicamente placeholders tipo "CLIENTE GENERICO" con tel +56999999999
+  // usados para walk-ins anónimos), la cita se marca como procesada pero NO
+  // se le suma sello a nadie. El flag lo setea el admin manualmente en el
+  // user doc; útil para telefonos placeholder que agrupan a decenas de
+  // walk-ins distintos y no representan a UN humano acumulando fidelidad.
+  let noSumaSellosGate = false;
   if (uid) {
     try {
       const uSnap = await cols.users.doc(uid).get();
-      const fusionadoCon = uSnap.exists ? uSnap.data()?.fusionadoCon : null;
+      const uData = uSnap.exists ? uSnap.data() : null;
+      const fusionadoCon = uData?.fusionadoCon;
       if (fusionadoCon && fusionadoCon !== uid) {
         logger.info(`[Sello] ${citaId}: uid ${uid} está fusionado con ${fusionadoCon} — redirigo sellos al canónico`);
         uid = fusionadoCon;
+        // Verificar el flag noSumaSellos también en el canónico.
+        try {
+          const canonSnap = await cols.users.doc(uid).get();
+          if (canonSnap.exists && canonSnap.data()?.noSumaSellos === true) noSumaSellosGate = true;
+        } catch (_) {}
+      } else if (uData?.noSumaSellos === true) {
+        noSumaSellosGate = true;
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: no se pudo verificar fusionadoCon: ${e.message}`);
     }
+  }
+
+  if (noSumaSellosGate) {
+    logger.info(`[Sello] ${citaId} (${tenantId}): SKIP · user ${uid} tiene noSumaSellos=true (placeholder walk-in). No suma sello.`);
+    try {
+      await citaRef.update({
+        selloProcesado:      true,
+        selloProcesadoEn:    Timestamp.now(),
+        selloProcesadoTipo:  'omitido_placeholder',
+        pendingGoogleReview: true,
+      });
+    } catch (e) {
+      logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview:`, e);
+    }
+    return;
   }
 
   // ── 2. Corte al Lápiz: sumar el servicio a la cuota del miembro ─
