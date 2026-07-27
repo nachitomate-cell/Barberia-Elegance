@@ -13,6 +13,7 @@ import { useVersionManager } from './hooks/useVersionManager';
 import { useBillingPlan } from './hooks/useBillingPlan';
 import AdminLayout from './components/layout/AdminLayout';
 import Inicio      from './views/Inicio';
+import InicioWallet from './views/InicioWallet';
 import Servicios   from './views/Servicios';
 import Menu        from './views/Menu';
 import Agenda      from './views/Agenda';
@@ -137,7 +138,7 @@ function ProtectedApp() {
           <DailyWelcomePanel />
           <Routes>
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
-            <Route path="inicio"          element={<Inicio />} />
+            <Route path="inicio"          element={billingPlan === 'wallet-only' ? <InicioWallet /> : <Inicio />} />
             <Route path="agenda"          element={<Agenda />} />
             <Route path="pizarra"         element={<Pizarra />} />
             <Route path="por-cerrar"      element={<CitasPorCerrar />} />
