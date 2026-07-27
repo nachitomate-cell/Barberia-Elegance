@@ -6337,71 +6337,19 @@
     async function _loadClientes() {
         if (_clientes !== null) return;
         try {
-            // Antes: solo leía `clientes` (walk-ins con docId = tel). Los users
-            // del club (registrados por email/passwordless) quedaban invisibles
-            // en el buscador. Ahora unimos ambas fuentes dedupeando por tel
-            // normalizado y, como fallback, por email. `users` gana (trae
-            // sellos, uid, packs); `clientes` aporta los walk-ins sin cuenta.
-            const [cSnap, uSnap] = await Promise.all([
-                tenantCol('clientes').get(),
-                tenantCol('users').get(),
-            ]);
-            // Normalizamos a los últimos 9 dígitos (número nacional chileno).
-            // Sin esto, "+56 9 59646603" y "959646603" (mismo humano) quedan
-            // con claves distintas y no dedupean. Ver useClubUsers.js.
-            const norm = (t) => {
-                const d = (t || '').replace(/\D/g, '');
-                if (!d) return '';
-                return d.length > 9 ? d.slice(-9) : d;
-            };
-            const seenTel   = new Map();
-            const seenEmail = new Map();
-            const merged = [];
-            // Regla de dedupe híbrida + fusión: email siempre gana (identificador
-            // único humano); tel dedupea SOLO si al menos uno de los dos no
-            // tiene email (evita colapsar familiares con tel compartido). En
-            // cualquier dedupe fusionamos campos no-vacíos del descartado en
-            // el que se queda (email/foto/uid) para no perder datos cuando la
-            // migración AgendaPro dejó legacy + registro club del mismo humano.
-            // Ver admin-panel/src/hooks/useClubUsers.js para el racional completo.
-            const fusionar = (dest, src) => {
-                if (!dest.email && src.email) dest.email = src.email;
-                if (!dest.uid   && src.uid)   dest.uid   = src.uid;
-                if (!dest.photoURL && src.photoURL) dest.photoURL = src.photoURL;
-                if (!dest.telefono && src.telefono) dest.telefono = src.telefono;
-            };
-            const tryPush = (rec) => {
-                const tel   = norm(rec.telefono || rec.id);
-                const email = (rec.email || '').toLowerCase();
-                if (email && seenEmail.has(email)) {
-                    fusionar(seenEmail.get(email), rec);
-                    return false;
-                }
-                if (tel && seenTel.has(tel)) {
-                    const other      = seenTel.get(tel);
-                    const otherEmail = (other.email || '').toLowerCase();
-                    if (!email || !otherEmail) {
-                        fusionar(other, rec);
-                        if (email) seenEmail.set(email, other);
-                        return false;
-                    }
-                }
-                merged.push(rec);
-                if (tel)   seenTel.set(tel, rec);
-                if (email) seenEmail.set(email, rec);
-                return true;
-            };
-            uSnap.docs.forEach(d => {
-                const raw = { id: d.id, ...d.data() };
-                if (!(raw.nombre || '').trim()) return; // ignora anónimos
-                // Marcamos el uid explícito por si el doc no lo trae en el
-                // campo (docId ES el uid en el flujo Firebase Auth normal).
-                tryPush({ ...raw, uid: raw.uid || raw.id });
-            });
-            cSnap.docs.forEach(d => {
-                tryPush({ id: d.id, ...d.data() });
-            });
-            _clientes = merged;
+            // Fase 3.A: post cleanup + backfill de citas huérfanas, users/
+            // ya tiene la data consolidada (walk-ins migrados, duplicados
+            // fusionados, todas las citas linkeadas). El merge en runtime
+            // que unía clientes/ + users/ dejó de aportar valor.
+            // Antes había 82+ líneas de dedupe/fusión que ahora Firestore
+            // guarda de forma nativa. La colección clientes/ se elimina en
+            // Fase 3.B/C.
+            const snap = await tenantCol('users').get();
+            _clientes = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                // Marcamos uid explícito (docId ES el uid en el flujo Firebase Auth).
+                .map(r => ({ ...r, uid: r.uid || r.id }))
+                .filter(r => (r.nombre || '').trim());
             // Invalidar el lookup por id para que _getClienteFromCita
             // lo reconstruya con los datos frescos, y re-renderizar la
             // vista día para que aparezcan los chips de tier ahora que

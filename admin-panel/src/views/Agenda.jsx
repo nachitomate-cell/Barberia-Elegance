@@ -25,6 +25,7 @@ import { confirmDialog } from '../lib/confirmDialog';
 import { withTimeout } from '../lib/firestore-helpers';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -878,7 +879,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const totalProductosNuevos = ticketNuevos.reduce((s, p) => s + p.totalLinea, 0);
   const totalTicket          = (Number(form.precio) || 0) + totalProductosPrev + totalProductosNuevos;
 
-  const { data: clientes } = useCollection('clientes');
+  // Fase 3.A: leer users/ vía el hook (post-cleanup+backfill Firestore está
+  // limpio). Antes usábamos useCollection('clientes') mirror que traía docs
+  // duplicados con distinto formato de docId (caso Esteban Luengo: 2 mirrors
+  // "+56989308316" y "989308316" del mismo humano — el buscador los mostraba
+  // como 2 clientes con badges distintos).
+  const { data: clientes } = useClubUsers();
   const [fotoFavorita, setFotoFavorita] = useState(null);
 
   useEffect(() => {
