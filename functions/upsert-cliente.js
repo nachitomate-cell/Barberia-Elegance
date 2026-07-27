@@ -143,15 +143,30 @@ async function findByTel(col, telRaw) {
 
 // Fusiona campos del `src` payload sobre el `dest` doc existente.
 // Devuelve el objeto de update (solo los campos que cambian).
+// Un "nombre" que parece un teléfono es data legacy sucia (ejemplo aura:
+// user con email real cuyo campo nombre está seteado literalmente al tel
+// "+14385182476"). Si aparece un nombre real en el payload, lo preferimos
+// aunque el dest ya tenga ese "nombre-tel". Regex: empieza con dígito o '+',
+// solo dígitos + separadores comunes, al menos 7 chars, cero letras.
+const _pareceTel = (s) => typeof s === 'string'
+  && /^[+\d][\d\s+\-()]{6,}$/.test(s.trim())
+  && !/[a-z]/i.test(s);
+
 function calcularUpdate(destData, src) {
   const update = {};
 
-  // Escalares: copiar si dest no tiene
+  // Escalares: copiar si dest no tiene O si dest tiene basura (ej: nombre
+  // que en realidad es un teléfono). El caso nombre-tel se detectó en aura
+  // post-backfill; sin esta lógica, users legacy quedaban con nombre=tel
+  // aunque las nuevas citas trajeran el nombre real.
   const escalares = ['email', 'photoURL', 'authUid', 'fechaNacimiento', 'cumpleDia', 'telefono', 'nombre'];
   escalares.forEach(k => {
     const dv = destData[k];
     const sv = src[k];
-    if ((!dv || dv === '') && sv) update[k] = sv;
+    if (!sv) return;
+    const dvVacio = !dv || dv === '';
+    const nombreLegacyBasura = k === 'nombre' && !dvVacio && _pareceTel(dv);
+    if (dvVacio || nombreLegacyBasura) update[k] = sv;
   });
 
   // Sellos: MAX (no sumar — evita doble conteo si el mismo humano vino
