@@ -277,6 +277,10 @@ async function syncPase(tenantId, uid, before, after) {
           value: core.staffBarcodeValue(tenantId, uid),
           alternateText: String(uid).slice(0, 8),
         },
+        // Backfill del tap-away Wallo en pases ya emitidos: la primera vez
+        // que sumen 1 sello, el pase se actualiza y muestra "Wallo · Crea
+        // tu tarjeta digital" — motor viral compuesto activado.
+        linksModuleData: { uris: [core.WALLO_LINK] },
       });
 
       // Hito: desbloqueó un premio nuevo → notificación automática al pase.

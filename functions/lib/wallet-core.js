@@ -24,6 +24,16 @@ const ISSUER_ID = '3388000000023126417';
 const API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 const SCOPE = 'https://www.googleapis.com/auth/wallet_object.issuer';
 
+// Marca del producto (bola de nieve): cada pase emitido lleva un tap-away a
+// wallo.cl/crea. Cuando un cliente le muestra su tarjeta a un amigo, ese
+// amigo (que puede ser dueño de otro local) llega al wizard en 1 toque.
+// Es marketing compuesto, invisible y gratis — la tarjeta se autopromociona.
+const WALLO_LINK = {
+  uri: 'https://wallo.cl/crea',
+  description: 'Wallo · Crea tu tarjeta digital',
+  id: 'wallo-crea',
+};
+
 // Endpoint HTTP que dibuja las estampas (ver walletStampImg en wallet.js).
 // El estado va en la URL → Google Wallet cachea cada combinación.
 const IMG_BASE = `https://us-central1-barberia-elegance.cloudfunctions.net/walletStampImg`;
@@ -108,6 +118,9 @@ function buildClass(tenantId, cfg = {}) {
     programName: cfg.programName || 'Club de Fidelidad',
     reviewStatus: 'UNDER_REVIEW',
     hexBackgroundColor: (cfg.bg || '#0a0a0a'),
+    // Tap-away a wallo.cl/crea (ver WALLO_LINK arriba). El link se muestra
+    // como "Wallo · Crea tu tarjeta digital" en el pase.
+    linksModuleData: { uris: [WALLO_LINK] },
   };
   if (cfg.logoUrl) cls.programLogo = { sourceUri: { uri: cfg.logoUrl } };
   // Geo-push: centro + anillo de puntos si hay geoRadius (ver wallet-geo.js).
@@ -138,6 +151,11 @@ function buildObject(tenantId, uid, { accountName, filled, target, rango, accent
       value: staffBarcodeValue(tenantId, uid),
       alternateText: String(uid).slice(0, 8),
     },
+    // Override del linksModuleData de la clase — así los pases YA emitidos
+    // reciben el tap-away de Wallo en el próximo sync (patchObject en
+    // syncPase también lo pushea). Sin este override, sólo los pases nuevos
+    // heredarían el link desde la clase.
+    linksModuleData: { uris: [WALLO_LINK] },
   };
   if (rango) obj.textModulesData = [{ id: 'rango', header: 'Rango', body: rango }];
   return obj;
@@ -201,6 +219,7 @@ function buildSaveUrl(saKey, { loyaltyObjects, loyaltyClasses, origins }) {
 
 module.exports = {
   ISSUER_ID,
+  WALLO_LINK,
   classIdFor,
   objectIdFor,
   stampImageUrl,

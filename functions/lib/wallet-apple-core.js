@@ -123,7 +123,10 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
           label: '¿Cómo funciona?',
           value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
         },
-        { key: 'powered', label: 'Tarjeta digital', value: 'Powered by SynapTech — synaptechspa.cl' },
+        // Tap-away a wallo.cl/crea: cuando el amigo del cliente ve la tarjeta
+        // y toca el link del reverso, aterriza en el wizard de creación en
+        // 1 toque. Motor viral compuesto — cada pase Apple es un cartel andante.
+        { key: 'wallo', label: 'Tarjeta digital', value: 'Wallo · Crea tu tarjeta digital gratis en wallo.cl/crea' },
       ],
     },
     // QR con el uid (espejo del accountId de Google) para canje en local.
