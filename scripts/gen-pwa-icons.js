@@ -54,6 +54,9 @@ const TENANTS = {
   // Restaurante Demo: logo placeholder cálido (naranja/madera). Se reemplaza
   // por el logo real del cliente cuando cierre; el path del manifest queda igual.
   restodemo:            { src: 'restodemo/logo.jpg',              bg: '#100906', fit: 'cover' },
+  // Sion Barbería (Viña) — logo scrapeado del mini-site AgendaPro. Fondo
+  // matchea themeColor #2C3941 del middleware.
+  sion:                 { src: 'sion.png',                        bg: '#2C3941' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.

@@ -48,6 +48,9 @@ const DOMAIN_MAP = {
   'orenbarber.synaptechspa.cl':        'oren',
   'orenbarbercl.synaptechspa.cl':      'oren',
   'restodemo.synaptechspa.cl':         'restodemo',
+  // Sion Barbería · Viña del Mar (nuevo 2026-07-27). NO confundir con
+  // 'sionbarberia' que es Estudio Dieciséis (reusó el schema original).
+  'sion.synaptechspa.cl':              'sion',
   // elegance vivía del fallback implícito "host desconocido → elegance"; con el
   // 404 de plataforma ese fallback ya no existe para *.synaptechspa.cl y su
   // subdominio necesita entrada explícita como todos los demás.
@@ -801,6 +804,61 @@ const TENANT_META = {
       ],
     },
   },
+  sion: {
+    booking: {
+      title:       'Sion Barbería | Agenda tu hora',
+      description: 'Reserva tu hora en Sion Barbería. Cortes, barba, color, ondulación y limpieza facial. 1 Oriente 985, Viña del Mar.',
+      ogTitle:     'Agendar Hora | Sion Barbería',
+      ogDesc:      'Reserva tu hora en Sion Barbería. Asesoría de imagen y profesionalismo en Viña del Mar.',
+    },
+    dashboard: {
+      title:       'Mi Club | Sion Barbería',
+      description: 'Tu panel personal en el Club Sion. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Sion Barbería',
+      ogDesc:      'Panel de fidelidad de Sion Barbería. Acumula sellos y disfruta beneficios.',
+    },
+    registro: {
+      title:       'Únete al Club | Sion Barbería',
+      description: 'Crea tu cuenta en el Club Sion. Acumula sellos con cada cita.',
+      ogTitle:     'Únete al Club | Sion Barbería',
+      ogDesc:      'Regístrate en Sion Barbería y disfruta beneficios exclusivos.',
+    },
+    siteName:    'Sion Barbería',
+    ogImage:     '/sion.png',
+    themeColor:  '#2C3941',
+    appTitle:    'Sion',
+    icon:        '/sion.png',
+    iconPwa192:  '/icons/pwa/sion-192.png',
+    iconPwa512:  '/icons/pwa/sion-512.png',
+    local: {
+      telephone: '56935882777',
+      streetAddress: '1 Oriente 985',
+      addressLocality: 'Viña del Mar',
+      schemaType: 'HairSalon',
+      ratingGeneral: 0,
+      totalReviews: 0,
+      reviews: [],
+    },
+    manifest: {
+      name:             'Sion Barbería',
+      short_name:       'Sion',
+      theme_color:      '#2C3941',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Sion Barbería',
+      short_name:       'Sion',
+      description:      'Panel de administración — Sion Barbería',
+      theme_color:      '#2C3941',
+      background_color: '#0a0a0a',
+      start_url:        '/gestion-interna/?local=sion',
+      icons: [
+        { src: '/sion.png',                    sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
   sionbarberia: {
     booking: {
       title:       'Studio Dieciséis | Agenda tu hora',
@@ -1441,6 +1499,7 @@ const GEO_COORDS = {
   latincaribe:        { lat: -27.361472, lng: -70.335353 },
   infinity:           { lat: -33.023257, lng: -71.558337 },
   sionbarberia:       { lat: -33.048783, lng: -71.609610 },
+  sion:               { lat: -33.024829, lng: -71.552290 }, // 1 Oriente 985, Viña del Mar (aprox)
   kronnos_penablanca: { lat: -33.046860, lng: -71.354013 },
   kronnos_limache:    { lat: -33.001860, lng: -71.267874 },
 };

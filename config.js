@@ -53,6 +53,10 @@
     'orenbarber.synaptechspa.cl':         'oren',
     'orenbarbercl.synaptechspa.cl':       'oren',
     'restodemo.synaptechspa.cl':          'restodemo',
+    // Sion Barbería · Viña del Mar — tenant nuevo 2026-07-27 (recreado desde
+    // AgendaPro, location 477414). NO confundir con `sionbarberia` (Estudio
+    // Dieciséis, tenant reusado del schema Sion original).
+    'sion.synaptechspa.cl':               'sion',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -856,6 +860,33 @@
       googleReviewUrl: '',
       ratingGeneral:   5.0,
       totalReviews:    14,
+      reviews:         [],
+      barberos: [],
+    },
+    // Sion Barbería · Viña del Mar — recreado 2026-07-27 desde AgendaPro
+    // (mini-site sionbarberia.site.agendapro.com/cl/sucursal/477414).
+    // Tema oscuro (default). NO confundir con el tenant `sionbarberia`
+    // (Estudio Dieciséis, distinto negocio que reusó el schema original).
+    sion: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Extras'],
+      nombre:          'Sion Barbería',
+      nombreCorto:     'Sion',
+      pageTitle:       'Sion Barbería | Agenda tu hora',
+      slogan:          'Cortes, barba y color · Asesoría de imagen',
+      logo:            '/sion.png',
+      direccion:       '📍 1 Oriente 985 | Viña del Mar',
+      horario:         '🕒 Lun–Sáb: 10–20h · Dom: cerrado',
+      telefono:        '+56935882777',
+      club:            'Club Sion',
+      heroLine1:       'Estilo',
+      heroLine2:       'a otro nivel.',
+      headerInlineText:'SION BARBERÍA',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
       reviews:         [],
       barberos: [],
     },

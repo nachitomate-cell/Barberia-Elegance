@@ -193,6 +193,21 @@ const TENANT_CONFIG = {
     from:      'Studio Dieciséis <citas@synaptechspa.cl>',
     dashboardUrl: 'https://studiodieciseis.synaptechspa.cl/dashboard',
   },
+  // Sion Barbería (Viña) — tenant 'sion' (NO confundir con 'sionbarberia',
+  // que es Studio Dieciséis, tenant distinto que reusó ese schema).
+  sion: {
+    nombre:      'Sion Barbería',
+    slogan:      'Asesoría de imagen y profesionalismo · Viña del Mar',
+    direccion:   '1 Oriente 985, Viña del Mar',
+    horario:     'Lun–Sáb: 10:00–20:00 hrs · Dom: 10:00–18:00 hrs',
+    color:       '#F57808',
+    darkHeader:  true,
+    headerBg:    '#2C3941',
+    instagram:   '',
+    whatsapp:    '56935882777',
+    from:        'Sion Barbería <citas@synaptechspa.cl>',
+    dashboardUrl:'https://sion.synaptechspa.cl/dashboard',
+  },
   kronnos_penablanca: {
     nombre:      'Kronnos Studio Peñablanca',
     slogan:      'Un espacio unisex donde ambos mundos convergen',

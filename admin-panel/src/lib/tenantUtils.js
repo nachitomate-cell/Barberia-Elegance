@@ -50,6 +50,8 @@ const DOMAIN_MAP = {
   'orenbarbercl.synaptechspa.cl':      'oren',
   'omega.synaptechspa.cl':             'omega',
   'restodemo.synaptechspa.cl':         'restodemo',
+  // Sion Barbería (2026-07-27) — NO confundir con 'sionbarberia' (Estudio Dieciséis).
+  'sion.synaptechspa.cl':              'sion',
 };
 
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────
