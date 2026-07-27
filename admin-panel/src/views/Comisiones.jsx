@@ -305,7 +305,7 @@ function ConciliarTuuModal({ citas, precioServicio, fechaInicio, fechaFin, onClo
       isOpen
       onClose={onClose}
       maxWidth="max-w-3xl"
-      title="Conciliar con TUU"
+      title="Conciliar con POS (TUU, Transbank, etc.)"
       subtitle={`Rango del análisis: ${fechaInicio} al ${fechaFin} · matches contra citas con método Débito o Crédito`}
       footer={
         <div className="flex justify-between items-center gap-3">
@@ -2146,15 +2146,19 @@ export default function Comisiones() {
             <Download size={14} />
             Exportar CSV
           </button>
-          <button
-            onClick={() => setTuuOpen(true)}
-            disabled={citas.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 disabled:opacity-40 transition-all"
-            title="Comparar el CSV exportado desde el portal de TUU con las citas de tarjeta del período"
-          >
-            <Banknote size={14} />
-            Conciliar TUU
-          </button>
+          {/* Conciliar POS: solo si hay citas con tarjeta en el período.
+              Si el tenant no usa tarjeta (cash-only, transferencias) el
+              botón simplemente no aparece — cero configuración por tenant. */}
+          {citas.some(c => c.metodoPago === 'Débito' || c.metodoPago === 'Crédito') && (
+            <button
+              onClick={() => setTuuOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 transition-all"
+              title="Comparar el CSV exportado desde el portal del POS (TUU u otro) con las citas de tarjeta del período"
+            >
+              <Banknote size={14} />
+              Conciliar POS
+            </button>
+          )}
         </div>
       </div>
 
