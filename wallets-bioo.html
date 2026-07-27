@@ -45,6 +45,9 @@
   .btn:hover{background:#1d3411;transform:translateY(-1px);}
   .btn:disabled{opacity:.55;cursor:default;transform:none;}
   .msg-err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;display:none;}
+  .link-btn{background:none;border:0;padding:0;margin-top:14px;font:inherit;color:var(--soft);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+  .link-btn:hover{color:var(--ink);}
+  .link-btn:disabled{opacity:.55;cursor:default;}
 
   /* Studio */
   .studio-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:6px 0 18px;}
@@ -76,6 +79,10 @@
   .geo-empty{font-size:12.5px;color:#8b9199;margin-top:8px;font-style:italic;}
   .geo-hint{font-size:12px;color:#8b9199;margin-top:8px;line-height:1.45;}
   .geo-hint.warn{color:#7c4a12;}
+  .field-hint{font-size:12px;margin-top:6px;line-height:1.4;color:#8b9199;min-height:1px;}
+  .field-hint.ok{color:#16a34a;}
+  .field-hint.warn{color:#7c4a12;}
+  .field-hint.err{color:#b91c1c;}
   .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .theme-btn{width:40px;height:40px;border-radius:10px;border:2px solid #e2e5e0;cursor:pointer;padding:0;transition:.15s;}
   .theme-btn:hover{transform:translateY(-1px);}
@@ -115,6 +122,28 @@
   .pv-demo{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12.5px;color:var(--soft);}
   .pv-demo input[type=range]{flex:1;accent-color:var(--ink);}
   .pv-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+
+  /* Botón secundario (test en el propio celular del admin) */
+  .btn-ghost{width:100%;height:46px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-ghost:disabled{opacity:.55;cursor:default;}
+  /* Modal test-tarjeta */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(21,36,11,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px;opacity:0;pointer-events:none;transition:.2s;}
+  .modal-backdrop.show{opacity:1;pointer-events:auto;}
+  .modal{background:#fff;border-radius:20px;padding:26px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+  .modal h2{font-size:19px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px;}
+  .modal p.sub{font-size:13.5px;color:var(--soft);line-height:1.5;margin-bottom:16px;}
+  .modal .qr-wrap{background:#fafbfa;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;}
+  .modal .qr-wrap img{width:200px;height:200px;display:block;margin:0 auto 10px;}
+  .modal .qr-wrap .cap{font-size:12px;color:var(--soft);}
+  .modal .wallet-btn{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:8px;transition:.15s;}
+  .modal .wallet-btn.apple{background:#000;}
+  .modal .wallet-btn:hover{transform:translateY(-1px);}
+  .modal .wallet-btn.disabled{opacity:.5;pointer-events:none;background:#8a93a3;}
+  .modal .close{margin-top:6px;width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--soft);font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .modal .note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+  .modal .spin-in{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px 0;color:var(--soft);font-size:14px;}
+  .modal .msg-err{color:var(--err);font-size:13px;font-weight:600;text-align:center;padding:16px 0;}
 
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:50;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -159,6 +188,9 @@
       <div style="height:20px;"></div>
       <button class="btn" id="login-btn" onclick="entrar()">Entrar</button>
       <p class="msg-err" id="login-err"></p>
+      <div style="text-align:center;">
+        <button type="button" class="link-btn" id="reset-btn" onclick="resetPassword()">¿Olvidaste tu contraseña?</button>
+      </div>
     </div>
   </div>
 
@@ -196,6 +228,7 @@
 
         <label for="f-logoUrl">Logo (URL pública, cuadrado ideal)</label>
         <input type="url" id="f-logoUrl" placeholder="https://…/logo.png">
+        <p id="f-logoUrl-hint" class="field-hint"></p>
 
         <div class="row2">
           <div>
@@ -287,10 +320,23 @@
           <span id="pv-range-label">3 sellos</span>
         </div>
         <p class="pv-note">La cantidad real de casillas depende de los premios configurados en tu panel (la tarjeta se llena hacia el próximo premio). El rango del cliente se calcula solo.</p>
+        <button type="button" class="btn-ghost" id="test-btn" onclick="abrirTestModal()">📲 Enviármela a mi celular</button>
+        <p class="pv-note" style="margin-top:6px;">Prueba la tarjeta en tu propio Wallet antes de mostrarla a los clientes.</p>
       </div>
     </div>
   </div>
 </main>
+
+<!-- Modal: probar tarjeta en el propio celular del admin -->
+<div class="modal-backdrop" id="test-modal" onclick="if(event.target===this)cerrarTestModal()">
+  <div class="modal">
+    <h2>Tu tarjeta de prueba</h2>
+    <p class="sub">Escanea el QR con tu celular o toca el botón del wallet que uses. Se creará una tarjeta a nombre de <b id="test-email"></b> con 0 sellos.</p>
+    <div id="test-body"></div>
+    <p class="note">Esto crea 1 tarjeta a tu cuenta (aparecerá en el conteo de "clientes guardados"). Puedes borrarla luego desde tu Wallet.</p>
+    <button class="close" onclick="cerrarTestModal()">Cerrar</button>
+  </div>
+</div>
 
 <footer class="powered">
   <img src="/synaptech/ig.png" alt="SynapTech">
@@ -315,6 +361,16 @@
 var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
 var STAMP_IMG = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletStampImg';
 var WA_SYNAPTECH = 'https://wa.me/56983568212';
+
+// Deep-link opcional: ?tid=<id> viene del launcher (admin-panel/Wallets.jsx).
+// Superadmin lo respeta para saltarse el picker; admin de tenant lo ignora
+// porque el claim manda (no puede editar otro local).
+function tidFromUrl() {
+  try {
+    var t = new URL(window.location.href).searchParams.get('tid');
+    return t ? String(t).trim() : null;
+  } catch (_) { return null; }
+}
 
 // `db` ya viene de firebase-config.js (const db global). NO re-declararlo:
 // desde que el fix de auth same-origin agregó firebase-config.js a esta
@@ -363,6 +419,29 @@ function entrar() {
     .finally(function () { $('login-btn').disabled = false; });
 }
 function salir() { firebase.auth().signOut(); }
+function resetPassword() {
+  var email = ($('login-email').value || '').trim();
+  var err = $('login-err');
+  err.style.display = 'none';
+  if (!email) {
+    err.textContent = 'Escribe tu correo arriba y toca de nuevo.';
+    err.style.display = 'block';
+    $('login-email').focus();
+    return;
+  }
+  var btn = $('reset-btn');
+  btn.disabled = true;
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function () { toast('Te enviamos un correo para restablecer la contraseña.'); })
+    .catch(function (e) {
+      var msg = 'No pudimos enviar el correo. Revisa la dirección.';
+      if (e && e.code === 'auth/invalid-email') msg = 'Ese correo no tiene un formato válido.';
+      // No revelamos si el user existe (auth/user-not-found) → siempre mostramos éxito genérico.
+      else if (e && e.code === 'auth/user-not-found') { toast('Te enviamos un correo para restablecer la contraseña.'); btn.disabled = false; return; }
+      toast(msg, true);
+    })
+    .finally(function () { btn.disabled = false; });
+}
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && !$('view-login').classList.contains('hidden')) entrar();
 });
@@ -378,6 +457,12 @@ firebase.auth().onAuthStateChanged(function (user) {
     if (_isSuper) {
       initTenantPicker();
       show('view-studio');
+      // Deep-link desde el launcher: si trae ?tid= y existe, precargar.
+      var deep = tidFromUrl();
+      if (deep && (window.ALL_TENANTS || {})[deep]) {
+        $('tenant-select').value = deep;
+        cargarTenant(deep);
+      }
       return;
     }
     var esAdminTenant = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId;
@@ -450,6 +535,7 @@ function llenarForm(cfg, tenantCfg) {
   $('f-programName').value = cfg.programName || 'Club de Fidelidad';
   $('f-issuerName').value = cfg.issuerName || tenantCfg.nombreCorto || tenantCfg.nombre || '';
   $('f-logoUrl').value = cfg.logoUrl || '';
+  checkLogo(cfg.logoUrl || '');
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent || '') ? cfg.accent : '#c9a84c';
   var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
   $('f-accent').value = acc; $('f-accent-hex').value = acc;
@@ -537,6 +623,40 @@ function renderPreview() {
 });
 $('f-enabled').addEventListener('change', renderPreview);
 
+// ── Preflight del logo (Google LoyaltyClass exige cuadrado ≥ 660×660) ──
+// Debounce para no bombardear la CDN mientras el dueño escribe la URL.
+var _logoTimer = null;
+function setLogoHint(cls, msg) {
+  var h = $('f-logoUrl-hint');
+  h.className = 'field-hint' + (cls ? ' ' + cls : '');
+  h.textContent = msg || '';
+}
+function checkLogo(url) {
+  if (!url) { setLogoHint('', ''); return; }
+  if (!/^https:\/\//i.test(url)) { setLogoHint('err', 'El logo debe empezar con https://'); return; }
+  setLogoHint('', 'Verificando logo…');
+  var img = new Image();
+  img.onload = function () {
+    var w = img.naturalWidth, h = img.naturalHeight;
+    var min = 660;                     // requisito de Google Wallet para el logo del programa
+    var aspect = w && h ? Math.abs(w / h - 1) : 1;
+    if (aspect > 0.06) {               // >6% de distorsión ≈ claramente no cuadrado
+      setLogoHint('warn', 'La imagen mide ' + w + '×' + h + ' — se verá recortada. Usa una versión cuadrada.');
+    } else if (w < min || h < min) {
+      setLogoHint('warn', 'La imagen mide ' + w + '×' + h + ' — Google recomienda mínimo ' + min + '×' + min + '.');
+    } else {
+      setLogoHint('ok', '✓ Logo válido (' + w + '×' + h + ').');
+    }
+  };
+  img.onerror = function () { setLogoHint('err', 'No pudimos cargar esa URL. Revisa que sea pública.'); };
+  img.src = url;
+}
+$('f-logoUrl').addEventListener('input', function () {
+  var v = this.value.trim();
+  clearTimeout(_logoTimer);
+  _logoTimer = setTimeout(function () { checkLogo(v); }, 500);
+});
+
 // ── Guardar y provisionar ─────────────────────────────────────────
 function guardar() {
   if (!_tid) { toast('Primero elige un local.', true); return; }
@@ -570,6 +690,60 @@ function guardar() {
       btn.textContent = 'Guardar y provisionar';
     });
 }
+
+// ── Test-tarjeta: crear pase para el propio admin (Google + Apple) ─
+// Reutiliza las CFs cliente (walletGenerarPase + walletAppleGenerarLink):
+// el uid autenticado es el del admin/superadmin del studio, así que la
+// tarjeta queda a su nombre en users/{uid}. Sirve para que verifique el
+// resultado real (colores, geo, logo) antes de exponerlo a los clientes.
+function abrirTestModal() {
+  if (!_tid) { toast('Primero elige un local.', true); return; }
+  if (!_addonActivo && !_isSuper) {
+    toast('El módulo Wallet no está activo para este local.', true); return;
+  }
+  var user = firebase.auth().currentUser;
+  if (!user) { toast('Sesión expirada. Vuelve a entrar.', true); return; }
+
+  $('test-email').textContent = user.email || '(tu cuenta)';
+  $('test-body').innerHTML = '<div class="spin-in"><div class="spin" style="margin:0;width:22px;height:22px;border-width:2.5px;"></div>Generando tu tarjeta…</div>';
+  $('test-modal').classList.add('show');
+
+  var fns = firebase.app().functions('us-central1');
+  var google = fns.httpsCallable('walletGenerarPase')({ tenantId: _tid })
+    .then(function (r) { return r.data && r.data.saveUrl ? r.data.saveUrl : null; })
+    .catch(function (e) { console.warn('[test] Google:', e); return null; });
+  var apple  = fns.httpsCallable('walletAppleGenerarLink')({ tenantId: _tid })
+    .then(function (r) { return r.data && (r.data.url || r.data.link) ? (r.data.url || r.data.link) : null; })
+    .catch(function (e) { console.warn('[test] Apple:', e); return null; });
+
+  Promise.all([google, apple]).then(function (r) {
+    var gUrl = r[0], aUrl = r[1];
+    if (!gUrl && !aUrl) {
+      $('test-body').innerHTML = '<p class="msg-err">No pudimos generar la tarjeta. Revisa que el módulo esté activo y reintenta.</p>';
+      return;
+    }
+    // QR: el de Google es el "más universal" (funciona en Android y Apple lo entiende igual como link).
+    var qrTarget = gUrl || aUrl;
+    var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(qrTarget);
+    var html = ''
+      + '<div class="qr-wrap"><img src="' + qrSrc + '" alt="QR tarjeta"><div class="cap">Escanea con la cámara de tu celular</div></div>';
+    if (gUrl) {
+      html += '<a class="wallet-btn" href="' + gUrl + '" target="_blank" rel="noopener">📱 Abrir en Google Wallet</a>';
+    } else {
+      html += '<div class="wallet-btn disabled">Google Wallet no disponible</div>';
+    }
+    if (aUrl) {
+      html += '<a class="wallet-btn apple" href="' + aUrl + '" target="_blank" rel="noopener">🍎 Abrir en Apple Wallet</a>';
+    } else {
+      html += '<div class="wallet-btn apple disabled">Apple Wallet no disponible</div>';
+    }
+    $('test-body').innerHTML = html;
+  });
+}
+function cerrarTestModal() { $('test-modal').classList.remove('show'); }
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && $('test-modal').classList.contains('show')) cerrarTestModal();
+});
 
 // ── Temas rápidos + selector de ícono de estampa ──────────────────
 var THEMES = [
@@ -651,6 +825,29 @@ function maybeInitMap() {
     renderLocs();
   });
   buildOverlays();
+  // Sin zonas → intentar centrar en la dirección del tenant (geocoder de Google).
+  // Evita que un tenant de Santiago o Iquique arranque en Valparaíso.
+  if (!_locs.length) tryCenterOnTenantAddress();
+}
+
+// Geocoder es best-effort: si falla, el mapa queda en GEO_DEFAULT. Corre 1×
+// por carga de tenant sin zonas — no se cachea porque el editor es de sesión corta.
+function tryCenterOnTenantAddress() {
+  if (!_tid || !window.google || !google.maps.Geocoder) return;
+  var all = window.ALL_TENANTS || {};
+  var cfg = all[_tid] || {};
+  // Sanitizar: emoji 📍 al inicio + "|" o "·" como separadores. Nos quedamos con la primera parte.
+  var raw = String(cfg.direccion || '').replace(/^📍\s*/, '').trim();
+  if (!raw) return;
+  var first = raw.split(/[|·]/)[0].trim();
+  var q = first + (/(chile)/i.test(first) ? '' : ', Chile');
+  try {
+    new google.maps.Geocoder().geocode({ address: q, region: 'cl' }, function (results, status) {
+      if (status !== 'OK' || !results || !results[0] || _locs.length) return; // no piso si el user ya creó una zona
+      var loc = results[0].geometry.location;
+      _geoMap.setCenter({ lat: loc.lat(), lng: loc.lng() });
+    });
+  } catch (_) { /* silencio: no bloqueamos la UI si el geocoder cae */ }
 }
 
 // (Re)crea marcadores y círculos según _locs. La zona seleccionada se ve
