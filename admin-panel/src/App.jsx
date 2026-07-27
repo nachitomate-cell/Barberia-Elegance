@@ -99,13 +99,16 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />;
 
-  // Barberos puros NO acceden a gestion-interna. Se redirigen a la agenda
-  // pública del local, donde tienen su propio login para ver SU día. Motivo:
+  // gestion-interna es SOLO para admins (y admin-barberos tipo Omar Chameleon,
+  // cuyo claim es role='admin' aunque también estén en la colección barberos/).
+  // Cualquier otro rol se redirige a la agenda pública del local, donde tienen
+  // su propio login para ver SU día. Motivo:
   //  · Evita fuga de la base de clientes (memoria feedback_no_exponer_whatsapp_cliente)
   //  · Un barbero no debería ver la agenda de sus compañeros ni las métricas del local
-  //  · Los admins y "admin-barbero" (Omar Chameleon-tipo) siguen entrando porque
-  //    su claim es role='admin', no 'barbero'
-  if (role === 'barbero') {
+  //  · Whitelist explícito de 'admin' captura barberos, profesionales (rol
+  //    legacy migrado desde AgendaPro), jefes, y cualquier rol futuro sin
+  //    tener que enumerarlos.
+  if (role !== 'admin') {
     const suffix = tenantId && tenantId !== 'elegance' ? `?local=${tenantId}` : '';
     window.location.replace(`/agenda.html${suffix}`);
     return (
