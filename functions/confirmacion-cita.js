@@ -346,6 +346,14 @@ exports.confirmacionCitaElegance = onDocumentCreated(
   async event => {
     const data = event.data?.data();
     if (!data) return null;
+    // Guard universal para imports masivos de citas históricas: si el doc
+    // trae skipNotificaciones o fue creado por un import manual, NO se
+    // dispara ninguna notif al cliente (ni al staff). Mismo criterio en las
+    // 4 CFs: confirmacion, whatsapp-notif, push-cliente, aviso-cita-staff.
+    if (data.skipNotificaciones === true || data.origen === 'import_manual') {
+      logger.info(`[Confirmacion] SKIP · cita ${event.params.citaId} importada (origen=${data.origen})`);
+      return null;
+    }
     try {
       await enviarConfirmacion(event.params.citaId, data, 'elegance');
     } catch (e) {
@@ -360,6 +368,14 @@ exports.confirmacionCitaTenant = onDocumentCreated(
   async event => {
     const data = event.data?.data();
     if (!data) return null;
+    // Guard universal para imports masivos de citas históricas: si el doc
+    // trae skipNotificaciones o fue creado por un import manual, NO se
+    // dispara ninguna notif al cliente (ni al staff). Mismo criterio en las
+    // 4 CFs: confirmacion, whatsapp-notif, push-cliente, aviso-cita-staff.
+    if (data.skipNotificaciones === true || data.origen === 'import_manual') {
+      logger.info(`[Confirmacion] SKIP · cita ${event.params.citaId} importada (origen=${data.origen})`);
+      return null;
+    }
     try {
       await enviarConfirmacion(event.params.citaId, data, event.params.tid);
     } catch (e) {

@@ -482,6 +482,12 @@ exports.notificarCitaWhatsAppElegance = onDocumentCreated(
   async (event) => {
     const data = event.data?.data();
     if (!data) return null;
+    // Guard universal (import histórico): no notificar WhatsApp a citas
+    // marcadas como import manual. Mismo guard en las 4 CFs.
+    if (data.skipNotificaciones === true || data.origen === 'import_manual') {
+      logger.info(`[wa] SKIP · cita ${event.params.citaId} importada`);
+      return null;
+    }
     try { await notificarCita(event.params.citaId, data, 'elegance'); }
     catch (e) { logger.error('[wa elegance]', e.message); }
     return null;
@@ -493,6 +499,12 @@ exports.notificarCitaWhatsAppTenant = onDocumentCreated(
   async (event) => {
     const data = event.data?.data();
     if (!data) return null;
+    // Guard universal (import histórico): no notificar WhatsApp a citas
+    // marcadas como import manual. Mismo guard en las 4 CFs.
+    if (data.skipNotificaciones === true || data.origen === 'import_manual') {
+      logger.info(`[wa] SKIP · cita ${event.params.citaId} importada`);
+      return null;
+    }
     try { await notificarCita(event.params.citaId, data, event.params.tid); }
     catch (e) { logger.error('[wa tenant]', e.message); }
     return null;

@@ -136,6 +136,11 @@ async function notifCitaConfirmada(tenantId, citaId, cita) {
 exports.pushCitaConfirmadaElegance = onDocumentCreated('citas/{citaId}', async (event) => {
   const cita = event.data?.data();
   if (!cita) return null;
+  // Guard universal (import histórico).
+  if (cita.skipNotificaciones === true || cita.origen === 'import_manual') {
+    logger.info(`[Push cita] SKIP · ${event.params.citaId} importada`);
+    return null;
+  }
   try { await notifCitaConfirmada('elegance', event.params.citaId, cita); }
   catch (e) { logger.error(`[Push cita] elegance/${event.params.citaId}:`, e); }
   return null;
@@ -144,6 +149,11 @@ exports.pushCitaConfirmadaElegance = onDocumentCreated('citas/{citaId}', async (
 exports.pushCitaConfirmadaTenant = onDocumentCreated('tenants/{tid}/citas/{citaId}', async (event) => {
   const cita = event.data?.data();
   if (!cita) return null;
+  // Guard universal (import histórico).
+  if (cita.skipNotificaciones === true || cita.origen === 'import_manual') {
+    logger.info(`[Push cita] SKIP · ${event.params.citaId} importada`);
+    return null;
+  }
   try { await notifCitaConfirmada(event.params.tid, event.params.citaId, cita); }
   catch (e) { logger.error(`[Push cita] ${event.params.tid}/${event.params.citaId}:`, e); }
   return null;

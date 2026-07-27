@@ -202,6 +202,11 @@ exports.avisoCitaStaffElegance = onDocumentCreated(
   async (event) => {
     const cita = event.data?.data();
     if (!cita) return null;
+    // Guard universal (import histórico).
+    if (cita.skipNotificaciones === true || cita.origen === 'import_manual') {
+      logger.info(`[Staff] SKIP · cita ${event.params.citaId || event.params.tenantId} importada`);
+      return null;
+    }
     await avisarStaff(
       'elegance',
       event.params.citaId,
