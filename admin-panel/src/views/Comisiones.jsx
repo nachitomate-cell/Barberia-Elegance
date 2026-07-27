@@ -942,7 +942,7 @@ function DetalleBarberoDrawer({
 }
 
 /* ── PagarModal ───────────────────────────────────────────────────── */
-function PagarModal({ barbero, periodo, onConfirm, onClose }) {
+function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
   const handle = async () => {
     setLoading(true);
@@ -950,10 +950,13 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
     setLoading(false);
     onClose();
   };
+  const enReapertura = pagoExistente?.estado === 'reabierto';
+  const yaPagado     = Number(pagoExistente?.montoPagado) || 0;
+  const diff         = enReapertura ? barbero.total - yaPagado : 0;
   return (
     <SheetModal
       icon={CheckCircle2}
-      titulo="Registrar pago"
+      titulo={enReapertura ? 'Ajustar pago (reapertura)' : 'Registrar pago'}
       sub={barbero.nombre}
       onClose={onClose}
       footer={
@@ -965,12 +968,40 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
         </>
       }
     >
+      {/* Aviso de reapertura + diff automático */}
+      {enReapertura && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-snug text-amber-200 space-y-1.5">
+          <p className="font-semibold">Estás ajustando un período ya pagado.</p>
+          <div className="flex justify-between text-amber-100/80">
+            <span>Total recalculado ahora</span>
+            <span className="font-semibold tabular-nums">{formatCLP(barbero.total)}</span>
+          </div>
+          <div className="flex justify-between text-amber-100/80">
+            <span>Ya se había pagado</span>
+            <span className="font-semibold tabular-nums">− {formatCLP(yaPagado)}</span>
+          </div>
+          <div className="flex justify-between text-amber-100 border-t border-amber-500/20 pt-1.5 mt-1.5">
+            <span className="font-semibold">{diff >= 0 ? 'Saldo por pagar' : 'Sobrepago (crédito al local)'}</span>
+            <span className={`font-bold tabular-nums ${diff >= 0 ? 'text-emerald-300' : 'text-orange-300'}`}>
+              {diff >= 0 ? '+ ' : ''}{formatCLP(Math.abs(diff))}
+            </span>
+          </div>
+          {diff < 0 && (
+            <p className="text-[11.5px] text-amber-200/70 pt-1">
+              Este sobrepago quedará registrado como crédito activo del local. Al pagar el próximo período de {barbero.nombre} podrás descontarlo manualmente (v1 no lo descuenta automáticamente).
+            </p>
+          )}
+        </div>
+      )}
+
       {/* El total va arriba y grande: es la cifra que se confirma. El
           desglose queda debajo como respaldo, no compitiendo con ella. */}
       <div className={sheetHighlight}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total a pagar</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          {enReapertura ? (diff >= 0 ? 'Monto a pagar ahora' : 'No se paga plata nueva') : 'Total a pagar'}
+        </p>
         <p className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.02em] text-emerald-400">
-          {formatCLP(barbero.total)}
+          {formatCLP(enReapertura ? Math.max(0, diff) : barbero.total)}
         </p>
 
         <div className="mt-3.5 space-y-1.5 border-t border-slate-700/50 pt-3 text-[13px]">
@@ -1031,6 +1062,7 @@ export default function Comisiones() {
   const [ventasRaw, setVentasRaw] = useState([]);
   const [adelantos, setAdelantos] = useState([]);
   const [ajustesManuales, setAjustesManuales] = useState([]);
+  const [pagosSemanales, setPagosSemanales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [pagarTarget, setPagarTarget] = useState(null);
@@ -1185,10 +1217,25 @@ export default function Comisiones() {
     }
   }, []);
 
+  // Pagos semanales: registro por (barbero, período pagado). Al pagar, se
+  // crea el doc con id determinístico `{barberoId}_{fechaInicio}_{fechaFin}`.
+  // Sirve para: (1) mostrar que un período ya se pagó → oculta el botón
+  // "Registrar pago" y muestra "Reabrir semana"; (2) al reabrir + re-pagar,
+  // calcular diff automático (saldo adicional o crédito a favor del local).
+  const loadPagosSemanales = useCallback(async () => {
+    try {
+      const snap = await withTimeout(getDocs(tenantCol('pagos_semanales')), 15000, 'comisiones/pagos_semanales');
+      setPagosSemanales(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error('[Comisiones] error cargando pagos semanales:', e);
+    }
+  }, []);
+
   useEffect(() => { loadCitas(); }, [loadCitas]);
   useEffect(() => { loadVentas(); }, [loadVentas]);
   useEffect(() => { loadAdelantos(); }, [loadAdelantos]);
   useEffect(() => { loadAjustesManuales(); }, [loadAjustesManuales]);
+  useEffect(() => { loadPagosSemanales(); }, [loadPagosSemanales]);
 
   // Precio del servicio de la cita. Mismo criterio que Métricas para que
   // ambas vistas cuadren:
@@ -1478,28 +1525,101 @@ export default function Comisiones() {
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
+  // Helper: doc id determinístico para pagos_semanales (barbero + rango).
+  const pagoSemanalId = (barberoId) => `${barberoId}_${fechaInicio}_${fechaFin}`;
+
+  // Busca el pago del barbero para el rango visible (si existe).
+  const pagoDelPeriodo = useCallback((barberoId) => {
+    return pagosSemanales.find(p =>
+      p.barberoId === barberoId && p.periodoInicio === fechaInicio && p.periodoFin === fechaFin,
+    ) || null;
+  }, [pagosSemanales, fechaInicio, fechaFin]);
+
   const handlePagar = async (barbero) => {
-    await addDoc(tenantCol('gastos'), {
-      descripcion: `Liquidación ${barbero.nombre} (${periodo})`,
-      monto: barbero.total,
-      categoria: 'Sueldos',
-      tipo: 'liquidacion',
-      metodoPago: 'Efectivo',
-      fecha: Timestamp.fromDate(new Date(today() + 'T12:00:00')),
+    const pagoExistente = pagoDelPeriodo(barbero.id);
+    const enReapertura = pagoExistente?.estado === 'reabierto';
+    // En reapertura: monto pagado = diff con lo ya pagado.
+    // Si diff < 0 → estamos pagando de más históricamente. El monto del gasto
+    // es 0 (no sale plata nueva) y se registra un crédito a favor del local
+    // que se descontará del próximo período (aplicado más adelante).
+    const yaPagado = enReapertura ? Number(pagoExistente.montoPagado) || 0 : 0;
+    const diff = barbero.total - yaPagado;
+    const gastoMonto = enReapertura ? Math.max(0, diff) : barbero.total;
+    const creditoNuevo = enReapertura && diff < 0 ? Math.abs(diff) : 0;
+
+    if (gastoMonto > 0) {
+      await addDoc(tenantCol('gastos'), {
+        descripcion: enReapertura
+          ? `Liquidación adicional ${barbero.nombre} (${periodo}) — ajuste post-reapertura`
+          : `Liquidación ${barbero.nombre} (${periodo})`,
+        monto: gastoMonto,
+        categoria: 'Sueldos',
+        tipo: 'liquidacion',
+        metodoPago: 'Efectivo',
+        fecha: Timestamp.fromDate(new Date(today() + 'T12:00:00')),
+        barberoId: barbero.id,
+        barberoNombre: barbero.nombre,
+        creadoEn: serverTimestamp(),
+        creadoPor: user?.uid || 'admin',
+        // Audit trail: el barbero acepta la liquidación desde su Inicio. Hasta
+        // que lo haga, queda 'pendiente'. Una vez aceptada se sella con uid +
+        // timestamp y no se vuelve a mostrar el banner.
+        aceptacionBarbero: 'pendiente',
+        aceptacionFecha:   null,
+        aceptacionUid:     null,
+        periodoInicio: fechaInicio,
+        periodoFin:    fechaFin,
+      });
+    }
+
+    // Persistir el registro semanal (idempotente por id determinístico).
+    // Al re-pagar en reapertura, sobreescribe con el monto final total.
+    const pagoId = pagoSemanalId(barbero.id);
+    const nuevoHistorial = [
+      ...(pagoExistente?.historial || []),
+      {
+        tipo: enReapertura ? 'reapertura_repagada' : 'pagado_original',
+        montoTotal: barbero.total,
+        montoDelta: gastoMonto,
+        creditoGenerado: creditoNuevo,
+        fecha: today(),
+      },
+    ];
+    await setDoc(tenantDoc('pagos_semanales', pagoId), {
       barberoId: barbero.id,
       barberoNombre: barbero.nombre,
-      creadoEn: serverTimestamp(),
-      creadoPor: user?.uid || 'admin',
-      // Audit trail: el barbero acepta la liquidación desde su Inicio. Hasta
-      // que lo haga, queda 'pendiente'. Una vez aceptada se sella con uid +
-      // timestamp y no se vuelve a mostrar el banner.
-      aceptacionBarbero: 'pendiente',
-      aceptacionFecha:   null,
-      aceptacionUid:     null,
       periodoInicio: fechaInicio,
       periodoFin:    fechaFin,
-    });
+      montoPagado:   barbero.total,
+      fechaPago:     Timestamp.fromDate(new Date(today() + 'T12:00:00')),
+      estado:        'pagado',
+      // Créditos acumulados: al pagar de menos en reapertura se suma un
+      // crédito que se aplicará automáticamente al siguiente período del
+      // mismo barbero (ver lógica en el memo `data`).
+      creditoActivo: (Number(pagoExistente?.creditoActivo) || 0) + creditoNuevo,
+      historial:     nuevoHistorial,
+      updatedAt:     serverTimestamp(),
+      ...(pagoExistente ? {} : { creadoEn: serverTimestamp() }),
+    }, { merge: true });
+
     setPagados(prev => new Set([...prev, barbero.id]));
+    await loadPagosSemanales();
+  };
+
+  const handleReabrirSemana = async (barbero) => {
+    const pago = pagoDelPeriodo(barbero.id);
+    if (!pago) return;
+    if (!window.confirm(`Reabrir el pago de ${barbero.nombre} del ${fechaInicio} al ${fechaFin}?\n\nMonto pagado: ${formatCLP(pago.montoPagado)}\n\nPodrás editar/agregar citas y al re-pagar el sistema calculará el saldo (o crédito) automáticamente.`)) return;
+    await setDoc(tenantDoc('pagos_semanales', pago.id), {
+      estado: 'reabierto',
+      reabiertoEn: serverTimestamp(),
+      historial: [
+        ...(pago.historial || []),
+        { tipo: 'reabierto', fecha: today() },
+      ],
+    }, { merge: true });
+    setPagados(prev => { const s = new Set(prev); s.delete(barbero.id); return s; });
+    await loadPagosSemanales();
   };
 
   const handleAjusteManual = async ({ monto, signo, concepto, fecha }) => {
@@ -2262,17 +2382,60 @@ export default function Comisiones() {
                   >
                     <Wallet size={14} /> Adelanto
                   </button>
-                  <button
-                    onClick={() => setPagarTarget(barbero)}
-                    disabled={pagados.has(barbero.id) || barbero.total === 0}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
-                      pagados.has(barbero.id) || barbero.total === 0
-                        ? 'bg-slate-800/50 text-slate-500 border-slate-700 cursor-default'
-                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                    }`}
-                  >
-                    {pagados.has(barbero.id) ? <><CheckCircle2 size={14} /> Registrado</> : <><DollarSign size={14} /> Registrar pago</>}
-                  </button>
+                  {(() => {
+                    const pago = pagoDelPeriodo(barbero.id);
+                    // Si el período está pagado y NO fue reabierto → botón "Reabrir".
+                    if (pago && pago.estado === 'pagado' && !pagados.has(barbero.id)) {
+                      return (
+                        <button
+                          onClick={() => handleReabrirSemana(barbero)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 transition-all"
+                          title={`Pagado el ${fechaToStr(pago.fechaPago)} · ${formatCLP(pago.montoPagado)}`}
+                        >
+                          <CheckCircle2 size={14} /> Semana pagada · Reabrir
+                        </button>
+                      );
+                    }
+                    // Si fue reabierto → mostrar diff y botón "Ajustar pago".
+                    if (pago && pago.estado === 'reabierto') {
+                      const diff = barbero.total - (Number(pago.montoPagado) || 0);
+                      const diffLabel = diff > 0
+                        ? `Saldo: ${formatCLP(diff)}`
+                        : diff < 0
+                          ? `Sobrepago: ${formatCLP(-diff)}`
+                          : 'Sin diferencia';
+                      return (
+                        <button
+                          onClick={() => setPagarTarget(barbero)}
+                          disabled={pagados.has(barbero.id)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+                            pagados.has(barbero.id)
+                              ? 'bg-slate-800/50 text-slate-500 border-slate-700 cursor-default'
+                              : 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:bg-orange-500/20'
+                          }`}
+                          title={`Reabierto · antes se pagó ${formatCLP(pago.montoPagado)}`}
+                        >
+                          {pagados.has(barbero.id)
+                            ? <><CheckCircle2 size={14} /> Ajustado</>
+                            : <><RefreshCcw size={14} /> Ajustar pago · {diffLabel}</>}
+                        </button>
+                      );
+                    }
+                    // Sin pago previo → flujo normal.
+                    return (
+                      <button
+                        onClick={() => setPagarTarget(barbero)}
+                        disabled={pagados.has(barbero.id) || barbero.total === 0}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+                          pagados.has(barbero.id) || barbero.total === 0
+                            ? 'bg-slate-800/50 text-slate-500 border-slate-700 cursor-default'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                        }`}
+                      >
+                        {pagados.has(barbero.id) ? <><CheckCircle2 size={14} /> Registrado</> : <><DollarSign size={14} /> Registrar pago</>}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2449,6 +2612,7 @@ export default function Comisiones() {
         <PagarModal
           barbero={pagarTarget}
           periodo={periodo}
+          pagoExistente={pagoDelPeriodo(pagarTarget.id)}
           onConfirm={() => handlePagar(pagarTarget)}
           onClose={() => setPagarTarget(null)}
         />
