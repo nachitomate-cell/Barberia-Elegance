@@ -10,6 +10,7 @@ import Rangos from './views/Rangos';
 import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
+import { useBillingPlan } from './hooks/useBillingPlan';
 import AdminLayout from './components/layout/AdminLayout';
 import Inicio      from './views/Inicio';
 import Servicios   from './views/Servicios';
@@ -86,7 +87,12 @@ function TenantGate({ children }) {
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
   const { id: tenantId } = useTenant();
+  const billingPlan = useBillingPlan();
+  // Producto standalone (sin agenda): la landing es Inicio en vez de Agenda,
+  // que en un tenant wallet-only no tiene sentido (no hay citas). Los tenants
+  // por tipo (deluxe, restodemo) siguen mandando.
   const defaultRoute =
+    billingPlan === 'wallet-only' ? 'inicio' :
     tenantId === 'deluxeperfumes' ? 'productos' :
     tenantId === 'restodemo'      ? 'menu'      :
     'agenda';

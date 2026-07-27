@@ -14,6 +14,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useAuth, getBrandTenants } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCollection } from '../../hooks/useCollection';
+import { useBillingPlan } from '../../hooks/useBillingPlan';
 import { useBillingRestriction } from '../BillingGate';
 
 // Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
@@ -244,6 +245,64 @@ const NAV_GROUPS_DELUXE = [
       { to: 'consultas',     label: 'Consultas',     Icon: HelpCircle, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
       { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen },
+    ],
+  },
+];
+
+// ── Wallet-only: producto standalone para comercios sin agenda.
+// Comercios recurrentes (cafés, panaderías, heladerías, mascotas, spa
+// walk-in, cadenas chicas) que solo quieren la tarjeta de fidelidad
+// digital. El staff suma sellos escaneando el QR del pase en
+// wallets.bioo.cl/staff (walletSumarSelloStaff). No hay agenda, ni
+// barberos, ni servicios, ni caja — todo eso confunde y frena la venta.
+// Activación: _billing/{tid}.plan === 'wallet-only'. Ver detector en el
+// builder de NAV_GROUPS más abajo.
+const NAV_GROUPS_WALLET_ONLY = [
+  {
+    id: 'inicio',
+    label: 'Inicio',
+    items: [
+      { to: 'inicio',   label: 'Inicio',   Icon: Home           },
+      { to: 'mensajes', label: 'Mensajes', Icon: MessageCircle  },
+    ],
+  },
+  {
+    id: 'wallet',
+    label: 'Tarjeta digital',
+    items: [
+      { to: 'wallets',      label: 'Diseño de tarjeta',   Icon: Wallet,   adminOnly: true                    },
+      { to: 'premios',      label: 'Premios',             Icon: Gift,     adminOnly: true                    },
+      { to: 'canjes',       label: 'Canjes',              Icon: ScanLine                                     },
+      { to: 'fidelizacion', label: 'Rangos y beneficios', Icon: Trophy,   variant: 'fideli'                  },
+    ],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    items: [
+      { to: 'clientes',  label: 'Clientes',  Icon: Star,     variant: 'fideli'                  },
+      { to: 'anuncios',  label: 'Anuncios',  Icon: BellRing, adminOnly: true                    },
+      { to: 'resenas',   label: 'Reseñas',   Icon: ThumbsUp                                     },
+    ],
+  },
+  {
+    id: 'analisis',
+    label: 'Análisis',
+    items: [
+      { to: 'metricas', label: 'Métricas', Icon: BarChart3 },
+    ],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    adminOnly: true,
+    items: [
+      { to: 'configuracion', label: 'Configuración',   Icon: Settings,   adminOnly: true                    },
+      { to: 'recibir-pagos', label: 'Recibir Pagos',   Icon: RecibirPagosIcon, adminOnly: true, variant: 'pagos' },
+      { to: 'mensualidad',   label: 'Mensualidad',     Icon: CreditCard, adminOnly: true                    },
+      { to: 'consultas',     label: 'Consultas',       Icon: HelpCircle, adminOnly: true                    },
+      { to: 'soporte',       label: 'Soporte',         Icon: Headphones, adminOnly: true                    },
+      { to: 'ayuda',         label: 'Centro de Ayuda', Icon: BookOpen                                       },
     ],
   },
 ];
@@ -664,6 +723,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const hasBillingAlert = useBillingAlert();
   const hasAcademia     = useAcademiaEnabled();
   const { restringido } = useBillingRestriction();
+  const billingPlan     = useBillingPlan();
   const location        = useLocation();
 
   const { data: pendingCitas }    = useCollection('citas',               [where('estado',  '==', 'Pendiente')]);
@@ -681,6 +741,11 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const porCerrarCount = (openCitas || []).filter(c => c.fecha && c.fecha < hoyStr).length;
 
   const NAV_GROUPS = (() => {
+    // Producto standalone: gana sobre las variantes por tenant. Un tenant con
+    // plan wallet-only sólo ve la tarjeta + premios + clientes + reportes.
+    // Las rutas de agenda siguen registradas: superadmin puede accederlas por
+    // URL directa si necesita hacer soporte técnico.
+    if (billingPlan === 'wallet-only')   return NAV_GROUPS_WALLET_ONLY;
     if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
     if (tenant.id === 'restodemo')      return NAV_GROUPS_RESTO;
 
