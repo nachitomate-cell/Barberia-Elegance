@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
+import SlideOver from '../components/ui/SlideOver';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
@@ -621,6 +622,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
   const [telError, setTelError] = useState(false);
+  const [historialOpen, setHistorialOpen] = useState(false);
   const [gcInput, setGcInput]         = useState(cita?.giftCardCodigo || '');
   const [gcFound, setGcFound]         = useState(null);
   const [gcSearching, setGcSearching] = useState(false);
@@ -1473,7 +1475,22 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
         {/* Nombre — full width con dropdown de sugerencias */}
         <div className="relative">
-          <label className={lbl}>Nombre del cliente *</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={`${lbl} !mb-0`}>Nombre del cliente *</label>
+            {/* Botón para ver historial completo del cliente. Habilitado apenas hay
+                nombre + algún identificador (tel/email/clienteId) para poder consultar. */}
+            {(form.clienteNombre?.trim() && (form.clienteId || form.clienteTelefono || form.clienteEmail)) && (
+              <button
+                type="button"
+                onClick={() => setHistorialOpen(true)}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-emerald-400 transition-colors px-2 py-1 rounded-md hover:bg-slate-800"
+                title="Ver historial completo del cliente"
+              >
+                <History size={12} />
+                Historial
+              </button>
+            )}
+          </div>
           <div className="relative">
             <input
               className={field}
@@ -2168,7 +2185,298 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           <textarea className={`${field} resize-none`} rows={2} placeholder="Ej: Cliente prefiere sin gel..." value={form.nota} onChange={e => set('nota', e.target.value)} />
         </div>
       </div>
+
+      {/* Historial completo del cliente — se abre desde el botón junto al nombre */}
+      {historialOpen && (
+        <HistorialClienteDrawer
+          isOpen={historialOpen}
+          onClose={() => setHistorialOpen(false)}
+          clienteId={form.clienteId || null}
+          nombre={form.clienteNombre}
+          email={form.clienteEmail}
+          telefono={form.clienteTelefono}
+          barberos={barberos}
+          servicios={servicios}
+          citaActualId={cita?.id || null}
+        />
+      )}
     </Modal>
+  );
+}
+
+/* ── HistorialClienteDrawer ─────────────────────────────────── */
+//  Panel lateral con el historial completo del cliente:
+//   · Sellos actuales, gasto total, frecuencia promedio
+//   · Barbero más fiel (con % del total de citas completadas)
+//   · Servicio favorito
+//   · Tabla de todas las citas (más recientes primero)
+//  Se abre desde el botón "Historial" del CitaModal.
+function HistorialClienteDrawer({ isOpen, onClose, clienteId, nombre, email, telefono, barberos, servicios, citaActualId }) {
+  const [citas, setCitas] = useState(null);   // null = cargando, [] = sin data, [{}] = con data
+  const [userDoc, setUserDoc] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      setCitas(null); setUserDoc(null);
+      // Cargar user si tenemos clienteId
+      if (clienteId) {
+        try {
+          const uSnap = await withTimeout(getDoc(doc(tenantCol('users'), clienteId)), 10000, 'agenda/historial-user');
+          if (!cancelled && uSnap.exists()) setUserDoc({ id: uSnap.id, ...uSnap.data() });
+        } catch (_) {}
+      }
+      // Cargar citas: por clienteUid + por clienteTelefono en variantes.
+      const seen = new Map();
+      const push = (docs) => { for (const d of docs) if (!seen.has(d.id)) seen.set(d.id, { id: d.id, ...d.data() }); };
+      try {
+        if (clienteId) {
+          const q1 = await withTimeout(getDocs(query(tenantCol('citas'), where('clienteUid', '==', clienteId))), 15000, 'agenda/historial-uid');
+          push(q1.docs);
+          const q2 = await withTimeout(getDocs(query(tenantCol('citas'), where('userId', '==', clienteId))), 15000, 'agenda/historial-userId');
+          push(q2.docs);
+        }
+        if (telefono) {
+          const tel = String(telefono).trim();
+          const digs = tel.replace(/\D+/g, '');
+          const variants = [...new Set([tel, digs, `+${digs}`])].filter(Boolean);
+          for (const v of variants) {
+            const q = await withTimeout(getDocs(query(tenantCol('citas'), where('clienteTelefono', '==', v))), 15000, 'agenda/historial-tel');
+            push(q.docs);
+          }
+        }
+      } catch (e) {
+        console.warn('[HistorialCliente]', e?.message);
+      }
+      if (cancelled) return;
+      const arr = Array.from(seen.values())
+        .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+      setCitas(arr);
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, clienteId, telefono]);
+
+  const stats = useMemo(() => {
+    if (!citas) return null;
+    const completadas = citas.filter(c => c.estado === 'Completada');
+    // Precio de una cita: c.precio explícito o 0 si cortesía (mismo criterio que Comisiones).
+    const precio = (c) => c.cortesia ? 0 : Number(c.precio || 0);
+    const gastoTotal = completadas.reduce((s, c) => s + precio(c), 0);
+
+    // Barbero fiel: cuál acumula más citas completadas.
+    const barbCount = new Map();
+    for (const c of completadas) {
+      const bId = c.barberoId || '_sin';
+      barbCount.set(bId, (barbCount.get(bId) || 0) + 1);
+    }
+    const barbTop = [...barbCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([bId, count]) => {
+        const b = barberos.find(x => x.id === bId);
+        return {
+          id: bId, count,
+          nombre: b?.nombre || (bId === '_sin' ? 'Sin barbero' : bId),
+          pct: completadas.length ? Math.round(count * 100 / completadas.length) : 0,
+        };
+      });
+
+    // Servicio favorito.
+    const svcCount = new Map();
+    for (const c of completadas) {
+      const key = c.servicioNombre || c.servicio || 'Sin dato';
+      svcCount.set(key, (svcCount.get(key) || 0) + 1);
+    }
+    const svcTop = [...svcCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    // Frecuencia promedio (días entre citas completadas consecutivas).
+    const fechas = completadas
+      .map(c => c.fecha).filter(Boolean).sort();
+    let avgDias = null;
+    if (fechas.length >= 2) {
+      const diffs = [];
+      for (let i = 1; i < fechas.length; i++) {
+        const d1 = new Date(fechas[i - 1] + 'T12:00:00');
+        const d2 = new Date(fechas[i]     + 'T12:00:00');
+        const dd = Math.round((d2 - d1) / 86400000);
+        if (dd > 0 && dd < 365) diffs.push(dd);
+      }
+      if (diffs.length) avgDias = Math.round(diffs.reduce((s, v) => s + v, 0) / diffs.length);
+    }
+    return {
+      totalCitas: citas.length,
+      completadas: completadas.length,
+      canceladas: citas.filter(c => c.estado === 'Cancelada' || c.estado === 'NoAsistio').length,
+      gastoTotal,
+      barbTop,
+      svcTop,
+      avgDias,
+    };
+  }, [citas, barberos]);
+
+  const fmtCLP = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-CL')}`;
+  const barbNombre = (bId) => barberos.find(x => x.id === bId)?.nombre || bId || 'Sin barbero';
+
+  const sellos = userDoc?.sellosDisponibles ?? '—';
+  const sellosHist = userDoc?.sellosHistoricos ?? '—';
+
+  return (
+    <SlideOver
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-3xl"
+      title={`Historial · ${nombre || 'Cliente'}`}
+      subtitle={
+        (email || telefono)
+          ? [email, telefono].filter(Boolean).join(' · ')
+          : 'Sin identificadores'
+      }
+      footer={
+        <div className="flex justify-end">
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cerrar</button>
+        </div>
+      }
+    >
+      {citas === null ? (
+        <div className="flex items-center justify-center py-16 text-slate-500">
+          <RefreshCw size={20} className="animate-spin mr-2" /> Cargando historial…
+        </div>
+      ) : citas.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
+          <History size={32} className="opacity-40" />
+          <p className="text-sm">Sin historial de citas para este cliente.</p>
+          <p className="text-xs opacity-70">Si el cliente ya vino antes, revisá que el nombre o teléfono estén escritos igual que en la reserva original.</p>
+        </div>
+      ) : (
+        <>
+          {/* Header stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <StatKpi label="Citas totales"      value={stats.totalCitas} />
+            <StatKpi label="Completadas"        value={stats.completadas} tone="emerald" />
+            <StatKpi label="Sellos actuales"    value={sellos} tone="amber" sub={sellosHist !== '—' ? `${sellosHist} históricos` : undefined} />
+            <StatKpi label="Gasto total"        value={fmtCLP(stats.gastoTotal)} tone="blue" />
+          </div>
+
+          {/* Barbero fiel */}
+          {stats.barbTop.length > 0 && (
+            <section className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                <User size={13} className="text-emerald-400" /> Barbero{stats.barbTop.length > 1 ? 's' : ''} preferido{stats.barbTop.length > 1 ? 's' : ''}
+              </h3>
+              <div className="space-y-2">
+                {stats.barbTop.map((b, i) => (
+                  <div key={b.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 border border-slate-800">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      i === 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-700 text-slate-300'
+                    }`}>{i === 0 ? '★' : (i + 1)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-200 truncate">{b.nombre}</p>
+                      <p className="text-[11px] text-slate-500">{b.count} cita{b.count !== 1 ? 's' : ''} completada{b.count !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-bold tabular-nums text-emerald-400">{b.pct}%</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">fidelidad</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Servicio favorito + frecuencia */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            {stats.svcTop.length > 0 && (
+              <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2 flex items-center gap-1.5">
+                  <Scissors size={11} /> Servicios más pedidos
+                </p>
+                <ul className="text-[12.5px] space-y-1">
+                  {stats.svcTop.map(([svc, n]) => (
+                    <li key={svc} className="flex justify-between">
+                      <span className="text-slate-300 truncate">{svc}</span>
+                      <span className="text-slate-500 tabular-nums shrink-0 ml-2">{n}×</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {stats.avgDias !== null && (
+              <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2 flex items-center gap-1.5">
+                  <Clock size={11} /> Frecuencia
+                </p>
+                <p className="text-2xl font-bold tabular-nums text-slate-200">{stats.avgDias} <span className="text-sm font-normal text-slate-500">días</span></p>
+                <p className="text-[11px] text-slate-500 mt-0.5">promedio entre citas</p>
+              </div>
+            )}
+          </div>
+
+          {/* Tabla de citas */}
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <CalendarDays size={13} className="text-blue-400" /> Historial completo ({stats.totalCitas})
+            </h3>
+            <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <table className="w-full text-[12.5px]">
+                <thead className="bg-slate-800/60 text-[10px] uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="text-left py-2 px-3 font-semibold">Fecha</th>
+                    <th className="text-left py-2 px-3 font-semibold">Barbero</th>
+                    <th className="text-left py-2 px-3 font-semibold">Servicio</th>
+                    <th className="text-left py-2 px-3 font-semibold">Estado</th>
+                    <th className="text-right py-2 px-3 font-semibold">Precio</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {citas.map(c => {
+                    const es = c.estado || '?';
+                    const badge = es === 'Completada' ? 'text-emerald-400 bg-emerald-500/10'
+                                : es === 'Cancelada' || es === 'NoAsistio' ? 'text-rose-400 bg-rose-500/10'
+                                : es === 'Confirmada' ? 'text-blue-400 bg-blue-500/10'
+                                : 'text-slate-400 bg-slate-500/10';
+                    const highlight = c.id === citaActualId;
+                    return (
+                      <tr key={c.id} className={`${highlight ? 'bg-emerald-500/5' : 'hover:bg-slate-800/30'}`}>
+                        <td className="py-2 px-3 text-slate-300 whitespace-nowrap">
+                          {c.fecha}<span className="text-slate-600"> · {c.hora}</span>
+                          {highlight && <span className="ml-2 text-[10px] text-emerald-400 font-semibold">(esta cita)</span>}
+                        </td>
+                        <td className="py-2 px-3 text-slate-300 truncate max-w-[130px]" title={barbNombre(c.barberoId)}>{barbNombre(c.barberoId)}</td>
+                        <td className="py-2 px-3 text-slate-300">
+                          {c.servicioNombre || c.servicio || '—'}
+                          {c.cortesia && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">cortesía</span>}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${badge}`}>{es}</span>
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums text-slate-300">{c.cortesia ? '—' : fmtCLP(c.precio)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </SlideOver>
+  );
+}
+
+function StatKpi({ label, value, tone = 'slate', sub }) {
+  const toneMap = {
+    slate:   'text-slate-200',
+    emerald: 'text-emerald-400',
+    amber:   'text-amber-400',
+    blue:    'text-blue-400',
+  };
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
+      <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{label}</p>
+      <p className={`text-xl font-bold mt-0.5 tabular-nums ${toneMap[tone]}`}>{value}</p>
+      {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+    </div>
   );
 }
 
