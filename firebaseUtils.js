@@ -76,12 +76,24 @@ const FDB = (() => {
      WebView y respeta las mismas reglas de seguridad (lectura pública).
      Solo se usa cuando el SDK no responde dentro del timeout.
      ────────────────────────────────────────────────────────────── */
+  // Se marca en true la primera vez que una lectura del SDK excede su timeout.
+  // Señal de "el transporte de Firestore está colgado en este navegador": las
+  // vistas la consultan (FDB.sdkHung()) para no seguir esperando lecturas de
+  // enriquecimiento que van a morir igual.
+  let _sdkHung = false;
+
   function _withTimeout(promise, ms) {
+    let t;
     return Promise.race([
-      promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('fs-timeout')), ms)),
+      // clearTimeout al settear: sin esto el timer sigue vivo y marca _sdkHung
+      // aunque la lectura haya respondido rápido.
+      Promise.resolve(promise).finally(() => clearTimeout(t)),
+      new Promise((_, reject) => {
+        t = setTimeout(() => { _sdkHung = true; reject(new Error('fs-timeout')); }, ms);
+      }),
     ]);
   }
+  const _isTimeout = (e) => !!e && e.message === 'fs-timeout';
 
   // Convierte un valor en formato REST de Firestore a JS plano.
   function _restValue(v) {
@@ -117,9 +129,20 @@ const FDB = (() => {
            '/databases/(default)/documents/' + _restPath(relPath) +
            '?key=' + opt.apiKey + (extra || '');
   }
+  // fetch acotado: el fallback REST es la última red de seguridad, así que
+  // tampoco puede quedar colgado esperando para siempre.
+  async function _restFetch(url, ms) {
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const t = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, ms || 8000);
+    try {
+      return await fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined });
+    } finally {
+      clearTimeout(t);
+    }
+  }
   // Lee una colección del tenant vía REST → [{ id, ...data }]
   async function _restGetCollection(colName) {
-    const res = await fetch(_restUrl(colName, '&pageSize=300'), { cache: 'no-store' });
+    const res = await _restFetch(_restUrl(colName, '&pageSize=300'));
     if (!res.ok) throw new Error('REST ' + res.status);
     const json = await res.json();
     return (json.documents || []).map(d => Object.assign(
@@ -128,7 +151,7 @@ const FDB = (() => {
   }
   // Lee un documento del tenant vía REST → data (o null si no existe)
   async function _restGetDoc(colName, docId) {
-    const res = await fetch(_restUrl(colName + '/' + docId), { cache: 'no-store' });
+    const res = await _restFetch(_restUrl(colName + '/' + docId));
     if (res.status === 404) return null;
     if (!res.ok) throw new Error('REST ' + res.status);
     const json = await res.json();
@@ -251,18 +274,23 @@ const FDB = (() => {
      SERVICIOS
      ────────────────────────────────────────────────────────────── */
   async function getServicios() {
+    const _viaRest = async () => {
+      const arr = await _restGetCollection(COL.SERVICIOS);
+      return arr.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+    };
     try {
       const snap = await _withTimeout(tenantCol(COL.SERVICIOS).orderBy('orden').get(), 5000);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch (_) {
-      // Fallback si no existe campo 'orden' en los documentos
+    } catch (e) {
+      // Transporte colgado (WebView in-app): reintentar el SDK cuesta otros 5 s
+      // y falla igual → REST directo. El reintento sin orderBy solo tiene
+      // sentido cuando el error viene del campo/índice 'orden'.
+      if (_isTimeout(e)) return _viaRest();
       try {
         const snap = await _withTimeout(tenantCol(COL.SERVICIOS).get(), 5000);
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch (e) {
-        // Último recurso: REST API (el SDK se colgó, típico en WebView in-app).
-        const arr = await _restGetCollection(COL.SERVICIOS);
-        return arr.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+      } catch (_) {
+        return _viaRest();
       }
     }
   }
@@ -371,27 +399,42 @@ const FDB = (() => {
   const _barberConfigRef = (barberoid) =>
     tenantCol(COL.BARBEROS).doc(barberoid).collection('configuracion').doc('main');
 
+  // ⚠ La usa getHorasDisponibles() en el paso 3 de la reserva pública: si se
+  // cuelga, el cliente nunca ve horas y no puede agendar. Acotada + REST.
   async function getConfigBarbero(barberoid) {
+    const _merge = (cfgData, barbData, tenantCfg) => ({
+      ..._defaultConfig(),
+      ...(cfgData || {}),
+      ...((barbData && barbData.horario) ? { horario: barbData.horario } : {}),
+      // intervaloMinutos es un setting de tenant — siempre gana sobre barbero-específico
+      ...((tenantCfg && tenantCfg.intervaloMinutos != null)
+        ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
+    });
     try {
       // Leer en paralelo: config del barbero, doc principal del barbero,
       // y config del tenant (para heredar intervaloMinutos y otros campos globales).
-      const [cfgSnap, barbSnap, tenantSnap] = await Promise.all([
+      const [cfgSnap, barbSnap, tenantSnap] = await _withTimeout(Promise.all([
         _barberConfigRef(barberoid).get(),
         tenantCol(COL.BARBEROS).doc(barberoid).get(),
         configRef().get(),
-      ]);
-      const cfgData   = cfgSnap.exists   ? cfgSnap.data()   : {};
-      const barbData  = barbSnap.exists  ? barbSnap.data()  : {};
-      const tenantCfg = tenantSnap.exists ? tenantSnap.data() : {};
-      // intervaloMinutos es un setting de tenant — siempre gana sobre barbero-específico
-      return {
-        ..._defaultConfig(),
-        ...cfgData,
-        ...(barbData.horario ? { horario: barbData.horario } : {}),
-        ...(tenantCfg.intervaloMinutos != null ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
-      };
+      ]), 5000);
+      return _merge(
+        cfgSnap.exists    ? cfgSnap.data()    : {},
+        barbSnap.exists   ? barbSnap.data()   : {},
+        tenantSnap.exists ? tenantSnap.data() : {}
+      );
     } catch (e) {
-      console.error('[FDB] getConfigBarbero:', e);
+      // SDK colgado (WebView in-app): mismos tres docs vía REST antes de
+      // caer al default, para no perder el horario real del barbero.
+      try {
+        const [cfgData, barbData, tenantCfg] = await Promise.all([
+          _restGetDoc(COL.BARBEROS, barberoid + '/configuracion/main').catch(() => null),
+          _restGetDoc(COL.BARBEROS, barberoid).catch(() => null),
+          _restGetDoc(COL.CONFIG, 'main').catch(() => null),
+        ]);
+        if (cfgData || barbData || tenantCfg) return _merge(cfgData, barbData, tenantCfg);
+      } catch (_) {}
+      console.warn('[FDB] getConfigBarbero, usando default:', e.code || e.message);
       return _defaultConfig();
     }
   }
@@ -1028,10 +1071,24 @@ const FDB = (() => {
   async function getSlotLocksDia(fecha, barberoId = null, allHoras = []) {
     const result = [];
     const foundHoras = new Set();
+    // Si el SDK se cuelga (WebView in-app) leemos toda la colección por REST UNA
+    // vez y resolvemos los dos formatos con ella. Ojo: esta función también es
+    // el pre-chequeo de conflictos de addCita — devolver [] por un cuelgue
+    // abriría la puerta a doble reserva, así que el fallback importa.
+    let restDocs = null;
+    const _restAll = async () => {
+      if (restDocs === null) {
+        try { restDocs = await _restGetCollection('slotLocks'); }
+        catch (_) { restDocs = []; }
+      }
+      return restDocs;
+    };
 
     // ① New-format: query by fecha field
+    let sdkOk = false;
     try {
-      const snap = await tenantCol('slotLocks').where('fecha', '==', fecha).get();
+      const snap = await _withTimeout(
+        tenantCol('slotLocks').where('fecha', '==', fecha).get(), 5000);
       snap.docs.forEach(d => {
         const s = d.data();
         if (!s.hora) return; // ignorar docs sin metadatos
@@ -1039,24 +1096,48 @@ const FDB = (() => {
         result.push(s);
         foundHoras.add(s.hora);
       });
+      sdkOk = true;
     } catch(_) {}
+
+    if (!sdkOk) {
+      (await _restAll()).forEach(s => {
+        if (!s.hora || s.fecha !== fecha) return;
+        if (barberoId && s.barberoId !== barberoId) return;
+        result.push(s);
+        foundHoras.add(s.hora);
+      });
+    }
 
     // ② Old-format fallback: GET directo por IDs construidos
     if (allHoras.length > 0) {
       const toCheck = allHoras.filter(h => !foundHoras.has(h));
       if (toCheck.length > 0 && barberoId) {
         // Caso: barbero específico — un GET por slot
-        try {
-          const gets = toCheck.map(h =>
-            tenantCol('slotLocks').doc(_buildLockId(barberoId, fecha, h)).get()
-          );
-          const snaps = await Promise.all(gets);
-          snaps.forEach((snap, i) => {
-            if (snap.exists && !snap.data().hora) {
-              result.push({ hora: toCheck[i], barberoId, duracion: snap.data().duracion || 30 });
+        let oldOk = false;
+        if (sdkOk) {
+          try {
+            const gets = toCheck.map(h =>
+              tenantCol('slotLocks').doc(_buildLockId(barberoId, fecha, h)).get()
+            );
+            const snaps = await _withTimeout(Promise.all(gets), 5000);
+            snaps.forEach((snap, i) => {
+              if (snap.exists && !snap.data().hora) {
+                result.push({ hora: toCheck[i], barberoId, duracion: snap.data().duracion || 30 });
+              }
+            });
+            oldOk = true;
+          } catch(_) {}
+        }
+        if (!oldOk) {
+          // Sin SDK: los docs viejos no traen `hora`, pero su ID la codifica.
+          const byId = new Map((await _restAll()).map(d => [d.id, d]));
+          toCheck.forEach(h => {
+            const d = byId.get(_buildLockId(barberoId, fecha, h));
+            if (d && !d.hora) {
+              result.push({ hora: h, barberoId, duracion: d.duracion || 30 });
             }
           });
-        } catch(_) {}
+        }
       } else if (toCheck.length > 0 && !barberoId) {
         // Sin barberoId: no sabemos qué IDs buscar → omitir el fallback
         // (este caso solo ocurre en getHorasDisponiblesMulti que lo maneja por barbero)
@@ -1079,8 +1160,14 @@ const FDB = (() => {
      PREMIOS DEL CLUB
      ────────────────────────────────────────────────────────────── */
   async function getPremios() {
-    const snap = await tenantCol(COL.PREMIOS).orderBy('costoSellos').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    try {
+      const snap = await _withTimeout(tenantCol(COL.PREMIOS).orderBy('costoSellos').get(), 5000);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      // SDK colgado (WebView in-app): REST y ordenamos en el cliente.
+      const arr = await _restGetCollection(COL.PREMIOS);
+      return arr.sort((a, b) => (a.costoSellos || 0) - (b.costoSellos || 0));
+    }
   }
 
   async function addPremio(nombre, costoSellos) {
@@ -1989,12 +2076,19 @@ const FDB = (() => {
     }
   }
 
+  // ⚠ Esta lectura la espera initServices() en la reserva pública: si se cuelga,
+  // el paso 1 se queda en skeleton para siempre y el cliente no puede agendar.
+  // Por eso va acotada y con fallback REST, igual que servicios/barberos/config.
   async function getShopSettings() {
     try {
-      const snap = await tenantCol('settings').doc('general').get();
+      const snap = await _withTimeout(tenantCol('settings').doc('general').get(), 5000);
       return snap.exists ? snap.data() : null;
     } catch (e) {
-      return null;
+      try {
+        return await _restGetDoc('settings', 'general');
+      } catch (_) {
+        return null;
+      }
     }
   }
 
@@ -2002,6 +2096,10 @@ const FDB = (() => {
   return {
     migrarDesdeLocalStorage,
     migrarBarberoIdCitas,
+    // true una vez que alguna lectura del SDK excedió su timeout → el
+    // transporte de Firestore está colgado (típico WebView in-app de
+    // Instagram/Facebook). Las vistas la usan para no esperar de más.
+    sdkHung: () => _sdkHung,
     // Servicios
     getServicios, addServicio, updateServicio, deleteServicio,
     reordenarServicios, onServiciosChange,
