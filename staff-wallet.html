@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wallets · Staff — bioo</title>
+<meta name="description" content="Suma sellos escaneando el QR de la tarjeta del cliente.">
+<link rel="icon" type="image/png" href="/bioo-iso.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Marca bioo (espejo del studio) — mismo lenguaje visual. */
+  :root{
+    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
+    --ok:#16a34a; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  a{color:inherit;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;max-width:520px;width:100%;margin:0 auto;}
+  .wordmark{display:flex;align-items:center;gap:9px;font-weight:800;font-size:20px;letter-spacing:-.4px;}
+  .wordmark .pill{font-size:11px;font-weight:700;letter-spacing:.4px;background:var(--ink);color:#fff;border-radius:999px;padding:3px 9px;}
+  .session{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--soft);}
+  .session button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--soft);font-family:inherit;}
+
+  main{flex:1;width:100%;max-width:520px;margin:0 auto;padding:6px 18px 40px;}
+  .hidden{display:none !important;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 2px 10px rgba(21,36,11,.05);}
+
+  /* Login */
+  .login-wrap{margin:6vh auto 0;}
+  .login-wrap h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;}
+  .login-wrap p.sub{font-size:14px;color:var(--soft);margin-bottom:20px;}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:12px 0 6px;letter-spacing:.2px;}
+  input[type=email],input[type=password],input[type=text]{
+    width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 14px;font-size:15px;
+    font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border .15s;
+  }
+  input:focus{border-color:var(--ink);}
+  .btn{width:100%;height:50px;border:0;border-radius:13px;background:var(--ink);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.2px;box-shadow:0 4px 14px rgba(21,36,11,.18);font-family:inherit;}
+  .btn:hover{background:#1d3411;}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .btn-ghost{width:100%;height:44px;border:1.5px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;margin-top:10px;}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .msg-err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;display:none;}
+  .link-btn{background:none;border:0;padding:0;margin-top:14px;font:inherit;color:var(--soft);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+  .link-btn:hover{color:var(--ink);}
+
+  /* Tenant picker (solo superadmin) */
+  select{
+    width:100%;height:46px;border:1px solid var(--line);border-radius:11px;padding:0 14px;font-size:15px;
+    font-family:inherit;background:#fff;color:var(--ink);outline:none;
+  }
+
+  /* Scanner */
+  .scanner-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px;}
+  .scanner-head .t{font-size:19px;font-weight:800;letter-spacing:-.3px;}
+  .scanner-head .venue{font-size:12.5px;color:var(--soft);}
+  .scanner-wrap{position:relative;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:1/1;max-height:60vh;margin-bottom:14px;box-shadow:0 8px 24px rgba(21,36,11,.15);}
+  .scanner-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+  .scanner-wrap.off{display:flex;align-items:center;justify-content:center;background:#eef1ee;color:var(--soft);font-size:14px;text-align:center;padding:20px;aspect-ratio:auto;height:180px;}
+  .scan-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+  .scan-frame{width:70%;aspect-ratio:1/1;border:3px solid rgba(255,255,255,.85);border-radius:22px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+  .scan-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(21,36,11,.85);color:#fff;font-size:12.5px;font-weight:600;border-radius:999px;padding:6px 14px;}
+
+  .action-row{display:flex;flex-direction:column;gap:8px;}
+  .field-hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:center;}
+
+  /* Resultado (cliente escaneado) */
+  .result-card{background:#fff;border:2px solid var(--ok);border-radius:20px;padding:22px;text-align:center;box-shadow:0 8px 24px rgba(22,163,74,.15);animation:pop .25s ease-out;}
+  @keyframes pop { from { transform:scale(0.94); opacity:0.3; } to { transform:scale(1); opacity:1; } }
+  .result-card .icon{font-size:44px;margin-bottom:8px;}
+  .result-card h2{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px;}
+  .result-card .who{font-size:14px;color:var(--soft);margin-bottom:16px;}
+  .result-card .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(22,163,74,.1);color:var(--ok);font-size:13px;font-weight:700;border-radius:999px;padding:6px 14px;margin-bottom:14px;}
+  .result-card .saldo{font-size:32px;font-weight:800;letter-spacing:-.5px;margin-bottom:2px;}
+  .result-card .saldo-lbl{font-size:12.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+  .result-card .next-btn{margin-top:20px;}
+
+  /* Error scan */
+  .error-card{background:#fff;border:2px solid var(--err);border-radius:20px;padding:20px;text-align:center;}
+  .error-card .icon{font-size:36px;margin-bottom:8px;}
+  .error-card h2{font-size:17px;font-weight:800;margin-bottom:4px;color:var(--err);}
+  .error-card p{font-size:13.5px;color:var(--soft);margin-bottom:14px;}
+
+  /* Spinner */
+  .spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 1s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .spin-inline{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:8px;}
+
+  /* Toast */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:50;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--err);}
+
+  footer.powered{display:flex;align-items:center;justify-content:center;gap:6px;padding:20px;font-size:11.5px;color:var(--muted);}
+  footer.powered img{width:14px;height:14px;border-radius:4px;}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="/firebase-config.js"></script>
+<script src="/config.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wordmark">bioo <span class="pill">staff</span></div>
+  <div class="session hidden" id="session">
+    <span id="session-email"></span>
+    <button onclick="salir()">Salir</button>
+  </div>
+</header>
+
+<main>
+  <!-- Cargando -->
+  <div id="view-loading"><div class="spin"></div></div>
+
+  <!-- Login -->
+  <div id="view-login" class="login-wrap hidden">
+    <div class="card">
+      <h1>Sumar sello</h1>
+      <p class="sub">Entra con tu cuenta de administrador o jefe del local.</p>
+      <label for="login-email">Correo</label>
+      <input type="email" id="login-email" autocomplete="username" placeholder="tu@correo.cl">
+      <label for="login-pass">Contraseña</label>
+      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••">
+      <div style="height:18px;"></div>
+      <button class="btn" id="login-btn" onclick="entrar()">Entrar</button>
+      <p class="msg-err" id="login-err"></p>
+      <div style="text-align:center;">
+        <button type="button" class="link-btn" onclick="resetPassword()">¿Olvidaste tu contraseña?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sin permisos -->
+  <div id="view-denied" class="login-wrap hidden">
+    <div class="card" style="text-align:center;">
+      <h1 style="font-size:19px;">Sin acceso</h1>
+      <p class="sub" style="margin:10px 0 0;">Esta cuenta no tiene permisos de staff para ningún local. Si crees que es un error, escríbenos.</p>
+    </div>
+  </div>
+
+  <!-- Scanner -->
+  <div id="view-scan" class="hidden">
+    <div class="scanner-head">
+      <div>
+        <div class="t">Escanear tarjeta</div>
+        <div class="venue" id="venue-name">—</div>
+      </div>
+    </div>
+
+    <!-- Selector de tenant (solo superadmin) -->
+    <div id="tenant-picker" class="hidden" style="margin-bottom:14px;">
+      <label for="tenant-select">Local</label>
+      <select id="tenant-select" onchange="cambiarTenant(this.value)"></select>
+    </div>
+
+    <div class="scanner-wrap" id="scanner-wrap">
+      <video id="scanner-video" playsinline muted></video>
+      <div class="scan-overlay"><div class="scan-frame"></div></div>
+      <div class="scan-hint">Apunta al QR de la tarjeta</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-ghost" onclick="ingresarCodigoManual()">⌨️ Ingresar código a mano</button>
+    </div>
+    <p class="field-hint">
+      El cliente muestra la tarjeta desde su Google Wallet o Apple Wallet.
+      El QR aparece automáticamente al abrirla.
+    </p>
+  </div>
+
+  <!-- Resultado OK -->
+  <div id="view-result" class="hidden" style="padding-top:6vh;">
+    <div class="result-card" id="result-card"></div>
+    <button class="btn-ghost" onclick="volverAScan()" style="margin-top:14px;">← Escanear otra</button>
+  </div>
+
+  <!-- Error scan -->
+  <div id="view-error" class="hidden" style="padding-top:6vh;">
+    <div class="error-card" id="error-card"></div>
+    <button class="btn-ghost" onclick="volverAScan()" style="margin-top:14px;">← Reintentar</button>
+  </div>
+</main>
+
+<footer class="powered">
+  <img src="/synaptech/ig.png" alt="SynapTech">
+  Powered by SynapTech
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────────────────────────────
+//  WALLETS · STAFF — wallets.bioo.cl/staff
+//
+//  Flujo: login (admin/jefe) → cámara → escanea QR del pase
+//         (formato SPTW:tenantId:uid) → callable walletSumarSelloStaff
+//         → muestra cliente + saldo → volver a escanear.
+//
+//  Superadmin ve picker de tenant. Admin/jefe entra directo a SU local.
+// ─────────────────────────────────────────────────────────────────
+
+var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
+var _tid = null;
+var _isSuper = false;
+var _stream = null;
+var _detector = null;
+var _scanLoop = null;
+var _busy = false;         // evita re-disparar mientras hay una CF corriendo
+var _lastValue = null;     // último QR leído (anti-spam si el user lo deja frente a la cámara)
+var _lastValueTs = 0;
+
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  ['view-loading', 'view-login', 'view-denied', 'view-scan', 'view-result', 'view-error']
+    .forEach(function (v) { $(v).classList.toggle('hidden', v !== id); });
+}
+function toast(msg, esError) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!esError);
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, 3800);
+}
+
+// ── Sesión ────────────────────────────────────────────────────────
+function entrar() {
+  var email = $('login-email').value.trim();
+  var pass = $('login-pass').value;
+  var err = $('login-err');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Completa correo y contraseña.'; err.style.display = 'block'; return; }
+  $('login-btn').disabled = true;
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .catch(function (e) {
+      err.textContent = (e && e.code === 'auth/invalid-credential') ? 'Correo o contraseña incorrectos.' : 'No pudimos iniciar sesión.';
+      err.style.display = 'block';
+    })
+    .finally(function () { $('login-btn').disabled = false; });
+}
+function salir() { detenerCamara(); firebase.auth().signOut(); }
+function resetPassword() {
+  var email = ($('login-email').value || '').trim();
+  if (!email) { toast('Escribe tu correo arriba primero.', true); $('login-email').focus(); return; }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function () { toast('Te enviamos un correo para restablecer la contraseña.'); })
+    .catch(function (e) {
+      if (e && e.code === 'auth/user-not-found') { toast('Te enviamos un correo para restablecer la contraseña.'); return; }
+      toast('No pudimos enviar el correo. Revisa la dirección.', true);
+    });
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !$('view-login').classList.contains('hidden')) entrar();
+});
+
+firebase.auth().onAuthStateChanged(function (user) {
+  if (!user) { $('session').classList.add('hidden'); detenerCamara(); show('view-login'); return; }
+  $('session').classList.remove('hidden');
+  $('session-email').textContent = user.email || '';
+  user.getIdTokenResult().then(function (tk) {
+    var email = String(user.email || '').toLowerCase();
+    var claims = tk.claims || {};
+    _isSuper = SUPERADMINS.indexOf(email) !== -1;
+
+    if (_isSuper) {
+      initTenantPicker();
+      // Sin selección aún: mostramos scan pero el botón espera hasta que elija.
+      show('view-scan');
+      if ($('tenant-select').value) cambiarTenant($('tenant-select').value);
+      return;
+    }
+    var esStaff = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId;
+    if (!esStaff) { show('view-denied'); return; }
+    _tid = String(claims.tenantId);
+    setVenueName(_tid);
+    show('view-scan');
+    arrancarCamara();
+  }).catch(function () { show('view-denied'); });
+});
+
+// ── Selector de tenant (superadmin) ────────────────────────────────
+function initTenantPicker() {
+  var sel = $('tenant-select');
+  var all = window.ALL_TENANTS || {};
+  var ids = Object.keys(all).sort(function (a, b) {
+    var na = (all[a].nombreCorto || all[a].nombre || a).toLowerCase();
+    var nb = (all[b].nombreCorto || all[b].nombre || b).toLowerCase();
+    return na < nb ? -1 : 1;
+  });
+  sel.innerHTML = '<option value="">— Elige un local —</option>' + ids.map(function (id) {
+    var n = all[id].nombreCorto || all[id].nombre || id;
+    return '<option value="' + id + '">' + n + '</option>';
+  }).join('');
+  $('tenant-picker').classList.remove('hidden');
+}
+function cambiarTenant(tid) {
+  detenerCamara();
+  if (!tid) { _tid = null; setVenueName(null); return; }
+  _tid = tid;
+  setVenueName(tid);
+  arrancarCamara();
+}
+function setVenueName(tid) {
+  var el = $('venue-name');
+  if (!tid) { el.textContent = 'Elige un local para empezar.'; return; }
+  var all = window.ALL_TENANTS || {};
+  var n = (all[tid] && (all[tid].nombreCorto || all[tid].nombre)) || tid;
+  el.textContent = n;
+}
+
+// ── Cámara + scanner ──────────────────────────────────────────────
+async function arrancarCamara() {
+  if (!_tid) return;
+  var wrap = $('scanner-wrap');
+  var video = $('scanner-video');
+  // Preferimos cámara trasera; en desktop cae en la única disponible.
+  try {
+    _stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    });
+    video.srcObject = _stream;
+    await video.play();
+  } catch (e) {
+    console.warn('[Scanner] cámara denegada:', e);
+    wrap.classList.add('off');
+    wrap.innerHTML = '📷 Sin acceso a la cámara.<br>Puedes ingresar el código a mano.';
+    return;
+  }
+  wrap.classList.remove('off');
+
+  if (!('BarcodeDetector' in window)) {
+    // Fallback: sin decoder nativo. Dejamos la cámara viva pero solo el manual funciona.
+    console.warn('[Scanner] BarcodeDetector no soportado — solo modo manual.');
+    return;
+  }
+  try { _detector = new window.BarcodeDetector({ formats: ['qr_code'] }); }
+  catch (_) { _detector = new window.BarcodeDetector(); }
+
+  loopScan();
+}
+function detenerCamara() {
+  if (_scanLoop) { cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if (_stream) { _stream.getTracks().forEach(function (t) { t.stop(); }); _stream = null; }
+  var v = $('scanner-video');
+  if (v) v.srcObject = null;
+}
+function loopScan() {
+  if (!_detector) return;
+  var video = $('scanner-video');
+  var run = async function () {
+    if (_busy || !_stream) { _scanLoop = requestAnimationFrame(run); return; }
+    try {
+      var codes = await _detector.detect(video);
+      if (codes && codes.length) {
+        var v = codes[0].rawValue || '';
+        var now = Date.now();
+        // Antibounce: mismo QR en < 2.5s se ignora.
+        if (v && (v !== _lastValue || now - _lastValueTs > 2500)) {
+          _lastValue = v; _lastValueTs = now;
+          procesarQR(v);
+        }
+      }
+    } catch (_) { /* frame perdido, seguir */ }
+    _scanLoop = requestAnimationFrame(run);
+  };
+  _scanLoop = requestAnimationFrame(run);
+}
+
+// ── Ingreso manual ────────────────────────────────────────────────
+function ingresarCodigoManual() {
+  var v = window.prompt('Pega el código completo del QR o el UID del cliente:');
+  if (v && v.trim()) procesarQR(v.trim());
+}
+
+// ── Procesar QR (formato SPTW:tid:uid) ────────────────────────────
+function procesarQR(raw) {
+  if (!_tid) { toast('Elige un local primero.', true); return; }
+  var uid = null;
+  var m = /^SPTW:([A-Za-z0-9]+):([A-Za-z0-9]+)$/.exec(String(raw).trim());
+  if (m) {
+    var qrTid = m[1], qrUid = m[2];
+    // Validación cruzada: si el QR es de OTRO local, cortamos con mensaje claro.
+    // Comparamos "safe" (mismo saneado que usa wallet-core.js).
+    var safeTid = String(_tid).replace(/[^A-Za-z0-9]/g, '');
+    if (qrTid && qrTid !== safeTid) {
+      mostrarError('Esta tarjeta es de otro local (' + qrTid + '). No se puede sellar aquí.');
+      return;
+    }
+    uid = qrUid;
+  } else if (/^[A-Za-z0-9_-]{10,}$/.test(raw)) {
+    // Ingreso manual: acepta un UID pelado.
+    uid = raw;
+  } else {
+    mostrarError('Ese código no corresponde a una tarjeta bioo válida.');
+    return;
+  }
+  sumarSello(uid);
+}
+
+// ── Callable: sumar sello ─────────────────────────────────────────
+function sumarSello(uid) {
+  _busy = true;
+  toast('Registrando sello…');
+  var fn = firebase.app().functions('us-central1').httpsCallable('walletSumarSelloStaff');
+  fn({ tenantId: _tid, uid: uid })
+    .then(function (r) {
+      var d = r.data || {};
+      mostrarResultado(d);
+    })
+    .catch(function (e) {
+      var msg = 'No se pudo sumar el sello.';
+      if (e && e.code === 'permission-denied') msg = 'No tienes permisos para sumar sellos en este local.';
+      else if (e && e.code === 'not-found') msg = 'Este cliente no existe en el local.';
+      else if (e && e.code === 'failed-precondition') msg = (e.message || msg);
+      mostrarError(msg);
+    })
+    .finally(function () { _busy = false; });
+}
+
+// ── UI: resultado + error ─────────────────────────────────────────
+function mostrarResultado(d) {
+  var nombre = (d.cliente && d.cliente.nombre) || 'Cliente';
+  var nuevos = Number(d.sellosNuevos) || 0;
+  var saldo = d.sellosDisponibles;
+  var dup = d.duplicado === true;
+  var html = ''
+    + '<div class="icon">' + (dup ? '⏱️' : '✅') + '</div>'
+    + '<h2>' + (dup ? 'Sello ya registrado' : '¡Sello sumado!') + '</h2>'
+    + '<div class="who">' + escapar(nombre) + '</div>'
+    + (dup
+        ? '<p style="font-size:13px;color:var(--soft);margin-bottom:14px;">Este cliente ya recibió el sello hace unos segundos. Espera un momento antes de reintentar.</p>'
+        : '<div class="badge">+' + nuevos + ' sello' + (nuevos === 1 ? '' : 's') + '</div>')
+    + '<div class="saldo">' + (saldo != null ? saldo : '—') + '</div>'
+    + '<div class="saldo-lbl">Sellos disponibles</div>';
+  $('result-card').innerHTML = html;
+  detenerCamara();
+  show('view-result');
+}
+function mostrarError(msg) {
+  $('error-card').innerHTML = ''
+    + '<div class="icon">⚠️</div>'
+    + '<h2>No pudimos registrar</h2>'
+    + '<p>' + escapar(msg) + '</p>';
+  detenerCamara();
+  show('view-error');
+}
+function volverAScan() {
+  _lastValue = null; _lastValueTs = 0;
+  show('view-scan');
+  arrancarCamara();
+}
+function escapar(s) {
+  return String(s || '').replace(/[<>&"']/g, function (c) {
+    return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c];
+  });
+}
+
+// Al ocultar la pestaña (background), liberamos la cámara.
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) detenerCamara();
+  else if (!$('view-scan').classList.contains('hidden') && _tid) arrancarCamara();
+});
+
+show('view-loading');
+</script>
+</body>
+</html>

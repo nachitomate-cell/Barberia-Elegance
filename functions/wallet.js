@@ -271,6 +271,12 @@ async function syncPase(tenantId, uid, before, after) {
         loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
         heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon }) } },
         textModulesData: [{ id: 'rango', header: 'Rango', body: rango }],
+        // Backfill del QR en pases viejos (los nuevos ya lo traen desde buildObject).
+        barcode: {
+          type: 'QR_CODE',
+          value: core.staffBarcodeValue(tenantId, uid),
+          alternateText: String(uid).slice(0, 8),
+        },
       });
 
       // Hito: desbloqueó un premio nuevo → notificación automática al pase.

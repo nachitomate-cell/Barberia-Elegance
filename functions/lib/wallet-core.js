@@ -116,6 +116,12 @@ function buildClass(tenantId, cfg = {}) {
   return cls;
 }
 
+// Formato del QR del pase — lo lee la app /staff para sumar sellos.
+// Prefix propio (SPTW = SynapTech Wallet) para distinguirlo de otros QR.
+function staffBarcodeValue(tenantId, uid) {
+  return `SPTW:${safe(tenantId)}:${safe(uid)}`;
+}
+
 function buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon }) {
   const obj = {
     id: objectIdFor(tenantId, uid),
@@ -125,6 +131,13 @@ function buildObject(tenantId, uid, { accountName, filled, target, rango, accent
     accountName: accountName || 'Cliente',
     loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
     heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon }) } },
+    // QR escaneable por el staff (wallets.bioo.cl/staff). Sin esto el pase
+    // no muestra código y el flujo standalone (sin agenda) no funciona.
+    barcode: {
+      type: 'QR_CODE',
+      value: staffBarcodeValue(tenantId, uid),
+      alternateText: String(uid).slice(0, 8),
+    },
   };
   if (rango) obj.textModulesData = [{ id: 'rango', header: 'Rango', body: rango }];
   return obj;
@@ -201,4 +214,5 @@ module.exports = {
   patchObject,
   addMessage,
   buildSaveUrl,
+  staffBarcodeValue,
 };

@@ -1977,6 +1977,14 @@ export default async function middleware(request) {
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
+    // App del staff: /staff (con o sin trailing slash) → staff-wallet.html.
+    // Sirve para el modelo standalone (tenants sin agenda) — el staff escanea
+    // el QR del pase del cliente y suma sellos.
+    if (url.pathname === '/staff' || url.pathname === '/staff/') {
+      const rw  = new URL('/staff-wallet.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
     return;
   }
 

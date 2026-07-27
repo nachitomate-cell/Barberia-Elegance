@@ -1617,6 +1617,10 @@ exports.walletActivarTenant     = wallet.walletActivarTenant;
 exports.walletSyncSelloElegance = wallet.walletSyncSelloElegance;
 exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
 
+// Staff app (wallets.bioo.cl/staff): sumar sellos escaneando el QR del
+// pase. Habilita el producto Wallet standalone (sin agenda).
+exports.walletSumarSelloStaff   = require('./wallet-staff').walletSumarSelloStaff;
+
 // Apple Wallet (espejo iOS del módulo anterior): el cliente descarga un
 // .pkpass firmado; su iPhone se registra en walletAppleWs y recibe
 // actualizaciones vía APNs. Secrets: APPLE_PASS_CERT + APPLE_PASS_KEY.
