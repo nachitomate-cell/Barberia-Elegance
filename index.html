@@ -9858,8 +9858,7 @@
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
           <div>
-            <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Correo
-              <span class="normal-case font-normal text-gray-600 tracking-normal">(opcional)</span></label>
+            <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Correo</label>
             <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email"
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
@@ -13780,6 +13779,12 @@
         if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
+        // Validación básica de formato de email — evita cuentas huérfanas por typos
+        // ("asdf" sin @) y previene el bug de "cliente no ve sus sellos al volver
+        // al dashboard" (necesitamos email válido para linkLegacy por email).
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return showToast('Ingresa un correo válido (por ejemplo: nombre@ejemplo.com).');
+        }
 
         // A partir de acá comienza la creación real de la cita → lockeamos
         // la UI. Se libera solo en catch (rendering async o fetch a MP);

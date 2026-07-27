@@ -84,11 +84,31 @@ async function fusionar({ tenantId, authUid, authData }) {
     return;
   }
 
-  // Buscar candidatos legacy: por teléfono (uid = telNorm) y/o por email.
+  // Buscar candidatos legacy por tel y/o email.
+  //  · Legacy walk-in antiguo: docId = tel normalizado ('569XXXXXXXX').
+  //  · Legacy upsertCliente (Fase 1+): docId = 'ac_<hash>'. Se busca por
+  //    field `telefono` (variantes con/sin '+') y `telefonoSuf9` (últimos
+  //    9 dígitos — más robusto ante diferencias de formato).
+  //  Sin la búsqueda por field, un cliente que hizo walk-in solo con tel
+  //  (sin email) NUNCA se fusionaba al registrarse después con ese tel
+  //  → los sellos quedaban huérfanos en el ac_hash.
   const candidatos = new Map(); // uid → data
   if (tel) {
+    // 1) legacy walk-in antiguo: docId = tel
     const s = await cols.users.doc(tel).get();
     if (s.exists && s.id !== authUid) candidatos.set(s.id, s.data());
+    // 2) por field telefono — variantes con y sin '+' para tolerar formatos
+    const telVariants = new Set([tel, `+${tel}`]);
+    for (const t of telVariants) {
+      const q = await cols.users.where('telefono', '==', t).limit(5).get();
+      for (const d of q.docs) if (d.id !== authUid) candidatos.set(d.id, d.data());
+    }
+    // 3) por telefonoSuf9 — más robusto (últimos 9 dígitos, ignora prefijos)
+    const suf9 = tel.length >= 9 ? tel.slice(-9) : '';
+    if (suf9) {
+      const q = await cols.users.where('telefonoSuf9', '==', suf9).limit(5).get();
+      for (const d of q.docs) if (d.id !== authUid) candidatos.set(d.id, d.data());
+    }
   }
   if (email) {
     const q1 = await cols.users.where('email', '==', email).limit(5).get();
