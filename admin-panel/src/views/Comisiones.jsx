@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { getDocs, query, where, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { getDocs, query, where, addDoc, deleteDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
+  Plus, Minus, Trash2, Pencil,
 } from 'lucide-react';
+import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -175,6 +177,107 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
   );
 }
 
+/* ── ComisionManualModal ──────────────────────────────────────────── */
+//  Ajustes al pago del barbero fuera de citas: cortes previos a la agenda,
+//  bonificaciones puntuales, correcciones, descuentos por daños, etc.
+//  Se guardan como `gastos` con tipo='comisionManual' (misma infra que
+//  adelantos). El `signo` decide si suma o resta al pago del período.
+function ComisionManualModal({ barbero, ajuste, onConfirm, onClose }) {
+  const editing = !!ajuste;
+  const [monto, setMonto]       = useState(editing ? String(ajuste.monto) : '');
+  const [signo, setSigno]       = useState(editing ? (ajuste.signo || '+') : '+');
+  const [concepto, setConcepto] = useState(editing ? (ajuste.concepto || '') : '');
+  const [fecha, setFecha]       = useState(editing
+    ? fechaToStr(ajuste.fecha) || today()
+    : today());
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+
+  const handle = async () => {
+    const m = parseFloat(monto);
+    if (!m || m <= 0)          { setError('El monto debe ser mayor a 0.'); return; }
+    if (!concepto.trim())      { setError('Ingresa un concepto.'); return; }
+    setLoading(true); setError('');
+    try {
+      await onConfirm({ monto: Math.round(m), signo, concepto: concepto.trim(), fecha });
+      onClose();
+    } catch {
+      setError('Error al registrar. Intenta de nuevo.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SheetModal
+      icon={FileText}
+      tone={signo === '+' ? 'emerald' : 'amber'}
+      titulo={editing ? 'Editar ajuste manual' : 'Ajuste manual de pago'}
+      sub={barbero.nombre}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={`${sheetBtn.base} ${sheetBtn.ghost}`}>Cancelar</button>
+          <button onClick={handle} disabled={loading} className={`${sheetBtn.base} ${signo === '+' ? sheetBtn.primary : sheetBtn.warn}`}>
+            {loading ? 'Guardando…' : (editing ? 'Guardar' : 'Registrar')}
+          </button>
+        </>
+      }
+    >
+      <div>
+        <label className={sheetLabel}>Tipo</label>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setSigno('+')}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-colors ${
+              signo === '+'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:bg-slate-800'
+            }`}>
+            <Plus size={14} className="inline -mt-0.5 mr-1" /> Suma al pago
+          </button>
+          <button type="button" onClick={() => setSigno('-')}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-colors ${
+              signo === '-'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:bg-slate-800'
+            }`}>
+            <Minus size={14} className="inline -mt-0.5 mr-1" /> Descuento del pago
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className={sheetLabel}>Concepto</label>
+        <input className={sheetInput} placeholder="Ej: Cortes previos a la agenda" autoFocus
+          value={concepto} onChange={e => setConcepto(e.target.value)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={sheetLabel}>Monto ($)</label>
+          <input className={sheetInput} type="number" min="1" step="1" placeholder="0"
+            value={monto} onChange={e => setMonto(e.target.value)} />
+        </div>
+        <div>
+          <label className={sheetLabel}>Fecha</label>
+          <input className={sheetInput} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+        </div>
+      </div>
+
+      <p className="px-1 text-[12.5px] leading-relaxed text-slate-500">
+        {signo === '+'
+          ? 'Se suma al pago del barbero del período que contiene esta fecha. Útil para cortes previos a la agenda, servicios informales o bonificaciones puntuales.'
+          : 'Se descuenta del pago del barbero. Útil para daños, correcciones a favor del local o ajustes contables.'}
+      </p>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-[12.5px] text-rose-400">
+          <AlertCircle size={14} className="shrink-0" /> {error}
+        </div>
+      )}
+    </SheetModal>
+  );
+}
+
 /* ── PagarModal ───────────────────────────────────────────────────── */
 function PagarModal({ barbero, periodo, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -222,6 +325,18 @@ function PagarModal({ barbero, periodo, onConfirm, onClose }) {
               <span className="font-medium text-slate-300">{formatCLP(barbero.comisionProductos)}</span>
             </div>
           )}
+          {barbero.ajustesSuma > 0 && (
+            <div className="flex justify-between text-slate-400">
+              <span>Ajustes manuales (+)</span>
+              <span className="font-medium text-emerald-400">+ {formatCLP(barbero.ajustesSuma)}</span>
+            </div>
+          )}
+          {barbero.ajustesResta > 0 && (
+            <div className="flex justify-between text-slate-400">
+              <span>Ajustes manuales (−)</span>
+              <span className="font-medium text-amber-400">− {formatCLP(barbero.ajustesResta)}</span>
+            </div>
+          )}
           {barbero.adelantos > 0 && (
             <div className="flex justify-between text-slate-400">
               <span>Adelantos del período</span>
@@ -252,10 +367,13 @@ export default function Comisiones() {
   const [citasRaw, setCitasRaw] = useState([]);
   const [ventasRaw, setVentasRaw] = useState([]);
   const [adelantos, setAdelantos] = useState([]);
+  const [ajustesManuales, setAjustesManuales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [pagarTarget, setPagarTarget] = useState(null);
   const [adelantoTarget, setAdelantoTarget] = useState(null);
+  // { barbero, ajuste? } — ajuste presente = edit; ausente = nuevo.
+  const [ajusteTarget, setAjusteTarget] = useState(null);
   const [pagados, setPagados] = useState(new Set());
 
   // Parámetros para calcular el NETO de los pagos con tarjeta.
@@ -358,9 +476,22 @@ export default function Comisiones() {
     }
   }, []);
 
+  // Ajustes manuales (comisionManual): mismo esquema/colección que los
+  // adelantos, distintos por tipo. El filtro por rango es en cliente.
+  const loadAjustesManuales = useCallback(async () => {
+    try {
+      const q = query(tenantCol('gastos'), where('tipo', '==', 'comisionManual'));
+      const snap = await withTimeout(getDocs(q), 15000, 'comisiones/ajustes');
+      setAjustesManuales(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error('[Comisiones] error cargando ajustes manuales:', e);
+    }
+  }, []);
+
   useEffect(() => { loadCitas(); }, [loadCitas]);
   useEffect(() => { loadVentas(); }, [loadVentas]);
   useEffect(() => { loadAdelantos(); }, [loadAdelantos]);
+  useEffect(() => { loadAjustesManuales(); }, [loadAjustesManuales]);
 
   // Precio del servicio de la cita. Mismo criterio que Métricas para que
   // ambas vistas cuadren:
@@ -427,6 +558,9 @@ export default function Comisiones() {
       comisionProductos: 0,
       montoComision: 0,
       adelantos: 0,
+      ajustesSuma: 0,          // suma de ajustes manuales '+' del período
+      ajustesResta: 0,         // suma de ajustes manuales '−' del período
+      ajustesLineas: [],       // detalle de las líneas del período (para UI)
       propinas: 0,
       propinasCount: 0,
       total: 0,
@@ -566,11 +700,38 @@ export default function Comisiones() {
       }
     });
 
+    // Ajustes manuales del período por barbero. Cada línea suma o resta
+    // según su `signo`. Guardamos el detalle en `ajustesLineas` para que la
+    // UI pueda listarlas (editar/borrar) sin tener que re-filtrarlas.
+    ajustesManuales.forEach(a => {
+      if (!a.barberoId || !map[a.barberoId]) return;
+      const fStr = fechaToStr(a.fecha);
+      if (!fStr || fStr < fechaInicio || fStr > fechaFin) return;
+      const monto = Number(a.monto) || 0;
+      if (monto <= 0) return;
+      const signo = a.signo === '-' ? '-' : '+';
+      if (signo === '+') map[a.barberoId].ajustesSuma  += monto;
+      else               map[a.barberoId].ajustesResta += monto;
+      map[a.barberoId].ajustesLineas.push({
+        id: a.id, monto, signo,
+        concepto: a.concepto || '',
+        fecha:    fStr,
+      });
+    });
+
     return Object.values(map)
       .map(b => {
-        const adel  = Math.round(b.adelantos);
-        const bruto = Math.round(b.sueldoBase + b.montoComision);
-        const neto  = bruto - adel;
+        const adel   = Math.round(b.adelantos);
+        const ajSum  = Math.round(b.ajustesSuma);
+        const ajRes  = Math.round(b.ajustesResta);
+        const bruto  = Math.round(b.sueldoBase + b.montoComision);
+        // Ajustes manuales se aplican ANTES de restar adelantos: primero
+        // "cuánto debería cobrar" (con bonos/descuentos), y de ahí sale la
+        // resta de adelantos ya tomados.
+        const brutoAjustado = bruto + ajSum - ajRes;
+        const neto   = brutoAjustado - adel;
+        // Ordenar líneas del período por fecha ascendente para display estable.
+        b.ajustesLineas.sort((x, y) => (x.fecha || '').localeCompare(y.fecha || ''));
         return {
           ...b,
           ingresos: Math.round(b.ingresos),
@@ -580,15 +741,18 @@ export default function Comisiones() {
           comisionProductos: Math.round(b.comisionProductos),
           montoComision: Math.round(b.montoComision),
           adelantos: adel,
+          ajustesSuma:  ajSum,
+          ajustesResta: ajRes,
           propinas: Math.round(b.propinas),
           bruto,
+          brutoAjustado,
           total: Math.max(0, neto),
           saldoPendiente: neto < 0 ? -neto : 0,
         };
       })
-      .filter(b => b.citas > 0 || b.ventas > 0 || b.adelantos > 0 || b.propinas > 0)
+      .filter(b => b.citas > 0 || b.ventas > 0 || b.adelantos > 0 || b.propinas > 0 || b.ajustesSuma > 0 || b.ajustesResta > 0)
       .sort((a, b) => b.ingresos - a.ingresos);
-  }, [citas, ventas, adelantos, barberos, precioServicio, precioVenta, fechaInicio, fechaFin]);
+  }, [citas, ventas, adelantos, ajustesManuales, barberos, precioServicio, precioVenta, fechaInicio, fechaFin]);
 
   const totals = useMemo(() => data.reduce((acc, b) => ({
     citas: acc.citas + b.citas,
@@ -601,9 +765,11 @@ export default function Comisiones() {
     montoComision: acc.montoComision + b.montoComision,
     sueldoBase: acc.sueldoBase + b.sueldoBase,
     adelantos: acc.adelantos + b.adelantos,
+    ajustesSuma:  acc.ajustesSuma  + b.ajustesSuma,
+    ajustesResta: acc.ajustesResta + b.ajustesResta,
     propinas: acc.propinas + b.propinas,
     total: acc.total + b.total,
-  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, propinas: 0, total: 0 }), [data]);
+  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, ajustesSuma: 0, ajustesResta: 0, propinas: 0, total: 0 }), [data]);
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
@@ -629,6 +795,45 @@ export default function Comisiones() {
       periodoFin:    fechaFin,
     });
     setPagados(prev => new Set([...prev, barbero.id]));
+  };
+
+  const handleAjusteManual = async ({ monto, signo, concepto, fecha }) => {
+    if (!ajusteTarget) return;
+    const { barbero, ajuste } = ajusteTarget;
+    const descPrefix = signo === '+' ? 'Ajuste +' : 'Ajuste −';
+    const descripcion = `${descPrefix} ${barbero.nombre} — ${concepto}`;
+    const payload = {
+      descripcion,
+      monto,
+      signo,
+      concepto,
+      categoria: 'Sueldos',
+      tipo: 'comisionManual',
+      fecha: Timestamp.fromDate(new Date(fecha + 'T12:00:00')),
+      barberoId: barbero.id,
+      barberoNombre: barbero.nombre,
+      // Etiquetamos por sede al momento de crearlo — así el filtro por
+      // sucursal en el rango también aplica a los ajustes.
+      sucursalId: barbero.sucursalId || null,
+      creadoPor: user?.uid || 'admin',
+    };
+    if (ajuste?.id) {
+      // Edit: borrar + crear (más simple que un updateDoc parcial y
+      // consistente con updatedAt en un solo lugar).
+      await deleteDoc(doc(db, `${tenantCol('gastos').path}/${ajuste.id}`));
+    }
+    await addDoc(tenantCol('gastos'), {
+      ...payload,
+      creadoEn: serverTimestamp(),
+    });
+    await loadAjustesManuales();
+  };
+
+  const handleBorrarAjuste = async (ajusteId) => {
+    if (!ajusteId) return;
+    if (!window.confirm('¿Borrar este ajuste manual?')) return;
+    await deleteDoc(doc(db, `${tenantCol('gastos').path}/${ajusteId}`));
+    await loadAjustesManuales();
   };
 
   const handleAdelanto = async ({ monto, fecha, metodoPago, nota, cuotas }) => {
@@ -676,17 +881,30 @@ export default function Comisiones() {
 
     /* ── Sección 1: Comisiones por barbero ── */
     pushRow(['COMISIONES POR BARBERO']);
-    pushRow(['Barbero', 'Citas', 'Ingresos Servicios', '% Serv.', 'Comisión Serv.', 'Ventas', 'Ingresos Productos', '% Prod.', '$ fijo/venta', 'Comisión Prod.', 'Ingresos Totales', 'Sueldo Base', 'Adelantos', 'Total a Pagar']);
+    pushRow(['Barbero', 'Citas', 'Ingresos Servicios', '% Serv.', 'Comisión Serv.', 'Ventas', 'Ingresos Productos', '% Prod.', '$ fijo/venta', 'Comisión Prod.', 'Ingresos Totales', 'Sueldo Base', 'Ajustes +', 'Ajustes −', 'Adelantos', 'Total a Pagar']);
     data.forEach(b => pushRow([
       b.nombre, b.citas, b.ingresosServicios, b.comisionPct, b.comisionServicios,
       b.ventas, b.ingresosProductos, b.comisionProductosPct, b.comisionProductosMonto, b.comisionProductos,
-      b.ingresos, b.sueldoBase, b.adelantos, b.total,
+      b.ingresos, b.sueldoBase, b.ajustesSuma, b.ajustesResta, b.adelantos, b.total,
     ]));
     pushRow([
       'TOTAL', totals.citas, totals.ingresosServicios, '', totals.comisionServicios,
       totals.ventas, totals.ingresosProductos, '', '', totals.comisionProductos,
-      totals.ingresos, totals.sueldoBase, totals.adelantos, totals.total,
+      totals.ingresos, totals.sueldoBase, totals.ajustesSuma, totals.ajustesResta, totals.adelantos, totals.total,
     ]);
+
+    /* ── Detalle de ajustes manuales ── */
+    const conAjustes = data.filter(b => b.ajustesLineas && b.ajustesLineas.length > 0);
+    if (conAjustes.length) {
+      blank();
+      pushRow(['AJUSTES MANUALES DEL PERÍODO (detalle)']);
+      pushRow(['Barbero', 'Fecha', 'Tipo', 'Concepto', 'Monto']);
+      conAjustes.forEach(b => {
+        b.ajustesLineas.forEach(l => {
+          pushRow([b.nombre, l.fecha, l.signo === '+' ? 'Suma' : 'Descuento', l.concepto, l.monto]);
+        });
+      });
+    }
 
     /* ── Desglose por medio de pago ── */
     // Normaliza el método de pago de cada cita y resuelve los presentes.
@@ -1243,6 +1461,12 @@ export default function Comisiones() {
                     />
                   )}
                   <StatItem label="Sueldo base" value={formatCLP(barbero.sueldoBase)} />
+                  {barbero.ajustesSuma > 0 && (
+                    <StatItem label="Ajustes +" value={`+ ${formatCLP(barbero.ajustesSuma)}`} valueClass="text-emerald-400" />
+                  )}
+                  {barbero.ajustesResta > 0 && (
+                    <StatItem label="Ajustes −" value={`− ${formatCLP(barbero.ajustesResta)}`} valueClass="text-amber-400" />
+                  )}
                   {barbero.adelantos > 0 && (
                     <StatItem label="Adelantos" value={`− ${formatCLP(barbero.adelantos)}`} valueClass="text-orange-400" />
                   )}
@@ -1260,6 +1484,13 @@ export default function Comisiones() {
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setAjusteTarget({ barbero })}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800/50 text-slate-300 border border-slate-700 hover:bg-slate-800 transition-all"
+                    title="Ajuste manual (suma o resta al pago del período)"
+                  >
+                    <FileText size={14} /> Ajuste manual
+                  </button>
                   <button
                     onClick={() => setAdelantoTarget(barbero)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 transition-all"
@@ -1279,6 +1510,62 @@ export default function Comisiones() {
                   </button>
                 </div>
               </div>
+
+              {/* Ajustes manuales del período — visible solo si hay líneas */}
+              {barbero.ajustesLineas.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText size={12} className="text-slate-500" />
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                      Ajustes manuales del período ({barbero.ajustesLineas.length})
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {barbero.ajustesLineas.map(line => (
+                      <div key={line.id} className="flex items-center justify-between gap-3 text-[12.5px] rounded-lg px-3 py-2 bg-slate-800/40">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold ${
+                            line.signo === '+'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {line.signo}
+                          </span>
+                          <span className="truncate text-slate-300">{line.concepto || '(sin concepto)'}</span>
+                          <span className="text-slate-500 shrink-0">· {line.fecha}</span>
+                        </div>
+                        <span className={`font-semibold tabular-nums shrink-0 ${
+                          line.signo === '+' ? 'text-emerald-400' : 'text-amber-400'
+                        }`}>
+                          {line.signo} {formatCLP(line.monto)}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => setAjusteTarget({ barbero, ajuste: {
+                              id: line.id,
+                              monto: line.monto,
+                              signo: line.signo,
+                              concepto: line.concepto,
+                              fecha: line.fecha,
+                            }})}
+                            className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-slate-200"
+                            title="Editar"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleBorrarAjuste(line.id)}
+                            className="p-1 rounded hover:bg-rose-500/10 text-slate-400 hover:text-rose-400"
+                            title="Borrar"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1354,6 +1641,14 @@ export default function Comisiones() {
       )}
 
       {/* Modales */}
+      {ajusteTarget && (
+        <ComisionManualModal
+          barbero={ajusteTarget.barbero}
+          ajuste={ajusteTarget.ajuste || null}
+          onConfirm={handleAjusteManual}
+          onClose={() => setAjusteTarget(null)}
+        />
+      )}
       {adelantoTarget && (
         <AdelantoModal
           barbero={adelantoTarget}
