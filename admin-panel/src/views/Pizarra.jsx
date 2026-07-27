@@ -7,6 +7,7 @@ import {
 import { useCollection } from '../hooks/useCollection';
 import { useConfig } from '../hooks/useConfig';
 import { useTenant } from '../contexts/TenantContext';
+import { useSucursal } from '../contexts/SucursalContext';
 
 // ────────────────────────────────────────────────────────────────────
 //  PIZARRA WALK-IN
@@ -345,6 +346,25 @@ export default function Pizarra() {
     [hoy], // reset de query cuando cambia el día (medianoche)
   );
   const { config } = useConfig();
+  const { activeSucursal } = useSucursal();
+
+  // ── Local cerrado hoy ──
+  // El horario del local vive en configuracion/main.horario (global) o en
+  // configuracion/main.sucursales[i].horario (multi-sede tipo Oren). Si hoy
+  // está marcado activo:false → nadie atiende, sea o no día libre del
+  // barbero individual. Prioriza la sede activa si hay.
+  const localCerradoHoy = useMemo(() => {
+    const dowStr = String(now.getDay());
+    // Prioridad: horario de la sede activa (si estamos filtrando por sede).
+    if (activeSucursal?.horario) {
+      const h = activeSucursal.horario[dowStr];
+      if (h && h.activo === false) return true;
+    }
+    // Fallback: horario global del tenant.
+    const h = config?.horario?.[dowStr];
+    if (h && h.activo === false) return true;
+    return false;
+  }, [config, activeSucursal, now]);
 
   // Filtro de barberos "que atienden" — mismo criterio que la reserva
   // pública/Agenda: excluye admins puros, docs-espejo de UID (_mainDocId) e
@@ -410,11 +430,13 @@ export default function Pizarra() {
             </span>
           </div>
           <p className="text-xs md:text-sm text-slate-500">
-            {libres > 0
-              ? <>Hay <span className="text-emerald-400 font-bold">{libres}</span> {libres === 1 ? 'persona libre ahora' : 'personas libres ahora'} para tomar un cliente de paso.</>
-              : proximoOcupado
-                ? <>Nadie libre. Próximo desocupado: <span className="text-primary font-semibold">{proximoOcupado.b.nombre}</span> en <span className="text-primary font-semibold">{formatWait(proximoOcupado.estado.faltaMin)}</span>.</>
-                : <>Nadie en agenda hoy.</>
+            {localCerradoHoy
+              ? <><span className="text-rose-400 font-semibold">El local no abre hoy</span> según el horario semanal.</>
+              : libres > 0
+                ? <>Hay <span className="text-emerald-400 font-bold">{libres}</span> {libres === 1 ? 'persona libre ahora' : 'personas libres ahora'} para tomar un cliente de paso.</>
+                : proximoOcupado
+                  ? <>Nadie libre. Próximo desocupado: <span className="text-primary font-semibold">{proximoOcupado.b.nombre}</span> en <span className="text-primary font-semibold">{formatWait(proximoOcupado.estado.faltaMin)}</span>.</>
+                  : <>Nadie en agenda hoy.</>
             }
           </p>
         </div>
@@ -434,6 +456,22 @@ export default function Pizarra() {
         </div>
       </div>
 
+      {/* Banner destacado cuando el local no abre hoy. Se muestra ANTES del
+          grid para que sea la primera cosa que se lee. El grid queda visible
+          y atenuado por si el usuario quiere ver el detalle igual. */}
+      {localCerradoHoy && (
+        <div className="mb-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 flex items-start gap-3">
+          <CalendarOff size={22} className="text-rose-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm md:text-base font-bold text-rose-200">El local no abre hoy</p>
+            <p className="text-[12.5px] text-rose-200/80 leading-relaxed mt-0.5">
+              El horario semanal del local marca este día como no laborable. No hay walk-ins disponibles.
+              Si es un error, edita el horario en <span className="font-semibold">Configuración → Horario</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Grid de tarjetas ── */}
       {cards.length === 0 ? (
         <div className="flex flex-col items-center py-24 text-slate-600">
@@ -441,7 +479,7 @@ export default function Pizarra() {
           <p className="text-sm">No hay personal activo para mostrar.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ${localCerradoHoy ? 'opacity-40 pointer-events-none' : ''}`}>
           {cards.map(({ b, estado }) => (
             <BarberoCard
               key={b.id}
