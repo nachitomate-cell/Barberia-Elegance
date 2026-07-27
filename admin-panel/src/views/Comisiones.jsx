@@ -620,24 +620,37 @@ function DetalleBarberoDrawer({
     // principal: primero por barberoId exacto, luego por barberoNombre.
     const matchCita = c => (c.barberoId === barbero.id) || (!c.barberoId && c.barbero === barbero.nombre);
     const matchVenta = v => (v.barberoId === barbero.id) || (!v.barberoId && v.barberoNombre === barbero.nombre);
+    // Detección CP (cartera propia) idéntica al agregador principal: sufijo del
+    // barbero al final del nombre del cliente + arriendo configurado para ese
+    // servicio. Cita CP → el barbero cobró íntegro al cliente, comisión desde
+    // el local = 0, arriendo se descuenta del pago total (ver useMemo `data`).
+    const suf = String(barbero.sufijoClientePropio || '').trim().toLowerCase();
+    const rxCP = suf
+      ? new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i')
+      : null;
     const citasB = citas
       .filter(matchCita)
       .map(c => {
         const precio  = precioServicio(c);
-        // % de comisión: override por servicioId si existe, sino global.
         const ovr     = barbero.comisionPorServicio?.[c.servicioId];
         const pct     = (ovr != null && ovr !== '' && Number.isFinite(Number(ovr)))
           ? Number(ovr) : (barbero.comisionPct || 0);
+        const nombre  = String(c.clienteNombre || c.nombre || '').trim();
+        const rentRaw = (rxCP && rxCP.test(nombre.toLowerCase()))
+          ? Number(barbero.arriendoPorServicio?.[c.servicioId] || 0) : 0;
+        const esCP    = rentRaw > 0 && precio > 0;
         return {
           id: c.id, fecha: c.fecha, hora: c.hora,
-          cliente: c.clienteNombre || c.nombre || 'Sin nombre',
+          cliente: nombre || 'Sin nombre',
           servicio: c.servicioNombre || c.servicio || '',
           servicioId: c.servicioId,
           metodoPago: c.metodoPago || 'Sin dato',
           cortesia: !!c.cortesia,
           precio,
-          pct,
-          comision: Math.round(precio * pct / 100),
+          pct: esCP ? 0 : pct,
+          comision: esCP ? 0 : Math.round(precio * pct / 100),
+          cp: esCP,
+          arriendo: esCP ? rentRaw : 0,
           propina: Number(c.propina) || 0,
         };
       })
@@ -818,11 +831,16 @@ function DetalleBarberoDrawer({
                     <td className="py-2 px-3 text-slate-300">
                       {c.servicio}
                       {c.cortesia && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">cortesía</span>}
+                      {c.cp && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400" title={`Cliente propio del barbero · arriendo ${formatCLP(c.arriendo)}`}>CP</span>}
                     </td>
                     <td className="py-2 px-3 text-slate-500 hidden sm:table-cell">{c.metodoPago}</td>
                     <td className="py-2 px-3 text-right text-slate-300 tabular-nums">{formatCLP(c.precio)}</td>
-                    <td className="py-2 px-3 text-right text-slate-500 tabular-nums hidden sm:table-cell">{c.pct}%</td>
-                    <td className="py-2 px-3 text-right font-semibold text-emerald-400 tabular-nums">{formatCLP(c.comision)}</td>
+                    <td className="py-2 px-3 text-right text-slate-500 tabular-nums hidden sm:table-cell">{c.cp ? '—' : `${c.pct}%`}</td>
+                    <td className={`py-2 px-3 text-right font-semibold tabular-nums ${c.cp ? 'text-slate-500' : 'text-emerald-400'}`}>
+                      {c.cp ? (
+                        <span title={`Cliente pagó $${formatCLP(c.precio)} al barbero directo. Local recibe ${formatCLP(c.arriendo)} de arriendo.`}>$0</span>
+                      ) : formatCLP(c.comision)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -830,9 +848,9 @@ function DetalleBarberoDrawer({
                 <tr>
                   <td colSpan={4} className="py-2 px-3 text-slate-300 hidden sm:table-cell">TOTAL</td>
                   <td colSpan={2} className="py-2 px-3 text-slate-300 sm:hidden">TOTAL</td>
-                  <td className="py-2 px-3 text-right text-slate-200 tabular-nums">{formatCLP(barbero.ingresosServicios)}</td>
+                  <td className="py-2 px-3 text-right text-slate-200 tabular-nums">{formatCLP(detalle.citas.reduce((s, x) => s + x.precio, 0))}</td>
                   <td className="py-2 px-3 hidden sm:table-cell" />
-                  <td className="py-2 px-3 text-right text-emerald-400 tabular-nums">{formatCLP(barbero.comisionServicios)}</td>
+                  <td className="py-2 px-3 text-right text-emerald-400 tabular-nums">{formatCLP(detalle.citas.reduce((s, x) => s + x.comision, 0))}</td>
                 </tr>
               </tfoot>
             </table>
