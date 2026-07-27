@@ -73,6 +73,21 @@ export function SucursalProvider({ children }) {
     [activeId, sucursales],
   );
 
+  // Sede default para ESCRITURA: al crear un doc que necesita sucursalId (ej.
+  // cita nueva), no queremos null aunque el usuario esté viendo "Todas". Cae
+  // a la sede activa si hay, si no a la primera del scope, si no a la
+  // primera del tenant. Semántica distinta a activeSucursal (que refleja el
+  // filtro visual y puede ser null legítimamente).
+  const sucursalDefault = useMemo(
+    () => activeSucursal
+      || allowed.find(s => s.activo !== false)
+      || allowed[0]
+      || sucursales.find(s => s.activo !== false)
+      || sucursales[0]
+      || null,
+    [activeSucursal, allowed, sucursales],
+  );
+
   // ¿El registro pertenece a la sede activa?
   //  · 'all'                      → todo pasa
   //  · registro con sucursalId    → match exacto por id
@@ -89,8 +104,8 @@ export function SucursalProvider({ children }) {
 
   const value = useMemo(() => ({
     sucursales, allowed, multiSucursal, canViewAll,
-    activeId, activeSucursal, setActive, matchSucursal, scope,
-  }), [sucursales, allowed, multiSucursal, canViewAll, activeId, activeSucursal, matchSucursal, scope]);
+    activeId, activeSucursal, sucursalDefault, setActive, matchSucursal, scope,
+  }), [sucursales, allowed, multiSucursal, canViewAll, activeId, activeSucursal, sucursalDefault, matchSucursal, scope]);
 
   return <SucursalContext.Provider value={value}>{children}</SucursalContext.Provider>;
 }
@@ -98,5 +113,6 @@ export function SucursalProvider({ children }) {
 // Fallback seguro si algún componente se monta fuera del provider: sin filtro.
 export const useSucursal = () => useContext(SucursalContext) ?? {
   sucursales: [], allowed: [], multiSucursal: false, canViewAll: true,
-  activeId: 'all', activeSucursal: null, setActive: () => {}, matchSucursal: () => true, scope: 'all',
+  activeId: 'all', activeSucursal: null, sucursalDefault: null,
+  setActive: () => {}, matchSucursal: () => true, scope: 'all',
 };

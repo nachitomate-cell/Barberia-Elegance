@@ -550,7 +550,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const { pickerLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
-  const { activeSucursal, sucursales: _sucursalesList } = useSucursal();  // para taggear la sede de la cita
+  const { activeSucursal, sucursalDefault, sucursales: _sucursalesList } = useSucursal();  // para taggear la sede de la cita
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const firstSvc = servicios[0];
 
@@ -1159,17 +1159,24 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
 
-      // Sede de la cita: la del barbero elegido (los barberos pertenecen a una
-      // sede); si el barbero no tiene sede, cae a la sede activa del panel. Así
-      // la cita queda filtrable por sucursal en Agenda/Métricas/Caja. No pisa
-      // el valor si ya venía (ej. edición de una cita ya seteada).
+      // Sede de la cita: la del barbero elegido. Si el barbero elegido es un
+      // "espejo por authUid" (memoria project_roles_espejo_uid) puede no tener
+      // sucursalId — buscamos entonces el hermano canónico por authUid para
+      // heredar la sede. Último fallback: sede activa del panel. Sin esto,
+      // las citas en tenants multi-sucursal quedaban sin sede en el 66% de
+      // los casos (Oren histórico: 39/59 huérfanas antes del backfill).
       if (!payload.sucursalId) {
-        const _barb  = barberos.find(b => b.id === payload.barberoId);
-        const _sucId = _barb?.sucursalId || activeSucursal?.id || null;
+        const _barb   = barberos.find(b => b.id === payload.barberoId);
+        // Espejo → buscar canónico por authUid|uid en el mismo array.
+        const _authUid = _barb?.authUid || _barb?.uid;
+        const _canon   = !_barb?.sucursalId && _authUid
+          ? barberos.find(b => b.id !== _barb.id && (b.authUid === _authUid || b.uid === _authUid) && b.sucursalId)
+          : null;
+        const _sucId  = _barb?.sucursalId || _canon?.sucursalId || activeSucursal?.id || sucursalDefault?.id || null;
         if (_sucId) {
           payload.sucursalId = _sucId;
           const _suc = (_sucursalesList || []).find(s => s.id === _sucId);
-          payload.sucursalNombre = _suc?.nombre || activeSucursal?.nombre || payload.sucursalNombre || '';
+          payload.sucursalNombre = _suc?.nombre || activeSucursal?.nombre || sucursalDefault?.nombre || payload.sucursalNombre || '';
         }
       }
 
