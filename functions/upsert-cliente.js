@@ -169,6 +169,17 @@ function calcularUpdate(destData, src) {
     if (dvVacio || nombreLegacyBasura) update[k] = sv;
   });
 
+  // Denormalizado: telefonoSuf9 = últimos 9 dígitos del tel actual. Se recalcula
+  // desde el tel del update (si vino) o del dest. Necesario para linkLegacyTenant:
+  // cuando un cliente se registra con email nuevo pero mismo tel que un walk-in
+  // previo, la fusión se resuelve por este campo. Sin él, el walk-in queda huérfano.
+  const telFinal = update.telefono || destData.telefono || '';
+  if (telFinal) {
+    const digs = String(telFinal).replace(/\D+/g, '');
+    const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
+    if (suf9 && destData.telefonoSuf9 !== suf9) update.telefonoSuf9 = suf9;
+  }
+
   // Sellos: MAX (no sumar — evita doble conteo si el mismo humano vino
   // como dos docs con sellos)
   const dHist = Number(destData.sellosHistoricos ?? destData.stamps ?? 0);
@@ -346,6 +357,13 @@ async function upsertClienteCore(data = {}) {
       nombre,
       email:    email  || '',
       telefono: telRaw || '',
+      // Sufijo de 9 dígitos denormalizado. Sin esto, linkLegacyTenant no
+      // puede fusionar dos docs cuando el email es distinto y el tel viene
+      // en formatos distintos ("+56 9 XXXX XXXX" vs "56XXXXXXXX").
+      ...(telRaw ? (() => {
+        const digs = String(telRaw).replace(/\D+/g, '');
+        return digs.length >= 9 ? { telefonoSuf9: digs.slice(-9) } : {};
+      })() : {}),
       ...extras,
       createdAt:  FieldValue.serverTimestamp(),
       updatedAt:  FieldValue.serverTimestamp(),
