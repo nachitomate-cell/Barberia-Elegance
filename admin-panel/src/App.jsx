@@ -99,6 +99,9 @@ function RoleRedirectScreen({ role, email, tenantId, suffix }) {
     }, 4000);
     return () => clearTimeout(t);
   }, [suffix]);
+  const rolLabel = role === null || role === undefined
+    ? 'aún no resolvió (posible bug de sincronización)'
+    : role;
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -107,7 +110,7 @@ function RoleRedirectScreen({ role, email, tenantId, suffix }) {
           {going ? 'Llevándote a tu agenda…' : 'Redirigiendo en unos segundos…'}
         </p>
         <p className="text-xs text-slate-500 mb-3">
-          Tu cuenta {email ? <b>{email}</b> : null} tiene rol <b className="text-amber-400">{role || 'sin rol'}</b> en el local <b>{tenantId || 'sin tenant'}</b>. El panel de administración es solo para admins.
+          Tu cuenta {email ? <b>{email}</b> : null} tiene rol <b className="text-amber-400">{rolLabel}</b> en el local <b>{tenantId || 'sin tenant'}</b>. El panel de administración es solo para admins.
         </p>
         <button
           onClick={() => {
