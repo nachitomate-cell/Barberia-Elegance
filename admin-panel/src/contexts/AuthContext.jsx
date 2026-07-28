@@ -122,26 +122,48 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      // Los custom claims son source of truth: los setea el script server-side
+      // vía Admin SDK y no son manipulables desde el cliente. Si el claim dice
+      // 'admin' → aceptamos INMEDIATAMENTE sin esperar la lectura de Firestore
+      // (que puede fallar por red/rules/timeout y dejar al admin colgado en
+      // 'barbero' → redirect a /agenda.html, caso reportado por Ignacio 2026-07-27).
+      const rolClaims = await roleFromClaims(firebaseUser);
+      // Bypass manual del RoleRedirectScreen: si el user tocó "Soy admin,
+      // entrar de todos modos", respetamos su elección aunque los claims no
+      // digan admin. Firestore rules siguen enforceando; el override solo
+      // deja pasar la UI del panel.
+      let roleOverride = null;
       try {
-        // El rol del equipo se guarda en barberos/{uid} (rol del panel).
-        // Pero los custom claims son source of truth (los setea el script
-        // server-side y no son manipulables desde el cliente). Si los
-        // claims dicen 'admin' → gana sobre el doc (que puede quedar stale,
-        // como pasó con Omar Chameleon: claim admin pero doc sin campo rol).
-        const rolClaims = await roleFromClaims(firebaseUser);
-        const currentTid = resolveTenantId();
+        if (sessionStorage.getItem('_role_override_admin') === '1') roleOverride = 'admin';
+      } catch { /* ignore */ }
+      if (rolClaims === 'admin' || roleOverride === 'admin') {
+        setRole('admin');
+        // Scope: leemos el doc barbero para heredar sucursalScope (best-effort;
+        // si falla o no existe, 'all' es seguro para admin claim).
+        try {
+          const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 5000, 'auth/scope');
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data._mainDocId) {
+              const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 5000, 'auth/scope-link');
+              setSucursalScope(main.exists() ? scopeFromDoc(main.data()) : 'all');
+            } else {
+              setSucursalScope(scopeFromDoc(data));
+            }
+          } else {
+            setSucursalScope('all');
+          }
+        } catch {
+          setSucursalScope('all');
+        }
+        setLoading(false);
+        return;
+      }
+      // Sin claim admin: cae al flujo tradicional (barbero por doc + fallback claim).
+      try {
         const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 10000, 'auth/role');
-        console.log('[AUTH-DEBUG]', {
-          email, uid: firebaseUser.uid,
-          rolClaims,
-          currentTid,
-          docExists: snap.exists(),
-          docRol: snap.exists() ? (snap.data().rol || null) : null,
-          docMainDocId: snap.exists() ? (snap.data()._mainDocId || null) : null,
-        });
         if (snap.exists()) {
           const data = snap.data();
-          // Si es doc de enlace (_mainDocId), leer el doc principal
           let rolDoc, scope;
           if (data._mainDocId) {
             const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 10000, 'auth/role-link');
@@ -151,20 +173,14 @@ export function AuthProvider({ children }) {
             rolDoc = data.rol || 'barbero';
             scope  = scopeFromDoc(data);
           }
-          const finalRole = rolClaims === 'admin' ? 'admin' : rolDoc;
-          console.log('[AUTH-DEBUG] setRole (doc path):', finalRole);
-          setRole(finalRole);
+          setRole(rolDoc);
           setSucursalScope(scope);
         } else {
-          const finalRole = rolClaims || 'barbero';
-          console.log('[AUTH-DEBUG] setRole (no-doc path):', finalRole);
-          setRole(finalRole);
+          setRole(rolClaims || 'barbero');
           setSucursalScope('all');
         }
-      } catch (e) {
-        const finalRole = (await roleFromClaims(firebaseUser)) || 'barbero';
-        console.log('[AUTH-DEBUG] setRole (catch path):', finalRole, 'err:', e?.message);
-        setRole(finalRole);
+      } catch {
+        setRole(rolClaims || 'barbero');
         setSucursalScope('all');
       }
       setLoading(false);

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -86,6 +86,46 @@ function TenantGate({ children }) {
   return children;
 }
 
+// Pantalla que se muestra cuando el user no tiene rol admin. Explica por qué
+// va a la agenda, y ofrece salida manual + botón "Entrar de todos modos" para
+// casos de emergencia (bug de roles que dejaba admins colgados).
+function RoleRedirectScreen({ role, email, tenantId, suffix }) {
+  const [going, setGoing] = useState(false);
+  useEffect(() => {
+    // Redirect automático a los 4 s para dar tiempo a leer y usar el bypass.
+    const t = setTimeout(() => {
+      setGoing(true);
+      window.location.replace(`/agenda.html${suffix}`);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [suffix]);
+  return (
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <div className="max-w-md text-slate-300">
+        <p className="text-sm font-semibold text-slate-200 mb-2">
+          {going ? 'Llevándote a tu agenda…' : 'Redirigiendo en unos segundos…'}
+        </p>
+        <p className="text-xs text-slate-500 mb-3">
+          Tu cuenta {email ? <b>{email}</b> : null} tiene rol <b className="text-amber-400">{role || 'sin rol'}</b> en el local <b>{tenantId || 'sin tenant'}</b>. El panel de administración es solo para admins.
+        </p>
+        <button
+          onClick={() => {
+            // Bypass: setea el rol a admin en sessionStorage y recarga.
+            // Solo funciona si el user está autenticado; Firestore rules
+            // seguirán bloqueando escrituras si no es admin real.
+            try { sessionStorage.setItem('_role_override_admin', '1'); } catch {}
+            window.location.reload();
+          }}
+          className="mt-2 px-3 py-1.5 rounded-md text-[11px] text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500"
+        >
+          Soy admin, entrar de todos modos
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
   const { id: tenantId } = useTenant();
@@ -117,14 +157,11 @@ function ProtectedApp() {
   //    legacy migrado desde AgendaPro), jefes, y cualquier rol futuro sin
   //    tener que enumerarlos.
   if (role !== 'admin') {
+    // Pantalla explícita: si un admin cae acá por error (bug de roles), tiene
+    // información para reportar y un botón para forzar entrada. El redirect
+    // automático a /agenda.html se demora 3 s para dar espacio a corregir.
     const suffix = tenantId && tenantId !== 'elegance' ? `?local=${tenantId}` : '';
-    window.location.replace(`/agenda.html${suffix}`);
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-slate-400 gap-3">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm">Llevándote a tu agenda…</p>
-      </div>
-    );
+    return <RoleRedirectScreen role={role} email={user?.email} tenantId={tenantId} suffix={suffix} />;
   }
 
   return (
