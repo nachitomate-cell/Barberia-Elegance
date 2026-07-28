@@ -892,7 +892,13 @@
       ratingGeneral:   0,
       totalReviews:    0,
       reviews:         [],
-      barberos: [],
+      // Fallback si Firestore no responde (la lista real vive en
+      // tenants/sion/barberos). Fotos servidas desde el repo, no desde el CDN
+      // de AgendaPro: esas URLs son de un tercero y caducan.
+      barberos: [
+        { nombre: 'Martín Ramírez',   foto: '/sion/equipo/martin-ramirez.webp',   disponible: true },
+        { nombre: 'Jose Luis Romero', foto: '/sion/equipo/jose-luis-romero.webp', disponible: true },
+      ],
     },
     alfamen: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Extras'],

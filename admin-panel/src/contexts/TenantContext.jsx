@@ -29,6 +29,10 @@ export const TENANT_META = {
   renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
   oren:               { name: 'Oren Barber', accent: 'amber', emoji: '✂️', logo: '/oren/oren-logo.webp', banner: '/oren/renaca.webp' },
   omega:              { name: 'OMEGA STUDIO', accent: 'amber', emoji: '✂️', logo: '/omega.jpg' },
+  // Sion Barbería (Viña del Mar). Acento naranja = su color de marca real
+  // (#F57808, el mismo que traía su ficha de AgendaPro). NO confundir con
+  // `sionbarberia`, que es Studio Dieciséis.
+  sion:               { name: 'Sion Barbería', accent: 'orange', emoji: '💈', logo: '/sion.png', banner: '/sion/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Barbería' } },
   restodemo:          { name: 'Restaurante Demo', accent: 'orange', emoji: '🍴', logo: '/restodemo/logo.jpg', tipo: 'restaurante' },
 };
 

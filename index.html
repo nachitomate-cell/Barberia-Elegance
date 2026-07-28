@@ -3744,6 +3744,32 @@
     html.tenant-oren.sede-pendiente .info-strip { display: none !important; }
     .tenant-oren.tenant-aura #aura-sobre-wrap { display: none !important; }
 
+    /* ── Sion Barbería — hero propio y strip depurado ─────────────────────
+       Reutiliza el tema CLARO de Aura (igual que Oren), con tres ajustes:
+
+       (1) Hero: fachada real del local (/sion/banner.webp) en vez de la foto
+           genérica de Aura (/auralogin.png). El doble .tenant-sion.tenant-aura
+           gana en especificidad sobre la regla :is(.tenant-aura,...) de más
+           abajo, que trae !important.
+       (2) "Quiénes Somos" / "Información" (heredados de Aura) se ocultan: el
+           tenant no tiene ese contenido cargado y salían vacíos.
+       (3) "Consultas" sale del info-strip. Ubicación y Horario son flex-1, así
+           que al quedar dos se reparten el ancho completo solos. */
+    .tenant-sion.tenant-aura .booking-hero,
+    .tenant-sion .booking-hero {
+      background-image: url('/sion/banner.webp') !important;
+      background-size: cover !important;
+      background-position: center 42% !important;
+      background-color: #2C3941 !important;
+    }
+    .tenant-sion .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(12,15,17,0.68) 0%, rgba(12,15,17,0.52) 40%, rgba(12,15,17,0.95) 100%) !important;
+    }
+    .tenant-sion.tenant-aura #aura-sobre-wrap { display: none !important; }
+    .tenant-sion.tenant-aura #aura-info-wa,
+    .tenant-sion #aura-info-wa { display: none !important; }
+
     /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
        se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
        `sede-pendiente` la pone config.js (>1 sucursal) y la quita selectSucursal().
@@ -14421,6 +14447,7 @@
           delnero: '/nero.jpg',
           aura: '/auralogin.png',
           oren: '/oren/renaca.webp',
+          sion: '/sion/banner.webp',
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
           sionbarberia: '/dieciseis/banner16-bn.png',
@@ -14439,6 +14466,7 @@
                         window.CURRENT_TENANT_ID === 'elbarberomoderno' ? 'El Barbero Moderno · estación de barbería de Jhoseth Morales' :
                         window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
                         window.CURRENT_TENANT_ID === 'barbersclub' ? 'Interior premium de Barbers Club · Ciudad de los Valles, Pudahuel' :
+                        window.CURRENT_TENANT_ID === 'sion' ? 'Fachada de Sion Barbería · 1 Oriente 985, Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
