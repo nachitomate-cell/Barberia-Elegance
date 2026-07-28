@@ -668,6 +668,9 @@ function DetalleBarberoDrawer({
           fecha: fechaToStr(v.fecha || v.createdAt || v.creadoEn),
           producto: v.productoNombre || v.productName || v.producto || 'Producto',
           cantidad: Number(v.cantidad) || 1,
+          // No se muestra como columna, pero alimenta el desglose por medio
+          // de pago: sin esto el resumen dejaría fuera la plata de productos.
+          metodoPago: v.metodoPago || 'Sin dato',
           monto,
           pct,
           comision: Math.round(monto * pct / 100) + (barbero.comisionProductosMonto || 0),
@@ -704,6 +707,30 @@ function DetalleBarberoDrawer({
     return { citas: citasB, ventas: ventasB, adelantos: adelantosB };
   }, [barbero, citas, ventas, adelantos, precioServicio, precioVenta, fechaInicio, fechaFin]);
 
+  // ── Desglose por medio de pago ────────────────────────────────────
+  // Son montos COBRADOS AL CLIENTE (precio de la cita / de la venta), no
+  // comisión: responden "¿con qué se pagó?" para cuadrar la caja del
+  // período. Suma citas + ventas de productos porque ambas son plata que
+  // pasó por las manos del profesional.
+  const ORDEN_METODOS = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
+  const porMetodo = useMemo(() => {
+    const agg = {};
+    const sumar = (metodo, monto) => {
+      const m = String(metodo || '').trim() || 'Sin dato';
+      if (!agg[m]) agg[m] = { count: 0, monto: 0 };
+      agg[m].count += 1;
+      agg[m].monto += Number(monto) || 0;
+    };
+    detalle.citas.forEach(c => sumar(c.metodoPago, c.precio));
+    detalle.ventas.forEach(v => sumar(v.metodoPago, v.monto));
+    // Orden fijo para los conocidos; cualquier método libre que el local
+    // haya escrito a mano va después, alfabético.
+    return [
+      ...ORDEN_METODOS.filter(m => agg[m]),
+      ...Object.keys(agg).filter(m => !ORDEN_METODOS.includes(m)).sort(),
+    ].map(m => ({ metodo: m, ...agg[m] }));
+  }, [detalle]);
+
   const exportCSV = () => {
     if (!barbero) return;
     const rows = [];
@@ -730,6 +757,12 @@ function DetalleBarberoDrawer({
       push(['ADELANTOS DEL PERÍODO']);
       push(['Fecha', 'Monto', 'Cuotas', 'Descripción']);
       detalle.adelantos.forEach(a => push([a.fecha, a.monto, a.cuotasTotal, a.nota]));
+    }
+    if (porMetodo.length) {
+      rows.push('');
+      push(['COBRADO POR MEDIO DE PAGO']);
+      push(['Método', 'Cobros', 'Monto']);
+      porMetodo.forEach(m => push([m.metodo, m.count, m.monto]));
     }
     rows.push('');
     push(['RESUMEN']);
@@ -800,6 +833,25 @@ function DetalleBarberoDrawer({
             </div>
           )}
         </div>
+
+        {/* Con qué pagaron los clientes. No es comisión: es la plata que
+            entró por caja en el período, para poder cuadrarla. */}
+        {porMetodo.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-emerald-500/20">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5">
+              Cobrado por medio de pago
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {porMetodo.map(m => (
+                <div key={m.metodo} className="rounded-lg bg-slate-800/40 px-3 py-2">
+                  <p className="text-[11px] font-semibold text-slate-300 truncate" title={m.metodo}>{m.metodo}</p>
+                  <p className="text-[15px] font-bold text-slate-100 tabular-nums mt-0.5">{formatCLP(m.monto)}</p>
+                  <p className="text-[10px] text-slate-500">{m.count} cobro{m.count !== 1 ? 's' : ''}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Citas */}
