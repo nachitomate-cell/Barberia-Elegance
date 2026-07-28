@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Únete al club · Wallo</title>
+<meta name="description" content="Regístrate al club de fidelidad. Tu tarjeta digital te llega al toque.">
+<link rel="icon" type="image/png" href="/bioo-iso.png">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
+    --ok:#16a34a; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+    --brand:#c9a84c;
+    --brand-bg:#0d0d0d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+
+  /* Hero de marca (fondo del tenant) */
+  .brand-hero{background:var(--brand-bg);color:#fff;padding:38px 22px 30px;text-align:center;position:relative;overflow:hidden;}
+  .brand-hero::after{content:'';position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.15));pointer-events:none;}
+  .brand-hero img.logo{width:64px;height:64px;border-radius:16px;object-fit:cover;margin:0 auto 14px;background:rgba(255,255,255,.1);}
+  .brand-hero h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px;}
+  .brand-hero .lead{font-size:13.5px;opacity:.75;font-weight:600;letter-spacing:.02em;}
+
+  main{flex:1;width:100%;max-width:520px;margin:0 auto;padding:22px;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 4px 18px rgba(21,36,11,.04);}
+  .intro{font-size:14.5px;color:var(--soft);line-height:1.55;margin-bottom:20px;text-align:center;}
+  .intro b{color:var(--ink);}
+
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:14px 0 6px;letter-spacing:.2px;}
+  input[type=text],input[type=email],input[type=tel],input[type=date]{
+    width:100%;height:50px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;
+    font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border .15s;
+    appearance:none;-webkit-appearance:none;
+  }
+  input:focus{border-color:var(--ink);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .terms{display:flex;align-items:flex-start;gap:10px;margin-top:18px;font-size:12.5px;color:var(--soft);line-height:1.5;}
+  .terms input{margin-top:2px;flex-shrink:0;width:18px;height:18px;accent-color:var(--ok);}
+
+  .btn{width:100%;height:54px;border:0;border-radius:14px;background:var(--brand-bg);color:#fff;font-size:16px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.2px;box-shadow:0 6px 18px rgba(0,0,0,.2);font-family:inherit;margin-top:22px;}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .btn .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:8px;}
+  @keyframes sp{ to{ transform:rotate(360deg); } }
+
+  .err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;text-align:center;display:none;}
+
+  /* Éxito */
+  .ok-hero{background:linear-gradient(160deg,var(--brand-bg),#000);color:#fff;text-align:center;padding:44px 22px;border-radius:22px;margin-bottom:20px;animation:pop .35s ease-out;}
+  @keyframes pop{ from{transform:scale(.94);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .ok-hero .emoji{font-size:52px;margin-bottom:6px;line-height:1;}
+  .ok-hero h2{font-size:24px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px;}
+  .ok-hero .sub{font-size:14px;opacity:.8;margin-top:4px;}
+
+  .wallet-cta{display:block;background:#000;color:#fff;text-decoration:none;padding:18px 20px;border-radius:16px;font-size:16px;font-weight:800;text-align:center;margin-bottom:10px;transition:.15s;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+  .wallet-cta:active{transform:scale(.98);}
+  .wallet-cta.google{background:#0f6ceb;}
+  .wallet-cta.apple{background:#000;}
+  .wallet-cta.disabled{background:#ccd0cc;color:#6b7368;cursor:default;pointer-events:none;box-shadow:none;}
+  .wallet-cta small{display:block;font-size:11.5px;font-weight:600;opacity:.75;margin-top:2px;letter-spacing:.02em;}
+
+  .cta-note{font-size:12px;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.5;}
+
+  footer.powered{display:flex;align-items:center;justify-content:center;gap:6px;padding:22px 20px 30px;font-size:11.5px;color:var(--muted);}
+  footer.powered a{color:var(--muted);text-decoration:none;font-weight:700;}
+  footer.powered a:hover{color:var(--ink);}
+
+  .hidden{display:none !important;}
+  .spin-hero{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 1s linear infinite;}
+
+  /* Estados de loading */
+  .invalid{color:var(--err);background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.2);padding:18px;border-radius:14px;font-size:14px;line-height:1.5;text-align:center;margin:20px 0;}
+  .invalid strong{display:block;font-size:15px;margin-bottom:4px;color:var(--err);}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="/firebase-config.js"></script>
+</head>
+<body>
+
+<!-- Loading inicial -->
+<div id="view-loading"><div class="spin-hero"></div></div>
+
+<!-- Tenant inválido -->
+<div id="view-invalid" class="hidden">
+  <main style="padding-top:40px;">
+    <div class="invalid">
+      <strong>Este link no está disponible.</strong>
+      Revisa el QR o pídele al local que te comparta uno nuevo.
+    </div>
+  </main>
+</div>
+
+<!-- Formulario -->
+<div id="view-form" class="hidden">
+  <header class="brand-hero" id="brand-hero">
+    <img id="brand-logo" class="logo" alt="Logo" onerror="this.style.display='none';">
+    <h1 id="brand-nombre">—</h1>
+    <p class="lead">Club de fidelidad</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <p class="intro">Regístrate y llevá tu tarjeta de sellos <b>en el celular</b>. Cada visita suma; canjeás premios al llenarla.</p>
+
+      <label for="f-nombre">Tu nombre</label>
+      <input type="text" id="f-nombre" maxlength="80" autocomplete="name" placeholder="María González" required>
+
+      <label for="f-email">Correo electrónico</label>
+      <input type="email" id="f-email" autocomplete="email" placeholder="tu@correo.cl" required>
+
+      <label for="f-telefono">WhatsApp</label>
+      <input type="tel" id="f-telefono" maxlength="15" autocomplete="tel" placeholder="+56 9 …" required>
+
+      <label for="f-fnac">Fecha de nacimiento <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+      <input type="date" id="f-fnac" autocomplete="bday">
+
+      <div class="terms">
+        <input type="checkbox" id="f-acepto">
+        <label for="f-acepto" style="margin:0;font-size:12.5px;color:var(--soft);font-weight:500;letter-spacing:normal;">
+          Acepto compartir mis datos con este local para participar del club. Puedo pedir la baja cuando quiera.
+        </label>
+      </div>
+
+      <button class="btn" id="submit-btn" onclick="enviar()">Recibir mi tarjeta →</button>
+      <p class="err" id="form-err"></p>
+    </div>
+  </main>
+</div>
+
+<!-- Éxito -->
+<div id="view-ok" class="hidden">
+  <main>
+    <div class="ok-hero">
+      <div class="emoji">🎉</div>
+      <h2 id="ok-titulo">¡Bienvenida al club!</h2>
+      <p class="sub" id="ok-sub">Tu tarjeta está lista. Añádela a tu celular:</p>
+    </div>
+
+    <div id="ok-buttons"></div>
+
+    <p class="cta-note">Tu tarjeta se actualiza sola cada vez que sumes un sello.</p>
+  </main>
+</div>
+
+<footer class="powered">
+  <img src="/synaptech/ig.png" alt="" width="14" height="14" style="border-radius:3px;">
+  Powered by <a href="https://wallo.cl" target="_blank" rel="noopener">Wallo</a>
+</footer>
+
+<script>
+'use strict';
+// ─────────────────────────────────────────────────────────────────
+//  WALLO · REGISTRO PÚBLICO CLIENTE FINAL
+//
+//  Flujo: llega desde QR (wallets.bioo.cl/r/{slug}) → llena datos
+//  → POST a walletRegistrarCliente → CF crea user + provisiona pase
+//  Google + link Apple → mostramos el botón wallet apropiado según
+//  el SO detectado (Android → Google, iOS → Apple, otros → ambos).
+// ─────────────────────────────────────────────────────────────────
+
+var REGISTRO_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletRegistrarCliente';
+var _tid = null;
+var _tenantMeta = null;
+
+function $(id) { return document.getElementById(id); }
+function show(id) {
+  ['view-loading', 'view-invalid', 'view-form', 'view-ok'].forEach(function (v) {
+    $(v).classList.toggle('hidden', v !== id);
+  });
+}
+
+// Detecta el SO del usuario. iOS puede ser identificado por 'iPad|iPhone|iPod'.
+// Android por 'Android'. Otros = mostramos ambos botones.
+function detectPlatform() {
+  var ua = String(navigator.userAgent || '').toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/android/.test(ua)) return 'android';
+  // iPadOS 13+ se hace pasar por Mac → chequeamos touch para no confundirlo.
+  if (/macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+  return 'other';
+}
+
+// ── Sacar tenantId del URL ────────────────────────────────────────
+// Formatos soportados: ?tid=slug, /r/slug, /registro?tid=slug
+function tidFromUrl() {
+  try {
+    var u = new URL(window.location.href);
+    var q = u.searchParams.get('tid');
+    if (q) return q.trim();
+    var m = u.pathname.match(/^\/r\/([a-z0-9-]+)\/?$/i);
+    if (m) return m[1].trim();
+  } catch (_) {}
+  return null;
+}
+
+// ── Cargar branding del tenant desde Firestore ────────────────────
+async function cargarTenant() {
+  var tid = tidFromUrl();
+  if (!tid) { show('view-invalid'); return; }
+  _tid = tid;
+  try {
+    var [tSnap, cfgSnap, billingSnap] = await Promise.all([
+      db.collection('tenants').doc(tid).get(),
+      db.collection('tenants').doc(tid).collection('configuracion').doc('wallet').get(),
+      db.collection('_billing').doc(tid).get(),
+    ]);
+    if (!tSnap.exists) { show('view-invalid'); return; }
+    var t = tSnap.data();
+    var cfg = cfgSnap.exists ? cfgSnap.data() : {};
+    var b = billingSnap.exists ? billingSnap.data() : {};
+    if (b.walletActivo !== true || cfg.enabled === false) {
+      $('view-invalid').querySelector('.invalid').innerHTML =
+        '<strong>Este club aún no está publicado.</strong>El local todavía está configurando su tarjeta. Vuelve pronto.';
+      show('view-invalid');
+      return;
+    }
+    _tenantMeta = {
+      nombre: t.nombre || tid,
+      logoUrl: cfg.logoUrl || t.logoUrl || '/bioo-iso.png',
+      accent: cfg.accent || '#c9a84c',
+      bg: cfg.bg || '#0d0d0d',
+      programName: cfg.programName || 'Club de Fidelidad',
+    };
+    pintarBrand();
+    show('view-form');
+  } catch (e) {
+    console.error('[Registro] cargarTenant:', e);
+    $('view-invalid').querySelector('.invalid').innerHTML =
+      '<strong>No pudimos cargar este club.</strong>Chequea tu conexión y vuelve a intentar.';
+    show('view-invalid');
+  }
+}
+
+function pintarBrand() {
+  var m = _tenantMeta;
+  document.documentElement.style.setProperty('--brand', m.accent);
+  document.documentElement.style.setProperty('--brand-bg', m.bg);
+  var hero = $('brand-hero');
+  hero.style.background = m.bg;
+  $('brand-logo').src = m.logoUrl;
+  $('brand-nombre').textContent = m.nombre;
+  document.title = 'Únete a ' + m.nombre + ' · Wallo';
+}
+
+// ── Submit del formulario ─────────────────────────────────────────
+function fallo(msg, focusId) {
+  var el = $('form-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (focusId) $(focusId).focus();
+}
+function enviar() {
+  var nombre   = ($('f-nombre').value || '').trim();
+  var email    = ($('f-email').value || '').trim().toLowerCase();
+  var telefono = ($('f-telefono').value || '').trim();
+  var fechaNac = ($('f-fnac').value || '').trim();
+  var acepto   = $('f-acepto').checked;
+
+  $('form-err').style.display = 'none';
+  if (!nombre)              { fallo('Escribe tu nombre.', 'f-nombre'); return; }
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { fallo('Correo inválido.', 'f-email'); return; }
+  var digs = telefono.replace(/\D/g, '');
+  if (digs.length < 8)      { fallo('Ingresa un teléfono válido.', 'f-telefono'); return; }
+  if (!acepto)              { fallo('Debes aceptar para continuar.'); return; }
+
+  var btn = $('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Creando tu tarjeta…';
+
+  fetch(REGISTRO_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tenantId: _tid,
+      nombre: nombre,
+      email: email,
+      telefono: digs,
+      fechaNacimiento: fechaNac || null,
+      acepto: true,
+    }),
+  }).then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+    .then(function (res) {
+      if (!res.data.ok) throw new Error(res.data.error || 'no_ok');
+      mostrarExito(res.data);
+    })
+    .catch(function (e) {
+      var msg = 'No pudimos crear tu tarjeta. Reintenta en un momento.';
+      var code = (e && e.message) || '';
+      if (code === 'email_invalido')      msg = 'Correo inválido.';
+      if (code === 'telefono_invalido')   msg = 'Teléfono inválido.';
+      if (code === 'nombre_invalido')     msg = 'Nombre inválido.';
+      if (code === 'debes_aceptar_terminos') msg = 'Debes aceptar los términos.';
+      if (code === 'demasiadas_solicitudes') msg = 'Demasiados intentos. Espera un momento.';
+      if (code === 'wallet_no_activo' || code === 'wallet_no_publicada') msg = 'Este club aún no está publicado.';
+      if (code === 'tenant_no_existe')    msg = 'Este link no existe.';
+      fallo(msg);
+      btn.disabled = false;
+      btn.innerHTML = 'Recibir mi tarjeta →';
+    });
+}
+
+// ── Éxito: mostrar botón wallet según SO ──────────────────────────
+function mostrarExito(data) {
+  var plat = detectPlatform();
+  var nombre = (data.cliente && data.cliente.nombre) || 'Cliente';
+  $('ok-titulo').textContent = '¡Bienvenido' + (esFemenino(nombre) ? 'a' : '') + ' al club!';
+  $('ok-sub').textContent = 'Tu tarjeta está lista. Añádela a tu celular:';
+
+  var html = '';
+  if (plat === 'ios') {
+    html += appleBtn(data.urlApple, true);
+    if (data.saveUrlGoogle) html += googleBtn(data.saveUrlGoogle, false);
+  } else if (plat === 'android') {
+    html += googleBtn(data.saveUrlGoogle, true);
+    if (data.urlApple) html += appleBtn(data.urlApple, false);
+  } else {
+    html += googleBtn(data.saveUrlGoogle, true);
+    html += appleBtn(data.urlApple, true);
+  }
+  $('ok-buttons').innerHTML = html;
+  show('view-ok');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function googleBtn(url, principal) {
+  if (!url) return '<div class="wallet-cta disabled">Google Wallet no disponible</div>';
+  return '<a class="wallet-cta google" href="' + url + '" target="_blank" rel="noopener">Añadir a Google Wallet' +
+    (principal ? '<small>Se abrirá el botón oficial de Google</small>' : '') + '</a>';
+}
+function appleBtn(url, principal) {
+  if (!url) return '<div class="wallet-cta disabled">Apple Wallet no disponible</div>';
+  return '<a class="wallet-cta apple" href="' + url + '" target="_blank" rel="noopener">Añadir a Apple Wallet' +
+    (principal ? '<small>Se abrirá Safari con el pase</small>' : '') + '</a>';
+}
+
+// Heurística sencilla: si el primer nombre termina en 'a' asumimos femenino
+// (María, Andrea, Camila). Es una aproximación amable, no un match perfecto;
+// si el user quiere un saludo neutro, el subtítulo lo tiene igual.
+function esFemenino(nombre) {
+  var primer = String(nombre).trim().split(/\s+/)[0] || '';
+  return /a$/i.test(primer);
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !$('view-form').classList.contains('hidden')) {
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && t.type !== 'checkbox' && t.type !== 'date') { e.preventDefault(); enviar(); }
+  }
+});
+
+cargarTenant();
+</script>
+</body>
+</html>

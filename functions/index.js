@@ -1636,6 +1636,12 @@ exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
 // pase. Habilita el producto Wallet standalone (sin agenda).
 exports.walletSumarSelloStaff   = require('./wallet-staff').walletSumarSelloStaff;
 
+// Registro público del cliente final: HTTP público. El cliente escanea
+// el QR del local, se registra (nombre + tel + email + fecha nac) y
+// recibe su pase Google + Apple según el SO detectado en la landing.
+// Ver functions/wallet-registro.js.
+exports.walletRegistrarCliente  = require('./wallet-registro').walletRegistrarCliente;
+
 // Apple Wallet (espejo iOS del módulo anterior): el cliente descarga un
 // .pkpass firmado; su iPhone se registra en walletAppleWs y recibe
 // actualizaciones vía APNs. Secrets: APPLE_PASS_CERT + APPLE_PASS_KEY.

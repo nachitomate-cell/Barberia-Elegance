@@ -459,6 +459,8 @@
         <p class="pv-note">La cantidad real de casillas depende de los premios configurados en tu panel (la tarjeta se llena hacia el próximo premio). El rango del cliente se calcula solo.</p>
         <button type="button" class="btn-ghost" id="test-btn" onclick="abrirTestModal()">📲 Enviármela a mi celular</button>
         <p class="pv-note" style="margin-top:6px;">Prueba la tarjeta en tu propio Wallet antes de mostrarla a los clientes.</p>
+        <button type="button" class="btn-ghost" id="qr-btn" onclick="abrirQRRegistroModal()">🔗 QR de registro para clientes</button>
+        <p class="pv-note" style="margin-top:6px;">Imprime el QR y pégalo en la caja. Tus clientes lo escanean, se registran y reciben su tarjeta al toque.</p>
       </div>
     </div>
   </div>
@@ -472,6 +474,17 @@
     <div id="test-body"></div>
     <p class="note">Esto crea 1 tarjeta a tu cuenta (aparecerá en el conteo de "clientes guardados"). Puedes borrarla luego desde tu Wallet.</p>
     <button class="close" onclick="cerrarTestModal()">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal: QR de registro para pegar en la caja/mesa/vitrina -->
+<div class="modal-backdrop" id="qr-modal" onclick="if(event.target===this)cerrarQRRegistroModal()">
+  <div class="modal">
+    <h2>QR de registro para clientes</h2>
+    <p class="sub">Tus clientes escanean, ingresan sus datos (nombre, WhatsApp, email) y reciben su tarjeta digital al toque. Detecta iPhone o Android automático.</p>
+    <div id="qr-body"></div>
+    <p class="note">Tip: descarga el QR e imprímelo bien grande. Pégalo cerca de la caja o a la altura del cliente sentado.</p>
+    <button class="close" onclick="cerrarQRRegistroModal()">Cerrar</button>
   </div>
 </div>
 
@@ -1027,7 +1040,30 @@ function abrirTestModal() {
 function cerrarTestModal() { $('test-modal').classList.remove('show'); }
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && $('test-modal').classList.contains('show')) cerrarTestModal();
+  if (e.key === 'Escape' && $('qr-modal').classList.contains('show')) cerrarQRRegistroModal();
 });
+
+// ── QR de registro para el local (para imprimir y pegar en la caja) ──
+// Genera el URL wallets.bioo.cl/r/{tid} + QR PNG vía api.qrserver.com.
+// Botones: copiar link, abrir en nueva pestaña, descargar PNG.
+function abrirQRRegistroModal() {
+  if (!_tid) { toast('Primero elige un local.', true); return; }
+  var registroUrl = 'https://wallets.bioo.cl/r/' + encodeURIComponent(_tid);
+  var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=' + encodeURIComponent(registroUrl);
+  var qrDownload = 'https://api.qrserver.com/v1/create-qr-code/?size=1200x1200&margin=40&format=png&data=' + encodeURIComponent(registroUrl);
+  var html = ''
+    + '<div class="qr-wrap"><img src="' + qrSrc + '" alt="QR registro"><div class="cap">' + escapar(registroUrl) + '</div></div>'
+    + '<a class="wallet-btn" href="' + qrDownload + '" download="wallo-registro-' + escapar(_tid) + '.png" target="_blank" rel="noopener">⬇️ Descargar PNG (alta resolución)</a>'
+    + '<a class="wallet-btn" href="' + registroUrl + '" target="_blank" rel="noopener" style="background:#3f5230;">🌐 Abrir link (probar el flujo)</a>'
+    + '<button class="wallet-btn" style="background:#eef1ee;color:#15240b;border:0;cursor:pointer;font-family:inherit;" onclick="copiarRegistroUrl(\'' + escapar(registroUrl) + '\', this)">📋 Copiar link</button>';
+  $('qr-body').innerHTML = html;
+  $('qr-modal').classList.add('show');
+}
+function cerrarQRRegistroModal() { $('qr-modal').classList.remove('show'); }
+function copiarRegistroUrl(url, btn) {
+  try { navigator.clipboard.writeText(url); btn.textContent = '✓ Link copiado'; setTimeout(function () { btn.textContent = '📋 Copiar link'; }, 1800); }
+  catch (_) { btn.textContent = 'No se pudo copiar'; }
+}
 
 // ── Temas rápidos + selector de ícono de estampa ──────────────────
 // Cada tema lleva un nombre humano que aparece como tooltip (title) al

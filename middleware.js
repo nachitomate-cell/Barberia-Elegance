@@ -2056,6 +2056,15 @@ export default async function middleware(request) {
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
+    // Registro público cliente final: /r/{slug} → wallo-registro.html.
+    // El slug queda accesible en el HTML vía URL (window.location.pathname).
+    // Ideal para QR impresos: "wallets.bioo.cl/r/mi-local" es corto y memorable.
+    const rMatch = url.pathname.match(/^\/r\/([a-z0-9-]+)\/?$/i);
+    if (rMatch) {
+      const rw  = new URL('/wallo-registro.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
     return;
   }
 
