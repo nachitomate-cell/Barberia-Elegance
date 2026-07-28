@@ -1151,14 +1151,36 @@ export default function Comisiones() {
   // Mapa id/nombre → precio del catálogo. Se usa como fallback cuando la cita
   // no tiene precio grabado. Sin este mapa, las reservas online sin precio
   // explícito pagan $0 al barbero y no aparecen en el ingreso del local.
+  //
+  // Multi-sucursal (Oren, Kronnos): el servicio puede traer `preciosSucursal:
+  // { sucursalId: monto }` con precios distintos por sede. Guardamos el mapa
+  // por sucursal para resolver por cita en precioServicio(); si no existe,
+  // cae al fallback general `s.precio`. Sin este resolver, cortesías en
+  // Villa Alemana pagaban comisión al precio de Reñaca (bug reportado por
+  // Oren para las cortesías CP de Pablo del 2026-07-23).
   const precioMap = useMemo(() => {
     const map = {};
     for (const s of servicios) {
-      if (s.id)     map[s.id]     = Number(s.precio) || 0;
-      if (s.nombre) map[s.nombre] = Number(s.precio) || 0;
+      const fallback = Number(s.precio) || 0;
+      const bySede   = (s.preciosSucursal && typeof s.preciosSucursal === 'object')
+        ? s.preciosSucursal : null;
+      const entry = { fallback, bySede };
+      if (s.id)     map[s.id]     = entry;
+      if (s.nombre) map[s.nombre] = entry;
     }
     return map;
   }, [servicios]);
+
+  // Resuelve el precio de catálogo de una cita respetando su sucursalId.
+  const _catalogPrice = useCallback((c) => {
+    const entry = precioMap[c.servicioId] || precioMap[c.servicioNombre];
+    if (!entry) return 0;
+    const sid = c.sucursalId;
+    if (sid && entry.bySede && Number.isFinite(Number(entry.bySede[sid]))) {
+      return Number(entry.bySede[sid]);
+    }
+    return entry.fallback;
+  }, [precioMap]);
 
   // % de comisión del POS según el medio de pago (solo tarjeta).
   const comisionPctDe = useCallback((metodo) => {
@@ -1281,11 +1303,11 @@ export default function Comisiones() {
     // solo cambia el pago al barbero.
     if (c.cortesia) {
       if (!cortesiaPagaComision) return 0;
-      return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
+      return _catalogPrice(c);
     }
     if (c.precio != null) return Number(c.precio) || 0;
-    return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
-  }, [precioMap, cortesiaPagaComision]);
+    return _catalogPrice(c);
+  }, [_catalogPrice, cortesiaPagaComision]);
   // Precio de una venta de producto. Los docs de product_reservations guardan
   // el TOTAL de línea en `precio` (ya multiplicado × cantidad, con descuento
   // aplicado). Ver memoria "Ventas / plata (gotchas)".

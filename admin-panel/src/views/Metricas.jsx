@@ -589,15 +589,32 @@ export default function Metricas() {
     return '';
   }, []);
 
-  // Map service prices
+  // Map service prices. Multi-sucursal (Oren, Kronnos): `preciosSucursal:
+  // { sucursalId: monto }` gana sobre el fallback general `s.precio` cuando
+  // la cita trae sucursalId. Sin esto, cortesías en Villa Alemana cobrarían
+  // al precio Reñaca (mismo bug que Comisiones.jsx).
   const precioMap = useMemo(() => {
     const map = {};
     servicios.forEach(s => {
-      if (s.id)     map[s.id]     = Number(s.precio) || 0;
-      if (s.nombre) map[s.nombre] = Number(s.precio) || 0;
+      const fallback = Number(s.precio) || 0;
+      const bySede   = (s.preciosSucursal && typeof s.preciosSucursal === 'object')
+        ? s.preciosSucursal : null;
+      const entry = { fallback, bySede };
+      if (s.id)     map[s.id]     = entry;
+      if (s.nombre) map[s.nombre] = entry;
     });
     return map;
   }, [servicios]);
+
+  const _catalogPrice = useCallback((c) => {
+    const entry = precioMap[c.servicioId] || precioMap[c.servicioNombre];
+    if (!entry) return 0;
+    const sid = c.sucursalId;
+    if (sid && entry.bySede && Number.isFinite(Number(entry.bySede[sid]))) {
+      return Number(entry.bySede[sid]);
+    }
+    return entry.fallback;
+  }, [precioMap]);
 
   // Precio del servicio de la cita:
   //  - cortesía → 0
@@ -610,8 +627,8 @@ export default function Metricas() {
   const getPrice = useCallback(c => {
     if (c.cortesia) return 0;
     if (c.precio != null) return Number(c.precio) || 0;
-    return precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0;
-  }, [precioMap]);
+    return _catalogPrice(c);
+  }, [_catalogPrice]);
 
   /* % de comisión aplicable a una cita: si el barbero tiene override
      para ese servicioId (Equipo.jsx → barbero.comisionPorServicio),
