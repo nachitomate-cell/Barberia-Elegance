@@ -14049,10 +14049,9 @@
           return showToast('Ingresa un correo válido (por ejemplo: nombre@ejemplo.com).');
         }
 
-        // A partir de acá comienza la creación real de la cita → lockeamos
-        // la UI. Se libera solo en catch (rendering async o fetch a MP);
-        // en éxito el flujo redirige a success-state y no importa el unlock.
-        if (typeof window._lockReservaUI === 'function') window._lockReservaUI('Confirmando tu reserva…');
+        // El lock de UI ("Confirmando tu reserva…") NO va acá: primero se
+        // corren las validaciones anti-spam y la pregunta de Aura, que son
+        // interactivas. Se levanta más abajo, justo antes de crear la cita.
         // Consentimiento pasivo: confirmar la reserva ES la acción afirmativa
         // (clickwrap). La evidencia se adjunta al doc de cita (Ley 21.719).
         // Al cambiar los términos, bumpear esta versión y refrescar dashboards.
@@ -14101,6 +14100,36 @@
           const mins = Math.ceil((MIN_INTERVAL_MS - (now - last24h[last24h.length - 1])) / 60000);
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }
+
+        // ── AURA · Pregunta "¿Cómo llegaste a nosotros?" ──────────
+        // Va ANTES del lock a propósito: el overlay "Confirmando tu reserva…"
+        // vive en z-index 99999 y este modal en z-300, así que abrirlo con el
+        // lock puesto lo dejaba TAPADO — el cliente veía el spinner para
+        // siempre y no podía responder (reportado por Aura, jul-2026).
+        // Orden correcto: preguntar → responder → recién ahí lockear y crear.
+        //
+        // No-op si el tenant no es aura o el módulo está desactivado.
+        // Si es obligatorio y el cliente no elige, la promesa no resuelve: el
+        // flujo se detiene con el modal abierto (ya sin overlay encima), que
+        // es el comportamiento pedido — no puede reservar sin responder.
+        let _auraOrigen;
+        if (typeof window.askAuraOrigenSiCorresponde === 'function') {
+          // Guard doble-tap para esta ventana previa al lock: sin él, un
+          // segundo click reabre el modal y pisa el resolve del primero,
+          // dejando la promesa original colgada para siempre.
+          if (window._auraAskEnCurso) return;
+          window._auraAskEnCurso = true;
+          try {
+            _auraOrigen = await window.askAuraOrigenSiCorresponde();
+          } finally {
+            window._auraAskEnCurso = false;
+          }
+        }
+
+        // A partir de acá comienza la creación real de la cita → lockeamos
+        // la UI. Se libera en los catch (rendering async o fetch a MP); en
+        // éxito el flujo cae a success-state, que también suelta el lock.
+        if (typeof window._lockReservaUI === 'function') window._lockReservaUI('Confirmando tu reserva…');
 
         // ── Canonicalización de barberoId ──────────────────────────
         // Un barbero puede tener DOS docs en /barberos:
@@ -14237,7 +14266,13 @@
                   if (Number.isFinite(_r) && _r >= 0) _recargo = Math.round(_r);
                 } catch (_) {}
                 const _op = await _preguntarCorteLapiz(_citaPago.precio, _recargo);
-                if (_op === null) return;          // canceló: no agenda ni paga
+                if (_op === null) {
+                  // Canceló: no agenda ni paga. Hay que soltar el overlay o el
+                  // cliente queda con "Confirmando tu reserva…" pegado.
+                  if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+                  if (typeof window._unlockReservaUI === 'function') window._unlockReservaUI();
+                  return;
+                }
                 _usarCorteLapiz = (_op === 'corte');
               }
             }
@@ -14313,13 +14348,8 @@
           const _recargoVipAdd = _esSobrecupoAdd ? _computeVipRecargoCLP(_selectedSlotInfo.recargo) : 0;
           const _totalAdd = _basePrecioAdd + _recargoVipAdd;
 
-          // ── AURA · Pregunta "¿Cómo llegaste a nosotros?" ──────────
-          // No-op si el tenant no es aura o el modulo esta desactivado.
-          // Si es obligatorio y el cliente cierra el modal sin elegir,
-          // askAuraOrigenSiCorresponde() no resuelve (queda esperando) —
-          // esto detiene el flujo sin permitir avanzar, exactamente el
-          // comportamiento pedido: no puede reservar sin responder.
-          const _auraOrigen = window.askAuraOrigenSiCorresponde ? await window.askAuraOrigenSiCorresponde() : undefined;
+          // `_auraOrigen` ya viene resuelto de más arriba (se pregunta ANTES
+          // de levantar el overlay de "Confirmando tu reserva…").
 
           // ── Reserva EN GRUPO: N citas atómicas con profesionales distintos ──
           if (_grupoSize > 1) {
