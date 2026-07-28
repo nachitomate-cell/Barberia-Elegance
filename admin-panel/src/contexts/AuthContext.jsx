@@ -34,11 +34,18 @@ export function getBrandTenants(email) {
 // 'barbero' en silencio y perdía el sidebar (caso Infinity, 2026-07-19).
 // Los claims viven en el ID token cacheado, así que también sirven si la
 // lectura de Firestore falla por red.
+//
+// Sin `tenantId !== resolveTenantId()` guard: si el claim dice admin de X y
+// el user está en el subdomain de Y, el guard viejo lo degradaba a 'barbero'.
+// Efecto: cualquier admin que entrara desde el hub app.synaptechspa.cl (donde
+// resolveTenantId=sandbox hasta que HubTenantGate resuelva) o desde otro
+// subdomain quedaba redirigido a /agenda.html. Confiamos en Firestore rules
+// para el enforcement real: un admin de tenant X que quiera escribir en Y
+// será rechazado por rules igualmente.
 async function roleFromClaims(firebaseUser) {
   try {
     const tok = await firebaseUser.getIdTokenResult();
-    const { role, tenantId } = tok.claims || {};
-    if (tenantId !== resolveTenantId()) return null;   // claims de OTRO tenant no valen aquí
+    const { role } = tok.claims || {};
     return (role === 'admin' || role === 'barbero') ? role : null;
   } catch {
     return null;
@@ -87,6 +94,14 @@ export function AuthProvider({ children }) {
       try { localStorage.setItem(LAST_UID_KEY, firebaseUser.uid); } catch { /* ignore */ }
       setUser(firebaseUser);
 
+      // Refresh del ID token contra el servidor. Los custom claims
+      // (role/tenantId/sucursalScope) se setean via Admin SDK server-side; el
+      // token cacheado en el navegador puede tener claims viejos si el user
+      // nunca hizo re-login desde que se aplicaron. Sin este refresh, cuentas
+      // admin recién creadas quedaban con role=null → App.jsx las mandaba a
+      // /agenda.html. Firebase cachea 5 min: no-op si ya está fresco.
+      try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
+
       const email = firebaseUser.email?.toLowerCase();
 
       // Superadmin de SynapTech — acceso total en cualquier tenant
@@ -98,18 +113,8 @@ export function AuthProvider({ children }) {
       }
 
       // Admin de marca — dueño con 'admin' en sus sedes (sin re-login al cambiar)
+      // El refresh forzado del token ya ocurrió arriba (universalmente).
       if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
-        // Fix (2026-07-23, brand admins Kronnos no veían más que una sede):
-        // los claims de un brand admin (`{ role:'admin', tenantId:'kronnos' }`) se
-        // setean vía script server-side, pero el token cacheado en el navegador
-        // puede tener claims viejos de cuando la cuenta era sede-admin
-        // (`tenantId:'kronnos_penablanca'` + `sucursalScope:'penablanca'`). Las
-        // reads a otras sedes seguían andando por `esKronnosBrandAdmin` (email
-        // match), pero writes con `scopeSucursalOk` fallaban en silencio contra
-        // el `sucursalScope` stale. `getIdToken(true)` fuerza refresh contra el
-        // servidor → el token pasa a tener los claims actuales sin requerir
-        // logout manual. Es no-op si ya está fresco (Firebase cachea 5 min).
-        try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
         setRole('admin');
         setSucursalScope('all');
         setLoading(false);
