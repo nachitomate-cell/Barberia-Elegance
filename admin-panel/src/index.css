@@ -1405,3 +1405,143 @@ html.light [data-view="agenda"] .bg-slate-800\/10 {
   .sticky { position: static !important; }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Agenda — subida de contraste (2026-07-28)
+
+   La pasada anterior dejó las tarjetas en pasteles muy suaves
+   (emerald-50 sobre blanco, borde 200/60) y el texto secundario con
+   las utilidades de opacidad puestas: el resultado se leía lavado y
+   había que forzar la vista para distinguir estado, servicio y hora.
+
+   Este bloque sube el contraste de TODA la información de la grilla.
+   Va al final del archivo a propósito: empata en especificidad con las
+   reglas de más arriba y gana por orden de aparición.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Las utilidades de opacidad dentro de una tarjeta ────────────
+   El componente atenúa el servicio (opacity-75) y la hora (opacity-60)
+   para jerarquizar. En oscuro eso funciona; en claro se come el poco
+   contraste que queda. La jerarquía la damos con COLOR, no con alpha. */
+html.light [data-view="agenda"] [data-cita-barbero] .opacity-50,
+html.light [data-view="agenda"] [data-cita-barbero] .opacity-60,
+html.light [data-view="agenda"] [data-cita-barbero] .opacity-75,
+html.light [data-view="agenda"] [data-cita-barbero].opacity-50,
+html.light [data-view="agenda"] [data-cita-barbero].opacity-60,
+html.light [data-view="agenda"] [data-cita-barbero].opacity-75 { opacity: 1 !important; }
+
+/* ── 2. Tarjetas de cita — relleno con más cuerpo y acento lateral sólido
+   Relleno de -50 a -100, borde de 200/60 a 300 sólido y borde izquierdo
+   un paso más oscuro (600). La tarjeta se lee como bloque, no como una
+   mancha. */
+
+/* Confirmada (emerald) */
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 {
+  background-color: #d1fae5 !important;              /* emerald-100 */
+  border-color: #6ee7b7 !important;                  /* emerald-300 */
+  border-left-color: #047857 !important;             /* emerald-700 */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(1) { color: #022c22 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(2) { color: #065f46 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(3) { color: #047857 !important; }
+
+/* Completada (blue) — le faltaba la regla de la 3ª línea (el rango horario) */
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10,
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 {
+  background-color: #dbeafe !important;              /* blue-100 */
+  border-color: #93c5fd !important;                  /* blue-300 */
+  border-left-color: #1d4ed8 !important;             /* blue-700 */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10 > p:nth-of-type(1),
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 > p:nth-of-type(1) { color: #172554 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10 > p:nth-of-type(2),
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 > p:nth-of-type(2) { color: #1e40af !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10 > p:nth-of-type(3),
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 > p:nth-of-type(3) { color: #1d4ed8 !important; }
+
+/* Pendiente (amber) */
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/15,
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 {
+  background-color: #fef3c7 !important;              /* amber-100 */
+  border-color: #fcd34d !important;                  /* amber-300 */
+  border-left-color: #b45309 !important;             /* amber-700 */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/15 > p:nth-of-type(1),
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 > p:nth-of-type(1) { color: #451a03 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/15 > p:nth-of-type(2),
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 > p:nth-of-type(2) { color: #92400e !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/15 > p:nth-of-type(3),
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 > p:nth-of-type(3) { color: #b45309 !important; }
+
+/* Cancelada (red) */
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 {
+  background-color: #fee2e2 !important;              /* red-100 */
+  border-color: #fca5a5 !important;                  /* red-300 */
+  border-left-color: #b91c1c !important;             /* red-700 */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 > p:nth-of-type(1) { color: #450a0a !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 > p:nth-of-type(2) { color: #991b1b !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 > p:nth-of-type(3) { color: #b91c1c !important; }
+
+/* No asistió (rose) — no tenía tratamiento propio en claro */
+html.light [data-view="agenda"] [data-cita-barbero].bg-rose-500\/10 {
+  background-color: #ffe4e6 !important;              /* rose-100 */
+  border-color: #fda4af !important;                  /* rose-300 */
+  border-left-color: #be123c !important;             /* rose-700 */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-rose-500\/10 > p:nth-of-type(1) { color: #4c0519 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-rose-500\/10 > p:nth-of-type(2) { color: #9f1239 !important; }
+html.light [data-view="agenda"] [data-cita-barbero].bg-rose-500\/10 > p:nth-of-type(3) { color: #be123c !important; }
+
+/* ── 3. Huecos libres ───────────────────────────────────────────────
+   Clases nuevas (agenda-hueco): sus utilidades de origen son alphas
+   mínimas pensadas para fondo oscuro y en claro quedaban invisibles. */
+html.light [data-view="agenda"] .agenda-hueco {
+  background-color: #ecfdf5 !important;              /* emerald-50 */
+  border-color: #34d399 !important;                  /* emerald-400 */
+}
+html.light [data-view="agenda"] .agenda-hueco-label {
+  background-color: #ffffff !important;
+  color: #065f46 !important;                         /* emerald-800 */
+  border: 1px solid #a7f3d0 !important;              /* emerald-200 */
+}
+
+/* ── 4. Colación / Descanso ─────────────────────────────────────── */
+html.light [data-view="agenda"] .agenda-descanso {
+  background-color: #fffbeb !important;              /* amber-50 */
+  border-color: #f59e0b !important;                  /* amber-500 */
+}
+html.light [data-view="agenda"] .agenda-descanso-label {
+  background-color: #fef3c7 !important;              /* amber-100 */
+  color: #78350f !important;                         /* amber-900 */
+  border: 1px solid #fcd34d !important;              /* amber-300 */
+}
+
+/* ── 5. Eje horario ─────────────────────────────────────────────────
+   La hora en punto es el ancla de lectura: casi negra. Los cuartos,
+   gris medio — visibles, pero sin competir con la hora.
+
+   ⚠ `.text-neutral-200` es la clase de la etiqueta de hora en punto y no
+   tenía override en claro: sobre fondo blanco quedaba en #e5e5e5, o sea
+   invisible. Se usa UNA sola vez en Agenda.jsx, así que mapearla acá no
+   arrastra nada más. */
+html.light [data-view="agenda"] .text-neutral-200 { color: #0f172a !important; }  /* hora en punto */
+html.light [data-view="agenda"] .text-neutral-500 { color: #475569 !important; }  /* cuartos */
+
+/* ── 6. Bloqueo de agenda ───────────────────────────────────────────
+   El rayado en slate-200 sobre blanco casi no se distinguía de una
+   columna vacía, que es justo lo contrario de lo que el bloque comunica
+   ("acá NO se puede agendar"). Rayado y textos un par de pasos arriba. */
+html.light [data-view="agenda"] .agenda-blocked-slot {
+  background-color: #f1f5f9 !important;              /* slate-100 de base */
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 10px, #cbd5e1 10px, #cbd5e1 20px) !important;
+  border-color: #94a3b8 !important;                  /* slate-400 */
+}
+html.light [data-view="agenda"] .agenda-blocked-pill {
+  background-color: #ffffff !important;
+  color: #1e293b !important;                         /* slate-800 */
+  border: 1px solid #94a3b8 !important;
+}
+html.light [data-view="agenda"] .agenda-blocked-slot > p { color: #475569 !important; }
+html.light [data-view="agenda"] .agenda-blocked-slot > p.agenda-blocked-hora { color: #0f172a !important; }

@@ -8,6 +8,7 @@ import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
+import { matchCliente, normalizarTexto } from '../lib/clienteSearch';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
@@ -1579,14 +1580,14 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
   }
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizarTexto(search.trim());
     const ahora = Date.now();
     const cutoff =
       filtroAntig === 'inactivos90'  ? ahora - 90  * 864e5 :
       filtroAntig === 'inactivos180' ? ahora - 180 * 864e5 : null;
 
     return sinRegistro.filter(c => {
-      if (q && !(c.nombre?.toLowerCase().includes(q) || c.telefono?.includes(q))) return false;
+      if (!matchCliente(c, q)) return false;
       if (cutoff !== null && isMigrados) {
         const fecha = parseFechaAgendapro(c.fechaRegistroOriginal);
         // Si no hay fecha, asumir antiguo (mostrar en inactivos para no descartarlo)
@@ -2312,14 +2313,8 @@ export default function Clientes() {
   };
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return sorted.filter(c => {
-      const matchSearch = !q ||
-        c.nombre?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.telefono?.includes(q);
-      return matchSearch && applyFiltro(c);
-    });
+    const q = normalizarTexto(search);
+    return sorted.filter(c => matchCliente(c, q) && applyFiltro(c));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted, search, filtro, premios, mesActual]);
 

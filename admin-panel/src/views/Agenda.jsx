@@ -25,6 +25,7 @@ import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { tuuSandboxDialog } from '../lib/tuuSandbox';
 import { withTimeout } from '../lib/firestore-helpers';
+import { buscarClientes } from '../lib/clienteSearch';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
@@ -970,31 +971,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       });
   }, [form.clienteEmail]);
 
+  // Misma lógica que el buscador de la vista Clientes: vive en
+  // lib/clienteSearch.js para que no puedan volver a divergir (antes cada
+  // uno tenía la suya y la misma consulta daba resultados distintos).
   const suggestions = useMemo(() => {
-    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const q = norm(form.clienteNombre.trim());
-    if (!q) return [];
-    const words = q.split(/\s+/).filter(Boolean);
-    const scored = clientes
-      .map(c => {
-        const nombre = norm(c.nombre);
-        const email  = norm(c.email);
-        const tel    = (c.telefono || '').replace(/\D/g, '');
-        const allWords = words.every(w =>
-          nombre.includes(w) || email.includes(w) || tel.includes(w),
-        );
-        if (!allWords) return null;
-        // Prioridad: nombre empieza con la query > cualquier palabra empieza con query > contiene
-        const score = nombre.startsWith(q) ? 0
-          : words.some(w => nombre.startsWith(w)) ? 1
-          : 2;
-        return { c, score };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.score - b.score)
-      .map(({ c }) => c)
-      .slice(0, 8);
-    return scored;
+    if (!form.clienteNombre.trim()) return [];
+    return buscarClientes(clientes, form.clienteNombre, { limite: 8 });
   }, [clientes, form.clienteNombre]);
 
   const selectCliente = async c => {
@@ -2820,10 +2802,10 @@ function ColacionBlock({ colacion, label = 'Colación' }) {
 
   return (
     <div
-      className="absolute inset-x-0.5 rounded-md border border-dashed border-amber-500/25 bg-amber-500/[0.05] pointer-events-none overflow-hidden flex items-start justify-center"
+      className="agenda-descanso absolute inset-x-0.5 rounded-md border border-dashed border-amber-500/25 bg-amber-500/[0.05] pointer-events-none overflow-hidden flex items-start justify-center"
       style={{ top: `${top}px`, height: `${alto}px` }}
     >
-      <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-950/70 px-2 py-0.5 text-[10px] font-bold text-amber-400/90">
+      <span className="agenda-descanso-label mt-1 inline-flex items-center gap-1 rounded bg-amber-950/70 px-2 py-0.5 text-[10px] font-bold text-amber-400/90">
         <Coffee size={10} />
         <span className="truncate">{label} {colacion.inicio}–{colacion.fin}</span>
       </span>
@@ -2941,12 +2923,16 @@ function HuecosLibres({ citas }) {
     return (
       <div
         key={`hueco-${ini}`}
-        className="absolute inset-x-1 z-[1] rounded-md border border-dashed border-emerald-500/25 bg-emerald-500/[0.04] pointer-events-none flex items-center justify-center overflow-hidden"
+        // agenda-hueco / agenda-hueco-label son ganchos de tema: el modo claro
+        // los repinta en index.css. Sin una clase estable habría que mapear
+        // utilidades como `bg-emerald-500/[0.04]`, que en claro no tienen
+        // override y se renderizan con el valor de modo oscuro — invisibles.
+        className="agenda-hueco absolute inset-x-1 z-[1] rounded-md border border-dashed border-emerald-500/25 bg-emerald-500/[0.04] pointer-events-none flex items-center justify-center overflow-hidden"
         style={{ top: `${top}px`, height: `${alto}px` }}
       >
         {/* Bajo ~28px no cabe el texto sin ensuciar: queda solo la banda. */}
         {alto >= 28 && (
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold text-emerald-300/80 bg-slate-900/70 tabular-nums whitespace-nowrap">
+          <span className="agenda-hueco-label px-1.5 py-0.5 rounded text-[9px] font-semibold text-emerald-300/80 bg-slate-900/70 tabular-nums whitespace-nowrap">
             {hhmm(ini)} – {hhmm(fin)} · {mins} min libres
           </span>
         )}
