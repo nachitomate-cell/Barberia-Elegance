@@ -10772,26 +10772,23 @@
       const grid = document.getElementById('servicesGrid');
       grid.innerHTML = '';
 
-      // Filtros del catálogo antes de agrupar por categoría:
-      //  1) SEDE (multi-sucursal): si `sucursalesDisponibles` está seteado y
-      //     la sede activa no está en la lista → oculto. Sin sede elegida
-      //     (tenants mono-sede u onboarding) pasan todos; el filtro se aplica
-      //     cuando llegue el `selectSucursal`.
-      //  2) DÍA de la semana: si `diasDisponibles` está seteado y el día de
-      //     HOY no está en la lista → oculto. Coherente con lo que el usuario
-      //     ve en el calendario del paso 3 (que también deshabilita los días
-      //     fuera de la lista); no confundir al cliente con servicios que
-      //     hoy no se pueden reservar. Si querés que el servicio aparezca
-      //     igual para reservar en un próximo día válido, apagá el toggle.
+      // Filtro del catálogo antes de agrupar por categoría:
+      //  SEDE (multi-sucursal): si `sucursalesDisponibles` está seteado y
+      //  la sede activa no está en la lista → oculto. Sin sede elegida
+      //  (tenants mono-sede u onboarding) pasan todos; el filtro se aplica
+      //  cuando llegue el `selectSucursal`.
+      //
+      // NO se filtra por `diasDisponibles` acá a propósito. El catálogo
+      // muestra TODO lo que el local ofrece; quien manda sobre los días es el
+      // paso 3, que solo lista las fechas válidas para el servicio elegido
+      // (ver renderDays → svcFueraDeDia). Filtrar también acá escondía la
+      // promo los otros 6 días de la semana: un cliente que entraba un
+      // viernes no podía agendar el "Martes Estudiante" para el martes
+      // siguiente, ni siquiera enterarse de que existe.
       const _sedeActivaId = window._selectedSucursal && window._selectedSucursal.id;
-      const _diaHoy = new Date().getDay(); // 0=Dom … 6=Sáb
       services = services.filter(s => {
         if (Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0
             && _sedeActivaId && !s.sucursalesDisponibles.includes(_sedeActivaId)) {
-          return false;
-        }
-        if (Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0
-            && !s.diasDisponibles.includes(_diaHoy)) {
           return false;
         }
         return true;
