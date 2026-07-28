@@ -5114,3 +5114,34 @@
       color: #e5e5e5 !important;
       border-color: rgba(229,229,229,0.45) !important;
     }
+
+    /* ══════════════════════════════════════════════════════════════
+       SION BARBERÍA — ajustes sobre el tema claro heredado de Aura.
+
+       Sion recibe la clase `tenant-aura` por _themeAlias, así que hereda
+       todo el tratamiento claro de Aura. Estas reglas corrigen lo que en
+       Aura es correcto pero en Sion no: su propia fachada en el hero y dos
+       bloques que Aura sí usa y Sion no. La doble clase gana en
+       especificidad sobre las reglas :is(.tenant-aura,…) de más arriba.
+    ══════════════════════════════════════════════════════════════ */
+
+    /* Hero: fachada real del local. Aura lo mueve a ::before para animarlo
+       con Ken Burns, así que el override va sobre el mismo pseudo-elemento
+       (si se pintara en .hero-bg quedaría tapado por el ::before de Aura). */
+    .tenant-sion.tenant-aura .hero-bg::before {
+      background-image: url('/sion/banner.webp') !important;
+      background-position: center 45% !important;
+    }
+    .tenant-sion.tenant-aura .hero-bg { background-color: #2C3941 !important; }
+    /* Overlay en el gris azulado de Sion, no en el azul marino de Aura. */
+    .tenant-sion.tenant-aura .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(16,22,26,0.40) 0%, rgba(16,22,26,0.28) 40%, rgba(16,22,26,0.92) 100%) !important;
+    }
+
+    /* "¿Cómo funciona el club?" y "Planes anuales": contenido propio de Aura.
+       Se mostraban en Sion solo por heredar la clase, y además el loader de
+       planes corta si el tenant no es `aura` (loadPlanesAnualesAura), así que
+       la sección quedaba con el spinner girando para siempre. */
+    .tenant-sion.tenant-aura #rangosExplainerAura,
+    .tenant-sion.tenant-aura #planesAnualesAura { display: none !important; }

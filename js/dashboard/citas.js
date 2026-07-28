@@ -145,20 +145,38 @@ async function cargarCitasUsuario(user) {
                 </button>
               </div>
             </div>`;
-          if ((window.CURRENT_TENANT_ID || 'elegance') === 'aura') {
+          // ── Card premium (tenants de tema CLARO) ───────────────────────
+          // La card de arriba es dark-first: texto blanco sobre un fondo
+          // translúcido. En un tenant de tema claro eso queda ilegible
+          // (blanco sobre blanco). Estos tenants reciben en su lugar una card
+          // OSCURA propia, que da el contraste contra la página clara.
+          //
+          // Antes esto era un `=== 'aura'` hardcodeado, así que Sion —que
+          // hereda el tema claro de Aura— se quedaba con la card dark-first
+          // e ilegible. Ahora es una tabla: sumar un tenant claro es agregar
+          // una fila con sus colores, no duplicar la plantilla.
+          const _CARD_PREMIUM = {
+            aura: { bg:'linear-gradient(150deg,#0a1628 0%,#0d1f3c 60%,#001433 100%)',
+                    halo:'rgba(0,53,128,0.4)', sombra:'rgba(0,20,60,0.45)', acento:'147,197,253' },
+            // Sion: gris azulado de marca (#2C3941) + su naranjo (#F57808).
+            sion: { bg:'linear-gradient(150deg,#1b2429 0%,#2c3941 60%,#10161a 100%)',
+                    halo:'rgba(44,57,65,0.55)', sombra:'rgba(16,22,26,0.45)', acento:'245,140,45' },
+          };
+          const _cp = _CARD_PREMIUM[window.CURRENT_TENANT_ID || 'elegance'];
+          if (_cp) {
             const _aTiempo = diffH <= 2
               ? `<span style="font-size:10px;font-weight:800;color:#f87171;">¡En ${diffH <= 0 ? 'menos de 1h' : diffH + 'h'}!</span>`
               : diffD === 0
-                ? `<span style="font-size:10px;font-weight:800;color:#93c5fd;">Hoy</span>`
+                ? `<span style="font-size:10px;font-weight:800;color:rgb(${_cp.acento});">Hoy</span>`
                 : diffD === 1
-                  ? `<span style="font-size:10px;font-weight:800;color:#93c5fd;">Mañana</span>`
+                  ? `<span style="font-size:10px;font-weight:800;color:rgb(${_cp.acento});">Mañana</span>`
                   : `<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);">En ${diffD} días</span>`;
             heroCardEl.innerHTML = `
-              <div class="rounded-3xl relative overflow-hidden mb-5" style="background:linear-gradient(150deg,#0a1628 0%,#0d1f3c 60%,#001433 100%);border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px -15px rgba(0,20,60,0.45),inset 0 1px 0 rgba(255,255,255,0.06);">
-                <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 85% -10%,rgba(0,53,128,0.4) 0%,transparent 55%);"></div>
+              <div class="rounded-3xl relative overflow-hidden mb-5" style="background:${_cp.bg};border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px -15px ${_cp.sombra},inset 0 1px 0 rgba(255,255,255,0.06);">
+                <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 85% -10%,${_cp.halo} 0%,transparent 55%);"></div>
                 <div class="relative z-10 flex items-center justify-between px-5 pt-5 pb-0">
                   <div class="flex items-center gap-1.5">
-                    <i class="ph-fill ph-calendar-check" style="font-size:13px;color:rgba(147,197,253,0.7);"></i>
+                    <i class="ph-fill ph-calendar-check" style="font-size:13px;color:rgba(${_cp.acento},0.7);"></i>
                     <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">Tu Próxima Cita</span>
                   </div>
                   <span style="font-size:9px;font-weight:700;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.28);color:#86efac;padding:2px 10px;border-radius:100px;">${proxima.estado || 'Confirmada'}</span>
@@ -179,14 +197,14 @@ async function cargarCitasUsuario(user) {
                   </div>
                   <div class="flex items-center justify-between px-3.5 py-2.5 rounded-2xl mb-4" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">
                     <div class="flex items-center gap-2">
-                      <i class="ph-fill ph-calendar-blank" style="font-size:14px;color:rgba(147,197,253,0.6);"></i>
+                      <i class="ph-fill ph-calendar-blank" style="font-size:14px;color:rgba(${_cp.acento},0.6);"></i>
                       <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);">${fechaStr}</span>
                     </div>
                     ${_aTiempo}
                   </div>
                   <div class="grid grid-cols-3 gap-2">
                     <button onclick="abrirModalReagendar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all${_blkCls}" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
-                      <i class="ph-bold ph-calendar-dots" style="font-size:18px;color:rgba(147,197,253,0.85);"></i>
+                      <i class="ph-bold ph-calendar-dots" style="font-size:18px;color:rgba(${_cp.acento},0.85);"></i>
                       <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.04em;">Reagendar</span>
                     </button>
                     <button onclick="abrirModalCancelar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all${_blkCls}" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);">
@@ -198,8 +216,8 @@ async function cargarCitasUsuario(user) {
                       <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.04em;">Cómo llegar</span>
                     </a>
                   </div>
-                  <button onclick="agregarCitaACalendario('${proxima.id}')" class="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-2xl active:scale-[0.96] transition-all" style="background:rgba(147,197,253,0.08);border:1px solid rgba(147,197,253,0.18);">
-                    <i class="ph-bold ph-calendar-plus" style="font-size:14px;color:rgba(147,197,253,0.85);"></i>
+                  <button onclick="agregarCitaACalendario('${proxima.id}')" class="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-2xl active:scale-[0.96] transition-all" style="background:rgba(${_cp.acento},0.08);border:1px solid rgba(${_cp.acento},0.18);">
+                    <i class="ph-bold ph-calendar-plus" style="font-size:14px;color:rgba(${_cp.acento},0.85);"></i>
                     <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.04em;">Añadir a Google Calendar</span>
                   </button>
                 </div>
