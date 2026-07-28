@@ -1636,11 +1636,6 @@ exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
 // pase. Habilita el producto Wallet standalone (sin agenda).
 exports.walletSumarSelloStaff   = require('./wallet-staff').walletSumarSelloStaff;
 
-// ONE-SHOT bootstrap (borrar después de usar): siembra el tenant demo
-// wallodemo en Google Wallet — clase + N objetos según users esDemo:true.
-// Ver functions/wallet-sembrar-demo.js.
-exports.walletSembrarDemo       = require('./wallet-sembrar-demo').walletSembrarDemo;
-
 // Apple Wallet (espejo iOS del módulo anterior): el cliente descarga un
 // .pkpass firmado; su iPhone se registra en walletAppleWs y recibe
 // actualizaciones vía APNs. Secrets: APPLE_PASS_CERT + APPLE_PASS_KEY.

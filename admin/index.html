@@ -1719,6 +1719,20 @@
       </span>
       <i class="ph ph-caret-down" id="toggle-leads-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
     </button>
+    <button type="button" onclick="toggleOptionalSection('autopay')" id="toggle-autopay" style="
+      flex:1; min-width:200px; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+      padding:0.625rem 0.875rem; border-radius:0.75rem; cursor:pointer;
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+      color:#94a3b8; font-size:0.8125rem; font-weight:600; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.08)'">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i class="ph-fill ph-arrows-clockwise" style="color:#34d399;"></i>
+        Autopay MP
+        <span id="toggle-autopay-badge" style="display:none; padding:0.0625rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700; background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);"></span>
+      </span>
+      <i class="ph ph-caret-down" id="toggle-autopay-caret" style="transition:transform 0.2s; font-size:0.75rem;"></i>
+    </button>
   </div>
 
   <!-- ── Fechas de pago (colapsable) ── -->
@@ -1870,6 +1884,18 @@
       <button onclick="loadCobranza()" style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#64748b; font-size:0.75rem; cursor:pointer;" onmouseover="this.style.color='#fcd34d'" onmouseout="this.style.color='#64748b'"><i class="ph ph-arrows-clockwise"></i></button>
     </div>
     <div id="cobrar-content"><div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>Cargando cobros…</div></div>
+  </div>
+
+  <!-- ── Autopay MP (colapsable) — suscripciones activas + pausadas + link pendiente ── -->
+  <div id="autopay-wrapper" hidden style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; gap:0.5rem; flex-wrap:wrap;">
+      <div>
+        <p class="analytics-eyebrow">Pago automático</p>
+        <h2 class="analytics-title">Suscripciones MP · <span style="color:#64748b; font-weight:500;">activas, con link pendiente y con último cobro rechazado</span></h2>
+      </div>
+      <button onclick="loadAutopayDash()" style="display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#64748b; font-size:0.75rem; cursor:pointer;" onmouseover="this.style.color='#34d399'" onmouseout="this.style.color='#64748b'"><i class="ph ph-arrows-clockwise"></i></button>
+    </div>
+    <div id="autopay-content"><div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>Cargando suscripciones…</div></div>
   </div>
 
   <!-- ── Leads (colapsable) ── -->
@@ -3354,6 +3380,7 @@
     let _billingOpen    = false;
     let _cuotas         = [];
     let _billingPlan    = '';
+    let _billingMonto   = 0;   // monto NETO cargado del doc _billing (para crear link autopay)
 
     function toggleBillingForm() {
       if (!_activeTenant) return;
@@ -3395,6 +3422,7 @@
 
       const estado  = d.estadoPago || 'al_dia';
       const monto   = d.montoPendiente != null ? d.montoPendiente : '';
+      _billingMonto = Number(monto) || 0;   // expuesto para crearLinkAutopayTenant
       const mensaje = d.mensajeAdmin   || '';
       const fecha   = d.fechaProximoPago
         ? (d.fechaProximoPago.toDate ? d.fechaProximoPago.toDate().toISOString().split('T')[0] : d.fechaProximoPago)
@@ -3564,7 +3592,13 @@
               <i class="ph ph-x-circle" style="margin-right:0.3rem;"></i>Cancelar suscripción
             </button>` : ''}
         </div>
-        ${!sub ? `<p style="font-size:0.72rem;color:#475569;margin:0.35rem 0 0;">El local lo activa desde su panel → Mensualidad. Requiere "Monto mensual" configurado arriba.</p>` : ''}
+        ${!sub ? `
+          <button onclick="crearLinkAutopayTenant()" style="width:100%;padding:0.55rem;border-radius:0.5rem;cursor:pointer;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.35);color:#22c55e;font-size:0.78rem;font-weight:700;margin-top:0.4rem;transition:all 0.2s;"
+             onmouseover="this.style.background='rgba(34,197,94,0.2)'" onmouseout="this.style.background='rgba(34,197,94,0.1)'">
+             <i class="ph-bold ph-link" style="margin-right:0.3rem;"></i>Crear link de pago automático (MP)
+          </button>
+          <p style="font-size:0.68rem;color:#475569;margin:0.35rem 0 0;line-height:1.4;">Genera un checkout MP con el monto de arriba. Se lo mandas al dueño por WhatsApp y él ingresa su tarjeta 1 vez.</p>
+        ` : ''}
         <p id="autopay-feedback" style="font-size:0.72rem;margin:0.35rem 0 0;"></p>`;
 
       window._autopaySub = sub;
@@ -3586,6 +3620,32 @@
         if (fb) { fb.style.color = '#94a3b8'; fb.textContent = 'Cancelando…'; }
         await firebase.functions().httpsCallable('mpMensualidadCancelar')({ tenantId: _activeTenant });
         if (fb) { fb.style.color = '#34d399'; fb.textContent = 'Suscripción cancelada.'; }
+        loadBillingData();
+      } catch (e) {
+        if (fb) { fb.style.color = '#f87171'; fb.textContent = 'Error: ' + (e.message || e); }
+      }
+    }
+
+    // Crear link autopay desde /admin (superadmin). Ignacio genera el checkout
+    // y se lo manda al dueño por WhatsApp — el dueño solo ingresa su tarjeta
+    // 1 vez y a partir de ahí MP cobra cada mes solo.
+    async function crearLinkAutopayTenant() {
+      if (!_activeTenant) return;
+      if (!_billingMonto || _billingMonto < 1000) {
+        alert('Configura primero el "Monto mensual" arriba (mínimo $1.000). Ese es el monto NETO que se le cobrará al tenant + IVA.');
+        return;
+      }
+      const totalConIva = Math.round(_billingMonto * 1.19);
+      if (!confirm(`Crear link de pago automático para "${_activeTenant}".\n\nMP cobrará $${totalConIva.toLocaleString('es-CL')} (neto $${_billingMonto.toLocaleString('es-CL')} + IVA 19%) cada mes.\n\n¿Continuar?`)) return;
+
+      const fb = document.getElementById('autopay-feedback');
+      try {
+        if (fb) { fb.style.color = '#94a3b8'; fb.textContent = 'Creando link en MP…'; }
+        const res = await firebase.functions().httpsCallable('mpMensualidadCrearLink')({ tenantId: _activeTenant });
+        const url = res && res.data && res.data.url;
+        if (!url) throw new Error('MP no devolvió el link.');
+        try { await navigator.clipboard.writeText(url); } catch (_) {}
+        if (fb) { fb.style.color = '#34d399'; fb.innerHTML = '✓ Link creado y copiado al portapapeles. Mándalo al dueño por WhatsApp.'; }
         loadBillingData();
       } catch (e) {
         if (fb) { fb.style.color = '#f87171'; fb.textContent = 'Error: ' + (e.message || e); }
@@ -4975,6 +5035,7 @@
     let _embudoLoaded     = false;
     let _cobrarLoaded     = false;
     let _leadsLoaded      = false;
+    let _autopayLoaded    = false;
     function toggleOptionalSection(key) {
       const wrapper = document.getElementById(key + '-wrapper');
       const caret   = document.getElementById('toggle-' + key + '-caret');
@@ -5008,6 +5069,10 @@
         if (key === 'leads' && !_leadsLoaded) {
           _leadsLoaded = true;
           loadLeads().catch(e => console.warn('[Admin] loadLeads error:', e));
+        }
+        if (key === 'autopay' && !_autopayLoaded) {
+          _autopayLoaded = true;
+          loadAutopayDash().catch(e => console.warn('[Admin] loadAutopayDash error:', e));
         }
         // Scroll suave hasta la sección
         setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
@@ -5358,7 +5423,12 @@
       _setToggleBadge('cobrar', porCobrar);
       _setToggleBadge('leads', leadsNew);
       _setToggleBadge('embudo', estancados);
-      setAppBadgeCount(porCobrar + soporte + leadsNew + estancados);
+      // Autopay: contamos suscripciones activas + destacamos con ⚠ las que
+      // tienen último cobro rechazado (el superadmin debe intervenir).
+      const autopayActivos = _billingCache.filter(b => b.suscripcionMp && b.suscripcionMp.status === 'authorized');
+      const autopayRechazados = autopayActivos.filter(b => b.suscripcionMp.ultimoPago && b.suscripcionMp.ultimoPago.status === 'rejected').length;
+      _setToggleBadge('autopay', autopayActivos.length, autopayRechazados > 0 ? `${autopayActivos.length} · ⚠${autopayRechazados}` : String(autopayActivos.length));
+      setAppBadgeCount(porCobrar + soporte + leadsNew + estancados + autopayRechazados);
     }
     function scrollToSection(key) {
       HAPTIC(10);
@@ -5415,6 +5485,103 @@
       } catch (e) { alert('Error: ' + e.message); }
     }
     window.loadCobranza = loadCobranza; window.marcarPagado = marcarPagado;
+
+    // ── #2b Autopay MP dashboard ──────────────────────────────────
+    // Espejo global de las suscripciones MP: activas, con link creado (falta
+    // que el dueño ingrese tarjeta), pausadas y con último cobro RECHAZADO
+    // (alerta). Lee _billing/{tid}.suscripcionMp (poblado por el webhook).
+    function _isAutopay(b) { return !!(b.suscripcionMp && b.suscripcionMp.status); }
+    function _autopayStatusChip(status) {
+      const map = {
+        authorized:  ['ACTIVO', '#34d399', 'rgba(52,211,153,0.12)'],
+        link_creado: ['LINK PENDIENTE', '#fbbf24', 'rgba(251,191,36,0.12)'],
+        paused:      ['PAUSADO', '#fbbf24', 'rgba(251,191,36,0.12)'],
+        cancelled:   ['CANCELADO', '#94a3b8', 'rgba(148,163,184,0.12)'],
+      };
+      const [txt, color, bg] = map[status] || ['—', '#64748b', 'rgba(255,255,255,0.05)'];
+      return `<span style="font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:999px;color:${color};background:${bg};letter-spacing:0.03em;">${txt}</span>`;
+    }
+    async function loadAutopayDash() {
+      const content = document.getElementById('autopay-content');
+      if (content) content.innerHTML = _spinner('Cargando suscripciones…');
+      await _loadBilling();
+      // Filtramos y clasificamos.
+      const suscritos = _billingCache.filter(_isAutopay);
+      const activos    = suscritos.filter(b => b.suscripcionMp.status === 'authorized');
+      const pendientes = suscritos.filter(b => b.suscripcionMp.status === 'link_creado');
+      const pausados   = suscritos.filter(b => b.suscripcionMp.status === 'paused');
+      const rechazados = activos.filter(b => b.suscripcionMp.ultimoPago && b.suscripcionMp.ultimoPago.status === 'rejected');
+      if (!content) return;
+      // Suma total facturada por suscripciones activas (MRR real vía MP).
+      const mrrMP = activos.reduce((s, b) => s + (Number(b.suscripcionMp.montoIva) || 0), 0);
+
+      if (!suscritos.length) {
+        content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#64748b; font-size:0.8125rem;">Aún no hay tenants con suscripción MP.<br><span style="color:#475569;font-size:0.75rem;">Ábrelo desde la ficha del tenant → botón "Crear link de pago automático".</span></div>';
+        return;
+      }
+
+      const sumario = `
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.18);border-radius:0.75rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Activos</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#34d399;">${activos.length}</div>
+          </div>
+          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:0.75rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Link pendiente</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#fbbf24;">${pendientes.length}</div>
+          </div>
+          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.18);border-radius:0.75rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Último rechazado</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#f87171;">${rechazados.length}</div>
+          </div>
+          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.18);border-radius:0.75rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">MRR MP</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#67e8f9;">$${mrrMP.toLocaleString('es-CL')}</div>
+          </div>
+        </div>`;
+
+      // Orden: rechazados primero (necesitan atención), luego pendientes, activos, pausados, cancelados.
+      const orderKey = (b) => {
+        if (b.suscripcionMp.ultimoPago && b.suscripcionMp.ultimoPago.status === 'rejected') return 0;
+        return { link_creado: 1, authorized: 2, paused: 3, cancelled: 4 }[b.suscripcionMp.status] || 5;
+      };
+      const ordenados = suscritos.slice().sort((a, b) => orderKey(a) - orderKey(b));
+
+      content.innerHTML = sumario + ordenados.map(b => {
+        const sub = b.suscripcionMp;
+        const nombre = _nombreDe(b.tid);
+        const tel = _telDe(b);
+        const chip = _autopayStatusChip(sub.status);
+        const monto = Number(sub.montoIva) || 0;
+        const proximo = sub.nextPaymentDate ? ` · próx ${esc(sub.nextPaymentDate)}` : '';
+        const up = sub.ultimoPago;
+        const upTxt = up
+          ? `${up.status === 'approved' ? '✓' : '✕'} ${esc(up.fecha || '')} · $${Number(up.monto || 0).toLocaleString('es-CL')}${up.status !== 'approved' ? ` (${esc(up.status)})` : ''}`
+          : 'Sin cobros aún';
+        const alerta = up && up.status === 'rejected';
+        const wa = tel
+          ? `<a href="https://wa.me/${tel}" target="_blank" title="WhatsApp" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.25);color:#25d366;flex-shrink:0;text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i></a>`
+          : '';
+        const abrir = `<button onclick="openDrawer('${b.tid}')" title="Abrir ficha del tenant" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;flex-shrink:0;cursor:pointer;"><i class="ph-bold ph-arrow-square-out"></i></button>`;
+        return `<div style="display:flex; align-items:center; gap:0.55rem; padding:0.65rem 0.75rem; border-radius:0.75rem; background:${alerta ? 'rgba(248,113,113,0.05)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${alerta ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.06)'}; margin-bottom:0.375rem;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex;align-items:center;gap:0.4rem;">
+              <span style="font-size:0.8125rem; font-weight:700; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">${esc(nombre)}</span>
+              ${chip}
+            </div>
+            <div style="font-size:0.68rem; color:#64748b; margin-top:0.15rem;">${monto ? '$' + monto.toLocaleString('es-CL') + '/mes' : '—'}${proximo}</div>
+            <div style="font-size:0.68rem; color:${alerta ? '#f87171' : '#64748b'}; margin-top:0.1rem;">${upTxt}</div>
+          </div>
+          ${abrir}${wa}
+        </div>`;
+      }).join('');
+
+      // Badge en el toggle: activos + alertas de rechazado.
+      const badgeN = activos.length;
+      const badgeTxt = rechazados.length > 0 ? `${badgeN} · ⚠${rechazados.length}` : String(badgeN);
+      _setToggleBadge('autopay', badgeN, badgeTxt);
+    }
+    window.loadAutopayDash = loadAutopayDash;
 
     // ── #10 Leads ─────────────────────────────────────────────────
     async function loadLeads() {
