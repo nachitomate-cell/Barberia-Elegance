@@ -12347,13 +12347,114 @@
     function _preguntarServicioDeHoyPack() {
       if (!selectedServiceObj || !selectedServiceObj.isPack) return;
       const incluidos = Array.isArray(selectedServiceObj.serviciosIncluidos) ? selectedServiceObj.serviciosIncluidos : [];
-      if (incluidos.length < 2) return; // mono-servicio: no requiere elección
       const catalogo = (window._fsServices || _fsServices || []);
+
+      // ── Pack de UN solo servicio ────────────────────────────────────
+      // No hay nada que preguntar, pero SÍ hay que decirle a la CF cuál es el
+      // servicio de hoy. Sin `activaPackId` la cita se guarda con
+      // servicioId = id DEL PACK, que no está en su propio mapa de cobertura
+      // (`serviciosCantidades` lista los servicios cubiertos), así que
+      // pack-automatico no encuentra match y descuenta CERO sesiones:
+      //
+      //   compra "2 cortes al mes" → pack 2/2 + el corte de hoy gratis
+      //
+      // O sea, el local regalaba un servicio en cada venta de pack mono.
+      // Detectado con los packs de Saúl Horta y Aldo Medel en aura, ambos
+      // cuadrados a mano el 2026-07-28. Acá se cierra el origen: la cita
+      // queda igual que en el flujo multi (servicio real + activaPackId), y
+      // la activación descuenta la sesión de hoy sola.
+      if (incluidos.length === 1) {
+        const svc = catalogo.find(s => s.id === incluidos[0]);
+        if (!svc) return;                       // cobertura rota: mejor no tocar nada
+        const pack = selectedServiceObj;
+        selectedServiceObj = {
+          id:            svc.id,                // servicio real (crítico para la CF)
+          nombre:        svc.nombre,
+          duracion:      Number(svc.duracion) || Number(pack.duracion) || 30,
+          precio:        Number(pack.precio) || 0,   // se cobra el PACK
+          activaPackId:  pack.id,
+          packNombre:    pack.nombre,
+          _packVentaHoy: true,
+        };
+        selectedAddons    = [];
+        _selectedSlotInfo = null;
+        if (typeof updateContinueBtn === 'function') updateContinueBtn();
+        return;
+      }
+
+      if (incluidos.length < 2) return;         // sin cobertura declarada: legacy
       const opciones = incluidos
         .map(sid => catalogo.find(s => s.id === sid))
         .filter(Boolean);
       if (opciones.length < 2) return;
       _abrirModalServicioDeHoy(selectedServiceObj, opciones);
+    }
+
+    /* ── Datos de la venta de pack en curso ────────────────────────────
+       Devuelve qué está comprando el cliente para poder decírselo en el paso 1
+       y recordárselo antes de confirmar. null si la selección no es un pack.
+       Funciona igual para mono y multi porque ambos flujos dejan la misma
+       marca (`activaPackId` + `_packVentaHoy`). */
+    function _packVentaInfo() {
+      const s = selectedServiceObj;
+      if (!s) return null;
+      const packId = s.activaPackId || (s.isPack ? s.id : null);
+      if (!packId) return null;
+      const catalogo = (window._fsServices || _fsServices || []);
+      const pack = catalogo.find(x => x.id === packId);
+      if (!pack) return null;
+
+      const cant  = pack.serviciosCantidades && typeof pack.serviciosCantidades === 'object'
+        ? Object.values(pack.serviciosCantidades).reduce((a, v) => a + (Number(v) || 0), 0)
+        : 0;
+      const total = Math.max(1, cant || Number(pack.sesionesTotales) || 1);
+      const dias  = Math.max(1, Number(pack.diasValidez) || 30);
+      // Si la cita de hoy ya viene marcada como activadora, hoy se usa 1.
+      const usaHoy  = !!s.activaPackId;
+      const vence   = new Date(Date.now() + dias * 864e5);
+      return {
+        nombre:  pack.nombre || 'Pack',
+        total,
+        usaHoy,
+        quedan:  Math.max(0, total - (usaHoy ? 1 : 0)),
+        dias,
+        venceStr: vence.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }),
+        servicioHoy: usaHoy ? (s.nombre || '') : '',
+      };
+    }
+
+    /* Frase única, reutilizada en el paso 1 y en el resumen del paso 4. */
+    function _packVentaTexto(info) {
+      if (!info) return '';
+      const ses = n => `${n} sesi${n === 1 ? 'ón' : 'ones'}`;
+      return info.usaHoy
+        ? `Incluye ${ses(info.total)}. Hoy usas 1${info.servicioHoy ? ` (${info.servicioHoy})` : ''} y te ${info.quedan === 1 ? 'queda' : 'quedan'} ${ses(info.quedan)} hasta el ${info.venceStr}.`
+        : `Incluye ${ses(info.total)}, válidas ${info.dias} días.`;
+    }
+
+    /* Chip informativo bajo la card del pack elegido. Para packs de un solo
+       servicio el cliente no tenía NINGÚN aviso de qué estaba comprando: la
+       card dice "2 cortes al mes · $29.990" y nada más. */
+    function _renderPackInfoChip() {
+      const previo = document.getElementById('packInfoChip');
+      if (previo) previo.remove();
+      const info = _packVentaInfo();
+      if (!info) return;
+      // La card sigue siendo la del pack aunque selectedServiceObj ya apunte
+      // al servicio real (flujo de venta): buscamos por el id del pack.
+      const packId = selectedServiceObj.activaPackId || selectedServiceObj.id;
+      const card = document.querySelector(`.service-option[data-service-id="${String(packId).replace(/"/g, '\\"')}"]`);
+      if (!card) return;
+      const chip = document.createElement('div');
+      chip.id = 'packInfoChip';
+      chip.className = 'mt-2 rounded-xl px-3.5 py-2.5 flex items-start gap-2.5';
+      chip.style.cssText = 'background:rgba(96,165,250,0.10);border:1px solid rgba(96,165,250,0.30);';
+      chip.innerHTML = `
+        <span style="font-size:15px;line-height:1.2;flex-shrink:0;" aria-hidden="true">📦</span>
+        <p style="font-size:11.5px;line-height:1.45;margin:0;color:rgba(96,165,250,0.95);font-weight:600;">
+          ${_packVentaTexto(info).replace(/</g, '&lt;')}
+        </p>`;
+      card.insertAdjacentElement('afterend', chip);
     }
 
     function _abrirModalServicioDeHoy(pack, opciones) {
@@ -13018,6 +13119,10 @@
       // el servicio real elegido + activaPackId apuntando al pack. La CF
       // entonces activa el pack Y consume 1 sesión del servicio elegido.
       _preguntarServicioDeHoyPack();
+      // Aviso de qué incluye el pack. Va DESPUÉS de _preguntarServicioDeHoyPack
+      // porque ese flujo puede reemplazar selectedServiceObj por el servicio
+      // real, y el texto del chip depende de eso.
+      try { _renderPackInfoChip(); } catch (_) {}
       // El slot VIP guarda un recargo derivado del servicio anterior. Si el
       // usuario cambia de servicio, invalidamos el slot para que renderHours
       // re-emita con el recargoSobrecupoDefault correcto del nuevo servicio.
@@ -13399,6 +13504,23 @@
         document.getElementById('summaryPrice').innerText = "$" + totalCost.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
+
+        // Recordatorio de pack — última pantalla antes de confirmar. Va en
+        // línea dentro del resumen a propósito: un modal acá obliga a cerrar
+        // algo justo cuando el cliente ya decidió, y es donde más se abandona.
+        (function renderPackNota() {
+          const previo = document.getElementById('summaryPackNota');
+          if (previo) previo.remove();
+          const info = (typeof _packVentaInfo === 'function') ? _packVentaInfo() : null;
+          if (!info) return;
+          const fila = document.getElementById('summaryService')?.closest('div');
+          if (!fila) return;
+          const el = document.createElement('p');
+          el.id = 'summaryPackNota';
+          el.style.cssText = 'font-size:11px;line-height:1.45;margin:-2px 0 8px;color:rgba(96,165,250,0.95);font-weight:600;';
+          el.textContent = '📦 ' + _packVentaTexto(info);
+          fila.insertAdjacentElement('afterend', el);
+        })();
 
         // Desglose VIP debajo del resumen: se inyecta/limpia dinámicamente
         // (el nodo se crea la primera vez y queda cacheado hasta el próximo paso 4).
