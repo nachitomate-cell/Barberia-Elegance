@@ -62,8 +62,14 @@ function openWhatsAppNative(phone, text) {
 }
 
 /* ── Tab Resumen ────────────────────────────────────────────────
-   Muestra rating actual, total de reseñas, las 5 más recientes
-   (todo pulled por la CF googleReviewsSync que corre diariamente). */
+   Muestra rating actual, total de reseñas, y las 5 que devuelve la API
+   (todo pulled por la CF googleReviewsSync que corre diariamente).
+   El copy dice "más relevantes" y no "más recientes" porque en la
+   práctica responde Places v1, que ordena por SU relevancia, no por
+   fecha (se nota: las tarjetas salen desordenadas por antigüedad).
+   La CF intenta primero la legacy con reviews_sort=newest, pero cuando
+   esa cae al fallback lo que se ve son las relevantes. Ver
+   fetchPlaceReviewsNew en functions/google-reviews-sync.js. */
 const SUPERADMINS = new Set(['ignaciiio.mate@gmail.com']);
 
 /* ── Conectar Google (AUTOSERVICIO) ─────────────────────────────
@@ -439,8 +445,8 @@ function TabResumen() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
           <Star size={16} className="text-yellow-400" fill="currentColor" />
-          <h3 className="text-sm font-bold text-primary">Últimas reseñas de Google</h3>
-          <span className="text-xs text-slate-500 ml-auto">Google devuelve solo las 5 más recientes</span>
+          <h3 className="text-sm font-bold text-primary">Reseñas más relevantes de Google</h3>
+          <span className="text-xs text-slate-500 ml-auto">Google devuelve solo las 5 más relevantes</span>
         </div>
         {(!data.reviews || data.reviews.length === 0) ? (
           <p className="text-sm text-slate-500 italic text-center py-6">Sin reseñas para mostrar aún.</p>
