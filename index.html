@@ -13715,8 +13715,10 @@
         if (xsellEl) {
           if (_isProductsEnabled && _fsProducts.length > 0) {
             // Tenants con tema CLARO usan la tarjeta de producto blanca; el resto,
-            // la oscura/dorada. infinity es claro → sin esto salía negra con dorado.
-            const isLightTheme = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren'].includes(window.CURRENT_TENANT_ID);
+            // la oscura/dorada. Se lee de TENANT_THEME_MODE (config.js lo publica
+            // desde _lightTenants) en vez de una lista a mano: la anterior ya se
+            // había quedado sin sion ni omega, que salían negras con dorado.
+            const isLightTheme = window.TENANT_THEME_MODE === 'light';
 
             if (isLightTheme) {
               xsellEl.innerHTML = `

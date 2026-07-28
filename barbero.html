@@ -827,6 +827,14 @@
           kronnos_penablanca: '/kronnos/kronospena.png',
           kronnos_limache:    '/kronnos/kronoslima.png',
           kronnos_woman:      '/kronnos/kronoswoman.png',
+          // Estos cuatro faltaban y caían al `SHOP.logo`: la ficha del barbero
+          // mostraba el LOGO estirado como banner en vez de la foto del local
+          // (visto en sion). Los valores son los mismos que index.html usa en
+          // su `.tenant-X .booking-hero`.
+          sion:               '/sion/banner.webp',
+          renacer:            '/renacer/banner.webp',
+          barbersclub:        '/barbersclub/hero-bg.png',
+          estudioluxury:      '/luxury/banner.webp',
         };
 
         // Overrides por barbero: cuando un local tiene un barbero con banner propio,
@@ -1751,7 +1759,14 @@
     if (avail.length < 3) { container.innerHTML = ''; container.classList.add('hidden'); return; }
 
     const recs = avail.slice(0, 3);
-    const isAura = ['aura','latincaribe','yugen','sionbarberia','oren'].includes(window.CURRENT_TENANT_ID);
+    // Paleta clara de la tarjeta. La lista fija se quedaba corta con cada
+    // tenant claro nuevo: en sion caía al dorado por defecto y quedaba ámbar
+    // sobre blanco, ilegible. `TENANT_THEME_MODE` lo publica config.js desde
+    // _lightTenants, así que cualquier tenant claro entra solo. Se mantiene la
+    // lista además porque yugen y sionbarberia son OSCUROS pero usan esta
+    // tarjeta clara a propósito — sacarlos sería un cambio de diseño.
+    const isAura = window.TENANT_THEME_MODE === 'light'
+      || ['aura','latincaribe','yugen','sionbarberia','oren'].includes(window.CURRENT_TENANT_ID);
     const isBM   = window.CURRENT_TENANT_ID === 'elbarberomoderno';
     const isInfinity = window.CURRENT_TENANT_ID === 'infinity';
 
