@@ -334,6 +334,40 @@ const SLOT_PX = 40;
 // cliente siempre legible.)
 const MIN_CITA_PX = 24;
 
+// ── Resoluciones del eje horario ───────────────────────────────────
+// TODAS dividen a 60, a propósito. Con una que no (estaba 45') las filas caen
+// en 15:00, 15:45, 16:30, 17:15… : horas a las que nadie agenda, el borde de
+// cada hora NUNCA coincide con una línea, y una cita real de 16:45 no tiene
+// ninguna etiqueta cerca. La grilla se queda sin ancla reconocible.
+//
+// Desde que los bloques se dibujan por minuto, la resolución dejó de limitar
+// la duración de las citas: es solo la regla de medir. Y una regla tiene que
+// estar en las unidades en que la gente piensa la hora.
+const RESOLUCIONES = [15, 20, 30, 60];
+const RESOLUCION_DEFAULT = 30;
+// Cualquier valor heredado (localStorage con 45, `intervaloMinutos` del tenant)
+// se acerca a la resolución válida más parecida en vez de romper el eje.
+function snapResolucion(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return RESOLUCION_DEFAULT;
+  if (RESOLUCIONES.includes(v)) return v;
+  // Preferimos la resolución más grande que DIVIDA al intervalo pedido: así
+  // toda hora agendable sigue cayendo sobre una línea real. Un tenant con
+  // intervalo de 45' agenda a las 10:00, 10:45, 11:30, 12:15… — todos
+  // múltiplos de 15, así que 15' los muestra todos; 30' dejaría la mitad a
+  // media fila, que es justo la ambigüedad que estamos matando.
+  const divisor = RESOLUCIONES.filter(r => v % r === 0).pop();
+  if (divisor) return divisor;
+  return RESOLUCIONES.reduce((best, r) =>
+    Math.abs(r - v) < Math.abs(best - v) ? r : best, RESOLUCION_DEFAULT);
+}
+
+// Hueco mínimo (en minutos) que se rotula como tiempo libre entre dos citas.
+const MIN_HUECO_MIN = 15;
+
+const hhmm = m =>
+  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
 function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
   // Math.ceil: con 45' el día puede no dividir exacto; redondeamos hacia arriba
   // para no recortar la última franja horaria.
@@ -2859,6 +2893,68 @@ function SinHoraTray({ citas, onOpen }) {
   );
 }
 
+/* ── HuecosLibres ────────────────────────────────────────────────
+   Rotula el tiempo REALMENTE libre entre dos citas: "16:00 – 16:45 · 45 min".
+
+   Sin esto, el hueco entre dos cards es solo espacio en blanco y hay que
+   deducir a qué hora empieza y cuánto dura midiéndolo contra el eje — que es
+   exactamente donde se equivocó el cliente que creyó tener una hora libre.
+
+   · Fusiona los rangos ocupados antes de calcular: con citas solapadas
+     (sobrecupo, reservas en grupo) la resta directa inventaría huecos.
+   · Ignora las canceladas: ese tiempo SÍ está libre.
+   · Solo entre citas. Antes de la primera y después de la última no hace
+     falta: ahí el hueco no está acotado por nada y la columna ya se lee vacía.
+   · pointer-events-none — el clic sigue llegando al SlotRow de abajo, así que
+     crear una cita en el hueco funciona igual que siempre.                  */
+function HuecosLibres({ citas }) {
+  const { topPx, durPx } = useContext(AgendaCtx);
+
+  const huecos = useMemo(() => {
+    const rangos = (citas || [])
+      .filter(c => c?.estado !== 'Cancelada' && typeof c?.hora === 'string' && c.hora.includes(':'))
+      .map(c => {
+        const ini = toMins(c.hora);
+        return [ini, ini + (Number(c.duracion || c.duracionServicio || 30) || 30)];
+      })
+      .sort((a, b) => a[0] - b[0]);
+
+    const fusionados = [];
+    for (const [ini, fin] of rangos) {
+      const ultimo = fusionados[fusionados.length - 1];
+      if (ultimo && ini <= ultimo[1]) ultimo[1] = Math.max(ultimo[1], fin);
+      else fusionados.push([ini, fin]);
+    }
+
+    const out = [];
+    for (let i = 1; i < fusionados.length; i++) {
+      const ini = fusionados[i - 1][1];
+      const fin = fusionados[i][0];
+      if (fin - ini >= MIN_HUECO_MIN) out.push({ ini, fin, mins: fin - ini });
+    }
+    return out;
+  }, [citas]);
+
+  return huecos.map(({ ini, fin, mins }) => {
+    const top  = topPx(hhmm(ini));
+    const alto = durPx(mins) - 4;
+    return (
+      <div
+        key={`hueco-${ini}`}
+        className="absolute inset-x-1 z-[1] rounded-md border border-dashed border-emerald-500/25 bg-emerald-500/[0.04] pointer-events-none flex items-center justify-center overflow-hidden"
+        style={{ top: `${top}px`, height: `${alto}px` }}
+      >
+        {/* Bajo ~28px no cabe el texto sin ensuciar: queda solo la banda. */}
+        {alto >= 28 && (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold text-emerald-300/80 bg-slate-900/70 tabular-nums whitespace-nowrap">
+            {hhmm(ini)} – {hhmm(fin)} · {mins} min libres
+          </span>
+        )}
+      </div>
+    );
+  });
+}
+
 /* ── AppointmentBlock ────────────────────────────────────────── */
 // barberColor (barberos/{id}.color) pinta SOLO la barra izquierda de 4px. El
 // fondo sigue siendo el del estado (verde=Confirmada, ámbar=Pendiente…), que es
@@ -3164,8 +3260,11 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
           );
         })()}
       </p>
-      <p className={`truncate text-[10px] ${estimada ? 'text-amber-300 opacity-90 font-bold' : 'opacity-50'}`}>
-        {estimada ? `≈${cita.hora} · hora estimada` : cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}
+      {/* Rango COMPLETO, no solo la hora de inicio. Es lo que hace que la card
+          se explique sola: para saber hasta cuándo ocupa no hay que medirla
+          contra el eje de la izquierda ni abrir el tooltip. */}
+      <p className={`truncate text-[10px] tabular-nums ${estimada ? 'text-amber-300 opacity-90 font-bold' : 'opacity-60'}`}>
+        {estimada ? `≈${cita.hora} · hora estimada` : `${cita.hora} – ${_horaFin}`}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}
       </p>
     </div>
   );
@@ -4638,7 +4737,7 @@ export default function Agenda() {
   const { id: tenantId, name: tenantName } = useTenant();
   // Duración de franja cacheada por sede → evita el parpadeo del eje "denso" en la primera carga.
   const SLOT_KEY = `agenda_slot_${tenantId}`;
-  const [slotMins,      setSlotMins]      = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 30);
+  const [slotMins,      setSlotMins]      = useState(() => snapResolucion(localStorage.getItem(SLOT_KEY)));
   const [hourStart,     setHourStart]     = useState(8);
   const [hourEnd,       setHourEnd]       = useState(20);
   const [cfgHorario,    setCfgHorario]    = useState(null);  // { horarioInicio, horarioFin, diasConfig } para rango por día
@@ -4673,7 +4772,7 @@ export default function Agenda() {
     const v = localStorage.getItem('agenda_admin_view');
     return (v === 'week' || v === 'month') ? v : 'day';
   });
-  const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
+  const [labelStep,     setLabelStep]     = useState(() => snapResolucion(localStorage.getItem(SLOT_KEY)));     // minutos entre etiquetas visibles en el eje
   const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
   const [now,           setNow]           = useState(() => new Date()); // hora actual (línea "ahora")
   const menuRef = useRef(null);
@@ -4740,7 +4839,7 @@ export default function Agenda() {
       .then(snap => {
         if (!snap.exists()) return;
         const data = snap.data();
-        if (data.intervaloMinutos) { setSlotMins(data.intervaloMinutos); setLabelStep(data.intervaloMinutos); try { localStorage.setItem(SLOT_KEY, String(data.intervaloMinutos)); } catch { /* noop */ } }
+        if (data.intervaloMinutos) { const r = snapResolucion(data.intervaloMinutos); setSlotMins(r); setLabelStep(r); try { localStorage.setItem(SLOT_KEY, String(r)); } catch { /* noop */ } }
         if (data.colacion && data.colacion.inicio && data.colacion.fin) setColacionGlobal(data.colacion);
         // Guardamos el horario completo; el rango visible se calcula POR DÍA (abajo),
         // respetando diasConfig (cada día puede cerrar a una hora distinta).
@@ -5327,7 +5426,7 @@ export default function Agenda() {
                     Resolución de la grilla
                   </p>
                   <div className="flex items-center gap-1">
-                    {[15, 30, 45, 60].map(step => (
+                    {RESOLUCIONES.map(step => (
                       <button
                         key={step}
                         // Mismas tres cosas que el control de desktop: estado,
@@ -5428,7 +5527,7 @@ export default function Agenda() {
           </button>
           <span className="w-px h-4 bg-neutral-800" aria-hidden />
           <div className="relative flex items-center gap-0.5" title="Resolución de la grilla">
-            {[15, 30, 45, 60].map(step => {
+            {RESOLUCIONES.map(step => {
               const active = slotMins === step;
               return (
                 <button
@@ -5583,10 +5682,17 @@ export default function Agenda() {
                       });
                     }
                   }
+                  // La hora en punto es el ancla de lectura: va más clara y en
+                  // negrita, con línea propia. Los cuartos quedan atenuados.
+                  // Con las resoluciones actuales (todas divisores de 60) esto
+                  // cae SIEMPRE en una línea real de la grilla.
+                  const esHora = tMins % 60 === 0;
                   return (
-                    <div key={i} className="relative h-10 border-r border-b border-neutral-800 bg-neutral-900/30">
+                    <div key={i} className={`relative h-10 border-r border-b border-neutral-800 bg-neutral-900/30 ${esHora ? 'border-t border-t-neutral-700' : ''}`}>
                       {showLabel && (
-                        <span className="absolute -top-2.5 left-0 right-0 text-center bg-neutral-950 px-1 mx-auto w-max z-10 font-sans text-xs font-medium text-neutral-400 tracking-wide select-none">
+                        <span className={`absolute -top-2.5 left-0 right-0 text-center bg-neutral-950 px-1 mx-auto w-max z-10 font-sans tracking-wide select-none tabular-nums ${
+                          esHora ? 'text-xs font-bold text-neutral-200' : 'text-[11px] font-medium text-neutral-500'
+                        }`}>
                           {t}
                         </span>
                       )}
@@ -5848,6 +5954,9 @@ export default function Agenda() {
                             {barberBloqueos.map(blq => (
                               <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                             ))}
+                            {/* Solo en la columna de UN barbero: en la vista
+                                "todos" un hueco de alguien no es hueco del local. */}
+                            <HuecosLibres citas={barberCitas} />
                             {layoutCitas.map(({ cita, colIndex, colTotal }) => (
                               <AppointmentBlock
                                 key={cita.id}
