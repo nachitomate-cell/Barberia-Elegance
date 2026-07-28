@@ -406,6 +406,12 @@
   .spin{width:32px;height:32px;border:3px solid var(--hairline);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 0.8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg)}}
 
+  /* ═══ Mode card (radio selector estilo iOS) ═══ */
+  .mode-card{transition:all 0.15s var(--ease);}
+  .mode-card:hover{border-color:var(--ink-2)!important;}
+  input[name="f-modo"]:checked ~ *{color:inherit;}
+  label.mode-card:has(input:checked){border-color:var(--blue)!important;background:var(--blue-tint);}
+
   /* ═══ Uploader (logo + banner) — drag/drop + preview ═══ */
   .uploader{
     display:flex;flex-direction:column;gap:10px;
@@ -745,6 +751,41 @@
 
         <!-- ══ TAB: Diseño ══ -->
         <div class="tab-panel" data-tab="diseno">
+          <div class="section">
+            <h2>Modo del programa</h2>
+            <p class="section-sub">Cómo tu cliente acumula recompensas. Puedes cambiarlo cuando quieras — los datos existentes se conservan.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+              <label class="mode-card" for="mode-sellos" style="display:block;padding:16px;border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s var(--ease);">
+                <input type="radio" name="f-modo" id="mode-sellos" value="sellos" checked style="display:none;" onchange="updateModoUI()">
+                <div style="font-size:22px;margin-bottom:6px;">🎫</div>
+                <div style="font-size:14px;font-weight:600;color:var(--ink);">Sellos</div>
+                <div style="font-size:12.5px;color:var(--soft);margin-top:2px;line-height:1.4;">N visitas = premio. Simple, familiar. Ideal café, salón, panadería.</div>
+              </label>
+              <label class="mode-card" for="mode-cashback" style="display:block;padding:16px;border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s var(--ease);">
+                <input type="radio" name="f-modo" id="mode-cashback" value="cashback" style="display:none;" onchange="updateModoUI()">
+                <div style="font-size:22px;margin-bottom:6px;">💵</div>
+                <div style="font-size:14px;font-weight:600;color:var(--ink);">Cashback</div>
+                <div style="font-size:12.5px;color:var(--soft);margin-top:2px;line-height:1.4;">% de la compra vuelve como saldo $. Ideal gastro premium, spa, gym.</div>
+              </label>
+            </div>
+
+            <!-- Config cashback (solo visible en modo cashback) -->
+            <div id="cashback-config" style="margin-top:16px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--hairline);display:none;">
+              <div class="row2">
+                <div>
+                  <label for="f-cashback-pct" style="margin-top:0;">Porcentaje de cashback</label>
+                  <input type="number" id="f-cashback-pct" min="0.5" max="50" step="0.5" value="5">
+                  <p class="field-hint">Ej. 5% = el cliente gasta $10.000 → gana $500 de saldo.</p>
+                </div>
+                <div>
+                  <label for="f-cashback-min" style="margin-top:0;">Monto mínimo de compra</label>
+                  <input type="number" id="f-cashback-min" min="0" step="500" value="0">
+                  <p class="field-hint">Compras menores a este monto no acumulan. Deja en 0 para siempre acumular.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="section">
             <h2>Colores</h2>
             <p class="section-sub">Se aplican a los sellos, la barra de progreso y el fondo.</p>
@@ -1446,6 +1487,15 @@ function llenarForm(cfg, tenantCfg) {
   $('f-bannerUrl').value = cfg.bannerUrl || '';
   pintarThumb('banner', cfg.bannerUrl || '');
   $('up-banner-rm').style.display = cfg.bannerUrl ? '' : 'none';
+  // ── Modo del programa (sellos vs cashback) ──
+  var modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+  var radios = document.getElementsByName('f-modo');
+  for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === modo);
+  var cbCfg = cfg.cashback || {};
+  $('f-cashback-pct').value = Number(cbCfg.porcentaje) || 5;
+  $('f-cashback-min').value = Number(cbCfg.minCompra) || 0;
+  updateModoUI();
+
   // ── Tab Reglas ──
   pintarReglasDia(cfg.reglasDia || {});
   var cum = cfg.cumpleanos || {};
@@ -1542,6 +1592,15 @@ function leerForm() {
     fechaNacObligatoria: $('f-reg-fnac-obl').checked,
     pedirInstagram:      $('f-reg-instagram').checked,
   };
+  // ── Modo del programa ──
+  var modoSel = 'sellos';
+  var radios = document.getElementsByName('f-modo');
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) modoSel = radios[i].value;
+  cfg.modo = modoSel === 'cashback' ? 'cashback' : 'sellos';
+  cfg.cashback = {
+    porcentaje: Math.max(0.5, Math.min(50, Number($('f-cashback-pct').value) || 5)),
+    minCompra:  Math.max(0, Number($('f-cashback-min').value) || 0),
+  };
   // ── Reglas del club ──
   var reglas = {};
   document.querySelectorAll('#reglas-dias input[type=number]').forEach(function (inp) {
@@ -1562,6 +1621,15 @@ function leerForm() {
   };
   return cfg;
 }
+
+// Alterna visibilidad del bloque de config cashback según radio activo.
+function updateModoUI() {
+  var modo = 'sellos';
+  var radios = document.getElementsByName('f-modo');
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) modo = radios[i].value;
+  document.getElementById('cashback-config').style.display = (modo === 'cashback') ? '' : 'none';
+}
+window.updateModoUI = updateModoUI;
 
 // Pintar el grid de 7 días con multiplicadores. Cada input marca dirty
 // al cambiar; leerForm los serializa a cfg.reglasDia (solo >1).
@@ -2163,6 +2231,13 @@ $('f-enabled').addEventListener('change', function () { renderPreview(); marcarD
 });
 ['f-cumple-activa', 'f-expira-activa'].forEach(function (id) {
   $(id).addEventListener('change', marcarDirty);
+});
+// Modo del programa + cashback config
+document.getElementsByName('f-modo').forEach(function (r) {
+  r.addEventListener('change', function () { marcarDirty(); updateModoUI(); });
+});
+['f-cashback-pct', 'f-cashback-min'].forEach(function (id) {
+  $(id).addEventListener('input', marcarDirty);
 });
 
 // ── Preflight del logo (Google LoyaltyClass exige cuadrado ≥ 660×660) ──

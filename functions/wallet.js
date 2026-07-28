@@ -213,13 +213,22 @@ exports.walletGenerarPase = onCall(
     const { filled, target, hitos } = core.stampState(disp, premios);
     const rango = core.rangoNombre(hist, rangosCfg);
     const accountName = u.nombre || u.displayName || 'Cliente';
+    // Modo cashback: pase muestra saldo $ en vez de sellos. cashbackPct
+    // se lee de cfg.cashback (default 5%). Compatible con modo sellos:
+    // buildObject decide qué renderizar según cfg.modo.
+    const modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+    const cashbackDisponible = Number(u.cashbackDisponible) || 0;
+    const cashbackPct = Number(cfg.cashback && cfg.cashback.porcentaje) || 5;
 
     try {
       const key = saKey();
       // Asegurar la clase (idempotente) por si el admin solo activó sin provisionar.
       await core.upsertClass(key, core.buildClass(tenantId, cfg));
 
-      const obj = core.buildObject(tenantId, uid, { accountName, filled, target, hitos, premios, rango, accent, bg, icon });
+      const obj = core.buildObject(tenantId, uid, {
+        accountName, filled, target, hitos, premios, rango, accent, bg, icon,
+        modo, cashbackDisponible, cashbackPct,
+      });
       await core.upsertObject(key, obj);
 
       // Guardar el vínculo en el user doc → habilita el sync automático.
@@ -257,7 +266,10 @@ async function syncPase(tenantId, uid, before, after) {
   const dispDesp  = Number(after?.sellosDisponibles  ?? after?.stamps  ?? 0);
   const histAntes = Number(before?.sellosHistoricos ?? 0);
   const histDesp  = Number(after?.sellosHistoricos  ?? 0);
-  if (dispAntes === dispDesp && histAntes === histDesp) return; // nada relevante cambió
+  // Modo cashback: además del cambio de sellos, watch el saldo cashback.
+  const cbAntes = Number(before?.cashbackDisponible ?? 0);
+  const cbDesp  = Number(after?.cashbackDisponible  ?? 0);
+  if (dispAntes === dispDesp && histAntes === histDesp && cbAntes === cbDesp) return; // nada relevante cambió
 
   if (objectId) {
     try {
@@ -268,18 +280,30 @@ async function syncPase(tenantId, uid, before, after) {
       ]);
       const accent = cfg.accent || '#c9a84c';
       const bg = cfg.bg; const icon = cfg.stampIcon;
+      const modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+      const cashbackPct = Number(cfg.cashback && cfg.cashback.porcentaje) || 5;
       const { filled, target, hitos } = core.stampState(dispDesp, premios);
       const rango = core.rangoNombre(histDesp, rangosCfg);
 
-      // Módulos: rango + recompensas por hito (si hay premios cargados).
+      // Módulos: rango + recompensas por hito (si hay premios cargados) o
+      // explicación cashback según el modo del tenant.
       const textModules = [{ id: 'rango', header: 'Rango', body: rango }];
-      const recompensasBody = core.recompensasListText(premios);
-      if (recompensasBody) textModules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+      if (modo === 'cashback') {
+        textModules.push({ id: 'cashback', header: '¿Cómo funciona?',
+          body: `Cada compra te devuelve ${cashbackPct}% en saldo Wallo. Úsalo cuando quieras — te lo descontamos al pagar.` });
+      } else {
+        const recompensasBody = core.recompensasListText(premios);
+        if (recompensasBody) textModules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+      }
 
-      const key = saKey();
-      await core.patchObject(key, objectId, {
-        loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-        heroImage: { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon, hitos }) } },
+      // Balance del pase depende del modo. En cashback la strip queda vacía
+      // (no dibujamos sellos porque no hay concepto de casilla).
+      const balance = modo === 'cashback'
+        ? core.formatCLP(cbDesp)
+        : `${filled} / ${target}`;
+      const label = modo === 'cashback' ? 'Saldo' : 'Sellos';
+      const patch = {
+        loyaltyPoints: { label, balance: { string: balance } },
         textModulesData: textModules,
         // Backfill del QR en pases viejos (los nuevos ya lo traen desde buildObject).
         barcode: {
@@ -287,11 +311,15 @@ async function syncPase(tenantId, uid, before, after) {
           value: core.staffBarcodeValue(tenantId, uid),
           alternateText: String(uid).slice(0, 8),
         },
-        // Backfill del tap-away Wallo en pases ya emitidos: la primera vez
-        // que sumen 1 sello, el pase se actualiza y muestra "Wallo · Crea
-        // tu tarjeta digital" — motor viral compuesto activado.
+        // Backfill del tap-away Wallo en pases ya emitidos.
         linksModuleData: { uris: [core.WALLO_LINK] },
-      });
+      };
+      // Sólo modo sellos actualiza la strip. En cashback la mantenemos
+      // sin cambios (o si la clase la tenía, respeta la del build inicial).
+      if (modo !== 'cashback') {
+        patch.heroImage = { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon, hitos }) } };
+      }
+      await core.patchObject(key, objectId, patch);
 
       // Hito: desbloqueó un premio nuevo → notificación automática al pase.
       if (dispDesp > dispAntes) {

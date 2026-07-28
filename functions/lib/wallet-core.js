@@ -145,32 +145,65 @@ function staffBarcodeValue(tenantId, uid) {
   return `SPTW:${safe(tenantId)}:${safe(uid)}`;
 }
 
-function buildObject(tenantId, uid, { accountName, filled, target, rango, accent, bg, icon, hitos, premios }) {
+// Formatea CLP sin decimales (ej: 5400 → "$5.400"). Apple/Google Wallet
+// renderizan strings arbitrarios en loyaltyPoints — no hay tipo money nativo.
+function formatCLP(n) {
+  const v = Math.max(0, Math.round(Number(n) || 0));
+  return '$' + v.toLocaleString('es-CL');
+}
+
+// modo: 'sellos' (default) | 'cashback'.
+// Si cashback: cashbackDisponible + porcentaje se leen del contexto y
+// reemplazan el balance del pase. La strip (heroImage) también cambia —
+// no dibujamos sellos porque no hay concepto de "casillas" en cashback.
+function buildObject(tenantId, uid, opts) {
+  const {
+    accountName, rango, accent, bg, icon, hitos, premios,
+    // Sellos (default)
+    filled, target,
+    // Cashback
+    modo, cashbackDisponible, cashbackPct,
+  } = opts || {};
+  const esCashback = modo === 'cashback';
+
   const obj = {
     id: objectIdFor(tenantId, uid),
     classId: classIdFor(tenantId),
     state: 'ACTIVE',
     accountId: String(uid),
     accountName: accountName || 'Cliente',
-    loyaltyPoints: { label: 'Sellos', balance: { string: `${filled} / ${target}` } },
-    heroImage: { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon, hitos }) } },
-    // QR escaneable por el staff (wallets.bioo.cl/staff). Sin esto el pase
-    // no muestra código y el flujo standalone (sin agenda) no funciona.
+    // QR escaneable por el staff (wallets.bioo.cl/staff).
     barcode: {
       type: 'QR_CODE',
       value: staffBarcodeValue(tenantId, uid),
       alternateText: String(uid).slice(0, 8),
     },
-    // Override del linksModuleData de la clase — así los pases YA emitidos
-    // reciben el tap-away de Wallo en el próximo sync (patchObject en
-    // syncPase también lo pushea). Sin este override, sólo los pases nuevos
-    // heredarían el link desde la clase.
+    // Tap-away Wallo (override sobre la clase).
     linksModuleData: { uris: [WALLO_LINK] },
   };
+
+  if (esCashback) {
+    // Cashback: la vista principal es el saldo en pesos.
+    obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(cashbackDisponible) } };
+    // Heroic image: si el tenant subió banner (bg) usamos color plano; sin
+    // strip de sellos. Google renderiza el color de fondo de la clase igual.
+  } else {
+    // Sellos (comportamiento default histórico).
+    obj.loyaltyPoints = { label: 'Sellos', balance: { string: `${filled} / ${target}` } };
+    obj.heroImage = { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon, hitos }) } };
+  }
+
   const modules = [];
   if (rango) modules.push({ id: 'rango', header: 'Rango', body: rango });
+  if (esCashback && cashbackPct) {
+    modules.push({
+      id: 'cashback',
+      header: '¿Cómo funciona?',
+      body: `Cada compra te devuelve ${cashbackPct}% en saldo Wallo. Úsalo cuando quieras — te lo descontamos al pagar.`,
+    });
+  }
   const recompensasBody = recompensasListText(premios);
-  if (recompensasBody) modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+  if (!esCashback && recompensasBody) modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
   if (modules.length) obj.textModulesData = modules;
   return obj;
 }
@@ -261,4 +294,5 @@ module.exports = {
   buildSaveUrl,
   staffBarcodeValue,
   recompensasListText,
+  formatCLP,
 };

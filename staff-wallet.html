@@ -180,6 +180,20 @@
   </div>
 
   <!-- Resultado OK -->
+  <!-- Modo cashback: pedimos monto de la compra antes de acreditar. -->
+  <div id="view-monto" class="hidden" style="padding-top:5vh;">
+    <div class="result-card" style="border-color:var(--soft);text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.08);">
+      <div style="text-align:center;font-size:36px;margin-bottom:6px;">💵</div>
+      <h2 style="text-align:center;">Cliente identificado</h2>
+      <div class="who" id="monto-nombre" style="text-align:center;">—</div>
+      <label for="monto-input" style="display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:18px 0 6px;">Monto de la compra</label>
+      <input type="number" id="monto-input" min="1" step="100" placeholder="$0" style="width:100%;height:56px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:22px;font-weight:700;text-align:center;letter-spacing:-.5px;">
+      <p id="monto-hint" style="font-size:12.5px;color:var(--soft);text-align:center;margin-top:8px;">Ingresa el total. Sistema abona el % configurado.</p>
+      <button class="btn" id="monto-btn" onclick="confirmarCashback()" style="margin-top:16px;">Acreditar cashback</button>
+      <button class="btn-ghost" onclick="volverAScan()" style="margin-top:8px;">Cancelar</button>
+    </div>
+  </div>
+
   <div id="view-result" class="hidden" style="padding-top:6vh;">
     <div class="result-card" id="result-card"></div>
     <button class="btn-ghost" onclick="volverAScan()" style="margin-top:14px;">← Escanear otra</button>
@@ -212,7 +226,10 @@
 // ─────────────────────────────────────────────────────────────────
 
 var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
+var META_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletTenantMeta';
 var _tid = null;
+var _tenantMeta = null;  // {modo, cashback:{porcentaje, minCompra}, ...} — carga al elegir tenant
+var _pendingUid = null;  // uid escaneado esperando monto (modo cashback)
 var _isSuper = false;
 var _stream = null;
 var _detector = null;
@@ -223,7 +240,7 @@ var _lastValueTs = 0;
 
 function $(id) { return document.getElementById(id); }
 function show(id) {
-  ['view-loading', 'view-login', 'view-denied', 'view-scan', 'view-result', 'view-error']
+  ['view-loading', 'view-login', 'view-denied', 'view-scan', 'view-monto', 'view-result', 'view-error']
     .forEach(function (v) { $(v).classList.toggle('hidden', v !== id); });
 }
 function toast(msg, esError) {
@@ -285,6 +302,7 @@ firebase.auth().onAuthStateChanged(function (user) {
     if (!esStaff) { show('view-denied'); return; }
     _tid = String(claims.tenantId);
     setVenueName(_tid);
+    cargarMeta(_tid);
     show('view-scan');
     arrancarCamara();
   }).catch(function () { show('view-denied'); });
@@ -305,11 +323,26 @@ function initTenantPicker() {
   }).join('');
   $('tenant-picker').classList.remove('hidden');
 }
+// Meta público del tenant — nos dice modo (sellos/cashback) + config
+// cashback (porcentaje, min). Sin auth, cache 60s en CDN.
+async function cargarMeta(tid) {
+  try {
+    var r = await fetch(META_URL + '?tid=' + encodeURIComponent(tid));
+    var data = await r.json();
+    if (data && data.ok) {
+      _tenantMeta = { modo: data.modo || 'sellos', cashback: data.cashback || { porcentaje: 5, minCompra: 0 } };
+      return;
+    }
+  } catch (_) {}
+  _tenantMeta = { modo: 'sellos', cashback: { porcentaje: 5, minCompra: 0 } };
+}
+
 function cambiarTenant(tid) {
   detenerCamara();
-  if (!tid) { _tid = null; setVenueName(null); return; }
+  if (!tid) { _tid = null; _tenantMeta = null; setVenueName(null); return; }
   _tid = tid;
   setVenueName(tid);
+  cargarMeta(tid);
   arrancarCamara();
 }
 function setVenueName(tid) {
@@ -407,7 +440,66 @@ function procesarQR(raw) {
     mostrarError('Ese código no corresponde a una tarjeta bioo válida.');
     return;
   }
+  // Bifurca según modo del tenant: sellos → suma directo; cashback →
+  // pide monto de la compra primero.
+  var modo = (_tenantMeta && _tenantMeta.modo) || 'sellos';
+  if (modo === 'cashback') { pedirMonto(uid); return; }
   sumarSello(uid);
+}
+
+// ── Modo cashback: pantalla intermedia pidiendo monto ──────────────
+function pedirMonto(uid) {
+  _pendingUid = uid;
+  var pct = (_tenantMeta && _tenantMeta.cashback && _tenantMeta.cashback.porcentaje) || 5;
+  var min = (_tenantMeta && _tenantMeta.cashback && _tenantMeta.cashback.minCompra) || 0;
+  $('monto-nombre').textContent = 'Ingresa el monto de la compra';
+  $('monto-input').value = '';
+  $('monto-hint').innerHTML = 'Cashback ' + pct + '%' + (min > 0 ? ' · mínimo $' + min.toLocaleString('es-CL') : '');
+  detenerCamara();
+  show('view-monto');
+  setTimeout(function () { $('monto-input').focus(); }, 100);
+}
+function confirmarCashback() {
+  var monto = parseInt($('monto-input').value, 10) || 0;
+  if (monto <= 0) { toast('Ingresa un monto válido.', true); return; }
+  if (!_pendingUid) { volverAScan(); return; }
+  _busy = true;
+  var btn = $('monto-btn');
+  var txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Acreditando…';
+  var fn = firebase.app().functions('us-central1').httpsCallable('walletSumarCashbackStaff');
+  fn({ tenantId: _tid, uid: _pendingUid, montoCompra: monto })
+    .then(function (r) {
+      var d = r.data || {};
+      mostrarResultadoCashback(d, monto);
+    })
+    .catch(function (e) {
+      var msg = 'No se pudo acreditar el cashback.';
+      if (e && e.code === 'permission-denied') msg = 'No tienes permisos.';
+      else if (e && e.code === 'not-found') msg = 'Este cliente no existe en el local.';
+      else if (e && e.code === 'failed-precondition') msg = (e.message || msg);
+      mostrarError(msg);
+    })
+    .finally(function () { _busy = false; btn.disabled = false; btn.textContent = txt; });
+}
+function mostrarResultadoCashback(d, montoOriginal) {
+  var nombre = (d.cliente && d.cliente.nombre) || 'Cliente';
+  var abonado = Number(d.montoAcreditado) || 0;
+  var saldo = Number(d.saldo) || 0;
+  var pct = d.porcentajeAplicado || '';
+  var dup = d.duplicado === true;
+  var html = ''
+    + '<div class="icon">' + (dup ? '⏱️' : '💵') + '</div>'
+    + '<h2>' + (dup ? 'Ya registrado' : '¡Cashback acreditado!') + '</h2>'
+    + '<div class="who">' + escapar(nombre) + '</div>'
+    + (dup
+        ? '<p style="font-size:13px;color:var(--soft);margin-bottom:14px;">Este cliente ya recibió cashback hace unos segundos. Espera un momento antes de reintentar.</p>'
+        : '<div class="badge">+ $' + abonado.toLocaleString('es-CL') + (pct ? ' · ' + pct + '% de $' + montoOriginal.toLocaleString('es-CL') : '') + '</div>')
+    + '<div class="saldo">$' + saldo.toLocaleString('es-CL') + '</div>'
+    + '<div class="saldo-lbl">Saldo disponible</div>';
+  $('result-card').innerHTML = html;
+  _pendingUid = null;
+  show('view-result');
 }
 
 // ── Callable: sumar sello ─────────────────────────────────────────
@@ -459,9 +551,11 @@ function mostrarError(msg) {
 }
 function volverAScan() {
   _lastValue = null; _lastValueTs = 0;
+  _pendingUid = null;
   show('view-scan');
   arrancarCamara();
 }
+window.confirmarCashback = confirmarCashback;
 function escapar(s) {
   return String(s || '').replace(/[<>&"']/g, function (c) {
     return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c];

@@ -1648,6 +1648,10 @@ exports.walletExpiracionCron    = walletCron.walletExpiracionCron;
 // Se dispara desde tab Clientes del estudio filtrando por chip.
 exports.walletPushMasivo        = require('./wallet-push').walletPushMasivo;
 
+// Cashback (modo alternativo a sellos): el staff registra el monto de
+// la compra y el sistema abona % del cfg como saldo $. Ver wallet-cashback.js.
+exports.walletSumarCashbackStaff = require('./wallet-cashback').walletSumarCashbackStaff;
+
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.
