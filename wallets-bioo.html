@@ -10,123 +10,294 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* ── Marca bioo: claro, tinta verde, Plus Jakarta (espejo de links/index.html) ── */
+  /* ═══ Wallo · Estudio — Sistema de diseño Apple premium ═══
+     Espejo de macOS/iOS Settings: tipografía SF Pro, paleta neutra
+     con acento verde iOS, cards blancos sobre gris tenue, radios
+     16/20, sombras difusas, transitions cubic-bezier. */
   :root{
-    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
-    --ok:#16a34a; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+    /* Colores base — Apple neutral palette */
+    --bg: #F5F5F7;           /* fondo global (gris frío Apple) */
+    --surface: #FFFFFF;      /* cards, popovers */
+    --surface-2: #FAFAFB;    /* fondo alt (sub-cards, disabled) */
+    --hairline: rgba(0,0,0,0.06);  /* borde tipo iOS Settings */
+    --border: rgba(0,0,0,0.08);
+    --ink: #1D1D1F;          /* texto principal */
+    --ink-2: #3A3A3C;        /* texto secundario fuerte */
+    --soft: #6E6E73;         /* texto secundario */
+    --muted: #86868B;        /* texto tenue / hints */
+    --disabled: #C7C7CC;
+
+    /* Acentos iOS */
+    --accent: #30D158;       /* verde iOS system green */
+    --accent-dark: #248A3D;
+    --accent-tint: rgba(48,209,88,0.10);
+    --blue: #007AFF;         /* azul iOS system blue (foco, links) */
+    --blue-tint: rgba(0,122,255,0.10);
+    --red: #FF3B30;
+    --orange: #FF9500;
+
+    /* Legacy aliases — el JS y algunos handlers viejos referencian estos.
+       Los mapeamos al nuevo sistema para no romper nada. */
+    --line: var(--border);
+    --white: var(--surface);
+    --ok: var(--accent);
+    --warn: var(--orange);
+    --err: var(--red);
+
+    /* Radios */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+    --r-2xl: 28px;
+
+    /* Sombras — siempre difusas, nunca "hard" */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.05);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.08);
+    --shadow-preview: 0 30px 60px -20px rgba(0,0,0,0.35), 0 6px 20px -6px rgba(0,0,0,0.15);
+
+    /* Transitions estilo Apple */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Tipografía */
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, sans-serif;
   }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
-  body{min-height:100dvh;display:flex;flex-direction:column;}
-  a{color:inherit;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+  html,body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.47;}
+  body{min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;}
+  a{color:var(--blue);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  img{max-width:100%;display:block;}
+  button{font-family:inherit;}
 
-  header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;max-width:1080px;width:100%;margin:0 auto;}
-  .wordmark{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.5px;}
-  .wordmark .pill{font-size:12px;font-weight:700;letter-spacing:.4px;background:var(--ink);color:#fff;border-radius:999px;padding:4px 10px;}
-  .session{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--soft);}
-  .session button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--soft);}
-
-  main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:8px 22px 40px;}
   .hidden{display:none !important;}
 
-  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 2px 10px rgba(21,36,11,.05);}
-
-  /* Login */
-  .login-wrap{max-width:400px;margin:6vh auto 0;}
-  .login-wrap h1{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;}
-  .login-wrap p.sub{font-size:14px;color:var(--soft);margin-bottom:22px;}
-  label{display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:14px 0 6px;letter-spacing:.2px;}
-  input[type=email],input[type=password],input[type=text],input[type=url],input[type=number],select{
-    width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:15px;
-    font-family:inherit;background:#fff;color:var(--ink);outline:none;transition:border .15s;
+  /* ═══ Header sticky con glass effect (macOS style) ═══ */
+  header.top{
+    position:sticky;top:0;z-index:40;
+    background:rgba(245,245,247,0.82);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid var(--hairline);
+    padding:14px 24px;
   }
-  input:focus,select:focus{border-color:var(--ink);}
-  .btn{width:100%;height:52px;border:0;border-radius:14px;background:var(--ink);color:#fff;font-size:15.5px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.2px;box-shadow:0 4px 14px rgba(21,36,11,.18);font-family:inherit;}
-  .btn:hover{background:#1d3411;transform:translateY(-1px);}
-  .btn:disabled{opacity:.55;cursor:default;transform:none;}
+  header.top .inner{display:flex;align-items:center;justify-content:space-between;max-width:1400px;width:100%;margin:0 auto;gap:16px;}
+  .wordmark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-0.4px;color:var(--ink);}
+  .wordmark .dot{width:26px;height:26px;border-radius:7px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;letter-spacing:-0.5px;}
+  .wordmark .pill{font-size:11px;font-weight:600;letter-spacing:0.02em;background:rgba(0,0,0,0.06);color:var(--soft);border-radius:999px;padding:3px 9px;text-transform:uppercase;}
+  .session{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--soft);}
+  .session #session-email{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .session button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);transition:all 0.15s var(--ease);}
+  .session button:hover{background:var(--surface-2);}
+  @media (max-width:640px){ .session #session-email{display:none;} }
+
+  main{flex:1;width:100%;max-width:1400px;margin:0 auto;padding:24px;}
+  @media (max-width:640px){ main{padding:16px;} }
+
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-xl);box-shadow:var(--shadow-md);}
+
+  /* ═══ Login / Denied — centrado limpio ═══ */
+  .login-wrap{max-width:400px;margin:8vh auto 0;padding:0 4px;}
+  .login-wrap .card{padding:28px;}
+  .login-wrap h1{font-size:26px;font-weight:700;letter-spacing:-0.8px;margin-bottom:6px;}
+  .login-wrap p.sub{font-size:15px;color:var(--soft);margin-bottom:20px;line-height:1.47;}
+
+  /* ═══ Form fields — estilo iOS Settings ═══ */
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin:16px 0 6px;letter-spacing:-0.1px;}
+  input[type=email],input[type=password],input[type=text],input[type=url],input[type=number],input[type=tel],input[type=date],select,textarea{
+    width:100%;height:44px;
+    border:1px solid var(--border);border-radius:var(--r-md);
+    padding:0 14px;font-size:15px;font-family:inherit;
+    background:var(--surface);color:var(--ink);
+    outline:none;transition:all 0.15s var(--ease);
+    -webkit-appearance:none;appearance:none;
+  }
+  textarea{height:auto;padding:12px 14px;min-height:80px;resize:vertical;}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-tint);}
+  input::placeholder{color:var(--muted);}
+  input:disabled{background:var(--surface-2);color:var(--muted);cursor:not-allowed;}
+
+  /* Botones — llenos y ghost */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;height:46px;border:0;border-radius:var(--r-md);
+    background:var(--ink);color:#fff;
+    font-size:15px;font-weight:600;letter-spacing:-0.1px;
+    cursor:pointer;transition:all 0.15s var(--ease);font-family:inherit;
+  }
+  .btn:hover{background:#000;transform:translateY(-1px);box-shadow:var(--shadow-md);}
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:0.4;cursor:default;transform:none;box-shadow:none;}
+  .btn.accent{background:var(--accent);color:#fff;}
+  .btn.accent:hover{background:var(--accent-dark);}
+  .btn.blue{background:var(--blue);color:#fff;}
+  .btn-ghost{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;height:42px;border:1px solid var(--border);border-radius:var(--r-md);
+    background:var(--surface);color:var(--ink);
+    font-size:14px;font-weight:600;cursor:pointer;
+    transition:all 0.15s var(--ease);font-family:inherit;margin-top:10px;
+  }
+  .btn-ghost:hover{background:var(--surface-2);border-color:var(--ink);}
+  .btn-ghost:disabled{opacity:0.5;cursor:default;}
+
   .msg-err{margin-top:12px;font-size:13.5px;color:var(--err);font-weight:600;display:none;}
-  .link-btn{background:none;border:0;padding:0;margin-top:14px;font:inherit;color:var(--soft);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
-  .link-btn:hover{color:var(--ink);}
-  .link-btn:disabled{opacity:.55;cursor:default;}
+  .link-btn{background:none;border:0;padding:0;margin-top:14px;font:inherit;color:var(--blue);font-size:14px;font-weight:500;cursor:pointer;}
+  .link-btn:hover{text-decoration:underline;}
 
-  /* Studio */
-  .studio-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:6px 0 18px;}
-  .studio-head h1{font-size:22px;font-weight:800;letter-spacing:-.5px;}
-  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:999px;padding:6px 12px;}
-  .badge.ok{background:rgba(22,163,74,.1);color:var(--ok);}
-  .badge.off{background:rgba(180,83,9,.1);color:var(--warn);}
-  .banner{border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.5;margin-bottom:18px;}
-  .banner.warn{background:rgba(180,83,9,.08);border:1px solid rgba(180,83,9,.25);color:#7c4a12;}
+  /* ═══ Estudio layout: 3 columnas desktop, 1 mobile ═══ */
+  .studio-shell{
+    display:grid;
+    grid-template-columns:220px 1fr 380px;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:1100px){ .studio-shell{grid-template-columns:1fr 340px;gap:16px;} .studio-nav{display:none;} }
+  @media (max-width:820px){ .studio-shell{grid-template-columns:1fr;} }
 
-  .grid{display:grid;grid-template-columns:1fr 400px;gap:22px;align-items:start;}
-  @media (max-width:900px){.grid{grid-template-columns:1fr;}}
+  /* Sidebar (desktop) — tabs verticales estilo macOS Finder */
+  .studio-nav{
+    position:sticky;top:76px;
+    padding:8px;background:var(--surface);border:1px solid var(--hairline);
+    border-radius:var(--r-xl);box-shadow:var(--shadow-sm);
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:11px;
+    width:100%;padding:10px 12px;border:0;background:transparent;
+    border-radius:var(--r-sm);cursor:pointer;
+    font-size:14px;font-weight:500;color:var(--ink);
+    text-align:left;transition:all 0.12s var(--ease);
+    font-family:inherit;letter-spacing:-0.1px;margin-bottom:2px;
+  }
+  .nav-item:hover{background:var(--surface-2);}
+  .nav-item.active{background:var(--blue);color:#fff;font-weight:600;}
+  .nav-item .ico{font-size:16px;line-height:1;width:20px;text-align:center;}
+
+  /* Segmented control (mobile) — tabs horizontales */
+  .studio-segments{
+    display:none;
+    background:rgba(120,120,128,0.12);border-radius:var(--r-sm);
+    padding:2px;margin-bottom:16px;overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .studio-segments::-webkit-scrollbar{display:none;}
+  @media (max-width:1100px){ .studio-segments{display:flex;} }
+  .studio-segments .seg{
+    flex:1;min-width:88px;padding:8px 12px;border:0;background:transparent;
+    border-radius:6px;cursor:pointer;
+    font-size:13px;font-weight:500;color:var(--ink-2);
+    transition:all 0.15s var(--ease);font-family:inherit;letter-spacing:-0.1px;
+    white-space:nowrap;
+  }
+  .studio-segments .seg.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08),0 0.5px 0 rgba(255,255,255,0.5) inset;}
+
+  /* Header del estudio — tenant + estado + botón guardar */
+  .studio-head{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    margin-bottom:20px;flex-wrap:wrap;
+  }
+  .studio-head .t{display:flex;flex-direction:column;gap:2px;}
+  .studio-head h1{font-size:22px;font-weight:700;letter-spacing:-0.6px;color:var(--ink);line-height:1.2;}
+  .studio-head .sub{font-size:13px;color:var(--soft);}
+  .studio-head .actions{display:flex;align-items:center;gap:10px;}
+  .studio-head .btn{width:auto;padding:0 18px;height:38px;font-size:14px;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px;letter-spacing:-0.05px;}
+  .badge.ok{background:var(--accent-tint);color:var(--accent-dark);}
+  .badge.off{background:rgba(255,149,0,0.12);color:#B25200;}
+  .banner{border-radius:var(--r-md);padding:12px 14px;font-size:13.5px;line-height:1.47;margin-bottom:16px;}
+  .banner.warn{background:rgba(255,149,0,0.08);border:1px solid rgba(255,149,0,0.25);color:#8A4D00;}
+  .banner.warn a{color:inherit;text-decoration:underline;font-weight:600;}
+
+  /* Contenido de cada tab — cards agrupados */
+  .studio-main{display:flex;flex-direction:column;gap:16px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:flex;flex-direction:column;gap:16px;}
+  .section{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-xl);padding:22px 22px 24px;box-shadow:var(--shadow-sm);}
+  .section h2{font-size:17px;font-weight:600;letter-spacing:-0.3px;margin-bottom:4px;color:var(--ink);}
+  .section p.section-sub{font-size:13px;color:var(--soft);margin-bottom:16px;line-height:1.47;}
 
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .geo-map{width:100%;height:240px;border-radius:12px;overflow:hidden;border:1px solid #e2e5e0;margin-top:6px;background:#eef1ee;}
+  @media (max-width:520px){ .row2{grid-template-columns:1fr;} }
+  /* ═══ Geo-push ═══ */
+  .geo-map{width:100%;height:260px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border);margin-top:6px;background:#eef1ee;}
   .geo-search{position:relative;margin-top:6px;}
-  .geo-search input{padding-left:38px;}
-  .geo-search::before{content:'📍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;opacity:.7;}
-  /* Panel de sugerencias de Google Places — encaja con el tema del editor. */
-  .pac-container{border-radius:12px;box-shadow:0 6px 22px rgba(21,36,11,.14);border:1px solid var(--line);margin-top:4px;font-family:'Plus Jakarta Sans',sans-serif;}
-  .pac-item{padding:10px 14px;font-size:13.5px;line-height:1.35;cursor:pointer;border-top:1px solid #f2f3f0;}
+  .geo-search input{padding-left:36px;}
+  .geo-search::before{content:'⌕';position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;color:var(--muted);font-weight:400;}
+  /* Panel de sugerencias de Google Places — encaja con el tema Apple. */
+  .pac-container{border-radius:var(--r-md);box-shadow:var(--shadow-lg);border:1px solid var(--hairline);margin-top:6px;font-family:var(--font);overflow:hidden;}
+  .pac-item{padding:10px 14px;font-size:14px;line-height:1.35;cursor:pointer;border-top:1px solid var(--hairline);}
   .pac-item:first-child{border-top:0;}
-  .pac-item:hover{background:#f2f6ee;}
+  .pac-item:hover{background:var(--blue-tint);}
   .pac-icon{display:none;}
-  .pac-item-query{font-size:14px;font-weight:600;color:var(--ink);}
-  .pac-matched{font-weight:800;}
-  .geo-radius-row{margin-top:12px;}
-  .range{width:100%;accent-color:#39c313;margin-top:6px;}
+  .pac-item-query{font-size:14px;font-weight:500;color:var(--ink);}
+  .pac-matched{font-weight:700;}
+  .geo-radius-row{margin-top:14px;}
+  .range{width:100%;accent-color:var(--blue);margin-top:6px;}
   .geo-locs{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
-  .geo-loc{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1.5px solid #e2e5e0;background:#fff;cursor:pointer;font-size:13px;color:#5c6367;transition:.15s;}
-  .geo-loc:hover{border-color:#c7ccc2;}
-  .geo-loc.sel{border-color:#15240b;background:#f2f6ee;color:#15240b;font-weight:600;}
-  .geo-loc .dot{width:20px;height:20px;border-radius:50%;background:#39c313;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .geo-loc{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13.5px;color:var(--ink-2);transition:all 0.15s var(--ease);}
+  .geo-loc:hover{border-color:var(--ink-2);}
+  .geo-loc.sel{border-color:var(--blue);background:var(--blue-tint);color:var(--ink);font-weight:500;}
+  .geo-loc .dot{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .geo-loc .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .geo-loc .del{border:none;background:transparent;color:#b91c1c;cursor:pointer;font-size:15px;line-height:1;padding:3px 6px;border-radius:6px;flex-shrink:0;}
-  .geo-loc .del:hover{background:rgba(185,28,28,.1);}
-  .geo-add{margin-top:8px;width:100%;padding:10px;border-radius:10px;border:1.5px dashed #c7ccc2;background:#fafbfa;color:#15240b;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;}
-  .geo-add:hover{border-color:#39c313;background:#f2f6ee;}
-  .geo-add:disabled{opacity:.5;cursor:not-allowed;}
-  .geo-empty{font-size:12.5px;color:#8b9199;margin-top:8px;font-style:italic;}
-  .geo-hint{font-size:12px;color:#8b9199;margin-top:8px;line-height:1.45;}
-  .geo-hint.warn{color:#7c4a12;}
-  .field-hint{font-size:12px;margin-top:6px;line-height:1.4;color:#8b9199;min-height:1px;}
-  .field-hint.ok{color:#16a34a;}
-  .field-hint.warn{color:#7c4a12;}
-  .field-hint.err{color:#b91c1c;}
-  .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-  .theme-btn{width:40px;height:40px;border-radius:10px;border:2px solid #e2e5e0;cursor:pointer;padding:0;transition:.15s;}
-  .theme-btn:hover{transform:translateY(-1px);}
-  .icons{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-  .icon-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:66px;padding:9px 4px;border-radius:12px;border:1.5px solid #e2e5e0;background:#fff;cursor:pointer;font-size:11px;color:#5c6367;transition:.15s;}
-  .icon-btn:hover{border-color:#c7ccc2;}
-  .icon-btn .em{font-size:20px;line-height:1;}
-  .icon-btn.sel{border-color:#15240b;background:#f2f6ee;color:#15240b;font-weight:700;}
-  .color-field{display:flex;align-items:center;gap:8px;}
-  .color-field input[type=color]{width:48px;height:48px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:4px;cursor:pointer;}
-  .color-field input[type=text]{flex:1;}
+  .geo-loc .del{border:none;background:transparent;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:4px 8px;border-radius:6px;flex-shrink:0;font-weight:400;}
+  .geo-loc .del:hover{background:rgba(255,59,48,0.1);}
+  .geo-add{margin-top:8px;width:100%;padding:10px;border-radius:var(--r-md);border:1px dashed var(--border);background:var(--surface-2);color:var(--ink-2);font-weight:500;font-size:13.5px;cursor:pointer;transition:all 0.15s var(--ease);font-family:inherit;}
+  .geo-add:hover{border-color:var(--blue);color:var(--blue);}
+  .geo-add:disabled{opacity:0.5;cursor:not-allowed;}
+  .geo-empty{font-size:13px;color:var(--muted);margin-top:8px;font-style:italic;}
+  .geo-hint{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5;}
+  .geo-hint.warn{color:#8A4D00;}
+  .field-hint{font-size:12.5px;margin-top:6px;line-height:1.4;color:var(--muted);min-height:1px;}
+  .field-hint.ok{color:var(--accent-dark);}
+  .field-hint.warn{color:#8A4D00;}
+  .field-hint.err{color:var(--red);}
 
-  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;}
-  .switch-row .t{font-size:14px;font-weight:700;}
-  .switch-row .d{font-size:12.5px;color:var(--soft);margin-top:2px;}
-  .switch{position:relative;width:50px;height:30px;flex-shrink:0;}
+  /* ═══ Temas y iconos ═══ */
+  .themes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .theme-btn{width:44px;height:44px;border-radius:var(--r-md);border:2px solid var(--border);cursor:pointer;padding:0;transition:all 0.15s var(--spring);box-shadow:var(--shadow-sm);}
+  .theme-btn:hover{transform:scale(1.08);border-color:var(--ink);}
+  .icons{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .icon-btn{display:flex;flex-direction:column;align-items:center;gap:4px;width:70px;padding:10px 4px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;color:var(--soft);transition:all 0.15s var(--ease);font-family:inherit;}
+  .icon-btn:hover{border-color:var(--ink-2);background:var(--surface-2);}
+  .icon-btn .em{font-size:22px;line-height:1;}
+  .icon-btn.sel{border-color:var(--blue);background:var(--blue-tint);color:var(--ink);font-weight:600;}
+  .color-field{display:flex;align-items:center;gap:10px;}
+  .color-field input[type=color]{width:44px;height:44px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);padding:4px;cursor:pointer;flex-shrink:0;}
+  .color-field input[type=text]{flex:1;font-family:"SF Mono","Menlo",monospace;letter-spacing:0.02em;}
+
+  /* ═══ Switches iOS ═══ */
+  .switch-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:14px 0;border-top:1px solid var(--hairline);
+  }
+  .switch-row:first-of-type{border-top:0;padding-top:6px;}
+  .switch-row.boxed{padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-md);margin-top:12px;}
+  .switch-row .t{font-size:14.5px;font-weight:500;color:var(--ink);letter-spacing:-0.1px;}
+  .switch-row .d{font-size:12.5px;color:var(--soft);margin-top:3px;line-height:1.4;}
+  .switch{position:relative;width:51px;height:31px;flex-shrink:0;}
   .switch input{opacity:0;width:0;height:0;}
-  .slider{position:absolute;inset:0;background:#d6dae2;border-radius:999px;transition:.2s;cursor:pointer;}
-  .slider:before{content:'';position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.25);}
-  .switch input:checked + .slider{background:var(--ok);}
+  .slider{position:absolute;inset:0;background:rgba(120,120,128,0.16);border-radius:999px;transition:background 0.2s var(--ease);cursor:pointer;}
+  .slider:before{content:'';position:absolute;width:27px;height:27px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform 0.25s var(--spring);box-shadow:0 3px 8px rgba(0,0,0,0.15),0 0.5px 1px rgba(0,0,0,0.2);}
+  .switch input:checked + .slider{background:var(--accent);}
   .switch input:checked + .slider:before{transform:translateX(20px);}
 
-  /* Preview fiel a cada wallet (Google Wallet ≠ Apple Wallet en layout,
-     tipografía, radios y densidad — el mockup genérico anterior no lo
-     mostraba). El editor abre por defecto en Google (mayoría Android en
-     Chile); el dueño alterna con los tabs de arriba. */
-  .pv-sticky{position:sticky;top:18px;}
-  .pv-title{font-size:12.5px;font-weight:700;color:var(--soft);letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px;}
-  .pv-tabs{display:flex;gap:4px;margin-bottom:12px;background:#eef1ee;padding:4px;border-radius:12px;}
-  .pv-tab{flex:1;border:0;background:transparent;padding:9px 12px;font-size:13px;font-weight:700;color:var(--soft);cursor:pointer;border-radius:9px;transition:.15s;font-family:inherit;letter-spacing:-.1px;}
-  .pv-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(21,36,11,.1);}
+  /* ═══ Preview fiel a cada wallet ═══
+     Sticky en desktop, embebido en mobile. Tabs Google/Apple. */
+  .pv-shell{
+    position:sticky;top:76px;
+    background:var(--surface);border:1px solid var(--hairline);
+    border-radius:var(--r-xl);padding:18px;box-shadow:var(--shadow-md);
+  }
+  @media (max-width:820px){ .pv-shell{position:static;} }
+  .pv-title{font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;}
+  .pv-tabs{display:flex;gap:2px;margin-bottom:14px;background:rgba(120,120,128,0.12);padding:2px;border-radius:8px;}
+  .pv-tab{flex:1;border:0;background:transparent;padding:8px 12px;font-size:13px;font-weight:500;color:var(--ink-2);cursor:pointer;border-radius:6px;transition:all 0.15s var(--ease);font-family:inherit;letter-spacing:-0.1px;}
+  .pv-tab.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.08);}
   .pv-hidden{display:none;}
-  .pv-frame-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
+  .pv-frame-hint{font-size:11.5px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5;}
 
   /* ── Mockup Google Wallet (LoyaltyObject) ── */
   .pv-google{border-radius:20px;overflow:hidden;box-shadow:0 14px 40px rgba(21,36,11,.22);color:#fff;font-family:'Roboto','Plus Jakarta Sans',sans-serif;}
@@ -180,39 +351,76 @@
   .pv-a-back .modu a{color:inherit;text-decoration:underline;text-underline-offset:2px;opacity:.85;}
 
   .pv-demo{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12.5px;color:var(--soft);}
-  .pv-demo input[type=range]{flex:1;accent-color:var(--ink);}
-  .pv-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+  .pv-demo input[type=range]{flex:1;accent-color:var(--blue);}
+  .pv-note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5;}
 
-  /* Botón secundario (test en el propio celular del admin) */
-  .btn-ghost{width:100%;height:46px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
-  .btn-ghost:hover{border-color:var(--ink);}
-  .btn-ghost:disabled{opacity:.55;cursor:default;}
-  /* Modal test-tarjeta */
-  .modal-backdrop{position:fixed;inset:0;background:rgba(21,36,11,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px;opacity:0;pointer-events:none;transition:.2s;}
+  /* ═══ Modales ═══ */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;z-index:60;padding:20px;
+    opacity:0;pointer-events:none;transition:opacity 0.2s var(--ease);
+  }
   .modal-backdrop.show{opacity:1;pointer-events:auto;}
-  .modal{background:#fff;border-radius:20px;padding:26px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.3);}
-  .modal h2{font-size:19px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px;}
-  .modal p.sub{font-size:13.5px;color:var(--soft);line-height:1.5;margin-bottom:16px;}
-  .modal .qr-wrap{background:#fafbfa;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;}
+  .modal{
+    background:var(--surface);border-radius:var(--r-2xl);padding:26px;
+    max-width:420px;width:100%;max-height:90vh;overflow-y:auto;
+    box-shadow:0 25px 60px -10px rgba(0,0,0,0.3),0 8px 20px -5px rgba(0,0,0,0.2);
+    transform:scale(0.96);transition:transform 0.25s var(--spring);
+  }
+  .modal-backdrop.show .modal{transform:scale(1);}
+  .modal h2{font-size:20px;font-weight:700;margin-bottom:6px;letter-spacing:-0.5px;color:var(--ink);}
+  .modal p.sub{font-size:14px;color:var(--soft);line-height:1.5;margin-bottom:18px;}
+  .modal .qr-wrap{background:var(--surface-2);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:18px;text-align:center;margin-bottom:14px;}
   .modal .qr-wrap img{width:200px;height:200px;display:block;margin:0 auto 10px;}
-  .modal .qr-wrap .cap{font-size:12px;color:var(--soft);}
-  .modal .wallet-btn{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:8px;transition:.15s;}
+  .modal .qr-wrap .cap{font-size:12px;color:var(--soft);word-break:break-all;}
+  .modal .wallet-btn{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:var(--r-md);background:var(--ink);color:#fff;font-size:14.5px;font-weight:600;text-decoration:none;margin-bottom:8px;transition:all 0.15s var(--ease);}
   .modal .wallet-btn.apple{background:#000;}
-  .modal .wallet-btn:hover{transform:translateY(-1px);}
-  .modal .wallet-btn.disabled{opacity:.5;pointer-events:none;background:#8a93a3;}
-  .modal .close{margin-top:6px;width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--soft);font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
-  .modal .note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
-  .modal .spin-in{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px 0;color:var(--soft);font-size:14px;}
-  .modal .msg-err{color:var(--err);font-size:13px;font-weight:600;text-align:center;padding:16px 0;}
+  .modal .wallet-btn:hover{transform:translateY(-1px);text-decoration:none;}
+  .modal .wallet-btn.disabled{opacity:0.5;pointer-events:none;background:var(--disabled);}
+  .modal .close{margin-top:6px;width:100%;height:42px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--soft);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s var(--ease);}
+  .modal .close:hover{background:var(--surface-2);color:var(--ink);}
+  .modal .note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5;}
+  .modal .spin-in{display:flex;align-items:center;justify-content:center;gap:10px;padding:24px 0;color:var(--soft);font-size:14px;}
+  .modal .msg-err{color:var(--err);font-size:13.5px;font-weight:600;text-align:center;padding:16px 0;}
 
-  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:14px;font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:50;}
+  /* ═══ Toast ═══ */
+  .toast{
+    position:fixed;left:50%;bottom:26px;
+    transform:translateX(-50%) translateY(20px);
+    background:rgba(29,29,31,0.95);backdrop-filter:blur(20px);
+    color:#fff;font-size:14px;font-weight:500;
+    border-radius:14px;padding:12px 20px;
+    opacity:0;pointer-events:none;transition:all 0.25s var(--spring);
+    max-width:90vw;text-align:center;z-index:70;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .toast.err{background:var(--err);}
+  .toast.err{background:rgba(255,59,48,0.95);}
 
-  footer.powered{display:flex;align-items:center;justify-content:center;gap:7px;padding:22px;font-size:12px;color:var(--muted);}
-  footer.powered img{width:16px;height:16px;border-radius:4px;}
-  .spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 1s linear infinite;}
+  /* ═══ Footer ═══ */
+  footer.powered{display:flex;align-items:center;justify-content:center;gap:6px;padding:32px 22px;font-size:12px;color:var(--muted);}
+  footer.powered img{width:14px;height:14px;border-radius:3px;}
+
+  /* ═══ Spinners ═══ */
+  .spin{width:32px;height:32px;border:3px solid var(--hairline);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 0.8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ═══ FAB Guardar (mobile) — botón sticky abajo cuando hay cambios ═══ */
+  .save-fab{
+    position:fixed;bottom:16px;left:16px;right:16px;
+    height:52px;border:0;border-radius:14px;
+    background:var(--accent);color:#fff;
+    font-size:15.5px;font-weight:600;cursor:pointer;
+    box-shadow:0 10px 24px rgba(48,209,88,0.35);
+    transition:all 0.2s var(--spring);
+    z-index:35;transform:translateY(120%);opacity:0;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-family:inherit;
+  }
+  .save-fab.show{transform:translateY(0);opacity:1;}
+  .save-fab:disabled{opacity:0.55;}
+  @media (min-width:820px){ .save-fab{display:none;} }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -225,10 +433,12 @@
 <body>
 
 <header class="top">
-  <div class="wordmark">wallo <span class="pill">estudio</span></div>
-  <div class="session hidden" id="session">
-    <span id="session-email"></span>
-    <button onclick="salir()">Salir</button>
+  <div class="inner">
+    <div class="wordmark"><span class="dot">W</span> wallo <span class="pill">estudio</span></div>
+    <div class="session hidden" id="session">
+      <span id="session-email"></span>
+      <button onclick="salir()">Salir</button>
+    </div>
   </div>
 </header>
 
@@ -256,170 +466,217 @@
 
   <!-- Sin acceso -->
   <div id="view-denied" class="login-wrap hidden">
-    <div class="card" style="text-align:center;">
-      <h1 style="font-size:20px;">Sin acceso</h1>
+    <div class="card" style="text-align:center;padding:32px;">
+      <h1 style="font-size:20px;font-weight:600;">Sin acceso</h1>
       <p class="sub" style="margin:10px 0 0;">Esta cuenta no es administradora de ningún local. Si crees que es un error, escríbenos.</p>
     </div>
   </div>
 
   <!-- Studio -->
   <div id="view-studio" class="hidden">
+    <!-- Header del estudio: tenant + estado + selector superadmin + guardar -->
     <div class="studio-head">
-      <h1 id="studio-title">Tu tarjeta de fidelidad</h1>
-      <span class="badge off" id="addon-badge">…</span>
+      <div class="t">
+        <h1 id="studio-title">Tu tarjeta de fidelidad</h1>
+        <span class="sub">Diseña la tarjeta que aparecerá en Google Wallet y Apple Wallet.</span>
+      </div>
+      <div class="actions">
+        <span class="badge off" id="addon-badge">…</span>
+        <button class="btn accent" id="save-btn" onclick="guardar()">Guardar</button>
+      </div>
     </div>
 
     <!-- Selector de tenant (solo superadmin) -->
-    <div id="tenant-picker" class="hidden" style="margin-bottom:18px;">
-      <label for="tenant-select">Local</label>
+    <div id="tenant-picker" class="hidden" style="margin-bottom:16px;">
+      <label for="tenant-select" style="margin-top:0;">Local activo</label>
       <select id="tenant-select" onchange="cambiarDeLocal(this)"></select>
     </div>
 
     <div class="banner warn hidden" id="addon-banner"></div>
 
-    <div class="grid">
-      <!-- Formulario -->
-      <div class="card">
-        <label for="f-programName">Nombre del programa (título de la tarjeta)</label>
-        <input type="text" id="f-programName" maxlength="40" placeholder="Club de Fidelidad">
+    <!-- Segmented control (mobile): tabs horizontales -->
+    <div class="studio-segments">
+      <button class="seg active" data-tab="identidad" onclick="showTab('identidad')">Identidad</button>
+      <button class="seg" data-tab="diseno" onclick="showTab('diseno')">Diseño</button>
+      <button class="seg" data-tab="ubicaciones" onclick="showTab('ubicaciones')">Ubicaciones</button>
+      <button class="seg" data-tab="registro" onclick="showTab('registro')">Registro</button>
+      <button class="seg" data-tab="publicar" onclick="showTab('publicar')">Publicar</button>
+    </div>
 
-        <label for="f-issuerName">Nombre del local (emisor)</label>
-        <input type="text" id="f-issuerName" maxlength="40" placeholder="Mi Barbería">
+    <div class="studio-shell">
+      <!-- Sidebar (desktop) — nav vertical estilo macOS Settings -->
+      <aside class="studio-nav">
+        <button class="nav-item active" data-tab="identidad" onclick="showTab('identidad')"><span class="ico">🪪</span>Identidad</button>
+        <button class="nav-item" data-tab="diseno" onclick="showTab('diseno')"><span class="ico">🎨</span>Diseño</button>
+        <button class="nav-item" data-tab="ubicaciones" onclick="showTab('ubicaciones')"><span class="ico">📍</span>Ubicaciones</button>
+        <button class="nav-item" data-tab="registro" onclick="showTab('registro')"><span class="ico">🔗</span>Página de registro</button>
+        <button class="nav-item" data-tab="publicar" onclick="showTab('publicar')"><span class="ico">🚀</span>Publicar</button>
+      </aside>
 
-        <label for="f-logoUrl">Logo (URL pública, cuadrado ideal)</label>
-        <input type="url" id="f-logoUrl" placeholder="https://…/logo.png">
-        <p id="f-logoUrl-hint" class="field-hint"></p>
+      <!-- Main: content de cada tab -->
+      <div class="studio-main">
 
-        <div class="row2">
-          <div>
-            <label for="f-accent-hex">Color de acento (sellos)</label>
-            <div class="color-field">
-              <input type="color" id="f-accent" value="#c9a84c">
-              <input type="text" id="f-accent-hex" value="#c9a84c" maxlength="7" autocomplete="off">
-            </div>
+        <!-- ══ TAB: Identidad ══ -->
+        <div class="tab-panel active" data-tab="identidad">
+          <div class="section">
+            <h2>Identidad de la tarjeta</h2>
+            <p class="section-sub">Lo que ve el cliente al abrir su tarjeta en el wallet.</p>
+
+            <label for="f-programName">Nombre del programa</label>
+            <input type="text" id="f-programName" maxlength="40" placeholder="Club de Fidelidad">
+
+            <label for="f-issuerName">Nombre del local</label>
+            <input type="text" id="f-issuerName" maxlength="40" placeholder="Mi Barbería">
+
+            <label for="f-logoUrl">Logo (URL pública, cuadrado ideal)</label>
+            <input type="url" id="f-logoUrl" placeholder="https://…/logo.png">
+            <p id="f-logoUrl-hint" class="field-hint"></p>
           </div>
-          <div>
-            <label for="f-bg-hex">Color de fondo de la tarjeta</label>
-            <div class="color-field">
-              <input type="color" id="f-bg" value="#0a0a0a">
-              <input type="text" id="f-bg-hex" value="#0a0a0a" maxlength="7" autocomplete="off">
+        </div>
+
+        <!-- ══ TAB: Diseño ══ -->
+        <div class="tab-panel" data-tab="diseno">
+          <div class="section">
+            <h2>Colores</h2>
+            <p class="section-sub">Se aplican a los sellos, la barra de progreso y el fondo.</p>
+            <div class="row2">
+              <div>
+                <label for="f-accent-hex">Acento (sellos)</label>
+                <div class="color-field">
+                  <input type="color" id="f-accent" value="#c9a84c">
+                  <input type="text" id="f-accent-hex" value="#c9a84c" maxlength="7" autocomplete="off">
+                </div>
+              </div>
+              <div>
+                <label for="f-bg-hex">Fondo de la tarjeta</label>
+                <div class="color-field">
+                  <input type="color" id="f-bg" value="#0a0a0a">
+                  <input type="text" id="f-bg-hex" value="#0a0a0a" maxlength="7" autocomplete="off">
+                </div>
+              </div>
+            </div>
+            <label style="margin-top:18px;">Tema rápido</label>
+            <div id="theme-presets" class="themes"></div>
+          </div>
+
+          <div class="section">
+            <h2>Ícono de la estampa</h2>
+            <p class="section-sub">Reemplaza el ✓ default por algo relacionado con tu vertical.</p>
+            <div id="icon-picker" class="icons"></div>
+          </div>
+        </div>
+
+        <!-- ══ TAB: Ubicaciones ══ -->
+        <div class="tab-panel" data-tab="ubicaciones">
+          <div class="section">
+            <h2>Geo-push · zonas de activación</h2>
+            <p class="section-sub">Agrega hasta <b>5 locales</b>. Escribe la dirección o toca el mapa. La tarjeta aparece sola en el celular del cliente cuando entra a cualquiera de esas zonas — con menos zonas, más alcance por zona.</p>
+
+            <div class="geo-search">
+              <input type="text" id="f-geo-buscar" autocomplete="off" placeholder="Busca la dirección de tu local…">
+            </div>
+            <div id="geo-map" class="geo-map"></div>
+            <div id="geo-locs" class="geo-locs"></div>
+            <button type="button" id="geo-add" class="geo-add">+ Agregar ubicación</button>
+            <p id="geo-hint" class="geo-hint"></p>
+
+            <div class="geo-radius-row">
+              <label for="f-geoRadius" style="margin-top:0;">Radio de la ubicación seleccionada: <b id="f-geoRadius-label">300 m</b></label>
+              <input type="range" id="f-geoRadius" min="0" max="1500" step="50" value="300" class="range">
+            </div>
+            <div class="row2">
+              <div>
+                <label for="f-lat">Latitud</label>
+                <input type="number" id="f-lat" step="any" placeholder="-33.0245">
+              </div>
+              <div>
+                <label for="f-lng">Longitud</label>
+                <input type="number" id="f-lng" step="any" placeholder="-71.5518">
+              </div>
+            </div>
+
+            <label for="f-geoMensaje">Mensaje de cercanía <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+            <input type="text" id="f-geoMensaje" maxlength="90" placeholder="Estás cerca 💈 muestra tu tarjeta y suma sellos">
+          </div>
+        </div>
+
+        <!-- ══ TAB: Registro ══ -->
+        <div class="tab-panel" data-tab="registro">
+          <div class="section">
+            <h2>Página de registro</h2>
+            <p class="section-sub">La landing donde tus clientes escanean el QR y se registran. Todo lo que edites acá se refleja en <b>wallets.bioo.cl/r/tu-local</b>. Deja los defaults si no quieres personalizarlo.</p>
+
+            <label for="f-reg-hero">Título del hero <span style="font-weight:500;color:var(--muted);">(bajo el logo)</span></label>
+            <input type="text" id="f-reg-hero" maxlength="60" autocomplete="off" placeholder="Club de fidelidad">
+
+            <label for="f-reg-intro">Bajada del formulario</label>
+            <input type="text" id="f-reg-intro" maxlength="220" autocomplete="off" placeholder="Regístrate y llevá tu tarjeta de sellos…">
+
+            <label for="f-reg-boton">Texto del botón</label>
+            <input type="text" id="f-reg-boton" maxlength="40" autocomplete="off" placeholder="Recibir mi tarjeta →">
+
+            <label for="f-reg-exito-titulo">Título de la pantalla de éxito</label>
+            <input type="text" id="f-reg-exito-titulo" maxlength="60" autocomplete="off" placeholder="¡Bienvenido al club!">
+
+            <label for="f-reg-exito-sub">Bajada de la pantalla de éxito</label>
+            <input type="text" id="f-reg-exito-sub" maxlength="120" autocomplete="off" placeholder="Tu tarjeta está lista. Añádela a tu celular:">
+
+            <label for="f-reg-terminos">Texto del checkbox de términos</label>
+            <input type="text" id="f-reg-terminos" maxlength="280" autocomplete="off" placeholder="Acepto compartir mis datos…">
+          </div>
+
+          <div class="section">
+            <h2>Campos que le pides al cliente</h2>
+            <p class="section-sub">Además de nombre, email y WhatsApp (siempre obligatorios).</p>
+            <div class="switch-row">
+              <div>
+                <p class="t">Fecha de nacimiento</p>
+                <p class="d">Útil para automatizar saludo/regalo de cumpleaños después.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-reg-fnac" checked><span class="slider"></span></label>
+            </div>
+            <div class="switch-row">
+              <div>
+                <p class="t">Fecha de nacimiento obligatoria</p>
+                <p class="d">Si está en OFF, el cliente puede saltarla.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-reg-fnac-obl"><span class="slider"></span></label>
+            </div>
+            <div class="switch-row">
+              <div>
+                <p class="t">Instagram</p>
+                <p class="d">Ideal para restaurantes/salones que re-postean al cliente.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-reg-instagram"><span class="slider"></span></label>
             </div>
           </div>
         </div>
 
-        <label style="margin-top:6px;">Tema rápido</label>
-        <div id="theme-presets" class="themes"></div>
-
-        <label style="margin-top:14px;">Ícono de la estampa</label>
-        <div id="icon-picker" class="icons"></div>
-
-        <label style="margin-top:14px;">Geo-push — zonas de activación</label>
-        <p class="pv-note" style="margin-top:2px;">Agrega hasta <b>5 locales</b>. Escribe la dirección abajo o toca el mapa. La tarjeta aparece sola en el teléfono del cliente cuando entra a <b>cualquiera</b> de esas zonas. Mientras menos zonas, mayor es el alcance de cada una.</p>
-        <div class="geo-search">
-          <input type="text" id="f-geo-buscar" autocomplete="off" placeholder="Busca la dirección de tu local…">
-        </div>
-        <div id="geo-map" class="geo-map"></div>
-        <div id="geo-locs" class="geo-locs"></div>
-        <button type="button" id="geo-add" class="geo-add">+ Agregar ubicación</button>
-        <p id="geo-hint" class="geo-hint"></p>
-        <div class="geo-radius-row">
-          <label for="f-geoRadius">Radio de la ubicación seleccionada: <b id="f-geoRadius-label">300 m</b></label>
-          <input type="range" id="f-geoRadius" min="0" max="1500" step="50" value="300" class="range">
-        </div>
-        <div class="row2">
-          <div>
-            <label for="f-lat">Latitud</label>
-            <input type="number" id="f-lat" step="any" placeholder="-33.0245">
-          </div>
-          <div>
-            <label for="f-lng">Longitud</label>
-            <input type="number" id="f-lng" step="any" placeholder="-71.5518">
-          </div>
-        </div>
-
-        <label for="f-geoMensaje">Mensaje de cercanía (opcional)</label>
-        <input type="text" id="f-geoMensaje" maxlength="90" placeholder="Estás cerca 💈 muestra tu tarjeta y suma sellos">
-
-        <div class="switch-row">
-          <div>
-            <p class="t">Tarjeta visible para tus clientes</p>
-            <p class="d">Muestra el botón "Añadir a Wallet" en el dashboard de tus clientes.</p>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="f-enabled">
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <!-- Sub-panel: Página de registro (/r/{slug}) — copy + campos custom.
-             Colapsable, para que el dueño no vea 6 inputs extra si no le
-             importa. Todo lo que edita acá se refleja en su landing pública. -->
-        <details style="margin-top:20px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fafbfa;">
-          <summary style="font-size:14px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
-            <span>🔗 Página de registro (para tus clientes)</span>
-            <span style="font-size:12px;font-weight:600;color:var(--soft);">Personalizar ▾</span>
-          </summary>
-          <p class="pv-note" style="margin:10px 0 14px;">Lo que edites acá aparece en la página donde tus clientes se registran (wallets.bioo.cl/r/tu-local). Deja los defaults si no quieres personalizarlo.</p>
-
-          <label for="f-reg-hero">Título del hero <span style="font-weight:500;color:var(--muted);">(bajo el logo)</span></label>
-          <input type="text" id="f-reg-hero" maxlength="60" autocomplete="off" placeholder="Club de fidelidad">
-
-          <label for="f-reg-intro">Bajada del formulario</label>
-          <input type="text" id="f-reg-intro" maxlength="220" autocomplete="off" placeholder="Regístrate y llevá tu tarjeta de sellos…">
-
-          <label for="f-reg-boton">Texto del botón</label>
-          <input type="text" id="f-reg-boton" maxlength="40" autocomplete="off" placeholder="Recibir mi tarjeta →">
-
-          <label for="f-reg-exito-titulo">Título de la pantalla de éxito</label>
-          <input type="text" id="f-reg-exito-titulo" maxlength="60" autocomplete="off" placeholder="¡Bienvenido al club!">
-
-          <label for="f-reg-exito-sub">Bajada de la pantalla de éxito</label>
-          <input type="text" id="f-reg-exito-sub" maxlength="120" autocomplete="off" placeholder="Tu tarjeta está lista. Añádela a tu celular:">
-
-          <label for="f-reg-terminos">Texto del checkbox de términos</label>
-          <input type="text" id="f-reg-terminos" maxlength="280" autocomplete="off" placeholder="Acepto compartir mis datos…">
-
-          <label style="margin-top:18px;">Campos que le pides al cliente</label>
-          <div class="switch-row" style="margin-top:6px;">
-            <div>
-              <p class="t">Fecha de nacimiento</p>
-              <p class="d">Útil para automatizar saludo/regalo de cumpleaños después.</p>
+        <!-- ══ TAB: Publicar ══ -->
+        <div class="tab-panel" data-tab="publicar">
+          <div class="section">
+            <h2>Publicación</h2>
+            <p class="section-sub">Controla si tus clientes pueden guardar la tarjeta hoy.</p>
+            <div class="switch-row">
+              <div>
+                <p class="t">Tarjeta visible para tus clientes</p>
+                <p class="d">Muestra el botón "Añadir a Wallet" en su dashboard y habilita el registro en la landing.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-enabled"><span class="slider"></span></label>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="f-reg-fnac" checked>
-              <span class="slider"></span>
-            </label>
           </div>
-          <div class="switch-row">
-            <div>
-              <p class="t">Fecha de nacimiento obligatoria</p>
-              <p class="d">Si está en OFF, el cliente puede saltarla.</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="f-reg-fnac-obl">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="switch-row">
-            <div>
-              <p class="t">Instagram</p>
-              <p class="d">Ideal para restaurantes/salones que quieren re-postear al cliente.</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="f-reg-instagram">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </details>
 
-        <div style="height:20px;"></div>
-        <button class="btn" id="save-btn" onclick="guardar()">Guardar y provisionar</button>
-        <p class="pv-note" style="margin-top:10px;">Al guardar se crea (o actualiza) la tarjeta en Google Wallet con tu marca. Apple Wallet usa esta misma configuración.</p>
+          <div class="section">
+            <h2>Guardar cambios</h2>
+            <p class="section-sub">Al guardar se crea (o actualiza) la tarjeta en Google Wallet con tu marca. Apple Wallet usa la misma configuración.</p>
+            <button class="btn accent" id="save-btn-2" onclick="guardar()">Guardar y provisionar</button>
+          </div>
+        </div>
       </div>
 
       <!-- Preview -->
-      <div class="pv-sticky">
-        <p class="pv-title">Así la verán tus clientes</p>
+      <div class="pv-shell">
+        <p class="pv-title">Vista previa</p>
 
         <!-- Tabs: Google vs Apple -->
         <div class="pv-tabs" role="tablist">
@@ -517,15 +774,16 @@
           <input type="range" id="pv-range" min="0" max="10" value="3" oninput="renderPreview()">
           <span id="pv-range-label">3 sellos</span>
         </div>
-        <p class="pv-note">La cantidad real de casillas depende de los premios configurados en tu panel (la tarjeta se llena hacia el próximo premio). El rango del cliente se calcula solo.</p>
+        <p class="pv-note">La cantidad de casillas depende de los premios configurados. El rango del cliente se calcula solo.</p>
         <button type="button" class="btn-ghost" id="test-btn" onclick="abrirTestModal()">📲 Enviármela a mi celular</button>
-        <p class="pv-note" style="margin-top:6px;">Prueba la tarjeta en tu propio Wallet antes de mostrarla a los clientes.</p>
         <button type="button" class="btn-ghost" id="qr-btn" onclick="abrirQRRegistroModal()">🔗 QR de registro para clientes</button>
-        <p class="pv-note" style="margin-top:6px;">Imprime el QR y pégalo en la caja. Tus clientes lo escanean, se registran y reciben su tarjeta al toque.</p>
       </div>
     </div>
   </div>
 </main>
+
+<!-- FAB Guardar (solo mobile, aparece cuando hay cambios sin guardar) -->
+<button class="save-fab" id="save-fab" onclick="guardar()">Guardar cambios</button>
 
 <!-- Modal: probar tarjeta en el propio celular del admin -->
 <div class="modal-backdrop" id="test-modal" onclick="if(event.target===this)cerrarTestModal()">
@@ -593,8 +851,54 @@ var _addonActivo = false;
 var _dirty = false;       // hay cambios sin guardar (para beforeunload)
 var _premios = [];        // premios activos del tenant → alimentan hitos ⭐
 
-function marcarDirty() { _dirty = true; }
-function limpiarDirty() { _dirty = false; }
+function marcarDirty() {
+  _dirty = true;
+  // FAB mobile: solo aparece cuando hay cambios sin guardar. Menos ruido si
+  // el user está sólo navegando tabs sin editar nada.
+  var fab = document.getElementById('save-fab');
+  if (fab) fab.classList.add('show');
+}
+function limpiarDirty() {
+  _dirty = false;
+  var fab = document.getElementById('save-fab');
+  if (fab) fab.classList.remove('show');
+}
+
+// ── Tabs del estudio (nav sidebar desktop + segments mobile) ─────
+// Cambio de tab NO marca dirty ni guarda — sólo alterna visibilidad.
+// El JS de auth/carga tenant no se toca: los IDs de inputs son los mismos.
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(function (p) {
+    p.classList.toggle('active', p.dataset.tab === name);
+  });
+  document.querySelectorAll('.nav-item, .studio-segments .seg').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  // El mapa de Google Maps sólo se inicializa cuando su contenedor es
+  // visible (offsetParent !== null). Con las tabs, el geo-map arranca
+  // display:none — hay que llamar a maybeInitMap cuando el user entre
+  // a la tab Ubicaciones.
+  if (name === 'ubicaciones' && typeof maybeInitMap === 'function') {
+    setTimeout(maybeInitMap, 0);
+  }
+  // Scroll al top del main en mobile (así el user no aterriza a mitad
+  // del content al cambiar de tab).
+  if (window.innerWidth < 820) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+}
+window.showTab = showTab;
+
+// Wrapper: aplica un mismo estado disabled a los 3 botones de guardar
+// (header, tab Publicar, FAB mobile). Reemplaza $('save-btn').disabled= X
+// disperso — no lo llamamos en TODOS los sitios legacy para no romper
+// nada, pero sí en el flujo de guardar().
+function setSaveBtnEnabled(enabled) {
+  ['save-btn', 'save-btn-2', 'save-fab'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !enabled;
+  });
+}
 // Firefox y algunos navegadores móviles necesitan returnValue asignado.
 // El texto en sí no se muestra (los browsers ignoran el mensaje custom
 // desde 2015 por privacidad), pero el diálogo aparece igual.
@@ -769,10 +1073,10 @@ function cargarTenant(tid) {
       banner.innerHTML = _isSuper
         ? '⚠️ El add-on Wallet está <b>inactivo</b> para este local — actívalo desde /admin. Como superadmin puedes configurar y provisionar igual.'
         : '⚠️ El módulo Wallet aún no está activo para tu local. <a href="' + WA_SYNAPTECH + '" target="_blank" style="font-weight:700;">Escríbenos por WhatsApp</a> para activarlo y tus clientes podrán llevar su tarjeta de sellos en el teléfono.';
-      $('save-btn').disabled = !_isSuper;
+      setSaveBtnEnabled(_isSuper);
     } else {
       banner.classList.add('hidden');
-      $('save-btn').disabled = false;
+      setSaveBtnEnabled(true);
     }
 
     var cfg = (cfgSnap && cfgSnap.exists) ? (cfgSnap.data() || {}) : {};
@@ -1071,9 +1375,18 @@ function guardar() {
     toast('Para el geo-push necesitas latitud Y longitud.', true); return;
   }
 
-  var btn = $('save-btn');
-  btn.disabled = true;
-  btn.textContent = 'Guardando…';
+  // Textos originales para restaurar al terminar (los 3 botones distintos).
+  var saveHeader = document.getElementById('save-btn');
+  var save2      = document.getElementById('save-btn-2');
+  var fab        = document.getElementById('save-fab');
+  var txtHeader  = saveHeader ? saveHeader.textContent : 'Guardar';
+  var txt2       = save2      ? save2.textContent      : 'Guardar y provisionar';
+  var txtFab     = fab        ? fab.textContent        : 'Guardar cambios';
+  setSaveBtnEnabled(false);
+  if (saveHeader) saveHeader.textContent = 'Guardando…';
+  if (save2)      save2.textContent      = 'Guardando…';
+  if (fab)        fab.textContent        = 'Guardando…';
+
   var fn = firebase.app().functions('us-central1').httpsCallable('walletProvisionarClase');
   fn({ tenantId: _tid, config: cfg })
     .then(function (res) {
@@ -1085,8 +1398,10 @@ function guardar() {
       toast(e && e.message ? e.message : 'No se pudo guardar. Intenta de nuevo.', true);
     })
     .finally(function () {
-      btn.disabled = false;
-      btn.textContent = 'Guardar y provisionar';
+      setSaveBtnEnabled(true);
+      if (saveHeader) saveHeader.textContent = txtHeader;
+      if (save2)      save2.textContent      = txt2;
+      if (fab)        fab.textContent        = txtFab;
     });
 }
 
