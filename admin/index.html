@@ -3063,6 +3063,18 @@
           const activo   = d.activo !== false;
           const rolColor = rol === 'admin' ? '#f43f5e' : rol === 'jefe' ? '#f59e0b' : cfg.color;
 
+          // Perfil actual = rol + si atiende. "Atiende" son tres booleanos que
+          // deben ir juntos; leemos con la MISMA regla que el filtro de la
+          // agenda para que el selector muestre lo que el local realmente ve.
+          const atiende  = rol !== 'admin'
+            || _activeTenant === 'delnero'
+            || d.esBarbero === true
+            || d.mostrarEnAgenda === true;
+          // Los docs de enlace (_mainDocId) no se editan: el selector actúa
+          // sobre el principal, así que ahí no mostramos control.
+          const esEnlace = !!d._mainDocId;
+          const perfil   = rol === 'admin' ? (atiende ? 'admin|si' : 'admin|no') : 'barbero|si';
+
           html += `
             <div style="
               background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);
@@ -3082,6 +3094,17 @@
                   ${!activo ? '<span style="font-size:0.6rem; color:#f87171; font-weight:700;">INACTIVO</span>' : ''}
                 </div>
                 <p style="font-size:0.725rem; color:#64748b; margin:0.1rem 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${email}</p>
+                ${esEnlace ? '' : `
+                <select onchange="saCambiarPerfilStaff('${doc.id}', this)" style="
+                  margin-top:0.4rem; width:100%; box-sizing:border-box;
+                  padding:0.3rem 0.45rem; font-size:0.7rem; cursor:pointer;
+                  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+                  border-radius:0.45rem; color:#cbd5e1; outline:none;
+                ">
+                  <option value="barbero|si" ${perfil === 'barbero|si' ? 'selected' : ''}>Barbero (atiende)</option>
+                  <option value="admin|si"   ${perfil === 'admin|si'   ? 'selected' : ''}>Admin que atiende</option>
+                  <option value="admin|no"   ${perfil === 'admin|no'   ? 'selected' : ''}>Admin de local (no atiende)</option>
+                </select>`}
               </div>
               <span style="
                 padding:0.15rem 0.5rem; border-radius:999px; font-size:0.6rem; font-weight:700;
@@ -3095,6 +3118,40 @@
         contentEl.innerHTML = `<p style="font-size:0.875rem; color:#f87171;">Error: ${e.message}</p>`;
       }
     }
+
+    // ── Cambiar el perfil de un miembro que YA existe ──────────────
+    // Barbero / Admin que atiende / Admin de local, sin tocar su clave.
+    // La CF escribe rol + los tres flags de "atiende" en el doc principal
+    // y el rol en el de enlace; los claims los reemite el trigger.
+    window.saCambiarPerfilStaff = async function (docId, sel) {
+      if (!_activeTenant || !docId || !sel) return;
+      const parts = String(sel.value).split('|');
+      const rol = parts[0], atiende = parts[1] === 'si';
+      const prev = sel.dataset.prev || sel.value;
+      const label = sel.options[sel.selectedIndex].textContent.trim();
+      if (!confirm(`Cambiar el perfil a "${label}"?\n\nNo se toca su contraseña.`)) {
+        sel.value = prev;
+        return;
+      }
+      sel.disabled = true;
+      try {
+        const r = await firebase.functions().httpsCallable('superadminActualizarStaff')({
+          tenantId: _activeTenant, docId, rol, atiende,
+        });
+        sel.dataset.prev = sel.value;
+        HAPTIC([10, 30, 10]);
+        if (r && r.data && r.data.sinCuenta) {
+          alert('Perfil actualizado.\n\nOjo: este miembro no tiene cuenta de acceso, así que el cambio afecta solo su ficha (agenda y reserva), no el login.');
+        }
+        // Repintar para que el badge de rol y el resto queden coherentes.
+        if (typeof loadProfDetalle === 'function') loadProfDetalle();
+      } catch (e) {
+        alert('No se pudo cambiar: ' + ((e && e.message) || e));
+        sel.value = prev;
+      } finally {
+        sel.disabled = false;
+      }
+    };
 
     // ── Flujo: Agregar Profesional ────────────────────────────────
     async function addProfFlow() {

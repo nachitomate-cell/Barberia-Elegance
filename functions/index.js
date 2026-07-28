@@ -1707,6 +1707,7 @@ exports.adminAlertaOnboardingEstancado = adminAlerts.adminAlertaOnboardingEstanc
 // ─────────────────────────────────────────────────────────────────
 const superadminStaff = require('./superadmin-staff');
 exports.superadminCrearStaff = superadminStaff.superadminCrearStaff;
+exports.superadminActualizarStaff = superadminStaff.superadminActualizarStaff;
 
 // ─────────────────────────────────────────────────────────────────
 //  QA FANTASMA — barbero invisible universal para el superadmin.

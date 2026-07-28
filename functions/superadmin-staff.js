@@ -14,8 +14,14 @@
 //  Los triggers sincronizarClaims{Elegance,Tenant} reafirman los
 //  claims desde el doc, así que quedan consistentes.
 //
+//  superadminActualizarStaff — CONVIERTE un perfil que YA existe entre
+//  esos mismos tres modos, sin tocar la contraseña. Crear y convertir
+//  estaban fusionados en superadminCrearStaff, que sirve para convertir
+//  (reusa el doc por email) pero exige password y se la resetea a la
+//  persona — inservible como botón de "cambiar perfil".
+//
 //  DEPLOY:
-//    firebase deploy --only functions:superadminCrearStaff
+//    firebase deploy --only functions:superadminCrearStaff,functions:superadminActualizarStaff
 // ─────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -133,4 +139,82 @@ exports.superadminCrearStaff = onCall({ region: 'us-central1', cors: true }, asy
 
   logger.info(`[superadminCrearStaff] ${email} → ${tenantId} rol=${rolNorm} atiende=${atiende} uid=${uid} (authYaExistia=${yaExistia}, reusoDoc=${reusoDoc}) by ${callerEmail}`);
   return { ok: true, uid, docId: mainRef.id, yaExistia, reusoDoc };
+});
+
+// ═════════════════════════════════════════════════════════════════
+//  superadminActualizarStaff — cambia el PERFIL de alguien que ya existe
+//  ({tenantId, docId, rol, atiende}). No toca Auth ni la contraseña.
+//
+//  Escribe en los DOS docs (principal + enlace por uid) porque el rol del
+//  panel se lee del doc-espejo `barberos/{uid}` y la agenda del principal;
+//  si solo se toca uno, el perfil queda partido.
+//
+//  Los claims NO se setean acá: los reemite sincronizarClaims{Elegance,
+//  Tenant} al detectar la escritura. Igual los forzamos al final para que
+//  el cambio se note sin esperar al trigger.
+// ═════════════════════════════════════════════════════════════════
+exports.superadminActualizarStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
+  const callerEmail = (request.auth?.token?.email || '').toLowerCase();
+  if (!SUPERADMINS.includes(callerEmail)) {
+    throw new HttpsError('permission-denied', 'Solo el superadmin puede cambiar perfiles aquí.');
+  }
+
+  const d        = request.data || {};
+  const tenantId = String(d.tenantId || '').trim();
+  const docId    = String(d.docId || '').trim();
+  const rolNorm  = String(d.rol || '').toLowerCase();
+  const atiende  = d.atiende !== false; // default true
+
+  if (!tenantId) throw new HttpsError('invalid-argument', 'Falta el local (tenantId).');
+  if (!docId)    throw new HttpsError('invalid-argument', 'Falta el miembro (docId).');
+  if (!['admin', 'barbero'].includes(rolNorm)) {
+    throw new HttpsError('invalid-argument', 'Rol inválido.');
+  }
+
+  const barberosCol = tenantId === 'elegance'
+    ? db.collection('barberos')
+    : db.collection(`tenants/${tenantId}/barberos`);
+
+  const snap = await barberosCol.doc(docId).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Ese miembro no existe en este local.');
+  const data = snap.data() || {};
+
+  // El clic puede venir sobre el doc de enlace o sobre el principal.
+  // Normalizamos: mainId = la tarjeta real, uid = la cuenta de Auth.
+  const mainId = data._mainDocId || docId;
+  const uid    = data._mainDocId ? docId : (data.authUid || data.uid || null);
+
+  // `atiende` es el único concepto; se materializa en los tres booleanos
+  // que leen los filtros (disponible / mostrarEnAgenda / esBarbero). Van
+  // siempre juntos justamente para que no se desincronicen.
+  const patch = {
+    rol: rolNorm,
+    disponible:      atiende,
+    mostrarEnAgenda: atiende,
+    esBarbero:       atiende,
+    actualizadoEn:   FieldValue.serverTimestamp(),
+    actualizadoPor:  callerEmail,
+  };
+  await barberosCol.doc(mainId).set(patch, { merge: true });
+
+  // Doc de enlace: solo el rol (los flags de agenda viven en el principal).
+  if (uid && uid !== mainId) {
+    await barberosCol.doc(uid).set({ rol: rolNorm }, { merge: true }).catch((e) => {
+      logger.warn('[superadminActualizarStaff] doc de enlace no se pudo escribir:', e.message);
+    });
+  }
+
+  // Adelanto de los claims (el trigger igual los reafirma).
+  if (uid) {
+    try {
+      await admin.auth().setCustomUserClaims(uid, { role: rolNorm, tenantId });
+    } catch (e) {
+      if (e.code !== 'auth/user-not-found') {
+        logger.warn('[superadminActualizarStaff] claims:', e.message);
+      }
+    }
+  }
+
+  logger.info(`[superadminActualizarStaff] ${tenantId}/${mainId} rol=${rolNorm} atiende=${atiende} uid=${uid || '(sin auth)'} by ${callerEmail}`);
+  return { ok: true, docId: mainId, uid, rol: rolNorm, atiende, sinCuenta: !uid };
 });
