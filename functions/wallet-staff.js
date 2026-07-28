@@ -38,6 +38,24 @@ const billingRef = (tid) => db.doc(`_billing/${tid}`);
 const rangosRef  = (tid) => tid === 'elegance'
   ? db.doc('configuracion/rangos')
   : db.doc(`tenants/${tid}/configuracion/rangos`);
+const walletCfgRef = (tid) => tid === 'elegance'
+  ? db.doc('configuracion/wallet')
+  : db.doc(`tenants/${tid}/configuracion/wallet`);
+
+// Multiplicador según día de la semana — leído de configuracion/wallet.reglasDia.
+// Formato: { "1": 2, "3": 1.5, ... } donde 0=domingo, 1=lunes, ... 6=sábado.
+// Falta el día o multiplicador ≤0 → 1 (sin efecto). Cap a 5× por defensa.
+async function multiplicadorHoy(tid) {
+  try {
+    const s = await walletCfgRef(tid).get();
+    if (!s.exists) return 1;
+    const reglas = s.data().reglasDia || {};
+    const dow = String(new Date().getDay());
+    const m = Number(reglas[dow]);
+    if (!Number.isFinite(m) || m <= 0) return 1;
+    return Math.min(5, Math.max(1, m));
+  } catch (_) { return 1; }
+}
 
 function usersCol(tenantId) {
   const isElegance = tenantId === 'elegance';
@@ -128,9 +146,14 @@ exports.walletSumarSelloStaff = onCall(
 
     const historicos = Number(targetData.sellosHistoricos ?? targetData.stamps) || 0;
     const nPedido = Number(cantidad);
-    const nSellos = Number.isFinite(nPedido) && nPedido > 0 && nPedido <= 5
+    const nBase = Number.isFinite(nPedido) && nPedido > 0 && nPedido <= 5
       ? Math.round(nPedido)
       : await sellosPorVisita(tenantId, historicos);
+    // Regla por día de la semana: si el dueño configuró un multiplicador
+    // para hoy (ej. martes ×2 en horario valle), aplica AL FINAL sobre el
+    // nBase. Cap 5× para no explotar el saldo por typo.
+    const mult = await multiplicadorHoy(tenantId);
+    const nSellos = Math.max(0, Math.round(nBase * mult));
 
     // Dedupe: evita doble tap del staff (mismo cliente en < N segundos).
     // Almacenamos las últimas 20 keys en el user doc.
@@ -147,9 +170,10 @@ exports.walletSumarSelloStaff = onCall(
       fecha: nowIso,
       tipo: 'suma',
       cantidad: nSellos,
-      nota: nota || `Sello sumado por el staff`,
+      nota: nota || (mult > 1 ? `Sello sumado por el staff · multiplicador ×${mult} del día` : `Sello sumado por el staff`),
       staffEmail: email,
       origen: 'staff_wallet',
+      ...(mult > 1 ? { multiplicadorDia: mult } : {}),
       ...(sedeOrigen ? { sedeId: sedeOrigen } : {}),
     };
     const seenEntry = { k: dk, ts: nowIso };

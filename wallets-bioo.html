@@ -673,6 +673,7 @@
       <button class="seg" data-tab="diseno" onclick="showTab('diseno')">Diseño</button>
       <button class="seg" data-tab="ubicaciones" onclick="showTab('ubicaciones')">Ubicaciones</button>
       <button class="seg" data-tab="registro" onclick="showTab('registro')">Registro</button>
+      <button class="seg" data-tab="reglas" onclick="showTab('reglas')">Reglas</button>
       <button class="seg" data-tab="clientes" onclick="showTab('clientes')">Clientes</button>
       <button class="seg" data-tab="publicar" onclick="showTab('publicar')">Publicar</button>
     </div>
@@ -684,6 +685,7 @@
         <button class="nav-item" data-tab="diseno" onclick="showTab('diseno')"><span class="ico">🎨</span>Diseño</button>
         <button class="nav-item" data-tab="ubicaciones" onclick="showTab('ubicaciones')"><span class="ico">📍</span>Ubicaciones</button>
         <button class="nav-item" data-tab="registro" onclick="showTab('registro')"><span class="ico">🔗</span>Página de registro</button>
+        <button class="nav-item" data-tab="reglas" onclick="showTab('reglas')"><span class="ico">⚡</span>Reglas del club</button>
         <button class="nav-item" data-tab="clientes" onclick="showTab('clientes')"><span class="ico">👥</span>Clientes</button>
         <button class="nav-item" data-tab="publicar" onclick="showTab('publicar')"><span class="ico">🚀</span>Publicar</button>
       </aside>
@@ -856,6 +858,49 @@
               </div>
               <label class="switch"><input type="checkbox" id="f-reg-instagram"><span class="slider"></span></label>
             </div>
+          </div>
+        </div>
+
+        <!-- ══ TAB: Reglas del club ══ -->
+        <div class="tab-panel" data-tab="reglas">
+          <div class="section">
+            <h2>Reglas por día de la semana</h2>
+            <p class="section-sub">Multiplica los sellos que sumas según el día. Ideal para llenar horas valle (martes ×2) o premiar el finde. Deja en <b>1×</b> los días normales.</p>
+            <div class="row2" id="reglas-dias" style="grid-template-columns:repeat(7,1fr);gap:8px;">
+              <!-- llenado por JS: 7 columnas dom-sáb con input number -->
+            </div>
+            <p class="pv-note" style="margin-top:10px;">Ejemplo: martes ×2 significa que si un cliente venía a sumar 1 sello ese día, ahora suma 2. Máximo 5×.</p>
+          </div>
+
+          <div class="section">
+            <h2>Cumpleaños del cliente</h2>
+            <p class="section-sub">Cada mañana revisamos quién cumple hoy y le regalamos sellos + una notificación en su tarjeta. Datos: la fecha de nacimiento se pide en el registro (activá el campo en la tab Registro).</p>
+            <div class="switch-row">
+              <div>
+                <p class="t">Regalar sellos en el cumpleaños</p>
+                <p class="d">Corre todos los días a las 10:00. Idempotente: no se duplica.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-cumple-activa"><span class="slider"></span></label>
+            </div>
+            <label for="f-cumple-bonus">Cantidad de sellos de regalo</label>
+            <input type="number" id="f-cumple-bonus" min="1" max="20" step="1" value="3">
+            <label for="f-cumple-msg">Mensaje del push al pase</label>
+            <input type="text" id="f-cumple-msg" maxlength="200" placeholder="🎂 ¡Feliz cumpleaños! Te regalamos 3 sellos.">
+          </div>
+
+          <div class="section">
+            <h2>Expiración por inactividad</h2>
+            <p class="section-sub">Si un cliente no visita durante N días, sus sellos disponibles se resetean a 0. Los sellos <b>históricos</b> se mantienen (memoria de vida del club). Crea urgencia sana: "usa lo que ganaste antes que caduque".</p>
+            <div class="switch-row">
+              <div>
+                <p class="t">Activar expiración de sellos</p>
+                <p class="d">Corre todos los días a las 10:15. Idempotente por día.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-expira-activa"><span class="slider"></span></label>
+            </div>
+            <label for="f-expira-dias">Días sin visita para expirar</label>
+            <input type="number" id="f-expira-dias" min="7" max="365" step="1" value="60">
+            <p class="pv-note" style="margin-top:8px;">Recomendado: 60 días para café/salón, 90 para retail. Menos de 30 puede sentirse agresivo.</p>
           </div>
         </div>
 
@@ -1373,6 +1418,15 @@ function llenarForm(cfg, tenantCfg) {
   $('f-bannerUrl').value = cfg.bannerUrl || '';
   pintarThumb('banner', cfg.bannerUrl || '');
   $('up-banner-rm').style.display = cfg.bannerUrl ? '' : 'none';
+  // ── Tab Reglas ──
+  pintarReglasDia(cfg.reglasDia || {});
+  var cum = cfg.cumpleanos || {};
+  $('f-cumple-activa').checked = cum.activa === true;
+  $('f-cumple-bonus').value    = cum.sellosBonus || 3;
+  $('f-cumple-msg').value      = cum.mensaje || '';
+  var exp = cfg.expiracion || {};
+  $('f-expira-activa').checked = exp.activa === true;
+  $('f-expira-dias').value     = exp.dias || 60;
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent || '') ? cfg.accent : '#c9a84c';
   var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
   $('f-accent').value = acc; $('f-accent-hex').value = acc;
@@ -1460,7 +1514,42 @@ function leerForm() {
     fechaNacObligatoria: $('f-reg-fnac-obl').checked,
     pedirInstagram:      $('f-reg-instagram').checked,
   };
+  // ── Reglas del club ──
+  var reglas = {};
+  document.querySelectorAll('#reglas-dias input[type=number]').forEach(function (inp) {
+    var d = inp.dataset.dia;
+    var v = Number(inp.value);
+    // Sólo guardamos multiplicadores > 1 (default 1 = sin efecto → sin ruido en el doc).
+    if (Number.isFinite(v) && v > 1) reglas[d] = Math.min(5, v);
+  });
+  if (Object.keys(reglas).length) cfg.reglasDia = reglas;
+  cfg.cumpleanos = {
+    activa:      $('f-cumple-activa').checked,
+    sellosBonus: Math.max(1, Math.min(20, Number($('f-cumple-bonus').value) || 3)),
+    mensaje:     ($('f-cumple-msg').value || '').trim() || null,
+  };
+  cfg.expiracion = {
+    activa: $('f-expira-activa').checked,
+    dias:   Math.max(7, Math.min(365, Number($('f-expira-dias').value) || 60)),
+  };
   return cfg;
+}
+
+// Pintar el grid de 7 días con multiplicadores. Cada input marca dirty
+// al cambiar; leerForm los serializa a cfg.reglasDia (solo >1).
+function pintarReglasDia(reglas) {
+  var box = $('reglas-dias');
+  if (!box) return;
+  var nombres = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  box.innerHTML = nombres.map(function (n, i) {
+    var v = Number(reglas[String(i)]) || 1;
+    return ''
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+      +   '<div style="font-size:11px;font-weight:600;color:var(--soft);letter-spacing:0.02em;">' + n + '</div>'
+      +   '<input type="number" min="1" max="5" step="0.5" value="' + v + '" data-dia="' + i + '" style="width:100%;height:44px;text-align:center;font-size:15px;font-weight:600;padding:0;" onchange="marcarDirty()" oninput="marcarDirty()">'
+      +   '<div style="font-size:10px;color:var(--muted);font-weight:500;">×</div>'
+      + '</div>';
+  }).join('');
 }
 
 // ── Preview en vivo ───────────────────────────────────────────────
@@ -1961,6 +2050,13 @@ $('f-enabled').addEventListener('change', function () { renderPreview(); marcarD
   $(id).addEventListener('input', marcarDirty);
 });
 ['f-reg-fnac', 'f-reg-fnac-obl', 'f-reg-instagram'].forEach(function (id) {
+  $(id).addEventListener('change', marcarDirty);
+});
+// Tab Reglas: cumple + expiración
+['f-cumple-bonus', 'f-cumple-msg', 'f-expira-dias'].forEach(function (id) {
+  $(id).addEventListener('input', marcarDirty);
+});
+['f-cumple-activa', 'f-expira-activa'].forEach(function (id) {
   $(id).addEventListener('change', marcarDirty);
 });
 

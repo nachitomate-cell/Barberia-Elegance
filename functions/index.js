@@ -1636,6 +1636,14 @@ exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
 // pase. Habilita el producto Wallet standalone (sin agenda).
 exports.walletSumarSelloStaff   = require('./wallet-staff').walletSumarSelloStaff;
 
+// Automatización diaria (schedule 10:00/10:15 Santiago):
+//   walletCumpleanosCron — regala sellos + push al cumpleañero.
+//   walletExpiracionCron — resetea saldo de clientes inactivos según
+//   cfg.expiracion.dias. Idempotencia por marca en el user doc.
+const walletCron = require('./wallet-cron');
+exports.walletCumpleanosCron    = walletCron.walletCumpleanosCron;
+exports.walletExpiracionCron    = walletCron.walletExpiracionCron;
+
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.
