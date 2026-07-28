@@ -63,9 +63,17 @@ function scopeFromDoc(data) {
 // Semilla anti-flash: si en el reload anterior había un usuario logueado, el
 // primer render ya lo sabe y NO parpadea el LoginPage antes de que Firebase
 // termine su check. Se actualiza en cada onAuthStateChanged.
-const LAST_UID_KEY = '_panel_last_uid';
+const LAST_UID_KEY  = '_panel_last_uid';
+const LAST_ROLE_KEY = '_panel_last_role';
 function _seedUidSync() {
   try { return localStorage.getItem(LAST_UID_KEY) || null; } catch { return null; }
+}
+// Rol seed: evita el flash de RoleRedirectScreen mientras useAuth resuelve el
+// rol real. En el reload anterior guardamos el rol que quedó → el primer render
+// ya asume ese rol (que se sobreescribe con el real en cuanto llega). No es
+// autoritativo (Firestore rules son la fuente real), es solo UX.
+function _seedRoleSync() {
+  try { return localStorage.getItem(LAST_ROLE_KEY) || null; } catch { return null; }
 }
 
 export function AuthProvider({ children }) {
@@ -77,14 +85,17 @@ export function AuthProvider({ children }) {
     const uid = _seedUidSync();
     return uid ? { uid, _seed: true } : undefined;
   });
-  const [role,    setRole]    = useState(null);
+  const [role,    setRole]    = useState(() => _seedRoleSync());
   const [sucursalScope, setSucursalScope] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async firebaseUser => {
       if (!firebaseUser) {
-        try { localStorage.removeItem(LAST_UID_KEY); } catch { /* ignore */ }
+        try {
+          localStorage.removeItem(LAST_UID_KEY);
+          localStorage.removeItem(LAST_ROLE_KEY);
+        } catch { /* ignore */ }
         setUser(null);
         setRole(null);
         setSucursalScope('all');
@@ -108,6 +119,7 @@ export function AuthProvider({ children }) {
       // Superadmin de SynapTech — acceso total en cualquier tenant
       if (email === SUPERADMIN_EMAIL) {
         setRole('admin');
+        try { localStorage.setItem(LAST_ROLE_KEY, 'admin'); } catch { /* ignore */ }
         setSucursalScope('all');
         setLoading(false);
         return;
@@ -117,6 +129,7 @@ export function AuthProvider({ children }) {
       // El refresh forzado del token ya ocurrió arriba (universalmente).
       if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
         setRole('admin');
+        try { localStorage.setItem(LAST_ROLE_KEY, 'admin'); } catch { /* ignore */ }
         setSucursalScope('all');
         setLoading(false);
         return;
@@ -137,26 +150,29 @@ export function AuthProvider({ children }) {
         if (sessionStorage.getItem('_role_override_admin') === '1') roleOverride = 'admin';
       } catch { /* ignore */ }
       if (rolClaims === 'admin' || roleOverride === 'admin') {
+        // Fast-path SÍNCRONO: setRole + setLoading juntos, sin awaits en el
+        // medio. Cualquier await acá agrega gap donde loading=false pero
+        // role=null todavía → RoleRedirectScreen se muestra por unos ms.
+        // El scope preciso se resuelve en background.
         setRole('admin');
-        // Scope: leemos el doc barbero para heredar sucursalScope (best-effort;
-        // si falla o no existe, 'all' es seguro para admin claim).
-        try {
-          const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 5000, 'auth/scope');
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data._mainDocId) {
-              const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 5000, 'auth/scope-link');
-              setSucursalScope(main.exists() ? scopeFromDoc(main.data()) : 'all');
-            } else {
-              setSucursalScope(scopeFromDoc(data));
-            }
-          } else {
-            setSucursalScope('all');
-          }
-        } catch {
-          setSucursalScope('all');
-        }
+        setSucursalScope('all');   // default seguro
         setLoading(false);
+        // Scope real en background (fire-and-forget) — el sucursalScope se
+        // actualiza cuando la lectura vuelve, sin bloquear el render inicial.
+        (async () => {
+          try {
+            const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 5000, 'auth/scope');
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data._mainDocId) {
+                const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 5000, 'auth/scope-link');
+                if (main.exists()) setSucursalScope(scopeFromDoc(main.data()));
+              } else {
+                setSucursalScope(scopeFromDoc(data));
+              }
+            }
+          } catch { /* mantener 'all' */ }
+        })();
         return;
       }
       // Sin claim admin: cae al flujo tradicional (barbero por doc + fallback claim).
@@ -174,13 +190,18 @@ export function AuthProvider({ children }) {
             scope  = scopeFromDoc(data);
           }
           setRole(rolDoc);
+          try { localStorage.setItem(LAST_ROLE_KEY, rolDoc); } catch { /* ignore */ }
           setSucursalScope(scope);
         } else {
-          setRole(rolClaims || 'barbero');
+          const r = rolClaims || 'barbero';
+          setRole(r);
+          try { localStorage.setItem(LAST_ROLE_KEY, r); } catch { /* ignore */ }
           setSucursalScope('all');
         }
       } catch {
-        setRole(rolClaims || 'barbero');
+        const r = rolClaims || 'barbero';
+        setRole(r);
+        try { localStorage.setItem(LAST_ROLE_KEY, r); } catch { /* ignore */ }
         setSucursalScope('all');
       }
       setLoading(false);
