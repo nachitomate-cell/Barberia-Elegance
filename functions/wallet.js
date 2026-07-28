@@ -230,6 +230,7 @@ exports.walletGenerarPase = onCall(
       const obj = core.buildObject(tenantId, uid, {
         accountName, filled, target, hitos, premios, rango, accent, bg, icon,
         modo, cashbackDisponible, cashbackPct, saldoPrepago, prepagoBonusPct,
+        qrStaff: cfg.qrStaff === true,
       });
       await core.upsertObject(key, obj);
 
@@ -316,12 +317,17 @@ async function syncPase(tenantId, uid, before, after) {
       const patch = {
         loyaltyPoints: { label, balance: { string: balance } },
         textModulesData: textModules,
-        // Backfill del QR en pases viejos (los nuevos ya lo traen desde buildObject).
-        barcode: {
-          type: 'QR_CODE',
-          value: core.staffBarcodeValue(tenantId, uid),
-          alternateText: String(uid).slice(0, 8),
-        },
+        // QR de staff: solo donde el sello se suma escaneando (qrStaff:true).
+        // Apagado NO basta con omitirlo — el pase ya emitido lo conserva —,
+        // así que se pisa con BARCODE_TYPE_UNSPECIFIED, que es el valor de
+        // la API para "sin código", y desaparece en el próximo sync.
+        barcode: cfg.qrStaff === true
+          ? {
+            type: 'QR_CODE',
+            value: core.staffBarcodeValue(tenantId, uid),
+            alternateText: String(uid).slice(0, 8),
+          }
+          : { type: 'BARCODE_TYPE_UNSPECIFIED' },
         // Backfill del tap-away Wallo en pases ya emitidos.
         linksModuleData: { uris: [core.WALLO_LINK] },
       };

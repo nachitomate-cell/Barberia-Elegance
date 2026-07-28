@@ -167,6 +167,8 @@ function buildObject(tenantId, uid, opts) {
     modo, cashbackDisponible, cashbackPct,
     // Prepago
     saldoPrepago, prepagoBonusPct,
+    // QR de staff — opt-in por tenant (configuracion/wallet.qrStaff).
+    qrStaff,
   } = opts || {};
   const esCashback = modo === 'cashback';
   const esPrepago  = modo === 'prepago';
@@ -177,13 +179,21 @@ function buildObject(tenantId, uid, opts) {
     state: 'ACTIVE',
     accountId: String(uid),
     accountName: accountName || 'Cliente',
-    barcode: {
+    linksModuleData: { uris: [WALLO_LINK] },
+  };
+
+  // El QR solo sirve donde el sello se suma A MANO escaneando el pase
+  // (locales wallet-only, app /staff). En un local con agenda el sello lo
+  // pone sello-automatico.js al completar la cita, así que el QR es
+  // decoración que confunde al cliente. Por eso es opt-in: sin el flag,
+  // la tarjeta sale limpia.
+  if (qrStaff === true) {
+    obj.barcode = {
       type: 'QR_CODE',
       value: staffBarcodeValue(tenantId, uid),
       alternateText: String(uid).slice(0, 8),
-    },
-    linksModuleData: { uris: [WALLO_LINK] },
-  };
+    };
+  }
 
   if (esCashback) {
     obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(cashbackDisponible) } };

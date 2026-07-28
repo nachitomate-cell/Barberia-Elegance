@@ -149,11 +149,18 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
         return arr;
       })(),
     },
-    // QR con el uid (espejo del accountId de Google) para canje en local.
-    barcodes: [
-      { format: 'PKBarcodeFormatQR', message: String(uid), messageEncoding: 'iso-8859-1', altText: 'Tu código de cliente' },
-    ],
   };
+
+  // QR con el uid (espejo del accountId de Google) para canje en local.
+  // Opt-in por tenant igual que en Google: solo tiene sentido donde el
+  // sello se suma escaneando el pase. En un local con agenda lo pone la
+  // cita completada, así que el QR sobra y se omite. Apple no renderiza
+  // nada si `barcodes` no viene.
+  if (cfg.qrStaff === true) {
+    p.barcodes = [
+      { format: 'PKBarcodeFormatQR', message: String(uid), messageEncoding: 'iso-8859-1', altText: 'Tu código de cliente' },
+    ];
+  }
 
   // Geo NATIVO de Apple: el pase aparece en pantalla bloqueada cerca
   // del local (espejo de locations del LoyaltyClass).

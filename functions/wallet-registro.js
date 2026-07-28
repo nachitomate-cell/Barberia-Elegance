@@ -341,6 +341,7 @@ exports.walletRegistrarCliente = onRequest(
           accountName: nombre,
           filled, target, hitos, premios, rango,
           accent: cfg.accent, bg: cfg.bg, icon: cfg.stampIcon,
+          qrStaff: cfg.qrStaff === true,
         });
         await core.upsertObject(saKey, obj);
         googleObjectId = obj.id;

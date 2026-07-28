@@ -965,6 +965,19 @@
             <input type="number" id="f-expira-dias" min="7" max="365" step="1" value="60">
             <p class="pv-note" style="margin-top:8px;">Recomendado: 60 días para café/salón, 90 para retail. Menos de 30 puede sentirse agresivo.</p>
           </div>
+
+          <div class="section">
+            <h2>Código QR en la tarjeta</h2>
+            <p class="section-sub">El QR es para que tu equipo <b>escanee el pase y sume el sello a mano</b>, desde la app <b>/staff</b>. Si tu local suma los sellos solo al completar la cita en la agenda, el QR no lo usa nadie y ensucia la tarjeta: déjalo apagado.</p>
+            <div class="switch-row">
+              <div>
+                <p class="t">Mostrar el QR de cliente</p>
+                <p class="d">Actívalo solo si sumas sellos escaneando. Se aplica a Google y Apple.</p>
+              </div>
+              <label class="switch"><input type="checkbox" id="f-qrstaff"><span class="slider"></span></label>
+            </div>
+            <p class="pv-note" style="margin-top:8px;">Al apagarlo, el QR desaparece de las tarjetas ya guardadas en la próxima actualización del pase.</p>
+          </div>
         </div>
 
         <!-- ══ TAB: Clientes ══ -->
@@ -1064,7 +1077,7 @@
               <div class="b" id="pv-g-recompensas">Configura premios en Wallo · Estudio → Premios.</div>
             </div>
           </div>
-          <div class="pv-g-qr">
+          <div class="pv-g-qr" id="pv-g-qr-wrap">
             <div class="qr-box">
               <img id="pv-g-qr" src="" alt="QR de la tarjeta">
             </div>
@@ -1099,7 +1112,7 @@
               <div class="val" id="pv-a-rango">Silver</div>
             </div>
           </div>
-          <div class="pv-a-qr">
+          <div class="pv-a-qr" id="pv-a-qr-wrap">
             <div class="qr-box">
               <img id="pv-a-qr" src="" alt="QR de la tarjeta">
             </div>
@@ -1530,6 +1543,9 @@ function llenarForm(cfg, tenantCfg) {
   var exp = cfg.expiracion || {};
   $('f-expira-activa').checked = exp.activa === true;
   $('f-expira-dias').value     = exp.dias || 60;
+  // QR de staff: opt-in. Sin el campo la tarjeta va limpia (el caso de
+  // cualquier local con agenda, que suma el sello al completar la cita).
+  $('f-qrstaff').checked = cfg.qrStaff === true;
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent || '') ? cfg.accent : '#c9a84c';
   var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
   $('f-accent').value = acc; $('f-accent-hex').value = acc;
@@ -1648,6 +1664,7 @@ function leerForm() {
     activa: $('f-expira-activa').checked,
     dias:   Math.max(7, Math.min(365, Number($('f-expira-dias').value) || 60)),
   };
+  cfg.qrStaff = $('f-qrstaff').checked;
   return cfg;
 }
 
@@ -2175,6 +2192,11 @@ function renderPreview() {
   $('pv-g-sellos').textContent = progLabel;
   $('pv-g-rango').textContent = rango;
   $('pv-g-strip').src = stripUrl;
+  // El QR del preview sigue al toggle: si el local no suma sellos
+  // escaneando, la tarjeta se ve sin él (que es como saldrá de verdad).
+  var _verQR = $('f-qrstaff').checked;
+  $('pv-g-qr-wrap').style.display = _verQR ? '' : 'none';
+  $('pv-a-qr-wrap').style.display = _verQR ? '' : 'none';
   $('pv-g-qr').src = qrDemoUrl(104);
   if (recompensas) {
     $('pv-g-recompensas').textContent = recompensas;
@@ -2262,6 +2284,8 @@ $('f-enabled').addEventListener('change', function () { renderPreview(); marcarD
 ['f-cumple-activa', 'f-expira-activa'].forEach(function (id) {
   $(id).addEventListener('change', marcarDirty);
 });
+// El QR sí se ve en el pase → además de dirty, repinta la vista previa.
+$('f-qrstaff').addEventListener('change', function () { renderPreview(); marcarDirty(); });
 // Modo del programa + cashback config
 document.getElementsByName('f-modo').forEach(function (r) {
   r.addEventListener('change', function () { marcarDirty(); updateModoUI(); });
