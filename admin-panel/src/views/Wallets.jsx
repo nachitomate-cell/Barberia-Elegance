@@ -9,12 +9,12 @@ import { ADDONS, fmtCLP } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 
-// La PERSONALIZACIÓN de la tarjeta vive en su propio estudio (wallets.bioo.cl).
+// La PERSONALIZACIÓN de la tarjeta vive en su propio estudio (wallets.bioo.cl/estudio).
 // Esta vista es el launcher: estado del módulo + botón al estudio + upsell.
 // Pasamos ?tid= para que el estudio abra directo con el local seleccionado
 // (superadmin evita el picker; admin del tenant lo respeta igual).
-const WALLETS_BIOO_URL = 'https://wallets.bioo.cl';
-const estudioUrl = (tid) => tid ? `${WALLETS_BIOO_URL}/?tid=${encodeURIComponent(tid)}` : WALLETS_BIOO_URL;
+const WALLETS_STUDIO_URL = 'https://wallets.bioo.cl/estudio';
+const estudioUrl = (tid) => tid ? `${WALLETS_STUDIO_URL}?tid=${encodeURIComponent(tid)}` : WALLETS_STUDIO_URL;
 
 // Ruta del doc de config por tenant (mismo criterio que las CFs de wallet).
 const cfgPath = (tid) => (tid === 'elegance' ? 'configuracion/wallet' : `tenants/${tid}/configuracion/wallet`);

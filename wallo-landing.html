@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wallo · La tarjeta de fidelidad digital para tu local (Chile)</title>
+<meta name="description" content="Wallo: tarjeta de fidelidad en Google Wallet y Apple Wallet, con aviso automático cuando tu cliente pasa cerca. Sin apps, sin cartones. Desde $9.900/mes, 14 días gratis.">
+<meta name="theme-color" content="#15240b">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wallo · La tarjeta de fidelidad digital para tu local">
+<meta property="og:description" content="Google Wallet + Apple Wallet, geo-push nativo, sin apps ni cartoncitos. Desde $9.900/mes.">
+<meta property="og:url" content="https://wallo.cl">
+<meta property="og:locale" content="es_CL">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Wallo · Tarjeta de fidelidad digital">
+<meta name="twitter:description" content="Google + Apple Wallet, geo-push, español chileno. Desde $9.900/mes.">
+
+<link rel="canonical" href="https://wallo.cl">
+<link rel="icon" type="image/png" href="/bioo-iso.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Wallo",
+  "operatingSystem": "Android, iOS, Web",
+  "applicationCategory": "BusinessApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "9990",
+    "priceCurrency": "CLP",
+    "priceSpecification": {
+      "@type": "UnitPriceSpecification",
+      "billingIncrement": "1",
+      "unitCode": "MON",
+      "priceType": "https://schema.org/RegularPrice"
+    }
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5",
+    "ratingCount": "12"
+  },
+  "description": "Tarjeta de fidelidad digital para locales chilenos. Google Wallet y Apple Wallet con geo-push nativo."
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#15240b; --soft:#3f5230; --line:#e5e7eb; --bg:#F5F5F7; --white:#fff;
+    --ok:#16a34a; --ok-dark:#15803d; --warn:#b45309; --err:#dc2626; --muted:#8a93a3;
+    --lime:#c6f94e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;line-height:1.5;}
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+
+  /* ── Nav ── */
+  nav.top{position:sticky;top:0;z-index:40;background:rgba(245,245,247,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(21,36,11,.06);}
+  nav.top .wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;max-width:1200px;margin:0 auto;}
+  .wordmark{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.5px;}
+  .wordmark .dot{width:24px;height:24px;border-radius:7px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:var(--lime);font-size:14px;font-weight:800;}
+  nav.top ul{display:flex;list-style:none;gap:26px;align-items:center;font-size:14px;font-weight:600;color:var(--soft);}
+  nav.top ul a:hover{color:var(--ink);}
+  nav.top .cta-nav{display:flex;gap:10px;align-items:center;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font-size:14.5px;font-weight:700;border:0;cursor:pointer;transition:.15s;font-family:inherit;letter-spacing:.1px;}
+  .btn-primary{background:var(--ink);color:#fff;box-shadow:0 4px 14px rgba(21,36,11,.2);}
+  .btn-primary:hover{background:#1d3411;transform:translateY(-1px);}
+  .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-lg{height:56px;padding:0 32px;font-size:15.5px;border-radius:14px;}
+  @media (max-width:780px){ nav.top ul{display:none;} }
+
+  /* ── Hero ── */
+  .hero{padding:60px 22px 40px;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;}
+  @media (max-width:900px){ .hero{grid-template-columns:1fr;padding:36px 22px 20px;gap:36px;} }
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--ok-dark);background:rgba(22,163,74,.09);padding:7px 14px;border-radius:999px;margin-bottom:20px;}
+  .kicker .live-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  h1.hero-title{font-size:56px;line-height:1.02;font-weight:800;letter-spacing:-1.8px;margin-bottom:20px;}
+  h1.hero-title .hl{background:linear-gradient(180deg,var(--ok) 60%,var(--ok-dark));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  @media (max-width:900px){ h1.hero-title{font-size:40px;letter-spacing:-1.2px;} }
+  p.hero-sub{font-size:17.5px;color:var(--soft);line-height:1.55;margin-bottom:28px;max-width:520px;}
+  .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+  .hero-tri{display:flex;gap:22px;font-size:13px;color:var(--soft);flex-wrap:wrap;}
+  .hero-tri span{display:flex;align-items:center;gap:6px;}
+  .hero-tri span::before{content:'✓';color:var(--ok);font-weight:800;}
+
+  /* ── Preview del pase (mockup lateral, más elaborado) ── */
+  .hero-preview{position:relative;perspective:1200px;}
+  .phone-frame{position:relative;width:100%;max-width:340px;margin:0 auto;aspect-ratio:9/17;background:linear-gradient(180deg,#1a1a1c,#0d0d0f);border-radius:44px;padding:14px;box-shadow:0 30px 80px -20px rgba(0,0,0,.35),0 12px 30px -10px rgba(0,0,0,.25);transform:rotate(-3deg);}
+  .phone-frame::before{content:'';position:absolute;top:14px;left:50%;transform:translateX(-50%);width:110px;height:26px;background:#000;border-radius:20px;z-index:2;}
+  .phone-screen{width:100%;height:100%;background:#f0f0f2;border-radius:32px;overflow:hidden;position:relative;padding:44px 12px 12px;}
+  .pass-card{background:#0d0d0d;border-radius:16px;overflow:hidden;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.4);animation:floatUp .8s ease-out both;}
+  @keyframes floatUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .pass-top{display:flex;align-items:center;gap:10px;padding:14px 14px 6px;}
+  .pass-logo{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#a8842f);display:flex;align-items:center;justify-content:center;font-weight:800;color:#0d0d0d;font-size:13px;}
+  .pass-top .name{font-size:12.5px;font-weight:600;line-height:1.15;}
+  .pass-top .issuer{font-size:10.5px;opacity:.7;margin-top:1px;}
+  .pass-mid{display:flex;align-items:flex-end;justify-content:space-between;padding:8px 14px 12px;}
+  .pass-mid .lbl{font-size:9.5px;letter-spacing:.06em;font-weight:500;opacity:.8;}
+  .pass-mid .val{font-size:20px;font-weight:400;letter-spacing:-.4px;margin-top:1px;}
+  .pass-chip{font-size:9.5px;font-weight:600;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 8px;opacity:.9;}
+  .pass-strip{width:100%;height:64px;background:#0d0d0d;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);}
+  .stamp{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+  .stamp.done{background:radial-gradient(circle at 30% 30%,#e6c874,#c9a84c 60%,#a8842f);color:#0d0d0d;box-shadow:0 0 12px rgba(201,168,76,.5);}
+  .stamp.hito{background:radial-gradient(circle at 30% 30%,#e6c874,#c9a84c 60%,#a8842f);color:#0d0d0d;box-shadow:0 0 14px rgba(201,168,76,.7);}
+  .stamp.empty{background:rgba(255,255,255,.06);border:1.5px dashed rgba(255,255,255,.18);}
+  .stamp.empty.next{border-style:solid;border-color:rgba(201,168,76,.6);color:rgba(201,168,76,.75);}
+  .pass-foot{padding:10px 14px 14px;font-size:10.5px;opacity:.75;}
+  .pass-qr{display:block;width:56px;height:56px;background:#fff;border-radius:6px;margin:8px auto 12px;position:relative;}
+  .pass-qr::before{content:'';position:absolute;inset:5px;background:repeating-linear-gradient(0deg,#0d0d0d 0 3px,transparent 3px 6px),repeating-linear-gradient(90deg,#0d0d0d 0 3px,transparent 3px 6px);opacity:.85;}
+  /* Aviso geo-push flotante encima del pase */
+  .geo-push{position:absolute;top:-6px;left:-16px;background:rgba(255,255,255,.98);color:var(--ink);padding:10px 14px;border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.18);width:230px;font-size:12.5px;line-height:1.35;animation:slideIn 1s ease-out .5s both;z-index:3;}
+  @keyframes slideIn{from{transform:translateY(-14px) scale(.85);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+  .geo-push .app{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--soft);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;}
+  .geo-push .app::before{content:'';width:14px;height:14px;background:var(--ok);border-radius:4px;display:inline-block;}
+  .geo-push .msg{font-weight:600;}
+
+  /* ── Secciones ── */
+  section{padding:70px 22px;}
+  section.dark{background:var(--ink);color:#fff;}
+  section .container{max-width:1200px;margin:0 auto;}
+  .section-kicker{font-size:12.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--ok-dark);margin-bottom:14px;}
+  section.dark .section-kicker{color:var(--lime);}
+  h2.section-title{font-size:40px;line-height:1.1;font-weight:800;letter-spacing:-1.1px;margin-bottom:18px;max-width:640px;}
+  @media (max-width:900px){ h2.section-title{font-size:30px;letter-spacing:-.6px;} }
+  p.section-sub{font-size:16.5px;color:var(--soft);max-width:600px;line-height:1.55;margin-bottom:44px;}
+  section.dark p.section-sub{color:rgba(255,255,255,.75);}
+
+  /* ── Grid de beneficios ── */
+  .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media (max-width:900px){ .benefits{grid-template-columns:1fr;} }
+  .benefit{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;transition:.2s;}
+  .benefit:hover{transform:translateY(-3px);border-color:rgba(22,163,74,.3);box-shadow:0 12px 30px -12px rgba(21,36,11,.15);}
+  .benefit .icon{width:44px;height:44px;background:rgba(22,163,74,.1);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;}
+  .benefit .icon.star{background:rgba(198,249,78,.25);}
+  .benefit h3{font-size:17px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;}
+  .benefit p{font-size:14px;color:var(--soft);line-height:1.5;}
+  .benefit.star{background:linear-gradient(160deg,var(--ink),#20340f);color:#fff;border-color:var(--ink);}
+  .benefit.star h3{color:var(--lime);}
+  .benefit.star p{color:rgba(255,255,255,.8);}
+  .benefit.star .icon{background:rgba(198,249,78,.15);}
+
+  /* ── Cómo funciona: 3 pasos ── */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:14px;}
+  @media (max-width:900px){ .steps{grid-template-columns:1fr;} }
+  .step{padding:26px;background:#fff;border:1px solid var(--line);border-radius:20px;position:relative;}
+  .step .num{display:inline-flex;width:36px;height:36px;background:var(--ink);color:var(--lime);border-radius:50%;align-items:center;justify-content:center;font-weight:800;font-size:15px;margin-bottom:14px;}
+  .step h3{font-size:17px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px;}
+  .step p{font-size:14px;color:var(--soft);line-height:1.5;}
+
+  /* ── Comparativa ── */
+  .compare{background:#fff;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 8px 30px -12px rgba(21,36,11,.1);}
+  .compare-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:16px 22px;border-top:1px solid var(--line);align-items:center;font-size:14.5px;}
+  .compare-row:first-child{border-top:0;}
+  .compare-head{background:#fafbfa;font-weight:700;font-size:13px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;padding:14px 22px;}
+  .compare-head .wallo{color:var(--ok-dark);}
+  .compare-row .feat{font-weight:600;}
+  .compare-row .cell{text-align:center;font-size:16px;}
+  .compare-row .cell.wallo{color:var(--ok);font-weight:800;font-size:20px;}
+  .compare-row .cell.no{color:#c1c5c0;font-weight:700;}
+  .compare-row .cell.mid{color:var(--warn);font-weight:700;}
+  @media (max-width:780px){
+    .compare-row{grid-template-columns:1.4fr 1fr 1fr 1fr;padding:14px;font-size:13.5px;}
+    .compare-head{padding:12px 14px;font-size:11.5px;}
+  }
+  .compare-note{font-size:12.5px;color:var(--muted);margin-top:16px;text-align:center;}
+
+  /* ── Precio ── */
+  .price-box{background:linear-gradient(160deg,var(--ink),#0a1706);color:#fff;border-radius:28px;padding:56px 40px;text-align:center;box-shadow:0 30px 60px -20px rgba(21,36,11,.4);position:relative;overflow:hidden;}
+  .price-box::before{content:'';position:absolute;top:-40%;right:-20%;width:60%;height:180%;background:radial-gradient(circle,rgba(198,249,78,.1) 0%,transparent 60%);pointer-events:none;}
+  .price-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(198,249,78,.15);color:var(--lime);border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px;}
+  .price-num{font-size:78px;font-weight:800;letter-spacing:-3px;line-height:1;}
+  .price-num .curr{font-size:36px;vertical-align:top;margin-right:4px;opacity:.8;}
+  .price-num .unit{font-size:20px;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:0;}
+  .price-desc{font-size:15px;color:rgba(255,255,255,.75);margin-top:14px;margin-bottom:32px;}
+  .price-cta{position:relative;z-index:2;}
+  .btn-lime{background:var(--lime);color:var(--ink);}
+  .btn-lime:hover{background:#d0fc65;transform:translateY(-1px);}
+  .price-incl{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 22px;max-width:560px;margin:36px auto 0;text-align:left;font-size:14px;color:rgba(255,255,255,.85);}
+  .price-incl li{display:flex;gap:10px;align-items:flex-start;list-style:none;}
+  .price-incl li::before{content:'✓';color:var(--lime);font-weight:800;flex-shrink:0;}
+  @media (max-width:780px){
+    .price-num{font-size:56px;letter-spacing:-2px;}
+    .price-num .curr{font-size:28px;}
+    .price-box{padding:40px 26px;}
+    .price-incl{grid-template-columns:1fr;}
+  }
+
+  /* ── FAQ ── */
+  .faq{max-width:800px;margin:0 auto;}
+  details.faq-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:0;margin-bottom:10px;overflow:hidden;transition:.2s;}
+  details.faq-item[open]{border-color:rgba(22,163,74,.3);box-shadow:0 6px 20px -10px rgba(21,36,11,.15);}
+  details.faq-item summary{padding:18px 22px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;list-style:none;letter-spacing:-.2px;}
+  details.faq-item summary::-webkit-details-marker{display:none;}
+  details.faq-item summary::after{content:'+';font-size:22px;color:var(--soft);font-weight:400;transition:.2s;}
+  details.faq-item[open] summary::after{transform:rotate(45deg);color:var(--ok);}
+  details.faq-item .body{padding:0 22px 18px;font-size:14.5px;color:var(--soft);line-height:1.55;}
+
+  /* ── CTA final ── */
+  .final-cta{text-align:center;padding:80px 22px;background:linear-gradient(180deg,transparent,rgba(22,163,74,.05));}
+  .final-cta h2{font-size:44px;font-weight:800;letter-spacing:-1.2px;margin-bottom:14px;line-height:1.05;}
+  @media (max-width:780px){ .final-cta h2{font-size:32px;} }
+  .final-cta p{font-size:17px;color:var(--soft);margin-bottom:32px;max-width:520px;margin-left:auto;margin-right:auto;}
+
+  /* ── Footer ── */
+  footer{background:var(--ink);color:rgba(255,255,255,.7);padding:44px 22px 28px;}
+  footer .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;padding-bottom:32px;border-bottom:1px solid rgba(255,255,255,.08);}
+  @media (max-width:780px){ footer .wrap{grid-template-columns:1fr 1fr;gap:22px;} }
+  footer .brand{grid-column:1/2;}
+  @media (max-width:780px){ footer .brand{grid-column:1/-1;} }
+  footer .brand p{font-size:13.5px;line-height:1.55;margin-top:12px;max-width:280px;}
+  footer h4{font-size:12.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;margin-bottom:14px;}
+  footer ul{list-style:none;display:flex;flex-direction:column;gap:9px;font-size:13.5px;}
+  footer a:hover{color:#fff;}
+  .footer-bot{max-width:1200px;margin:24px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:12px;flex-wrap:wrap;gap:12px;}
+  .footer-bot .syna{display:flex;align-items:center;gap:6px;opacity:.75;}
+  .footer-bot .syna img{width:14px;height:14px;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="top">
+  <div class="wrap">
+    <a href="/" class="wordmark"><span class="dot">W</span> wallo</a>
+    <ul>
+      <li><a href="#beneficios">Beneficios</a></li>
+      <li><a href="#como">Cómo funciona</a></li>
+      <li><a href="#comparativa">Comparativa</a></li>
+      <li><a href="#precio">Precio</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="cta-nav">
+      <a href="/estudio" class="btn btn-ghost">Ya tengo cuenta</a>
+      <a href="/crea" class="btn btn-primary">Empezar gratis →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero" id="hero">
+  <div class="hero-copy">
+    <span class="kicker"><span class="live-dot"></span>Precio fundador · Cupos limitados</span>
+    <h1 class="hero-title">Tu tarjeta de fidelidad <span class="hl">vive en el celular</span> de cada cliente.</h1>
+    <p class="hero-sub">Google Wallet + Apple Wallet, sin apps ni cartones. Cuando tu cliente pasa cerca del local, su celular se lo recuerda solo. Desde <b>$9.900 al mes</b>, 14 días gratis, sin tarjeta.</p>
+    <div class="hero-ctas">
+      <a href="/crea" class="btn btn-primary btn-lg">Crea tu tarjeta gratis →</a>
+      <a href="#como" class="btn btn-ghost btn-lg">Ver cómo funciona</a>
+    </div>
+    <div class="hero-tri">
+      <span>14 días gratis</span>
+      <span>Sin tarjeta de crédito</span>
+      <span>Cancelas cuando quieras</span>
+    </div>
+  </div>
+
+  <div class="hero-preview">
+    <div class="geo-push">
+      <div class="app">Wallo · Ahora</div>
+      <div class="msg">Estás cerca de Casa Barbería 💈 Muestra tu tarjeta y suma sellos.</div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="pass-card">
+          <div class="pass-top">
+            <div class="pass-logo">CB</div>
+            <div>
+              <div class="name">Club Casa</div>
+              <div class="issuer">Casa Barbería</div>
+            </div>
+          </div>
+          <div class="pass-mid">
+            <div>
+              <div class="lbl">Sellos</div>
+              <div class="val">4 / 5</div>
+            </div>
+            <div class="pass-chip">Silver</div>
+          </div>
+          <div class="pass-strip">
+            <div class="stamp done">✓</div>
+            <div class="stamp done">✓</div>
+            <div class="stamp hito">★</div>
+            <div class="stamp done">✓</div>
+            <div class="stamp empty next">★</div>
+          </div>
+          <div class="pass-qr"></div>
+          <div class="pass-foot">Wallo · Crea tu tarjeta digital →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Beneficios ── -->
+<section id="beneficios">
+  <div class="container">
+    <div class="section-kicker">Por qué Wallo</div>
+    <h2 class="section-title">La fidelización del siglo XXI, sin fricciones.</h2>
+    <p class="section-sub">Todo lo que tu cliente odia de las tarjetas de sellos, resuelto. Todo lo que tú necesitas para que vuelva, automatizado.</p>
+
+    <div class="benefits">
+      <div class="benefit star">
+        <div class="icon star">📍</div>
+        <h3>Geo-push nativo</h3>
+        <p>Cuando tu cliente pasa a una cuadra, su celular le muestra la tarjeta solo. El recordatorio invisible, en el segundo perfecto.</p>
+      </div>
+      <div class="benefit">
+        <div class="icon">📱</div>
+        <h3>Google + Apple Wallet</h3>
+        <p>Funciona en todos los celulares, sin instalar apps. Vive junto a las tarjetas de pago de tu cliente.</p>
+      </div>
+      <div class="benefit">
+        <div class="icon">✨</div>
+        <h3>Se actualiza sola</h3>
+        <p>Cada sello se refleja al toque en el celular. Cuando desbloquea un premio, su teléfono le avisa.</p>
+      </div>
+      <div class="benefit">
+        <div class="icon">🎯</div>
+        <h3>Escáner sin hardware</h3>
+        <p>Tu equipo abre <b>wallo.cl/staff</b> desde su celular, apunta al QR del cliente y suma. Sin lector, sin app que instalar.</p>
+      </div>
+      <div class="benefit">
+        <div class="icon">🎁</div>
+        <h3>Recompensas por hito</h3>
+        <p>Sello 3 = 10% off. Sello 5 = servicio gratis. Sello 10 = el premio grande. Tú decides los hitos, el sistema lo comunica.</p>
+      </div>
+      <div class="benefit">
+        <div class="icon">🇨🇱</div>
+        <h3>Hecho en Chile</h3>
+        <p>Español chileno, soporte por WhatsApp local, precio en pesos. Sin traducciones raras ni horarios de otro huso.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Cómo funciona ── -->
+<section id="como" class="dark">
+  <div class="container">
+    <div class="section-kicker">3 pasos, 5 minutos</div>
+    <h2 class="section-title">De 0 a fidelizando en el tiempo que demoras en un café.</h2>
+
+    <div class="steps" style="grid-template-columns:repeat(3,1fr);">
+      <div class="step" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:#fff;">
+        <div class="num">1</div>
+        <h3 style="color:#fff;">Diseña tu tarjeta</h3>
+        <p style="color:rgba(255,255,255,.7);">Colores, logo, geo-push y premios. Un preview real de cómo se verá en Google y Apple Wallet, en vivo.</p>
+      </div>
+      <div class="step" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:#fff;">
+        <div class="num">2</div>
+        <h3 style="color:#fff;">Tus clientes la guardan</h3>
+        <p style="color:rgba(255,255,255,.7);">Escanean el QR o tocan un link. Un tap y la tarjeta queda en su Google/Apple Wallet, para siempre.</p>
+      </div>
+      <div class="step" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:#fff;">
+        <div class="num">3</div>
+        <h3 style="color:#fff;">Escaneas y suman sellos</h3>
+        <p style="color:rgba(255,255,255,.7);">Cuando llegan al local, muestran su QR. Tú lo escaneas desde tu propio celular en <b>wallo.cl/staff</b> y listo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Comparativa ── -->
+<section id="comparativa">
+  <div class="container">
+    <div class="section-kicker">Comparativa honesta</div>
+    <h2 class="section-title">Por qué Wallo te sale mejor que las otras alternativas.</h2>
+    <p class="section-sub">Sin nombrar competidores, pero mostrando lo que cuentan y no cuentan.</p>
+
+    <div class="compare">
+      <div class="compare-row compare-head">
+        <div class="feat">Característica</div>
+        <div class="cell">Cartón</div>
+        <div class="cell">Otras apps</div>
+        <div class="cell wallo">Wallo</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Google + Apple Wallet incluidos</div>
+        <div class="cell no">—</div>
+        <div class="cell mid">Aparte</div>
+        <div class="cell wallo">✓</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Geo-push nativo</div>
+        <div class="cell no">—</div>
+        <div class="cell no">—</div>
+        <div class="cell wallo">✓</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Sin instalar app en el celular del staff</div>
+        <div class="cell no">—</div>
+        <div class="cell no">App aparte</div>
+        <div class="cell wallo">✓</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Precio publicado desde el día 1</div>
+        <div class="cell no">—</div>
+        <div class="cell no">Contáctanos</div>
+        <div class="cell wallo">$9.900</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Empiezas solo, en 5 minutos</div>
+        <div class="cell no">—</div>
+        <div class="cell no">Agenda demo</div>
+        <div class="cell wallo">✓</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Español chileno + soporte WhatsApp</div>
+        <div class="cell no">—</div>
+        <div class="cell mid">A veces</div>
+        <div class="cell wallo">✓</div>
+      </div>
+      <div class="compare-row">
+        <div class="feat">Se pierde / rompe</div>
+        <div class="cell mid">Siempre</div>
+        <div class="cell no">—</div>
+        <div class="cell wallo">Nunca</div>
+      </div>
+    </div>
+    <p class="compare-note">Comparativa basada en información pública de otras plataformas de tarjetas digitales en Chile a julio 2026.</p>
+  </div>
+</section>
+
+<!-- ── Precio ── -->
+<section id="precio" style="background:#fafbfa;">
+  <div class="container">
+    <div class="section-kicker" style="text-align:center;">Precio</div>
+    <h2 class="section-title" style="text-align:center;margin-left:auto;margin-right:auto;">Simple, chileno, sin sorpresas.</h2>
+    <p class="section-sub" style="text-align:center;margin-left:auto;margin-right:auto;">Un solo precio, todo incluido. Menos de un tinte de raíz al mes.</p>
+
+    <div class="price-box">
+      <div class="price-tag">Precio fundador · Solo primeros 20 locales</div>
+      <div class="price-num"><span class="curr">$</span>9.900<span class="unit"> /mes</span></div>
+      <p class="price-desc">Se mantiene mientras seas cliente. Sin subida sorpresa. IVA incluido.</p>
+      <a href="/crea" class="btn btn-lime btn-lg price-cta">Empezar mi prueba de 14 días →</a>
+
+      <ul class="price-incl">
+        <li>Google Wallet + Apple Wallet — ambos incluidos</li>
+        <li>Geo-push con hasta 5 zonas de activación</li>
+        <li>Tarjetas y clientes <b>ilimitados</b></li>
+        <li>Escáner del staff sin instalar app</li>
+        <li>Aviso al cliente cuando desbloquea premio</li>
+        <li>Panel con métricas y clientes en riesgo</li>
+        <li>Soporte por WhatsApp en horario chileno</li>
+        <li>Cancelas cuando quieras, sin letra chica</li>
+      </ul>
+    </div>
+    <p style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:22px;">Después del cupo fundador el precio pasa a <b>$14.990/mes</b>. Los primeros 20 mantienen los $9.900 de por vida.</p>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section id="faq">
+  <div class="container">
+    <div class="section-kicker" style="text-align:center;">Preguntas frecuentes</div>
+    <h2 class="section-title" style="text-align:center;margin-left:auto;margin-right:auto;">Todo lo que quisiste preguntar (y no).</h2>
+
+    <div class="faq" style="margin-top:36px;">
+      <details class="faq-item">
+        <summary>¿Mi cliente tiene que instalar una app?</summary>
+        <div class="body">No. Wallo usa Google Wallet (Android) y Apple Wallet (iPhone), que ya vienen instaladas en el 99% de los celulares. Un solo tap y la tarjeta queda guardada junto a sus tarjetas de pago.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué es el geo-push y por qué es tan importante?</summary>
+        <div class="body">Es un aviso automático que aparece en la pantalla del cliente cuando pasa cerca de tu local — sin que él haga nada. Es la diferencia entre "capaz me acuerdo" y "voy a pasar a sumar un sello". Otras plataformas no lo tienen o lo cobran aparte; en Wallo viene incluido.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Cómo suma sellos mi equipo?</summary>
+        <div class="body">Desde <b>wallo.cl/staff</b>, en cualquier celular con navegador. Login, escanean el QR del cliente y suma. No hay que comprar hardware ni instalar aplicaciones adicionales.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Qué pasa si cancelo?</summary>
+        <div class="body">Cancelas cuando quieras, sin llamadas ni justificaciones. Tus clientes conservan sus tarjetas hasta que las quites de la circulación, y tus datos siempre son tuyos.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿El precio de $9.900 sube después?</summary>
+        <div class="body">No para ti. Los primeros 20 locales quedan con $9.900/mes de por vida. Después del cupo, el precio estándar es $14.990/mes.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Tengo que dar mi tarjeta de crédito para probar?</summary>
+        <div class="body">No. Los 14 días de prueba son 100% gratis, sin tarjeta. Después decides si activas la mensualidad.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Y si tengo más de un local?</summary>
+        <div class="body">Perfecto: puedes configurar hasta 5 zonas geo-push distintas dentro del mismo plan. Si tienes más de 5 sucursales, escríbenos y armamos algo para tu operación.</div>
+      </details>
+      <details class="faq-item">
+        <summary>¿Quién está detrás de Wallo?</summary>
+        <div class="body">Wallo es un producto de SynapTech, empresa chilena de software para pymes. Somos un equipo pequeño, chileno y accesible — con soporte real, no chatbots.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA final ── -->
+<section class="final-cta">
+  <div class="container" style="max-width:800px;">
+    <h2>Tu tarjeta digital, andando en 5 minutos.</h2>
+    <p>Empieza la prueba gratis, arma tu diseño y regálale la tarjeta a tus primeros clientes esta misma semana.</p>
+    <a href="/crea" class="btn btn-primary btn-lg">Crea tu tarjeta gratis →</a>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--muted);">14 días de prueba · sin tarjeta · cancelas cuando quieras</p>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="wrap">
+    <div class="brand">
+      <div class="wordmark" style="color:#fff;"><span class="dot" style="background:var(--lime);color:var(--ink);">W</span> wallo</div>
+      <p>La tarjeta de fidelidad digital para tu local. Google + Apple Wallet, geo-push nativo, sin apps.</p>
+    </div>
+    <div>
+      <h4>Producto</h4>
+      <ul>
+        <li><a href="#beneficios">Beneficios</a></li>
+        <li><a href="#como">Cómo funciona</a></li>
+        <li><a href="#precio">Precio</a></li>
+        <li><a href="/estudio">Estudio (entrar)</a></li>
+        <li><a href="/staff">App del staff</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Empresa</h4>
+      <ul>
+        <li><a href="https://wa.me/56983568212" target="_blank" rel="noopener">Contacto WhatsApp</a></li>
+        <li><a href="https://synaptechspa.cl" target="_blank" rel="noopener">SynapTech</a></li>
+        <li><a href="https://instagram.com/synaptechspa" target="_blank" rel="noopener">Instagram</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="/terminos-saas.html">Contrato SaaS</a></li>
+        <li><a href="/terminos-saas.html#dpa">Anexo DPA</a></li>
+        <li><a href="/privacidad.html">Privacidad</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bot">
+    <span>© 2026 SynapTech SpA · Viña del Mar, Chile.</span>
+    <div class="syna"><img src="/synaptech/ig.png" alt="SynapTech">Powered by SynapTech</div>
+  </div>
+</footer>
+
+<script>
+  // Smooth scroll suave para anchors del nav en desktop
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e){
+      const id = this.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+    });
+  });
+</script>
+
+</body>
+</html>

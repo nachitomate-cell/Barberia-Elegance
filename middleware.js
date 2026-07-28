@@ -2031,21 +2031,26 @@ export default async function middleware(request) {
   // vercel.json (mismo caso documentado de bioo.cl). El resto de rutas
   // (config.js, firebase-config.js, assets) pasan crudas.
   if (hostname === 'wallets.bioo.cl') {
+    // Landing pública en la raíz (SEO + conversión de tráfico frío).
+    // El editor se movió a /estudio para que la home cuente el producto.
     if (url.pathname === '/' || url.pathname === '/index.html') {
+      const rw  = new URL('/wallo-landing.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    // Editor Wallo (antes en /) → /estudio.
+    if (url.pathname === '/estudio' || url.pathname === '/estudio/') {
       const rw  = new URL('/wallets-bioo.html', request.url);
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
-    // App del staff: /staff (con o sin trailing slash) → staff-wallet.html.
-    // Sirve para el modelo standalone (tenants sin agenda) — el staff escanea
-    // el QR del pase del cliente y suma sellos.
+    // App del staff (mobile web, sin instalar app): /staff → staff-wallet.html.
     if (url.pathname === '/staff' || url.pathname === '/staff/') {
       const rw  = new URL('/staff-wallet.html', request.url);
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
     }
-    // Wizard self-serve: /crea → wallets-crea.html. Provisiona tenant
-    // wallet-only en 1 pantalla (form + callable provisionarTenantWalletSelf).
+    // Wizard self-serve: /crea → wallets-crea.html.
     if (url.pathname === '/crea' || url.pathname === '/crea/') {
       const rw  = new URL('/wallets-crea.html', request.url);
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));

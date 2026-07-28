@@ -133,7 +133,7 @@ exports.provisionarTenantWalletSelf = onCall(
       return {
         ok: true, yaExistia: true, slug: pSlug,
         urlPanel:  `https://${pSlug}.${BASE_DOMAIN}/gestion-interna/?local=${pSlug}`,
-        urlEditor: `https://wallets.bioo.cl/?tid=${encodeURIComponent(pSlug)}`,
+        urlEditor: `https://wallets.bioo.cl/estudio?tid=${encodeURIComponent(pSlug)}`,
         plan: pData.plan || null,
       };
     }
@@ -272,7 +272,7 @@ exports.provisionarTenantWalletSelf = onCall(
       ok: true,
       slug,
       urlPanel:  `https://${slug}.${BASE_DOMAIN}/gestion-interna/?local=${slug}`,
-      urlEditor: `https://wallets.bioo.cl/?tid=${encodeURIComponent(slug)}`,
+      urlEditor: `https://wallets.bioo.cl/estudio?tid=${encodeURIComponent(slug)}`,
       urlStaff:  `https://wallets.bioo.cl/staff`,
       trialDias: TRIAL_DIAS,
     };

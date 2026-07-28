@@ -19,7 +19,7 @@ import { useCollection } from '../hooks/useCollection';
 //  El despacho por plan vive en App.jsx (billingPlan === 'wallet-only').
 // ─────────────────────────────────────────────────────────────────
 
-const WALLETS_STUDIO_URL = 'https://wallets.bioo.cl';
+const WALLETS_STUDIO_URL = 'https://wallets.bioo.cl/estudio';
 const WALLETS_STAFF_URL  = 'https://wallets.bioo.cl/staff';
 
 const greeting = () => {
