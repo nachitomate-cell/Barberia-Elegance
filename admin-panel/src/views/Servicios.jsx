@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Tag, Sparkles, Package } from 'lucide-react';
+import { Plus, Tag, Sparkles, Package, AlertTriangle } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch,
   serverTimestamp, orderBy, getDocs, query, limit,
@@ -206,6 +206,11 @@ export default function Servicios() {
   const [slide,     setSlide]     = useState(false);
   const [showHelp,  setShowHelp]  = useState(false);
   const [editing,   setEditing]   = useState(null);
+  // ¿El servicio que se está editando ERA un pack al abrir el form? Sirve para
+  // avisar que la conversión a servicio normal está pendiente de guardar: una
+  // vez que isPack pasa a false el form se ve igual que un servicio común y no
+  // quedaría rastro del cambio.
+  const [eraPack,   setEraPack]   = useState(false);
   const [form,      setForm]      = useState(EMPTY);
   const [saving,    setSaving]    = useState(false);
   const [newCat,    setNewCat]    = useState('');
@@ -233,6 +238,7 @@ export default function Servicios() {
 
   const openNew = () => {
     setEditing(null);
+    setEraPack(false);
     setForm({ ...EMPTY, categoria: categorias[0] || 'Otro', ppd: { ...EMPTY_PPD } });
     resetImageState();
     setSlide(true);
@@ -243,6 +249,7 @@ export default function Servicios() {
   // recomendaciones) para que la UX quede enfocada en configurar la cuponera.
   const openNewPack = () => {
     setEditing(null);
+    setEraPack(false);
     setForm({ ...EMPTY, categoria: categorias[0] || 'Otro', ppd: { ...EMPTY_PPD }, isPack: true });
     resetImageState();
     setSlide(true);
@@ -259,6 +266,7 @@ export default function Servicios() {
       Object.entries(s.preciosSucursal).forEach(([sid, v]) => { pps[sid] = v != null ? String(v) : ''; });
     }
     setEditing(s.id);
+    setEraPack(!!s.isPack);
     setForm({
       nombre: s.nombre, categoria: s.categoria || 'Otro',
       precio: s.precio, duracion: s.duracion,
@@ -781,6 +789,60 @@ export default function Servicios() {
                   El cliente paga <b>una vez</b> y consume <b>N sesiones prepagas</b> dentro
                   de la vigencia. Las citas de consumo se cobran <b>$0</b>.
                 </p>
+                {/* Convertir a servicio normal. Solo al EDITAR: en uno nuevo
+                    basta con cerrar y usar "Nuevo servicio". Al guardar con
+                    isPack=false, handleSave ya borra sesionesTotales,
+                    diasValidez, serviciosIncluidos y serviciosCantidades con
+                    deleteField() — no quedan restos de configuración de pack. */}
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const ok = await confirmDialog({
+                        title: '📦 Convertir en servicio normal',
+                        message:
+                          `"${form.nombre || 'Este pack'}" dejará de ser un pack y pasará a ser un servicio común:\n\n` +
+                          `• Se cobra su precio en cada cita, no una vez por N sesiones.\n` +
+                          `• Se borra la configuración de pack (sesiones, vigencia y servicios cubiertos).\n` +
+                          `• Deja de aparecer como pack en la reserva pública.\n\n` +
+                          `Los packs que tus clientes YA compraron no se tocan: siguen con su saldo y su vencimiento hasta que los usen.\n\n` +
+                          `Tienes que guardar para aplicarlo. ¿Continuar?`,
+                        confirmText: 'Convertir en servicio',
+                        cancelText:  'Cancelar',
+                      });
+                      if (!ok) return;
+                      // Duración: un pack la usa como largo de cada sesión. Si
+                      // quedó en blanco, dejamos 30 para que el form valide.
+                      setForm(f => ({ ...f, isPack: false, duracion: Number(f.duracion) || 30 }));
+                    }}
+                    className="mt-2 text-[11px] font-semibold text-violet-200/80 hover:text-primary underline underline-offset-2 transition-colors"
+                  >
+                    Convertir en servicio normal
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Aviso al hacer el camino inverso dentro de la misma edición: el
+              usuario ya tocó "Convertir en servicio normal" pero todavía no
+              guarda. Sin esto el form vuelve a verse como un servicio común y
+              no queda rastro de que hay un cambio grande pendiente. */}
+          {editing && !form.isPack && eraPack && (
+            <div className="rounded-xl p-3.5 border border-amber-500/40 bg-amber-500/[0.08] flex items-start gap-2.5">
+              <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-amber-200">Se convertirá en servicio normal al guardar</p>
+                <p className="text-[11px] text-amber-100/75 mt-0.5 leading-relaxed">
+                  Se borrará su configuración de pack. Los packs ya comprados por tus clientes no se tocan.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, isPack: true }))}
+                  className="mt-1.5 text-[11px] font-semibold text-amber-200 hover:text-primary underline underline-offset-2"
+                >
+                  Deshacer — seguir siendo pack
+                </button>
               </div>
             </div>
           )}
