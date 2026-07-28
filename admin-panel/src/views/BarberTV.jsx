@@ -1085,7 +1085,12 @@ export default function BarberTV() {
   useEffect(() => {
     withTimeout(getDocs(query(tenantCol('barberos'), where('activo', '!=', false))), 15000, 'tv/barberos')
       .then(snap => setBarberos(
-        snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId && b.rol !== 'admin'),
+        // El admin PURO no sale en la TV del local, pero el admin que atiende
+        // sí: es un barbero más en la pantalla. Misma regla que la agenda.
+        snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b =>
+          !b._mainDocId
+          && (b.rol !== 'admin' || b.esBarbero === true || b.mostrarEnAgenda === true)
+        ),
       ))
       .catch(() => {});
   }, [tenantId]);

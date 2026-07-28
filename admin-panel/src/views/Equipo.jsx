@@ -495,6 +495,9 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
 /* ─── BarberCard ─────────────────────────────────────────── */
 function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false, tenant = null, canManageBioo = false, linkedMainDocIds = null }) {
   const isActive      = barber.disponible !== false;
+  // isStrictAdmin = admin de local PURO (no atiende). isAdmin = el rol, nada
+  // más. Lo que se esconde porque "no corta pelo" tiene que mirar el PRIMERO:
+  // con isAdmin a secas, un admin-barbero pierde cosas que sí le sirven.
   const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
   const isAdmin       = barber.rol === 'admin';
   // Toggle desplegable: por default colapsado para no saturar el grid con
@@ -536,7 +539,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
       <div className="text-center">
         <p className="text-lg font-bold text-primary leading-tight">{barber.nombre}</p>
         {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">Admin</p>}
-        {!isAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
+        {!isStrictAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
         {barber.sucursalId && (() => {
           const suc = sucursales.find(s => s.id === barber.sucursalId);
           return (
@@ -614,8 +617,12 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
           Dos links con propósitos MUY distintos:
           1) Agenda personal PRIVADA (/agenda.html) — para el barbero
           2) Página pública de reserva (/{slug}) — para los clientes
-          Colapsado por default para no saturar el grid con texto repetido. */}
-      {!isSupportAdmin && !isAdmin && barber.nombre && (
+          Colapsado por default para no saturar el grid con texto repetido.
+          Se muestra a cualquiera que ATIENDA, incluido un admin-barbero: él
+          también tiene agenda propia y página pública de reserva. Antes esto
+          miraba `isAdmin` y al convertir a un barbero en admin sus links
+          desaparecían, aunque siguiera cortando. */}
+      {!isSupportAdmin && !isStrictAdmin && barber.nombre && (
         <div className="w-full mt-1">
           {/* Toggle */}
           <button

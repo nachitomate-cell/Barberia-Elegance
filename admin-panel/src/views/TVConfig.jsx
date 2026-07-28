@@ -835,7 +835,12 @@ export default function TVConfig() {
     withTimeout(getDocs(query(tenantCol('barberos'), where('activo', '!=', false))), 15000, 'tvconfig/barberos')
       .then(snap =>
         setBarberoCount(
-          snap.docs.filter(d => !d.data()._mainDocId && d.data().rol !== 'admin').length
+          // Cuenta lo mismo que muestra BarberTV: el admin que atiende entra.
+          snap.docs.filter(d => {
+            const b = d.data();
+            return !b._mainDocId
+              && (b.rol !== 'admin' || b.esBarbero === true || b.mostrarEnAgenda === true);
+          }).length
         )
       )
       .catch(() => setBarberoCount(0));
