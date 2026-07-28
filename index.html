@@ -12492,10 +12492,10 @@
             <span style="font-size:24px;line-height:1;" aria-hidden="true">✂️</span>
           </div>
           <div style="flex:1;min-width:0;">
-            <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0 0 2px;">¿Qué te hacés hoy?</p>
+            <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0 0 2px;">¿Qué te haces hoy?</p>
             <p style="font-size:15px;font-weight:700;color:#fff;margin:0;line-height:1.25;word-break:break-word;">${esc(pack.nombre)}</p>
             <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">
-              Marcá lo que te hacés en esta visita — podés elegir más de uno. Las sesiones que no uses hoy quedan para cuando vuelvas.
+              Marca lo que te haces en esta visita — puedes elegir más de uno. Las sesiones que no uses hoy quedan para cuando vuelvas.
             </p>
           </div>
         </div>
@@ -12506,7 +12506,7 @@
 
         <button type="button" id="packHoyOk" disabled
           style="width:100%;padding:14px;border-radius:14px;background:rgba(96,165,250,0.25);color:rgba(255,255,255,0.45);border:1px solid rgba(96,165,250,0.30);font-weight:700;font-size:14px;margin-bottom:8px;cursor:not-allowed;">
-          Elegí al menos uno
+          Elige al menos uno
         </button>
         <button type="button" id="packHoyCancel"
           style="width:100%;padding:11px;border-radius:12px;background:transparent;color:rgba(255,255,255,0.45);border:0;font-weight:600;font-size:13px;">
@@ -12542,7 +12542,7 @@
         btnOk.style.cursor = n ? 'pointer' : 'not-allowed';
         btnOk.style.background = n ? '#2563eb' : 'rgba(96,165,250,0.25)';
         btnOk.style.color = n ? '#fff' : 'rgba(255,255,255,0.45)';
-        btnOk.textContent = n ? `Confirmar · ${mins} min` : 'Elegí al menos uno';
+        btnOk.textContent = n ? `Confirmar · ${mins} min` : 'Elige al menos uno';
       };
 
       opciones.forEach((svc) => {
@@ -12644,7 +12644,7 @@
             <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(167,139,250,0.95);margin:0 0 2px;">Usar tu pack</p>
             <p style="font-size:15px;font-weight:700;color:#fff;margin:0;line-height:1.25;word-break:break-word;">${esc(p.nombrePack)}</p>
             <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">
-              Te quedan <b style="color:#fff;">${rest}</b> de ${total} sesión${total !== 1 ? 'es' : ''}. Elegí qué servicio querés reservar:
+              Te quedan <b style="color:#fff;">${rest}</b> de ${total} sesión${total !== 1 ? 'es' : ''}. Elige qué servicio quieres reservar:
             </p>
           </div>
         </div>
@@ -14357,6 +14357,79 @@
             citaGuardada = true;
           } else {
 
+          // ── Pack con VARIOS servicios en la visita ────────────────────
+          // Una sola cita que suma las duraciones deja al barbero sin forma de
+          // completar cada servicio por separado: ve un bloque de 50 min con
+          // un solo nombre y el otro servicio desaparece de la agenda.
+          // Creamos UNA CITA POR SERVICIO, encadenadas (10:30 corte 30' →
+          // 11:00 barba 20'). addCita revisa solapamiento contra slotLocks y
+          // los rangos consecutivos no chocan (el fin de una es el inicio de
+          // la otra), así que se pueden crear en secuencia.
+          //
+          // Contabilidad del pack: va COMPLETA en la primera cita, que es la
+          // venta — activa el pack y descuenta las N sesiones de una. Las
+          // hermanas no llevan marcas de consumo a propósito: si cada una
+          // descontara la suya, el orden en que el barbero las complete
+          // importaría (el pack no existe hasta que se cierre la de venta) y
+          // una barba completada primero se perdería sin descontar.
+          const _packMulti = Array.isArray(selectedServiceObj?.activaPackServicios)
+            && selectedServiceObj.activaPackServicios.length > 1;
+
+          if (_packMulti) {
+            const _catalogo = (window._fsServices || _fsServices || []);
+            const _tramos = selectedServiceObj.activaPackServicios.map((sid, i) => {
+              const svc = _catalogo.find(s => String(s.id) === String(sid));
+              return {
+                id:       String(sid),
+                nombre:   svc?.nombre || (i === 0 ? selectedServiceObj.nombre : 'Servicio'),
+                duracion: Number(svc?.duracion) || 30,
+              };
+            });
+            const _toMin = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+            const _fmtHora = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+            let _cursor = _toMin(selectedTimeStr);
+
+            for (let i = 0; i < _tramos.length; i++) {
+              const t = _tramos[i];
+              const esVenta = i === 0;
+              await FDB.addCita({
+                fecha:            currentDateStr,
+                hora:             _fmtHora(_cursor),
+                clienteNombre:    nombre,
+                clienteTelefono:  tel,
+                clienteTelefonoSuf9: telSuf9,
+                clienteEmail:     email,
+                ..._reservaAcepto,
+                ...(_auraOrigen && esVenta ? { origenAdquisicion: _auraOrigen } : {}),
+                servicioId:       t.id,
+                servicioNombre:   t.nombre,
+                duracionServicio: t.duracion,
+                duracion:         t.duracion,
+                // El precio del pack se cobra UNA vez, en la cita de venta.
+                precio:           esVenta ? (Number(selectedServiceObj.precio) || 0) : 0,
+                barberoId:        barberoIdFinal,
+                barbero:          barberoNombreFinal,
+                codigoCita:       window._generarCodigoCita(),
+                packNombre:       selectedServiceObj.packNombre,
+                ...(esVenta ? {
+                  activaPackId:        selectedServiceObj.activaPackId,
+                  activaPackServicios: selectedServiceObj.activaPackServicios,
+                } : {
+                  // Hermana de la venta: ya viene pagada dentro del pack y su
+                  // sesión se descontó en la cita de venta.
+                  packVentaHermanaDe: selectedServiceObj.activaPackId,
+                  precioTipo:         'INCLUIDO_EN_PACK',
+                }),
+                ...(window._selectedSucursal ? {
+                  sucursalId:     window._selectedSucursal.id,
+                  sucursalNombre: window._selectedSucursal.nombre,
+                } : {}),
+              });
+              _cursor += t.duracion;
+            }
+            citaGuardada = true;
+          } else {
+
           await FDB.addCita({
             fecha:            currentDateStr,
             hora:             selectedTimeStr,
@@ -14418,6 +14491,7 @@
             } : {}),
           });
           citaGuardada = true;
+          } // fin else (pack multi-servicio vs cita única)
           } // fin else (reserva individual vs grupo)
         } catch(e) {
           if (e.code === 'slot-taken') {

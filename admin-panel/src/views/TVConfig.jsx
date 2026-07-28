@@ -1569,7 +1569,7 @@ export default function TVConfig() {
               ))}
             </div>
             <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
-              💡 <strong className="text-slate-400">Tip:</strong> Después de aplicar un preset podés seguir ajustando los toggles individualmente. Usá <strong className="text-amber-400">Descartar</strong> en la barra de arriba si querés volver al estado guardado.
+              💡 <strong className="text-slate-400">Tip:</strong> Después de aplicar un preset puedes seguir ajustando los toggles individualmente. Usa <strong className="text-amber-400">Descartar</strong> en la barra de arriba si quieres volver al estado guardado.
             </p>
           </Card>
 
@@ -2028,7 +2028,7 @@ export default function TVConfig() {
               <Megaphone size={22} className="mx-auto text-slate-600 mb-2" />
               <p className="text-sm font-semibold text-slate-400">Publicidad de marcas — Solo Elegance</p>
               <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
-                Este slide de auspiciadores está disponible por ahora solo en Elegance. Contáctate con soporte si querés activarlo en tu local.
+                Este slide de auspiciadores está disponible por ahora solo en Elegance. Contáctate con soporte si quieres activarlo en tu local.
               </p>
             </div>
           )}

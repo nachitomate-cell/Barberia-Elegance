@@ -40,7 +40,7 @@ function defaultConfig(tenant) {
     enabled: true,
     // Placeholders {nombre} y {local} se interpolan en runtime con el
     // primer nombre del cliente (welcome modal) y el nombre del local.
-    greeting: 'Hola {nombre}! 👋 Soy el asistente de {local}. Tocá una opción o escribime tu duda:',
+    greeting: 'Hola {nombre}! 👋 Soy el asistente de {local}. Toca una opción o escríbeme tu duda:',
     options: [
       { id: 'reservar',  label: '📅 Quiero reservar', response: 'Perfecto, agendá tu hora acá 👇', action: 'link-booking',    escalate: false },
       { id: 'horarios',  label: '🕒 Horarios',         response: 'Atendemos Lun-Sáb 10:30 a 19:00.', action: 'reply',           escalate: false },
@@ -251,7 +251,7 @@ export default function ChatbotConfig() {
         />
         {/* Hint: placeholders disponibles */}
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-          <span>Variables que podés usar:</span>
+          <span>Variables que puedes usar:</span>
           <button
             type="button"
             onClick={() => setConfig(c => ({ ...c, greeting: (c.greeting || '') + '{nombre}' }))}
@@ -285,7 +285,7 @@ export default function ChatbotConfig() {
         </div>
         <p className="text-[11.5px] text-slate-500 mb-4 leading-relaxed">
           Cada opción es un botón que el cliente toca y dispara una respuesta.
-          Marcá <b className="text-primary">"Escalar a humano"</b> si esa opción
+          Marca <b className="text-primary">"Escalar a humano"</b> si esa opción
           requiere atención del dueño (ej. precios, hablar con alguien).
         </p>
 

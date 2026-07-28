@@ -889,7 +889,7 @@ function MensajesGuide() {
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-primary">Filtrá por origen</b> con los tabs de arriba si querés enfocarte solo en clientes del Club o solo en chat público.
+                <b className="text-primary">Filtra por origen</b> con los tabs de arriba si quieres enfocarte solo en clientes del Club o solo en chat público.
               </span>
             </li>
             <li className="flex gap-2.5">
@@ -901,7 +901,7 @@ function MensajesGuide() {
             <li className="flex gap-2.5">
               <ArrowRight size={14} className="shrink-0 mt-0.5" style={{ color: accent.hex }} />
               <span className="text-xs text-slate-300 leading-relaxed">
-                <b className="text-primary">El cliente del Chat público</b> puede dejar su teléfono opcional — si lo hace, lo ves al lado del nombre y podés contactarlo después por WhatsApp.
+                <b className="text-primary">El cliente del Chat público</b> puede dejar su teléfono opcional — si lo hace, lo ves al lado del nombre y puedes contactarlo después por WhatsApp.
               </span>
             </li>
             <li className="flex gap-2.5">
