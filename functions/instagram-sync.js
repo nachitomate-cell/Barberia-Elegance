@@ -35,13 +35,34 @@ const db = admin.firestore();
 
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
-const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'machos', 'infinity', 'sionbarberia', 'omega', 'memphis', 'barbersclub', 'elbarberomoderno', 'renacer', 'latincaribe', 'yugen', 'estudioluxury', 'oren', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+// Enumera tenants dinámicamente vía listDocuments() (los docs padre en
+// `tenants/` no existen — un .get() los omite; ver memoria "listDocuments()").
+// Cache in-process 5 min: en Fluid Compute los contenedores se reutilizan, así
+// que evita hits repetidos a Firestore por invocación sin quedar stale por
+// horas si aparece un tenant nuevo.
+const TENANTS_CACHE_TTL_MS = 5 * 60 * 1000;
+let _tenantsCache = null;
+let _tenantsCachedAt = 0;
+async function listAllTenants() {
+  const now = Date.now();
+  if (_tenantsCache && (now - _tenantsCachedAt) < TENANTS_CACHE_TTL_MS) return _tenantsCache;
+  const refs = await db.collection('tenants').listDocuments();
+  const ids  = refs.map(r => r.id);
+  // 'elegance' es el tenant legacy raíz (colecciones en la raíz de Firestore),
+  // no vive bajo tenants/elegance/. Se agrega manual para que la CF siga
+  // sincronizando su Instagram histórico.
+  if (!ids.includes('elegance')) ids.push('elegance');
+  _tenantsCache    = ids;
+  _tenantsCachedAt = now;
+  return ids;
+}
+
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
 // Map de fallback tenant → URL absoluta del panel. Se usa cuando el `state`
 // no trae origen o el origen viene fuera de la allow-list. Cubre todos los
-// tenants en ALL_TENANTS con su dominio principal (los alias los cubre el
+// tenants conocidos con su dominio principal (los alias los cubre el
 // origen dinámico que viene en state).
 const TENANT_PANEL_URL = {
   elegance:             'https://barberiaelegance.synaptechspa.cl',
@@ -53,6 +74,7 @@ const TENANT_PANEL_URL = {
   lumen:                'https://barberiadjones.synaptechspa.cl',
   delnero:              'https://delnerobarber.synaptechspa.cl',
   marcelo_hairdressing: 'https://marcelohairdressing.synaptechspa.cl',
+  sion:                 'https://sion.synaptechspa.cl',
   aura:                 'https://aurasalon.synaptechspa.cl',
   machos:               'https://machos.synaptechspa.cl',
   infinity:             'https://infinity.synaptechspa.cl',
@@ -157,11 +179,12 @@ exports.instagramOAuthCallback = onRequest(
     // lista, la config se escribía en `_system/instagram_elegance` y contaminaba
     // esa cuenta. Ahora abortamos con error claro para que la falta de tenant
     // sea visible en producción (y no un "éxito" que rompe otro tenant).
-    if (!ALL_TENANTS.includes(tenantPart)) {
-      logger.error(`[Instagram] Tenant no reconocido en state: "${tenantPart}". Agrégalo a ALL_TENANTS y redeployá.`);
+    const tenants = await listAllTenants();
+    if (!tenants.includes(tenantPart)) {
+      logger.error(`[Instagram] Tenant no reconocido en state: "${tenantPart}". El doc tenants/${tenantPart} no existe.`);
       res.status(400).send(
         `Tenant no reconocido: "${tenantPart}". ` +
-        `Agrégalo a ALL_TENANTS en functions/instagram-sync.js y volvé a hacer firebase deploy --only functions:instagramOAuthCallback.`
+        `Verificá que exista la colección tenants/${tenantPart} en Firestore.`
       );
       return;
     }
@@ -403,9 +426,10 @@ async function syncTenant(tenantId) {
 exports.instagramSyncScheduled = onSchedule(
   { schedule: '0 */6 * * *', region: 'us-central1', secrets: [INSTAGRAM_APP_SECRET] },
   async () => {
-    const results = await Promise.allSettled(ALL_TENANTS.map(syncTenant));
+    const tenants = await listAllTenants();
+    const results = await Promise.allSettled(tenants.map(syncTenant));
     results.forEach((r, i) => {
-      if (r.status === 'rejected') logger.error(`[Instagram] Error (${ALL_TENANTS[i]}):`, r.reason);
+      if (r.status === 'rejected') logger.error(`[Instagram] Error (${tenants[i]}):`, r.reason);
     });
   }
 );
@@ -417,7 +441,8 @@ exports.instagramSyncManual = onCall(
     if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
     const tenantId = request.data?.tenantId || 'elegance';
-    if (!ALL_TENANTS.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
+    const tenants  = await listAllTenants();
+    if (!tenants.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
 
     const email = (request.auth.token?.email || '').toLowerCase();
     if (!BOOTSTRAP_ADMINS.includes(email)) {

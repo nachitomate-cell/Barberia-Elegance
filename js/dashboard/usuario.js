@@ -197,20 +197,34 @@ async function ensureUserDoc(user, extra = {}) {
 
 // ─── Cargar datos del usuario en tiempo real ─────────────────
 async function subscribeUserData(user) {
-  await ensureUserDoc(user).catch(() => {});
-  if (_userUnsub) { _userUnsub(); _userUnsub = null; }
-  _stampsSynced = false;
-  _prevStamps   = null;
   let _firstSnap = true;
 
   function _hideAuthGuard() {
     if (!_firstSnap) return;
     _firstSnap = false;
-    document.getElementById('authGuard').style.display = 'none';
+    const g = document.getElementById('authGuard');
+    if (g) g.style.display = 'none';
   }
 
-  // Timeout de seguridad: si Firestore no responde en 8s, quitar la pantalla de carga
+  // Timeout de seguridad: si Firestore no responde en 8s, quitar la pantalla
+  // de carga. Va ANTES del primer await a propósito. Estaba después de
+  // ensureUserDoc y esa era la causa del "Cargando…" infinito visto en sion
+  // recién registrado: una operación de Firestore que no recibe ack del
+  // server no rechaza, queda PENDIENTE, así que el .catch() no la salva y el
+  // timeout nunca alcanzaba a programarse. Nada de esto depende del tenant.
   const _guardTimeout = setTimeout(_hideAuthGuard, 8000);
+
+  // Y que tampoco bloquee la suscripción: si ensureUserDoc se cuelga seguimos
+  // igual: el doc se materializa solo cuando vuelva la conexión, y mientras
+  // tanto el cliente ve su dashboard en vez de un spinner eterno.
+  await Promise.race([
+    ensureUserDoc(user).catch(() => {}),
+    new Promise(r => setTimeout(r, 6000)),
+  ]);
+
+  if (_userUnsub) { _userUnsub(); _userUnsub = null; }
+  _stampsSynced = false;
+  _prevStamps   = null;
 
   _userUnsub = FDB.usersCol().doc(user.uid).onSnapshot(snap => {
     clearTimeout(_guardTimeout);
