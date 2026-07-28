@@ -80,6 +80,10 @@
     // Va también en _lightTenants. Sin override CSS de hero por ahora — usa el
     // fondo default de Aura hasta que se sume una imagen propia de omega.
     omega:        'aura',
+    // Sion Barbería reutiliza el tema CLARO de Aura. Va también en
+    // _lightTenants (default global es dark; sin este par el tenant salía
+    // dark estilo Elegance).
+    sion:         'aura',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -88,7 +92,7 @@
   // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
   // por modo (ej: el buscador de servicios en index.html / barbero.html).
   // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
-  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega'];
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega', 'sion'];
 
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
