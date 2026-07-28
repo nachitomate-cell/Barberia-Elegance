@@ -1658,6 +1658,11 @@ const walletPrepago = require('./wallet-prepago');
 exports.walletCargarSaldoStaff    = walletPrepago.walletCargarSaldoStaff;
 exports.walletDescontarSaldoStaff = walletPrepago.walletDescontarSaldoStaff;
 
+// Avisos automáticos de cobro y trial (schedule 09:00 Santoiago):
+// 3d/1d antes del fin del trial, 3d/1d antes del cobro mensual autopay,
+// y post-cobro fallido. Idempotente por marca en _billing.avisosWallo.
+exports.walletAvisosCobroCron    = require('./wallet-avisos-cobro').walletAvisosCobroCron;
+
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.

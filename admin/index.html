@@ -3540,7 +3540,7 @@
 
       renderPlanBtns();
       renderCuotasList();
-      renderAutopayControl(d.suscripcionMp || null);
+      renderAutopayControl(d.suscripcionMp || null, d);
       loadSuspensionState();
       loadWaModules();
     }
@@ -3548,7 +3548,8 @@
     // ── Pago automático (Suscripciones MP) — estado y control ──
     //  El estado lo escribe mpMensualidadWebhook en _billing/{tid}.suscripcionMp.
     //  Aquí solo se muestra + cancelar (callable, el bootstrap admin siempre puede).
-    function renderAutopayControl(sub) {
+    //  billing (opcional): doc completo, para leer trialFinaliza + avisos.
+    function renderAutopayControl(sub, billing) {
       const el = document.getElementById('autopay-control');
       if (!el) return;
       const LBL = `font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;`;
@@ -3599,6 +3600,27 @@
           </button>
           <p style="font-size:0.68rem;color:#475569;margin:0.35rem 0 0;line-height:1.4;">Genera un checkout MP con el monto de arriba. Se lo mandas al dueño por WhatsApp y él ingresa su tarjeta 1 vez.</p>
         ` : ''}
+        ${(() => {
+          // ── Estado del trial (para tenants wallo) + avisos enviados ──
+          const b = billing || {};
+          if (!b.trialFinaliza && !b.avisosWallo) return '';
+          const partes = [];
+          if (b.trialFinaliza) {
+            const finMs = b.trialFinaliza.toMillis ? b.trialFinaliza.toMillis() : Date.parse(String(b.trialFinaliza));
+            const dias = Math.round((finMs - Date.now()) / 86400000);
+            const finStr = new Date(finMs).toISOString().slice(0, 10);
+            const c = dias > 3 ? '#34d399' : (dias >= 0 ? '#fbbf24' : '#f87171');
+            const txt = dias > 0 ? `Trial vence en ${dias}d (${finStr})` : (dias === 0 ? `Trial vence HOY` : `Trial vencido hace ${Math.abs(dias)}d`);
+            partes.push(`<div style="margin-top:0.4rem;font-size:0.72rem;color:${c};"><i class="ph-fill ph-hourglass" style="margin-right:0.25rem;"></i>${txt}</div>`);
+          }
+          const av = b.avisosWallo || {};
+          const keys = Object.keys(av).filter(k => !k.endsWith('_ts'));
+          if (keys.length) {
+            const label = { trial_3d: 'Aviso 3d', trial_1d: 'Aviso 1d', trial_vencido: 'Aviso vencido', pago_3d: 'Pago 3d', pago_1d: 'Pago 1d', pago_fallido: '⚠️ Pago rechazado' };
+            partes.push(`<div style="margin-top:0.35rem;font-size:0.66rem;color:#64748b;">Emails: ${keys.map(k => `<span title="${av[k]}">${label[k] || k}</span>`).join(' · ')}</div>`);
+          }
+          return partes.join('');
+        })()}
         <p id="autopay-feedback" style="font-size:0.72rem;margin:0.35rem 0 0;"></p>`;
 
       window._autopaySub = sub;
@@ -5425,10 +5447,20 @@
       _setToggleBadge('embudo', estancados);
       // Autopay: contamos suscripciones activas + destacamos con ⚠ las que
       // tienen último cobro rechazado (el superadmin debe intervenir).
+      // Trials: tenants wallo con trialFinaliza en próximos 7 días y SIN
+      // autopay activa — el dueño debe ir activando MP antes que expire.
       const autopayActivos = _billingCache.filter(b => b.suscripcionMp && b.suscripcionMp.status === 'authorized');
       const autopayRechazados = autopayActivos.filter(b => b.suscripcionMp.ultimoPago && b.suscripcionMp.ultimoPago.status === 'rejected').length;
-      _setToggleBadge('autopay', autopayActivos.length, autopayRechazados > 0 ? `${autopayActivos.length} · ⚠${autopayRechazados}` : String(autopayActivos.length));
-      setAppBadgeCount(porCobrar + soporte + leadsNew + estancados + autopayRechazados);
+      const trialsProximos = _billingCache.filter(b => {
+        if (!b.trialFinaliza) return false;
+        if (b.suscripcionMp && b.suscripcionMp.status === 'authorized') return false;
+        const finMs = b.trialFinaliza.toMillis ? b.trialFinaliza.toMillis() : Date.parse(String(b.trialFinaliza));
+        const dias = (finMs - Date.now()) / 86400000;
+        return dias >= -3 && dias <= 7;
+      }).length;
+      const badgeAutopay = trialsProximos > 0 ? `${autopayActivos.length} · 🎁${trialsProximos}` : String(autopayActivos.length);
+      _setToggleBadge('autopay', autopayActivos.length, autopayRechazados > 0 ? `${autopayActivos.length} · ⚠${autopayRechazados}` : badgeAutopay);
+      setAppBadgeCount(porCobrar + soporte + leadsNew + estancados + autopayRechazados + trialsProximos);
     }
     function scrollToSection(key) {
       HAPTIC(10);
@@ -5511,34 +5543,75 @@
       const pendientes = suscritos.filter(b => b.suscripcionMp.status === 'link_creado');
       const pausados   = suscritos.filter(b => b.suscripcionMp.status === 'paused');
       const rechazados = activos.filter(b => b.suscripcionMp.ultimoPago && b.suscripcionMp.ultimoPago.status === 'rejected');
+      // Trials wallo próximos (≤7 días o vencidos ≤3d) sin autopay activa.
+      const trialsPronto = _billingCache.filter(b => {
+        if (!b.trialFinaliza) return false;
+        if (b.suscripcionMp && b.suscripcionMp.status === 'authorized') return false;
+        const finMs = b.trialFinaliza.toMillis ? b.trialFinaliza.toMillis() : Date.parse(String(b.trialFinaliza));
+        const dias = (finMs - Date.now()) / 86400000;
+        return dias >= -3 && dias <= 7;
+      });
       if (!content) return;
       // Suma total facturada por suscripciones activas (MRR real vía MP).
       const mrrMP = activos.reduce((s, b) => s + (Number(b.suscripcionMp.montoIva) || 0), 0);
 
-      if (!suscritos.length) {
+      if (!suscritos.length && !trialsPronto.length) {
         content.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#64748b; font-size:0.8125rem;">Aún no hay tenants con suscripción MP.<br><span style="color:#475569;font-size:0.75rem;">Ábrelo desde la ficha del tenant → botón "Crear link de pago automático".</span></div>';
         return;
       }
 
       const sumario = `
         <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
-          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.18);border-radius:0.75rem;">
+          <div style="flex:1;min-width:100px;padding:0.6rem 0.75rem;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.18);border-radius:0.75rem;">
             <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Activos</div>
             <div style="font-size:1.15rem;font-weight:800;color:#34d399;">${activos.length}</div>
           </div>
-          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:0.75rem;">
+          <div style="flex:1;min-width:100px;padding:0.6rem 0.75rem;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:0.75rem;">
             <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Link pendiente</div>
             <div style="font-size:1.15rem;font-weight:800;color:#fbbf24;">${pendientes.length}</div>
           </div>
-          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.18);border-radius:0.75rem;">
+          <div style="flex:1;min-width:100px;padding:0.6rem 0.75rem;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:0.75rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">🎁 Trials pronto</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#8b5cf6;">${trialsPronto.length}</div>
+          </div>
+          <div style="flex:1;min-width:100px;padding:0.6rem 0.75rem;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.18);border-radius:0.75rem;">
             <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Último rechazado</div>
             <div style="font-size:1.15rem;font-weight:800;color:#f87171;">${rechazados.length}</div>
           </div>
-          <div style="flex:1;min-width:110px;padding:0.6rem 0.75rem;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.18);border-radius:0.75rem;">
+          <div style="flex:1;min-width:100px;padding:0.6rem 0.75rem;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.18);border-radius:0.75rem;">
             <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">MRR MP</div>
             <div style="font-size:1.15rem;font-weight:800;color:#67e8f9;">$${mrrMP.toLocaleString('es-CL')}</div>
           </div>
         </div>`;
+
+      // Sección Trials wallo (aparte de suscripciones) — la acción más
+      // urgente porque si vence sin autopay el cliente se queda sin servicio.
+      const trialsHtml = trialsPronto.length
+        ? `<div style="margin-bottom:0.75rem;">
+            <div style="font-size:0.62rem;font-weight:700;color:#8b5cf6;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.4rem;">🎁 Trials wallo terminando</div>
+            ${trialsPronto.slice().sort((a, b) => {
+              const ma = a.trialFinaliza.toMillis ? a.trialFinaliza.toMillis() : Date.parse(String(a.trialFinaliza));
+              const mb = b.trialFinaliza.toMillis ? b.trialFinaliza.toMillis() : Date.parse(String(b.trialFinaliza));
+              return ma - mb;
+            }).map(b => {
+              const nombre = _nombreDe(b.tid);
+              const tel = _telDe(b);
+              const finMs = b.trialFinaliza.toMillis ? b.trialFinaliza.toMillis() : Date.parse(String(b.trialFinaliza));
+              const dias = Math.round((finMs - Date.now()) / 86400000);
+              const finStr = new Date(finMs).toISOString().slice(0, 10);
+              const c = dias > 3 ? '#34d399' : (dias >= 0 ? '#fbbf24' : '#f87171');
+              const txt = dias > 0 ? `Vence en ${dias}d · ${finStr}` : (dias === 0 ? `Vence HOY · ${finStr}` : `Vencido hace ${Math.abs(dias)}d · ${finStr}`);
+              const wa = tel ? `<a href="https://wa.me/${tel}" target="_blank" title="WhatsApp" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.25);color:#25d366;flex-shrink:0;text-decoration:none;"><i class="ph-fill ph-whatsapp-logo"></i></a>` : '';
+              const abrir = `<button onclick="openDrawer('${b.tid}')" title="Abrir ficha" style="width:30px;height:30px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;flex-shrink:0;cursor:pointer;"><i class="ph-bold ph-arrow-square-out"></i></button>`;
+              return `<div style="display:flex;align-items:center;gap:0.55rem;padding:0.65rem 0.75rem;border-radius:0.75rem;background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);margin-bottom:0.375rem;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.8125rem;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(nombre)}</div>
+                  <div style="font-size:0.68rem;color:${c};margin-top:0.15rem;">⏳ ${txt}</div>
+                </div>
+                ${abrir}${wa}
+              </div>`;
+            }).join('')}
+          </div>` : '';
 
       // Orden: rechazados primero (necesitan atención), luego pendientes, activos, pausados, cancelados.
       const orderKey = (b) => {
@@ -5547,7 +5620,7 @@
       };
       const ordenados = suscritos.slice().sort((a, b) => orderKey(a) - orderKey(b));
 
-      content.innerHTML = sumario + ordenados.map(b => {
+      content.innerHTML = sumario + trialsHtml + (suscritos.length ? `<div style="font-size:0.62rem;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.4rem;">Suscripciones MP</div>` : '') + ordenados.map(b => {
         const sub = b.suscripcionMp;
         const nombre = _nombreDe(b.tid);
         const tel = _telDe(b);
