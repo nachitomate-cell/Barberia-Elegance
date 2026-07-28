@@ -321,6 +321,19 @@ function SortableCol({ id, children }) {
 }
 
 /* ── Constants ─────────────────────────────────────────────── */
+// Alto en px de UNA franja horaria de la grilla (la celda `h-10`). Todo lo que
+// se dibuja encima —citas, bloqueos, colación, línea de "ahora"— se posiciona
+// contra esta medida.
+const SLOT_PX = 40;
+
+// Alto mínimo visible de una card de cita. Con duraciones cortas en relojes
+// anchos (15' en una grilla de 60') el bloque real quedaría en 10 px:
+// ilegible e imposible de tocar en mobile. Preferimos exagerar un poco hacia
+// "ocupado" antes que hacia "libre", que es el error que confunde al cliente.
+// (24px = padding vertical de la card + una línea de text-xs: el nombre del
+// cliente siempre legible.)
+const MIN_CITA_PX = 24;
+
 function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
   // Math.ceil: con 45' el día puede no dividir exacto; redondeamos hacia arriba
   // para no recortar la última franja horaria.
@@ -338,18 +351,29 @@ function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
     const mins = hourStart * 60 + i * pickerStep;
     return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
   });
+  const totalPx = totalSlots * SLOT_PX;
   return {
     slotMins,
     totalSlots,
+    totalPx,
+    hourStart,
     timeLabels,
     pickerLabels,
-    slotIdx: t => {
-      // Guard: citas legacy pueden tener hora=null/'' y explotarían el layout entero.
+    // ── Geometría en MINUTOS REALES ────────────────────────────
+    // Antes existía un slotIdx() que redondeaba la hora hacia abajo a su
+    // franja, y todo se dibujaba multiplicando ese índice por SLOT_PX. Eso
+    // hacía mentir a la grilla: con el reloj en 45', una cita de 60' ocupaba
+    // UNA franja (45') y los últimos 15' se veían libres — un cliente creyó
+    // que tenía la hora disponible. Estas dos funciones posicionan por
+    // minuto, así que cada bloque tapa exactamente lo que dura.
+    topPx: t => {
       if (typeof t !== 'string' || !t.includes(':')) return 0;
       const [h, m] = t.split(':').map(Number);
       if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
-      return Math.floor((h * 60 + m - hourStart * 60) / slotMins);
+      const px = ((h * 60 + m - hourStart * 60) / slotMins) * SLOT_PX;
+      return Math.max(0, Math.min(totalPx, px));
     },
+    durPx: mins => ((Number(mins) || 0) / slotMins) * SLOT_PX,
   };
 }
 
@@ -2629,7 +2653,7 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
 
 /* ── BloqueoBlock ────────────────────────────────────────────── */
 function BloqueoBlock({ bloqueo, onDelete }) {
-  const { slotIdx, totalSlots } = useContext(AgendaCtx);
+  const { topPx, totalPx } = useContext(AgendaCtx);
   // Guard: bloqueos parciales (todo_el_dia=false) sin hora_inicio/fin son
   // basura de importaciones legacy — no los renderizamos.
   const validRange = bloqueo.todo_el_dia || (
@@ -2637,9 +2661,13 @@ function BloqueoBlock({ bloqueo, onDelete }) {
     typeof bloqueo.hora_fin    === 'string' && bloqueo.hora_fin.includes(':')
   );
   if (!validRange) return null;
-  const startIdx = bloqueo.todo_el_dia ? 0 : Math.max(0, slotIdx(bloqueo.hora_inicio));
-  const endIdx   = bloqueo.todo_el_dia ? totalSlots : Math.min(totalSlots, slotIdx(bloqueo.hora_fin));
-  const spans    = Math.max(endIdx - startIdx, 1);
+  // Por minuto, igual que las citas: un bloqueo de 12:00 a 12:30 en reloj de
+  // 45' tapaba la franja entera y hacía ver ocupado hasta las 12:45.
+  const top   = bloqueo.todo_el_dia ? 0       : topPx(bloqueo.hora_inicio);
+  const fin   = bloqueo.todo_el_dia ? totalPx : topPx(bloqueo.hora_fin);
+  const alto  = Math.max(MIN_CITA_PX, fin - top - 4);
+  // Cuántas franjas cubre — decide cuánto texto cabe dentro (ver más abajo).
+  const spans = Math.round((fin - top) / SLOT_PX);
 
   return (
     <div
@@ -2651,7 +2679,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
       ].filter(Boolean).join(' · ')}
       onClick={async () => { if (await confirmDialog('¿Desbloquear este horario?')) onDelete(bloqueo); }}
       className="agenda-blocked-slot absolute inset-x-0.5 rounded-md border border-neutral-800 bg-neutral-900 bg-[image:repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all"
-      style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
+      style={{ top: `${top}px`, height: `${alto}px` }}
     >
       {/* El bloqueo mostraba solo la hora, y había que saberse el sistema para
           entender qué era esa franja rayada. Ahora se explica solo: qué es,
@@ -2744,20 +2772,22 @@ function esDiaLibre(barbero, dateObj) {
    es "no disponible", un descanso es "está almorzando" y el admin igual puede
    agendar encima si hace falta. */
 function ColacionBlock({ colacion, label = 'Colación' }) {
-  const { slotIdx, totalSlots } = useContext(AgendaCtx);
+  const { topPx } = useContext(AgendaCtx);
   const valid = colacion
     && typeof colacion.inicio === 'string' && colacion.inicio.includes(':')
     && typeof colacion.fin === 'string' && colacion.fin.includes(':');
   if (!valid) return null;
-  const startIdx = Math.max(0, slotIdx(colacion.inicio));
-  const endIdx   = Math.min(totalSlots, slotIdx(colacion.fin));
-  if (endIdx <= startIdx) return null;
-  const spans = endIdx - startIdx;
+  // Por minuto: una colación de 13:00 a 13:30 en reloj de 45' se dibujaba
+  // como franja completa (o desaparecía si inicio y fin caían en la misma).
+  const top  = topPx(colacion.inicio);
+  const fin  = topPx(colacion.fin);
+  if (fin <= top) return null;
+  const alto = Math.max(MIN_CITA_PX, fin - top - 4);
 
   return (
     <div
       className="absolute inset-x-0.5 rounded-md border border-dashed border-amber-500/25 bg-amber-500/[0.05] pointer-events-none overflow-hidden flex items-start justify-center"
-      style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
+      style={{ top: `${top}px`, height: `${alto}px` }}
     >
       <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-950/70 px-2 py-0.5 text-[10px] font-bold text-amber-400/90">
         <Coffee size={10} />
@@ -2834,7 +2864,7 @@ function SinHoraTray({ citas, onOpen }) {
 // fondo sigue siendo el del estado (verde=Confirmada, ámbar=Pendiente…), que es
 // lo que el local lee de un vistazo. Sin color, la barra queda como siempre.
 function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
-  const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
+  const { topPx, durPx, totalPx } = useContext(AgendaCtx);
 
   // Todos los hooks van ANTES del early return de abajo. Una cita puede
   // pasar de "sin hora válida" a tenerla dentro del mismo montaje (es el
@@ -2854,8 +2884,13 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
   // válida, pero si esta card llega por otra vía (ej. drag) prefiero no
   // renderizar nada a explotar la agenda entera.
   if (typeof cita?.hora !== 'string' || !cita.hora.includes(':')) return null;
-  const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
-  const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
+  // Geometría por minuto: la card arranca en su hora exacta (una cita de 15:15
+  // ya no se dibuja pegada al 15:00) y mide lo que realmente dura. Se recorta
+  // al borde inferior de la grilla para que una cita larga al cierre no
+  // desborde el contenedor.
+  const _dur    = Number(cita.duracion || cita.duracionServicio || 30) || 30;
+  const topCita = topPx(cita.hora);
+  const altoCita = Math.max(MIN_CITA_PX, Math.min(durPx(_dur), totalPx - topCita) - 4);
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   // Hora estimada desde creadoEn (cita guardada sin hora): borde ámbar
   // punteado; al abrirla o arrastrarla a su slot la hora queda fijada.
@@ -3047,8 +3082,8 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
                   : ''
       }`}
       style={{
-        top:    `${slot * 40}px`,
-        height: `${spans * 40 - 4}px`,
+        top:    `${topCita}px`,
+        height: `${altoCita}px`,
         left:   `calc(${colIndex * pct}% + 2px)`,
         width:  `calc(${pct}% - 4px)`,
       }}
@@ -3293,7 +3328,7 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
         over && dragActive ? '!bg-emerald-500/30 ring-2 ring-inset ring-emerald-400 z-10'
           : dragActive && !blockMode ? 'bg-emerald-900/10 ring-1 ring-inset ring-emerald-500/25' : ''
       }`}
-      style={{ top: `${idx * 40}px` }}
+      style={{ top: `${idx * SLOT_PX}px` }}
     />
   );
 }
@@ -4857,7 +4892,7 @@ export default function Agenda() {
   const isToday     = fmt(now) === dateStr;
   const nowMins     = now.getHours() * 60 + now.getMinutes();
   const nowInRange  = nowMins >= hourStartEff * 60 && nowMins <= hourEndEff * 60;
-  const nowOffsetPx = ((nowMins - hourStartEff * 60) / slotMins) * 40;
+  const nowOffsetPx = ((nowMins - hourStartEff * 60) / slotMins) * SLOT_PX;
   const nowLabel    = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const showNowLine = isToday && nowInRange;
 
@@ -4866,7 +4901,7 @@ export default function Agenda() {
     requestAnimationFrame(() => {
       const el = swimRef.current;
       if (!el) return;
-      const target = 40 + ((nowMins - hourStartEff * 60) / slotMins) * 40 - el.clientHeight / 2;
+      const target = SLOT_PX + ((nowMins - hourStartEff * 60) / slotMins) * SLOT_PX - el.clientHeight / 2;
       el.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
     });
   };
@@ -5635,7 +5670,7 @@ export default function Agenda() {
                   </div>
 
                   {/* Grilla horaria de este día */}
-                  <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
+                  <div className="relative" style={{ height: `${totalSlots * SLOT_PX}px` }}>
                     {timeLabels.map((_, i) => (
                       <SlotRow
                         key={i}
@@ -5775,7 +5810,7 @@ export default function Agenda() {
                             )}
                           </div>
 
-                          <div className={`relative ${diaLibre ? 'opacity-60' : ''}`} style={{ height: `${totalSlots * 40}px` }}>
+                          <div className={`relative ${diaLibre ? 'opacity-60' : ''}`} style={{ height: `${totalSlots * SLOT_PX}px` }}>
                             {/* Día libre: rayado + chip. pointer-events-none → el admin
                                 igual puede agendar una excepción encima si lo necesita.
                                 El rayado va por CLASE (.agenda-dia-libre), no inline: un
