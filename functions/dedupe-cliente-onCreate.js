@@ -2,7 +2,21 @@
 
 // functions/dedupe-cliente-onCreate.js
 // ─────────────────────────────────────────────────────────────────
-//  DEDUP AUTOMÁTICO AL REGISTRARSE UN CLIENTE
+//  ⚠️ RETIRADO — ESTE ARCHIVO NO ESTÁ DESPLEGADO.
+//
+//  index.js NO lo exporta (ver el bloque "DEDUP CLIENTE — RETIRADO
+//  (Fase 3.B)"): se retiró porque absorbía sellos en paralelo con
+//  linkLegacy y producía double-count.
+//
+//  Quien fusiona hoy es linkLegacy (link-legacy-on-auth.js) al hacer
+//  login: mueve packsActivos, suma sellos, une historial y marca el
+//  legacy con `fusionadoCon` en vez de borrarlo. Cualquier arreglo a
+//  la lógica de fusión va AHÍ — tocar este archivo no cambia nada en
+//  producción.
+//
+//  Se conserva solo como referencia histórica.
+// ─────────────────────────────────────────────────────────────────
+//  DEDUP AUTOMÁTICO AL REGISTRARSE UN CLIENTE (histórico)
 //
 //  Dispara cuando se crea un doc en /tenants/{tid}/users/{uid} o
 //  /users/{uid} (elegance). Si el cliente recién registrado matchea
@@ -170,29 +184,6 @@ async function procesarDedup({ tenantId, uid, data }) {
     const final = (Number(currentSede[sede]) || 0) + n;
     mergeUpdate[`sellosPorSede.${sede}`] = final;
   });
-
-  // ── packsActivos ───────────────────────────────────────────────────
-  // Los packs PAGADOS viven en el doc del user. Más abajo borramos el doc
-  // legacy, así que sin este traspaso el cliente pierde un pack que ya pagó.
-  // Es exactamente lo que pasó con Saúl Horta en aura (2026-07-28): compró
-  // el pack como walk-in y su cuenta del club quedó en cero.
-  //
-  // Dedup por `citaActivacion` (única por activación) para que una
-  // reejecución del trigger no duplique sesiones. Valor ABSOLUTO como el
-  // resto del merge — nada de arrayUnion, que con objetos anidados compara
-  // por deep-equal y se rompe con Timestamps.
-  const packsLegacy = legacies.flatMap(l => l.data().packsActivos || []).filter(Boolean);
-  if (packsLegacy.length) {
-    const packKey = p => p?.citaActivacion
-      || `${p?.packId || '?'}:${p?.fechaCompra?.toMillis?.() ?? p?.fechaCompra ?? '?'}`;
-    const mios    = Array.isArray(meData.packsActivos) ? meData.packsActivos : [];
-    const yaTengo = new Set(mios.map(packKey));
-    const nuevos  = packsLegacy.filter(p => !yaTengo.has(packKey(p)));
-    if (nuevos.length) {
-      mergeUpdate.packsActivos = [...mios, ...nuevos];
-      logger.info(`[Dedup] ${tenantId}/${uid}: traspasando ${nuevos.length} pack(s) del legacy.`);
-    }
-  }
 
   // IDs de docs en clientes/ (mirror por tel) a borrar
   const clientesCol = colClientes(tenantId);
