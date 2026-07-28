@@ -32,7 +32,7 @@
   <!-- SIN defer para eliminar cualquier race: si el user tenia el HTML cacheado
        de antes del deploy, un hard-refresh trae este script sincrono junto. -->
   <script src="/aura-origen-pregunta.js?v=2"></script>
-  <script defer src="/firebaseUtils.js?v=3.1"></script>
+  <script defer src="/firebaseUtils.js?v=3.2"></script>
   <script defer src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script defer src="/js/guards/version-manager.js?v=1.1"></script>
 
@@ -1275,6 +1275,17 @@
     return _precioSvc(_selectedService) + _recargoActual() + _recargoVip();
   }
 
+  // Sede de la cita. Acá no se pregunta como en la agenda del local: esta
+  // ficha ya es de UN barbero, y el barbero pertenece a una sede. Sin esto
+  // las reservas de Oren/Mapu hechas desde una ficha quedaban sin sucursalId.
+  function _sucursalDelBarbero() {
+    var sid = _barber && _barber.sucursalId;
+    if (!sid) return null;
+    var lista = (window.SHOP && window.SHOP.sucursales) || [];
+    var s = lista.find(function (x) { return x.id === sid; });
+    return { id: sid, nombre: (s && s.nombre) || '' };
+  }
+
   function updateRecap() {
     const el = document.getElementById('selectionRecap');
     const parts = [];
@@ -1640,7 +1651,11 @@
       const dw  = d.getDay();
       const isWorkday = diasLaborales.includes(dw);
       const isBlocked = diasBloq.includes(str) || !!_bloqueosProximos[str];
-      if (!isWorkday || isBlocked) continue;
+      // El servicio puede estar limitado a ciertos días (`diasDisponibles`,
+      // ej. "Martes Estudiante 25%"). Misma regla que la agenda del local:
+      // el catálogo los muestra todos y acá se filtran las fechas.
+      const fueraDeDia = !ReservaCore.diaPermitido(_selectedService, dw);
+      if (!isWorkday || isBlocked || fueraDeDia) continue;
 
       if (!firstSelectableStr) firstSelectableStr = str;
       const isActive = _selectedDate === str || (!_selectedDate && str === firstSelectableStr);
@@ -1654,6 +1669,20 @@
           <span class="day-num">${d.getDate()}</span>
         </button>`);
       daysAdded++;
+    }
+
+    // El servicio restringe días y ninguna de las próximas fechas coincide →
+    // el carrusel queda vacío. Sin este aviso el cliente no entiende por qué
+    // no ve fechas (espejo del chip de la agenda del local).
+    if (daysAdded === 0) {
+      const nombres = ReservaCore.nombresDiasServicio(_selectedService);
+      if (nombres) {
+        carousel.innerHTML = `
+          <div class="w-full text-center px-4 py-6 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06]">
+            <p class="text-sm font-semibold text-amber-300 mb-1">Este servicio solo está disponible: ${nombres}</p>
+            <p class="text-xs text-amber-200/80">No hay fechas próximas que coincidan. Elige otro servicio o consulta al local.</p>
+          </div>`;
+      }
     }
 
     // Si no había fecha seleccionada, tomamos la primera disponible.
@@ -2084,6 +2113,7 @@
 
   /* ── Booking submission ─────────────────────────────────────────── */
   async function submitBooking() {
+    if (_reservaEnCurso) return;   // doble tap en red lenta = 2 citas
     const nombre   = document.getElementById('clientName').value.trim();
     const telefono = document.getElementById('clientPhone').value.trim();
     const email    = document.getElementById('clientEmail').value.trim();
@@ -2093,12 +2123,11 @@
     if (telefono.replace(/\D/g,'').length < 8)
       return showToast('Ingresa un teléfono válido.');
 
-    // Spam guard
-    const SPAM_KEY = `${window.CURRENT_TENANT_ID || 'elegance'}_reservas_ts`;
-    const prevTs = JSON.parse(localStorage.getItem(SPAM_KEY) || '[]').filter(
-      t => Date.now() - t < 60 * 60 * 1000
-    );
-    if (prevTs.length >= 3) return showToast('Has hecho demasiadas reservas recientemente. Espera un momento.');
+    // Anti-spam: mismo criterio que la agenda del local — configurable por
+    // tenant en configuracion/main.{reservaMaxPorDia, reservaCooldownMin}.
+    // Antes acá había un límite fijo de 3/hora que ignoraba esa config.
+    const _spam = ReservaCore.puedeReservar(_fsConfig, window.CURRENT_TENANT_ID);
+    if (!_spam.ok) return showToast(_spam.motivo);
 
     const btn = document.getElementById('btnContinue');
     btn.disabled = true;
@@ -2114,20 +2143,26 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tenantId: window.CURRENT_TENANT_ID,
-            cita: {
-              fecha:            _selectedDate,
-              hora:             _selectedTime,
-              clienteNombre:    nombre,
-              clienteTelefono:  telefono,
-              clienteEmail:     email || '',
-              servicioNombre:   _selectedService.nombre,
-              servicioId:       _selectedService.id,
-              duracionServicio: _selectedService.duracion,
-              barbero:          _barberoNombre,
-              barberoId:        _barberoId,
-              precio:           _precioEfectivo(),
-              origen:           'barbero-page',
-            },
+            // Mismo payload base que la reserva sin pasarela: la cita la crea
+            // el webhook de Mercado Pago con esto, así que si acá falta el
+            // consentimiento o el codigoCita, la cita nace igual de incompleta.
+            // serializable: viaja por JSON, no admite serverTimestamp().
+            cita: ReservaCore.payloadBase({
+              fecha:          _selectedDate,
+              hora:           _selectedTime,
+              nombre,
+              telefono,
+              email,
+              servicioId:     _selectedService.id,
+              servicioNombre: _selectedService.nombre,
+              duracion:       _selectedService.duracion,
+              precio:         _precioEfectivo(),
+              barbero:        _barberoNombre,
+              barberoId:      _barberoId,
+              sucursal:       _sucursalDelBarbero(),
+              origen:         'barbero-page',
+              serializable:   true,
+            }),
           }),
         });
         const _data = await _resp.json().catch(() => null);
@@ -2151,21 +2186,33 @@
       ? await window.askAuraOrigenSiCorresponde()
       : undefined;
 
+    // El lock va DESPUÉS de la pregunta de AURA: al revés el overlay taparía
+    // el modal y el cliente quedaría en "Confirmando tu reserva…" para
+    // siempre, que es justo el bug que apareció en la agenda del local.
+    _lockReserva();
+
     try {
+      // El payload base lo arma ReservaCore, igual que la agenda del local:
+      // trae teléfono canónico + suf9, codigoCita, evidencia de consentimiento
+      // (Ley 21.719) y sucursalId. Antes esta vista escribía citas sin nada de
+      // eso, así que las reservas por página de barbero quedaban a medias.
       await FDB.addCita({
-        fecha:            _selectedDate,
-        hora:             _selectedTime,
-        clienteNombre:    nombre,
-        clienteTelefono:  telefono,
-        clienteEmail:     email || '',
-        servicioNombre:   _selectedService.nombre,
-        servicioId:       _selectedService.id,
-        duracionServicio: _selectedService.duracion,
-        barbero:          _barberoNombre,
-        barberoId:        _barberoId,
-        precio:           _precioEfectivo(),
-        estado:           'Confirmada',
-        origen:           'barbero-page',
+        ...ReservaCore.payloadBase({
+          fecha:          _selectedDate,
+          hora:           _selectedTime,
+          nombre,
+          telefono,
+          email,
+          servicioId:     _selectedService.id,
+          servicioNombre: _selectedService.nombre,
+          duracion:       _selectedService.duracion,
+          precio:         _precioEfectivo(),
+          barbero:        _barberoNombre,
+          barberoId:      _barberoId,
+          sucursal:       _sucursalDelBarbero(),
+          origen:         'barbero-page',
+        }),
+        estado: 'Confirmada',
         ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
         // Modelo B: si eligió un pack multi-servicio con "servicio de hoy",
         // pasamos activaPackId para que la CF pack-automatico active el pack
@@ -2176,11 +2223,12 @@
         } : {}),
       });
 
-      // Track for spam guard
-      localStorage.setItem(SPAM_KEY, JSON.stringify([...prevTs, Date.now()]));
+      ReservaCore.registrarReserva(_spam.last24h, window.CURRENT_TENANT_ID);
 
+      _unlockReserva();
       showSuccess(nombre, telefono);
     } catch(e) {
+      _unlockReserva();
       btn.disabled = false;
       btn.innerHTML = 'Confirmar reserva <i class="ph-bold ph-check-circle text-lg"></i>';
       const msg = e.code === 'slot-taken'
@@ -2556,6 +2604,48 @@
 
   function onClubModalBackdrop(e) {
     if (e.target === e.currentTarget) dismissClubModal();
+  }
+
+  /* ── Lock de UI mientras se crea la cita ────────────────────────
+     Espejo del de la agenda del local. Deshabilitar el botón no basta:
+     en red lenta el cliente igual toca "atrás" a mitad del guardado y
+     la cita queda a medias. El overlay bloquea todo y reempuja el
+     history state para neutralizar el gesto de retroceso.
+     z-index por debajo del modal de origen de AURA (z-300) a propósito:
+     ese modal se abre ANTES del lock, pero si algún día se invierte el
+     orden preferimos que la pregunta se siga viendo. */
+  let _reservaEnCurso = false, _popHandler = null;
+  function _lockReserva(mensaje) {
+    if (_reservaEnCurso) return;
+    _reservaEnCurso = true;
+    let ov = document.getElementById('reservaLockOverlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'reservaLockOverlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+      ov.innerHTML =
+        '<div style="width:56px;height:56px;border:4px solid rgba(255,255,255,0.15);border-top-color:#fff;border-radius:50%;animation:reservaSpin .8s linear infinite;"></div>'
+        + '<div style="color:#fff;font-size:14px;font-weight:600;text-align:center;padding:0 32px;">' + (mensaje || 'Confirmando tu reserva…') + '</div>'
+        + '<div style="color:rgba(255,255,255,0.55);font-size:11px;font-weight:500;text-align:center;padding:0 32px;max-width:280px;line-height:1.5;">No cierres esta página ni toques atrás. Terminamos en un momento.</div>';
+      document.body.appendChild(ov);
+      const st = document.createElement('style');
+      st.textContent = '@keyframes reservaSpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+    }
+    ov.style.display = 'flex';
+    try {
+      history.pushState({ reservaLock: true }, '');
+      _popHandler = () => history.pushState({ reservaLock: true }, '');
+      window.addEventListener('popstate', _popHandler);
+    } catch (_) {}
+  }
+  function _unlockReserva() {
+    if (!_reservaEnCurso) return;
+    _reservaEnCurso = false;
+    const ov = document.getElementById('reservaLockOverlay');
+    if (ov) ov.style.display = 'none';
+    if (_popHandler) { window.removeEventListener('popstate', _popHandler); _popHandler = null; }
+    try { if (history.state && history.state.reservaLock) history.back(); } catch (_) {}
   }
 </script>
 </body>

@@ -2211,3 +2211,170 @@ const AppState = (() => {
 
   return { init, subscribe, subscribeCitasDia, get, destroy };
 })();
+
+
+/* ════════════════════════════════════════════════════════════════
+   ReservaCore — reglas y payload COMPARTIDOS de la reserva pública
+   ────────────────────────────────────────────────────────────────
+   index.html (agenda del local) y barbero.html (página individual)
+   son el MISMO sistema: la única diferencia legítima es que la
+   segunda ya sabe con qué barbero se reserva. Todo lo demás —qué
+   campos lleva la cita, qué días se pueden ofrecer, cuántas
+   reservas seguidas se permiten— tiene que ser idéntico.
+
+   Antes cada vista tenía su copia y se fueron separando: barbero.html
+   quedó sin evidencia de consentimiento (Ley 21.719), sin codigoCita,
+   sin sucursalId, sin normalizar el teléfono y sin respetar
+   `diasDisponibles` — o sea, la misma promo "solo martes" se podía
+   reservar cualquier día desde la página de un barbero.
+
+   Cualquier regla nueva del flujo de reserva va ACÁ, no en las vistas.
+   ════════════════════════════════════════════════════════════════ */
+window.ReservaCore = (function () {
+  'use strict';
+
+  // Versión de los términos aceptados al confirmar. Al cambiar el texto
+  // legal hay que bumpearla: los dashboards distinguen quién aceptó qué.
+  const TERMINOS_VERSION = '2026-07-11';
+
+  /* ── Teléfono ────────────────────────────────────────────────
+     Devuelve el canónico "+56XXXXXXXXX" y los últimos 9 dígitos.
+     Sin esto, un "+56 9 5885 6719" se guarda literal y las CFs que
+     hacen match exacto contra el registro del usuario fallan. */
+  function normalizarTelefono(telRaw) {
+    const digitos = String(telRaw == null ? '' : telRaw).replace(/\D/g, '');
+    let canonico;
+    if (digitos.length === 9)                                   canonico = '+56' + digitos;
+    else if (digitos.length === 11 && digitos.startsWith('56'))  canonico = '+' + digitos;
+    else if (String(telRaw || '').trim().startsWith('+'))        canonico = '+' + digitos;
+    else                                                         canonico = digitos;
+    return { canonico, suf9: digitos.slice(-9), digitos };
+  }
+
+  /* ── Código de cita ──────────────────────────────────────────
+     Corto (XXX-XXX) para gestionar la cita desde /chat sin login.
+     Sin O/0/I/1/L: se confunden al leerlos o dictarlos. */
+  function generarCodigoCita() {
+    const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+    return code.slice(0, 3) + '-' + code.slice(3);
+  }
+
+  /* ── Consentimiento (Ley 21.719) ─────────────────────────────
+     Confirmar la reserva ES la acción afirmativa (clickwrap); la
+     evidencia se adjunta al doc de la cita. El opt-in de WhatsApp
+     es implícito y cubre solo lo transaccional de ESTA cita.
+
+     `serializable:true` para los payloads que viajan por JSON (pasarela de
+     pago): un FieldValue.serverTimestamp() no sobrevive a JSON.stringify —
+     se convierte en un objeto interno del SDK y la CF lo guarda como basura.
+     En ese caso va la hora del cliente en ISO, que al menos es un valor
+     real y legible. */
+  function consentimiento(opts) {
+    const TS = (opts && opts.serializable)
+      ? new Date().toISOString()
+      : firebase.firestore.FieldValue.serverTimestamp();
+    return {
+      aceptoTerminosAt:   TS,
+      aceptoPrivacidadAt: TS,
+      terminosVersion:    TERMINOS_VERSION,
+      signupMetodo:       'reserva-publica',
+      waOptIn:            true,
+      waOptInAt:          TS,
+    };
+  }
+
+  /* ── Días en que el servicio se puede reservar ───────────────
+     `diasDisponibles` es un array de días (0=Dom … 6=Sáb). El
+     catálogo los muestra TODOS a propósito; quien manda es el paso
+     de la fecha. Con varios servicios elegidos se aplica la
+     intersección: solo días donde TODOS están disponibles. */
+  function diaPermitido(servicios, dow) {
+    const lista = (Array.isArray(servicios) ? servicios : [servicios])
+      .filter(s => s && Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0);
+    return !lista.some(s => !s.diasDisponibles.includes(dow));
+  }
+
+  /* Nombres legibles de la restricción, para el aviso al cliente. */
+  function nombresDiasServicio(servicio) {
+    const NOM = { 0: 'Domingo', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado' };
+    if (!servicio || !Array.isArray(servicio.diasDisponibles) || !servicio.diasDisponibles.length) return '';
+    return [...servicio.diasDisponibles].sort((a, b) => a - b).map(d => NOM[d]).join(', ');
+  }
+
+  /* ── Anti-spam, configurable por tenant ──────────────────────
+     configuracion/main.{reservaCooldownMin, reservaMaxPorDia}.
+     0 en cualquiera desactiva esa validación. Devuelve
+     { ok, motivo } — la vista decide cómo avisar. */
+  function _spamKey(tenantId) {
+    return `${tenantId || window.CURRENT_TENANT_ID || 'elegance'}_reservas_ts`;
+  }
+
+  function puedeReservar(cfg, tenantId) {
+    const c = cfg || {};
+    const maxPorDia  = Number.isFinite(Number(c.reservaMaxPorDia))   ? Number(c.reservaMaxPorDia)   : 3;
+    const cooldownMs = Math.max(0, Number.isFinite(Number(c.reservaCooldownMin)) ? Number(c.reservaCooldownMin) : 30) * 60000;
+    const ahora = Date.now();
+    let previas = [];
+    try { previas = JSON.parse(localStorage.getItem(_spamKey(tenantId)) || '[]'); } catch (_) {}
+    const last24h = previas.filter(t => ahora - t < 24 * 60 * 60 * 1000);
+
+    if (maxPorDia > 0 && last24h.length >= maxPorDia) {
+      return { ok: false, motivo: 'Has alcanzado el límite de reservas por hoy. Intenta mañana o contáctanos directamente.', last24h };
+    }
+    if (cooldownMs > 0 && last24h.length > 0 && ahora - last24h[last24h.length - 1] < cooldownMs) {
+      const mins = Math.ceil((cooldownMs - (ahora - last24h[last24h.length - 1])) / 60000);
+      return { ok: false, motivo: `Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`, last24h };
+    }
+    return { ok: true, last24h };
+  }
+
+  /* Registra la reserva recién creada para el anti-spam. */
+  function registrarReserva(last24h, tenantId) {
+    try {
+      const arr = Array.isArray(last24h) ? last24h.slice() : [];
+      arr.push(Date.now());
+      localStorage.setItem(_spamKey(tenantId), JSON.stringify(arr));
+    } catch (_) {}
+  }
+
+  /* ── Payload base de la cita ─────────────────────────────────
+     Los campos que TODA cita pública debe llevar, la vengan de
+     donde vengan. Cada vista le hace spread encima de lo suyo
+     (packs, addons, sobrecupo, productos…). */
+  function payloadBase(d) {
+    const tel = normalizarTelefono(d.telefono);
+    const suc = d.sucursal || window._selectedSucursal;
+    return {
+      fecha:               d.fecha,
+      hora:                d.hora,
+      clienteNombre:       String(d.nombre || '').trim(),
+      clienteTelefono:     tel.canonico,
+      clienteTelefonoSuf9: tel.suf9,
+      clienteEmail:        String(d.email || '').trim(),
+      servicioId:          d.servicioId,
+      servicioNombre:      d.servicioNombre,
+      duracionServicio:    d.duracion,
+      precio:              d.precio,
+      barbero:             d.barbero || '',
+      barberoId:           d.barberoId || null,
+      codigoCita:          generarCodigoCita(),
+      ...consentimiento({ serializable: d.serializable }),
+      ...(suc ? { sucursalId: suc.id, sucursalNombre: suc.nombre } : {}),
+      ...(d.origen ? { origen: d.origen } : {}),
+    };
+  }
+
+  return {
+    TERMINOS_VERSION,
+    normalizarTelefono,
+    generarCodigoCita,
+    consentimiento,
+    diaPermitido,
+    nombresDiasServicio,
+    puedeReservar,
+    registrarReserva,
+    payloadBase,
+  };
+})();
