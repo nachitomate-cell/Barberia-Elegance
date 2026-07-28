@@ -130,6 +130,16 @@ service firebase.storage {
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
 
+    // Wallo — assets de la tarjeta de fidelidad (logo + banner del local).
+    // Se sirven público porque Google Wallet los descarga desde su
+    // infraestructura y la landing /r/{slug} los muestra a clientes no
+    // logueados. Escritura: cualquier admin/staff del panel (isAuth basta,
+    // el estudio ya valida rol antes de exponer el botón subir).
+    match /tenants/{tenantId}/wallo/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
     // Bloquear cualquier otra ruta
     match /{allPaths=**} {
       allow read: if false;

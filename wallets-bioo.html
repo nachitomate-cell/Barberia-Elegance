@@ -406,6 +406,99 @@
   .spin{width:32px;height:32px;border:3px solid var(--hairline);border-top-color:var(--ink);border-radius:50%;margin:14vh auto;animation:sp 0.8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg)}}
 
+  /* ═══ Uploader (logo + banner) — drag/drop + preview ═══ */
+  .uploader{
+    display:flex;flex-direction:column;gap:10px;
+    padding:14px;background:var(--surface-2);
+    border:1px dashed var(--border);border-radius:var(--r-md);
+    transition:all 0.15s var(--ease);position:relative;
+  }
+  .uploader.dragging{background:var(--blue-tint);border-color:var(--blue);border-style:solid;}
+  .uploader .preview{
+    display:flex;align-items:center;gap:14px;
+  }
+  .uploader.banner .preview{flex-direction:column;align-items:stretch;}
+  .uploader .thumb{
+    width:64px;height:64px;border-radius:var(--r-md);
+    background:var(--surface);border:1px solid var(--hairline);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;flex-shrink:0;color:var(--muted);font-size:22px;
+  }
+  .uploader.banner .thumb{
+    width:100%;height:120px;border-radius:var(--r-md);
+    background-position:center;background-size:cover;background-color:var(--surface);
+  }
+  .uploader .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .uploader .meta{flex:1;min-width:0;}
+  .uploader .meta .lbl{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+  .uploader .meta .sub{font-size:12.5px;color:var(--muted);line-height:1.4;}
+  .uploader .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .uploader .u-btn{
+    flex:1;min-width:120px;height:36px;
+    border:1px solid var(--border);border-radius:var(--r-md);
+    background:var(--surface);color:var(--ink);
+    font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    transition:all 0.15s var(--ease);font-family:inherit;
+  }
+  .uploader .u-btn:hover{background:var(--surface-2);border-color:var(--ink);}
+  .uploader .u-btn.rm{color:var(--red);}
+  .uploader .u-btn.rm:hover{background:rgba(255,59,48,0.08);border-color:var(--red);}
+  .uploader .u-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .uploader .u-url{
+    width:100%;height:36px;border:1px solid var(--border);border-radius:var(--r-md);
+    padding:0 12px;font-size:12.5px;background:var(--surface);color:var(--muted);
+    font-family:"SF Mono","Menlo",monospace;outline:none;
+  }
+  .uploader .u-url:focus{border-color:var(--blue);color:var(--ink);}
+  .uploader .u-progress{
+    height:3px;background:var(--surface-2);border-radius:999px;overflow:hidden;
+    display:none;
+  }
+  .uploader.uploading .u-progress{display:block;}
+  .uploader .u-progress .bar{height:100%;background:var(--blue);width:0;transition:width 0.2s;}
+  .uploader input[type=file]{display:none;}
+
+  /* ═══ Preview de notificaciones ═══ */
+  .notif-wrap{display:flex;flex-direction:column;gap:16px;margin-top:12px;}
+  /* iOS lockscreen notification */
+  .notif-ios{
+    background:linear-gradient(180deg,#3a3a3c,#1c1c1e);
+    border-radius:var(--r-lg);padding:20px 16px;
+    color:#fff;position:relative;overflow:hidden;
+    box-shadow:var(--shadow-preview);
+  }
+  .notif-ios .clock{text-align:center;font-size:60px;font-weight:200;letter-spacing:-3px;line-height:1;margin-bottom:2px;font-family:"SF Pro Display",-apple-system;}
+  .notif-ios .date{text-align:center;font-size:14px;font-weight:500;opacity:0.8;margin-bottom:22px;text-transform:capitalize;}
+  .notif-ios .card-notif{
+    background:rgba(255,255,255,0.12);
+    -webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);
+    border-radius:16px;padding:12px;
+    display:flex;gap:10px;align-items:flex-start;
+  }
+  .notif-ios .icon{width:38px;height:38px;border-radius:9px;flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .notif-ios .icon img{width:100%;height:100%;object-fit:cover;}
+  .notif-ios .body{flex:1;min-width:0;}
+  .notif-ios .row1{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;font-weight:600;margin-bottom:2px;}
+  .notif-ios .row1 .app{opacity:0.95;text-transform:uppercase;letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .notif-ios .row1 .time{opacity:0.7;font-weight:500;flex-shrink:0;}
+  .notif-ios .title{font-size:14.5px;font-weight:600;line-height:1.25;margin-bottom:2px;letter-spacing:-0.1px;}
+  .notif-ios .msg{font-size:13.5px;line-height:1.35;opacity:0.9;letter-spacing:-0.05px;}
+  /* Android Material notification */
+  .notif-android{
+    background:#1f1f1f;color:#e3e3e3;
+    border-radius:24px;padding:16px 18px;
+    box-shadow:var(--shadow-preview);
+    font-family:"Roboto",var(--font);
+  }
+  .notif-android .head{display:flex;align-items:center;gap:8px;font-size:12px;color:#a8a8a8;margin-bottom:8px;}
+  .notif-android .head .dot{width:16px;height:16px;border-radius:5px;background:var(--surface);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .notif-android .head .dot img{width:100%;height:100%;object-fit:cover;}
+  .notif-android .head .app{font-weight:500;}
+  .notif-android .title{font-size:14.5px;font-weight:500;line-height:1.3;margin-bottom:4px;color:#fff;}
+  .notif-android .msg{font-size:13px;line-height:1.4;color:#bdbdbd;}
+  .notif-android .exp{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#a8a8a8;display:flex;justify-content:space-between;}
+
   /* ═══ FAB Guardar (mobile) — botón sticky abajo cuando hay cambios ═══ */
   .save-fab{
     position:fixed;bottom:16px;left:16px;right:16px;
@@ -427,6 +520,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script src="/firebase-config.js"></script>
 <script src="/config.js"></script>
 </head>
@@ -528,9 +622,41 @@
             <label for="f-issuerName">Nombre del local</label>
             <input type="text" id="f-issuerName" maxlength="40" placeholder="Mi Barbería">
 
-            <label for="f-logoUrl">Logo (URL pública, cuadrado ideal)</label>
-            <input type="url" id="f-logoUrl" placeholder="https://…/logo.png">
-            <p id="f-logoUrl-hint" class="field-hint"></p>
+            <label for="f-logoUrl">Logo del local</label>
+            <div class="uploader" id="up-logo">
+              <div class="preview">
+                <div class="thumb" id="up-logo-thumb"><span>🖼️</span></div>
+                <div class="meta">
+                  <div class="lbl">Sube tu logo</div>
+                  <div class="sub">PNG o JPG cuadrado, mínimo 660×660 px, máx 5 MB.</div>
+                </div>
+              </div>
+              <div class="u-progress"><div class="bar"></div></div>
+              <div class="actions">
+                <button type="button" class="u-btn" onclick="document.getElementById('f-logo-file').click()">📤 Subir imagen</button>
+                <button type="button" class="u-btn rm" id="up-logo-rm" onclick="quitarLogo()" style="display:none;">🗑️ Quitar</button>
+              </div>
+              <input type="url" id="f-logoUrl" class="u-url" placeholder="…o pega una URL pública">
+              <p id="f-logoUrl-hint" class="field-hint"></p>
+              <input type="file" id="f-logo-file" accept="image/png,image/jpeg,image/webp" onchange="subirImagen('logo', this)">
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Banner del local</h2>
+            <p class="section-sub">Se muestra como portada en la página de registro. Ideal <b>1200×400 px</b> (horizontal), aunque cualquier ratio funciona.</p>
+            <div class="uploader banner" id="up-banner">
+              <div class="preview">
+                <div class="thumb" id="up-banner-thumb"><span>🌆</span></div>
+              </div>
+              <div class="u-progress"><div class="bar"></div></div>
+              <div class="actions">
+                <button type="button" class="u-btn" onclick="document.getElementById('f-banner-file').click()">📤 Subir imagen</button>
+                <button type="button" class="u-btn rm" id="up-banner-rm" onclick="quitarBanner()" style="display:none;">🗑️ Quitar</button>
+              </div>
+              <input type="url" id="f-bannerUrl" class="u-url" placeholder="…o pega una URL pública">
+              <input type="file" id="f-banner-file" accept="image/png,image/jpeg,image/webp" onchange="subirImagen('banner', this)">
+            </div>
           </div>
         </div>
 
@@ -678,10 +804,11 @@
       <div class="pv-shell">
         <p class="pv-title">Vista previa</p>
 
-        <!-- Tabs: Google vs Apple -->
+        <!-- Tabs: Google vs Apple vs Notificación -->
         <div class="pv-tabs" role="tablist">
-          <button type="button" class="pv-tab active" data-tab="google" onclick="pvTab('google')">Google Wallet</button>
-          <button type="button" class="pv-tab"        data-tab="apple"  onclick="pvTab('apple')">Apple Wallet</button>
+          <button type="button" class="pv-tab active" data-tab="google" onclick="pvTab('google')">Google</button>
+          <button type="button" class="pv-tab"        data-tab="apple"  onclick="pvTab('apple')">Apple</button>
+          <button type="button" class="pv-tab"        data-tab="notif"  onclick="pvTab('notif')">Notif</button>
         </div>
 
         <!-- Mockup Google Wallet (LoyaltyObject: header + points + hero + text modules + barcode + links) -->
@@ -764,6 +891,31 @@
           <div class="modu">
             <div class="lbl">Tarjeta digital</div>
             <div class="val"><a href="https://wallo.cl/crea" target="_blank" rel="noopener">Wallo · Crea tu tarjeta digital gratis en wallo.cl/crea</a></div>
+          </div>
+        </div>
+
+        <!-- Preview de notificaciones (geo-push): iOS lockscreen + Android shade -->
+        <div class="notif-wrap pv-hidden" id="pv-notif">
+          <div class="notif-ios" id="notif-ios">
+            <div class="clock" id="notif-ios-clock">9:41</div>
+            <div class="date" id="notif-ios-date">Sábado, 28 de julio</div>
+            <div class="card-notif">
+              <div class="icon"><img id="notif-ios-logo" src="/bioo-iso.png" alt=""></div>
+              <div class="body">
+                <div class="row1"><span class="app" id="notif-ios-app">WALLET</span><span class="time">ahora</span></div>
+                <div class="title" id="notif-ios-title">Club de Fidelidad</div>
+                <div class="msg" id="notif-ios-msg">Estás cerca 💈 muestra tu tarjeta y suma sellos.</div>
+              </div>
+            </div>
+          </div>
+          <div class="notif-android" id="notif-android">
+            <div class="head">
+              <span class="dot"><img id="notif-a-logo" src="/bioo-iso.png" alt=""></span>
+              <span class="app" id="notif-a-app">Google Wallet · Ahora</span>
+            </div>
+            <div class="title" id="notif-a-title">Club de Fidelidad</div>
+            <div class="msg" id="notif-a-msg">Estás cerca 💈 muestra tu tarjeta y suma sellos.</div>
+            <div class="exp"><span>Casa Barbería</span><span>Avanzar ▸</span></div>
           </div>
         </div>
 
@@ -1090,6 +1242,11 @@ function llenarForm(cfg, tenantCfg) {
   $('f-issuerName').value = cfg.issuerName || tenantCfg.nombreCorto || tenantCfg.nombre || '';
   $('f-logoUrl').value = cfg.logoUrl || '';
   checkLogo(cfg.logoUrl || '');
+  pintarThumb('logo', cfg.logoUrl || '');
+  $('up-logo-rm').style.display = cfg.logoUrl ? '' : 'none';
+  $('f-bannerUrl').value = cfg.bannerUrl || '';
+  pintarThumb('banner', cfg.bannerUrl || '');
+  $('up-banner-rm').style.display = cfg.bannerUrl ? '' : 'none';
   var acc = /^#[0-9a-fA-F]{6}$/.test(cfg.accent || '') ? cfg.accent : '#c9a84c';
   var bg = /^#[0-9a-fA-F]{6}$/.test(cfg.bg || '') ? cfg.bg : '#0a0a0a';
   $('f-accent').value = acc; $('f-accent-hex').value = acc;
@@ -1141,6 +1298,7 @@ function leerForm() {
     programName: $('f-programName').value.trim() || 'Club de Fidelidad',
     issuerName: $('f-issuerName').value.trim() || 'SynapTech',
     logoUrl: $('f-logoUrl').value.trim(),
+    bannerUrl: $('f-bannerUrl').value.trim(),
     accent: $('f-accent-hex').value.trim(),
     bg: $('f-bg-hex').value.trim(),
     geoMensaje: $('f-geoMensaje').value.trim(),
@@ -1221,6 +1379,134 @@ function recompensasTexto() {
   return list.map(function (p) { return 'Sello ' + p.costo + ' · ' + p.nombre; }).join('\n');
 }
 
+// ── Uploads a Firebase Storage (logo + banner) ─────────────────────
+// Path tenants/{tid}/wallo/{logo|banner}.{ext}. Rules ya permiten esto
+// para cualquier user autenticado (validado por rol antes en el flujo).
+// Barra de progreso + preview instantánea; al terminar escribe el URL
+// en el input <input class="u-url"> y marca dirty.
+function subirImagen(tipo, fileInput) {
+  var file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+  if (!_tid) { toast('Primero elige un local.', true); fileInput.value = ''; return; }
+  if (file.size > 5 * 1024 * 1024) { toast('Máximo 5 MB.', true); fileInput.value = ''; return; }
+
+  var wrapId = tipo === 'banner' ? 'up-banner' : 'up-logo';
+  var thumbId = wrapId + '-thumb';
+  var urlInputId = tipo === 'banner' ? 'f-bannerUrl' : 'f-logoUrl';
+  var rmBtnId = wrapId + '-rm';
+  var wrap = document.getElementById(wrapId);
+  var bar = wrap.querySelector('.u-progress .bar');
+  wrap.classList.add('uploading');
+  bar.style.width = '2%';
+
+  // Path determinístico: siempre 'logo' o 'banner' + timestamp para invalidar
+  // el cache del CDN cuando el dueño reemplaza la imagen (URL nueva cada vez).
+  var ext = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+  var path = 'tenants/' + _tid + '/wallo/' + tipo + '_' + Date.now() + '.' + ext;
+  var ref = firebase.storage().ref(path);
+  var task = ref.put(file, { contentType: file.type, cacheControl: 'public, max-age=31536000, immutable' });
+  task.on('state_changed',
+    function (snap) {
+      var pct = Math.max(2, Math.round((snap.bytesTransferred / snap.totalBytes) * 100));
+      bar.style.width = pct + '%';
+    },
+    function (err) {
+      wrap.classList.remove('uploading');
+      bar.style.width = '0';
+      fileInput.value = '';
+      toast('No se pudo subir: ' + (err.message || err.code || 'error'), true);
+    },
+    function () {
+      task.snapshot.ref.getDownloadURL().then(function (url) {
+        wrap.classList.remove('uploading');
+        bar.style.width = '0';
+        document.getElementById(urlInputId).value = url;
+        pintarThumb(tipo, url);
+        document.getElementById(rmBtnId).style.display = '';
+        fileInput.value = '';
+        marcarDirty();
+        renderPreview();
+        toast('✓ Imagen subida');
+      });
+    }
+  );
+}
+function pintarThumb(tipo, url) {
+  var thumbId = (tipo === 'banner' ? 'up-banner' : 'up-logo') + '-thumb';
+  var el = document.getElementById(thumbId);
+  if (!el) return;
+  if (!url) {
+    el.innerHTML = tipo === 'banner' ? '<span>🌆</span>' : '<span>🖼️</span>';
+    if (tipo === 'banner') el.style.backgroundImage = '';
+    return;
+  }
+  if (tipo === 'banner') {
+    el.innerHTML = '';
+    el.style.backgroundImage = 'url(' + url + ')';
+  } else {
+    el.innerHTML = '<img src="' + url + '" alt="Logo" onerror="this.parentElement.innerHTML=\'<span>🖼️</span>\'">';
+  }
+}
+function quitarLogo() {
+  document.getElementById('f-logoUrl').value = '';
+  document.getElementById('up-logo-rm').style.display = 'none';
+  pintarThumb('logo', '');
+  marcarDirty();
+  renderPreview();
+  checkLogo('');
+}
+function quitarBanner() {
+  document.getElementById('f-bannerUrl').value = '';
+  document.getElementById('up-banner-rm').style.display = 'none';
+  pintarThumb('banner', '');
+  marcarDirty();
+  renderPreview();
+}
+// Drag & drop: soltar imagen sobre el uploader = subir. Menos clicks.
+['up-logo', 'up-banner'].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    el.addEventListener(ev, function (e) { e.preventDefault(); el.classList.add('dragging'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    el.addEventListener(ev, function (e) { e.preventDefault(); el.classList.remove('dragging'); });
+  });
+  el.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    var tipo = id === 'up-banner' ? 'banner' : 'logo';
+    var input = document.getElementById(tipo === 'banner' ? 'f-banner-file' : 'f-logo-file');
+    // Truco: setear el files programáticamente para reusar el handler.
+    var dt = new DataTransfer(); dt.items.add(f);
+    input.files = dt.files;
+    subirImagen(tipo, input);
+  });
+});
+
+// ── Pintar el preview de notificaciones (iOS + Android) ────────────
+// Se llama desde renderPreview. Refleja logo, program name y geo mensaje.
+function renderNotifPreview(cfg) {
+  var msg = cfg.geoMensaje || 'Estás cerca 💈 muestra tu tarjeta y suma sellos.';
+  var titulo = cfg.programName || 'Club de Fidelidad';
+  var logo = cfg.logoUrl || '/bioo-iso.png';
+  // Actualiza hora en vivo — sensación "está pasando ahora".
+  var now = new Date();
+  var hh = String(now.getHours()).padStart(2, '0');
+  var mm = String(now.getMinutes()).padStart(2, '0');
+  $('notif-ios-clock').textContent = hh + ':' + mm;
+  var fecha = now.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('notif-ios-date').textContent = fecha;
+  $('notif-ios-logo').src = logo;
+  $('notif-a-logo').src = logo;
+  $('notif-ios-app').textContent = 'WALLET';
+  $('notif-a-app').textContent = 'Google Wallet · Ahora';
+  $('notif-ios-title').textContent = titulo;
+  $('notif-a-title').textContent = titulo;
+  $('notif-ios-msg').textContent = msg;
+  $('notif-a-msg').textContent = msg;
+}
+
 function renderPreview() {
   var cfg = leerForm();
   var filled = parseInt($('pv-range').value, 10) || 0;
@@ -1284,21 +1570,26 @@ function renderPreview() {
   } else {
     $('pv-a-back-rec').style.display = 'none';
   }
+
+  // ── Notif (tab): usa el mismo cfg leído arriba ──
+  renderNotifPreview(cfg);
 }
 
-// Switcher Google/Apple: oculta uno y muestra el otro. Reverso Apple sólo
-// se muestra en el tab Apple (en Google es parte del pase, no un card aparte).
+// Switcher Google/Apple/Notif: oculta unos y muestra el elegido.
 function pvTab(which) {
-  var isG = which === 'google';
   document.querySelectorAll('.pv-tab').forEach(function (b) {
     b.classList.toggle('active', b.dataset.tab === which);
   });
-  $('pv-google').classList.toggle('pv-hidden', !isG);
-  $('pv-apple').classList.toggle('pv-hidden', isG);
-  $('pv-a-back').classList.toggle('pv-hidden', isG);
-  $('pv-frame-hint').textContent = isG
-    ? 'Mockup fiel a Google Wallet. El pase real se ve idéntico en Android.'
-    : 'Mockup fiel a Apple Wallet. El reverso (recompensas + link Wallo) aparece al tocar ⓘ en el pase real.';
+  $('pv-google').classList.toggle('pv-hidden', which !== 'google');
+  $('pv-apple').classList.toggle('pv-hidden', which !== 'apple');
+  $('pv-a-back').classList.toggle('pv-hidden', which !== 'apple');
+  $('pv-notif').classList.toggle('pv-hidden', which !== 'notif');
+  var hint = {
+    google: 'Mockup fiel a Google Wallet. El pase real se ve idéntico en Android.',
+    apple:  'Mockup fiel a Apple Wallet. El reverso (recompensas + link Wallo) aparece al tocar ⓘ en el pase real.',
+    notif:  'Así se ve el geo-push cuando el cliente pasa cerca del local — arriba iPhone, abajo Android.',
+  };
+  $('pv-frame-hint').textContent = hint[which] || hint.google;
 }
 
 // Sincronizar color pickers ↔ hex y refrescar preview con cada cambio.
@@ -1312,8 +1603,18 @@ function pvTab(which) {
     marcarDirty();
   });
 });
-['f-programName', 'f-issuerName', 'f-logoUrl', 'f-lat', 'f-lng', 'f-geoMensaje'].forEach(function (id) {
+['f-programName', 'f-issuerName', 'f-logoUrl', 'f-bannerUrl', 'f-lat', 'f-lng', 'f-geoMensaje'].forEach(function (id) {
   $(id).addEventListener('input', function () { renderPreview(); marcarDirty(); });
+});
+// Cuando cambia el URL del logo/banner, re-pintar el thumb y mostrar/ocultar
+// el botón Quitar según haya contenido.
+$('f-logoUrl').addEventListener('input', function () {
+  pintarThumb('logo', this.value.trim());
+  $('up-logo-rm').style.display = this.value.trim() ? '' : 'none';
+});
+$('f-bannerUrl').addEventListener('input', function () {
+  pintarThumb('banner', this.value.trim());
+  $('up-banner-rm').style.display = this.value.trim() ? '' : 'none';
 });
 $('f-enabled').addEventListener('change', function () { renderPreview(); marcarDirty(); });
 // Sub-panel Página de registro: cualquier edición marca dirty (no requiere

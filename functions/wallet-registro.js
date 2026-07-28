@@ -203,6 +203,7 @@ exports.walletTenantMeta = onRequest(
           slug: tid,
           nombre: t.nombre || tid,
           logoUrl: cfg.logoUrl || t.logoUrl || null,
+          bannerUrl: cfg.bannerUrl || null,
           accent: cfg.accent || '#c9a84c',
           bg: cfg.bg || '#0d0d0d',
           programName: cfg.programName || 'Club de Fidelidad',
