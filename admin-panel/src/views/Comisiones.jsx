@@ -969,11 +969,23 @@ function DetalleBarberoDrawer({
 /* ── PagarModal ───────────────────────────────────────────────────── */
 function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  // Antes: setLoading(true) + await onConfirm() + setLoading(false) + onClose().
+  // Si onConfirm rechazaba (típico: rules de Firestore bloqueando escritura,
+  // network flap), el catch no existía → setLoading(false) nunca corría y el
+  // botón quedaba en "Registrando…" para siempre. Reportado por Oren.
   const handle = async () => {
+    setError(null);
     setLoading(true);
-    await onConfirm();
-    setLoading(false);
-    onClose();
+    try {
+      await onConfirm();
+      onClose();
+    } catch (e) {
+      console.error('[Comisiones/PagarModal] error registrando pago:', e);
+      setError(e?.message || 'No se pudo registrar el pago. Revisa la consola.');
+    } finally {
+      setLoading(false);
+    }
   };
   const enReapertura = pagoExistente?.estado === 'reabierto';
   const yaPagado     = Number(pagoExistente?.montoPagado) || 0;
@@ -1074,6 +1086,13 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
       <p className="px-1 text-[12.5px] leading-relaxed text-slate-500">
         Se registrará como gasto en <span className="font-medium text-slate-400">Sueldos</span> del período {periodo}.
       </p>
+
+      {error && (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12.5px] leading-snug text-rose-300">
+          <p className="font-semibold mb-0.5">Error al registrar el pago</p>
+          <p className="text-rose-200/90">{error}</p>
+        </div>
+      )}
     </SheetModal>
   );
 }

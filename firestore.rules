@@ -1301,6 +1301,19 @@ service cloud.firestore {
         allow delete: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
+      // ── pagos_semanales ──────────────────────────────────────────
+      // Registro por (barbero, período). Lo escribe Comisiones al confirmar
+      // "Registrar pago" o "Reabrir semana"; cubre TODOS los ingresos del
+      // barbero en el rango (no tiene sucursalId — no aplica scope de sede).
+      // Sin esta regla las escrituras se rechazaban por default y el modal
+      // "Registrar pago" quedaba pegado (reportado por Oren 2026-07-27).
+      match /pagos_semanales/{docId} {
+        allow read:   if esAdmin(tid);
+        allow create: if esAdmin(tid);
+        allow update: if esAdmin(tid);
+        allow delete: if false;
+      }
+
       // ── listaEspera (lista de espera del panel) ───────────────────
       // Solo staff la gestiona; el dashboard (Inicio) la lee para el KPI.
       match /listaEspera/{docId} {
