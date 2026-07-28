@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   Wallet, Loader2, Users, Eye, EyeOff, ExternalLink, Sparkles,
   Crown, MapPinned, BellRing, RefreshCw, ArrowRight, Check,
+  Smartphone, AlertTriangle,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { ADDONS, fmtCLP } from '../lib/precios';
@@ -20,6 +22,15 @@ const estudioUrl = (tid) => tid ? `${WALLETS_STUDIO_URL}?tid=${encodeURIComponen
 const cfgPath = (tid) => (tid === 'elegance' ? 'configuracion/wallet' : `tenants/${tid}/configuracion/wallet`);
 const usersPath = (tid) => (tid === 'elegance' ? 'users' : `tenants/${tid}/users`);
 
+// El panel se usa mucho desde el escritorio, donde abrir un link de wallet no
+// sirve de nada: el pase tiene que aterrizar en un celular. Por eso al generar
+// mostramos SIEMPRE un QR (mismo servicio que usa el estudio Wallo) y solo
+// abrimos el link directo cuando ya estamos en un teléfono.
+const qrSrc = (url, px = 200) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=${px}x${px}&margin=8&data=${encodeURIComponent(url)}`;
+const ES_MOVIL = typeof navigator !== 'undefined'
+  && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
 export default function Wallets() {
   const { id: tenantId, name: tenantName } = useTenant();
   const { role } = useAuth();
@@ -28,8 +39,17 @@ export default function Wallets() {
   const [savedCount, setSavedCount] = useState(null);
   // Visibilidad para clientes: configuracion/wallet.enabled (se edita en el estudio).
   const [enabled, setEnabled] = useState(null);
+  // `enabled:false` EXPLÍCITO en el doc. No es lo mismo que "sin configurar":
+  // las CFs solo bloquean cuando el campo está en false, si el doc no existe
+  // dejan generar. Sin esta distinción avisaríamos de un bloqueo inexistente.
+  const [ocultaExplicita, setOcultaExplicita] = useState(false);
   // Add-on pagado: _billing/{tid}.walletActivo (null = cargando).
   const [walletActivo, setWalletActivo] = useState(null);
+
+  // Pase de prueba del propio dueño (Google / Apple).
+  const [generando, setGenerando] = useState('');   // '' | 'google' | 'apple'
+  const [pase, setPase] = useState(null);           // { tipo, url }
+  const [errPase, setErrPase] = useState('');
 
   useEffect(() => {
     if (!tenantId) return;
@@ -45,11 +65,38 @@ export default function Wallets() {
     if (!tenantId) return;
     const unsub = onSnapshot(
       doc(db, cfgPath(tenantId)),
-      (snap) => setEnabled(snap.exists() && snap.data().enabled === true),
-      () => setEnabled(false),
+      (snap) => {
+        setEnabled(snap.exists() && snap.data().enabled === true);
+        setOcultaExplicita(snap.exists() && snap.data().enabled === false);
+      },
+      () => { setEnabled(false); setOcultaExplicita(false); },
     );
     return () => unsub();
   }, [tenantId]);
+
+  // Genera el pase del usuario logueado (el dueño) reusando las mismas CFs
+  // que el cliente en su vista de sellos: `walletGenerarPase` para Google y
+  // `walletAppleGenerarLink` para Apple. Ambas resuelven contra request.auth,
+  // así que la tarjeta sale a nombre de esta cuenta.
+  async function generarPase(tipo) {
+    if (generando) return;
+    setGenerando(tipo); setErrPase(''); setPase(null);
+    try {
+      const nombre = tipo === 'google' ? 'walletGenerarPase' : 'walletAppleGenerarLink';
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), nombre);
+      const res = await fn({ tenantId });
+      const url = res.data?.saveUrl || res.data?.url || res.data?.link;
+      if (!url) throw new Error('La respuesta no trajo el enlace del pase.');
+      setPase({ tipo, url });
+      if (ES_MOVIL) window.open(url, '_blank', 'noopener');
+    } catch (e) {
+      // Las CFs devuelven mensajes ya redactados para el usuario final
+      // (add-on inactivo, tarjeta oculta, Apple sin certificados…).
+      setErrPase(e?.message || 'No pudimos generar la tarjeta. Reintenta.');
+    } finally {
+      setGenerando('');
+    }
+  }
 
   // Cuántos clientes guardaron su tarjeta (best-effort).
   useEffect(() => {
@@ -130,6 +177,100 @@ export default function Wallets() {
           </a>
           <p className="text-xs text-slate-500 mt-3">Estudio Wallo · entra con esta misma cuenta</p>
         </div>
+      </div>
+
+      {/* ── Añadir a Wallet (los mismos botones que ve el cliente) ──
+          Genera la tarjeta a nombre de esta cuenta: sirve para revisar el
+          diseño real antes de mostrarlo, y para enseñársela a un cliente que
+          pregunta en el mesón sin tener que pedirle el celular. */}
+      <div className="rounded-2xl border border-slate-800 [html.light_&]:border-ink-200 bg-slate-900/40 [html.light_&]:bg-white p-5 sm:p-6 mb-4">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-amber-400/15 [html.light_&]:bg-amber-100 flex items-center justify-center shrink-0">
+            <Smartphone size={17} className="text-amber-400 [html.light_&]:text-amber-700" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-bold text-primary [html.light_&]:text-ink-900">Añádela a tu celular</h3>
+            <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 mt-0.5 leading-relaxed">
+              La misma tarjeta que ven tus clientes, a nombre de tu cuenta. Úsala para revisar cómo
+              quedó de verdad y para mostrarla en el local.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => generarPase('google')}
+            disabled={!!generando}
+            className="rounded-2xl px-5 py-3.5 text-center bg-[#1a73e8] hover:bg-[#1765cc] disabled:opacity-60 disabled:cursor-not-allowed transition-colors active:scale-[0.99]"
+          >
+            <span className="flex items-center justify-center gap-2 font-bold text-white">
+              {generando === 'google' && <Loader2 size={15} className="animate-spin" />}
+              {generando === 'google' ? 'Generando…' : 'Añadir a Google Wallet'}
+            </span>
+            <span className="block text-[11px] font-semibold text-white/70 mt-0.5">
+              Se abrirá el botón oficial de Google
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => generarPase('apple')}
+            disabled={!!generando}
+            className="rounded-2xl px-5 py-3.5 text-center bg-black hover:bg-slate-900 border border-slate-700 [html.light_&]:border-transparent disabled:opacity-60 disabled:cursor-not-allowed transition-colors active:scale-[0.99]"
+          >
+            <span className="flex items-center justify-center gap-2 font-bold text-white">
+              {generando === 'apple' && <Loader2 size={15} className="animate-spin" />}
+              {generando === 'apple' ? 'Generando…' : 'Añadir a Apple Wallet'}
+            </span>
+            <span className="block text-[11px] font-semibold text-white/60 mt-0.5">
+              Se abrirá Safari con el pase
+            </span>
+          </button>
+        </div>
+
+        {/* La tarjeta tiene que terminar en un teléfono: en escritorio el QR
+            es la única vía real, así que se muestra siempre que hay pase. */}
+        {pase && (
+          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] [html.light_&]:bg-emerald-50 p-4 flex flex-col sm:flex-row items-center gap-4">
+            <img
+              src={qrSrc(pase.url)}
+              alt="QR de tu tarjeta"
+              className="w-32 h-32 rounded-xl bg-white p-1 shrink-0"
+            />
+            <div className="min-w-0 text-center sm:text-left">
+              <p className="font-bold text-primary [html.light_&]:text-ink-900 text-sm">
+                Tu tarjeta de {pase.tipo === 'google' ? 'Google Wallet' : 'Apple Wallet'} está lista
+              </p>
+              <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 mt-1 leading-relaxed">
+                Escanea el QR con la cámara de tu celular
+                {pase.tipo === 'apple' ? ' (iPhone o iPad)' : ''} y se guardará ahí.
+              </p>
+              <a
+                href={pase.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-bold text-amber-400 [html.light_&]:text-amber-700 hover:underline"
+              >
+                Abrir el enlace <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+        )}
+
+        {errPase && (
+          <p className="mt-3 flex items-start gap-2 text-xs text-rose-300 [html.light_&]:text-rose-700">
+            <AlertTriangle size={14} className="shrink-0 mt-px" /> {errPase}
+          </p>
+        )}
+
+        {ocultaExplicita && !pase && (
+          <p className="mt-3 flex items-start gap-2 text-xs text-amber-300 [html.light_&]:text-amber-700">
+            <AlertTriangle size={14} className="shrink-0 mt-px" />
+            Tu tarjeta está oculta para los clientes, y mientras lo esté tampoco se puede generar
+            la tuya. Actívala en el estudio y vuelve a intentar.
+          </p>
+        )}
       </div>
 
       {/* Estado actual */}
