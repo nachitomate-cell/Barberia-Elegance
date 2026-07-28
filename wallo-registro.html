@@ -85,9 +85,9 @@
   .invalid strong{display:block;font-size:15px;margin-bottom:4px;color:var(--err);}
 </style>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="/firebase-config.js"></script>
+<!-- Nota: NO cargamos Firebase SDK acá — la landing es 100% pública,
+     lee el branding vía walletTenantMeta (HTTP) y submite a
+     walletRegistrarCliente (HTTP). Menos bundle → carga instantánea. -->
 </head>
 <body>
 
@@ -173,6 +173,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 var REGISTRO_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletRegistrarCliente';
+var META_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletTenantMeta';
 var _tid = null;
 var _tenantMeta = null;
 
@@ -207,33 +208,32 @@ function tidFromUrl() {
   return null;
 }
 
-// ── Cargar branding del tenant desde Firestore ────────────────────
+// ── Cargar branding del tenant vía endpoint público walletTenantMeta ─
+// (Firestore rules bloquean lectura directa de _billing y wallet cfg.)
 async function cargarTenant() {
   var tid = tidFromUrl();
   if (!tid) { show('view-invalid'); return; }
   _tid = tid;
   try {
-    var [tSnap, cfgSnap, billingSnap] = await Promise.all([
-      db.collection('tenants').doc(tid).get(),
-      db.collection('tenants').doc(tid).collection('configuracion').doc('wallet').get(),
-      db.collection('_billing').doc(tid).get(),
-    ]);
-    if (!tSnap.exists) { show('view-invalid'); return; }
-    var t = tSnap.data();
-    var cfg = cfgSnap.exists ? cfgSnap.data() : {};
-    var b = billingSnap.exists ? billingSnap.data() : {};
-    if (b.walletActivo !== true || cfg.enabled === false) {
+    var r = await fetch(META_URL + '?tid=' + encodeURIComponent(tid), { method: 'GET' });
+    var data = await r.json();
+    if (r.status === 404 || (data && data.error === 'tenant_no_existe')) {
+      show('view-invalid');
+      return;
+    }
+    if (!data || !data.ok) throw new Error(data && data.error || 'meta_falla');
+    if (!data.walletActivo || !data.enabled) {
       $('view-invalid').querySelector('.invalid').innerHTML =
         '<strong>Este club aún no está publicado.</strong>El local todavía está configurando su tarjeta. Vuelve pronto.';
       show('view-invalid');
       return;
     }
     _tenantMeta = {
-      nombre: t.nombre || tid,
-      logoUrl: cfg.logoUrl || t.logoUrl || '/bioo-iso.png',
-      accent: cfg.accent || '#c9a84c',
-      bg: cfg.bg || '#0d0d0d',
-      programName: cfg.programName || 'Club de Fidelidad',
+      nombre: data.tenant.nombre || tid,
+      logoUrl: data.tenant.logoUrl || '/bioo-iso.png',
+      accent: data.tenant.accent || '#c9a84c',
+      bg: data.tenant.bg || '#0d0d0d',
+      programName: data.tenant.programName || 'Club de Fidelidad',
     };
     pintarBrand();
     show('view-form');

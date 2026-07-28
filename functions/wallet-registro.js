@@ -139,6 +139,58 @@ async function generarLinkApple(tenantId, uid, ctx, saAppleReady) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  META PÚBLICO del tenant (para la landing de registro).
+//  Devuelve SOLO branding + flags (sin datos sensibles) para que
+//  wallo-registro.html arme el hero antes del submit.
+//  Rules de Firestore protegen _billing y configuracion/wallet →
+//  desde una sesión sin auth no se pueden leer directo, por eso el
+//  endpoint intermedio.
+// ═══════════════════════════════════════════════════════════════
+exports.walletTenantMeta = onRequest(
+  { region: 'us-central1', cors: true },
+  async (req, res) => {
+    setCors(res, String(req.headers.origin || ''));
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+    }
+    const tid = String((req.query && req.query.tid) || (req.body && req.body.tid) || '').trim();
+    if (!tid) return res.status(400).json({ ok: false, error: 'tid_requerido' });
+
+    try {
+      const [tSnap, cfgSnap, bSnap] = await Promise.all([
+        tenantRef(tid).get(),
+        walletCfgRef(tid).get(),
+        billingRef(tid).get(),
+      ]);
+      if (!tSnap.exists) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
+      const t = tSnap.data();
+      const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+      const b = bSnap.exists ? bSnap.data() : {};
+      // Cache 60s en CDN — el branding cambia poco y ahorra hits en Firestore.
+      res.set('Cache-Control', 'public, max-age=60, s-maxage=60');
+      return res.status(200).json({
+        ok: true,
+        tenant: {
+          slug: tid,
+          nombre: t.nombre || tid,
+          logoUrl: cfg.logoUrl || t.logoUrl || null,
+          accent: cfg.accent || '#c9a84c',
+          bg: cfg.bg || '#0d0d0d',
+          programName: cfg.programName || 'Club de Fidelidad',
+        },
+        // Flags necesarios para saber si la landing debe permitir registro.
+        walletActivo: b.walletActivo === true,
+        enabled: cfg.enabled !== false,
+      });
+    } catch (e) {
+      logger.error(`[TenantMeta] ${tid}:`, e);
+      return res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
 exports.walletRegistrarCliente = onRequest(
   {
     region: 'us-central1',

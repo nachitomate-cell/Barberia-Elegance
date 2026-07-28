@@ -1639,7 +1639,9 @@ exports.walletSumarSelloStaff   = require('./wallet-staff').walletSumarSelloStaf
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.
+// walletTenantMeta = lookup público del branding (para la landing).
 // Ver functions/wallet-registro.js.
+exports.walletTenantMeta        = require('./wallet-registro').walletTenantMeta;
 exports.walletRegistrarCliente  = require('./wallet-registro').walletRegistrarCliente;
 
 // Apple Wallet (espejo iOS del módulo anterior): el cliente descarga un
