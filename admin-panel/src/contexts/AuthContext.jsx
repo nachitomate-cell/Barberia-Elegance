@@ -100,6 +100,7 @@ export function AuthProvider({ children }) {
       // nunca hizo re-login desde que se aplicaron. Sin este refresh, cuentas
       // admin recién creadas quedaban con role=null → App.jsx las mandaba a
       // /agenda.html. Firebase cachea 5 min: no-op si ya está fresco.
+      // v2: refresh forzado universal (antes solo BRAND_ADMINS Kronnos).
       try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
 
       const email = firebaseUser.email?.toLowerCase();
@@ -128,7 +129,16 @@ export function AuthProvider({ children }) {
         // claims dicen 'admin' → gana sobre el doc (que puede quedar stale,
         // como pasó con Omar Chameleon: claim admin pero doc sin campo rol).
         const rolClaims = await roleFromClaims(firebaseUser);
+        const currentTid = resolveTenantId();
         const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 10000, 'auth/role');
+        console.log('[AUTH-DEBUG]', {
+          email, uid: firebaseUser.uid,
+          rolClaims,
+          currentTid,
+          docExists: snap.exists(),
+          docRol: snap.exists() ? (snap.data().rol || null) : null,
+          docMainDocId: snap.exists() ? (snap.data()._mainDocId || null) : null,
+        });
         if (snap.exists()) {
           const data = snap.data();
           // Si es doc de enlace (_mainDocId), leer el doc principal
@@ -141,14 +151,20 @@ export function AuthProvider({ children }) {
             rolDoc = data.rol || 'barbero';
             scope  = scopeFromDoc(data);
           }
-          setRole(rolClaims === 'admin' ? 'admin' : rolDoc);
+          const finalRole = rolClaims === 'admin' ? 'admin' : rolDoc;
+          console.log('[AUTH-DEBUG] setRole (doc path):', finalRole);
+          setRole(finalRole);
           setSucursalScope(scope);
         } else {
-          setRole(rolClaims || 'barbero');
+          const finalRole = rolClaims || 'barbero';
+          console.log('[AUTH-DEBUG] setRole (no-doc path):', finalRole);
+          setRole(finalRole);
           setSucursalScope('all');
         }
-      } catch {
-        setRole(await roleFromClaims(firebaseUser) || 'barbero');
+      } catch (e) {
+        const finalRole = (await roleFromClaims(firebaseUser)) || 'barbero';
+        console.log('[AUTH-DEBUG] setRole (catch path):', finalRole, 'err:', e?.message);
+        setRole(finalRole);
         setSucursalScope('all');
       }
       setLoading(false);
