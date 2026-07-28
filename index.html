@@ -10297,7 +10297,7 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
 
@@ -10459,7 +10459,7 @@
         updateSelectionRecap();
       }
 
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
       const isRenacer = (window.CURRENT_TENANT_ID === 'renacer');
@@ -10778,7 +10778,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
@@ -11479,7 +11479,7 @@
       // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
       // líneas. La rama default (abajo) los deja como hermanos sueltos del
       // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -12650,6 +12650,7 @@
         window.CURRENT_TENANT_ID === 'memphis' ||
         window.CURRENT_TENANT_ID === 'delnero' ||
         window.CURRENT_TENANT_ID === 'sionbarberia' ||
+        window.CURRENT_TENANT_ID === 'sion' ||
         window.CURRENT_TENANT_ID === 'yugen';
       const grid = document.getElementById('hoursGrid');
       grid.className = _isEleganceHr
@@ -12895,7 +12896,7 @@
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
-      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe');
+      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion');
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
@@ -13477,7 +13478,7 @@
 
         // Marca como "✓ Añadido" los botones del cross-sell cuyo producto ya está en el cart.
         const _markXsellSelected = (container) => {
-          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
+          const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'sion');
           container.querySelectorAll('button[data-pid]').forEach(btn => {
             if (_selectedProducts.some(p => p.id === btn.dataset.pid)) {
               btn.textContent = '✓ Añadido';
@@ -13549,7 +13550,7 @@
               if (!btn) return;
               const pid = btn.dataset.pid;
               const idx = _selectedProducts.findIndex(p => p.id === pid);
-              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity');
+              const isAuraTenant = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'sion');
 
               if (idx === -1) {
                 _selectedProducts.push({ id: pid, nombre: btn.dataset.pname, precio: Number(btn.dataset.pprecio) });
@@ -13651,7 +13652,7 @@
         } else {
           // No logueado: CTA prominente para unirse al club
           const _clubEmoji = window.CURRENT_TENANT_ID === 'gitana' ? '💅' : '✂️';
-          if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe')) {
+          if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion')) {
             authContainer.innerHTML = `
               <div class="club-hero-card rounded-2xl overflow-hidden relative" style="background:#FFFFFF;border:1px solid #D4D4D8;box-shadow:0 2px 16px rgba(156,163,175,0.10);">
 
@@ -14565,6 +14566,17 @@
         // y ya interpola SHOP.club / SHOP.nombreCorto / SHOP.logo en su template.
       }
 
+      // Sion Barbería — reusa el slim header + stamp de Aura (patrón kronnos/latincaribe).
+      // Nombre + logo se leen del SHOP para no hardcodear.
+      if (window.CURRENT_TENANT_ID === 'sion') {
+        const slimName = document.querySelector('.aura-slim-name');
+        if (slimName) slimName.textContent = SHOP.nombreCorto || SHOP.nombre || '';
+        const slimLogo = document.getElementById('auraSlimLogo');
+        if (slimLogo && SHOP.logo) slimLogo.src = SHOP.logo;
+        const stampImg = document.querySelector('#aura-stamp-wrap .aura-stamp-logo img');
+        if (stampImg && SHOP.logo) { stampImg.src = SHOP.logo; stampImg.alt = SHOP.nombre || 'Sion Barbería'; }
+      }
+
       // Instagram
       const ig   = SHOP.instagram       || '#';
       const igh  = SHOP.instagramHandle || '';
@@ -15377,7 +15389,7 @@
         if (titleEl) titleEl.textContent = 'Mapu Barber Shop';
         const bodyEl = document.getElementById('mapu-sobre-body');
         if (bodyEl) bodyEl.innerHTML = window.SHOP.sobreNosotros;
-      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia')) {
+      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion')) {
         const titleEl = document.getElementById('aura-sobre-title');
         if (titleEl) titleEl.textContent = 'Quiénes Somos';
         const bodyEl = document.getElementById('aura-sobre-body');
