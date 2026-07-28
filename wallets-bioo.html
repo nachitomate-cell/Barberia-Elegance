@@ -499,6 +499,85 @@
   .notif-android .msg{font-size:13px;line-height:1.4;color:#bdbdbd;}
   .notif-android .exp{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#a8a8a8;display:flex;justify-content:space-between;}
 
+  /* ═══ Clientes — tabla + chips filter + row expandible ═══ */
+  .cli-toolbar{display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
+  .cli-search{
+    position:relative;
+  }
+  .cli-search::before{content:'⌕';position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--muted);}
+  .cli-search input{padding-left:38px;height:42px;font-size:14.5px;}
+  .cli-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none;}
+  .cli-chips::-webkit-scrollbar{display:none;}
+  .cli-chip{
+    flex-shrink:0;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--border);background:var(--surface);
+    color:var(--ink-2);font-size:13px;font-weight:500;
+    cursor:pointer;transition:all 0.15s var(--ease);font-family:inherit;
+    white-space:nowrap;letter-spacing:-0.1px;
+  }
+  .cli-chip:hover{border-color:var(--ink);}
+  .cli-chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .cli-chip .n{opacity:0.7;font-weight:600;margin-left:4px;}
+  .cli-chip.active .n{opacity:0.85;}
+  .cli-sort{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--soft);}
+  .cli-sort select{width:auto;height:36px;padding:0 32px 0 12px;font-size:13px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%236E6E73' d='M2 4l4 4 4-4'/></svg>");background-repeat:no-repeat;background-position:right 10px center;}
+  .cli-stats{display:flex;gap:14px;font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .cli-stats b{color:var(--ink);font-weight:600;}
+
+  .cli-list{display:flex;flex-direction:column;}
+  .cli-empty{text-align:center;padding:38px 20px;color:var(--muted);font-size:14px;}
+  .cli-empty .em{font-size:34px;margin-bottom:6px;opacity:0.5;}
+  .cli-row{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 4px;border-top:1px solid var(--hairline);
+    cursor:pointer;transition:background 0.12s var(--ease);
+  }
+  .cli-row:first-child{border-top:0;}
+  .cli-row:hover{background:var(--surface-2);}
+  .cli-row .avatar{
+    width:40px;height:40px;border-radius:50%;flex-shrink:0;
+    background:var(--blue-tint);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:600;letter-spacing:-0.3px;text-transform:uppercase;
+  }
+  .cli-row .avatar.cake{background:rgba(255,149,0,0.15);color:#B25200;}
+  .cli-row .body{flex:1;min-width:0;}
+  .cli-row .name{font-size:14.5px;font-weight:600;color:var(--ink);letter-spacing:-0.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cli-row .name .cake-tag{display:inline-flex;align-items:center;gap:3px;background:rgba(255,149,0,0.15);color:#B25200;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:6px;margin-left:6px;letter-spacing:0.02em;vertical-align:middle;}
+  .cli-row .name .wallet-tag{display:inline-flex;background:var(--accent-tint);color:var(--accent-dark);font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:6px;margin-left:6px;letter-spacing:0.02em;vertical-align:middle;}
+  .cli-row .sub{font-size:12.5px;color:var(--soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cli-row .sellos{text-align:right;flex-shrink:0;}
+  .cli-row .sellos .n{font-size:19px;font-weight:700;letter-spacing:-0.4px;color:var(--ink);line-height:1;}
+  .cli-row .sellos .lbl{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;}
+  .cli-row .chevron{color:var(--muted);font-size:14px;flex-shrink:0;transition:transform 0.15s var(--ease);}
+  .cli-row.open .chevron{transform:rotate(90deg);}
+
+  .cli-detail{
+    background:var(--surface-2);border-radius:var(--r-md);
+    padding:14px 16px;margin:4px 0 10px 52px;
+    font-size:13px;color:var(--ink-2);
+    display:none;
+  }
+  .cli-row.open + .cli-detail{display:block;}
+  .cli-detail .grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-bottom:10px;}
+  .cli-detail .grid .k{color:var(--soft);font-weight:500;font-size:12.5px;}
+  .cli-detail .grid .v{color:var(--ink);font-weight:500;font-size:13px;}
+  .cli-detail .grid .v a{color:var(--blue);}
+  .cli-detail .acts{display:flex;gap:8px;flex-wrap:wrap;}
+  .cli-detail .acts a{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+    border-radius:8px;font-size:12.5px;font-weight:600;text-decoration:none;
+    background:var(--surface);border:1px solid var(--border);color:var(--ink);
+    transition:all 0.15s var(--ease);
+  }
+  .cli-detail .acts a:hover{background:var(--ink);color:#fff;border-color:var(--ink);text-decoration:none;}
+  .cli-detail .acts a.wa{color:#25D366;border-color:rgba(37,211,102,0.3);}
+  .cli-detail .acts a.wa:hover{background:#25D366;color:#fff;border-color:#25D366;}
+  @media (max-width:520px){
+    .cli-detail{margin-left:12px;}
+    .cli-row .avatar{width:36px;height:36px;font-size:14px;}
+  }
+
   /* ═══ FAB Guardar (mobile) — botón sticky abajo cuando hay cambios ═══ */
   .save-fab{
     position:fixed;bottom:16px;left:16px;right:16px;
@@ -594,6 +673,7 @@
       <button class="seg" data-tab="diseno" onclick="showTab('diseno')">Diseño</button>
       <button class="seg" data-tab="ubicaciones" onclick="showTab('ubicaciones')">Ubicaciones</button>
       <button class="seg" data-tab="registro" onclick="showTab('registro')">Registro</button>
+      <button class="seg" data-tab="clientes" onclick="showTab('clientes')">Clientes</button>
       <button class="seg" data-tab="publicar" onclick="showTab('publicar')">Publicar</button>
     </div>
 
@@ -604,6 +684,7 @@
         <button class="nav-item" data-tab="diseno" onclick="showTab('diseno')"><span class="ico">🎨</span>Diseño</button>
         <button class="nav-item" data-tab="ubicaciones" onclick="showTab('ubicaciones')"><span class="ico">📍</span>Ubicaciones</button>
         <button class="nav-item" data-tab="registro" onclick="showTab('registro')"><span class="ico">🔗</span>Página de registro</button>
+        <button class="nav-item" data-tab="clientes" onclick="showTab('clientes')"><span class="ico">👥</span>Clientes</button>
         <button class="nav-item" data-tab="publicar" onclick="showTab('publicar')"><span class="ico">🚀</span>Publicar</button>
       </aside>
 
@@ -774,6 +855,44 @@
                 <p class="d">Ideal para restaurantes/salones que re-postean al cliente.</p>
               </div>
               <label class="switch"><input type="checkbox" id="f-reg-instagram"><span class="slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ TAB: Clientes ══ -->
+        <div class="tab-panel" data-tab="clientes">
+          <div class="section">
+            <h2>Clientes registrados</h2>
+            <p class="section-sub">Lista de personas que se registraron al club, con sus datos y sellos. <span id="cli-stats-inline"></span></p>
+
+            <div class="cli-toolbar">
+              <div class="cli-search"><input type="text" id="cli-q" placeholder="Buscar por nombre, email o teléfono…" autocomplete="off" oninput="renderClientes()"></div>
+              <div class="cli-chips" id="cli-chips">
+                <button class="cli-chip active" data-filtro="todos" onclick="setFiltroCli('todos')">Todos <span class="n" id="cnt-todos">0</span></button>
+                <button class="cli-chip" data-filtro="cumple" onclick="setFiltroCli('cumple')">🎂 Cumple este mes <span class="n" id="cnt-cumple">0</span></button>
+                <button class="cli-chip" data-filtro="wallet" onclick="setFiltroCli('wallet')">📱 Con wallet <span class="n" id="cnt-wallet">0</span></button>
+                <button class="cli-chip" data-filtro="cerca" onclick="setFiltroCli('cerca')">🎁 Cerca de canje <span class="n" id="cnt-cerca">0</span></button>
+                <button class="cli-chip" data-filtro="inactivos" onclick="setFiltroCli('inactivos')">💤 Inactivos 45d+ <span class="n" id="cnt-inactivos">0</span></button>
+                <button class="cli-chip" data-filtro="sin-sellos" onclick="setFiltroCli('sin-sellos')">Sin sellos aún <span class="n" id="cnt-sin-sellos">0</span></button>
+              </div>
+              <div class="cli-sort">
+                <label for="cli-sort" style="margin:0;font-weight:500;color:var(--soft);">Ordenar por:</label>
+                <select id="cli-sort" onchange="renderClientes()">
+                  <option value="sellos-desc">Más sellos disponibles</option>
+                  <option value="hist-desc">Más históricos</option>
+                  <option value="reciente">Registro más reciente</option>
+                  <option value="antiguo">Registro más antiguo</option>
+                  <option value="nombre-asc">Nombre (A-Z)</option>
+                  <option value="ultimo-sello">Último sello</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="cli-list" id="cli-list">
+              <div class="cli-empty">
+                <div class="em">👥</div>
+                Aún no cargamos clientes. Se listan al entrar a esta pestaña.
+              </div>
             </div>
           </div>
         </div>
@@ -1033,6 +1152,11 @@ function showTab(name) {
   if (name === 'ubicaciones' && typeof maybeInitMap === 'function') {
     setTimeout(maybeInitMap, 0);
   }
+  // Carga lazy de clientes al entrar a la tab (evita hits a Firestore si
+  // el user no la abre nunca).
+  if (name === 'clientes' && typeof cargarClientes === 'function') {
+    cargarClientes();
+  }
   // Scroll al top del main en mobile (así el user no aterriza a mitad
   // del content al cambiar de tab).
   if (window.innerWidth < 820) {
@@ -1173,6 +1297,8 @@ function cambiarDeLocal(sel) {
     if (!ok) { sel.value = _tid; return; }
   }
   limpiarDirty();
+  // Invalidar cache de clientes — el próximo showTab('clientes') recargará.
+  _clientes = []; _cliTid = null;
   cargarTenant(nuevoTid);
 }
 
@@ -1483,6 +1609,218 @@ function quitarBanner() {
     subirImagen(tipo, input);
   });
 });
+
+// ── Vista Clientes: listado + filtros + orden + expand ─────────────
+// Lee tenants/{tid}/users, filtra fusionados y placeholders, y renderiza
+// una tabla con búsqueda, chips de filtro y orden. Carga lazy al entrar
+// a la tab. Refresca al cambiar de tenant desde el picker.
+var _clientes = [];
+var _filtroCli = 'todos';
+var _cliCargando = false;
+var _cliTid = null;   // tid del cargado actual; si cambia, re-cargamos
+
+function usersColRef(tid) {
+  return tid === 'elegance'
+    ? db.collection('users')
+    : db.collection('tenants').doc(tid).collection('users');
+}
+
+// Fecha string ISO o Firestore Timestamp → ms epoch (0 si inválido).
+function _toMs(v) {
+  if (!v) return 0;
+  if (typeof v === 'string') return Date.parse(v) || 0;
+  if (v.toMillis) return v.toMillis();
+  if (v.toDate)   return v.toDate().getTime();
+  if (v instanceof Date) return v.getTime();
+  return 0;
+}
+
+async function cargarClientes() {
+  if (!_tid) return;
+  if (_cliCargando) return;
+  // Si ya cargamos para este tenant, no volver a golpear Firestore
+  // (el user puede tabber entre secciones sin recargar).
+  if (_cliTid === _tid && _clientes.length) { renderClientes(); return; }
+
+  _cliCargando = true;
+  var list = $('cli-list');
+  list.innerHTML = '<div class="cli-empty"><div class="em" style="animation:sp 1s linear infinite;">↻</div>Cargando clientes…</div>';
+  try {
+    var snap = await usersColRef(_tid).get();
+    _clientes = snap.docs.map(function (d) {
+      return Object.assign({ id: d.id }, d.data());
+    }).filter(function (u) {
+      // Placeholders walk-in y legacy fusionados no cuentan como clientes reales.
+      if (u.noSumaSellos === true) return false;
+      if (u.fusionadoCon && u.fusionadoCon !== u.id) return false;
+      // Requiere al menos email O teléfono para no listar cuentas fantasma
+      // (ej. barberos que se registraron desde el panel y no son clientes).
+      if (!u.email && !u.telefono) return false;
+      return true;
+    });
+    _cliTid = _tid;
+    renderClientes();
+  } catch (e) {
+    console.error('[Clientes] falló cargar:', e);
+    list.innerHTML = '<div class="cli-empty"><div class="em">⚠️</div>No pudimos cargar clientes.<br><span style="color:var(--muted);font-size:12px;">' + (e.message || e.code || 'error') + '</span></div>';
+  } finally {
+    _cliCargando = false;
+  }
+}
+
+function setFiltroCli(f) {
+  _filtroCli = f;
+  document.querySelectorAll('.cli-chip').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.filtro === f);
+  });
+  renderClientes();
+}
+
+// Predicados por filtro — todos leen del cliente enriquecido con campos derivados.
+function _cumpleEsteMes(u) {
+  if (!u.fechaNacimiento) return false;
+  var m = /^\d{4}-(\d{2})/.exec(String(u.fechaNacimiento));
+  if (!m) return false;
+  var mesUser = parseInt(m[1], 10);
+  return mesUser === (new Date().getMonth() + 1);
+}
+function _tieneWallet(u) { return !!(u.walletObjectId || u.appleWalletSerial); }
+function _cercaDeCanje(u) {
+  var disp = Number(u.sellosDisponibles) || 0;
+  if (disp < 1) return false;
+  // Cerca = a ≤2 sellos del próximo premio (según _premios cargado en el estudio).
+  var costos = (_premios || []).map(function (p) { return Number(p.costoSellos); })
+    .filter(function (n) { return isFinite(n) && n > 0; }).sort(function (a, b) { return a - b; });
+  if (!costos.length) return disp >= 8;   // fallback si no hay premios: cerca del 10
+  var proximo = null;
+  for (var i = 0; i < costos.length; i++) if (disp < costos[i]) { proximo = costos[i]; break; }
+  if (proximo == null) return false;
+  return (proximo - disp) <= 2;
+}
+function _inactivo45(u) {
+  var last = _toMs(u.ultimoSello);
+  if (!last) {
+    var created = _toMs(u.creadoEn) || _toMs(u.createdAt) || 0;
+    return created && (Date.now() - created) > 45 * 86400000;
+  }
+  return (Date.now() - last) > 45 * 86400000;
+}
+function _sinSellos(u) { return (Number(u.sellosHistoricos) || 0) === 0; }
+
+function renderClientes() {
+  var list = $('cli-list');
+  if (!list) return;
+
+  // Actualizar contadores de chips (siempre sobre la base completa).
+  var contadores = {
+    todos: _clientes.length,
+    cumple: _clientes.filter(_cumpleEsteMes).length,
+    wallet: _clientes.filter(_tieneWallet).length,
+    cerca: _clientes.filter(_cercaDeCanje).length,
+    inactivos: _clientes.filter(_inactivo45).length,
+    'sin-sellos': _clientes.filter(_sinSellos).length,
+  };
+  Object.keys(contadores).forEach(function (k) {
+    var el = document.getElementById('cnt-' + k);
+    if (el) el.textContent = contadores[k];
+  });
+  var inline = $('cli-stats-inline');
+  if (inline) inline.textContent = _clientes.length + ' registrados en total.';
+
+  // Aplicar filtro seleccionado.
+  var arr = _clientes.slice();
+  if (_filtroCli === 'cumple')      arr = arr.filter(_cumpleEsteMes);
+  if (_filtroCli === 'wallet')      arr = arr.filter(_tieneWallet);
+  if (_filtroCli === 'cerca')       arr = arr.filter(_cercaDeCanje);
+  if (_filtroCli === 'inactivos')   arr = arr.filter(_inactivo45);
+  if (_filtroCli === 'sin-sellos')  arr = arr.filter(_sinSellos);
+
+  // Búsqueda (nombre + email + teléfono).
+  var q = ($('cli-q').value || '').trim().toLowerCase();
+  if (q) {
+    arr = arr.filter(function (u) {
+      return (u.nombre || '').toLowerCase().includes(q)
+          || (u.email || '').toLowerCase().includes(q)
+          || (u.telefono || '').includes(q);
+    });
+  }
+
+  // Ordenamiento.
+  var sort = ($('cli-sort').value) || 'sellos-desc';
+  var by = {
+    'sellos-desc':  function (a, b) { return (Number(b.sellosDisponibles) || 0) - (Number(a.sellosDisponibles) || 0); },
+    'hist-desc':    function (a, b) { return (Number(b.sellosHistoricos)  || 0) - (Number(a.sellosHistoricos)  || 0); },
+    'reciente':     function (a, b) { return (_toMs(b.creadoEn) || _toMs(b.createdAt)) - (_toMs(a.creadoEn) || _toMs(a.createdAt)); },
+    'antiguo':      function (a, b) { return (_toMs(a.creadoEn) || _toMs(a.createdAt)) - (_toMs(b.creadoEn) || _toMs(b.createdAt)); },
+    'nombre-asc':   function (a, b) { return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es'); },
+    'ultimo-sello': function (a, b) { return _toMs(b.ultimoSello) - _toMs(a.ultimoSello); },
+  }[sort];
+  if (by) arr.sort(by);
+
+  if (!arr.length) {
+    list.innerHTML = '<div class="cli-empty"><div class="em">🔍</div>No hay clientes que coincidan con los filtros.</div>';
+    return;
+  }
+
+  list.innerHTML = arr.map(function (u, idx) {
+    var nombre = u.nombre || u.displayName || '(sin nombre)';
+    var inicial = nombre.trim().charAt(0).toUpperCase() || '?';
+    var disp = Number(u.sellosDisponibles) || 0;
+    var hist = Number(u.sellosHistoricos) || 0;
+    var esCumple = _cumpleEsteMes(u);
+    var tieneW = _tieneWallet(u);
+    var tags = '';
+    if (esCumple) tags += ' <span class="cake-tag">🎂 cumple</span>';
+    if (tieneW)   tags += ' <span class="wallet-tag">📱 wallet</span>';
+    var sub = (u.email || '') + (u.telefono ? '  ·  ' + u.telefono : '');
+    var fnac = u.fechaNacimiento ? _fmtFecha(u.fechaNacimiento) : '—';
+    var creado = _toMs(u.creadoEn) || _toMs(u.createdAt);
+    var creadoS = creado ? _fmtFecha(new Date(creado).toISOString().slice(0, 10)) : '—';
+    var ultS = u.ultimoSello ? _fmtFecha(String(u.ultimoSello).slice(0, 10)) : '—';
+    var telDigits = String(u.telefono || '').replace(/\D/g, '');
+    var actWA = telDigits ? '<a class="wa" href="https://wa.me/' + telDigits + '" target="_blank" rel="noopener">💬 WhatsApp</a>' : '';
+    var actEmail = u.email ? '<a href="mailto:' + escapar(u.email) + '">✉️ Email</a>' : '';
+    return ''
+      + '<div class="cli-row" onclick="toggleClienteRow(this)">'
+      +   '<div class="avatar' + (esCumple ? ' cake' : '') + '">' + escapar(inicial) + '</div>'
+      +   '<div class="body">'
+      +     '<div class="name">' + escapar(nombre) + tags + '</div>'
+      +     '<div class="sub">' + escapar(sub) + '</div>'
+      +   '</div>'
+      +   '<div class="sellos"><div class="n">' + disp + '</div><div class="lbl">Sellos</div></div>'
+      +   '<span class="chevron">›</span>'
+      + '</div>'
+      + '<div class="cli-detail">'
+      +   '<div class="grid">'
+      +     '<span class="k">Sellos disponibles</span><span class="v">' + disp + '</span>'
+      +     '<span class="k">Sellos históricos</span><span class="v">' + hist + '</span>'
+      +     '<span class="k">Fecha nacimiento</span><span class="v">' + escapar(fnac) + '</span>'
+      +     '<span class="k">Instagram</span><span class="v">' + (u.instagram ? '@' + escapar(u.instagram) : '—') + '</span>'
+      +     '<span class="k">Registro</span><span class="v">' + escapar(creadoS) + '</span>'
+      +     '<span class="k">Último sello</span><span class="v">' + escapar(ultS) + '</span>'
+      +     '<span class="k">Tarjeta en wallet</span><span class="v">' + (tieneW ? 'Sí ✓' : 'No, aún no la guardó') + '</span>'
+      +   '</div>'
+      +   '<div class="acts">' + actWA + actEmail + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function toggleClienteRow(row) {
+  row.classList.toggle('open');
+}
+
+// Formato de fecha corto en español (YYYY-MM-DD → "28 jul 2026").
+function _fmtFecha(s) {
+  if (!s) return '—';
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  if (!m) return String(s);
+  var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return parseInt(m[3], 10) + ' ' + meses[parseInt(m[2], 10) - 1] + ' ' + m[1];
+}
+
+window.setFiltroCli = setFiltroCli;
+window.renderClientes = renderClientes;
+window.toggleClienteRow = toggleClienteRow;
 
 // ── Pintar el preview de notificaciones (iOS + Android) ────────────
 // Se llama desde renderPreview. Refleja logo, program name y geo mensaje.
