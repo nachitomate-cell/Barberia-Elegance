@@ -72,6 +72,13 @@ function saneFechaNac(v) {
   if (y < 1900 || y > now) return null;
   return s;
 }
+function saneInstagram(v) {
+  // Instagram handle: 1-30 chars, letras/números/. y _. Sin @ inicial ni URL.
+  const raw = String(v || '').trim().replace(/^@+/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/$/, '');
+  if (!raw) return null;
+  if (!/^[a-zA-Z0-9._]{1,30}$/.test(raw)) return null;
+  return raw.toLowerCase();
+}
 
 // ── Rate limit blando por IP + email (memoria in-process; suficiente
 //    para MVP — sale un lote de spam y se contiene). Reset por deploy.
@@ -168,6 +175,26 @@ exports.walletTenantMeta = onRequest(
       const t = tSnap.data();
       const cfg = cfgSnap.exists ? cfgSnap.data() : {};
       const b = bSnap.exists ? bSnap.data() : {};
+      // Copy override que el dueño edita desde el estudio → sub-panel
+      // "Página de registro". Devolvemos SOLO los que existen; la landing
+      // aplica fallback a los defaults del template si faltan.
+      const rc = (cfg.registroCopy && typeof cfg.registroCopy === 'object') ? cfg.registroCopy : {};
+      const registroCopy = {
+        heroTitulo:     String(rc.heroTitulo    || '').slice(0, 60) || null,
+        formIntro:      String(rc.formIntro     || '').slice(0, 220) || null,
+        botonTexto:     String(rc.botonTexto    || '').slice(0, 40) || null,
+        exitoTitulo:    String(rc.exitoTitulo   || '').slice(0, 60) || null,
+        exitoSub:       String(rc.exitoSub      || '').slice(0, 120) || null,
+        terminosTexto:  String(rc.terminosTexto || '').slice(0, 280) || null,
+      };
+      // Toggles de campos del form.
+      const rcamp = (cfg.registroCampos && typeof cfg.registroCampos === 'object') ? cfg.registroCampos : {};
+      const registroCampos = {
+        pedirFechaNac:       rcamp.pedirFechaNac !== false,       // default ON
+        fechaNacObligatoria: rcamp.fechaNacObligatoria === true,  // default OFF
+        pedirInstagram:      rcamp.pedirInstagram === true,       // default OFF
+      };
+
       // Cache 60s en CDN — el branding cambia poco y ahorra hits en Firestore.
       res.set('Cache-Control', 'public, max-age=60, s-maxage=60');
       return res.status(200).json({
@@ -180,6 +207,8 @@ exports.walletTenantMeta = onRequest(
           bg: cfg.bg || '#0d0d0d',
           programName: cfg.programName || 'Club de Fidelidad',
         },
+        registroCopy,
+        registroCampos,
         // Flags necesarios para saber si la landing debe permitir registro.
         walletActivo: b.walletActivo === true,
         enabled: cfg.enabled !== false,
@@ -206,11 +235,12 @@ exports.walletRegistrarCliente = onRequest(
     try {
       const body = req.body || {};
       const tenantId = String(body.tenantId || '').trim();
-      const nombre   = saneNombre(body.nombre);
-      const email    = saneEmail(body.email);
-      const telefono = saneTelefono(body.telefono);
-      const fechaNac = saneFechaNac(body.fechaNacimiento);
-      const acepto   = !!body.acepto;
+      const nombre    = saneNombre(body.nombre);
+      const email     = saneEmail(body.email);
+      const telefono  = saneTelefono(body.telefono);
+      const fechaNac  = saneFechaNac(body.fechaNacimiento);
+      const instagram = saneInstagram(body.instagram);
+      const acepto    = !!body.acepto;
 
       if (!tenantId) return res.status(400).json({ ok: false, error: 'tenantId_requerido' });
       if (!nombre)   return res.status(400).json({ ok: false, error: 'nombre_invalido' });
@@ -224,11 +254,20 @@ exports.walletRegistrarCliente = onRequest(
       if (ip && rateHit(`ip:${ip}`, 5, 60_000)) return res.status(429).json({ ok: false, error: 'demasiadas_solicitudes' });
       if (rateHit(`mail:${email}`, 3, 60_000)) return res.status(429).json({ ok: false, error: 'demasiadas_solicitudes' });
 
-      // Gate: tenant existe + walletActivo.
-      const [tSnap, bSnap] = await Promise.all([tenantRef(tenantId).get(), billingRef(tenantId).get()]);
+      // Gate: tenant existe + walletActivo. Además cargamos cfg para
+      // aplicar reglas de campos (fechaNacObligatoria, etc).
+      const [tSnap, bSnap, cfgEarly] = await Promise.all([
+        tenantRef(tenantId).get(),
+        billingRef(tenantId).get(),
+        walletCfgRef(tenantId).get(),
+      ]);
       if (!tSnap.exists) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
       const walletActivo = bSnap.exists && bSnap.data().walletActivo === true;
       if (!walletActivo) return res.status(403).json({ ok: false, error: 'wallet_no_activo' });
+      const cfgReg = (cfgEarly.exists && cfgEarly.data().registroCampos) || {};
+      if (cfgReg.fechaNacObligatoria === true && !fechaNac) {
+        return res.status(400).json({ ok: false, error: 'fecha_nacimiento_requerida' });
+      }
 
       // 1. Upsert Firebase Auth user por email.
       const { uid, creado } = await upsertAuthUser(email, nombre);
@@ -243,7 +282,8 @@ exports.walletRegistrarCliente = onRequest(
         email,
         telefono,
         telefonoSuf9: suf9,
-        ...(fechaNac ? { fechaNacimiento: fechaNac } : {}),
+        ...(fechaNac  ? { fechaNacimiento: fechaNac } : {}),
+        ...(instagram ? { instagram } : {}),
         origenRegistro: 'wallo-qr',
         actualizadoEn: FieldValue.serverTimestamp(),
       };

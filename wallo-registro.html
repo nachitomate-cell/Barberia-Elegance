@@ -109,12 +109,12 @@
   <header class="brand-hero" id="brand-hero">
     <img id="brand-logo" class="logo" alt="Logo" onerror="this.style.display='none';">
     <h1 id="brand-nombre">—</h1>
-    <p class="lead">Club de fidelidad</p>
+    <p class="lead" id="brand-lead">Club de fidelidad</p>
   </header>
 
   <main>
     <div class="card">
-      <p class="intro">Regístrate y llevá tu tarjeta de sellos <b>en el celular</b>. Cada visita suma; canjeás premios al llenarla.</p>
+      <p class="intro" id="form-intro">Regístrate y llevá tu tarjeta de sellos <b>en el celular</b>. Cada visita suma; canjeás premios al llenarla.</p>
 
       <label for="f-nombre">Tu nombre</label>
       <input type="text" id="f-nombre" maxlength="80" autocomplete="name" placeholder="María González" required>
@@ -125,12 +125,19 @@
       <label for="f-telefono">WhatsApp</label>
       <input type="tel" id="f-telefono" maxlength="15" autocomplete="tel" placeholder="+56 9 …" required>
 
-      <label for="f-fnac">Fecha de nacimiento <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
-      <input type="date" id="f-fnac" autocomplete="bday">
+      <div id="wrap-fnac">
+        <label for="f-fnac" id="f-fnac-label">Fecha de nacimiento <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+        <input type="date" id="f-fnac" autocomplete="bday">
+      </div>
+
+      <div id="wrap-instagram" class="hidden">
+        <label for="f-instagram">Instagram <span style="font-weight:500;color:var(--muted);">(opcional)</span></label>
+        <input type="text" id="f-instagram" maxlength="30" autocomplete="off" placeholder="@tu_cuenta">
+      </div>
 
       <div class="terms">
         <input type="checkbox" id="f-acepto">
-        <label for="f-acepto" style="margin:0;font-size:12.5px;color:var(--soft);font-weight:500;letter-spacing:normal;">
+        <label for="f-acepto" id="f-acepto-label" style="margin:0;font-size:12.5px;color:var(--soft);font-weight:500;letter-spacing:normal;">
           Acepto compartir mis datos con este local para participar del club. Puedo pedir la baja cuando quiera.
         </label>
       </div>
@@ -176,6 +183,8 @@ var REGISTRO_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/wal
 var META_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletTenantMeta';
 var _tid = null;
 var _tenantMeta = null;
+var _copy = null;     // overrides de copy que edita el dueño desde el estudio
+var _campos = null;   // toggles de campos (fechaNac, instagram)
 
 function $(id) { return document.getElementById(id); }
 function show(id) {
@@ -235,7 +244,24 @@ async function cargarTenant() {
       bg: data.tenant.bg || '#0d0d0d',
       programName: data.tenant.programName || 'Club de Fidelidad',
     };
+    // Copy override (fallback a defaults del template si el dueño no editó nada).
+    var rc = data.registroCopy || {};
+    _copy = {
+      heroTitulo:    rc.heroTitulo    || 'Club de fidelidad',
+      formIntro:     rc.formIntro     || 'Regístrate y llevá tu tarjeta de sellos <b>en el celular</b>. Cada visita suma; canjeás premios al llenarla.',
+      botonTexto:    rc.botonTexto    || 'Recibir mi tarjeta →',
+      exitoTitulo:   rc.exitoTitulo   || null,   // null → template arma el saludo con género
+      exitoSub:      rc.exitoSub      || 'Tu tarjeta está lista. Añádela a tu celular:',
+      terminosTexto: rc.terminosTexto || 'Acepto compartir mis datos con este local para participar del club. Puedo pedir la baja cuando quiera.',
+    };
+    _campos = {
+      pedirFechaNac:       data.registroCampos ? data.registroCampos.pedirFechaNac       !== false : true,
+      fechaNacObligatoria: data.registroCampos ? data.registroCampos.fechaNacObligatoria === true  : false,
+      pedirInstagram:      data.registroCampos ? data.registroCampos.pedirInstagram      === true  : false,
+    };
     pintarBrand();
+    aplicarCopy();
+    aplicarCampos();
     show('view-form');
   } catch (e) {
     console.error('[Registro] cargarTenant:', e);
@@ -256,6 +282,32 @@ function pintarBrand() {
   document.title = 'Únete a ' + m.nombre + ' · Wallo';
 }
 
+// Aplica copy override del dueño (o mantiene defaults si no editó nada).
+function aplicarCopy() {
+  if (!_copy) return;
+  $('brand-lead').textContent = _copy.heroTitulo;
+  $('form-intro').innerHTML = _copy.formIntro;         // permite <b> en el copy
+  $('submit-btn').textContent = _copy.botonTexto;
+  $('f-acepto-label').textContent = _copy.terminosTexto;
+}
+
+// Muestra/oculta campos opcionales según configuración del dueño.
+function aplicarCampos() {
+  if (!_campos) return;
+  $('wrap-fnac').classList.toggle('hidden', !_campos.pedirFechaNac);
+  $('wrap-instagram').classList.toggle('hidden', !_campos.pedirInstagram);
+  // Si el dueño hizo obligatoria la fecha nac, quitamos el "(opcional)".
+  if (_campos.pedirFechaNac) {
+    var lbl = $('f-fnac-label');
+    if (_campos.fechaNacObligatoria) {
+      lbl.innerHTML = 'Fecha de nacimiento';
+      $('f-fnac').required = true;
+    } else {
+      $('f-fnac').required = false;
+    }
+  }
+}
+
 // ── Submit del formulario ─────────────────────────────────────────
 function fallo(msg, focusId) {
   var el = $('form-err');
@@ -264,20 +316,25 @@ function fallo(msg, focusId) {
   if (focusId) $(focusId).focus();
 }
 function enviar() {
-  var nombre   = ($('f-nombre').value || '').trim();
-  var email    = ($('f-email').value || '').trim().toLowerCase();
-  var telefono = ($('f-telefono').value || '').trim();
-  var fechaNac = ($('f-fnac').value || '').trim();
-  var acepto   = $('f-acepto').checked;
+  var nombre    = ($('f-nombre').value || '').trim();
+  var email     = ($('f-email').value || '').trim().toLowerCase();
+  var telefono  = ($('f-telefono').value || '').trim();
+  var fechaNac  = ($('f-fnac').value || '').trim();
+  var instagram = ($('f-instagram').value || '').trim();
+  var acepto    = $('f-acepto').checked;
 
   $('form-err').style.display = 'none';
   if (!nombre)              { fallo('Escribe tu nombre.', 'f-nombre'); return; }
   if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { fallo('Correo inválido.', 'f-email'); return; }
   var digs = telefono.replace(/\D/g, '');
   if (digs.length < 8)      { fallo('Ingresa un teléfono válido.', 'f-telefono'); return; }
+  if (_campos && _campos.fechaNacObligatoria && !fechaNac) {
+    fallo('Ingresa tu fecha de nacimiento.', 'f-fnac'); return;
+  }
   if (!acepto)              { fallo('Debes aceptar para continuar.'); return; }
 
   var btn = $('submit-btn');
+  var textoOriginal = btn.textContent;
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span>Creando tu tarjeta…';
 
@@ -290,6 +347,7 @@ function enviar() {
       email: email,
       telefono: digs,
       fechaNacimiento: fechaNac || null,
+      instagram: instagram || null,
       acepto: true,
     }),
   }).then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
@@ -303,13 +361,14 @@ function enviar() {
       if (code === 'email_invalido')      msg = 'Correo inválido.';
       if (code === 'telefono_invalido')   msg = 'Teléfono inválido.';
       if (code === 'nombre_invalido')     msg = 'Nombre inválido.';
+      if (code === 'fecha_nacimiento_requerida') msg = 'Ingresa tu fecha de nacimiento.';
       if (code === 'debes_aceptar_terminos') msg = 'Debes aceptar los términos.';
       if (code === 'demasiadas_solicitudes') msg = 'Demasiados intentos. Espera un momento.';
       if (code === 'wallet_no_activo' || code === 'wallet_no_publicada') msg = 'Este club aún no está publicado.';
       if (code === 'tenant_no_existe')    msg = 'Este link no existe.';
       fallo(msg);
       btn.disabled = false;
-      btn.innerHTML = 'Recibir mi tarjeta →';
+      btn.textContent = textoOriginal;
     });
 }
 
@@ -317,8 +376,12 @@ function enviar() {
 function mostrarExito(data) {
   var plat = detectPlatform();
   var nombre = (data.cliente && data.cliente.nombre) || 'Cliente';
-  $('ok-titulo').textContent = '¡Bienvenido' + (esFemenino(nombre) ? 'a' : '') + ' al club!';
-  $('ok-sub').textContent = 'Tu tarjeta está lista. Añádela a tu celular:';
+  // Override del dueño para el título — si no editó nada, usamos el
+  // saludo con género (¡Bienvenida! / ¡Bienvenido!) automático.
+  $('ok-titulo').textContent = (_copy && _copy.exitoTitulo)
+    ? _copy.exitoTitulo
+    : ('¡Bienvenid' + (esFemenino(nombre) ? 'a' : 'o') + ' al club!');
+  $('ok-sub').textContent = (_copy && _copy.exitoSub) || 'Tu tarjeta está lista. Añádela a tu celular:';
 
   var html = '';
   if (plat === 'ios') {

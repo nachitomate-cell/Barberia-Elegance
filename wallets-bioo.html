@@ -351,6 +351,67 @@
           </label>
         </div>
 
+        <!-- Sub-panel: Página de registro (/r/{slug}) — copy + campos custom.
+             Colapsable, para que el dueño no vea 6 inputs extra si no le
+             importa. Todo lo que edita acá se refleja en su landing pública. -->
+        <details style="margin-top:20px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fafbfa;">
+          <summary style="font-size:14px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+            <span>🔗 Página de registro (para tus clientes)</span>
+            <span style="font-size:12px;font-weight:600;color:var(--soft);">Personalizar ▾</span>
+          </summary>
+          <p class="pv-note" style="margin:10px 0 14px;">Lo que edites acá aparece en la página donde tus clientes se registran (wallets.bioo.cl/r/tu-local). Deja los defaults si no quieres personalizarlo.</p>
+
+          <label for="f-reg-hero">Título del hero <span style="font-weight:500;color:var(--muted);">(bajo el logo)</span></label>
+          <input type="text" id="f-reg-hero" maxlength="60" autocomplete="off" placeholder="Club de fidelidad">
+
+          <label for="f-reg-intro">Bajada del formulario</label>
+          <input type="text" id="f-reg-intro" maxlength="220" autocomplete="off" placeholder="Regístrate y llevá tu tarjeta de sellos…">
+
+          <label for="f-reg-boton">Texto del botón</label>
+          <input type="text" id="f-reg-boton" maxlength="40" autocomplete="off" placeholder="Recibir mi tarjeta →">
+
+          <label for="f-reg-exito-titulo">Título de la pantalla de éxito</label>
+          <input type="text" id="f-reg-exito-titulo" maxlength="60" autocomplete="off" placeholder="¡Bienvenido al club!">
+
+          <label for="f-reg-exito-sub">Bajada de la pantalla de éxito</label>
+          <input type="text" id="f-reg-exito-sub" maxlength="120" autocomplete="off" placeholder="Tu tarjeta está lista. Añádela a tu celular:">
+
+          <label for="f-reg-terminos">Texto del checkbox de términos</label>
+          <input type="text" id="f-reg-terminos" maxlength="280" autocomplete="off" placeholder="Acepto compartir mis datos…">
+
+          <label style="margin-top:18px;">Campos que le pides al cliente</label>
+          <div class="switch-row" style="margin-top:6px;">
+            <div>
+              <p class="t">Fecha de nacimiento</p>
+              <p class="d">Útil para automatizar saludo/regalo de cumpleaños después.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="f-reg-fnac" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="switch-row">
+            <div>
+              <p class="t">Fecha de nacimiento obligatoria</p>
+              <p class="d">Si está en OFF, el cliente puede saltarla.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="f-reg-fnac-obl">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="switch-row">
+            <div>
+              <p class="t">Instagram</p>
+              <p class="d">Ideal para restaurantes/salones que quieren re-postear al cliente.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="f-reg-instagram">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </details>
+
         <div style="height:20px;"></div>
         <button class="btn" id="save-btn" onclick="guardar()">Guardar y provisionar</button>
         <p class="pv-note" style="margin-top:10px;">Al guardar se crea (o actualiza) la tarjeta en Google Wallet con tu marca. Apple Wallet usa esta misma configuración.</p>
@@ -737,6 +798,18 @@ function llenarForm(cfg, tenantCfg) {
   pintarIconos();
   renderLocs();
   recenterMap();
+  // Sub-panel "Página de registro" — copy + toggles de campos.
+  var rc = cfg.registroCopy || {};
+  $('f-reg-hero').value          = rc.heroTitulo    || '';
+  $('f-reg-intro').value         = rc.formIntro     || '';
+  $('f-reg-boton').value         = rc.botonTexto    || '';
+  $('f-reg-exito-titulo').value  = rc.exitoTitulo   || '';
+  $('f-reg-exito-sub').value     = rc.exitoSub      || '';
+  $('f-reg-terminos').value      = rc.terminosTexto || '';
+  var rcamp = cfg.registroCampos || {};
+  $('f-reg-fnac').checked        = rcamp.pedirFechaNac       !== false;   // default ON
+  $('f-reg-fnac-obl').checked    = rcamp.fechaNacObligatoria === true;    // default OFF
+  $('f-reg-instagram').checked   = rcamp.pedirInstagram      === true;    // default OFF
   // El form ahora refleja lo persistido — nada que guardar.
   limpiarDirty();
 }
@@ -778,6 +851,27 @@ function leerForm() {
     cfg.location = { lat: _locs[0].lat, lng: _locs[0].lng };
     if (Number.isFinite(_locs[0].radius) && _locs[0].radius > 0) cfg.geoRadius = _locs[0].radius;
   }
+  // Sub-panel "Página de registro" — solo campos con contenido, para
+  // no meter strings vacíos que el fallback del template ya cubre.
+  var registroCopy = {};
+  var cpMap = {
+    heroTitulo:    'f-reg-hero',
+    formIntro:     'f-reg-intro',
+    botonTexto:    'f-reg-boton',
+    exitoTitulo:   'f-reg-exito-titulo',
+    exitoSub:      'f-reg-exito-sub',
+    terminosTexto: 'f-reg-terminos',
+  };
+  Object.keys(cpMap).forEach(function (k) {
+    var v = ($(cpMap[k]).value || '').trim();
+    if (v) registroCopy[k] = v;
+  });
+  if (Object.keys(registroCopy).length) cfg.registroCopy = registroCopy;
+  cfg.registroCampos = {
+    pedirFechaNac:       $('f-reg-fnac').checked,
+    fechaNacObligatoria: $('f-reg-fnac-obl').checked,
+    pedirInstagram:      $('f-reg-instagram').checked,
+  };
   return cfg;
 }
 
@@ -918,6 +1012,14 @@ function pvTab(which) {
   $(id).addEventListener('input', function () { renderPreview(); marcarDirty(); });
 });
 $('f-enabled').addEventListener('change', function () { renderPreview(); marcarDirty(); });
+// Sub-panel Página de registro: cualquier edición marca dirty (no requiere
+// renderPreview porque el preview del pase no cambia con esto).
+['f-reg-hero', 'f-reg-intro', 'f-reg-boton', 'f-reg-exito-titulo', 'f-reg-exito-sub', 'f-reg-terminos'].forEach(function (id) {
+  $(id).addEventListener('input', marcarDirty);
+});
+['f-reg-fnac', 'f-reg-fnac-obl', 'f-reg-instagram'].forEach(function (id) {
+  $(id).addEventListener('change', marcarDirty);
+});
 
 // ── Preflight del logo (Google LoyaltyClass exige cuadrado ≥ 660×660) ──
 // Debounce para no bombardear la CDN mientras el dueño escribe la URL.
