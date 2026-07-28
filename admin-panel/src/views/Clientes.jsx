@@ -409,6 +409,112 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
     }
   };
 
+  /* ── Descuento manual de sesión de pack ─────────────────────────
+     El inverso de revertirSesionPack. Existe porque el motor automático solo
+     descuenta cuando la cita trae las marcas correctas, y hay packs de los
+     primeros días del sistema que quedaron descuadrados: sesiones que el
+     cliente ya usó pero el saldo nunca reflejó (caso Aldo Medel en aura).
+     Sin esto, la única forma de ordenarlos era un script contra Firestore.
+
+     `servicioId` permite elegir DE QUÉ servicio se descuenta cuando el pack
+     cubre varios: cada uno lleva su propio contador en `serviciosRestantes`,
+     y descontar del equivocado deja el saldo bien pero la cobertura mal.
+     Con un solo servicio cubierto se resuelve solo. */
+  const descontarSesionPack = async (idx, servicioId = null) => {
+    const p = data.packsActivos?.[idx];
+    if (!p) return;
+    const total = Math.max(1, Number(p.sesionesTotales) || 1);
+    const antes = Number(p.sesionesRestantes || 0);
+    if (antes <= 0) return;
+    const despues = antes - 1;
+
+    const svcNombre = servicioId
+      ? (p.serviciosIncluidosSnapshot || []).find(s => s.id === servicioId)?.nombre || servicioId
+      : null;
+
+    const ok = await confirmDialog({
+      title: '📦 Descontar sesión',
+      message:
+        `Se descontará 1 sesión del pack "${p.nombrePack || 'Pack'}" de ${data.nombre || 'este cliente'}.\n\n` +
+        (svcNombre ? `• Servicio: ${svcNombre}\n` : '') +
+        `• Antes:   ${antes} de ${total}\n` +
+        `• Después: ${despues} de ${total}\n\n` +
+        `Úsalo cuando el cliente ya ocupó la sesión pero el sistema no la descontó.\n` +
+        `Queda registrado en el log (auditoría).\n\n¿Confirmar?`,
+      confirmText: 'Descontar sesión',
+      cancelText:  'Cancelar',
+    });
+    if (!ok) return;
+
+    setPackRevertLoad(idx);
+    try {
+      const userRef = doc(tenantCol('users'), data.uid);
+      const logRef  = doc(tenantCol('packConsumos'));
+      await runTransaction(db, async (tx) => {
+        const uSnap = await tx.get(userRef);
+        if (!uSnap.exists()) throw new Error('El cliente ya no existe');
+        const uData = uSnap.data() || {};
+        const packs = Array.isArray(uData.packsActivos) ? [...uData.packsActivos] : [];
+        if (!packs[idx]) throw new Error('El pack ya no existe');
+
+        const antesTx = Number(packs[idx].sesionesRestantes || 0);
+        if (antesTx <= 0) return;               // race — otro proceso ya descontó
+        const despuesTx = antesTx - 1;
+
+        const actualizado = {
+          ...packs[idx],
+          sesionesRestantes: despuesTx,
+          ultimoAjusteManual: Timestamp.fromMillis(Date.now()),
+        };
+        // Mantener el invariante: si el pack lleva contadores por servicio, la
+        // suma de esos contadores tiene que seguir siendo sesionesRestantes.
+        const sr = packs[idx].serviciosRestantes;
+        if (sr && typeof sr === 'object') {
+          // Sin servicio elegido, descontamos del que tenga más saldo.
+          const objetivo = servicioId && Number(sr[servicioId]) > 0
+            ? servicioId
+            : Object.entries(sr).sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))[0]?.[0];
+          if (objetivo) {
+            actualizado.serviciosRestantes = {
+              ...sr,
+              [objetivo]: Math.max(0, (Number(sr[objetivo]) || 0) - 1),
+            };
+          }
+        }
+        packs[idx] = actualizado;
+
+        tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
+        tx.set(logRef, {
+          tipo:                'ajuste-manual',
+          userId:              data.uid,
+          clienteNombre:       data.nombre || '',
+          clienteTelefonoSuf9: (data.telefono ? String(data.telefono).replace(/\D/g, '').slice(-9) : ''),
+          packId:              packs[idx].packId || '',
+          packNombre:          packs[idx].nombrePack || '',
+          servicioId:          servicioId || '',
+          servicioNombre:      svcNombre || '',
+          sesionesTotales:     Math.max(1, Number(packs[idx].sesionesTotales) || 1),
+          sesionesAntes:       antesTx,
+          sesionesDespues:     despuesTx,
+          fechaVencimiento:    packs[idx].fechaVencimiento || null,
+          citaId:              '',
+          sedeId:              tenantId || '',
+          motivo:              'descuento-manual-desde-ficha-cliente',
+          createdAt:           serverTimestamp(),
+        });
+      });
+    } catch (e) {
+      await confirmDialog({
+        title:       'No se pudo descontar la sesión',
+        message:     e.message || 'Intenta nuevamente.',
+        confirmText: 'OK',
+        cancelText:  '',
+      });
+    } finally {
+      setPackRevertLoad(null);
+    }
+  };
+
   /* ── Vender pack sin agendar (mejora #4) ─────────────────────
      El cliente entra al local y compra un pack. No hay cita hoy.
      A diferencia de la activación por cita, TODAS las sesiones
@@ -942,6 +1048,57 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
                       </button>
                     )}
                   </div>
+
+                  {/* Descuento manual — para cuadrar packs que el motor no
+                      descontó (cita sin las marcas, packs de los primeros días
+                      del sistema). Si el pack cubre varios servicios se elige
+                      de cuál sale la sesión: cada uno lleva su contador. */}
+                  {rest > 0 && (() => {
+                    const sr = p.serviciosRestantes && typeof p.serviciosRestantes === 'object' ? p.serviciosRestantes : null;
+                    const opciones = sr
+                      ? Object.entries(sr)
+                          .filter(([, n]) => (Number(n) || 0) > 0)
+                          .map(([sid, n]) => ({
+                            sid,
+                            n: Number(n) || 0,
+                            nombre: (p.serviciosIncluidosSnapshot || []).find(s => s.id === sid)?.nombre || sid,
+                          }))
+                      : [];
+                    const cargando = packRevertLoad === idx;
+
+                    if (opciones.length > 1) {
+                      return (
+                        <div className="pt-1 border-t border-white/5">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                            Descontar una sesión de:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {opciones.map(o => (
+                              <button
+                                key={o.sid}
+                                onClick={() => descontarSesionPack(idx, o.sid)}
+                                disabled={cargando}
+                                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-slate-300 bg-slate-800/60 border border-slate-700/60 hover:border-slate-500 hover:text-primary disabled:opacity-40 transition-colors">
+                                <Minus size={9} />
+                                {o.nombre} <span className="opacity-60">({o.n})</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="pt-1 border-t border-white/5 flex justify-end">
+                        <button
+                          onClick={() => descontarSesionPack(idx, opciones[0]?.sid || null)}
+                          disabled={cargando}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-primary disabled:opacity-40 transition-colors">
+                          <Minus size={10} />
+                          {cargando ? 'Descontando…' : 'Descontar 1 sesión'}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
