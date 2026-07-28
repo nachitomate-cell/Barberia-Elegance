@@ -213,12 +213,14 @@ exports.walletGenerarPase = onCall(
     const { filled, target, hitos } = core.stampState(disp, premios);
     const rango = core.rangoNombre(hist, rangosCfg);
     const accountName = u.nombre || u.displayName || 'Cliente';
-    // Modo cashback: pase muestra saldo $ en vez de sellos. cashbackPct
-    // se lee de cfg.cashback (default 5%). Compatible con modo sellos:
-    // buildObject decide qué renderizar según cfg.modo.
-    const modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+    // Modo: sellos (default) | cashback | prepago. buildObject renderiza
+    // según el modo — sellos muestra la strip de estampas, los otros dos
+    // muestran saldo $. Config específica por modo se lee acá.
+    const modo = (cfg.modo === 'cashback' || cfg.modo === 'prepago') ? cfg.modo : 'sellos';
     const cashbackDisponible = Number(u.cashbackDisponible) || 0;
     const cashbackPct = Number(cfg.cashback && cfg.cashback.porcentaje) || 5;
+    const saldoPrepago = Number(u.saldoPrepago) || 0;
+    const prepagoBonusPct = Number(cfg.prepago && cfg.prepago.bonusRecarga) || 0;
 
     try {
       const key = saKey();
@@ -227,7 +229,7 @@ exports.walletGenerarPase = onCall(
 
       const obj = core.buildObject(tenantId, uid, {
         accountName, filled, target, hitos, premios, rango, accent, bg, icon,
-        modo, cashbackDisponible, cashbackPct,
+        modo, cashbackDisponible, cashbackPct, saldoPrepago, prepagoBonusPct,
       });
       await core.upsertObject(key, obj);
 
@@ -266,10 +268,12 @@ async function syncPase(tenantId, uid, before, after) {
   const dispDesp  = Number(after?.sellosDisponibles  ?? after?.stamps  ?? 0);
   const histAntes = Number(before?.sellosHistoricos ?? 0);
   const histDesp  = Number(after?.sellosHistoricos  ?? 0);
-  // Modo cashback: además del cambio de sellos, watch el saldo cashback.
+  // Modos transaccionales: watch saldo cashback + prepago además de sellos.
   const cbAntes = Number(before?.cashbackDisponible ?? 0);
   const cbDesp  = Number(after?.cashbackDisponible  ?? 0);
-  if (dispAntes === dispDesp && histAntes === histDesp && cbAntes === cbDesp) return; // nada relevante cambió
+  const spAntes = Number(before?.saldoPrepago ?? 0);
+  const spDesp  = Number(after?.saldoPrepago  ?? 0);
+  if (dispAntes === dispDesp && histAntes === histDesp && cbAntes === cbDesp && spAntes === spDesp) return;
 
   if (objectId) {
     try {
@@ -280,28 +284,35 @@ async function syncPase(tenantId, uid, before, after) {
       ]);
       const accent = cfg.accent || '#c9a84c';
       const bg = cfg.bg; const icon = cfg.stampIcon;
-      const modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+      const modo = (cfg.modo === 'cashback' || cfg.modo === 'prepago') ? cfg.modo : 'sellos';
       const cashbackPct = Number(cfg.cashback && cfg.cashback.porcentaje) || 5;
+      const prepagoBonusPct = Number(cfg.prepago && cfg.prepago.bonusRecarga) || 0;
       const { filled, target, hitos } = core.stampState(dispDesp, premios);
       const rango = core.rangoNombre(histDesp, rangosCfg);
 
-      // Módulos: rango + recompensas por hito (si hay premios cargados) o
-      // explicación cashback según el modo del tenant.
+      // Módulos: rango + explicación según modo (o recompensas en sellos).
       const textModules = [{ id: 'rango', header: 'Rango', body: rango }];
       if (modo === 'cashback') {
         textModules.push({ id: 'cashback', header: '¿Cómo funciona?',
           body: `Cada compra te devuelve ${cashbackPct}% en saldo Wallo. Úsalo cuando quieras — te lo descontamos al pagar.` });
+      } else if (modo === 'prepago') {
+        const bonusTxt = prepagoBonusPct > 0
+          ? `Recarga saldo en el local y descuéntalo cuando pagues. Bonus ${prepagoBonusPct}% en cada recarga.`
+          : `Recarga saldo en el local y úsalo cuando pagues. Sin fecha de vencimiento visible al cliente.`;
+        textModules.push({ id: 'prepago', header: '¿Cómo funciona?', body: bonusTxt });
       } else {
         const recompensasBody = core.recompensasListText(premios);
         if (recompensasBody) textModules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
       }
 
-      // Balance del pase depende del modo. En cashback la strip queda vacía
-      // (no dibujamos sellos porque no hay concepto de casilla).
+      // Balance del pase según modo — cashback/prepago muestran saldo $;
+      // sellos mantiene "N/M" + strip.
       const balance = modo === 'cashback'
         ? core.formatCLP(cbDesp)
-        : `${filled} / ${target}`;
-      const label = modo === 'cashback' ? 'Saldo' : 'Sellos';
+        : (modo === 'prepago'
+            ? core.formatCLP(spDesp)
+            : `${filled} / ${target}`);
+      const label = (modo === 'cashback' || modo === 'prepago') ? 'Saldo' : 'Sellos';
       const patch = {
         loyaltyPoints: { label, balance: { string: balance } },
         textModulesData: textModules,
@@ -314,9 +325,9 @@ async function syncPase(tenantId, uid, before, after) {
         // Backfill del tap-away Wallo en pases ya emitidos.
         linksModuleData: { uris: [core.WALLO_LINK] },
       };
-      // Sólo modo sellos actualiza la strip. En cashback la mantenemos
-      // sin cambios (o si la clase la tenía, respeta la del build inicial).
-      if (modo !== 'cashback') {
+      // Sólo modo sellos actualiza la strip. Los modos transaccionales
+      // (cashback/prepago) mantienen la hero como está (o inexistente).
+      if (modo === 'sellos') {
         patch.heroImage = { sourceUri: { uri: core.stampImageUrl({ filled, target, accent, bg, icon, hitos }) } };
       }
       await core.patchObject(key, objectId, patch);

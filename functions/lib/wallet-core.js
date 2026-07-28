@@ -152,10 +152,12 @@ function formatCLP(n) {
   return '$' + v.toLocaleString('es-CL');
 }
 
-// modo: 'sellos' (default) | 'cashback'.
-// Si cashback: cashbackDisponible + porcentaje se leen del contexto y
-// reemplazan el balance del pase. La strip (heroImage) también cambia —
-// no dibujamos sellos porque no hay concepto de "casillas" en cashback.
+// modo: 'sellos' (default) | 'cashback' | 'prepago'.
+// - sellos:   balance "N/M" + strip de estampas (heroImage renderer).
+// - cashback: balance "$X" (cashbackDisponible), sin strip. Módulo "¿Cómo funciona?"
+// - prepago:  balance "$X" (saldoPrepago), sin strip. Módulo "¿Cómo funciona?"
+//   Coexisten: el dueño elige uno por tenant. Todo lo demás (QR, tap-away,
+//   sync) es idéntico entre modos.
 function buildObject(tenantId, uid, opts) {
   const {
     accountName, rango, accent, bg, icon, hitos, premios,
@@ -163,8 +165,11 @@ function buildObject(tenantId, uid, opts) {
     filled, target,
     // Cashback
     modo, cashbackDisponible, cashbackPct,
+    // Prepago
+    saldoPrepago, prepagoBonusPct,
   } = opts || {};
   const esCashback = modo === 'cashback';
+  const esPrepago  = modo === 'prepago';
 
   const obj = {
     id: objectIdFor(tenantId, uid),
@@ -172,21 +177,18 @@ function buildObject(tenantId, uid, opts) {
     state: 'ACTIVE',
     accountId: String(uid),
     accountName: accountName || 'Cliente',
-    // QR escaneable por el staff (wallets.bioo.cl/staff).
     barcode: {
       type: 'QR_CODE',
       value: staffBarcodeValue(tenantId, uid),
       alternateText: String(uid).slice(0, 8),
     },
-    // Tap-away Wallo (override sobre la clase).
     linksModuleData: { uris: [WALLO_LINK] },
   };
 
   if (esCashback) {
-    // Cashback: la vista principal es el saldo en pesos.
     obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(cashbackDisponible) } };
-    // Heroic image: si el tenant subió banner (bg) usamos color plano; sin
-    // strip de sellos. Google renderiza el color de fondo de la clase igual.
+  } else if (esPrepago) {
+    obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(saldoPrepago) } };
   } else {
     // Sellos (comportamiento default histórico).
     obj.loyaltyPoints = { label: 'Sellos', balance: { string: `${filled} / ${target}` } };
@@ -202,8 +204,16 @@ function buildObject(tenantId, uid, opts) {
       body: `Cada compra te devuelve ${cashbackPct}% en saldo Wallo. Úsalo cuando quieras — te lo descontamos al pagar.`,
     });
   }
+  if (esPrepago) {
+    const bonusTxt = prepagoBonusPct > 0
+      ? `Recarga saldo en el local y descuéntalo cuando pagues. Bonus ${prepagoBonusPct}% en cada recarga.`
+      : `Recarga saldo en el local y úsalo cuando pagues. Sin fecha de vencimiento visible al cliente.`;
+    modules.push({ id: 'prepago', header: '¿Cómo funciona?', body: bonusTxt });
+  }
   const recompensasBody = recompensasListText(premios);
-  if (!esCashback && recompensasBody) modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+  if (!esCashback && !esPrepago && recompensasBody) {
+    modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+  }
   if (modules.length) obj.textModulesData = modules;
   return obj;
 }

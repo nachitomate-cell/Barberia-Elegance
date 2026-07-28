@@ -1652,6 +1652,12 @@ exports.walletPushMasivo        = require('./wallet-push').walletPushMasivo;
 // la compra y el sistema abona % del cfg como saldo $. Ver wallet-cashback.js.
 exports.walletSumarCashbackStaff = require('./wallet-cashback').walletSumarCashbackStaff;
 
+// Saldo prepago (billetera transaccional): el cliente carga saldo
+// adelantado + bonus opcional, staff descuenta al pagar. Ver wallet-prepago.js.
+const walletPrepago = require('./wallet-prepago');
+exports.walletCargarSaldoStaff    = walletPrepago.walletCargarSaldoStaff;
+exports.walletDescontarSaldoStaff = walletPrepago.walletDescontarSaldoStaff;
+
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.

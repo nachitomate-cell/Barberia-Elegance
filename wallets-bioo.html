@@ -754,7 +754,7 @@
           <div class="section">
             <h2>Modo del programa</h2>
             <p class="section-sub">Cómo tu cliente acumula recompensas. Puedes cambiarlo cuando quieras — los datos existentes se conservan.</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;">
               <label class="mode-card" for="mode-sellos" style="display:block;padding:16px;border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s var(--ease);">
                 <input type="radio" name="f-modo" id="mode-sellos" value="sellos" checked style="display:none;" onchange="updateModoUI()">
                 <div style="font-size:22px;margin-bottom:6px;">🎫</div>
@@ -766,6 +766,12 @@
                 <div style="font-size:22px;margin-bottom:6px;">💵</div>
                 <div style="font-size:14px;font-weight:600;color:var(--ink);">Cashback</div>
                 <div style="font-size:12.5px;color:var(--soft);margin-top:2px;line-height:1.4;">% de la compra vuelve como saldo $. Ideal gastro premium, spa, gym.</div>
+              </label>
+              <label class="mode-card" for="mode-prepago" style="display:block;padding:16px;border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all 0.15s var(--ease);">
+                <input type="radio" name="f-modo" id="mode-prepago" value="prepago" style="display:none;" onchange="updateModoUI()">
+                <div style="font-size:22px;margin-bottom:6px;">💳</div>
+                <div style="font-size:14px;font-weight:600;color:var(--ink);">Prepago</div>
+                <div style="font-size:12.5px;color:var(--soft);margin-top:2px;line-height:1.4;">Cliente recarga saldo, va gastando. Cash flow adelantado. Ideal café diario, gym, wash.</div>
               </label>
             </div>
 
@@ -781,6 +787,22 @@
                   <label for="f-cashback-min" style="margin-top:0;">Monto mínimo de compra</label>
                   <input type="number" id="f-cashback-min" min="0" step="500" value="0">
                   <p class="field-hint">Compras menores a este monto no acumulan. Deja en 0 para siempre acumular.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Config prepago (solo visible en modo prepago) -->
+            <div id="prepago-config" style="margin-top:16px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--hairline);display:none;">
+              <div class="row2">
+                <div>
+                  <label for="f-prepago-bonus" style="margin-top:0;">Bonus de recarga <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+                  <input type="number" id="f-prepago-bonus" min="0" max="100" step="1" value="0">
+                  <p class="field-hint">Ej. 10% = cliente recarga $20.000, recibe $22.000. Gancho fuerte.</p>
+                </div>
+                <div>
+                  <label for="f-prepago-min" style="margin-top:0;">Recarga mínima</label>
+                  <input type="number" id="f-prepago-min" min="0" step="1000" value="0">
+                  <p class="field-hint">Monto piso por recarga. Deja en 0 para aceptar cualquier monto.</p>
                 </div>
               </div>
             </div>
@@ -1487,13 +1509,16 @@ function llenarForm(cfg, tenantCfg) {
   $('f-bannerUrl').value = cfg.bannerUrl || '';
   pintarThumb('banner', cfg.bannerUrl || '');
   $('up-banner-rm').style.display = cfg.bannerUrl ? '' : 'none';
-  // ── Modo del programa (sellos vs cashback) ──
-  var modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+  // ── Modo del programa (sellos / cashback / prepago) ──
+  var modo = (cfg.modo === 'cashback' || cfg.modo === 'prepago') ? cfg.modo : 'sellos';
   var radios = document.getElementsByName('f-modo');
   for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === modo);
   var cbCfg = cfg.cashback || {};
   $('f-cashback-pct').value = Number(cbCfg.porcentaje) || 5;
   $('f-cashback-min').value = Number(cbCfg.minCompra) || 0;
+  var ppCfg = cfg.prepago || {};
+  $('f-prepago-bonus').value = Number(ppCfg.bonusRecarga) || 0;
+  $('f-prepago-min').value   = Number(ppCfg.minRecarga)   || 0;
   updateModoUI();
 
   // ── Tab Reglas ──
@@ -1596,10 +1621,14 @@ function leerForm() {
   var modoSel = 'sellos';
   var radios = document.getElementsByName('f-modo');
   for (var i = 0; i < radios.length; i++) if (radios[i].checked) modoSel = radios[i].value;
-  cfg.modo = modoSel === 'cashback' ? 'cashback' : 'sellos';
+  cfg.modo = (modoSel === 'cashback' || modoSel === 'prepago') ? modoSel : 'sellos';
   cfg.cashback = {
     porcentaje: Math.max(0.5, Math.min(50, Number($('f-cashback-pct').value) || 5)),
     minCompra:  Math.max(0, Number($('f-cashback-min').value) || 0),
+  };
+  cfg.prepago = {
+    bonusRecarga: Math.max(0, Math.min(100, Number($('f-prepago-bonus').value) || 0)),
+    minRecarga:   Math.max(0, Number($('f-prepago-min').value) || 0),
   };
   // ── Reglas del club ──
   var reglas = {};
@@ -1622,12 +1651,13 @@ function leerForm() {
   return cfg;
 }
 
-// Alterna visibilidad del bloque de config cashback según radio activo.
+// Alterna visibilidad de los bloques de config según radio activo.
 function updateModoUI() {
   var modo = 'sellos';
   var radios = document.getElementsByName('f-modo');
   for (var i = 0; i < radios.length; i++) if (radios[i].checked) modo = radios[i].value;
   document.getElementById('cashback-config').style.display = (modo === 'cashback') ? '' : 'none';
+  document.getElementById('prepago-config').style.display  = (modo === 'prepago')  ? '' : 'none';
 }
 window.updateModoUI = updateModoUI;
 
@@ -2236,7 +2266,7 @@ $('f-enabled').addEventListener('change', function () { renderPreview(); marcarD
 document.getElementsByName('f-modo').forEach(function (r) {
   r.addEventListener('change', function () { marcarDirty(); updateModoUI(); });
 });
-['f-cashback-pct', 'f-cashback-min'].forEach(function (id) {
+['f-cashback-pct', 'f-cashback-min', 'f-prepago-bonus', 'f-prepago-min'].forEach(function (id) {
   $(id).addEventListener('input', marcarDirty);
 });
 

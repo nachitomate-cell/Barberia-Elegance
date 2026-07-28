@@ -197,10 +197,11 @@ exports.walletTenantMeta = onRequest(
 
       // Cache 60s en CDN — el branding cambia poco y ahorra hits en Firestore.
       res.set('Cache-Control', 'public, max-age=60, s-maxage=60');
-      // Modo del programa (sellos default | cashback). Necesario para la
-      // staff app (UI del scanner) y para la landing pública (copy).
-      const modo = cfg.modo === 'cashback' ? 'cashback' : 'sellos';
+      // Modo del programa (sellos default | cashback | prepago). Necesario
+      // para la staff app (UI del scanner) y la landing pública (copy).
+      const modo = (cfg.modo === 'cashback' || cfg.modo === 'prepago') ? cfg.modo : 'sellos';
       const cashbackCfg = cfg.cashback || {};
+      const prepagoCfg  = cfg.prepago  || {};
 
       return res.status(200).json({
         ok: true,
@@ -219,6 +220,10 @@ exports.walletTenantMeta = onRequest(
         cashback: {
           porcentaje: Math.max(0.5, Math.min(50, Number(cashbackCfg.porcentaje) || 5)),
           minCompra:  Math.max(0, Number(cashbackCfg.minCompra) || 0),
+        },
+        prepago: {
+          bonusRecarga: Math.max(0, Math.min(100, Number(prepagoCfg.bonusRecarga) || 0)),
+          minRecarga:   Math.max(0, Number(prepagoCfg.minRecarga) || 0),
         },
         // Flags necesarios para saber si la landing debe permitir registro.
         walletActivo: b.walletActivo === true,

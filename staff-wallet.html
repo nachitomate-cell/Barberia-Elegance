@@ -180,16 +180,35 @@
   </div>
 
   <!-- Resultado OK -->
-  <!-- Modo cashback: pedimos monto de la compra antes de acreditar. -->
+
+
+
+  <!-- Elegir acción (solo modo prepago): cargar o descontar -->
+  <div id="view-actions" class="hidden" style="padding-top:5vh;">
+    <div class="result-card" style="border-color:var(--soft);text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08);">
+      <div style="font-size:36px;margin-bottom:6px;">💳</div>
+      <h2>Cliente identificado</h2>
+      <div class="who" id="actions-nombre">—</div>
+      <div style="margin:14px 0 4px;padding:12px;background:#fafbfa;border-radius:12px;">
+        <div style="font-size:11.5px;color:var(--soft);font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Saldo actual</div>
+        <div id="actions-saldo" style="font-size:26px;font-weight:800;letter-spacing:-.8px;margin-top:2px;">$0</div>
+      </div>
+      <button class="btn" id="btn-cargar" onclick="verMontoAccion('cargar')" style="margin-top:14px;">💰 Cargar saldo</button>
+      <button class="btn" id="btn-descontar" onclick="verMontoAccion('descontar')" style="margin-top:8px;background:#3f5230;">💳 Descontar del saldo</button>
+      <button class="btn-ghost" onclick="volverAScan()" style="margin-top:8px;">← Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Ingresar monto (cashback / cargar / descontar) -->
   <div id="view-monto" class="hidden" style="padding-top:5vh;">
     <div class="result-card" style="border-color:var(--soft);text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.08);">
-      <div style="text-align:center;font-size:36px;margin-bottom:6px;">💵</div>
-      <h2 style="text-align:center;">Cliente identificado</h2>
+      <div style="text-align:center;font-size:36px;margin-bottom:6px;" id="monto-emoji">💵</div>
+      <h2 style="text-align:center;" id="monto-titulo">Ingresa el monto</h2>
       <div class="who" id="monto-nombre" style="text-align:center;">—</div>
-      <label for="monto-input" style="display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:18px 0 6px;">Monto de la compra</label>
+      <label for="monto-input" id="monto-label" style="display:block;font-size:12.5px;font-weight:700;color:var(--soft);margin:18px 0 6px;">Monto de la compra</label>
       <input type="number" id="monto-input" min="1" step="100" placeholder="$0" style="width:100%;height:56px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:22px;font-weight:700;text-align:center;letter-spacing:-.5px;">
-      <p id="monto-hint" style="font-size:12.5px;color:var(--soft);text-align:center;margin-top:8px;">Ingresa el total. Sistema abona el % configurado.</p>
-      <button class="btn" id="monto-btn" onclick="confirmarCashback()" style="margin-top:16px;">Acreditar cashback</button>
+      <p id="monto-hint" style="font-size:12.5px;color:var(--soft);text-align:center;margin-top:8px;">—</p>
+      <button class="btn" id="monto-btn" onclick="confirmarMonto()" style="margin-top:16px;">Confirmar</button>
       <button class="btn-ghost" onclick="volverAScan()" style="margin-top:8px;">Cancelar</button>
     </div>
   </div>
@@ -228,8 +247,10 @@
 var SUPERADMINS = ['ignaciiio.mate@gmail.com'];
 var META_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/walletTenantMeta';
 var _tid = null;
-var _tenantMeta = null;  // {modo, cashback:{porcentaje, minCompra}, ...} — carga al elegir tenant
-var _pendingUid = null;  // uid escaneado esperando monto (modo cashback)
+var _tenantMeta = null;  // {modo, cashback, prepago, ...} — carga al elegir tenant
+var _pendingUid = null;  // uid escaneado esperando monto
+var _pendingAccion = null; // 'cashback' | 'cargar' | 'descontar'
+var _pendingSaldo = 0;    // para descontar: saldo previo del cliente (fetch en actions view)
 var _isSuper = false;
 var _stream = null;
 var _detector = null;
@@ -240,7 +261,7 @@ var _lastValueTs = 0;
 
 function $(id) { return document.getElementById(id); }
 function show(id) {
-  ['view-loading', 'view-login', 'view-denied', 'view-scan', 'view-monto', 'view-result', 'view-error']
+  ['view-loading', 'view-login', 'view-denied', 'view-scan', 'view-actions', 'view-monto', 'view-result', 'view-error']
     .forEach(function (v) { $(v).classList.toggle('hidden', v !== id); });
 }
 function toast(msg, esError) {
@@ -440,65 +461,158 @@ function procesarQR(raw) {
     mostrarError('Ese código no corresponde a una tarjeta bioo válida.');
     return;
   }
-  // Bifurca según modo del tenant: sellos → suma directo; cashback →
-  // pide monto de la compra primero.
+  // Bifurca según modo del tenant.
   var modo = (_tenantMeta && _tenantMeta.modo) || 'sellos';
-  if (modo === 'cashback') { pedirMonto(uid); return; }
+  if (modo === 'cashback') { pedirMontoCashback(uid); return; }
+  if (modo === 'prepago')  { verAcciones(uid); return; }
   sumarSello(uid);
 }
 
-// ── Modo cashback: pantalla intermedia pidiendo monto ──────────────
-function pedirMonto(uid) {
+// ── Modo cashback: pantalla directa pidiendo monto de la compra ────
+function pedirMontoCashback(uid) {
   _pendingUid = uid;
+  _pendingAccion = 'cashback';
   var pct = (_tenantMeta && _tenantMeta.cashback && _tenantMeta.cashback.porcentaje) || 5;
   var min = (_tenantMeta && _tenantMeta.cashback && _tenantMeta.cashback.minCompra) || 0;
-  $('monto-nombre').textContent = 'Ingresa el monto de la compra';
+  $('monto-emoji').textContent = '💵';
+  $('monto-titulo').textContent = 'Monto de la compra';
+  $('monto-nombre').textContent = 'Sistema abona el % configurado';
+  $('monto-label').textContent = 'Monto de la compra';
   $('monto-input').value = '';
   $('monto-hint').innerHTML = 'Cashback ' + pct + '%' + (min > 0 ? ' · mínimo $' + min.toLocaleString('es-CL') : '');
+  $('monto-btn').textContent = 'Acreditar cashback';
   detenerCamara();
   show('view-monto');
   setTimeout(function () { $('monto-input').focus(); }, 100);
 }
-function confirmarCashback() {
+
+// ── Modo prepago: pantalla intermedia con 2 acciones + saldo ───────
+async function verAcciones(uid) {
+  _pendingUid = uid;
+  detenerCamara();
+  $('actions-nombre').textContent = 'Cargando…';
+  $('actions-saldo').textContent = '$0';
+  show('view-actions');
+  // Lee el saldo actual del user para mostrarlo antes de decidir acción.
+  try {
+    var snap = await db.collection('tenants').doc(_tid).collection('users').doc(uid).get();
+    var d = snap.exists ? snap.data() : {};
+    var saldo = Number(d.saldoPrepago) || 0;
+    _pendingSaldo = saldo;
+    $('actions-nombre').textContent = d.nombre || 'Cliente';
+    $('actions-saldo').textContent = '$' + saldo.toLocaleString('es-CL');
+    $('btn-descontar').disabled = saldo <= 0;
+  } catch (_) {
+    $('actions-nombre').textContent = 'Cliente';
+  }
+}
+
+function verMontoAccion(accion) {
+  _pendingAccion = accion; // 'cargar' | 'descontar'
+  var pp = (_tenantMeta && _tenantMeta.prepago) || {};
+  var bonus = Number(pp.bonusRecarga) || 0;
+  var min = Number(pp.minRecarga) || 0;
+  var esCargar = accion === 'cargar';
+  $('monto-emoji').textContent = esCargar ? '💰' : '💳';
+  $('monto-titulo').textContent = esCargar ? 'Cargar saldo' : 'Descontar del saldo';
+  $('monto-nombre').textContent = esCargar ? 'Ingresa el monto que pagó' : 'Ingresa el monto a descontar';
+  $('monto-label').textContent = esCargar ? 'Monto recargado' : 'Monto a cobrar';
+  $('monto-input').value = '';
+  if (esCargar) {
+    var partes = [];
+    if (bonus > 0) partes.push('Bonus ' + bonus + '% (paga $10.000 → recibe $' + (10000 + Math.round(10000 * bonus / 100)).toLocaleString('es-CL') + ')');
+    if (min > 0)  partes.push('Mínimo $' + min.toLocaleString('es-CL'));
+    $('monto-hint').textContent = partes.join(' · ') || 'Sin bonus configurado.';
+    $('monto-btn').textContent = 'Cargar saldo';
+  } else {
+    $('monto-hint').textContent = 'Saldo actual: $' + (_pendingSaldo || 0).toLocaleString('es-CL');
+    $('monto-btn').textContent = 'Descontar del saldo';
+  }
+  show('view-monto');
+  setTimeout(function () { $('monto-input').focus(); }, 100);
+}
+
+// Handler único: dispatch por _pendingAccion.
+function confirmarMonto() {
   var monto = parseInt($('monto-input').value, 10) || 0;
   if (monto <= 0) { toast('Ingresa un monto válido.', true); return; }
   if (!_pendingUid) { volverAScan(); return; }
-  _busy = true;
-  var btn = $('monto-btn');
-  var txt = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Acreditando…';
-  var fn = firebase.app().functions('us-central1').httpsCallable('walletSumarCashbackStaff');
-  fn({ tenantId: _tid, uid: _pendingUid, montoCompra: monto })
-    .then(function (r) {
-      var d = r.data || {};
-      mostrarResultadoCashback(d, monto);
-    })
-    .catch(function (e) {
-      var msg = 'No se pudo acreditar el cashback.';
-      if (e && e.code === 'permission-denied') msg = 'No tienes permisos.';
-      else if (e && e.code === 'not-found') msg = 'Este cliente no existe en el local.';
-      else if (e && e.code === 'failed-precondition') msg = (e.message || msg);
-      mostrarError(msg);
-    })
-    .finally(function () { _busy = false; btn.disabled = false; btn.textContent = txt; });
+  if (_pendingAccion === 'cashback')  return llamarCashback(monto);
+  if (_pendingAccion === 'cargar')    return llamarCargar(monto);
+  if (_pendingAccion === 'descontar') return llamarDescontar(monto);
 }
-function mostrarResultadoCashback(d, montoOriginal) {
+
+function _btnBusy(txt) {
+  var btn = $('monto-btn');
+  var t = btn.textContent;
+  btn.disabled = true; btn.textContent = txt;
+  return function () { btn.disabled = false; btn.textContent = t; };
+}
+function _catchOp(defaultMsg) {
+  return function (e) {
+    var msg = defaultMsg;
+    if (e && e.code === 'permission-denied') msg = 'No tienes permisos.';
+    else if (e && e.code === 'not-found') msg = 'Este cliente no existe en el local.';
+    else if (e && e.code === 'failed-precondition') msg = (e.message || msg);
+    mostrarError(msg);
+  };
+}
+
+function llamarCashback(monto) {
+  var restore = _btnBusy('Acreditando…');
+  firebase.app().functions('us-central1').httpsCallable('walletSumarCashbackStaff')
+    ({ tenantId: _tid, uid: _pendingUid, montoCompra: monto })
+    .then(function (r) { mostrarResultadoTxn(r.data || {}, 'cashback', monto); })
+    .catch(_catchOp('No se pudo acreditar el cashback.'))
+    .finally(restore);
+}
+function llamarCargar(monto) {
+  var restore = _btnBusy('Cargando…');
+  firebase.app().functions('us-central1').httpsCallable('walletCargarSaldoStaff')
+    ({ tenantId: _tid, uid: _pendingUid, montoRecarga: monto })
+    .then(function (r) { mostrarResultadoTxn(r.data || {}, 'cargar', monto); })
+    .catch(_catchOp('No se pudo cargar el saldo.'))
+    .finally(restore);
+}
+function llamarDescontar(monto) {
+  var restore = _btnBusy('Descontando…');
+  firebase.app().functions('us-central1').httpsCallable('walletDescontarSaldoStaff')
+    ({ tenantId: _tid, uid: _pendingUid, montoConsumo: monto })
+    .then(function (r) { mostrarResultadoTxn(r.data || {}, 'descontar', monto); })
+    .catch(_catchOp('No se pudo descontar el saldo.'))
+    .finally(restore);
+}
+
+// Pantalla de éxito unificada para las 3 acciones transaccionales.
+function mostrarResultadoTxn(d, accion, montoOriginal) {
   var nombre = (d.cliente && d.cliente.nombre) || 'Cliente';
-  var abonado = Number(d.montoAcreditado) || 0;
   var saldo = Number(d.saldo) || 0;
-  var pct = d.porcentajeAplicado || '';
   var dup = d.duplicado === true;
+  var conf = {
+    cashback:  { emoji: '💵', titulo: '¡Cashback acreditado!', badge: '+ $' + (Number(d.montoAcreditado) || 0).toLocaleString('es-CL')
+                  + (d.porcentajeAplicado ? ' · ' + d.porcentajeAplicado + '% de $' + montoOriginal.toLocaleString('es-CL') : ''),
+                  saldoLbl: 'Saldo disponible' },
+    cargar:    { emoji: '💰', titulo: '¡Saldo cargado!',
+                  badge: '+ $' + (Number(d.montoAbonado) || 0).toLocaleString('es-CL')
+                    + (d.bonus > 0 ? ' (incluye bonus $' + Number(d.bonus).toLocaleString('es-CL') + ')' : ''),
+                  saldoLbl: 'Nuevo saldo' },
+    descontar: { emoji: '💳', titulo: 'Cobrado con saldo',
+                  badge: '− $' + (Number(d.montoDescontado) || 0).toLocaleString('es-CL'),
+                  saldoLbl: 'Saldo restante' },
+  }[accion];
+
   var html = ''
-    + '<div class="icon">' + (dup ? '⏱️' : '💵') + '</div>'
-    + '<h2>' + (dup ? 'Ya registrado' : '¡Cashback acreditado!') + '</h2>'
+    + '<div class="icon">' + (dup ? '⏱️' : conf.emoji) + '</div>'
+    + '<h2>' + (dup ? 'Ya registrado' : conf.titulo) + '</h2>'
     + '<div class="who">' + escapar(nombre) + '</div>'
     + (dup
-        ? '<p style="font-size:13px;color:var(--soft);margin-bottom:14px;">Este cliente ya recibió cashback hace unos segundos. Espera un momento antes de reintentar.</p>'
-        : '<div class="badge">+ $' + abonado.toLocaleString('es-CL') + (pct ? ' · ' + pct + '% de $' + montoOriginal.toLocaleString('es-CL') : '') + '</div>')
+        ? '<p style="font-size:13px;color:var(--soft);margin-bottom:14px;">Esta operación ya se registró hace unos segundos.</p>'
+        : '<div class="badge">' + conf.badge + '</div>')
     + '<div class="saldo">$' + saldo.toLocaleString('es-CL') + '</div>'
-    + '<div class="saldo-lbl">Saldo disponible</div>';
+    + '<div class="saldo-lbl">' + conf.saldoLbl + '</div>';
   $('result-card').innerHTML = html;
   _pendingUid = null;
+  _pendingAccion = null;
   show('view-result');
 }
 
@@ -552,10 +666,12 @@ function mostrarError(msg) {
 function volverAScan() {
   _lastValue = null; _lastValueTs = 0;
   _pendingUid = null;
+  _pendingAccion = null;
   show('view-scan');
   arrancarCamara();
 }
-window.confirmarCashback = confirmarCashback;
+window.verMontoAccion = verMontoAccion;
+window.confirmarMonto = confirmarMonto;
 function escapar(s) {
   return String(s || '').replace(/[<>&"']/g, function (c) {
     return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' })[c];
