@@ -2882,24 +2882,47 @@ function SinHoraTray({ citas, onOpen }) {
    deducir a qué hora empieza y cuánto dura midiéndolo contra el eje — que es
    exactamente donde se equivocó el cliente que creyó tener una hora libre.
 
+   REGLA: "libre" significa que ahí NO hay nada dibujado. Cuenta como
+   ocupado todo lo que pinta un bloque en la columna:
+
+     · citas en CUALQUIER estado — incluidas Cancelada y NoAsistio. Su hora
+       podrá estar disponible para re-agendar, pero la tarjeta sigue en
+       pantalla y rotular "libre" encima de ella ensucia la agenda.
+     · bloqueos de agenda (todo_el_dia deja la columna entera sin huecos).
+     · colación y descansos del horario semanal.
+
    · Fusiona los rangos ocupados antes de calcular: con citas solapadas
      (sobrecupo, reservas en grupo) la resta directa inventaría huecos.
-   · Ignora las canceladas: ese tiempo SÍ está libre.
-   · Solo entre citas. Antes de la primera y después de la última no hace
+   · Solo ENTRE bloques. Antes del primero y después del último no hace
      falta: ahí el hueco no está acotado por nada y la columna ya se lee vacía.
    · pointer-events-none — el clic sigue llegando al SlotRow de abajo, así que
      crear una cita en el hueco funciona igual que siempre.                  */
-function HuecosLibres({ citas }) {
+function HuecosLibres({ citas, bloqueos, descansos }) {
   const { topPx, durPx } = useContext(AgendaCtx);
 
   const huecos = useMemo(() => {
-    const rangos = (citas || [])
-      .filter(c => c?.estado !== 'Cancelada' && typeof c?.hora === 'string' && c.hora.includes(':'))
-      .map(c => {
-        const ini = toMins(c.hora);
-        return [ini, ini + (Number(c.duracion || c.duracionServicio || 30) || 30)];
-      })
-      .sort((a, b) => a[0] - b[0]);
+    // Un bloqueo de día completo tapa la columna entera: sin huecos que rotular.
+    if ((bloqueos || []).some(b => b?.todo_el_dia)) return [];
+
+    const rangos = [];
+
+    for (const c of citas || []) {
+      if (typeof c?.hora !== 'string' || !c.hora.includes(':')) continue;
+      const ini = toMins(c.hora);
+      rangos.push([ini, ini + (Number(c.duracion || c.duracionServicio || 30) || 30)]);
+    }
+    for (const b of bloqueos || []) {
+      if (typeof b?.hora_inicio !== 'string' || typeof b?.hora_fin !== 'string') continue;
+      if (!b.hora_inicio.includes(':') || !b.hora_fin.includes(':')) continue;
+      rangos.push([toMins(b.hora_inicio), toMins(b.hora_fin)]);
+    }
+    for (const d of descansos || []) {
+      if (typeof d?.inicio !== 'string' || typeof d?.fin !== 'string') continue;
+      if (!d.inicio.includes(':') || !d.fin.includes(':')) continue;
+      rangos.push([toMins(d.inicio), toMins(d.fin)]);
+    }
+
+    rangos.sort((a, b) => a[0] - b[0]);
 
     const fusionados = [];
     for (const [ini, fin] of rangos) {
@@ -2915,7 +2938,7 @@ function HuecosLibres({ citas }) {
       if (fin - ini >= MIN_HUECO_MIN) out.push({ ini, fin, mins: fin - ini });
     }
     return out;
-  }, [citas]);
+  }, [citas, bloqueos, descansos]);
 
   return huecos.map(({ ini, fin, mins }) => {
     const top  = topPx(hhmm(ini));
@@ -5941,8 +5964,15 @@ export default function Agenda() {
                               <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
                             ))}
                             {/* Solo en la columna de UN barbero: en la vista
-                                "todos" un hueco de alguien no es hueco del local. */}
-                            <HuecosLibres citas={barberCitas} />
+                                "todos" un hueco de alguien no es hueco del local.
+                                Recibe TODO lo que ocupa espacio visual (citas de
+                                cualquier estado, bloqueos, colación y descansos)
+                                para no rotular "libre" encima de un bloque. */}
+                            <HuecosLibres
+                              citas={barberCitas}
+                              bloqueos={barberBloqueos}
+                              descansos={[colacionDe(b.id), ...descansosDe(b, date)].filter(Boolean)}
+                            />
                             {layoutCitas.map(({ cita, colIndex, colTotal }) => (
                               <AppointmentBlock
                                 key={cita.id}
