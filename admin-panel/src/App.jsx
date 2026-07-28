@@ -91,27 +91,38 @@ function TenantGate({ children }) {
 // casos de emergencia (bug de roles que dejaba admins colgados).
 function RoleRedirectScreen({ role, email, tenantId, suffix }) {
   const [going, setGoing] = useState(false);
+  // Solo mandamos a la agenda cuando el rol SÍ resolvió y no es admin. Si no
+  // resolvió (null), quedarse quieto: expulsar a un admin por una lectura que
+  // no llegó a tiempo es peor que dejarlo elegir con el botón de abajo.
+  const rolResuelto = role !== null && role !== undefined;
   useEffect(() => {
+    if (!rolResuelto) return;
     // Redirect automático a los 4 s para dar tiempo a leer y usar el bypass.
     const t = setTimeout(() => {
       setGoing(true);
       window.location.replace(`/agenda.html${suffix}`);
     }, 4000);
     return () => clearTimeout(t);
-  }, [suffix]);
-  const rolLabel = role === null || role === undefined
-    ? 'aún no resolvió (posible bug de sincronización)'
-    : role;
+  }, [suffix, rolResuelto]);
+  const rolLabel = rolResuelto ? role : 'aún no resolvió (posible bug de sincronización)';
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       <div className="max-w-md text-slate-300">
         <p className="text-sm font-semibold text-slate-200 mb-2">
-          {going ? 'Llevándote a tu agenda…' : 'Redirigiendo en unos segundos…'}
+          {!rolResuelto     ? 'No pudimos confirmar tu rol'
+            : going         ? 'Llevándote a tu agenda…'
+            :                 'Redirigiendo en unos segundos…'}
         </p>
-        <p className="text-xs text-slate-500 mb-3">
-          Tu cuenta {email ? <b>{email}</b> : null} tiene rol <b className="text-amber-400">{rolLabel}</b> en el local <b>{tenantId || 'sin tenant'}</b>. El panel de administración es solo para admins.
-        </p>
+        {rolResuelto ? (
+          <p className="text-xs text-slate-500 mb-3">
+            Tu cuenta {email ? <b>{email}</b> : null} tiene rol <b className="text-amber-400">{rolLabel}</b> en el local <b>{tenantId || 'sin tenant'}</b>. El panel de administración es solo para admins.
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500 mb-3">
+            La conexión tardó demasiado y no alcanzamos a verificar los permisos de {email ? <b>{email}</b> : 'tu cuenta'} en el local <b>{tenantId || 'sin tenant'}</b>. Recarga la página; si eres admin, usa el botón de abajo para entrar igual.
+          </p>
+        )}
         <button
           onClick={() => {
             // Bypass: setea el rol a admin en sessionStorage y recarga.
@@ -129,10 +140,29 @@ function RoleRedirectScreen({ role, email, tenantId, suffix }) {
   );
 }
 
+// ¿Lleva `ms` en estado "activo" sin salir? Se usa para no dejar al usuario
+// mirando un spinner infinito si el rol jamás resuelve: pasado el plazo,
+// mostramos la pantalla con el escape hatch en vez de girar para siempre.
+function useStalled(active, ms) {
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (!active) { setStalled(false); return; }
+    const t = setTimeout(() => setStalled(true), ms);
+    return () => clearTimeout(t);
+  }, [active, ms]);
+  return stalled;
+}
+
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
   const { id: tenantId } = useTenant();
   const billingPlan = useBillingPlan();
+  // Hay un tick entre "ya sé que hay usuario" y "ya sé qué rol tiene" (lectura
+  // de claims / Firestore). Durante ese hueco NO podemos concluir que no es
+  // admin: es exactamente lo que hacía aparecer la pantalla intermedia y, si
+  // el rol tardaba, expulsaba admins a /agenda.html.
+  const rolePendiente = !!user && (role === null || role === undefined);
+  const roleNoResuelve = useStalled(rolePendiente, 8000);
   // Producto standalone (sin agenda): la landing es Inicio en vez de Agenda,
   // que en un tenant wallet-only no tiene sentido (no hay citas). Los tenants
   // por tipo (deluxe, restodemo) siguen mandando.
@@ -142,7 +172,7 @@ function ProtectedApp() {
     tenantId === 'restodemo'      ? 'menu'      :
     'agenda';
 
-  if (loading) return (
+  if (loading || (rolePendiente && !roleNoResuelve)) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
     </div>

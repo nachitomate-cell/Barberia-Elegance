@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getDoc } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
@@ -75,6 +75,9 @@ function _seedUidSync() {
 function _seedRoleSync() {
   try { return localStorage.getItem(LAST_ROLE_KEY) || null; } catch { return null; }
 }
+function _persistRole(r) {
+  try { localStorage.setItem(LAST_ROLE_KEY, r); } catch { /* ignore */ }
+}
 
 export function AuthProvider({ children }) {
   // `user`: undefined = todavía no sabemos; null = confirmado sin sesión;
@@ -88,6 +91,10 @@ export function AuthProvider({ children }) {
   const [role,    setRole]    = useState(() => _seedRoleSync());
   const [sucursalScope, setSucursalScope] = useState('all');
   const [loading, setLoading] = useState(true);
+  // UID cuyo rol ya terminamos de resolver. Sirve para saber si un evento de
+  // onAuthStateChanged trae un usuario NUEVO (login) o es el mismo de siempre
+  // (refresh de token, que Firebase dispara solo). Ver `setLoading(true)` abajo.
+  const resolvedUid = useRef(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async firebaseUser => {
@@ -96,6 +103,7 @@ export function AuthProvider({ children }) {
           localStorage.removeItem(LAST_UID_KEY);
           localStorage.removeItem(LAST_ROLE_KEY);
         } catch { /* ignore */ }
+        resolvedUid.current = null;
         setUser(null);
         setRole(null);
         setSucursalScope('all');
@@ -105,34 +113,32 @@ export function AuthProvider({ children }) {
       try { localStorage.setItem(LAST_UID_KEY, firebaseUser.uid); } catch { /* ignore */ }
       setUser(firebaseUser);
 
-      // Refresh del ID token contra el servidor. Los custom claims
-      // (role/tenantId/sucursalScope) se setean via Admin SDK server-side; el
-      // token cacheado en el navegador puede tener claims viejos si el user
-      // nunca hizo re-login desde que se aplicaron. Sin este refresh, cuentas
-      // admin recién creadas quedaban con role=null → App.jsx las mandaba a
-      // /agenda.html. Firebase cachea 5 min: no-op si ya está fresco.
-      // v2: refresh forzado universal (antes solo BRAND_ADMINS Kronnos).
-      try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
+      // ⚠ CLAVE — reabrir `loading` en cada usuario nuevo.
+      // Al entrar desde el LoginPage, el evento previo (sesión nula) ya dejó
+      // loading=false. Sin esto, el render que sigue a setUser() ve
+      // user=truthy + loading=false + role=null → App.jsx concluye "no es
+      // admin" y muestra RoleRedirectScreen ("aún no resolvió") durante todo
+      // el tiempo que tarde resolver el rol. Si tardaba >4 s, su timer
+      // expulsaba al admin a /agenda.html. Bug reportado 2026-07-27.
+      // Solo para UID nuevo: los refreshes de token del mismo usuario no
+      // deben mandar el panel entero de vuelta al spinner.
+      if (resolvedUid.current !== firebaseUser.uid) setLoading(true);
+      const finish = (r, scope) => {
+        resolvedUid.current = firebaseUser.uid;
+        setRole(r);
+        _persistRole(r);
+        setSucursalScope(scope);
+        setLoading(false);
+      };
 
       const email = firebaseUser.email?.toLowerCase();
 
       // Superadmin de SynapTech — acceso total en cualquier tenant
-      if (email === SUPERADMIN_EMAIL) {
-        setRole('admin');
-        try { localStorage.setItem(LAST_ROLE_KEY, 'admin'); } catch { /* ignore */ }
-        setSucursalScope('all');
-        setLoading(false);
-        return;
-      }
+      if (email === SUPERADMIN_EMAIL) return finish('admin', 'all');
 
       // Admin de marca — dueño con 'admin' en sus sedes (sin re-login al cambiar)
-      // El refresh forzado del token ya ocurrió arriba (universalmente).
       if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
-        setRole('admin');
-        try { localStorage.setItem(LAST_ROLE_KEY, 'admin'); } catch { /* ignore */ }
-        setSucursalScope('all');
-        setLoading(false);
-        return;
+        return finish('admin', 'all');
       }
 
       // Los custom claims son source of truth: los setea el script server-side
@@ -140,7 +146,33 @@ export function AuthProvider({ children }) {
       // 'admin' → aceptamos INMEDIATAMENTE sin esperar la lectura de Firestore
       // (que puede fallar por red/rules/timeout y dejar al admin colgado en
       // 'barbero' → redirect a /agenda.html, caso reportado por Ignacio 2026-07-27).
-      const rolClaims = await roleFromClaims(firebaseUser);
+      //
+      // Primero leemos los claims del token CACHEADO (sin red): resuelve en
+      // microsegundos. El refresh forzado contra el servidor sigue siendo
+      // necesario —es la única forma de ver claims aplicados server-side
+      // después de que el navegador cacheó el token (admin recién creado, o
+      // admin degradado)— pero YA NO bloquea el login de todos:
+      //   · cache dice admin → entra ya, y el refresh corre en background.
+      //     Las Firestore rules leen el token refrescado igual, así que la
+      //     revocación real no se pierde: solo llega un instante después.
+      //   · cache NO dice admin → ahí sí esperamos el refresh, porque es el
+      //     caso en que el claim nuevo es lo que lo deja entrar.
+      let rolClaims = await roleFromClaims(firebaseUser);
+      if (rolClaims === 'admin') {
+        (async () => {
+          try {
+            await firebaseUser.getIdToken(true);
+            const fresco = await roleFromClaims(firebaseUser);
+            // Solo degradamos ante un claim explícito de no-admin. Si vuelve
+            // null (cuenta sin claims que se apoya en barberos/{uid}) no
+            // tocamos nada: las rules son el enforcement real.
+            if (fresco === 'barbero') { setRole('barbero'); _persistRole('barbero'); }
+          } catch { /* sin red: seguimos con el claim cacheado */ }
+        })();
+      } else {
+        try { await firebaseUser.getIdToken(true); } catch { /* noop */ }
+        rolClaims = await roleFromClaims(firebaseUser);
+      }
       // Bypass manual del RoleRedirectScreen: si el user tocó "Soy admin,
       // entrar de todos modos", respetamos su elección aunque los claims no
       // digan admin. Firestore rules siguen enforceando; el override solo
@@ -154,9 +186,7 @@ export function AuthProvider({ children }) {
         // medio. Cualquier await acá agrega gap donde loading=false pero
         // role=null todavía → RoleRedirectScreen se muestra por unos ms.
         // El scope preciso se resuelve en background.
-        setRole('admin');
-        setSucursalScope('all');   // default seguro
-        setLoading(false);
+        finish('admin', 'all');    // scope 'all' = default seguro
         // Scope real en background (fire-and-forget) — el sucursalScope se
         // actualiza cuando la lectura vuelve, sin bloquear el render inicial.
         (async () => {
@@ -189,22 +219,13 @@ export function AuthProvider({ children }) {
             rolDoc = data.rol || 'barbero';
             scope  = scopeFromDoc(data);
           }
-          setRole(rolDoc);
-          try { localStorage.setItem(LAST_ROLE_KEY, rolDoc); } catch { /* ignore */ }
-          setSucursalScope(scope);
+          finish(rolDoc, scope);
         } else {
-          const r = rolClaims || 'barbero';
-          setRole(r);
-          try { localStorage.setItem(LAST_ROLE_KEY, r); } catch { /* ignore */ }
-          setSucursalScope('all');
+          finish(rolClaims || 'barbero', 'all');
         }
       } catch {
-        const r = rolClaims || 'barbero';
-        setRole(r);
-        try { localStorage.setItem(LAST_ROLE_KEY, r); } catch { /* ignore */ }
-        setSucursalScope('all');
+        finish(rolClaims || 'barbero', 'all');
       }
-      setLoading(false);
     });
     return unsub;
   }, []);
