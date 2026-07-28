@@ -920,16 +920,19 @@
                 <button class="cli-chip" data-filtro="inactivos" onclick="setFiltroCli('inactivos')">💤 Inactivos 45d+ <span class="n" id="cnt-inactivos">0</span></button>
                 <button class="cli-chip" data-filtro="sin-sellos" onclick="setFiltroCli('sin-sellos')">Sin sellos aún <span class="n" id="cnt-sin-sellos">0</span></button>
               </div>
-              <div class="cli-sort">
-                <label for="cli-sort" style="margin:0;font-weight:500;color:var(--soft);">Ordenar por:</label>
-                <select id="cli-sort" onchange="renderClientes()">
-                  <option value="sellos-desc">Más sellos disponibles</option>
-                  <option value="hist-desc">Más históricos</option>
-                  <option value="reciente">Registro más reciente</option>
-                  <option value="antiguo">Registro más antiguo</option>
-                  <option value="nombre-asc">Nombre (A-Z)</option>
-                  <option value="ultimo-sello">Último sello</option>
-                </select>
+              <div class="cli-sort" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <label for="cli-sort" style="margin:0;font-weight:500;color:var(--soft);">Ordenar por:</label>
+                  <select id="cli-sort" onchange="renderClientes()">
+                    <option value="sellos-desc">Más sellos disponibles</option>
+                    <option value="hist-desc">Más históricos</option>
+                    <option value="reciente">Registro más reciente</option>
+                    <option value="antiguo">Registro más antiguo</option>
+                    <option value="nombre-asc">Nombre (A-Z)</option>
+                    <option value="ultimo-sello">Último sello</option>
+                  </select>
+                </div>
+                <button type="button" class="btn accent" id="btn-push-masivo" onclick="abrirPushMasivoModal()" style="width:auto;height:36px;padding:0 14px;font-size:13px;display:none;">📢 Enviar mensaje a estos <span id="btn-push-masivo-n">0</span></button>
               </div>
             </div>
 
@@ -1127,6 +1130,31 @@
   <img src="/synaptech/ig.png" alt="SynapTech">
   Powered by SynapTech
 </footer>
+
+<!-- Modal: push masivo a segmento -->
+<div class="modal-backdrop" id="push-modal" onclick="if(event.target===this)cerrarPushMasivoModal()">
+  <div class="modal">
+    <h2>📢 Enviar mensaje al pase</h2>
+    <p class="sub" id="push-modal-sub">Se enviará al pase Google Wallet de los clientes seleccionados que ya guardaron la tarjeta.</p>
+
+    <label for="push-header" style="margin-top:4px;">Título del push <span style="color:var(--muted);font-weight:400;">(máx 60)</span></label>
+    <input type="text" id="push-header" maxlength="60" placeholder="🎁 Promo martes doble sellos" oninput="pushPreviewLive()">
+
+    <label for="push-body">Mensaje <span style="color:var(--muted);font-weight:400;">(máx 300)</span></label>
+    <textarea id="push-body" maxlength="300" rows="4" placeholder="Hoy y solo hoy, cada corte suma 2 sellos. Aprovecha antes de las 20:00." oninput="pushPreviewLive()"></textarea>
+
+    <div style="margin-top:14px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-md);border:1px solid var(--hairline);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Preview del push</div>
+      <div style="font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-0.2px;" id="push-preview-h">Título del push</div>
+      <div style="font-size:13px;color:var(--ink-2);margin-top:2px;line-height:1.4;" id="push-preview-b">El mensaje aparece aquí a medida que escribes.</div>
+    </div>
+
+    <div id="push-modal-body" style="margin-top:12px;font-size:13px;color:var(--soft);"></div>
+
+    <button class="btn accent" id="push-send-btn" onclick="enviarPushMasivo()" style="margin-top:16px;">Enviar mensaje</button>
+    <button class="close" onclick="cerrarPushMasivoModal()">Cancelar</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1846,6 +1874,10 @@ function renderClientes() {
   }[sort];
   if (by) arr.sort(by);
 
+  // Sincronizar el botón de push masivo con el segmento actual (siempre,
+  // aunque el listado esté vacío — así se oculta bien).
+  updatePushButton(arr);
+
   if (!arr.length) {
     list.innerHTML = '<div class="cli-empty"><div class="em">🔍</div>No hay clientes que coincidan con los filtros.</div>';
     return;
@@ -1910,6 +1942,79 @@ function _fmtFecha(s) {
 window.setFiltroCli = setFiltroCli;
 window.renderClientes = renderClientes;
 window.toggleClienteRow = toggleClienteRow;
+
+// ── Push masivo por segmento ─────────────────────────────────────
+// Toma el filtro actualmente aplicado + búsqueda. Solo mensajes al
+// pase Google Wallet (los que ya guardaron la tarjeta). El backend
+// devuelve alcance / conWallet / enviados para feedback preciso.
+var _pushDest = [];   // uids filtrados al abrir el modal
+
+// Se llama desde renderClientes cada vez que cambia la lista visible.
+function updatePushButton(arrVisibles) {
+  var btn = document.getElementById('btn-push-masivo');
+  if (!btn) return;
+  var conW = arrVisibles.filter(function (u) { return u.walletObjectId || u.appleWalletSerial; });
+  if (!conW.length) { btn.style.display = 'none'; return; }
+  document.getElementById('btn-push-masivo-n').textContent = conW.length;
+  btn.style.display = '';
+  _pushDest = conW.map(function (u) { return u.id; });
+}
+
+function abrirPushMasivoModal() {
+  if (!_pushDest.length) { toast('No hay destinatarios con tarjeta.', true); return; }
+  var chip = document.querySelector('.cli-chip.active');
+  var filtroTxt = chip ? chip.textContent.trim().replace(/\s+\d+$/, '') : 'los seleccionados';
+  document.getElementById('push-modal-sub').innerHTML =
+    'Se enviará al pase Google Wallet de <b>' + _pushDest.length + '</b> clientes (segmento: <b>' + escapar(filtroTxt) + '</b>).';
+  document.getElementById('push-header').value = '';
+  document.getElementById('push-body').value = '';
+  document.getElementById('push-modal-body').innerHTML = '';
+  pushPreviewLive();
+  document.getElementById('push-modal').classList.add('show');
+}
+function cerrarPushMasivoModal() { document.getElementById('push-modal').classList.remove('show'); }
+function pushPreviewLive() {
+  var h = (document.getElementById('push-header').value || '').trim() || 'Título del push';
+  var b = (document.getElementById('push-body').value || '').trim() || 'El mensaje aparece aquí a medida que escribes.';
+  document.getElementById('push-preview-h').textContent = h;
+  document.getElementById('push-preview-b').textContent = b;
+}
+function enviarPushMasivo() {
+  var header = (document.getElementById('push-header').value || '').trim();
+  var body   = (document.getElementById('push-body').value || '').trim();
+  if (!header || !body) { toast('Completa título y mensaje.', true); return; }
+  if (!_tid || !_pushDest.length) return;
+
+  var chip = document.querySelector('.cli-chip.active');
+  var filtro = chip ? chip.dataset.filtro : 'manual';
+  var btn = document.getElementById('push-send-btn');
+  var textoOrig = btn.textContent;
+  btn.disabled = true; btn.innerHTML = '<span class="spin-inline"></span>Enviando…';
+
+  var fn = firebase.app().functions('us-central1').httpsCallable('walletPushMasivo');
+  fn({ tenantId: _tid, uids: _pushDest, header: header, body: body, filtro: filtro })
+    .then(function (r) {
+      var d = r.data || {};
+      var html = ''
+        + '<div style="padding:12px 14px;background:var(--accent-tint);border-radius:var(--r-md);color:var(--accent-dark);">'
+        +   '<b>✓ ' + d.enviados + '</b> enviados al pase.<br>'
+        +   (d.fallidos ? '<b style="color:var(--red)">' + d.fallidos + '</b> fallidos.<br>' : '')
+        +   (d.sinWallet ? '<span style="color:var(--soft);font-size:12.5px;">' + d.sinWallet + ' clientes seleccionados aún no guardaron la tarjeta — no reciben push.</span>' : '')
+        + '</div>';
+      document.getElementById('push-modal-body').innerHTML = html;
+      toast('✓ Mensaje enviado a ' + d.enviados + ' clientes');
+      btn.textContent = 'Enviado ✓';
+    })
+    .catch(function (e) {
+      var msg = (e && e.message) || 'Error al enviar.';
+      document.getElementById('push-modal-body').innerHTML = '<div style="color:var(--red);padding:10px 14px;background:rgba(255,59,48,0.06);border-radius:var(--r-md);">' + escapar(msg) + '</div>';
+      btn.disabled = false; btn.textContent = textoOrig;
+    });
+}
+window.abrirPushMasivoModal = abrirPushMasivoModal;
+window.cerrarPushMasivoModal = cerrarPushMasivoModal;
+window.pushPreviewLive = pushPreviewLive;
+window.enviarPushMasivo = enviarPushMasivo;
 
 // ── Pintar el preview de notificaciones (iOS + Android) ────────────
 // Se llama desde renderPreview. Refleja logo, program name y geo mensaje.

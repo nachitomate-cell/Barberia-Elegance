@@ -1644,6 +1644,10 @@ const walletCron = require('./wallet-cron');
 exports.walletCumpleanosCron    = walletCron.walletCumpleanosCron;
 exports.walletExpiracionCron    = walletCron.walletExpiracionCron;
 
+// Push masivo por segmento (staff → clientes con tarjeta guardada).
+// Se dispara desde tab Clientes del estudio filtrando por chip.
+exports.walletPushMasivo        = require('./wallet-push').walletPushMasivo;
+
 // Registro público del cliente final: HTTP público. El cliente escanea
 // el QR del local, se registra (nombre + tel + email + fecha nac) y
 // recibe su pase Google + Apple según el SO detectado en la landing.
