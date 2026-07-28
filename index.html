@@ -12409,17 +12409,23 @@
         : 0;
       const total = Math.max(1, cant || Number(pack.sesionesTotales) || 1);
       const dias  = Math.max(1, Number(pack.diasValidez) || 30);
-      // Si la cita de hoy ya viene marcada como activadora, hoy se usa 1.
-      const usaHoy  = !!s.activaPackId;
-      const vence   = new Date(Date.now() + dias * 864e5);
+      // Cuántas sesiones se ocupan HOY: una por cada servicio que el cliente
+      // se hace en esta visita (puede elegir varios del mismo pack).
+      const hoyIds = Array.isArray(s.activaPackServicios) && s.activaPackServicios.length
+        ? s.activaPackServicios
+        : (s.activaPackId ? [String(s.id)] : []);
+      const usaHoy = hoyIds.length;
+      const vence  = new Date(Date.now() + dias * 864e5);
+      const nombresHoy = [s.nombre, ...(Array.isArray(selectedAddons) ? selectedAddons.map(a => a.nombre) : [])]
+        .filter(Boolean).slice(0, hoyIds.length);
       return {
         nombre:  pack.nombre || 'Pack',
         total,
         usaHoy,
-        quedan:  Math.max(0, total - (usaHoy ? 1 : 0)),
+        quedan:  Math.max(0, total - usaHoy),
         dias,
         venceStr: vence.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }),
-        servicioHoy: usaHoy ? (s.nombre || '') : '',
+        servicioHoy: usaHoy ? nombresHoy.join(' + ') : '',
       };
     }
 
@@ -12427,9 +12433,12 @@
     function _packVentaTexto(info) {
       if (!info) return '';
       const ses = n => `${n} sesi${n === 1 ? 'ón' : 'ones'}`;
-      return info.usaHoy
-        ? `Incluye ${ses(info.total)}. Hoy usas 1${info.servicioHoy ? ` (${info.servicioHoy})` : ''} y te ${info.quedan === 1 ? 'queda' : 'quedan'} ${ses(info.quedan)} hasta el ${info.venceStr}.`
-        : `Incluye ${ses(info.total)}, válidas ${info.dias} días.`;
+      if (!info.usaHoy) return `Incluye ${ses(info.total)}, válidas ${info.dias} días.`;
+      const usa = info.usaHoy === 1 ? 'Hoy usas 1' : `Hoy usas ${info.usaHoy}`;
+      const resto = info.quedan === 0
+        ? 'y con eso lo ocupas completo'
+        : `y te ${info.quedan === 1 ? 'queda' : 'quedan'} ${ses(info.quedan)} hasta el ${info.venceStr}`;
+      return `Incluye ${ses(info.total)}. ${usa}${info.servicioHoy ? ` (${info.servicioHoy})` : ''} ${resto}.`;
     }
 
     /* Chip informativo bajo la card del pack elegido. Para packs de un solo
@@ -12465,8 +12474,15 @@
       const overlay = document.createElement('div');
       overlay.id = 'packModalOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px;';
-      // No permitir cerrar con click fuera — el cliente DEBE elegir un servicio.
-      // Si cierra sin elegir, dejamos el pack como está (comportamiento legacy sin activaPackId).
+      // Sin cierre por click fuera: el pack NO se vende sin decir qué se hace
+      // hoy. Ya no existe el "elegir después" — dejaba la cita con
+      // servicioId=packId y el motor descontaba 0 sesiones, o sea el servicio
+      // del día iba de regalo. La única salida es cancelar la compra.
+
+      // Selección múltiple: el cliente puede hacerse UNO o VARIOS de los
+      // servicios del pack en la misma visita (ej: corte + barba = 90 min).
+      // Cada uno descuenta su propia sesión; el precio sigue siendo el del pack.
+      const elegidos = new Set();
 
       const card = document.createElement('div');
       card.style.cssText = 'width:100%;max-width:480px;background:#111827;border:1px solid rgba(96,165,250,0.4);border-radius:20px;padding:20px;max-height:90vh;overflow-y:auto;';
@@ -12476,60 +12492,124 @@
             <span style="font-size:24px;line-height:1;" aria-hidden="true">✂️</span>
           </div>
           <div style="flex:1;min-width:0;">
-            <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0 0 2px;">¿Qué servicio te hacés hoy?</p>
+            <p style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(96,165,250,0.95);margin:0 0 2px;">¿Qué te hacés hoy?</p>
             <p style="font-size:15px;font-weight:700;color:#fff;margin:0;line-height:1.25;word-break:break-word;">${esc(pack.nombre)}</p>
             <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:4px 0 0;">
-              Elegí el servicio para tu visita de hoy. Las sesiones restantes las canjeás cuando vuelvas.
+              Marcá lo que te hacés en esta visita — podés elegir más de uno. Las sesiones que no uses hoy quedan para cuando vuelvas.
             </p>
           </div>
         </div>
 
-        <div id="packHoyList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+        <div id="packHoyList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
 
+        <p id="packHoyResumen" style="font-size:12px;color:rgba(255,255,255,0.55);margin:0 0 12px;text-align:center;min-height:17px;"></p>
+
+        <button type="button" id="packHoyOk" disabled
+          style="width:100%;padding:14px;border-radius:14px;background:rgba(96,165,250,0.25);color:rgba(255,255,255,0.45);border:1px solid rgba(96,165,250,0.30);font-weight:700;font-size:14px;margin-bottom:8px;cursor:not-allowed;">
+          Elegí al menos uno
+        </button>
         <button type="button" id="packHoyCancel"
-          style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);font-weight:600;font-size:14px;">
-          Elegir después / Solo comprar el pack
+          style="width:100%;padding:11px;border-radius:12px;background:transparent;color:rgba(255,255,255,0.45);border:0;font-weight:600;font-size:13px;">
+          Cancelar
         </button>
       `;
 
-      const list = card.querySelector('#packHoyList');
+      const list    = card.querySelector('#packHoyList');
+      const resumen = card.querySelector('#packHoyResumen');
+      const btnOk   = card.querySelector('#packHoyOk');
+      const filas   = new Map();
+
+      const pintar = () => {
+        filas.forEach((el, id) => {
+          const on = elegidos.has(id);
+          el.style.background  = on ? 'rgba(96,165,250,0.22)' : 'rgba(96,165,250,0.08)';
+          el.style.borderColor = on ? 'rgba(96,165,250,0.85)' : 'rgba(96,165,250,0.25)';
+          const tick = el.querySelector('[data-tick]');
+          if (tick) {
+            tick.textContent      = on ? '✓' : '';
+            tick.style.background = on ? '#60a5fa' : 'transparent';
+            tick.style.border     = on ? '1px solid #60a5fa' : '1px solid rgba(255,255,255,0.25)';
+          }
+        });
+        const n = elegidos.size;
+        const mins = opciones
+          .filter(s => elegidos.has(String(s.id)))
+          .reduce((a, s) => a + (Number(s.duracion) || 30), 0);
+        resumen.textContent = n
+          ? `${n} servicio${n !== 1 ? 's' : ''} · ${mins} min en esta visita`
+          : '';
+        btnOk.disabled = n === 0;
+        btnOk.style.cursor = n ? 'pointer' : 'not-allowed';
+        btnOk.style.background = n ? '#2563eb' : 'rgba(96,165,250,0.25)';
+        btnOk.style.color = n ? '#fff' : 'rgba(255,255,255,0.45)';
+        btnOk.textContent = n ? `Confirmar · ${mins} min` : 'Elegí al menos uno';
+      };
+
       opciones.forEach((svc) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.style.cssText = 'width:100%;text-align:left;padding:14px;border-radius:14px;background:rgba(96,165,250,0.10);border:1px solid rgba(96,165,250,0.30);display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;';
-        btn.innerHTML = `
+        const sid = String(svc.id);
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.style.cssText = 'width:100%;text-align:left;padding:14px;border-radius:14px;border:1px solid rgba(96,165,250,0.25);background:rgba(96,165,250,0.08);display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;transition:background .15s,border-color .15s;';
+        row.innerHTML = `
+          <span data-tick style="width:22px;height:22px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#0b1220;"></span>
           <div style="flex:1;min-width:0;">
             <p style="font-size:14px;font-weight:700;margin:0 0 2px;line-height:1.25;word-break:break-word;">${esc(svc.nombre || 'Servicio')}</p>
             <p style="font-size:11px;color:rgba(255,255,255,0.55);margin:0;">
               ${Number(svc.duracion) || 30} min · incluido en tu pack
             </p>
           </div>
-          <span style="flex-shrink:0;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,0.35);color:#fff;">Elegir →</span>
         `;
-        btn.addEventListener('click', () => {
-          overlay.remove();
-          // Preservamos: precio del pack + su nombre para display.
-          selectedServiceObj = {
-            id:                svc.id,                    // servicio real (crítico para CF)
-            nombre:            svc.nombre,
-            duracion:          Number(svc.duracion) || 30,
-            precio:            Number(pack.precio) || 0,  // precio DEL PACK
-            activaPackId:      pack.id,                   // marca especial: activa este pack
-            packNombre:        pack.nombre,               // para badge display
-            _packVentaHoy:     true,                      // flag interno
-          };
-          selectedAddons = [];
-          _selectedSlotInfo = null;
-          if (typeof updateContinueBtn === 'function') updateContinueBtn();
+        row.addEventListener('click', () => {
+          if (elegidos.has(sid)) elegidos.delete(sid); else elegidos.add(sid);
+          pintar();
         });
-        list.appendChild(btn);
+        filas.set(sid, row);
+        list.appendChild(row);
+      });
+      pintar();
+
+      btnOk.addEventListener('click', () => {
+        if (!elegidos.size) return;
+        const sel = opciones.filter(s => elegidos.has(String(s.id)));
+        overlay.remove();
+        // El primero es el servicio principal y lleva el precio DEL PACK; los
+        // demás van como extras en $0. El plumbing de multi-servicio ya suma
+        // las duraciones para bloquear el slot correcto.
+        const [principal, ...extras] = sel;
+        selectedServiceObj = {
+          id:                   principal.id,              // servicio real (crítico para la CF)
+          nombre:               principal.nombre,
+          duracion:             Number(principal.duracion) || 30,
+          precio:               Number(pack.precio) || 0,  // se cobra el PACK
+          activaPackId:         pack.id,
+          activaPackServicios:  sel.map(s => String(s.id)), // 1 sesión por cada uno
+          packNombre:           pack.nombre,
+          _packVentaHoy:        true,
+        };
+        selectedAddons = extras.map(s => ({
+          id:       s.id,
+          nombre:   s.nombre,
+          duracion: Number(s.duracion) || 30,
+          precio:   0,                                     // ya va dentro del pack
+          _delPack: true,
+        }));
+        _selectedSlotInfo = null;
+        if (typeof updateContinueBtn === 'function') updateContinueBtn();
+        try { _renderPackInfoChip(); } catch (_) {}
       });
 
       card.querySelector('#packHoyCancel').addEventListener('click', () => {
         overlay.remove();
-        // Cliente decidió no elegir hoy: mantenemos el pack "vacío" — la cita
-        // se guarda con servicioId=packId (legacy) sin activaPackId, y las 4
-        // sesiones quedan disponibles para próximas visitas.
+        // Cancelar = no comprar el pack. Antes esta salida vendía el pack sin
+        // servicio de hoy; ahora deshacemos la selección y el cliente vuelve
+        // al catálogo con las manos libres.
+        selectedServiceObj = null;
+        selectedAddons     = [];
+        _selectedSlotInfo  = null;
+        if (typeof _multiSel !== 'undefined' && Array.isArray(_multiSel)) _multiSel.length = 0;
+        try { window._unselAllServiceCards && window._unselAllServiceCards(); } catch (_) {}
+        document.getElementById('packInfoChip')?.remove();
+        if (typeof updateContinueBtn === 'function') updateContinueBtn();
       });
 
       overlay.appendChild(card);
@@ -13137,6 +13217,11 @@
           _setUnsel(el);
         }
       });
+      // _setUnsel es local a esta función, pero el modal de pack necesita poder
+      // despintar las cards al cancelar la compra. Lo publicamos acá, donde ya
+      // están resueltas todas las variantes de tema del tenant.
+      window._unselAllServiceCards = () =>
+        document.querySelectorAll('.service-option').forEach(_setUnsel);
 
       // Filtrar barberos compatibles con TODOS los servicios elegidos (intersección).
       const _base = (_activeBarberos.length ? _activeBarberos : _fsBarberos) || [];
@@ -14127,6 +14212,10 @@
             ...(selectedServiceObj?.activaPackId ? {
               activaPackId:  selectedServiceObj.activaPackId,
               packNombre:    selectedServiceObj.packNombre,
+              // Una sesion por CADA servicio que el cliente se hace hoy. Si se
+              // hace corte + barba en la misma visita, el pack descuenta 2.
+              ...(Array.isArray(selectedServiceObj.activaPackServicios) && selectedServiceObj.activaPackServicios.length
+                ? { activaPackServicios: selectedServiceObj.activaPackServicios } : {}),
             } : {}),
           };
           const _btnPago = document.getElementById('btnContinue');
@@ -14322,6 +14411,10 @@
             ...(selectedServiceObj?.activaPackId ? {
               activaPackId:  selectedServiceObj.activaPackId,
               packNombre:    selectedServiceObj.packNombre,
+              // Una sesion por CADA servicio que el cliente se hace hoy. Si se
+              // hace corte + barba en la misma visita, el pack descuenta 2.
+              ...(Array.isArray(selectedServiceObj.activaPackServicios) && selectedServiceObj.activaPackServicios.length
+                ? { activaPackServicios: selectedServiceObj.activaPackServicios } : {}),
             } : {}),
           });
           citaGuardada = true;

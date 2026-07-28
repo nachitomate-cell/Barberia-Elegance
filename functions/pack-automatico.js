@@ -283,11 +283,21 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
       //    al servicio REAL elegido (ej. sandbox-corte-prueba). Ese es el activador.
       //  - Modelo A (legacy mono-svc): cita.servicioId es el propio pack (isPack:true)
       //    y también aparece en el mapa (mismo id). Ese decrementa igual.
-      const svcActivador = cita.servicioId;
-      const activadorEnMapa = svcActivador && Object.prototype.hasOwnProperty.call(serviciosRestantes, svcActivador);
-      if (activadorEnMapa) {
-        serviciosRestantes[svcActivador] = Math.max(0, serviciosRestantes[svcActivador] - 1);
+      // `activaPackServicios` (reserva pública) lista TODOS los servicios que
+      // el cliente se hace en la visita de compra: puede elegir corte + barba
+      // del mismo pack y ahí se descuentan 2 sesiones, no 1. Si no viene, cae
+      // al servicio único de la cita (packs mono y flujo legacy).
+      const svcHoy = Array.isArray(cita.activaPackServicios) && cita.activaPackServicios.length
+        ? [...new Set(cita.activaPackServicios.map(String))]
+        : (cita.servicioId ? [String(cita.servicioId)] : []);
+      let consumidasEnVenta = 0;
+      for (const sid of svcHoy) {
+        if (!Object.prototype.hasOwnProperty.call(serviciosRestantes, sid)) continue;
+        if ((Number(serviciosRestantes[sid]) || 0) <= 0) continue;   // sin saldo de ese servicio
+        serviciosRestantes[sid] = Math.max(0, serviciosRestantes[sid] - 1);
+        consumidasEnVenta++;
       }
+      const activadorEnMapa = consumidasEnVenta > 0;
       // sesionesRestantes: suma de contadores por servicio si aplica, o el
       // decremento genérico si el pack no usa cantidades (packs viejos).
       const sesionesRestantes = sumaCant > 0
@@ -316,7 +326,7 @@ async function procesarPack({ tenantId, citaId, citaRef, cita }) {
       // 0 si el activador es el propio pack sin match en el mapa (poco común
       // en Modelo B; se da en packs multi cuando servicioId=packId).
       const sesionesConsumidasEnVenta = sumaCant > 0
-        ? (activadorEnMapa ? 1 : 0)
+        ? consumidasEnVenta          // 1 por cada servicio hecho hoy (puede ser >1)
         : 1; // fallback: pack sin mapa siempre descuenta 1
       logPayload = {
         ...logBase, tipo: 'activacion',
