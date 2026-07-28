@@ -782,6 +782,11 @@ export default function Configuracion() {
   // misma hora, en sillones paralelos. index.html lee configuracion/main.reservasGrupo.
   const [grupoEnabled, setGrupoEnabled] = useState(false);
   const [grupoMax,     setGrupoMax]     = useState(4);
+  // Huecos libres en la grilla del panel: rotula el tiempo disponible entre
+  // dos bloques ("16:00 – 16:45 · 45 min libres"). Ayuda a ubicar espacio de
+  // un vistazo, pero en agendas llenas mete mucho elemento en pantalla — por
+  // eso arranca APAGADO y cada local decide. Lo lee Agenda.jsx.
+  const [huecosLibres, setHuecosLibres] = useState(false);
   // Opciones avanzadas de la agenda privada del barbero (agenda.html). Cada
   // flag prende/apaga un módulo. Todos arrancan en true para que un tenant
   // que nunca abrió esta sección tenga el comportamiento actual sin sorpresas.
@@ -860,6 +865,9 @@ export default function Configuracion() {
         if (cd.reservaMaxPorDia   !== undefined) setReservaMaxPorDia(Number(cd.reservaMaxPorDia)   || 0);
         if (cd.chatCancelEnabled !== undefined) setChatCancelEnabled(!!cd.chatCancelEnabled);
         if (cd.chatReagendarEnabled !== undefined) setChatReagendarEnabled(!!cd.chatReagendarEnabled);
+        // Ausente = apagado: un tenant que nunca abrió esta sección no ve los
+        // huecos, que es el comportamiento por defecto que queremos.
+        setHuecosLibres(cd.mostrarHuecosLibres === true);
         if (cd.reservasGrupo) {
           setGrupoEnabled(cd.reservasGrupo.enabled === true);
           setGrupoMax(Math.max(2, Math.min(6, Number(cd.reservasGrupo.maxPersonas) || 4)));
@@ -1025,6 +1033,8 @@ export default function Configuracion() {
           // Toggles del chat (cancelar/reagendar vía código) + mensaje opcional
           chatCancelEnabled:       !!chatCancelEnabled,
           chatReagendarEnabled:    !!chatReagendarEnabled,
+          // Huecos libres en la grilla del panel (leído por Agenda.jsx)
+          mostrarHuecosLibres:     !!huecosLibres,
           // Reservas en grupo (leído por index.html en el paso 1)
           reservasGrupo: {
             enabled:     !!grupoEnabled,
@@ -1935,6 +1945,36 @@ export default function Configuracion() {
       {tab === 'agenda' && (
       <div className="cfg-fade-in" key="agenda">
       <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
+
+      {/* Huecos libres — afecta la grilla del PANEL (no la agenda del barbero
+          ni la pública), por eso va en su propia tarjeta. Apagado por defecto:
+          en agendas llenas suma demasiados elementos en pantalla. */}
+      <Card Icon={Clock} title="Huecos libres en la grilla">
+        <p className="text-xs text-slate-500 -mt-1 mb-3 leading-relaxed">
+          Rotula el tiempo disponible entre dos bloques de la agenda del panel, con su rango y
+          duración exacta — por ejemplo <strong className="text-slate-300">"16:00 – 16:45 · 45 min libres"</strong>.
+          Sirve para ubicar espacio de un vistazo, pero en días muy cargados agrega bastante
+          elemento a la pantalla.
+        </p>
+
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-primary">Mostrar huecos libres</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              No cuenta como libre el tiempo de bloqueos, colación, descansos ni citas canceladas o sin asistencia.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setHuecosLibres(v => !v); setDirty(true); }}
+            className={`relative inline-flex w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${huecosLibres ? 'bg-emerald-500' : 'bg-slate-700'}`}
+            aria-pressed={huecosLibres}
+          >
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${huecosLibres ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+      </Card>
+
       {/* Opciones avanzadas — controla qué módulos aparecen en la agenda
           personal (privada) de cada barbero. Todos empiezan activos. */}
       <Card Icon={SlidersHorizontal} title="Opciones avanzadas · Agenda del barbero">

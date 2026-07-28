@@ -171,6 +171,29 @@ async function procesarDedup({ tenantId, uid, data }) {
     mergeUpdate[`sellosPorSede.${sede}`] = final;
   });
 
+  // ── packsActivos ───────────────────────────────────────────────────
+  // Los packs PAGADOS viven en el doc del user. Más abajo borramos el doc
+  // legacy, así que sin este traspaso el cliente pierde un pack que ya pagó.
+  // Es exactamente lo que pasó con Saúl Horta en aura (2026-07-28): compró
+  // el pack como walk-in y su cuenta del club quedó en cero.
+  //
+  // Dedup por `citaActivacion` (única por activación) para que una
+  // reejecución del trigger no duplique sesiones. Valor ABSOLUTO como el
+  // resto del merge — nada de arrayUnion, que con objetos anidados compara
+  // por deep-equal y se rompe con Timestamps.
+  const packsLegacy = legacies.flatMap(l => l.data().packsActivos || []).filter(Boolean);
+  if (packsLegacy.length) {
+    const packKey = p => p?.citaActivacion
+      || `${p?.packId || '?'}:${p?.fechaCompra?.toMillis?.() ?? p?.fechaCompra ?? '?'}`;
+    const mios    = Array.isArray(meData.packsActivos) ? meData.packsActivos : [];
+    const yaTengo = new Set(mios.map(packKey));
+    const nuevos  = packsLegacy.filter(p => !yaTengo.has(packKey(p)));
+    if (nuevos.length) {
+      mergeUpdate.packsActivos = [...mios, ...nuevos];
+      logger.info(`[Dedup] ${tenantId}/${uid}: traspasando ${nuevos.length} pack(s) del legacy.`);
+    }
+  }
+
   // IDs de docs en clientes/ (mirror por tel) a borrar
   const clientesCol = colClientes(tenantId);
   const telefonosLegacy = [

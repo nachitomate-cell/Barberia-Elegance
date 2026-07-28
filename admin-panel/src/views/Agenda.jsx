@@ -4842,6 +4842,9 @@ export default function Agenda() {
   // fuente que usa la agenda del profesional (agenda.html).
   const [colacionGlobal,    setColacionGlobal]    = useState(null);
   const [colacionesBarbero, setColacionesBarbero] = useState({});
+  // Rótulos de hueco libre en la grilla: opt-in del local
+  // (configuracion/main.mostrarHuecosLibres). Default apagado.
+  const [verHuecos,         setVerHuecos]         = useState(false);
 
   useEffect(() => {
     withTimeout(getDoc(doc(tenantCol('configuracion'), 'main')), 10000, 'agenda/cfg-main')
@@ -4850,6 +4853,10 @@ export default function Agenda() {
         const data = snap.data();
         if (data.intervaloMinutos) { const r = snapResolucion(data.intervaloMinutos); setSlotMins(r); setLabelStep(r); try { localStorage.setItem(SLOT_KEY, String(r)); } catch { /* noop */ } }
         if (data.colacion && data.colacion.inicio && data.colacion.fin) setColacionGlobal(data.colacion);
+        // Huecos libres: opt-in por local (Configuración → Agenda). Ausente =
+        // apagado, para que ningún tenant se encuentre con la grilla llena de
+        // etiquetas sin haberlas pedido.
+        setVerHuecos(data.mostrarHuecosLibres === true);
         // Guardamos el horario completo; el rango visible se calcula POR DÍA (abajo),
         // respetando diasConfig (cada día puede cerrar a una hora distinta).
         setCfgHorario({ horarioInicio: data.horarioInicio, horarioFin: data.horarioFin, diasConfig: data.diasConfig || null });
@@ -5968,11 +5975,13 @@ export default function Agenda() {
                                 Recibe TODO lo que ocupa espacio visual (citas de
                                 cualquier estado, bloqueos, colación y descansos)
                                 para no rotular "libre" encima de un bloque. */}
-                            <HuecosLibres
-                              citas={barberCitas}
-                              bloqueos={barberBloqueos}
-                              descansos={[colacionDe(b.id), ...descansosDe(b, date)].filter(Boolean)}
-                            />
+                            {verHuecos && (
+                              <HuecosLibres
+                                citas={barberCitas}
+                                bloqueos={barberBloqueos}
+                                descansos={[colacionDe(b.id), ...descansosDe(b, date)].filter(Boolean)}
+                              />
+                            )}
                             {layoutCitas.map(({ cita, colIndex, colTotal }) => (
                               <AppointmentBlock
                                 key={cita.id}

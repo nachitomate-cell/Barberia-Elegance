@@ -38,6 +38,9 @@ functions/_temp-*.js
 # Herramientas ad-hoc de diagnostico/backfill (prefijo `_`) — nunca se
 # importan desde el resto del codigo, viven en local y se tiran.
 functions/_*.mjs
+# Respaldos que dejan los scripts _*.mjs antes de tocar datos. Llevan datos
+# personales de clientes (nombre, mail, teléfono) — nunca al repo.
+functions/_*.json
 functions/_snapshots/
 /_*.mjs
 admin-panel/_*.mjs

@@ -61,13 +61,38 @@ function colUsers(tenantId) {
     : db.collection(`tenants/${tenantId}/users`);
 }
 
-// Norma canónica: últimos 9 dígitos (número nacional chileno sin código país).
+// Norma canónica: número nacional chileno de 9 dígitos, sin código de país.
 // Sin esto, "+56 9 5964 6603" y "959646603" (mismo humano) quedaban con claves
-// distintas. Móviles chilenos son 9 dígitos, code país +56.
+// distintas. Móviles chilenos son 9 dígitos empezando en 9, code país +56.
+//
+// Repara además los dos errores de tipeo que MÁS duplicados generan, porque el
+// id determinístico sale de acá y un dígito de más o de menos creaba una
+// persona nueva en silencio (caso Saúl Horta en aura, 2026-07-28: tres perfiles
+// del mismo humano, y el pack quedó pegado al equivocado):
+//
+//   · "78642173"     → le falta el 9 inicial; se teclean los 8 últimos.
+//   · "+5678642173"  → mismo caso pero con código país, y como antes tomábamos
+//                      los ÚLTIMOS 9 dígitos, el resultado ("678642173") se
+//                      comía el 6 del +56 y parecía un número válido.
+//
+// Los números ya correctos devuelven EXACTAMENTE lo mismo que antes, así que
+// ningún id determinístico existente se vuelve inalcanzable.
 function normPhone(t) {
-  const d = (t || '').replace(/\D/g, '');
+  let d = (t || '').replace(/\D/g, '');
   if (!d) return '';
+  // Código país chileno adelante → nos quedamos con el número nacional.
+  if (d.startsWith('56') && (d.length === 10 || d.length === 11)) d = d.slice(2);
+  // Móvil al que le falta el 9 inicial.
+  if (d.length === 8) d = '9' + d;
   return d.length > 9 ? d.slice(-9) : d;
+}
+
+// ¿El teléfono está bien escrito? Móvil chileno = 9 dígitos empezando en 9
+// (con o sin +56 adelante). Se usa para desempatar cuando varios docs matchean.
+function _esTelCanonico(t) {
+  const d = String(t || '').replace(/\D/g, '');
+  const nac = (d.startsWith('56') && (d.length === 10 || d.length === 11)) ? d.slice(2) : d;
+  return nac.length === 9 && nac.startsWith('9');
 }
 
 // Devuelve TODAS las variantes razonables de un teléfono para hacer lookups
@@ -90,6 +115,20 @@ function phoneVariants(rawPhone) {
     if (!norm.startsWith('56') && norm.length === 9) {
       variants.add('56' + norm);
       variants.add('+56' + norm);
+    }
+    // Variantes del mismo número MAL escrito, para que un lookup con el número
+    // correcto encuentre igual al doc que quedó guardado sin el 9 inicial (y
+    // viceversa). Sin esto la query por campo `telefono` no lo veía nunca y se
+    // creaba un duplicado.
+    const nac = normPhone(rawPhone);              // 9 dígitos canónicos
+    if (nac.length === 9 && nac.startsWith('9')) {
+      const sin9 = nac.slice(1);                  // los 8 últimos
+      variants.add(sin9);
+      variants.add('+' + sin9);
+      variants.add('56' + sin9);
+      variants.add('+56' + sin9);
+      variants.add(nac);
+      variants.add('+56' + nac);
     }
   }
   return [...variants].filter(Boolean);
@@ -258,7 +297,19 @@ async function resolveMatch(col, { email, telefono }, opts = {}) {
     if (excludeId) byTel = byTel.filter(d => d.id !== excludeId);
 
     if (byTel.length > 1) {
-      matchedBy = 'tel-ambiguo';
+      // Con el normPhone reparador, un número correcto ahora también matchea al
+      // doc que quedó guardado mal escrito. Eso son DOS matches del mismo humano,
+      // y caer en 'tel-ambiguo' crearía un TERCER doc — la fábrica de duplicados
+      // que estamos cerrando. Si exactamente uno tiene el teléfono bien escrito,
+      // ese manda. Si hay varios canónicos sí es ambigüedad real (familia
+      // compartiendo número) y no adivinamos, como antes.
+      const canonicos = byTel.filter(d => _esTelCanonico(d.data().telefono));
+      if (canonicos.length === 1) {
+        candidates = canonicos;
+        matchedBy  = 'tel-canonico';
+      } else {
+        matchedBy = 'tel-ambiguo';
+      }
     } else if (byTel.length === 1) {
       const other      = byTel[0].data();
       const otherEmail = (other.email || '').toLowerCase();
