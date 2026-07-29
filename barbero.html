@@ -1186,6 +1186,11 @@
   let _bloqueosProximos = {};   // { 'YYYY-MM-DD': true }
   let _unsubSlotLocks = null;
   let _toastTimer = null;
+  // Servicios adicionales elegidos en el upsell. Mismo modelo que la agenda
+  // del local: el servicio principal manda y estos suman precio y duración.
+  let _selectedAddons = [];
+  let _upsellPool = [];
+  let _upsellMostrado = false;
 
   /* ── Utilities ──────────────────────────────────────────────────── */
   function slugify(str) {
@@ -1254,8 +1259,30 @@
       return Number(s.preciosSucursal[sid]);
     return Number(s.precio) || 0;
   }
+  // ── Servicios adicionales (upsell) ────────────────────────────────
+  // Suman precio y duración al servicio principal, igual que en la agenda del
+  // local. Se calculan aparte para que `_precioEfectivo` y la consulta de
+  // horas no tengan que saber si hay adicionales o no.
+  function _addonsPrecio() {
+    return (_selectedAddons || []).reduce((s, a) => s + _precioSvc(a), 0);
+  }
+  function _addonsDuracion() {
+    return (_selectedAddons || []).reduce((s, a) => s + (Number(a.duracion) || 0), 0);
+  }
+  // Duración TOTAL de la visita. Es la que hay que pedirle a getHorasDisponibles:
+  // con un corte de 30' + barba de 20' el cliente ocupa 50', y ofrecerle un
+  // hueco de 30' lo dejaría encima de la cita siguiente.
+  function _duracionTotal() {
+    return (Number(_selectedService && _selectedService.duracion) || 0) + _addonsDuracion();
+  }
+  function _nombreServicioCompleto() {
+    if (!_selectedService) return '';
+    const extras = (_selectedAddons || []).map(a => a.nombre);
+    return _selectedService.nombre + (extras.length ? ' + ' + extras.join(' + ') : '');
+  }
+
   function _precioEfectivo() {
-    return _precioSvc(_selectedService) + _recargoActual() + _recargoVip();
+    return _precioSvc(_selectedService) + _addonsPrecio() + _recargoActual() + _recargoVip();
   }
 
   // Sede de la cita. Acá no se pregunta como en la agenda del local: esta
@@ -1483,6 +1510,11 @@
 
   function selectService(btn, id) {
     _selectedService = _allServices.find(s => s.id === id) || null;
+    // Cambiar de servicio invalida los adicionales: los recomendados del
+    // anterior no tienen por qué combinar con este, y dejarlos cobrados sería
+    // un cargo que el cliente no eligió.
+    _selectedAddons = [];
+    _upsellMostrado = false;
     document.querySelectorAll('.svc-card').forEach(el => el.classList.remove('selected'));
     if (btn) btn.classList.add('selected');
     updateContinueBtn();
@@ -1817,7 +1849,7 @@
   async function renderHours() {
     if (!_selectedService) return;
     const section = document.getElementById('hoursSection');
-    const cacheKey = _hoursCacheKey(_selectedDate, _selectedService.duracion);
+    const cacheKey = _hoursCacheKey(_selectedDate, _duracionTotal());
     const cached = _hoursCache.get(cacheKey);
 
     if (!cached) {
@@ -1833,7 +1865,7 @@
     if (!hours) {
       try {
         hours = await FDB.getHorasDisponibles(
-          _selectedDate, _selectedService.duracion, cfg, _barberoId, vipOpts
+          _selectedDate, _duracionTotal(), cfg, _barberoId, vipOpts
         );
         const _now = new Date();
         const _todayStr = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
@@ -1974,7 +2006,7 @@
     _unsubSlotLocks = FDB.onSlotLocksChange(fecha, () => {
       if (currentStep !== 2) return;
       // Invalidar el cache para esta fecha+duracion, ya que cambió la ocupación.
-      if (_selectedService) _hoursCache.delete(_hoursCacheKey(fecha, _selectedService.duracion));
+      if (_selectedService) _hoursCache.delete(_hoursCacheKey(fecha, _duracionTotal()));
       const prev = _selectedTime;
       renderHours();
       if (prev) {
@@ -2039,6 +2071,17 @@
 
     if (currentStep === 1) {
       if (!_selectedService) return showToast('Selecciona un servicio para continuar.');
+      // Ofrecer los adicionales ANTES de pasar a la fecha: los complementos
+      // cambian precio y duración, y la duración decide qué horas caben.
+      // `_upsellMostrado` evita reabrirlo cuando confirmUpsell() vuelve a
+      // llamar a nextStep(); se reinicia al cambiar de servicio.
+      if (!_upsellMostrado) {
+        _upsellPool = _getUpsellPool();
+        if (_upsellPool.length) {
+          _upsellMostrado = true;
+          if (_abrirUpsell()) return;
+        }
+      }
       // Load barber config + bloqueos, then render calendar
       try {
         const [barCfg] = await Promise.all([
@@ -2052,9 +2095,9 @@
       subscribeSlotLocks(_selectedDate);
       document.getElementById('clubBanner').classList.add('hidden');
       // Show service chip + slim header
-      document.getElementById('chipServiceName').textContent = _selectedService.nombre;
-      document.getElementById('chipPrice').textContent = formatPrice(_precioSvc(_selectedService));
-      document.getElementById('chipDuration').textContent = formatDuration(_selectedService.duracion);
+      document.getElementById('chipServiceName').textContent = _nombreServicioCompleto();
+      document.getElementById('chipPrice').textContent = formatPrice(_precioSvc(_selectedService) + _addonsPrecio());
+      document.getElementById('chipDuration').textContent = formatDuration(_duracionTotal());
       document.getElementById('serviceChip').classList.remove('hidden');
       showSlimHeader();
       transitionStep(1, 2);
@@ -2066,7 +2109,7 @@
       if (!_selectedTime) return showToast('Elige una hora disponible para continuar.');
       if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
-      document.getElementById('summaryService').textContent = _selectedService.nombre;
+      document.getElementById('summaryService').textContent = _nombreServicioCompleto();
       document.getElementById('summaryPrice').textContent   = formatPrice(_precioEfectivo());
       document.getElementById('summaryBarber').textContent  = _barberoNombre;
       const [sy, sm, sd] = _selectedDate.split('-');
@@ -2144,8 +2187,8 @@
               telefono,
               email,
               servicioId:     _selectedService.id,
-              servicioNombre: _selectedService.nombre,
-              duracion:       _selectedService.duracion,
+              servicioNombre: _nombreServicioCompleto(),
+              duracion:       _duracionTotal(),
               precio:         _precioEfectivo(),
               barbero:        _barberoNombre,
               barberoId:      _barberoId,
@@ -2194,8 +2237,8 @@
           telefono,
           email,
           servicioId:     _selectedService.id,
-          servicioNombre: _selectedService.nombre,
-          duracion:       _selectedService.duracion,
+          servicioNombre: _nombreServicioCompleto(),
+          duracion:       _duracionTotal(),
           precio:         _precioEfectivo(),
           barbero:        _barberoNombre,
           barberoId:      _barberoId,
@@ -2595,6 +2638,146 @@
   function onClubModalBackdrop(e) {
     if (e.target === e.currentTarget) dismissClubModal();
   }
+
+  /* Modal de servicios adicionales — se inyecta al vuelo para no cargar
+     markup muerto en los locales que no usan recomendaciones. Hereda el
+     acento del tenant vía var(--accent), así cada local lo ve con su color. */
+  (function () {
+    const css = `
+      #upsellModal{position:fixed;inset:0;z-index:190;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);}
+      #upsellModal.flex{display:flex;}
+      @media(min-width:640px){#upsellModal{align-items:center;}}
+      #upsellSheet{width:100%;max-width:440px;background:#111;border:1px solid rgba(255,255,255,.10);border-radius:22px 22px 0 0;padding:22px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;}
+      @media(min-width:640px){#upsellSheet{border-radius:22px;}}
+      html.theme-light #upsellSheet{background:#fff;border-color:rgba(17,24,39,.10);}
+      #upsellSheet h3{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.01em;}
+      html.theme-light #upsellSheet h3{color:#111827;}
+      #upsellSheet .sub{font-size:12.5px;color:rgba(255,255,255,.55);margin-top:4px;}
+      html.theme-light #upsellSheet .sub{color:#52525B;}
+      .upsell-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;padding:13px 14px;border-radius:16px;border:1.5px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);margin-top:9px;cursor:pointer;transition:all .16s ease;}
+      html.theme-light .upsell-item{border-color:rgba(17,24,39,.12);background:#fff;}
+      .upsell-item.sel{border-color:var(--accent);background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),.10);}
+      .up-info{display:flex;flex-direction:column;min-width:0;flex:1;}
+      .up-nombre{font-size:13.5px;font-weight:700;color:#fff;line-height:1.25;}
+      html.theme-light .up-nombre{color:#111827;}
+      .up-desc{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      html.theme-light .up-desc{color:#6B7280;}
+      .up-dur{font-size:10.5px;color:rgba(255,255,255,.32);margin-top:3px;font-weight:600;}
+      html.theme-light .up-dur{color:#9CA3AF;}
+      .up-right{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+      .up-precio{font-size:13px;font-weight:800;color:#fff;}
+      html.theme-light .up-precio{color:#111827;}
+      .up-radio{width:22px;height:22px;border-radius:999px;border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:12px;color:#111;}
+      html.theme-light .up-radio{border-color:rgba(17,24,39,.25);}
+      .upsell-item.sel .up-radio{background:var(--accent);border-color:var(--accent);}
+      #upsellBtns{display:flex;gap:9px;margin-top:18px;}
+      #upsellBtns button{flex:1;padding:13px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;border:none;}
+      #upsellNo{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.12)!important;}
+      html.theme-light #upsellNo{background:#fff;color:#52525B;border-color:rgba(17,24,39,.15)!important;}
+      #upsellSi{background:var(--accent);color:#0a0a0a;flex:1.5;}
+    `;
+    const st = document.createElement('style');
+    st.textContent = css;
+    document.head.appendChild(st);
+
+    const wrap = document.createElement('div');
+    wrap.id = 'upsellModal';
+    wrap.className = 'hidden';
+    wrap.innerHTML = `
+      <div id="upsellSheet">
+        <h3>¿Le sumamos algo más?</h3>
+        <p class="sub">Complementos que combinan con lo que elegiste. Puedes seguir sin agregar nada.</p>
+        <div id="upsellList"></div>
+        <p class="sub" style="margin-top:14px;">Total: <b id="upsellTotal"></b></p>
+        <div id="upsellBtns">
+          <button type="button" id="upsellNo" onclick="cancelUpsell()">No, gracias</button>
+          <button type="button" id="upsellSi" onclick="confirmUpsell()">Continuar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+  })();
+
+  /* ── Servicios adicionales (upsell) ─────────────────────────────
+     Espejo del modal de la agenda del local. El pool son los `recomendados`
+     del servicio elegido, y solo aparece si el local encendió las
+     recomendaciones (configuracion/main.recomendacionesActivas) y quedó al
+     menos uno por ofrecer. Sin eso el paso 1 sigue igual que siempre. */
+  function _getUpsellPool() {
+    if (!_fsConfig || !_fsConfig.recomendacionesActivas) return [];
+    const seleccion = [_selectedService, ...(_selectedAddons || [])].filter(Boolean);
+    if (!seleccion.length) return [];
+    const elegidos = new Set(seleccion.map(s => String(s.id)));
+    const ids = [];
+    seleccion.forEach(s => {
+      (Array.isArray(s.recomendados) ? s.recomendados : []).forEach(id => {
+        const key = String(id);
+        if (!elegidos.has(key) && !ids.includes(key)) ids.push(key);
+      });
+    });
+    // Solo servicios que siguen existiendo en el catálogo y no son packs:
+    // un pack tiene su propio flujo de venta y no puede ir de adicional.
+    return ids
+      .map(id => (_allServices || []).find(s => String(s.id) === String(id)))
+      .filter(s => s && !s.isPack);
+  }
+
+  function _renderUpsellList() {
+    const listEl = document.getElementById('upsellList');
+    if (!listEl) return;
+    listEl.innerHTML = _upsellPool.map(a => {
+      const sel = (_selectedAddons || []).some(x => String(x.id) === String(a.id));
+      const desc = a.descripcion ? String(a.descripcion).replace(/</g, '&lt;') : '';
+      return `
+        <button type="button" onclick="toggleUpsellAddon('${a.id}')"
+          class="upsell-item${sel ? ' sel' : ''}">
+          <span class="up-info">
+            <span class="up-nombre">${String(a.nombre || '').replace(/</g, '&lt;')}</span>
+            ${desc ? `<span class="up-desc">${desc}</span>` : ''}
+            <span class="up-dur">🕒 +${Number(a.duracion) || 0} min</span>
+          </span>
+          <span class="up-right">
+            <span class="up-precio">${formatPrice(_precioSvc(a))}</span>
+            <span class="up-radio">${sel ? '✓' : ''}</span>
+          </span>
+        </button>`;
+    }).join('');
+  }
+
+  window.toggleUpsellAddon = function (id) {
+    const addon = _upsellPool.find(a => String(a.id) === String(id));
+    if (!addon) return;
+    const idx = (_selectedAddons || []).findIndex(a => String(a.id) === String(id));
+    if (idx === -1) _selectedAddons.push(addon); else _selectedAddons.splice(idx, 1);
+    _renderUpsellList();
+    const t = document.getElementById('upsellTotal');
+    if (t) t.textContent = formatPrice(_precioSvc(_selectedService) + _addonsPrecio());
+  };
+
+  function _abrirUpsell() {
+    const m = document.getElementById('upsellModal');
+    if (!m) return false;
+    _renderUpsellList();
+    const t = document.getElementById('upsellTotal');
+    if (t) t.textContent = formatPrice(_precioSvc(_selectedService) + _addonsPrecio());
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    return true;
+  }
+
+  function _cerrarUpsell() {
+    const m = document.getElementById('upsellModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  }
+
+  // Continuar CON lo elegido.
+  window.confirmUpsell = function () { _cerrarUpsell(); nextStep(); };
+  // "No, gracias": limpia lo que se haya marcado en este modal y sigue.
+  window.cancelUpsell = function () {
+    const poolIds = new Set(_upsellPool.map(s => String(s.id)));
+    _selectedAddons = (_selectedAddons || []).filter(a => !poolIds.has(String(a.id)));
+    _cerrarUpsell();
+    nextStep();
+  };
 
   /* ── Lock de UI mientras se crea la cita ────────────────────────
      Espejo del de la agenda del local. Deshabilitar el botón no basta:
