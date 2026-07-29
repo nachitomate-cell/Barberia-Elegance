@@ -11,6 +11,7 @@
     "seed": "node seed-barberos.js",
     "check:mojibake": "node scripts/check-mojibake.js",
     "check:tenants": "node scripts/check-tema-tenants.js",
+    "check:bot-prompt": "node scripts/check-bot-prompt.js",
     "check": "npm run check:mojibake && npm run check:tenants"
   },
   "devDependencies": {

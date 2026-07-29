@@ -19,7 +19,8 @@
 //  Sin plantillas de Meta, sin aprobaciones, costo $0. (Ver [[asistente-ia-evolution]].)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { onSchedule }   = require('firebase-functions/v2/scheduler');
+const { onSchedule }        = require('firebase-functions/v2/scheduler');
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { defineSecret }  = require('firebase-functions/params');
 const { logger }        = require('firebase-functions');
 const admin             = require('firebase-admin');
@@ -27,6 +28,11 @@ const { FieldValue }    = require('firebase-admin/firestore');
 const { crearCliente }  = require('./client');
 const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
 const { logWaSend }               = require('../lib/metrics');
+const { estaBloqueado }           = require('../lib/wa-consent');
+const {
+  capDiario, capConfirmaciones, MAX_POR_CICLO,
+  dentroDeVentanaHoraria, registrarSaliente, salientesHoy, HORA_INICIO, HORA_FIN,
+} = require('./cuota');
 
 const db = admin.firestore();
 
@@ -132,19 +138,8 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
   logger.info(`[confirm] ${tid}/${citaId} → confirmación enviada a ${tel}`);
 }
 
-/* Tope DIARIO de confirmaciones por instancia, escalonado por madurez del
-   número — anti-ban: un número recién vinculado despachando decenas de
-   salientes proactivos el día uno es el patrón clásico que Meta suspende.
-   La edad se mide desde `vinculadoDesde` (primera conexión, NO se resetea
-   en reconexiones); sin ese dato se asume número nuevo (conservador). */
-function capDiario(cfg) {
-  const desde = cfg && cfg.vinculadoDesde && cfg.vinculadoDesde.toMillis
-    ? cfg.vinculadoDesde.toMillis() : 0;
-  const dias = desde ? (Date.now() - desde) / 86400000 : 0;
-  if (dias >= 30) return 150;
-  if (dias >= 7)  return 60;
-  return 20;
-}
+// capDiario y capConfirmaciones viven ahora en ./cuota.js: el tope tiene que
+// contar TODOS los salientes del número (bot + confirmaciones), no solo estas.
 
 /** Escanea un tenant y envía las confirmaciones que toquen. Devuelve cuántas envió. */
 async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }) {
@@ -153,11 +148,21 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
   const nowAbs = absMin(now.fecha, now.mins);
   const nDays = Math.ceil(ventana / 24);
 
-  // Contador del día persistido en la config del canal (sobrevive entre ciclos).
-  const cap = capDiario(cfg);
-  const cd  = (cfg && cfg.confirmDia) || {};
+  // Dos topes distintos y ambos importan:
+  //  · capTotal   → todos los salientes del número hoy (lo que mira Meta)
+  //  · capConfirm → solo los proactivos (iniciar conversación pesa mucho más
+  //                 que responderle a alguien que te escribió primero)
+  const capTotal   = capDiario(cfg);
+  const capConfirm = capConfirmaciones(cfg);
+  const cd = (cfg && cfg.confirmDia) || {};
   let enviadasHoy = cd.fecha === now.fecha ? (Number(cd.enviadas) || 0) : 0;
+  let totalHoy    = await salientesHoy(tid);
   const cfgRef = db.doc(`tenants/${tid}/configuracion/whatsapp`);
+
+  if (totalHoy >= capTotal) {
+    logger.warn(`[confirm] ${tid}: tope TOTAL de salientes alcanzado (${totalHoy}/${capTotal}); nada más hoy`);
+    return 0;
+  }
 
   let enviadas = 0;
   for (let i = 0; i <= nDays; i++) {
@@ -167,7 +172,12 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
       const cita = doc.data();
       if ((cita.estado || '') !== 'Pendiente') continue;   // solo citas por confirmar
       if (cita.waConfirmSolicitada === true) continue;      // ya se preguntó
-      if (cita.waOptIn !== true) continue;                  // opt-in del cliente
+      // Opt-in EXPLÍCITO del cliente: desde el doble opt-in, esto es la
+      // casilla que marcó al reservar. Sin casilla no hay WhatsApp.
+      if (cita.waOptIn !== true) continue;
+      // Número que ya comprobamos que no existe en WhatsApp: no reintentar
+      // ciclo tras ciclo (cada intento fallido es señal de lista mala).
+      if (cita.waNumeroInvalido === true) continue;
       // Agendada por el propio cliente en el chat hace <2h: acaba de pedirla —
       // preguntarle "¿confirmas?" al tiro es ruido. Un ciclo posterior la toma.
       if (cita.origen === 'wa_bot' && cita.creadoEn && typeof cita.creadoEn.toMillis === 'function'
@@ -179,17 +189,57 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
       const diffH = (absMin(cita.fecha, toMins(cita.hora)) - nowAbs) / 60;
       if (diffH <= 0 || diffH > ventana) continue;          // fuera de ventana
 
-      if (enviadasHoy >= cap) {
+      // ── Opt-out global: manda por sobre el waOptIn de la cita ──
+      // El cliente escribió STOP (por este canal o por el oficial). Se marca
+      // la cita para no volver a evaluarla y se sigue de largo.
+      if (await estaBloqueado(tel)) {
+        await citasCol(tid).doc(doc.id).update({
+          waConfirmSolicitada: true,
+          waOmitidaMotivo:     'optout',
+        }).catch(() => {});
+        logger.info(`[confirm] ${tid}/${doc.id}: omitida por opt-out ***${tel.slice(-4)}`);
+        continue;
+      }
+
+      // ── Topes ──
+      if (enviadas >= MAX_POR_CICLO) {
+        // Reparte la carga entre ciclos (el cron corre cada 30 min) en vez de
+        // soltar una ráfaga de 20 mensajes a 20 personas distintas. Las citas
+        // que quedan siguen 'Pendiente' y las toma el ciclo siguiente.
+        logger.info(`[confirm] ${tid}: tope por ciclo (${MAX_POR_CICLO}); el resto va en el próximo`);
+        return enviadas;
+      }
+      if (enviadasHoy >= capConfirm || totalHoy >= capTotal) {
         // Válvula de seguridad: las citas no preguntadas siguen 'Pendiente'
         // y entran en el próximo ciclo/día. Mejor un no-show que un ban.
-        logger.warn(`[confirm] ${tid}: tope diario anti-ban alcanzado (${cap}); quedan citas sin preguntar`);
+        logger.warn(`[confirm] ${tid}: tope diario alcanzado (confirm ${enviadasHoy}/${capConfirm}, total ${totalHoy}/${capTotal})`);
         return enviadas;
+      }
+
+      // ── ¿El número existe en WhatsApp? ──
+      // Se consulta recién acá, cuando ya pasó todos los demás filtros, para
+      // no gastar una llamada al VPS por cada cita descartada.
+      try {
+        const existe = await evoClient.verificarNumeros(`instance_${tid}`, [tel]);
+        if (existe.size && existe.get(tel) === false) {
+          await citasCol(tid).doc(doc.id).update({
+            waNumeroInvalido: true,
+            waOmitidaMotivo:  'sin-whatsapp',
+          }).catch(() => {});
+          logger.info(`[confirm] ${tid}/${doc.id}: ***${tel.slice(-4)} no está en WhatsApp, omitida`);
+          continue;
+        }
+      } catch (e) {
+        // Falla-abierto: si el VPS no responde la verificación, se envía igual.
+        logger.warn(`[confirm] ${tid}: verificarNumeros falló (${e.message}); se envía sin verificar`);
       }
 
       try {
         await enviarConfirmacion({ tid, citaId: doc.id, cita, tel, evoClient, nombreLocal });
         enviadas++;
         enviadasHoy++;
+        totalHoy++;
+        await registrarSaliente(tid);
         await cfgRef.set({ confirmDia: { fecha: now.fecha, enviadas: enviadasHoy } }, { merge: true }).catch(() => {});
       } catch (e) {
         logger.error(`[confirm] ${tid}/${doc.id}:`, e.message);
@@ -233,11 +283,58 @@ exports.evolutionConfirmaciones = onSchedule(
     timeZone: 'America/Santiago',
     region:   'us-central1',
     secrets:  [EVOLUTION_API_URL, EVOLUTION_API_KEY],
+    // El default de 60s no alcanzaba: `enviarTexto` pide a Evolution un delay
+    // de 3–8 s por mensaje ("escribiendo…"), así que el ciclo se cortaba
+    // calladamente a los ~10 envíos y las citas restantes quedaban sin
+    // preguntar. Con el tope por ciclo (8) esto va sobrado.
+    timeoutSeconds: 300,
   },
   async () => {
+    // ── Ventana horaria: nada de salientes proactivos de madrugada ──
+    // El cron corre cada 30 min las 24 h; sin esto, una cita de las 10:00 con
+    // ventana de 24 h disparaba la confirmación a las 3 de la mañana. Un
+    // WhatsApp comercial de madrugada es la vía rápida a que te bloqueen.
+    if (!dentroDeVentanaHoraria()) {
+      logger.info(`[confirm] fuera de ventana horaria (${HORA_INICIO}:00–${HORA_FIN}:00 Chile): ciclo omitido`);
+      return;
+    }
     const evoClient = crearCliente({ baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value() });
     const n = await escanearTodos({ evoClient });
     logger.info(`[confirm] ciclo completo: ${n} confirmación(es) enviada(s)`);
+  },
+);
+
+/* ───────────── Espejo público del flag (para el doble opt-in) ─────────────
+   La agenda pública necesita saber si mostrar la casilla de consentimiento de
+   WhatsApp, pero NO puede leer `configuracion/whatsapp`: ese doc guarda el
+   número vinculado del local y el email de quien aceptó los términos, y está
+   cerrado al público en las rules. Así que espejamos SOLO el booleano al doc
+   `configuracion/main`, que ya es público y que la agenda ya carga igual.
+
+   Trigger y no escritura desde el panel a propósito: el toggle se puede
+   cambiar desde el panel, desde /admin o desde un script, y el espejo tiene
+   que quedar bien en los tres casos. (Mismo patrón que ya nos mordió con los
+   doc-espejo de roles y con las storage rules por tenant.)
+
+   Nota: cuando el canal OFICIAL de Meta entre en producción, este flag debe
+   pasar a ser un OR de ambos canales — hoy solo Evolution está vivo. */
+exports.espejoFlagConfirmaciones = onDocumentWritten(
+  { document: 'tenants/{tid}/configuracion/whatsapp', region: 'us-central1' },
+  async (event) => {
+    const tid    = event.params.tid;
+    const antes  = event.data?.before?.data() || {};
+    const ahora  = event.data?.after?.data()  || {};
+    if (antes.confirmacionesEnabled === ahora.confirmacionesEnabled) return; // sin cambio real
+
+    const activo = ahora.confirmacionesEnabled === true;
+    // elegance vive en la raíz de Firestore, no bajo tenants/.
+    const destino = tid === 'elegance'
+      ? db.doc('configuracion/main')
+      : db.doc(`tenants/${tid}/configuracion/main`);
+
+    await destino.set({ waConfirmActivo: activo }, { merge: true }).catch(e =>
+      logger.error(`[confirm:espejo] ${tid}:`, e.message));
+    logger.info(`[confirm:espejo] ${tid}: waConfirmActivo=${activo}`);
   },
 );
 

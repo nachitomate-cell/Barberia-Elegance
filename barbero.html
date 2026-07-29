@@ -992,6 +992,21 @@
           </label>
           <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" class="booking-input">
         </div>
+
+        <!-- Doble opt-in de WhatsApp. Oculto salvo que el local tenga las
+             confirmaciones activas (configuracion/main.waConfirmActivo). El id
+             `waOptInCheck` es contrato con ReservaCore.waOptInMarcado(): si se
+             renombra acá y no allá, esta página deja de pedir consentimiento
+             en silencio. -->
+        <label id="waOptInWrap" class="hidden items-start gap-3 pt-1 cursor-pointer group">
+          <input type="checkbox" id="waOptInCheck"
+            class="mt-0.5 w-[18px] h-[18px] shrink-0 rounded-md border border-white/20 bg-[#0a0a0d] accent-white cursor-pointer">
+          <span class="text-[11px] text-gray-400 leading-relaxed select-none group-hover:text-gray-300 transition-colors">
+            Quiero recibir la confirmación y el recordatorio de <b class="text-white/80">esta cita</b> por
+            <b class="text-white/80">WhatsApp</b>. Puedes darte de baja cuando quieras respondiendo
+            <b class="text-white/80">STOP</b>.
+          </span>
+        </label>
       </div>
 
       <!-- Summary card -->
@@ -2244,6 +2259,8 @@
           barberoId:      _barberoId,
           sucursal:       _sucursalDelBarbero(),
           origen:         'barbero-page',
+              // Doble opt-in: sale de la casilla real. Sin casilla → false → sin WhatsApp.
+          waOptIn:        ReservaCore.waOptInMarcado(),
         }),
         estado: 'Confirmada',
         ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
@@ -2380,6 +2397,20 @@
         kronnos_limache:    { r:249, g:115, b:22  }, // #f97316
         kronnos_woman:      { r:236, g:72,  b:153 }, // #ec4899
       };
+      // Doble opt-in de WhatsApp: la casilla nace oculta y solo se muestra si
+      // el local tiene confirmaciones activas. Falla-cerrado: sin flag o con
+      // error, no hay casilla → waOptInMarcado() = false → no sale WhatsApp.
+      (async () => {
+        try {
+          const wrap = document.getElementById('waOptInWrap');
+          if (!wrap || typeof ReservaCore === 'undefined') return;
+          if (await ReservaCore.waConfirmActivo(window.CURRENT_TENANT_ID || 'elegance')) {
+            wrap.classList.remove('hidden');
+            wrap.classList.add('flex');
+          }
+        } catch (_) {}
+      })();
+
       const tid = window.CURRENT_TENANT_ID || 'elegance';
       // Orden: mapa explícito → color elegido por el dueño (self-service) → Elegance.
       // El fallback a accentColor evita que un tenant self-service nuevo salga dorado.

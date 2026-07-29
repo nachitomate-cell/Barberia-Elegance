@@ -82,13 +82,10 @@ const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
-/** Normaliza a dígitos estilo Meta (E.164 sin '+'). Chile: 9XXXXXXXX → 569XXXXXXXX. */
-function normalizarFono(raw) {
-  let d = String(raw || '').replace(/\D/g, '');
-  if (d.length === 9 && d.startsWith('9')) d = '56' + d;
-  if (d.length === 8) d = '569' + d;
-  return d;
-}
+// normalizarFono se importa del lib compartido (más abajo, junto al resto del
+// consentimiento): el doc id de /wa_optout tiene que salir de la MISMA función
+// en los dos canales, o un canal guarda 569XXXXXXXX y el otro busca 9XXXXXXXX
+// y el opt-out no se ve.
 
 function fmtFecha(fechaStr) {
   if (!fechaStr) return '—';
@@ -108,44 +105,18 @@ async function getGlobalConfig() {
 
 /**
  * Estado de consentimiento WhatsApp del titular (cliente final).
- * Almacenado en /wa_optout/{fono}. El default (sin doc) es "unknown",
- * que la política de envío trata como bloqueo — es más estricto pero
- * cumple con opt-in explícito de Meta Business Policy y Ley 21.719.
- *   · 'optin'   → autorizó recibir por WhatsApp.
- *   · 'optout'  → escribió STOP/BAJA. Prohibido enviar, sin renovación
- *                 automática (solo respondiendo REACTIVAR).
- *   · 'unknown' → nunca aceptó explícitamente. No enviar.
+ * La implementación vive en functions/lib/wa-consent.js porque el canal de
+ * Evolution (número propio del local) tiene que leer y escribir EL MISMO
+ * libro: antes cada canal tenía su copia y un STOP acá no frenaba los
+ * mensajes de allá. Semántica en este canal (Meta Cloud API): 'unknown'
+ * se trata como bloqueo — Meta exige opt-in explícito para plantillas.
  */
-async function consentimientoWa(fono) {
-  if (!fono) return 'unknown';
-  try {
-    const snap = await db.collection('wa_optout').doc(fono).get();
-    if (!snap.exists) return 'unknown';
-    return snap.data()?.estado === 'optout' ? 'optout' : 'optin';
-  } catch (_) { return 'unknown'; }
-}
-
-async function registrarOptOut(fono, motivo) {
-  const now = Timestamp.now();
-  await db.collection('wa_optout').doc(fono).set({
-    telefono:       fono,
-    estado:         'optout',
-    motivo:         motivo || 'stop-usuario',
-    actualizadoEn:  now,
-    historial:      FieldValue.arrayUnion({ estado: 'optout', fuente: motivo || 'stop-usuario', at: now }),
-  }, { merge: true });
-}
-
-async function registrarOptIn(fono, motivo) {
-  const now = Timestamp.now();
-  await db.collection('wa_optout').doc(fono).set({
-    telefono:       fono,
-    estado:         'optin',
-    motivo:         motivo || 'reactivar-usuario',
-    actualizadoEn:  now,
-    historial:      FieldValue.arrayUnion({ estado: 'optin', fuente: motivo || 'reactivar-usuario', at: now }),
-  }, { merge: true });
-}
+const {
+  normalizarFono,
+  consentimientoWa,
+  registrarOptOut,
+  registrarOptIn,
+} = require('./lib/wa-consent');
 
 /** POST al Graph API. Devuelve el body parseado; lanza con detalle si falla. */
 async function graphPost(payload) {

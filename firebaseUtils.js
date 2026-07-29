@@ -726,11 +726,23 @@ const FDB = (() => {
       // cita normal se referencia el lock que crearemos en la transacción.
       slotLockId:       esSobrecupo ? null : (cita.barberoId ? lockId : null),
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
-      // Opt-in transaccional de WhatsApp: el cliente entregó su teléfono al
-      // reservar SU propia cita (confirmación utility, no marketing). El envío
-      // real está gated por LOCAL (wa_notif/{tid}.planCliente) + opt-out con STOP,
-      // así que solo se materializa donde el dueño activó el plan de confirmaciones.
-      waOptIn:          true,
+      // DOBLE OPT-IN: dejó de ser `true` fijo. Ahora es la casilla que el
+      // cliente marca literalmente en el paso de datos, y solo aparece cuando
+      // el local tiene las confirmaciones de WhatsApp activas
+      // (configuracion/main.waConfirmActivo). Sin casilla marcada no sale
+      // ningún WhatsApp: ni la plantilla del canal oficial ni la confirmación
+      // por el número del local.
+      // Tres razones para el cambio, en orden de peso:
+      //   1) Menos bloqueos/reportes = menos riesgo de que baneen el número
+      //      del local, que es lo que de verdad mata el canal.
+      //   2) Consentimiento demostrable (Ley 21.719 / Meta Business Policy):
+      //      un `true` hardcodeado no es evidencia de nada.
+      //   3) Ahorro: cada confirmación no enviada es una conversación de bot
+      //      que no se abre y tokens de IA que no se gastan.
+      waOptIn:          cita.waOptIn === true,
+      ...(cita.waOptIn === true
+        ? { waOptInAt: firebase.firestore.FieldValue.serverTimestamp(), waOptInMetodo: 'checkbox-reserva' }
+        : {}),
     };
     // Desglose del cupo VIP: se persiste tal cual lo mandó el cliente
     // (validado en el front porque el motor de disponibilidad lo emitió).
@@ -942,7 +954,10 @@ const FDB = (() => {
           grupoId,
           grupoIndex:       it.idx,
           grupoTotal:       items.length,
-          waOptIn:          esPrincipal,   // confirmación WhatsApp solo al reservante
+          // Confirmación WhatsApp solo al reservante Y solo si marcó la casilla
+          // de consentimiento. Antes era `esPrincipal` a secas, que saltaba el
+          // doble opt-in por la puerta de atrás en las reservas de grupo.
+          waOptIn:          esPrincipal && base.waOptIn === true,
           // Solo la cita principal se linkea al cliente reservante (los
           // acompañantes son anónimos). Sin esto la reserva grupal queda
           // "huérfana" en users/.
@@ -2275,14 +2290,47 @@ window.ReservaCore = (function () {
     const TS = (opts && opts.serializable)
       ? new Date().toISOString()
       : firebase.firestore.FieldValue.serverTimestamp();
+    // DOBLE OPT-IN de WhatsApp: ya no es `true` fijo. Viene de la casilla que
+    // el cliente marca literalmente, y esa casilla solo se muestra si el local
+    // tiene las confirmaciones activas (ver waConfirmActivo). El clickwrap de
+    // términos sigue siendo pasivo — confirmar la reserva ES la aceptación —
+    // pero el canal de WhatsApp necesita acto afirmativo propio y separado.
+    const waOptIn = !!(opts && opts.waOptIn);
     return {
       aceptoTerminosAt:   TS,
       aceptoPrivacidadAt: TS,
       terminosVersion:    TERMINOS_VERSION,
       signupMetodo:       'reserva-publica',
-      waOptIn:            true,
-      waOptInAt:          TS,
+      waOptIn,
+      ...(waOptIn ? { waOptInAt: TS } : {}),
     };
+  }
+
+  /* ── Doble opt-in de WhatsApp: flag + lectura de la casilla ──────────
+     El flag REAL vive en tenants/{tid}/configuracion/whatsapp, pero ese doc
+     está cerrado al público (guarda el número vinculado del local y el email
+     de quien aceptó los términos). Una CF lo espeja a configuracion/main
+     .waConfirmActivo, que sí es público — eso es lo que leemos acá.
+
+     La casilla la dibuja cada página con su propio estilo, pero el id
+     `waOptInCheck` es contrato compartido: si mañana alguien lo renombra en
+     una sola página, esa página deja de pedir consentimiento en silencio. */
+  async function waConfirmActivo(tenantId) {
+    try {
+      const fs  = firebase.firestore();
+      const ref = (!tenantId || tenantId === 'elegance')
+        ? fs.collection('configuracion').doc('main')
+        : fs.collection('tenants').doc(tenantId).collection('configuracion').doc('main');
+      const snap = await ref.get();
+      return snap.exists && snap.data().waConfirmActivo === true;
+    } catch (_) { return false; }   // ante la duda, no se pide ni se envía nada
+  }
+
+  /** ¿Marcó la casilla? Sin casilla en el DOM → false (no hay consentimiento
+   *  que asumir). Es deliberadamente falla-cerrado. */
+  function waOptInMarcado() {
+    const el = document.getElementById('waOptInCheck');
+    return !!(el && el.checked);
   }
 
   /* ── Días en que el servicio se puede reservar ───────────────
@@ -2360,7 +2408,7 @@ window.ReservaCore = (function () {
       barbero:             d.barbero || '',
       barberoId:           d.barberoId || null,
       codigoCita:          generarCodigoCita(),
-      ...consentimiento({ serializable: d.serializable }),
+      ...consentimiento({ serializable: d.serializable, waOptIn: d.waOptIn }),
       ...(suc ? { sucursalId: suc.id, sucursalNombre: suc.nombre } : {}),
       ...(d.origen ? { origen: d.origen } : {}),
     };
@@ -2371,6 +2419,8 @@ window.ReservaCore = (function () {
     normalizarTelefono,
     generarCodigoCita,
     consentimiento,
+    waConfirmActivo,
+    waOptInMarcado,
     diaPermitido,
     nombresDiasServicio,
     puedeReservar,

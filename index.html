@@ -9896,9 +9896,23 @@
             Al confirmar tu reserva aceptas los
             <a href="privacidad.html" target="_blank" rel="noopener"
                class="underline text-white/70 hover:text-white">Términos y la Política de Privacidad</a>
-            y el tratamiento de tus datos para gestionar esta cita (Ley 19.628 / 21.719). Recibirás la confirmación y los recordatorios por
-            <span class="text-white/70">WhatsApp</span> — puedes darte de baja respondiendo <span class="text-white/70">STOP</span>.
+            y el tratamiento de tus datos para gestionar esta cita (Ley 19.628 / 21.719).
           </p>
+
+          <!-- Doble opt-in de WhatsApp. Oculto por defecto: lo muestra el JS
+               SOLO si el local tiene confirmaciones activas
+               (configuracion/main.waConfirmActivo, espejado por CF). Sin marcar
+               esta casilla no sale ningún WhatsApp — el id `waOptInCheck` es
+               contrato con ReservaCore.waOptInMarcado(). -->
+          <label id="waOptInWrap" class="hidden items-start gap-3 pt-1 cursor-pointer group">
+            <input type="checkbox" id="waOptInCheck"
+              class="mt-0.5 w-[18px] h-[18px] shrink-0 rounded-md border border-white/20 bg-[#0a0a0d] accent-white cursor-pointer">
+            <span class="text-[11px] text-gray-400 leading-relaxed select-none group-hover:text-gray-300 transition-colors">
+              Quiero recibir la confirmación y el recordatorio de <b class="text-white/80">esta cita</b> por
+              <b class="text-white/80">WhatsApp</b>. Puedes darte de baja cuando quieras respondiendo
+              <b class="text-white/80">STOP</b>.
+            </span>
+          </label>
         </div>
 
         <!-- ── Resumen de cita ── -->
@@ -14046,7 +14060,10 @@
         // Consentimiento, normalización de teléfono y anti-spam viven en
         // ReservaCore (firebaseUtils.js), compartido con barbero.html: son
         // reglas del sistema, no de esta vista.
-        const _reservaAcepto = ReservaCore.consentimiento();
+        // waOptIn sale de la casilla real, no de un `true` fijo: si el local no
+        // tiene confirmaciones activas la casilla ni se dibuja y esto queda en
+        // false, que es exactamente lo que queremos (sin casilla no hay envío).
+        const _reservaAcepto = ReservaCore.consentimiento({ waOptIn: ReservaCore.waOptInMarcado() });
 
         // Canónico "+56XXXXXXXXX" ANTES de guardar. Sin esto un
         // "+56 9 5885 6719" se persiste literal y las CFs que hacen match
@@ -15001,6 +15018,28 @@
     // en vivo). El doc lo escribe la Cloud Function googleReviewsSync. Si aún
     // no existe (o no trae reviews), quedan los valores de config.js como
     // fallback (sin regresión).
+    /* ── Doble opt-in de WhatsApp ──────────────────────────────────────
+       La casilla nace oculta y solo se muestra si el local tiene las
+       confirmaciones activas. Si el flag no está (o Firestore falla), la
+       casilla no aparece, waOptInMarcado() devuelve false y no sale ningún
+       WhatsApp: falla-cerrado a propósito — es más barato perder un
+       recordatorio que ganarse un reporte de spam. */
+    (function initWaOptIn() {
+      const run = async () => {
+        try {
+          const wrap = document.getElementById('waOptInWrap');
+          if (!wrap || typeof ReservaCore === 'undefined') return;
+          const tid = window.CURRENT_TENANT_ID || 'elegance';
+          if (await ReservaCore.waConfirmActivo(tid)) {
+            wrap.classList.remove('hidden');
+            wrap.classList.add('flex');
+          }
+        } catch (_) { /* sin casilla = sin envío, no hay nada que romper */ }
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+      else run();
+    })();
+
     let _googleReviewsUnsub = null;
     function subscribeGoogleReviews() {
       if (typeof db === 'undefined' || !db || _googleReviewsUnsub) return;

@@ -1585,6 +1585,9 @@ exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
 // el número propio del local. La respuesta la maneja el cerebro (webhook).
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
+// Espeja configuracion/whatsapp.confirmacionesEnabled → configuracion/main.waConfirmActivo,
+// que es el flag público que la agenda usa para mostrar la casilla de consentimiento.
+exports.espejoFlagConfirmaciones = evolutionConfirmaciones.espejoFlagConfirmaciones;
 
 // Salud de sesiones Evolution: alerta por email (SynapTech + dueño) cuando el
 // WhatsApp de un local con bot/confirmaciones lleva >20 min desconectado —

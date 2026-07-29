@@ -36,16 +36,30 @@ async function logWaSend(tid, tipo, ok) {
   ]).catch(() => {});
 }
 
-/** Registra uso de Claude (tokens + costo estimado). */
-// Prompt caching (2026-07): input_tokens ya NO incluye lo cacheado — la API
-// reporta aparte cache_creation (se cobra 1.25× el precio de entrada) y
-// cache_read (0.1×). Sin estos términos la métrica subcontaría el costo real.
-async function logAiUsage(model, inputTokens, outputTokens, cacheWriteTokens = 0, cacheReadTokens = 0, tid = null) {
+/** Registra uso de Claude (tokens + costo estimado) desde el `usage` crudo de la API. */
+// Prompt caching: input_tokens ya NO incluye lo cacheado — la API reporta
+// aparte cache_creation y cache_read. Sin estos términos la métrica subcontaría.
+// OJO con el multiplicador de escritura: NO es uno solo. Depende del TTL del
+// bloque cacheado — 1.25× a 5 minutos y 2× a 1 hora — y el bot conversacional
+// usa 1h. La API desglosa ambos en usage.cache_creation; si ese desglose no
+// viene, asumimos 1h (el TTL que usamos) para no subcontar el costo real.
+async function logAiUsage(model, usage = {}, tid = null) {
   const p = PRICE[model] || { in: 1, out: 5 };
+  const inputTokens     = usage.input_tokens || 0;
+  const outputTokens    = usage.output_tokens || 0;
+  const cacheReadTokens = usage.cache_read_input_tokens || 0;
+  const desglose        = usage.cache_creation || null;
+  const write5m         = desglose ? (desglose.ephemeral_5m_input_tokens || 0) : 0;
+  const write1h         = desglose
+    ? (desglose.ephemeral_1h_input_tokens || 0)
+    : (usage.cache_creation_input_tokens || 0);
+  const cacheWriteTokens = write5m + write1h;
+
   const costUsd =
     (inputTokens / 1e6) * p.in +
     (outputTokens / 1e6) * p.out +
-    (cacheWriteTokens / 1e6) * p.in * 1.25 +
+    (write5m / 1e6) * p.in * 1.25 +
+    (write1h / 1e6) * p.in * 2 +
     (cacheReadTokens / 1e6) * p.in * 0.1;
   const writes = [
     db.doc(`_metrics/ai_${hoy()}`).set({

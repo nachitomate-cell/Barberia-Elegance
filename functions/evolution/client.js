@@ -106,6 +106,35 @@ function crearCliente({ baseUrl, apiKey }) {
       });
     },
 
+    /** ¿Estos números existen realmente en WhatsApp?
+     *  Anti-ban de peso: mandarle mensajes a números que no están en WhatsApp
+     *  es una de las señales más fuertes de "lista comprada" para Meta, y los
+     *  teléfonos de las citas vienen de formularios llenos de typos.
+     *  Devuelve Map<numeroNormalizado, boolean>. Falla-abierto: si el endpoint
+     *  no responde, devuelve Map vacío y el caller decide (mejor enviar que
+     *  quedarse mudo por una caída del VPS). */
+    async verificarNumeros(instanceName, numeros) {
+      const lista = (Array.isArray(numeros) ? numeros : [numeros])
+        .map(n => String(n || '').replace(/\D/g, '')).filter(Boolean);
+      if (!lista.length) return new Map();
+      const data = await req('POST', `/chat/whatsappNumbers/${encodeURIComponent(instanceName)}`, { numbers: lista });
+      const arr = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+      const map = new Map();
+      for (const r of arr) {
+        const num = String(r?.number || r?.jid || '').replace(/\D/g, '');
+        if (num) map.set(num, r?.exists === true);
+      }
+      return map;
+    },
+
+    /** Marca como leídos los mensajes de un chat.
+     *  Un número que contesta pero nunca marca leído es un perfil raro; el
+     *  doble check azul es barato y humaniza el comportamiento. */
+    async marcarLeido(instanceName, readMessages) {
+      const lista = Array.isArray(readMessages) ? readMessages : [readMessages];
+      return req('POST', `/chat/markMessageAsRead/${encodeURIComponent(instanceName)}`, { readMessages: lista });
+    },
+
     /** Cierra sesión (el teléfono vuelve a control 100% manual). */
     async logout(instanceName) {
       return req('DELETE', `/instance/logout/${encodeURIComponent(instanceName)}`);

@@ -39,6 +39,10 @@ const {
 } = require('../chat-horas-disponibles');
 const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
 const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
+const {
+  detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
+} = require('../lib/wa-consent');
+const { registrarSaliente } = require('./cuota');
 
 const db = admin.firestore();
 
@@ -47,6 +51,15 @@ const MAX_TOKENS  = 900;                 // respuestas de WhatsApp: cortas
 const MAX_ROUNDS  = 5;                   // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 20;                 // turnos de texto que recordamos (10 pares)
 const SILENCIO_MS  = 2 * 60 * 60 * 1000; // anti-colisión: silencio del bot tras toma-de-control (2h)
+
+// Mínimo de tokens que Anthropic exige para que un prefijo sea cacheable.
+// Haiku 4.5 es el modelo con el mínimo MÁS ALTO de la familia (4.096); por
+// debajo de eso la API ignora el cache_control EN SILENCIO — sin error, sin
+// aviso, y cache_creation/cache_read vuelven en 0. Por eso el bloque fijo del
+// system carga catálogo + horario + equipo + manual: no es relleno, es
+// contexto que el bot necesitaba igual y que además cruza el umbral.
+// Guard que lo verifica por tenant: scripts/check-bot-prompt.js
+const CACHE_MIN_TOKENS = 4096;
 
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
 
@@ -83,9 +96,15 @@ const absMin = (fecha, mins) => { const [y, mo, d] = String(fecha).split('-').ma
 
 // Tope de seguridad: respuestas del bot conversacional por chat por día.
 // Protege del cliente-troll (o de un loop imprevisto): costo + señal anti-ban.
-const MAX_RESP_CHAT_DIA = 30;
+// Bajado de 30 a 15: agendar una cita completa toma 4 respuestas, así que 15
+// no le quita nada al caso real, y quien llegue a ese número probablemente ya
+// está molesto — y un cliente molesto que aprieta "Bloquear" pesa más en la
+// heurística de Meta que cualquier volumen.
+const MAX_RESP_CHAT_DIA = 15;
 
-/** Lista los servicios activos del local (para la tool + para validar al agendar). */
+/** Lista los servicios activos del local (para el prompt + para validar al agendar).
+ *  Orden ALFABÉTICO estable: el catálogo viaja dentro del bloque cacheado del
+ *  system, así que un orden que baile entre lecturas rompería el caché. */
 async function cargarServicios(tid) {
   const snap = await serviciosCol(tid).get();
   const out = [];
@@ -97,9 +116,31 @@ async function cargarServicios(tid) {
       nombre:   String(s.nombre || '').trim(),
       precio:   Number(s.precio) || 0,
       duracion: Number(s.duracion || s.duracionServicio) || 30,
+      descripcion: String(s.descripcion || '').replace(/\s+/g, ' ').trim(),
     });
   });
-  return out.filter(s => s.nombre);
+  return out.filter(s => s.nombre).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+/** Equipo visible para el cliente: MISMA regla que la reserva pública
+ *  (_mainDocId / disponible / activo / admin oculto) + fuera el barbero
+ *  fantasma de QA, que jamás debe nombrarse a un cliente real. */
+async function cargarEquipo(tid) {
+  const snap = await (esE(tid) ? db.collection('barberos') : db.collection(`tenants/${tid}/barberos`)).get();
+  const out = [];
+  const vistos = new Set();
+  snap.forEach(d => {
+    const b = d.data() || {};
+    if (b._mainDocId) return;
+    if (b.esQA === true) return;
+    if (b.disponible === false || b.activo === false) return;
+    if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tid !== 'delnero') return;
+    const nombre = String(b.nombre || '').trim();
+    if (!nombre || vistos.has(norm(nombre))) return;
+    vistos.add(norm(nombre));
+    out.push({ nombre, especialidad: String(b.especialidad || '').trim() });
+  });
+  return out.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
 /** Matchea el nombre que dijo el modelo contra un servicio real (exacto → incluye). */
@@ -409,12 +450,141 @@ async function ejecutarTool(name, input, ctx) {
 // lean al 10% del precio. Lo VARIABLE (fecha, cliente, cita pendiente) va en
 // un segundo bloque DESPUÉS del breakpoint — meterlo en el bloque fijo
 // invalidaría el caché en cada cliente nuevo.
-function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno }) {
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/** Horario de atención del local, con la MISMA precedencia que el motor de
+ *  disponibilidad (diasLaborales → diasConfig[dow] → horarioInicio/Fin), para
+ *  que el bot no prometa un horario distinto al que la agenda respeta. */
+function formatearHorario(conf) {
+  const laborales = (Array.isArray(conf.diasLaborales) ? conf.diasLaborales : [1, 2, 3, 4, 5, 6]).map(Number);
+  const dc = conf.diasConfig || {};
+  const lineas = [];
+  for (const dow of [1, 2, 3, 4, 5, 6, 0]) {
+    if (!laborales.includes(dow)) { lineas.push(`- ${DIAS[dow]}: cerrado`); continue; }
+    const dia = dc[dow] ?? dc[String(dow)] ?? null;
+    if (dia && dia.activo === false) { lineas.push(`- ${DIAS[dow]}: cerrado`); continue; }
+    const ini = (dia && dia.inicio) || conf.horarioInicio || '09:00';
+    const fin = (dia && dia.fin)    || conf.horarioFin    || '20:00';
+    lineas.push(`- ${DIAS[dow]}: ${ini} a ${fin}`);
+  }
+  if (conf.colacion && conf.colacion.inicio && conf.colacion.fin) {
+    lineas.push(`- Cierre por colación todos los días: ${conf.colacion.inicio} a ${conf.colacion.fin}`);
+  }
+  return lineas.join('\n');
+}
+
+const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
+
+/** Catálogo completo (con descripción) para que el bot NO gaste una ronda de
+ *  herramienta en pedir algo que ya podemos entregarle escrito. */
+function formatearCatalogo(servicios) {
+  return servicios.map(s => {
+    const base = `- ${s.nombre} — ${clp(s.precio)} · ${s.duracion} min`;
+    return s.descripcion ? `${base}\n  ${s.descripcion}` : base;
+  }).join('\n');
+}
+
+// Manual de atención: es IDÉNTICO para todos los locales y no cambia nunca, así
+// que vive dentro del prefijo cacheado (se escribe una vez por hora y se lee al
+// 10%). Sube mucho la calidad de un modelo chico como Haiku: sin casuística
+// explícita improvisa, y sin las reglas de formato escupe Markdown (`**texto**`)
+// que WhatsApp muestra con los asteriscos a la vista.
+const MANUAL_ATENCION = `
+FORMATO DE WHATSAPP (importante, se ve feo si te equivocas):
+- Negrita: UN solo asterisco a cada lado, *así*. NUNCA uses **doble asterisco**: WhatsApp no lo entiende y el cliente ve los asteriscos escritos.
+- Cursiva: _así_. Tachado: ~así~.
+- PROHIBIDO Markdown: nada de #, ##, tablas, bloques de código, ni [texto](enlace).
+- Listas: usa un guion y espacio al principio de la línea. Máximo 5 ítems por mensaje.
+- Los precios en pesos chilenos con punto de miles: $14.000 (nunca 14000 ni CLP 14.000).
+- Las horas en formato 24h con dos puntos: 15:00 (nunca 3 PM ni 15 hrs).
+- Mensajes cortos: 2 a 5 líneas. Si necesitas más, es señal de que estás explicando de más.
+
+CÓMO OFRECER HORAS:
+- Nunca vuelques la lista completa de horas libres. Ofrece 3 opciones bien espaciadas (por ejemplo temprano, mediodía y tarde) y pregunta cuál le acomoda.
+- Si el cliente pide una hora exacta y está libre, confirma esa y no ofrezcas alternativas.
+- Si la hora que pidió está ocupada, dilo en una línea y ofrece las 2 más cercanas: "Las 15:00 ya están tomadas. Tengo 14:20 o 16:00, ¿alguna te sirve?".
+- Si no hay cupos en el día que pidió, ofrece el primer día con cupos y di qué día es.
+
+CÓMO CONFIRMAR ANTES DE AGENDAR:
+- Un solo mensaje corto con servicio, día, hora y precio, y una pregunta de cierre.
+- No repitas ese resumen dos veces. Si el cliente ya dijo que sí, agenda: no vuelvas a preguntar.
+- Trata como confirmación cualquier respuesta afirmativa clara: "sí", "dale", "confirmo", "ya", "perfecto", "listo".
+
+CASOS QUE VAS A VER SEGUIDO:
+- Pide un servicio que no existe en el catálogo: no lo inventes ni lo agendes. Di que no lo tienes y ofrece lo más parecido que sí esté en el catálogo.
+- Pide dos servicios juntos: revisa si existe el combinado en el catálogo (suele salir más barato). Si existe, ofrécelo. Si no, agenda el principal y aclara que el otro lo conversa en el local.
+- Dice "lo de siempre" o "lo mismo de la otra vez": no adivines. Usa consultar_mis_citas si tiene citas futuras; si no, pregunta cuál servicio quiere.
+- No te dio su nombre y WhatsApp tampoco lo muestra: pídelo en una línea antes de agendar.
+- Pregunta el precio de algo: respóndelo directo del catálogo, sin rodeos y sin ofrecer agendar en el mismo mensaje si no lo pidió.
+- Pide descuento, regatea o pregunta por promociones: no inventes ni negocies. Di que los precios son los del catálogo y que cualquier convenio lo ve el equipo en el local.
+- Pregunta por atención a domicilio, estacionamiento, medios de pago, wifi, si atienden niños o cualquier dato que no esté en este mensaje: NO inventes. Di que no manejas ese dato y que el equipo del local se lo confirma, o usa pasar_con_humano si insiste.
+- Escribe con errores de tipeo, todo en mayúsculas o sin tildes: entiéndelo igual y responde normal. Nunca lo corrijas.
+- Manda varios mensajes seguidos: responde a todo junto en un solo mensaje, no uno por cada uno.
+- Pide una hora fuera del horario de atención: dilo con amabilidad, menciona el horario real de ese día y ofrece la hora más cercana que sí exista.
+- Quiere cambiar de barbero o pide uno específico: no lo prometas. El sistema asigna al profesional disponible; dile que lo coordine al llegar al local.
+- Está molesto, reclama o pide hablar con una persona: no intentes resolverlo tú. Llama a pasar_con_humano de inmediato y despídete en una línea.
+- Se despide o agradece: responde corto y cálido, sin volver a ofrecer nada.
+
+FECHAS Y AMBIGÜEDADES:
+- "Hoy", "mañana" y "pasado mañana" se calculan siempre desde la fecha que te doy más abajo. Nunca supongas la fecha.
+- Si dice un día de la semana ("el viernes"), asume el próximo que venga. Si hoy ES ese día y todavía hay horas, pregunta si se refiere a hoy o al de la próxima semana.
+- Si dice "en la mañana", "al mediodía" o "en la tarde", tradúcelo a un rango razonable y ofrece horas dentro de ese rango.
+- Si dice una hora sin minutos ("a las 4"), asume la del horario de atención que tenga sentido (16:00, no 04:00).
+- Si la fecha o la hora quedan ambiguas, pregunta UNA sola vez y de forma concreta, con dos opciones.
+
+DESPUÉS DE AGENDAR:
+- Entrega el código de la reserva, el día, la hora y el servicio en un mensaje corto.
+- No sigas ofreciendo servicios ni intentes vender más. La conversación terminó bien: cierra cálido y corto.
+- Si después pide cambiar algo, no edites la cita: cancela la que tiene y agenda la nueva.
+
+SI ALGO FALLA:
+- Si una herramienta devuelve un error o no encuentra lo que buscabas, NO se lo expliques con términos técnicos al cliente y no muestres mensajes de sistema.
+- Discúlpate en una línea y ofrece la alternativa que sí tengas. Si no tienes ninguna, usa pasar_con_humano.
+- Si el mismo problema se repite dos veces seguidas, deja de intentarlo y deriva con pasar_con_humano.
+- Nunca inventes un código de reserva ni digas que agendaste si la herramienta no te confirmó que resultó.
+
+CITAS PENDIENTES DE CONFIRMAR:
+- Si te aviso que el cliente tiene una cita pendiente de confirmar, tu prioridad es esa: resolver si asiste o no.
+- Cualquier señal de que sí va ("ahí estaré", "sí", "confirmo", "de todas maneras") es una confirmación.
+- Cualquier señal de que no puede ("no voy a poder", "se me complicó", "cancélala") es una cancelación.
+- Si el mensaje no tiene relación con la cita, atiéndelo normal y recién al final recuérdale en una línea que confirme.
+
+LO QUE NUNCA DEBES HACER:
+- Inventar precios, horas, servicios, promociones, nombres de profesionales o datos del local.
+- Prometer algo que tus herramientas no pueden cumplir (cobrar, mandar fotos, reservar productos, garantizar un profesional).
+- Agendar sin haber confirmado servicio, día y hora con el cliente.
+- Pedir datos personales que no necesitas: solo el nombre. Nunca RUT, dirección, correo ni datos de pago.
+- Decir que eres una inteligencia artificial salvo que te lo pregunten directo. Si te lo preguntan, dilo simple y sigue ayudando.
+- Escribir párrafos largos, despedirte en cada mensaje o repetir el saludo si ya saludaste.
+
+EJEMPLOS DEL TONO QUE QUEREMOS (adáptalos, no los copies literal):
+Cliente: hola, tienen hora para hoy?
+Tú: ¡Hola! 👋 Déjame revisar la agenda de hoy. ¿Qué servicio buscas?
+
+Cliente: cuanto sale el corte
+Tú: El *Corte Clásico* está en $14.000 (35 min) y el *Degradado* en $15.000 (40 min). ¿Te reservo alguno?
+
+Cliente: si, el degradado mañana en la tarde
+Tú: Perfecto. Para mañana en la tarde tengo 16:00, 17:20 y 18:40. ¿Cuál te acomoda?
+
+Cliente: 17:20
+Tú: Listo, te confirmo:
+- *Servicio*: Corte Degradado
+- *Cuándo*: mañana a las 17:20
+- *Precio*: $15.000
+¿Lo agendo?
+`.trim();
+
+function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno, horario, catalogo, equipo, politicas }) {
   return [
     `Eres el asistente virtual de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`,
     direccion ? `Dirección del local: ${direccion}.` : '',
     telefonoLocal ? `Teléfono del local: ${telefonoLocal}.` : '',
     '',
+    horario ? `HORARIO DE ATENCIÓN:\n${horario}\n` : '',
+    catalogo ? `CATÁLOGO DE SERVICIOS (estos son TODOS los que existen; los precios son finales):\n${catalogo}\n` : '',
+    equipo ? `EQUIPO QUE ATIENDE:\n${equipo}\n` : '',
+    politicas ? `POLÍTICAS DEL LOCAL:\n${politicas}\n` : '',
     'REGLAS:',
     '- Sé cálido, cercano y BREVE (es WhatsApp). Frases cortas, máximo 1–2 emojis.',
     // Estilo configurable por local (configuracion/whatsapp.estiloChileno).
@@ -423,7 +593,8 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
       ? '- ESTILO CHILENO CERCANO: habla como un chileno amable. Puedes usar modismos suaves con moderación ("bacán", "al tiro", "ya po") — máximo UNO por mensaje y siempre entendible. SIN voseo escrito ("querís", "podís", "vos") ni groserías. La claridad manda: fechas, horas y precios siempre en lenguaje estándar.'
       : '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres). PROHIBIDO el voseo ("querís", "podís", "vos", "tenés") y los modismos o chilenismos ("bacán", "al tiro", "cachai", "po", "filete", "la raja"). Escribe claro y universal, como para cualquier país hispanohablante.',
     '- Tu único trabajo es informar del local y agendar/gestionar citas. Si preguntan otra cosa, redirige con amabilidad.',
-    '- NUNCA inventes precios, servicios ni horas. Sácalos SIEMPRE de las herramientas (consultar_servicios / consultar_disponibilidad).',
+    '- NUNCA inventes precios ni servicios: los del CATÁLOGO de arriba son los únicos que existen y ya los tienes completos, no necesitas ninguna herramienta para consultarlos.',
+    '- NUNCA inventes horas libres: sácalas SIEMPRE de consultar_disponibilidad. El HORARIO DE ATENCIÓN te dice cuándo abre el local, no qué horas quedan libres.',
     '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
     '- Solo llama a agendar_cita con una hora que haya salido de consultar_disponibilidad.',
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
@@ -433,7 +604,57 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
     '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',
     '- No prometas nada fuera de las herramientas (no cobras online, no cambias precios, no confirmas cosas del local que no sepas).',
+    '',
+    MANUAL_ATENCION,
   ].filter(Boolean).join('\n');
+}
+
+/**
+ * Arma TODO el prefijo cacheable de un local: el bloque fijo del system + la
+ * lista de herramientas. Es la única fuente de verdad — la usa el bot en
+ * producción y también el guard `scripts/check-bot-prompt.js`, que mide sus
+ * tokens y falla si el local queda bajo CACHE_MIN_TOKENS (si se desincronizaran
+ * mediríamos un prompt y enviaríamos otro).
+ */
+async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
+  const [tenantSnap, confSnap, servicios, equipo] = await Promise.all([
+    db.doc(`tenants/${tid}`).get(),
+    configRef(tid).get(),
+    cargarServicios(tid).catch(() => []),
+    cargarEquipo(tid).catch(() => []),
+  ]);
+  const tdoc = tenantSnap.data() || {};
+  const conf = confSnap.data() || {};
+
+  const politicas = [
+    conf.chatCancelEnabled === false
+      ? '- Las cancelaciones NO se gestionan por chat: el cliente debe comunicarse directamente con el local.'
+      : '- El cliente puede cancelar su cita por este chat.',
+    Number(conf.minutosLimiteReagendar) > 0
+      ? `- Para cancelar o cambiar una cita se piden al menos ${Math.round(Number(conf.minutosLimiteReagendar) / 60)} hora(s) de anticipación. Sobre la hora, tiene que hablar directo con el local.`
+      : '',
+    String(conf.politicaMensaje || '').trim() ? `- ${String(conf.politicaMensaje).trim()}` : '',
+  ].filter(Boolean).join('\n');
+
+  const systemFijo = construirSystemFijo({
+    nombreLocal: tdoc.nombre || tdoc.nombreCorto || tid,
+    // Dirección y teléfono a veces viven en el doc del tenant y a veces en
+    // configuracion/main (sion los tenía SOLO en conf y el bot no los sabía).
+    direccion:     tdoc.direccion || conf.direccion || '',
+    telefonoLocal: tdoc.telefono  || conf.telefono || conf.telefonoAdmin || '',
+    estiloChileno,
+    horario:  formatearHorario(conf),
+    catalogo: servicios.length ? formatearCatalogo(servicios) : '',
+    equipo:   equipo.length ? equipo.map(b => `- ${b.nombre}${b.especialidad ? ` (${b.especialidad})` : ''}`).join('\n') : '',
+    politicas,
+  });
+
+  // Con el catálogo ya escrito en el system, consultar_servicios sobra: dejarla
+  // solo invita al modelo a gastar una llamada en datos que ya tiene. Se
+  // mantiene como red de seguridad si el catálogo no se pudo cargar.
+  const toolsBase = servicios.length ? TOOLS.filter(t => t.name !== 'consultar_servicios') : TOOLS;
+
+  return { systemFijo, toolsBase, servicios, equipo };
 }
 
 // Bloque variable: cambia por día y por cliente — queda FUERA del caché.
@@ -451,10 +672,17 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   const messages = [...historia, { role: 'user', content: texto }];
 
   // Prompt caching: breakpoint al final del bloque fijo → el prefijo
-  // (tools + identidad + reglas) se escribe una vez (1.25×) y se lee al 10%
-  // en las llamadas del loop y los turnos siguientes del mismo local.
+  // (tools + identidad + horario + catálogo + equipo + reglas + manual) se
+  // escribe una vez y se lee al 10% en las llamadas del loop, en los turnos
+  // siguientes y en las conversaciones que vengan después en el mismo local.
+  //
+  // TTL de 1 HORA a propósito, no los 5 min por defecto: en WhatsApp el cliente
+  // se demora en contestar y con 5 min el caché se vencía a media conversación
+  // y volvíamos a pagar la escritura completa en cada turno. Escribir a 2× una
+  // vez por hora sale MUCHO más barato que escribir a 1.25× cuatro veces por
+  // conversación, y además el prefijo se comparte entre clientes del local.
   const system = [
-    { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral', ttl: '1h' } },
     { type: 'text', text: systemVariable },
   ];
 
@@ -463,9 +691,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
     });
-    const u = resp.usage || {};
-    logAiUsage(MODEL, u.input_tokens || 0, u.output_tokens || 0,
-      u.cache_creation_input_tokens || 0, u.cache_read_input_tokens || 0, ctx?.tid).catch(() => {}); // métrica ops (global + por tenant)
+    logAiUsage(MODEL, resp.usage || {}, ctx?.tid).catch(() => {}); // métrica ops (global + por tenant)
     messages.push({ role: 'assistant', content: resp.content });
 
     if (resp.stop_reason === 'tool_use') {
@@ -583,6 +809,12 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   });
   if (!claimed) return;
 
+  // Doble check azul: barato y humaniza el perfil del número (un WhatsApp que
+  // contesta pero jamás marca leído es raro). Fire-and-forget: si falla, da
+  // exactamente lo mismo — no puede frenar la respuesta.
+  evoClient.marcarLeido(`instance_${tid}`, [{ remoteJid, fromMe: false, id: msgId }])
+    .catch(() => {});
+
   // ── Estado de la conversación (memoria + cita pendiente + silencio del bot) ──
   const convSnap = await ref.get();
   const convData = convSnap.data() || {};
@@ -613,6 +845,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       ok = true;
     } catch (e) { logger.error(`[cerebro] ${tid} enviar:`, e.message); }
     await logWaSend(tid, 'bot', ok).catch(() => {});    // métrica para el dashboard ops
+    if (ok) await registrarSaliente(tid);               // cuota anti-ban: el contador es UNO para bot + confirmaciones
   };
   const persistir = async (respuesta) => {
     const nuevaHistoria = [
@@ -630,6 +863,39 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       updatedAt:     FieldValue.serverTimestamp(),
     }, { merge: true }).catch(() => {});
   };
+
+  // ── BAJA / REACTIVACIÓN (va PRIMERO que todo lo demás) ──
+  //  Corre aunque el bot conversacional esté apagado o silenciado: el caso
+  //  crítico es justamente el local que solo tiene confirmaciones activas y
+  //  cuyo cliente responde "no me escriban más" — antes eso no tenía ningún
+  //  efecto y el cron le seguía escribiendo al día siguiente. El registro va
+  //  al libro GLOBAL /wa_optout, así que también frena el canal oficial.
+  if (texto && detectarStop(texto)) {
+    await registrarOptOut(telefono, `stop-evolution-${tid}`).catch(e =>
+      logger.error(`[cerebro] ${tid} optout ${telefono}:`, e.message));
+    // Se limpia la cita pendiente: si no, el cron sigue esperando una
+    // respuesta que ya no va a llegar.
+    await ref.update({ citaPendiente: FieldValue.delete() }).catch(() => {});
+    logger.info(`[cerebro] ${tid} chat=${chatId}: BAJA registrada (opt-out global)`);
+    // Un único acuse y silencio. Confirmar la baja no es spam: es lo que evita
+    // que la persona use "Bloquear", que es lo que de verdad quema el número.
+    if (!silenciado) {
+      const reply = 'Listo, no te escribiremos más por WhatsApp. 🙏 Si algún día quieres volver a recibir los recordatorios de tus citas, respóndenos *REACTIVAR*.';
+      await responder(reply);
+      await persistir(reply);
+    }
+    return;
+  }
+  if (texto && detectarReactivar(texto)) {
+    await registrarOptIn(telefono, `reactivar-evolution-${tid}`).catch(() => {});
+    logger.info(`[cerebro] ${tid} chat=${chatId}: reactivación registrada`);
+    if (!silenciado) {
+      const reply = '¡Listo! Volverás a recibir los recordatorios de tus citas por acá. 🙌';
+      await responder(reply);
+      await persistir(reply);
+    }
+    return;
+  }
 
   // ── FAST-PATH de confirmación: CONFIRMAR / CANCELAR (aplica aunque el bot esté silenciado) ──
   if (confOn && citaPendiente) {
@@ -683,25 +949,16 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     return;
   }
 
-  // ── Contexto del local (nombre/dirección/teléfono viven en el doc del tenant) ──
-  const [tenantSnap, confSnap] = await Promise.all([
-    db.doc(`tenants/${tid}`).get(),
-    configRef(tid).get(),
-  ]);
-  const tdoc = tenantSnap.data() || {};
-  const conf = confSnap.data() || {};
-  const nombreLocal   = tdoc.nombre || tdoc.nombreCorto || tid;
-  const direccion     = tdoc.direccion || '';
-  const telefonoLocal = tdoc.telefono || conf.telefonoAdmin || '';
-  const fechaHoy      = hoyChile;
-
-  // Bloque FIJO (cacheable por local) + bloque VARIABLE (fecha/cliente/cita).
-  const systemFijo = construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno: waCfg.estiloChileno === true });
-  let systemVariable = construirSystemVariable({ fechaHoy, pushName, telefono });
+  // ── Contexto del local (una sola función, compartida con el guard
+  //    scripts/check-bot-prompt.js para que lo que medimos sea lo que se envía) ──
+  const { systemFijo, toolsBase } = await armarContextoLocal(tid, {
+    estiloChileno: waCfg.estiloChileno === true,
+  });
+  let systemVariable = construirSystemVariable({ fechaHoy: hoyChile, pushName, telefono });
   if (citaPendiente) {
     systemVariable += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
   }
-  const tools = citaPendiente ? [...TOOLS, GESTION_CONFIRMACION_TOOL] : TOOLS;
+  const tools = citaPendiente ? [...toolsBase, GESTION_CONFIRMACION_TOOL] : toolsBase;
 
   // ── Pensar ──
   let respuesta;
@@ -722,6 +979,11 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
 module.exports = { procesarMensajeEntrante };
 
-// Para tests locales (scripts con Admin SDK): no es parte del API público.
-module.exports._ejecutarTool    = ejecutarTool;
-module.exports._cargarServicios = cargarServicios;
+// Para tests locales y para el guard scripts/check-bot-prompt.js (Admin SDK):
+// no es parte del API público.
+module.exports._ejecutarTool        = ejecutarTool;
+module.exports._cargarServicios     = cargarServicios;
+module.exports._cargarEquipo        = cargarEquipo;
+module.exports._armarContextoLocal  = armarContextoLocal;
+module.exports._MODEL               = MODEL;
+module.exports._CACHE_MIN_TOKENS    = CACHE_MIN_TOKENS;

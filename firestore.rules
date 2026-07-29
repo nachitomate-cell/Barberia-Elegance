@@ -1337,7 +1337,14 @@ service cloud.firestore {
       // esBootstrap: el superadmin la maneja desde /admin (p.ej. el
       // toggle de visibilidad del Wallet, configuracion/wallet.enabled).
       match /configuracion/{docId} {
-        allow read: if true;
+        // `whatsapp` NO es público: guarda el número vinculado del local y el
+        // email de quien aceptó los términos. Estaba abierto a cualquiera que
+        // supiera el id del tenant. El único dato que la agenda pública
+        // necesita de ahí es si mostrar la casilla de consentimiento, y ese
+        // booleano se espeja a configuracion/main.waConfirmActivo (CF
+        // espejoFlagConfirmaciones). El resto de los docs sigue público
+        // porque la reserva los lee sin sesión.
+        allow read: if docId != 'whatsapp' || esStaff(tid) || esBootstrap();
         allow write: if esAdmin(tid) || esBootstrap();
       }
 
