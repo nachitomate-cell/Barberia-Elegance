@@ -7,14 +7,14 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle, Activity,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
-  Coffee,
+  Coffee, Info,
 } from 'lucide-react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
-  runTransaction, Timestamp, arrayUnion,
+  runTransaction, Timestamp, arrayUnion, onSnapshot,
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
@@ -497,6 +497,135 @@ const STATUS_LABEL = {
   Pendiente:  'Pendiente',
   NoAsistio:  'No asistió',
 };
+
+/* ── Leyenda de colores ───────────────────────────────────────────────
+   Los colores de la agenda eran conocimiento tribal: el dueño los aprendía
+   preguntando. El ámbar es el peor caso, porque solo existe si el local tiene
+   las confirmaciones por WhatsApp activas — quien no las tiene nunca lo ve y
+   quien las acaba de activar no sabe qué significa.
+
+   Por eso el bloque de WhatsApp tiene tres caras según el estado real del
+   local: explicación (si está activo), empujón a activarlo (si ya lo pagó) o
+   la propuesta de valor (si todavía no lo tiene). */
+const LEYENDA_ESTADOS = [
+  { estado: 'Confirmada', desc: 'La cita está en pie. Es el estado normal de una reserva.' },
+  { estado: 'Completada', desc: 'El cliente vino y se atendió. Solo estas suman a la caja del día.' },
+  { estado: 'Cancelada',  desc: 'Se anuló y la hora quedó libre para que otro la tome.' },
+  { estado: 'NoAsistio',  desc: 'El cliente no llegó y tampoco avisó. Se separa de "Cancelada" para que puedas ver a quién le pasa seguido.' },
+];
+
+function LeyendaColores({ tenantId }) {
+  const [open, setOpen] = useState(false);
+  const [sys, setSys]   = useState(null);   // _system/{tid} → módulo contratado
+  const [cfg, setCfg]   = useState(null);   // configuracion/whatsapp → estado operativo
+
+  // Se suscribe solo al abrir: no tiene sentido tener dos listeners vivos por
+  // una leyenda que casi nadie despliega.
+  useEffect(() => {
+    if (!open || !tenantId) return undefined;
+    const u1 = onSnapshot(doc(db, '_system', tenantId),
+      s => setSys(s.exists() ? s.data() : {}), () => setSys({}));
+    const u2 = onSnapshot(doc(db, 'tenants', tenantId, 'configuracion', 'whatsapp'),
+      s => setCfg(s.exists() ? s.data() : {}), () => setCfg({}));
+    return () => { u1(); u2(); };
+  }, [open, tenantId]);
+
+  const confirmOn  = cfg?.confirmacionesEnabled === true;
+  const contratado = sys?.waAsistente === true || cfg?.estadoConexion === 'connected';
+
+  const ctaUrl = `https://wa.me/56983568212?text=${encodeURIComponent(
+    'Hola SynapTech, quiero activar las *confirmaciones automáticas por WhatsApp* en mi local para dejar de perder horas por clientes que no llegan. ¿Cómo lo hacemos?',
+  )}`;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        title="Qué significa cada color"
+        className={`h-10 md:h-8 px-3 flex items-center gap-1.5 text-xs font-semibold rounded-xl border transition-colors ${
+          open
+            ? 'bg-slate-800 text-primary border-neutral-700'
+            : 'bg-neutral-900 text-slate-400 border-neutral-800 hover:text-primary hover:bg-slate-800'
+        }`}
+      >
+        <Info size={14} />
+        <span className="hidden sm:inline">Colores</span>
+      </button>
+
+      {open && (
+        <>
+          {/* Capa para cerrar al tocar fuera */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 w-[min(92vw,380px)] z-50 rounded-2xl border border-neutral-800 bg-neutral-900 shadow-2xl p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Qué significa cada color</p>
+              <button type="button" onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-300">
+                <X size={14} />
+              </button>
+            </div>
+
+            {LEYENDA_ESTADOS.map(({ estado, desc }) => (
+              <div key={estado} className="flex items-start gap-3">
+                <span className={`mt-0.5 w-4 h-4 rounded-md border shrink-0 ${STATUS_STYLE[estado]}`} />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-200">{STATUS_LABEL[estado]}</p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+
+            {/* ── Ámbar: existe solo con las confirmaciones por WhatsApp ── */}
+            <div className="pt-3 border-t border-neutral-800 space-y-2">
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 w-4 h-4 rounded-md border shrink-0 ${STATUS_STYLE.Pendiente}`} />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    Pendiente <MessageCircle size={12} className="text-emerald-400" />
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {confirmOn
+                      ? 'Le escribimos al cliente por WhatsApp y todavía no responde. Pasa a verde cuando contesta CONFIRMAR; si contesta CANCELAR, la hora se libera sola.'
+                      : 'Aparece cuando el cliente aún no confirma su cita por WhatsApp. Hoy no lo verás en tu agenda.'}
+                  </p>
+                </div>
+              </div>
+
+              {!confirmOn && contratado && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3">
+                  <p className="text-[11px] text-emerald-200 leading-relaxed">
+                    Ya tienes el módulo contratado, solo falta encenderlo. Entra a
+                    <span className="font-semibold"> Conexiones → WhatsApp</span> y activa las confirmaciones.
+                  </p>
+                </div>
+              )}
+
+              {!confirmOn && !contratado && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3 space-y-2">
+                  <p className="text-[11px] text-emerald-200 leading-relaxed">
+                    Con las <span className="font-semibold">confirmaciones automáticas</span> el sistema le escribe
+                    al cliente antes de su hora y él responde CONFIRMAR o CANCELAR. La hora que se libera alcanzas
+                    a venderla de nuevo, en vez de descubrir el asiento vacío cuando ya es tarde.
+                  </p>
+                  <a
+                    href={ctaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-[11px] font-bold transition-colors"
+                  >
+                    <MessageCircle size={12} />
+                    Quiero activarlo
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 function fmt(d) {
@@ -5437,6 +5566,10 @@ export default function Agenda() {
             );
           })}
         </div>
+
+        {/* Leyenda de colores (incluye el ámbar de WhatsApp y, si el local no
+            tiene el módulo, la invitación a activarlo). */}
+        <LeyendaColores tenantId={tenantId} />
 
         {/* Acciones primarias — pegadas al final del row en desktop */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
