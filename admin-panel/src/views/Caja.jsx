@@ -3,7 +3,7 @@ import {
   Wallet, DollarSign, ArrowDownCircle, ArrowUpCircle,
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
-  FileText, Printer, ListChecks, Undo2, Scissors, Gift,
+  FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
@@ -912,6 +912,8 @@ export default function Caja() {
   // Manual adjustments
   const [showIngreso, setShowIngreso] = useState(false);
   const [showEgreso, setShowEgreso] = useState(false);
+  // Detalle de propinas: colapsado por default para no alargar la columna.
+  const [propinasAbierto, setPropinasAbierto] = useState(false);
   const [adjDesc, setAdjDesc] = useState('');
   const [adjMonto, setAdjMonto] = useState('');
   const [adjSaving, setAdjSaving] = useState(false);
@@ -1047,6 +1049,32 @@ export default function Caja() {
       .filter(c => c.metodoPago === 'Efectivo')
       .reduce((s, c) => s + (Number(c.propina) || 0), 0);
 
+    // Detalle de CADA propina: de qué servicio salió, quién atendió y con qué
+    // se pagó. El total suelto no alcanzaba para repartirlas — la propina es
+    // del equipo, así que el dueño necesita saber a quién le corresponde.
+    const propinasDetalle = citasHoy
+      .filter(c => (Number(c.propina) || 0) > 0)
+      .map(c => ({
+        id:       c.id,
+        hora:     c.hora || '',
+        servicio: c.servicioNombre || c.servicio || 'Servicio',
+        barbero:  c.barbero || 'Sin profesional',
+        cliente:  c.clienteNombre || c.nombre || '',
+        // El método importa: la propina en efectivo está en el cajón y hay que
+        // separarla del arqueo; la de tarjeta llega con la liquidación del POS.
+        metodo:   c.metodoPago || 'Sin método',
+        monto:    Number(c.propina) || 0,
+      }))
+      .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+
+    // Cuánto le toca a cada profesional, que es la pregunta práctica al cerrar.
+    const propinasPorBarbero = Object.entries(
+      propinasDetalle.reduce((acc, p) => {
+        acc[p.barbero] = (acc[p.barbero] || 0) + p.monto;
+        return acc;
+      }, {}),
+    ).sort((a, b) => b[1] - a[1]);
+
     // Productos vendidos. `precio` ya es el total de línea (× cantidad aplicado
     // por la venta rápida y el ticket) → sumar precio directo, sin re-multiplicar
     // (antes duplicaba y el arqueo mostraba faltantes falsos).
@@ -1115,7 +1143,7 @@ export default function Caja() {
       ingManuales, egrManuales,
       totalIngresosEfectivo, totalEgresosEfectivo, saldoEsperado,
       totalIngresosTarjeta, totalIngresosTransf, totalIngresosGeneral,
-      propinasTotal, propinasEfectivo,
+      propinasTotal, propinasEfectivo, propinasDetalle, propinasPorBarbero,
       citasSinMetodo,
       totalCitas: citasHoy.length,
       totalVentas: ventasHoy.length,
@@ -1730,9 +1758,72 @@ export default function Caja() {
               </div>
             </div>
             {kpis.propinasTotal > 0 && (
-              <div className="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                <div className="flex items-center gap-2 text-sm text-amber-300"><DollarSign size={14} /> Propinas</div>
-                <p className="text-lg font-bold text-amber-300">{fmtCurrency(kpis.propinasTotal)}</p>
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl overflow-hidden">
+                {/* Cabecera clickeable: el total sigue a la vista y el detalle
+                    se despliega. Colapsado por default para no alargar la
+                    columna en un día con muchas propinas. */}
+                <button
+                  type="button"
+                  onClick={() => setPropinasAbierto(v => !v)}
+                  aria-expanded={propinasAbierto}
+                  className="w-full flex items-center justify-between p-3 hover:bg-amber-500/[0.07] transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-sm text-amber-300">
+                    <DollarSign size={14} /> Propinas
+                    <span className="text-[10px] text-slate-500">
+                      {kpis.propinasDetalle.length} {kpis.propinasDetalle.length === 1 ? 'propina' : 'propinas'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-lg font-bold text-amber-300">{fmtCurrency(kpis.propinasTotal)}</p>
+                    <ChevronDown size={14}
+                      className={`text-amber-400/60 transition-transform ${propinasAbierto ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+
+                {propinasAbierto && (
+                  <div className="border-t border-amber-500/15 px-3 py-2.5 space-y-2.5">
+                    {/* Cuánto le toca a cada uno: es la pregunta al cerrar caja. */}
+                    {kpis.propinasPorBarbero.length > 1 && (
+                      <div className="pb-2 border-b border-amber-500/10">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Por profesional</p>
+                        {kpis.propinasPorBarbero.map(([nombre, monto]) => (
+                          <div key={nombre} className="flex items-center justify-between text-[12.5px] py-0.5">
+                            <span className="text-slate-300 truncate">{nombre}</span>
+                            <span className="text-amber-300 font-semibold tabular-nums shrink-0 ml-2">{fmtCurrency(monto)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">De qué salió cada una</p>
+                      {kpis.propinasDetalle.map(p => (
+                        <div key={p.id} className="flex items-start justify-between gap-2 py-1">
+                          <div className="min-w-0">
+                            <p className="text-[12.5px] text-slate-200 truncate">
+                              {p.hora && <span className="text-slate-500 font-mono text-[11px] mr-1.5">{p.hora}</span>}
+                              {p.servicio}
+                            </p>
+                            <p className="text-[11px] text-slate-500 truncate">
+                              {p.barbero}{p.cliente ? ` · ${p.cliente}` : ''} · {p.metodo}
+                            </p>
+                          </div>
+                          <span className="text-[12.5px] text-amber-300 font-semibold tabular-nums shrink-0">
+                            {fmtCurrency(p.monto)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {kpis.propinasEfectivo > 0 && (
+                      <p className="text-[11px] text-amber-200/70 leading-relaxed pt-1.5 border-t border-amber-500/10">
+                        {fmtCurrency(kpis.propinasEfectivo)} de este total llegó en <strong>efectivo</strong> y está
+                        en el cajón: sepáralo del arqueo antes de cerrar. El resto entra con la liquidación del POS.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {(kpis.gastosTarjeta > 0 || kpis.gastosTransf > 0) && (
