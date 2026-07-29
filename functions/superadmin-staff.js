@@ -4,10 +4,12 @@
 // ─────────────────────────────────────────────────────────────────
 //  superadminCrearStaff — el superadmin (SynapTech) crea accesos de
 //  staff para CUALQUIER local, con Auth + custom claims + doc de
-//  barbero, en una sola llamada. Tres perfiles:
+//  barbero, en una sola llamada. Cuatro perfiles:
 //    · Admin de local      → rol 'admin', NO atiende (no reservable)
 //    · Admin que atiende    → rol 'admin', atiende (reservable)
 //    · Barbero              → rol 'barbero', atiende
+//    · Recepción            → rol 'recepcion', NO atiende. Entra al panel
+//      pero sin los números del negocio (ver firestore.rules + App.jsx).
 //
 //  Reutiliza el patrón de crearAccesoStaff (Auth + claims) y de
 //  provisionarTenantSelf (doc principal + doc de enlace por uid).
@@ -54,7 +56,7 @@ exports.superadminCrearStaff = onCall({ region: 'us-central1', cors: true }, asy
   if (!password || password.length < 6) {
     throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
   }
-  if (!['admin', 'barbero'].includes(rolNorm)) {
+  if (!['admin', 'barbero', 'recepcion'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', 'Rol inválido.');
   }
 
@@ -167,7 +169,7 @@ exports.superadminActualizarStaff = onCall({ region: 'us-central1', cors: true }
 
   if (!tenantId) throw new HttpsError('invalid-argument', 'Falta el local (tenantId).');
   if (!docId)    throw new HttpsError('invalid-argument', 'Falta el miembro (docId).');
-  if (!['admin', 'barbero'].includes(rolNorm)) {
+  if (!['admin', 'barbero', 'recepcion'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', 'Rol inválido.');
   }
 

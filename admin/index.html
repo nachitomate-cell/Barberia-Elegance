@@ -2333,6 +2333,7 @@
           <option value="barbero|si">Barbero (atiende)</option>
           <option value="admin|si">Admin que atiende (admin-barbero)</option>
           <option value="admin|no">Admin de local (no atiende)</option>
+          <option value="recepcion|no">Recepción (sin ver el dinero)</option>
         </select>
         <div id="cs-error" style="display:none; font-size:0.78rem; color:#f87171; padding:0.2rem 0;"></div>
         <div id="cs-result" style="display:none; font-size:0.8rem; color:#a3e635; background:rgba(132,204,22,0.08); border:1px solid rgba(132,204,22,0.2); border-radius:0.6rem; padding:0.7rem; line-height:1.55; word-break:break-all;"></div>
@@ -3061,7 +3062,7 @@
           const email    = d.email  || '—';
           const rol      = d.rol    || (_activeTenant === 'gitana' ? 'profesional' : 'barbero');
           const activo   = d.activo !== false;
-          const rolColor = rol === 'admin' ? '#f43f5e' : rol === 'jefe' ? '#f59e0b' : cfg.color;
+          const rolColor = rol === 'admin' ? '#f43f5e' : rol === 'jefe' ? '#f59e0b' : rol === 'recepcion' ? '#38bdf8' : cfg.color;
 
           // Perfil actual = rol + si atiende. "Atiende" son tres booleanos que
           // deben ir juntos; leemos con la MISMA regla que el filtro de la
@@ -3073,7 +3074,9 @@
           // Los docs de enlace (_mainDocId) no se editan: el selector actúa
           // sobre el principal, así que ahí no mostramos control.
           const esEnlace = !!d._mainDocId;
-          const perfil   = rol === 'admin' ? (atiende ? 'admin|si' : 'admin|no') : 'barbero|si';
+          const perfil   = rol === 'recepcion' ? 'recepcion|no'
+                         : rol === 'admin'     ? (atiende ? 'admin|si' : 'admin|no')
+                         : 'barbero|si';
 
           html += `
             <div style="
@@ -3101,9 +3104,10 @@
                   background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
                   border-radius:0.45rem; color:#cbd5e1; outline:none;
                 ">
-                  <option value="barbero|si" ${perfil === 'barbero|si' ? 'selected' : ''}>Barbero (atiende)</option>
-                  <option value="admin|si"   ${perfil === 'admin|si'   ? 'selected' : ''}>Admin que atiende</option>
-                  <option value="admin|no"   ${perfil === 'admin|no'   ? 'selected' : ''}>Admin de local (no atiende)</option>
+                  <option value="barbero|si"   ${perfil === 'barbero|si'   ? 'selected' : ''}>Barbero (atiende)</option>
+                  <option value="admin|si"     ${perfil === 'admin|si'     ? 'selected' : ''}>Admin que atiende</option>
+                  <option value="admin|no"     ${perfil === 'admin|no'     ? 'selected' : ''}>Admin de local (no atiende)</option>
+                  <option value="recepcion|no" ${perfil === 'recepcion|no' ? 'selected' : ''}>Recepción (sin ver el dinero)</option>
                 </select>`}
               </div>
               <span style="
@@ -5851,7 +5855,7 @@
       try {
         const r = await firebase.functions().httpsCallable('superadminCrearStaff')({ tenantId: _activeTenant, nombre, email, password, rol, atiende });
         HAPTIC([10, 30, 10]);
-        const rolLabel = rol === 'admin' ? (atiende ? 'Admin que atiende' : 'Admin de local') : 'Barbero';
+        const rolLabel = rol === 'recepcion' ? 'Recepción' : rol === 'admin' ? (atiende ? 'Admin que atiende' : 'Admin de local') : 'Barbero';
         const _notas = [];
         if (r.data && r.data.yaExistia) _notas.push('La cuenta ya existía: se actualizó su rol y clave.');
         if (r.data && r.data.reusoDoc) _notas.push('Se reutilizó el perfil existente del local (no se duplicó).');
