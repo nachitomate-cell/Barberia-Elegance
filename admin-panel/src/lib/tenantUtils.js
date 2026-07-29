@@ -57,6 +57,29 @@ const DOMAIN_MAP = {
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────
 // Espejo del mapa en middleware.js. Fuente de verdad para SedeContext.
 // D3/D4: cuando cutover DOMAIN_MAP a 'kronnos', esta tabla resuelve la sede.
+/**
+ * Dominio público CANÓNICO de cada tenant, derivado de DOMAIN_MAP.
+ *
+ * DOMAIN_MAP tiene varios hosts por tenant (yugenstudio.cl, yugen.synaptechspa.cl…);
+ * nos quedamos con el PRIMERO, que es el principal.
+ *
+ * Existe porque las vistas armaban links con su propia lista de dominios y se
+ * quedaban cortas: la de Equipo.jsx tenía 7 tenants de 30, así que para el resto
+ * caía a `window.location.hostname`. En Kronnos eso rompía de verdad — con el
+ * selector de sede puedes estar viendo Limache desde el dominio de Peñablanca, y
+ * el link del barbero salía apuntando al local equivocado (404).
+ */
+export const TENANT_PUBLIC_DOMAIN = Object.entries(DOMAIN_MAP)
+  .reduce((acc, [host, tid]) => {
+    if (!acc[tid]) acc[tid] = host;
+    return acc;
+  }, {});
+
+/** Dominio público del tenant, con fallback al patrón estándar. */
+export function tenantDomain(tid) {
+  return TENANT_PUBLIC_DOMAIN[tid] || `${tid}.synaptechspa.cl`;
+}
+
 export const KRONNOS_SUBDOMAIN_SEDE = {
   'kronnospenablanca.synaptechspa.cl': 'penablanca',
   'kronnoslimache.synaptechspa.cl':    'limache',

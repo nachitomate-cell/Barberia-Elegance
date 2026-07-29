@@ -313,21 +313,55 @@ exports.googlePlacesBuscar = onCall(
     const query = String(request.data?.query || '').trim();
     if (query.length < 3) throw new HttpsError('invalid-argument', 'Escribe al menos 3 caracteres.');
 
-    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type':     'application/json',
-        'X-Goog-Api-Key':   GOOGLE_PLACES_API_KEY.value(),
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount',
+    // `regionCode` NO filtra: es solo una pista de formato/idioma. Buscando
+    // "Yugen studio" devolvía UN resultado, el de MILÁN, y el local de Quillota
+    // no aparecía — el dueño veía "Sin resultados" creyendo que su ficha no
+    // existía. `locationRestriction` sí filtra: el rectángulo cubre Chile
+    // continental y austral, y todos los locales de la plataforma son chilenos
+    // (CLP, RUT, SII). Roza el oeste de Argentina y Bolivia, pero es preferible
+    // a colar resultados de otro continente.
+    const CHILE = {
+      rectangle: {
+        low:  { latitude: -56.0, longitude: -76.0 },
+        high: { latitude: -17.4, longitude: -66.3 },
       },
-      body: JSON.stringify({ textQuery: query, languageCode: 'es', regionCode: 'CL' }),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      logger.error('[GooglePlacesBuscar] Places API', res.status, body.slice(0, 300));
-      throw new HttpsError('internal', 'No pudimos buscar en Google ahora. Reintenta.');
+    };
+
+    async function buscar(textQuery) {
+      const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type':     'application/json',
+          'X-Goog-Api-Key':   GOOGLE_PLACES_API_KEY.value(),
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount',
+        },
+        body: JSON.stringify({
+          textQuery,
+          languageCode: 'es',
+          regionCode:   'CL',
+          locationRestriction: CHILE,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        logger.error('[GooglePlacesBuscar] Places API', res.status, body.slice(0, 300));
+        throw new HttpsError('internal', 'No pudimos buscar en Google ahora. Reintenta.');
+      }
+      return res.json();
     }
-    const data = await res.json();
+
+    let data = await buscar(query);
+
+    // Reintento sin espacios. El matching de Google es caprichoso con los
+    // nombres de dos palabras: "Yugen studio" no devuelve nada, pero
+    // "Yugenstudio" encuentra "Yūgen Studio" siempre (la tilde larga del
+    // nombre real tampoco ayuda). Solo corre si la primera vino vacía, así
+    // que no cambia el resultado de las búsquedas que ya funcionan.
+    const sinEspacios = query.replace(/\s+/g, '');
+    if (!(Array.isArray(data.places) && data.places.length) && sinEspacios !== query) {
+      logger.info(`[GooglePlacesBuscar] "${query}" sin resultados → reintento "${sinEspacios}"`);
+      data = await buscar(sinEspacios);
+    }
     const candidatos = (Array.isArray(data.places) ? data.places : []).slice(0, 6).map(p => ({
       placeId:      p.id,
       nombre:       p.displayName?.text || '(sin nombre)',

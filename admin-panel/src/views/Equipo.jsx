@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { getApp } from 'firebase/app';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
-import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { tenantCol, resolveTenantId, tenantDomain } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
@@ -34,15 +34,11 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 /* ─── Constants ───────────────────────────────────────────── */
 const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
 
-const TENANT_DOMAINS = {
-  elegance:      'barberiaelegance.synaptechspa.cl',
-  ferraza:       'barberiaferraza.synaptechspa.cl',
-  gitana:        'gitananails.synaptechspa.cl',
-  mapubarbershop:'mapubarbershop.synaptechspa.cl',
-  chameleon:     'chameleonbarber.synaptechspa.cl',
-  oren:          'orenbarber.synaptechspa.cl',
-  restodemo:     'restodemo.synaptechspa.cl',
-};
+// El dominio de cada tenant sale de tenantDomain() (deriva de DOMAIN_MAP, la
+// misma tabla que resuelve host→tenant). Acá vivía una lista propia de 7
+// tenants: para los otros 23 caía a `window.location.hostname`, y en Kronnos
+// eso entregaba links rotos — con el selector de sede puedes ver Limache desde
+// el dominio de Peñablanca, y el link del barbero salía con el host equivocado.
 
 function slugify(str) {
   return String(str)
@@ -54,7 +50,7 @@ function slugify(str) {
 
 function barberPublicUrl(nombre) {
   const tid    = resolveTenantId();
-  const domain = TENANT_DOMAINS[tid] ?? window.location.hostname;
+  const domain = tenantDomain(tid);
   return `https://${domain}/${slugify(nombre)}`;
 }
 
@@ -62,7 +58,7 @@ function barberPublicUrl(nombre) {
 // Es el mismo /agenda.html para todos — la auth determina qué citas ve.
 function barberPersonalUrl() {
   const tid    = resolveTenantId();
-  const domain = TENANT_DOMAINS[tid] ?? window.location.hostname;
+  const domain = tenantDomain(tid);
   return `https://${domain}/agenda.html`;
 }
 
@@ -413,7 +409,7 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
     setBusy(true); setErr('');
     try {
       const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'biooProvisionBarbero');
-      const tenantDominio = TENANT_DOMAINS[tenant.id] || `${tenant.id}.synaptechspa.cl`;
+      const tenantDominio = tenantDomain(tenant.id);
       await fn({
         tenantId: tenant.id,
         barberoId: barber.id,
