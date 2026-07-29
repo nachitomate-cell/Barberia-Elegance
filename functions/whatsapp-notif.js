@@ -6,21 +6,18 @@
 //
 //  Dos niveles de servicio:
 //
-//  ── GRATIS (al DUEÑO del local) — garantía de costo $0 ──────────────────────
-//  Meta solo cobra MENSAJES DE PLANTILLA (template). Este nivel envía
-//  EXCLUSIVAMENTE mensajes de sesión (type:"text"), que:
-//    · dentro de la ventana de servicio de 24h son gratis e ilimitados,
-//    · fuera de la ventana NO se entregan NI se cobran (error 131047).
-//  Por lo tanto es imposible que este nivel genere costo, incluso si el
-//  tracking de ventana fallara. Defensas adicionales:
-//    1. Solo se envía si la ventana sigue abierta (últ. mensaje entrante
-//       del dueño + 24h, con margen de seguridad de 30 min).
-//    2. Tope diario de envíos por tenant (protege la calidad del número).
-//    3. Kill switch global: _system/whatsapp_notif.freeEnabled.
-//  La ventana se mantiene viva sola: cada notificación pide "Responde 1
-//  para confirmar" y cada respuesta del dueño reinicia las 24h. Si la
-//  ventana está cerrada, el fallback es el push FCM que ya existe
-//  (notificarCitaTenant) — el dueño nunca queda sin enterarse.
+//  ── GRATIS (al DUEÑO del local) — RETIRADO ──────────────────────────────────
+//  Enviaba un WhatsApp de sesión al dueño por cada reserva nueva. Se sacó del
+//  panel (/gestion-interna/whatsapp) y, en consecuencia, también del backend:
+//  dejar el envío vivo habría significado seguir escribiéndole a locales que
+//  ya no tienen dónde ver el estado, pausar ni desvincular su número.
+//    · notificarCita  → el bloque queda tras `FREE_TIER_RETIRADO` (no envía).
+//    · whatsappWebhook → "ACTIVAR <local>" responde que el canal no existe,
+//      en vez de vincular a alguien en silencio a algo que no manda nada.
+//  El dueño NO se queda sin enterarse: el push FCM del panel ya cubría el
+//  aviso (era el fallback cuando la ventana de 24h estaba cerrada).
+//  Para revivirlo: FREE_TIER_RETIRADO=false, reponer la rama de ACTIVAR y la
+//  <Section> en admin-panel/src/views/WhatsAppNotif.jsx.
 //
 //  ── PAGADO (al CLIENTE final) — plantillas utility, cobradas por Meta ───────
 //  Triple candado, TODO apagado por defecto:
@@ -221,32 +218,13 @@ async function procesarEntrante(msg) {
   // ── ¿ACTIVAR <local>? — vincula el teléfono al tenant ──
   const mActivar = texto.match(/^activar[\s:_-]+([a-z0-9_-]{3,40})/i);
   if (mActivar) {
-    const tid = mActivar[1].toLowerCase();
-    const esValido = tid === 'elegance'
-      ? true
-      : (await db.collection('tenants').doc(tid).collection('configuracion').doc('main').get()).exists;
-    if (!esValido) {
-      await enviarTexto(from, 'No encontramos ese local. Usa el botón "Activar por WhatsApp" desde tu panel de gestión para que el código vaya correcto. 🙏');
-      return;
-    }
-    // Nota: planCliente NO se toca desde aquí — ese flag (plan pagado) lo
-    // administra solo Ignacio a mano, y un re-ACTIVAR no debe resetearlo.
-    await db.collection('wa_notif').doc(tid).set({
-      tenantId: tid,
-      telefono: from,
-      estado: 'activo',
-      ventanaAbiertaHasta: ventanaHasta,
-      ultimoEntranteEn: ahora,
-      activadoEn: ahora,
-    }, { merge: true });
-    await db.collection('wa_notif_phones').doc(from).set({ tenantId: tid, updatedAt: ahora });
+    // El módulo de avisos al dueño se retiró (ver notificarCita). Se responde
+    // en vez de vincular en silencio: si no, alguien con el link viejo queda
+    // "suscrito" a un canal que no envía nada y creyendo que sí.
     await enviarTexto(from,
-      '✅ *Notificaciones activadas*\n\n' +
-      'Cada vez que un cliente reserve, te avisaremos por aquí al instante.\n\n' +
-      '💡 *Importante:* responde *1* cuando recibas una reserva — así confirmas que la viste y mantienes las notificaciones activas. ' +
-      'Si pasas más de un día sin responder, los avisos te llegarán por la app del panel hasta que vuelvas a escribir.\n\n' +
-      'Comandos: *PAUSAR* · *REANUDAR*');
-    logger.info(`[wa] activado tenant=${tid} fono=${from}`);
+      'Este canal de avisos ya no está disponible. 🙏\n\n' +
+      'Las reservas nuevas te llegan igual como notificación en tu panel de gestión.');
+    logger.info(`[wa] ACTIVAR recibido para un módulo retirado, fono=${from}`);
     return;
   }
 
@@ -340,8 +318,25 @@ async function notificarCita(citaId, cita, tenantId) {
   const hoy = new Date().toISOString().slice(0, 10);
   const enviadosHoy = (wa.enviadosHoy && wa.enviadosHoy.fecha === hoy) ? wa.enviadosHoy.count : 0;
 
-  /* ── NIVEL GRATIS: aviso al dueño (SOLO mensajes de sesión) ─────────── */
-  if (cfg.freeEnabled !== false && wa.estado === 'activo' && wa.telefono) {
+  /* ── NIVEL GRATIS: aviso al dueño — MÓDULO RETIRADO ──────────────────
+     El módulo "Aviso de reservas al local" se sacó del panel
+     (/gestion-interna/whatsapp), así que el dueño ya no tiene dónde ver el
+     estado, pausar ni desvincular su número. Dejar el envío vivo significaba
+     seguir escribiéndole a locales que ya no pueden gestionarlo — por eso se
+     apaga acá y no solo en la UI.
+
+     El aviso de reserva NO se pierde: el push FCM del panel ya lo cubría
+     (era el fallback cuando la ventana de 24h de Meta estaba cerrada, que en
+     la práctica era casi siempre).
+
+     Se deja el bloque en un `if (false)` en vez de borrarlo porque el canal
+     oficial de Meta todavía no está en producción (falta app, número y
+     secrets reales); si más adelante se retoma, esto vuelve cambiando la
+     condición y reponiendo la sección en WhatsAppNotif.jsx. El resto del
+     archivo —confirmación pagada al cliente y, sobre todo, el manejo de
+     STOP/BAJA que alimenta /wa_optout— sigue intacto. */
+  const FREE_TIER_RETIRADO = true;
+  if (!FREE_TIER_RETIRADO && cfg.freeEnabled !== false && wa.estado === 'activo' && wa.telefono) {
     const ventanaOk = wa.ventanaAbiertaHasta
       && wa.ventanaAbiertaHasta.toMillis() - VENTANA_MARGEN_MS > Date.now();
 

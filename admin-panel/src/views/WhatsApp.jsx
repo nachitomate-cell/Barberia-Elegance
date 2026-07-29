@@ -4,9 +4,11 @@ import WhatsAppAsistente from './WhatsAppAsistente';
 // Vista unificada "WhatsApp" — página fluida con los módulos del canal, uno
 // debajo del otro (sin pestañas). El cliente ve de un vistazo qué tiene y qué
 // puede pedir:
-//   1. Aviso de reservas al local     (GRATIS · incluido)             → WhatsAppNotif nivel dueño
-//   2. Confirmación al cliente        (PLAN PAGADO)                   → WhatsAppNotif nivel cliente
-//   3. Asistente IA 24/7              (PREMIUM · lo activa SynapTech) → WhatsAppAsistente
+//   1. Confirmación al cliente        (PLAN PAGADO)                   → WhatsAppNotif
+//   2. Asistente IA 24/7              (PREMIUM · lo activa SynapTech) → WhatsAppAsistente
+//
+// Había un módulo previo, "Aviso de reservas al local" (gratis, avisaba al
+// dueño de cada reserva por WhatsApp de sesión), que se retiró de la vista.
 //
 // Los módulos pagados NO se auto-activan: la "llave" vive en _system/{tid}
 // (solo SynapTech escribe) y el cliente solo puede solicitar la activación.

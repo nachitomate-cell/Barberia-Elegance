@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import {
-  MessageCircle, BellRing, CheckCircle2, RefreshCw, Sparkles,
-  ShieldCheck, Zap, Clock, ExternalLink, PauseCircle,
-} from 'lucide-react';
+import { MessageCircle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { resolveTenantId } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import { WaChatPreview, LivePreviewHeader } from '../components/WaChatPreview';
-import { Section, SettingsGroup, SettingRow } from '../components/ui/SettingsPrimitives';
+import { Section, SettingsGroup } from '../components/ui/SettingsPrimitives';
 
 // Guion del chat de la vista previa de confirmación automática al cliente.
 const CONFIRM_MSGS = [
@@ -23,28 +20,19 @@ const CONFIRM_TIMELINE = [
   { count: 3, typing: false, dur: 3200 },
 ];
 
-// Vista "Avisos WhatsApp" — confirmaciones de cita vía WhatsApp oficial.
+// Vista "Avisos WhatsApp" — confirmación automática al CLIENTE por WhatsApp
+// oficial (plantilla verificada). Lo activa SynapTech por local; el cliente
+// solo puede solicitarlo con el CTA.
 //
-// Nivel GRATIS (incluido): cada reserva nueva llega como WhatsApp al dueño.
-// Funciona con la ventana de servicio de Meta (mensajes de sesión, costo $0);
-// el dueño la mantiene viva respondiendo "1" a cada aviso. Si la ventana se
-// cierra, el aviso llega igual por push de la app (fallback ya existente).
-//
-// Nivel PAGADO: confirmación automática al CLIENTE por WhatsApp (plantilla
-// oficial). Lo activa SynapTech por local — CTA de contacto al final.
+// El módulo "Aviso de reservas al local" (nivel gratis: cada reserva llegaba
+// como WhatsApp de sesión al dueño) se retiró de esta vista. El backend sigue
+// en pie —whatsapp-notif.js y la callable waNotifEstado, de la que acá se
+// sigue leyendo planCliente—, así que los locales que ya lo hubieran activado
+// seguirían recibiendo los avisos, solo que sin panel donde gestionarlos.
 
 const WA_SYNAPTECH = '56983568212';
 
-function WaIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <path fill="#25D366" d="M20.52 3.45C18.24 1.17 15.24 0 12.06 0 5.55 0 .21 5.28.21 11.79c0 2.07.54 4.11 1.62 5.91L.06 24l6.42-1.68c1.71.93 3.66 1.44 5.58 1.44 6.51 0 11.85-5.28 11.85-11.79 0-3.15-1.23-6.15-3.39-8.52z"/>
-      <path fill="#fff" d="M17.51 14.31c-.33-.15-1.95-.96-2.25-1.08-.3-.12-.51-.15-.72.15-.21.33-.84 1.08-1.05 1.29-.18.21-.39.24-.72.09-.33-.18-1.41-.51-2.67-1.65-.99-.87-1.65-1.98-1.86-2.31-.18-.33-.03-.51.15-.66.15-.15.33-.39.48-.6.15-.18.21-.33.33-.54.09-.21.06-.42-.03-.6-.09-.18-.72-1.74-.99-2.37-.24-.6-.51-.51-.72-.51-.18 0-.39-.03-.6-.03s-.57.09-.87.42c-.3.33-1.14 1.11-1.14 2.7 0 1.59 1.17 3.15 1.35 3.36.18.21 2.31 3.51 5.61 4.92.78.33 1.41.54 1.89.69.78.24 1.5.21 2.07.12.63-.09 1.95-.81 2.22-1.56.27-.75.27-1.41.21-1.56-.09-.15-.3-.24-.63-.39z"/>
-    </svg>
-  );
-}
-
-// Badge pequeño estilo iOS ("Gratis", "Plan pagado", "Activo").
+// Badge pequeño estilo iOS ("Plan pagado", "Activo").
 function Badge({ tone = 'slate', children }) {
   const tones = {
     slate:   'bg-white/[0.04] text-slate-300 border-white/10',
@@ -86,19 +74,14 @@ export default function WhatsAppNotif({ embedded = false }) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const numero      = estado?.numeroPlataforma || null;
-  const disponible  = !!estado?.disponible;
-  const activado    = !!estado?.activado;
-  const pausado     = estado?.estado === 'pausado';
-  const ventanaOk   = !!estado?.ventanaAbierta;
+  // De todo lo que devuelve waNotifEstado solo se usa planCliente: el módulo
+  // de avisos al dueño se retiró de esta vista, pero la callable sigue siendo
+  // la fuente del entitlement del plan pagado.
   const planCliente = !!estado?.planCliente;
 
   const nombreLocal = tenant?.name || tenantId || 'Tu Local';
   const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
 
-  const activarUrl = numero
-    ? `https://wa.me/${numero}?text=${encodeURIComponent(`ACTIVAR ${tenantId}`)}`
-    : null;
   const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y quiero activar las confirmaciones automáticas por WhatsApp para mis clientes (plan pagado). ¿Me cuentas cómo funciona?`;
 
   if (loading) {
@@ -128,111 +111,6 @@ export default function WhatsAppNotif({ embedded = false }) {
 
   return (
     <div className={`space-y-8 ${embedded ? '' : 'max-w-3xl'}`}>
-
-      {/* ══════════ NIVEL GRATIS — avisos al dueño ══════════ */}
-      <Section
-        Icon={BellRing}
-        title={<span className="flex items-center gap-2">Aviso de reservas al local <Badge tone="emerald">Gratis</Badge></span>}
-        description="Cada vez que un cliente reserve, te llega un WhatsApp al instante con el detalle de la cita. Respondes “1” y queda confirmada como vista."
-      >
-
-        {/* Sub-módulo de activación — depende del estado del backend */}
-        {!disponible && (
-          <SettingsGroup>
-            <div className="px-4 sm:px-5 py-4 flex items-center gap-3 text-sm text-slate-400">
-              <Clock size={16} className="text-amber-400 shrink-0" />
-              El módulo se está habilitando — muy pronto podrás activarlo desde aquí.
-            </div>
-          </SettingsGroup>
-        )}
-
-        {disponible && !activado && (
-          <SettingsGroup footer="Toca el botón, se abre WhatsApp con el mensaje listo — solo envíalo desde el número donde quieres recibir los avisos.">
-            <div className="px-4 sm:px-5 py-5">
-              <p className="text-sm text-slate-300 leading-relaxed mb-4">
-                <span className="text-primary font-semibold">Activalo en 10 segundos.</span> Se vincula tu número con el de la plataforma y a partir de ahí cada nueva reserva llega directo a tu WhatsApp.
-              </p>
-              <a
-                href={activarUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1fbd5a] text-[#06281a] text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(37,211,102,0.6)]"
-              >
-                <WaIcon size={17} /> Activar por WhatsApp <ExternalLink size={13} />
-              </a>
-            </div>
-          </SettingsGroup>
-        )}
-
-        {disponible && activado && (
-          <>
-            <SettingsGroup label="Estado del canal" divide>
-              <SettingRow
-                Icon={pausado ? PauseCircle : CheckCircle2}
-                title="Suscripción de avisos"
-                description={pausado
-                  ? 'Pausada. Escribe REANUDAR al número de avisos para retomar.'
-                  : 'Activa. Recibes cada reserva nueva al instante.'
-                }
-              >
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${pausado ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {pausado ? 'Pausado' : 'Activo'}
-                </span>
-              </SettingRow>
-              <SettingRow
-                Icon={MessageCircle}
-                title="Número vinculado"
-                description="Tu WhatsApp donde llegan los avisos."
-              >
-                <span className="text-[13px] font-semibold text-primary">{estado?.telefono || '—'}</span>
-              </SettingRow>
-              <SettingRow
-                Icon={Zap}
-                title="Canal WhatsApp"
-                description={ventanaOk
-                  ? 'Conectado — la ventana de 24h con Meta está abierta.'
-                  : 'En espera — respondé cualquier mensaje al número para reabrirla.'
-                }
-              >
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${ventanaOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {ventanaOk ? 'Conectado' : 'En espera'}
-                </span>
-              </SettingRow>
-            </SettingsGroup>
-
-            {!ventanaOk && !pausado && (
-              <SettingsGroup>
-                <div className="px-4 sm:px-5 py-3.5 text-[13px] text-amber-200/80 leading-relaxed flex items-start gap-3">
-                  <Clock size={15} className="text-amber-400 shrink-0 mt-0.5" />
-                  <span>
-                    Pasaste más de un día sin responder en WhatsApp, así que los próximos avisos llegan por la app.
-                    Para volver a recibirlos por WhatsApp, {' '}
-                    <a href={numero ? `https://wa.me/${numero}?text=${encodeURIComponent('Hola')}` : '#'}
-                       target="_blank" rel="noopener noreferrer"
-                       className="text-amber-300 font-bold underline">envía cualquier mensaje</a>
-                    {' '} al número de avisos.
-                  </span>
-                </div>
-              </SettingsGroup>
-            )}
-          </>
-        )}
-
-        {/* Nota de servicio incluido */}
-        <div className="flex items-start gap-2.5 px-1 sm:px-1 text-[11.5px] text-slate-500 leading-relaxed">
-          <ShieldCheck size={14} className="text-emerald-500/70 shrink-0 mt-0.5" />
-          <span>
-            Servicio incluido sin costo: usa el canal oficial de WhatsApp. Responder{' '}
-            <span className="text-slate-300 font-semibold">1</span> a los avisos mantiene la ventana de 24h abierta.
-            Si dejás de responder, los avisos siguen llegando por la app del panel sin perder ninguno.
-          </span>
-        </div>
-
-        {/* Botón de refresh discreto */}
-        <div className="flex justify-end">
-          <button onClick={cargar} className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-500 hover:text-slate-300 transition-colors">
-            <RefreshCw size={12} /> Actualizar estado
-          </button>
-        </div>
-      </Section>
 
       {/* ══════════ NIVEL PAGADO — confirmación al cliente ══════════ */}
       <Section
