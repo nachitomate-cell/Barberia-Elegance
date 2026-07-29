@@ -10,8 +10,9 @@
  *
  *   1. Acento  — `.tenant-X { --accent }` en index  vs  `accentMap` en barbero.
  *   2. Banner  — `.tenant-X .booking-hero { background-image }` en index
- *                vs `heroImgByTenant` en barbero. Sin entrada, la ficha usa el
- *                LOGO del local estirado como banner (pasó con sion).
+ *                vs `heroBanner` del tenant en config.js, que es de donde
+ *                barbero.html lo lee. Sin entrada, la ficha usa el LOGO del
+ *                local estirado como banner (pasó con sion).
  *
  * Solo falla por tenants REALES (los declarados en config.js). Antes marcaba
  * `omegastudio`, que es una clase CSS huérfana y no un tenant — un guard que
@@ -68,12 +69,17 @@ while ((hm = heroRe.exec(index))) {
   const url = (hm[2].match(/background-image:\s*url\(['"]?([^'")]+)/i) || [])[1];
   if (url && !bannersIndex[hm[1]]) bannersIndex[hm[1]] = url;
 }
-// barbero.html: mapa `heroImgByTenant`
-const heroMapBlock = (barbero.match(/var heroImgByTenant = \{([\s\S]*?)\};/) || [])[1] || '';
+// config.js: `heroBanner` de cada tenant. Desde que barbero.html lo lee de
+// ahí (ya no tiene mapa propio), config.js es el espejo a vigilar.
 const bannersBarbero = {};
-for (const l of heroMapBlock.split('\n')) {
-  const mm = l.match(/^\s*([a-z0-9_]+)\s*:\s*'([^']+)'/i);
-  if (mm) bannersBarbero[mm[1]] = mm[2];
+for (const b of configSrc.matchAll(/^    ([a-z0-9_]+): \{/gm)) {
+  const tid = b[1];
+  const desde = configSrc.indexOf(`\n    ${tid}: {`);
+  const resto = configSrc.slice(desde + 1);
+  const fin = resto.search(/\n    [a-z0-9_]+: \{/);
+  const bloque = fin === -1 ? resto : resto.slice(0, fin);
+  const hb = bloque.match(/^\s*heroBanner:\s*'([^']+)'/m);
+  if (hb) bannersBarbero[tid] = hb[1];
 }
 
 // ── 3) Comparar ───────────────────────────────────────────────────
@@ -114,10 +120,10 @@ if (faltaAcento.length) {
 
 if (faltaBanner.length) {
   fail = true;
-  console.log('\n✗ Tenants con banner en index.html pero SIN entrada en heroImgByTenant de barbero.html');
+  console.log('\n✗ Tenants con banner en index.html pero SIN entrada en heroBanner de config.js');
   console.log('  (su ficha usa el LOGO del local estirado como banner):\n');
   for (const f of faltaBanner) console.log(`    ${f.t.padEnd(24)} index: ${f.url}`);
-  console.log('\n  → Agrégalos al mapa heroImgByTenant en barbero.html.');
+  console.log('\n  → Agrega heroBanner al tenant en config.js.');
 }
 
 if (bannerDistinto.length) {

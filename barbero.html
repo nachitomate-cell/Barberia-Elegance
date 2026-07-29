@@ -803,39 +803,12 @@
       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;z-index:0;">
     <script>
       (function () {
-        // Imagen de hero por tenant — misma que usa el index (heroIndexingImg / .booking-hero).
-        var heroImgByTenant = {
-          elegance:           '/elegance.png',
-          ferraza:            '/ferraza1.webp',
-          gitana:             '/gitana.png',
-          mapubarbershop:     '/mapu3.png',
-          chameleon:          '/fondolocal3.png',
-          lumen:              '/djones1.png',
-          delnero:            '/nero.jpg',
-          aura:               '/auralogin.png',
-          latincaribe:        '/thelatin/banner-latincaribe-main.jpeg',
-          machos:             '/machos_bg.png',
-          // Infinity usa el mismo banner que su dashboard (/infinit.png: foto
-          // luminosa del local). Al ser una imagen clara, su hero invierte el
-          // overlay a blanco y el texto a grafito — ver bloque CSS más abajo.
-          infinity:           '/infinit.png',
-          sionbarberia:       '/dieciseis/banner16.webp',
-          elbarberomoderno:   '/elbarberomoderno/barbero1.png',
-          omega:              '/omega2.avif',
-          memphis:            '/mem.png',
-          yugen:              '/yugen/yugen2.png',
-          kronnos_penablanca: '/kronnos/kronospena.png',
-          kronnos_limache:    '/kronnos/kronoslima.png',
-          kronnos_woman:      '/kronnos/kronoswoman.png',
-          // Estos cuatro faltaban y caían al `SHOP.logo`: la ficha del barbero
-          // mostraba el LOGO estirado como banner en vez de la foto del local
-          // (visto en sion). Los valores son los mismos que index.html usa en
-          // su `.tenant-X .booking-hero`.
-          sion:               '/sion/banner.webp',
-          renacer:            '/renacer/banner.webp',
-          barbersclub:        '/barbersclub/hero-bg.png',
-          estudioluxury:      '/luxury/banner.webp',
-        };
+        // El banner del local sale de config.js (`heroBanner` del tenant). Acá
+        // vivía un mapa que repetía los mismos valores que el CSS de index.html
+        // y se quedaba corto solito: cuatro tenants (sion, renacer, barbersclub,
+        // estudioluxury) mostraban el LOGO estirado como banner porque nadie se
+        // acordó de sumarlos. Ahora el dato se declara UNA vez, junto al resto
+        // de la ficha del local.
 
         // Overrides por barbero: cuando un local tiene un barbero con banner propio,
         // sobrescribimos la imagen global del tenant. La clave es `<tenant>/<slug>`
@@ -865,9 +838,11 @@
           }
         })();
 
+        // Orden: sede (multi-sucursal) → barbero con banner propio → banner del
+        // local (config.js) → logo como último recurso.
         var src = _sedeBanner
                || heroImgByBarber[barberKey]
-               || heroImgByTenant[window.CURRENT_TENANT_ID]
+               || (window.SHOP && window.SHOP.heroBanner)
                || (window.SHOP && window.SHOP.logo)
                || '';
         var img = document.getElementById('barberHeroImg');
