@@ -73,18 +73,26 @@ async function logAiUsage(model, usage = {}, tid = null) {
       actualizado: FieldValue.serverTimestamp(),
     }, { merge: true }),
   ];
-  // Desglose MENSUAL por tenant (para ops: cuánto cuesta cada local — clave
-  // en trials tipo Kronnos y para pricing del add-on).
+  // Desglose por tenant, MENSUAL y DIARIO.
+  //  · mensual → cuánto cuesta cada local (trials, pricing del add-on)
+  //  · diario  → es el que sirve para vigilar: con el mensual un local que se
+  //    dispara 10× hoy no se nota hasta que ya lleva días quemando plata.
+  // Ambos llevan los tokens de caché: si el prefijo de un local se rompe
+  // (queda bajo el mínimo cacheable), cacheRead se va a 0 y el costo se
+  // duplica EN SILENCIO. El hit rate es la alarma más barata que existe.
   if (tid) {
-    writes.push(db.doc(`_metrics/ai_vendor_${tid}_${mes()}`).set({
+    const desglose = {
       vendorId: tid,
-      mes: mes(),
       llamadas: FieldValue.increment(1),
       tokensIn: FieldValue.increment(inputTokens),
       tokensOut: FieldValue.increment(outputTokens),
+      tokensCacheWrite: FieldValue.increment(cacheWriteTokens),
+      tokensCacheRead: FieldValue.increment(cacheReadTokens),
       costUsd: FieldValue.increment(costUsd),
       actualizado: FieldValue.serverTimestamp(),
-    }, { merge: true }));
+    };
+    writes.push(db.doc(`_metrics/ai_vendor_${tid}_${mes()}`).set({ ...desglose, mes: mes() }, { merge: true }));
+    writes.push(db.doc(`_metrics/ai_dia_${tid}_${hoy()}`).set({ ...desglose, fecha: hoy() }, { merge: true }));
   }
   await Promise.all(writes).catch(() => {});
 }

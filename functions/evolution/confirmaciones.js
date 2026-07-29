@@ -239,7 +239,7 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
         enviadas++;
         enviadasHoy++;
         totalHoy++;
-        await registrarSaliente(tid);
+        await registrarSaliente(tid, { tipo: 'confirmacion', ok: true });
         await cfgRef.set({ confirmDia: { fecha: now.fecha, enviadas: enviadasHoy } }, { merge: true }).catch(() => {});
       } catch (e) {
         logger.error(`[confirm] ${tid}/${doc.id}:`, e.message);

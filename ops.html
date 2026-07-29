@@ -49,6 +49,19 @@
   .muted{ color:var(--soft); font-size:12px; }
   .warn{ background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.3); color:var(--amber); border-radius:10px; padding:10px 14px; font-size:13px; margin-top:14px; }
   #err{ color:var(--red); font-size:13px; margin-top:10px; }
+  button.mini{ padding:2px 8px; font-size:11px; border-radius:6px; }
+  button.mini.danger{ color:#ffb3ae; border-color:rgba(248,81,73,.4); }
+  button.mini.danger:hover{ background:rgba(248,81,73,.12); }
+  button.panic{ background:rgba(248,81,73,.15); border-color:rgba(248,81,73,.5); color:#ffb3ae; }
+  .bar{ flex:1; height:5px; border-radius:3px; background:#21262d; overflow:hidden; min-width:60px; }
+  .bar i{ display:block; height:100%; border-radius:3px; }
+  .modal{ position:fixed; inset:0; background:rgba(1,4,9,.75); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal .box{ background:var(--card); border:1px solid var(--line); border-radius:14px; max-width:640px; width:100%; max-height:82vh; overflow-y:auto; padding:18px; }
+  .chat{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .chat .meta{ font-size:11px; color:var(--soft); margin-bottom:6px; }
+  .msg{ font-size:12.5px; line-height:1.5; margin:3px 0; padding:5px 9px; border-radius:8px; white-space:pre-wrap; }
+  .msg.user{ background:#1c2128; }
+  .msg.assistant{ background:rgba(63,185,80,.09); border:1px solid rgba(63,185,80,.18); }
 </style>
 </head>
 <body>
@@ -93,20 +106,45 @@
       if(l.salud==='caida') return 'warn';
       return 'off';
     }
+    // Barra de cuota: verde <60% · ámbar 60-85% · rojo sobre 85%.
+    // Es la lectura anti-ban de un vistazo — cuánto habló hoy este número
+    // contra lo que puede hablar según su madurez.
+    function cuotaBar(c){
+      if(!c || !c.capTotal) return '';
+      const pct = Math.min(100, c.pct||0);
+      const col = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
+      return `<span class="sub2" style="display:flex;align-items:center;gap:8px">
+        <span style="flex:0 0 90px">salientes hoy</span>
+        <span class="bar"><i style="width:${pct}%;background:${col}"></i></span>
+        <span class="tnum" style="flex:0 0 auto">${c.salientes}/${c.capTotal}</span>
+        <span style="color:var(--soft)">· confirm ${c.confirmaciones}/${c.capConfirm}${c.fallos?` · <span style="color:var(--red)">${c.fallos} fallo(s)</span>`:''}</span>
+      </span>`;
+    }
     function locRow(l){
       const partes = [];
-      if(l.ia && (l.ia.costoUsd || l.ia.llamadas)) partes.push(`IA ${usd(l.ia.costoUsd)} · ${num(l.ia.llamadas)} llam.`);
+      const ia = l.ia||{};
+      if(ia.costoHoy || ia.llamadasHoy) partes.push(`IA hoy ${usd(ia.costoHoy)} · ${num(ia.llamadasHoy)} llam.`);
+      if(ia.costoUsd) partes.push(`mes ${usd(ia.costoUsd)}`);
+      if(ia.cacheHit!=null){
+        const hp = Math.round(ia.cacheHit*100);
+        partes.push(`<span style="color:${hp<60?'var(--red)':'var(--green)'}">caché ${hp}%</span>`);
+      }
       if(l.negocio && (l.negocio.agendadas || l.negocio.canceladas)) partes.push(`✂️ ${num(l.negocio.agendadas)} agendada(s) · ${num(l.negocio.canceladas)} cancelada(s)`);
       if(l.negocio && (l.negocio.confSi || l.negocio.confNo)) partes.push(`confirm ✓${num(l.negocio.confSi)} ✗${num(l.negocio.confNo)}`);
+      if(l.negocio && l.negocio.optout) partes.push(`<span style="color:var(--red)">🚫 ${num(l.negocio.optout)} baja(s)</span>`);
       if(l.silenciados) partes.push(`🔇 ${l.silenciados} chat(s) en pausa`);
       if(l.salud==='caida' && l.minCaida) partes.push(`⚠ caída hace ${l.minCaida>=60?Math.floor(l.minCaida/60)+' h':l.minCaida+' min'}`);
       if(l.edadDias!=null) partes.push(`nº de ${l.edadDias} día(s)`);
+      const activo = l.bot || l.conf;
       return `<div class="loc">
         <span class="dot ${dotClass(l)}"></span>
         <span style="flex:1">${l.id}${l.numero?` · +${l.numero}`:''}</span>
         ${l.bot?'<span class="tag g">bot</span>':''}
         ${l.conf||l.reactivacion?'<span class="tag g">'+(l.reactivacion?'react':'confirm')+'</span>':''}
+        <button class="mini" data-ver="${l.id}">ver chats</button>
+        ${activo?`<button class="mini danger" data-kill="${l.id}">apagar</button>`:''}
         ${partes.length?`<span class="sub2">${partes.join(' · ')}</span>`:''}
+        ${cuotaBar(l.cuota)}
       </div>`;
     }
     function proyectoPanel(nombre, d, mesActual){
@@ -145,7 +183,7 @@
       app.innerHTML = `
         <header>
           <div><h1>Operaciones · SynapTech</h1><div class="sub">últimos 30 días · ${new Date(data.generadoEn).toLocaleString('es-CL')}</div></div>
-          <div class="acts"><button id="refresh">Actualizar</button><button id="out">Salir</button></div>
+          <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh">Actualizar</button><button id="out">Salir</button></div>
         </header>
         <div class="wrap">
           ${alertasHtml ? `<div style="margin-bottom:16px">${alertasHtml}</div>` : ''}
@@ -164,6 +202,62 @@
         </div>`;
       document.getElementById('refresh').onclick = cargar;
       document.getElementById('out').onclick = () => firebase.auth().signOut();
+
+      // ── Kill switch ──
+      // Solo apaga, nunca enciende: encender es una decisión deliberada que
+      // pasa por el panel del local. Acá el botón va en una sola dirección,
+      // que es la que no se puede equivocar a las 3 de la mañana.
+      document.getElementById('panic').onclick = async () => {
+        if(!confirm('Apagar bot Y confirmaciones en TODOS los locales.\n\nSe vuelve a encender uno por uno desde el panel de cada local. ¿Confirmas?')) return;
+        await kill({ alcance:'global', que:'todo' });
+      };
+      document.querySelectorAll('[data-kill]').forEach(b => {
+        b.onclick = async () => {
+          const tid = b.dataset.kill;
+          if(!confirm(`Apagar bot y confirmaciones de ${tid}?`)) return;
+          await kill({ alcance:'tenant', tenantId:tid, que:'todo' });
+        };
+      });
+      document.querySelectorAll('[data-ver]').forEach(b => {
+        b.onclick = () => verChats(b.dataset.ver);
+      });
+    }
+
+    async function kill(payload){
+      try{
+        const fn = firebase.app().functions('us-central1').httpsCallable('opsKillSwitch');
+        const r = await fn(payload);
+        alert(`Listo: ${r.data.apagados} local(es) apagado(s).`);
+        cargar();
+      }catch(e){ alert('No se pudo apagar: ' + (e.message||e)); }
+    }
+
+    // Visor de conversaciones: el primer fin de semana la pregunta no es
+    // cuántos mensajes salieron, sino si el bot está respondiendo bien.
+    async function verChats(tid){
+      const wrap = document.createElement('div');
+      wrap.className = 'modal';
+      wrap.innerHTML = `<div class="box"><p class="muted">Cargando conversaciones de ${tid}…</p></div>`;
+      wrap.onclick = e => { if(e.target===wrap) wrap.remove(); };
+      document.body.appendChild(wrap);
+      try{
+        const fn = firebase.app().functions('us-central1').httpsCallable('opsConversaciones');
+        const r = await fn({ tenantId: tid, limit: 8 });
+        const cs = r.data.conversaciones || [];
+        wrap.querySelector('.box').innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0;font-size:14px">Últimas conversaciones · ${tid}</h3>
+            <button class="mini" id="cerrar">Cerrar</button>
+          </div>
+          ${cs.length ? cs.map(c => `
+            <div class="chat">
+              <div class="meta">${c.chat}${c.nombre?` · ${c.nombre}`:''} · ${c.respHoy} resp. hoy${c.silenciado?' · 🔇 en pausa':''}${c.pendiente?` · ⏳ cita ${c.pendiente}`:''}</div>
+              ${(c.turnos||[]).map(t => `<div class="msg ${t.rol}">${t.rol==='user'?'👤':'🤖'} ${String(t.texto).replace(/</g,'&lt;')}</div>`).join('')}
+            </div>`).join('') : '<p class="muted">Sin conversaciones todavía.</p>'}`;
+        wrap.querySelector('#cerrar').onclick = () => wrap.remove();
+      }catch(e){
+        wrap.querySelector('.box').innerHTML = `<p style="color:var(--red)">${e.message||e}</p><button class="mini" onclick="this.closest('.modal').remove()">Cerrar</button>`;
+      }
     }
 
     async function cargar(){

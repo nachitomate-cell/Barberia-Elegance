@@ -1607,6 +1607,13 @@ exports.evolutionSaludSesiones = evolutionSalud.evolutionSaludSesiones;
 // Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;
+// Control del canal desde ops.synaptechspa.cl: apagar bot/confirmaciones sin
+// entrar al panel de cada local, auditar lo que el bot está respondiendo, y
+// el cron que manda por correo las alertas rojas para no depender de que
+// alguien esté mirando la pantalla.
+exports.opsKillSwitch    = opsMetricsModule.opsKillSwitch;
+exports.opsConversaciones = opsMetricsModule.opsConversaciones;
+exports.opsVigilancia    = opsMetricsModule.opsVigilancia;
 
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');

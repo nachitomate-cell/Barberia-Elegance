@@ -70,16 +70,38 @@ function dentroDeVentanaHoraria(now = ahoraChile()) {
   return h >= HORA_INICIO && h < HORA_FIN;
 }
 
-/** Suma 1 al contador de salientes del día. Nunca lanza: es telemetría de
- *  control, no puede tumbar un envío que ya salió. */
-async function registrarSaliente(tid) {
+/** Registra un envío del día. `n` cuenta SOLO los que salieron (es lo que vio
+ *  Meta); los fallos van aparte porque una tasa de fallo alta es el síntoma
+ *  temprano de una sesión degradada, antes de que se caiga del todo.
+ *  Nunca lanza: es telemetría de control, no puede tumbar un envío. */
+async function registrarSaliente(tid, { tipo = 'bot', ok = true } = {}) {
   if (!tid) return;
   const fecha = ahoraChile().fecha;
   await cuotaRef(tid, fecha).set({
     fecha,
-    n: FieldValue.increment(1),
+    ...(ok ? { n: FieldValue.increment(1) } : {}),
+    [`${tipo}_${ok ? 'ok' : 'fail'}`]: FieldValue.increment(1),
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
+}
+
+/** Snapshot del día para el dashboard de ops: cuánto salió, cuánto falló y
+ *  contra qué topes. Falla-abierto con ceros. */
+async function resumenHoy(tid) {
+  const vacio = { n: 0, botOk: 0, botFail: 0, confOk: 0, confFail: 0 };
+  if (!tid) return vacio;
+  try {
+    const s = await cuotaRef(tid, ahoraChile().fecha).get();
+    if (!s.exists) return vacio;
+    const d = s.data() || {};
+    return {
+      n:        Number(d.n) || 0,
+      botOk:    Number(d.bot_ok) || 0,
+      botFail:  Number(d.bot_fail) || 0,
+      confOk:   Number(d.confirmacion_ok) || 0,
+      confFail: Number(d.confirmacion_fail) || 0,
+    };
+  } catch (_) { return vacio; }
 }
 
 /** Salientes ya emitidos hoy por esta instancia. Falla-abierto (0). */
@@ -100,4 +122,5 @@ module.exports = {
   dentroDeVentanaHoraria,
   registrarSaliente,
   salientesHoy,
+  resumenHoy,
 };

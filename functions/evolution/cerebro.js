@@ -845,7 +845,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       ok = true;
     } catch (e) { logger.error(`[cerebro] ${tid} enviar:`, e.message); }
     await logWaSend(tid, 'bot', ok).catch(() => {});    // métrica para el dashboard ops
-    if (ok) await registrarSaliente(tid);               // cuota anti-ban: el contador es UNO para bot + confirmaciones
+    await registrarSaliente(tid, { tipo: 'bot', ok }); // cuota anti-ban: el contador es UNO para bot + confirmaciones
   };
   const persistir = async (respuesta) => {
     const nuevaHistoria = [
@@ -876,6 +876,10 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     // Se limpia la cita pendiente: si no, el cron sigue esperando una
     // respuesta que ya no va a llegar.
     await ref.update({ citaPendiente: FieldValue.delete() }).catch(() => {});
+    // Contador por local para ops: la TASA de bajas es el indicador adelantado
+    // del ban. Meta no avisa antes de suspender — lo que sube primero es la
+    // gente pidiendo baja y bloqueando.
+    logBotNegocio(tid, 'optout').catch(() => {});
     logger.info(`[cerebro] ${tid} chat=${chatId}: BAJA registrada (opt-out global)`);
     // Un único acuse y silencio. Confirmar la baja no es spam: es lo que evita
     // que la persona use "Bloquear", que es lo que de verdad quema el número.
