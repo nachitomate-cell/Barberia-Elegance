@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { RUTAS_SOLO_ADMIN } from './components/layout/Sidebar';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SucursalProvider } from './contexts/SucursalContext';
@@ -166,7 +167,11 @@ function ProtectedApp() {
   // Producto standalone (sin agenda): la landing es Inicio en vez de Agenda,
   // que en un tenant wallet-only no tiene sentido (no hay citas). Los tenants
   // por tipo (deluxe, restodemo) siguen mandando.
+  // Recepción nunca aterriza en Inicio: ese panel muestra los ingresos del día
+  // y del mes, que es justo lo que su rol no debe ver. Su puerta de entrada es
+  // la agenda, que además es donde trabaja.
   const defaultRoute =
+    role === 'recepcion'          ? 'agenda'   :
     billingPlan === 'wallet-only' ? 'inicio' :
     tenantId === 'deluxeperfumes' ? 'productos' :
     tenantId === 'restodemo'      ? 'menu'      :
@@ -180,16 +185,21 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />;
 
-  // gestion-interna es SOLO para admins (y admin-barberos tipo Omar Chameleon,
-  // cuyo claim es role='admin' aunque también estén en la colección barberos/).
+  // gestion-interna es para ADMIN y RECEPCIÓN (y admin-barberos tipo Omar
+  // Chameleon, cuyo claim es role='admin' aunque también estén en barberos/).
   // Cualquier otro rol se redirige a la agenda pública del local, donde tienen
   // su propio login para ver SU día. Motivo:
   //  · Evita fuga de la base de clientes (memoria feedback_no_exponer_whatsapp_cliente)
   //  · Un barbero no debería ver la agenda de sus compañeros ni las métricas del local
-  //  · Whitelist explícito de 'admin' captura barberos, profesionales (rol
-  //    legacy migrado desde AgendaPro), jefes, y cualquier rol futuro sin
-  //    tener que enumerarlos.
-  if (role !== 'admin') {
+  //  · Sigue siendo una whitelist EXPLÍCITA: captura barberos, profesionales
+  //    (rol legacy migrado desde AgendaPro), jefes y cualquier rol futuro sin
+  //    tener que enumerarlos. Un rol nuevo entra solo si se agrega acá a mano.
+  //
+  // Recepción ve un panel recortado: el Sidebar la trata como no-admin y le
+  // oculta todo lo marcado `adminOnly`. Ese recorte es de UI — lo que de
+  // verdad protege son las reglas (ver scripts/test-rules-roles.js).
+  const PANEL_ROLES = ['admin', 'recepcion'];
+  if (!PANEL_ROLES.includes(role)) {
     // Pantalla explícita: si un admin cae acá por error (bug de roles), tiene
     // información para reportar y un botón para forzar entrada. El redirect
     // automático a /agenda.html se demora 3 s para dar espacio a corregir.
@@ -206,6 +216,7 @@ function ProtectedApp() {
       {/* Resto del panel con AdminLayout */}
       <Route path="/*" element={
         <AdminLayout>
+          <GuardRutaAdmin role={role} fallback={defaultRoute} />
           <DailyWelcomePanel />
           <Routes>
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
@@ -287,6 +298,20 @@ const TENANT_MANIFESTS = {
   marcelo_hairdressing: '/gestion-interna/manifest-marcelo_hairdressing.webmanifest',
   yugen:         '/gestion-interna/manifest-yugen.webmanifest',
 };
+
+/* Cierra por URL las vistas reservadas al admin.
+   Ocultar el ítem del Sidebar no cierra la ruta: recepción escribiendo
+   /gestion-interna/metricas entraba igual, y Métricas se calcula desde
+   `citas`, que sí puede leer — o sea, veía los ingresos.
+   La lista se DERIVA de los NAV_GROUPS del Sidebar, así que una vista nueva
+   marcada `adminOnly` queda protegida sin tocar este archivo. */
+function GuardRutaAdmin({ role, fallback }) {
+  const { pathname } = useLocation();
+  if (role === 'admin') return null;
+  const ruta = pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
+  if (!RUTAS_SOLO_ADMIN.has(ruta)) return null;
+  return <Navigate to={`/${fallback}`} replace />;
+}
 
 export default function App() {
   useVersionManager();

@@ -111,7 +111,7 @@ const NAV_GROUPS_DEFAULT = [
     id: 'operacion',
     label: 'Operación',
     items: [
-      { to: 'inicio',         label: 'Inicio',         Icon: Home          },
+      { to: 'inicio',         label: 'Inicio',         Icon: Home,      adminOnly: true },
       { to: 'agenda',         label: 'Agenda',         Icon: CalendarDays  },
       { to: 'pizarra',        label: 'Pizarra (walk-in)', Icon: Radar      },
       { to: 'por-cerrar',     label: 'Por cerrar',     Icon: CalendarClock },
@@ -139,7 +139,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'servicios',         label: 'Servicios',        Icon: Scissors                  },
       { to: 'productos',         label: 'Productos',        Icon: ShoppingBag               },
-      { to: 'inventario',        label: 'Inventario',       Icon: Package,   adminOnly: true },
+      { to: 'inventario',        label: 'Inventario',       Icon: Package                    },
       { to: 'lookbook',          label: 'Lookbook',         Icon: Images                    },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus                 },
     ],
@@ -148,7 +148,7 @@ const NAV_GROUPS_DEFAULT = [
     id: 'equipo',
     label: 'Equipo',
     items: [
-      { to: 'equipo',     label: 'Equipo',     Icon: Users                     },
+      { to: 'equipo',     label: 'Equipo',     Icon: Users,    adminOnly: true },
       { to: 'comisiones', label: 'Comisiones', Icon: Banknote,  adminOnly: true },
     ],
   },
@@ -169,8 +169,8 @@ const NAV_GROUPS_DEFAULT = [
     id: 'finanzas',
     label: 'Finanzas',
     items: [
-      { to: 'caja',        label: 'Control de Caja', Icon: Wallet,       adminOnly: true  },
-      { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
+      { to: 'caja',        label: 'Control de Caja', Icon: Wallet                          },
+      { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: true  },
       { to: 'gastos',      label: 'Gastos',          Icon: TrendingDown, adminOnly: true  },
       { to: 'facturacion', label: 'Facturación',     Icon: Receipt,      adminOnly: true  },
       { to: 'mensualidad', label: 'Mensualidad',     Icon: CreditCard,   adminOnly: true  },
@@ -344,6 +344,22 @@ const NAV_GROUPS_RESTO = [
     ],
   },
 ];
+
+/* ── Rutas reservadas al admin ────────────────────────────────────
+   Se DERIVAN de los mismos NAV_GROUPS de arriba en vez de mantener otra
+   lista: si mañana alguien marca una vista `adminOnly`, queda bloqueada
+   por URL sola, sin que haya que acordarse de un segundo archivo.
+
+   Hace falta porque esconder el ítem del menú NO cierra la ruta: recepción
+   escribiendo /gestion-interna/metricas entraba igual, y Métricas se calcula
+   desde `citas`, que sí puede leer. La usa App.jsx. */
+export const RUTAS_SOLO_ADMIN = new Set(
+  [NAV_GROUPS_DEFAULT, NAV_GROUPS_DELUXE, NAV_GROUPS_WALLET_ONLY, NAV_GROUPS_RESTO]
+    .flat()
+    .flatMap(g => (g.items || [])
+      .filter(item => g.adminOnly || item.adminOnly)
+      .map(item => item.to)),
+);
 
 /* ── Hooks auxiliares ────────────────────────────────────────────── */
 // useTheme() vive ahora en contexts/ThemeContext.jsx — estaba encerrado acá
@@ -716,6 +732,15 @@ function SedeSwitcher() {
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
+  // Al panel solo entran 'admin' y 'recepcion' (ver App.jsx). Así que
+  // `adminOnly` significa hoy, en la práctica, "no para recepción": todo lo
+  // que muestre los números del negocio — Inicio, Métricas, Gastos,
+  // Facturación, Mensualidad, Comisiones, Equipo (trae la comisión de cada
+  // barbero) y Configuración. Caja e Inventario quedan visibles a propósito:
+  // son el trabajo diario del mostrador.
+  //
+  // Ocultar el ítem es UI, no seguridad. La frontera real está en
+  // firestore.rules (probada en scripts/test-rules-roles.js).
   const isAdminRole     = role === 'admin';
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const { light, toggle: toggleTheme } = useTheme();
