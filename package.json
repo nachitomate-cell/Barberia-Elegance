@@ -9,7 +9,9 @@
     "build:css": "tailwindcss -i input.css -o output.css --minify && tailwindcss -c tailwind-lookbook.config.js -i input.css -o output-lookbook.css --minify",
     "build:css:watch": "tailwindcss -i input.css -o output.css --watch",
     "seed": "node seed-barberos.js",
-    "check:mojibake": "node scripts/check-mojibake.js"
+    "check:mojibake": "node scripts/check-mojibake.js",
+    "check:tenants": "node scripts/check-tema-tenants.js",
+    "check": "npm run check:mojibake && npm run check:tenants"
   },
   "devDependencies": {
     "csv-parse": "^7.0.0",
