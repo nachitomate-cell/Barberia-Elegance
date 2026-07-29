@@ -13491,8 +13491,14 @@
         if (locA) locA.textContent = direccionFull || '';
         if (locC) locC.textContent = ciudad ? ciudad + ', Chile' : '';
         if (locB) locB.setAttribute('href', mapsUrl);
-        // Multi-sucursal: al cambiar de sede el mapa tiene que seguirla.
-        window._setUbicacionQuery([direccionFull, ciudad].filter(Boolean).join(', '));
+        // Multi-sucursal: al cambiar de sede el mapa tiene que seguirla, y con
+        // el NOMBRE de la sede delante (ej. "Oren Barber Reñaca, Av. …") para
+        // que el pin caiga en el local y no en un punto anónimo de la calle.
+        // `s.mapsQuery` permite afinarlo por sede si Google la tiene con otro
+        // nombre.
+        window._setUbicacionQuery(
+          s.mapsQuery || [s.nombre || SHOP.nombre, direccionFull, ciudad].filter(Boolean).join(', '),
+        );
         // Horario del hero: si la sede tiene su propio objeto horario, lo
         // convertimos a texto legible ("Lu–Vi: 09:00–20:00 · Sá: 09:00–14:00").
         if (s.horario && typeof s.horario === 'object' && typeof _horarioObjToText === 'function') {
@@ -14999,8 +15005,16 @@
       const heroAddr = document.getElementById('heroInfoAddrText');
       if (heroAddr) heroAddr.textContent = 'Ubicación';
 
-      // Actualizar link de Google Maps con la dirección real
-      const gmapsQ = encodeURIComponent((dirCalle || dirRaw) + ' ' + (dirCiudad || ''));
+      // Consulta de Maps: NOMBRE DEL LOCAL + dirección, no la dirección sola.
+      // Con la calle sola el pin cae en un punto genérico de la cuadra, sin
+      // etiqueta; con el nombre delante, Maps engancha la ficha del negocio y
+      // el pin sale rotulado (verificado con Yügen: "La Concepción 164" da un
+      // punto anónimo, "Yūgen Studio, La Concepción 164, Quillota" cae en el
+      // local). `mapsQuery` en config.js permite sobrescribirlo cuando el
+      // nombre en Google no coincide con el del tenant.
+      const _mapsQuery = SHOP.mapsQuery
+        || [SHOP.nombre, dirCalle || dirRaw, dirCiudad].filter(Boolean).join(', ');
+      const gmapsQ = encodeURIComponent(_mapsQuery);
       const gmapsUrl = `https://maps.google.com/?q=${gmapsQ}`;
       document.getElementById('shopDireccionLink')?.setAttribute('href', gmapsUrl);
       // El <a> conserva el href a Maps (fallback y "abrir en pestaña nueva"),
@@ -15014,9 +15028,9 @@
       if (locAddr) locAddr.textContent = dirCalle || dirRaw || '';
       if (locCity) locCity.textContent = dirCiudad || '';
       if (locCta)  locCta.setAttribute('href', gmapsUrl);
-      // Calle + ciudad: sin la ciudad, una dirección como "Serrano 73" cae en
-      // cualquier comuna del país.
-      window._setUbicacionQuery([dirCalle || dirRaw, dirCiudad].filter(Boolean).join(', '));
+      // El mapa usa la MISMA consulta que el botón: si "Cómo llegar" lleva al
+      // negocio, el mapa de arriba no puede estar mostrando otro punto.
+      window._setUbicacionQuery(_mapsQuery);
 
       // ── Horario ──────────────────────────────────────────────────
       const horClean = (SHOP.horario || '').replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '').trim();
