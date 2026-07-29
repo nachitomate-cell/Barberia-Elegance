@@ -1993,6 +1993,14 @@
     .yugen-modal-row .h { color: #f5f3ef; font-weight: 600; white-space: nowrap; }
     .yugen-modal .ym-addr { color: #f5f3ef; font-size: 14px; line-height: 1.5; }
     .yugen-modal .ym-empty { color: #b7afa3; font-size: 13.5px; }
+    /* Mapa dentro del modal propio de Yügen (el estándar tiene el suyo en
+       .os-loc-map). Mismo alto para que las dos vistas se sientan iguales. */
+    .yugen-modal .ym-map {
+      margin-top: 14px; border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(245,243,239,0.14); background: rgba(245,243,239,0.05);
+      line-height: 0;
+    }
+    .yugen-modal .ym-map iframe { display: block; width: 100%; height: 190px; border: 0; }
     .yugen-modal .ym-maps {
       display: block; margin-top: 16px; text-align: center; padding: 12px;
       border-radius: 12px; background: #f5f3ef; color: #0b0a09; font-weight: 700; font-size: 13px;
@@ -9682,9 +9690,18 @@
         if (type === 'ubicacion') {
           title.textContent = 'Ubicación';
           icon.className = 'ph-fill ph-map-pin';
+          // Yügen tiene su propia fila de botones y su propio modal, así que
+          // NO pasa por el #locationModal estándar: el mapa hay que ponerlo
+          // también acá. Misma consulta —nombre del local + dirección— para
+          // que el pin caiga en el negocio y no en un punto de la calle.
           var dir = (SHOP.direccion || '').replace(/[📍]/g, '').trim();
+          var q   = SHOP.mapsQuery || [SHOP.nombre, dir].filter(Boolean).join(', ');
           body.innerHTML = dir
-            ? '<p class="ym-addr">' + dir + '</p><a class="ym-maps" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + encodeURIComponent(dir) + '">Cómo llegar</a>'
+            ? '<p class="ym-addr">' + dir + '</p>'
+              + '<div class="ym-map"><iframe title="Mapa de la ubicación" loading="lazy"'
+              + ' referrerpolicy="no-referrer-when-downgrade"'
+              + ' src="https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&z=16&output=embed"></iframe></div>'
+              + '<a class="ym-maps" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + encodeURIComponent(q) + '">Cómo llegar</a>'
             : '<p class="ym-empty">Dirección por confirmar.</p>';
         } else if (type === 'valores') {
           title.textContent = 'Nuestro Sello';
