@@ -43,6 +43,37 @@
 
   <script src="config.js?v=2.1"></script>
   <script src="db.js"></script>
+  <script>
+    // Red de seguridad para db.js, que es el FALLBACK OFFLINE de la agenda.
+    // Si su descarga falla, `DB is not defined` reventaba el arranque — y
+    // encima solo se nota cuando Firestore TAMBIÉN falló (la línea es
+    // `rConfig || DB.getSettings()`), o sea justo cuando el fallback era lo
+    // único que quedaba en pie. Reportado en yugen, 25-jul-2026.
+    //
+    // `const DB` de db.js crea un binding léxico; si el archivo no cargó, no
+    // existe y esta propiedad del objeto global pasa a resolver el nombre.
+    // Los datos salen de config.js (SHOP), que se carga antes y siempre.
+    if (typeof DB === 'undefined') {
+      console.warn('[boot] db.js no cargó — usando el fallback mínimo de config.js');
+      window.DB = {
+        getSettings: () => ({
+          horarioInicio: '09:00', horarioFin: '20:00', intervaloMinutos: 30,
+          diasLaborales: [0, 1, 2, 3, 4, 5, 6], telefonoAdmin: '',
+        }),
+        getServices: () => (window.SHOP && window.SHOP.servicios) || [],
+        // Guardar la reserva en localStorage es mejor que perderla: el panel
+        // la rescata igual y el cliente no repite todo el flujo.
+        saveBooking: (b) => {
+          try {
+            const k = 'barber_bookings';
+            const prev = JSON.parse(localStorage.getItem(k) || '[]');
+            prev.push({ ...b, id: String(Date.now()), estado: 'Confirmado', creadoEn: new Date().toISOString() });
+            localStorage.setItem(k, JSON.stringify(prev));
+          } catch (_) {}
+        },
+      };
+    }
+  </script>
   <!-- Firebase SDKs (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>

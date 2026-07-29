@@ -32,6 +32,11 @@
   //  - Gestores de contraseñas y el autofill de iOS que leen los campos del
   //    formulario: `autofillFieldData.autoCompleteType` es de su script, no
   //    del nuestro. Visto en aura/, 13-jul-2026.
+  //  - Extensiones de WALLET CRIPTO (MetaMask, Coinbase Wallet, Phantom…):
+  //    inyectan `window.ethereum` en TODA página y su script pelea con el de
+  //    otra extensión por el mismo objeto. `grep ethereum` en el repo no
+  //    devuelve nada: no es código nuestro y no hay nada que arreglar.
+  //    Visto en infinity/ y infinity/registro, 21-jul-2026 (3 veces).
   const IGNORE_PATTERNS = [
     'Attempt to get records from database without an in-progress transaction',
     'Connection to Indexed Database server lost',
@@ -47,6 +52,10 @@
     '_AutofillCallbackHandler',
     '__firefox__',
     'autofillFieldData',
+    'window.ethereum',
+    'selectedAddress',
+    'evmAsk',
+    'solana.isPhantom',
   ];
 
   function shouldIgnore(message) {
