@@ -593,6 +593,26 @@
     /* Muchos tenants traen la dirección completa en una línea (sin "|"): sin
        esto el <p> vacío dejaba un hueco antes del botón. */
     #locationModal .os-loc-city:empty { display: none; }
+    /* Mapa embebido. Alto fijo en vez de aspect-ratio: el modal ya es angosto
+       y una proporción 16:9 lo dejaba en una franja demasiado baja para
+       reconocer la cuadra. */
+    #locationModal .os-loc-map {
+      margin-top: 14px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      line-height: 0;
+    }
+    #locationModal .os-loc-map iframe {
+      display: block; width: 100%; height: 190px; border: 0;
+    }
+    /* En los tenants de tema claro el borde blanco translúcido desaparece
+       sobre la tarjeta clara. */
+    html.theme-light #locationModal .os-loc-map {
+      border-color: rgba(17,24,39,0.12);
+      background: rgba(17,24,39,0.03);
+    }
     #locationModal .os-loc-cta {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; margin-top: 18px; padding: 12px 16px;
@@ -9607,6 +9627,15 @@
           <p id="locationAddr" class="os-loc-addr"></p>
           <p id="locationCity" class="os-loc-city"></p>
         </div>
+        <!-- Mapa. El iframe clásico de Maps (output=embed) NO pide API key,
+             así que funciona en el dominio de cualquier tenant sin configurar
+             nada. El `src` se asigna al ABRIR el modal, no al cargar la
+             página: si no, cada visita a la agenda dispararía una petición a
+             Google que casi nadie llega a ver. -->
+        <div id="locationMapWrap" class="os-loc-map" hidden>
+          <iframe id="locationMap" title="Mapa de la ubicación" loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
         <a id="locationCta" class="os-loc-cta" href="#" target="_blank" rel="noopener">
           <i class="ph-fill ph-navigation-arrow"></i> Cómo llegar
         </a>
@@ -13462,6 +13491,8 @@
         if (locA) locA.textContent = direccionFull || '';
         if (locC) locC.textContent = ciudad ? ciudad + ', Chile' : '';
         if (locB) locB.setAttribute('href', mapsUrl);
+        // Multi-sucursal: al cambiar de sede el mapa tiene que seguirla.
+        window._setUbicacionQuery([direccionFull, ciudad].filter(Boolean).join(', '));
         // Horario del hero: si la sede tiene su propio objeto horario, lo
         // convertimos a texto legible ("Lu–Vi: 09:00–20:00 · Sá: 09:00–14:00").
         if (s.horario && typeof s.horario === 'object' && typeof _horarioObjToText === 'function') {
@@ -14983,6 +15014,9 @@
       if (locAddr) locAddr.textContent = dirCalle || dirRaw || '';
       if (locCity) locCity.textContent = dirCiudad || '';
       if (locCta)  locCta.setAttribute('href', gmapsUrl);
+      // Calle + ciudad: sin la ciudad, una dirección como "Serrano 73" cae en
+      // cualquier comuna del país.
+      window._setUbicacionQuery([dirCalle || dirRaw, dirCiudad].filter(Boolean).join(', '));
 
       // ── Horario ──────────────────────────────────────────────────
       const horClean = (SHOP.horario || '').replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '').trim();
@@ -15022,9 +15056,33 @@
     // La franja solo dice "Ubicación": al tocarla se abre este modal con la
     // dirección y el botón "Cómo llegar". El <a> mantiene su href a Maps para
     // que "abrir en pestaña nueva" y los lectores de pantalla sigan sirviendo.
+    // Dirección con la que se arma el mapa. La setean los dos caminos que
+    // pueblan el modal: el del tenant (mono-sede) y el de sucursal elegida.
+    let _locQuery = '';
+    window._setUbicacionQuery = function (q) {
+      const limpio = String(q || '').replace(/[📍🕒]/g, '').trim();
+      if (!limpio || limpio === _locQuery) return;
+      _locQuery = limpio;
+      // Cambió la sede → el iframe tiene que volver a pedirse.
+      const f = document.getElementById('locationMap');
+      if (f) f.removeAttribute('src');
+    };
+
     window.openLocationModal = function () {
       const m = document.getElementById('locationModal');
       if (m) m.classList.add('is-open');
+      // Carga diferida: el src se asigna acá, la primera vez que el cliente
+      // abre el modal. Así la agenda no le pide un iframe a Google en cada
+      // visita — la mayoría nunca toca "Ubicación".
+      const wrap = document.getElementById('locationMapWrap');
+      const f    = document.getElementById('locationMap');
+      if (!wrap || !f) return;
+      if (!_locQuery) { wrap.hidden = true; return; }   // sin dirección, sin mapa
+      wrap.hidden = false;
+      if (!f.getAttribute('src')) {
+        f.setAttribute('src',
+          'https://maps.google.com/maps?q=' + encodeURIComponent(_locQuery) + '&z=16&output=embed');
+      }
     };
     window.closeLocationModal = function (ev) {
       if (ev && ev.target && ev.target.id && ev.target.id !== 'locationModal') return;
