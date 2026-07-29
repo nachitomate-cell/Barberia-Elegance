@@ -100,9 +100,17 @@ function PersonalAgendaButton() {
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
 const DIAS_ORDER  = ['1','2','3','4','5','6','0'];
 
-const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
-  ['00','30'].map(m => `${String(h).padStart(2,'0')}:${m}`)
-).flat();
+// Paso de los campos de hora del horario, en segundos. 300 = 5 minutos: un
+// local pidió poder entrar a las 10:05 y los desplegables solo ofrecían :00
+// y :30. Se usa `<input type="time">` (el reloj nativo del sistema) en vez de
+// un <select>: a 5 minutos serían 288 opciones por desplegable, y hay dos por
+// día más los descansos. El nativo además abre el selector del teléfono en
+// móvil y deja escribir la hora directo en escritorio.
+//
+// El motor de disponibilidad NO asume múltiplos de 15: genera los cupos como
+// `inicio + n*intervalo` (ver getHorasDisponibles en firebaseUtils.js), así que
+// una entrada a las 10:05 con intervalo 30 ofrece 10:05, 10:35, 11:05…
+const TIME_STEP = 300;
 
 const DEFAULT_DIA = activo => ({ activo, inicio: '09:00', fin: '20:00', descansos: [] });
 const DEFAULT_HORARIO = () => ({
@@ -290,11 +298,15 @@ function DayRow({ diaKey, config, onChange }) {
     ...config, descansos: config.descansos.map((d, x) => x === i ? { ...d, [k]: v } : d),
   });
 
-  const sel = 'bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-emerald-500';
-  // Los selects del descanso viven sobre el fondo ámbar: mismo tamaño que los
+  // `color-scheme` le dice al navegador de qué color pintar el reloj nativo del
+  // <input type="time">. Sin esto el ícono sale negro sobre el fondo oscuro y
+  // es invisible; en modo claro se invierte.
+  const esquema = '[color-scheme:dark] [html.light_&]:[color-scheme:light]';
+  const sel = `bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-emerald-500 ${esquema}`;
+  // Los campos del descanso viven sobre el fondo ámbar: mismo tamaño que los
   // del día (eran más chicos y por eso el descanso se leía como una nota al pie
   // en vez de como parte de la jornada).
-  const selDescanso = 'bg-slate-900 border border-amber-500/25 rounded px-1.5 py-1 text-xs text-primary focus:outline-none focus:border-amber-500';
+  const selDescanso = `bg-slate-900 border border-amber-500/25 rounded px-1.5 py-1 text-xs text-primary focus:outline-none focus:border-amber-500 ${esquema}`;
 
   return (
     <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
@@ -309,13 +321,13 @@ function DayRow({ diaKey, config, onChange }) {
         </span>
         {config.activo ? (
           <div className="flex items-center gap-1 flex-1">
-            <select value={config.inicio} onChange={e => onChange({...config, inicio: e.target.value})} className={sel}>
-              {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-            </select>
+            <input type="time" step={TIME_STEP} value={config.inicio}
+              onChange={e => onChange({ ...config, inicio: e.target.value })}
+              className={sel} aria-label="Entrada" />
             <span className="text-slate-600 text-xs">–</span>
-            <select value={config.fin} onChange={e => onChange({...config, fin: e.target.value})} className={sel}>
-              {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-            </select>
+            <input type="time" step={TIME_STEP} value={config.fin}
+              onChange={e => onChange({ ...config, fin: e.target.value })}
+              className={sel} aria-label="Salida" />
           </div>
         ) : (
           <span className="text-xs text-slate-700 italic">Día libre</span>
@@ -332,13 +344,13 @@ function DayRow({ diaKey, config, onChange }) {
                 <Coffee size={12} /> Descanso
               </span>
               <div className="flex items-center gap-1.5">
-                <select value={d.inicio} onChange={e => upDescanso(i,'inicio',e.target.value)} className={selDescanso} aria-label="Inicio del descanso">
-                  {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-                </select>
+                <input type="time" step={TIME_STEP} value={d.inicio}
+                  onChange={e => upDescanso(i, 'inicio', e.target.value)}
+                  className={selDescanso} aria-label="Inicio del descanso" />
                 <span className="text-slate-500 text-xs">–</span>
-                <select value={d.fin} onChange={e => upDescanso(i,'fin',e.target.value)} className={selDescanso} aria-label="Fin del descanso">
-                  {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
-                </select>
+                <input type="time" step={TIME_STEP} value={d.fin}
+                  onChange={e => upDescanso(i, 'fin', e.target.value)}
+                  className={selDescanso} aria-label="Fin del descanso" />
               </div>
               {/* ml-auto + p-1.5: el target táctil era de 12px, imposible de
                   acertar en el celular sin borrar el descanso de al lado. */}
@@ -2454,23 +2466,21 @@ export default function Equipo() {
                   {(form.tramosVip || []).map((t, i) => (
                     <div key={i} className="flex items-center gap-1.5 bg-slate-900/60 rounded-lg px-2 py-1.5 border border-slate-700/50">
                       <span className="text-[10px] text-amber-300/60 w-10 shrink-0 font-semibold">VIP</span>
-                      <select
+                      <input
+                        type="time" step={TIME_STEP}
                         value={t.inicio || ''}
                         onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, inicio: e.target.value } : x))}
-                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="">--:--</option>
-                        {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
-                      </select>
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500 [color-scheme:dark] [html.light_&]:[color-scheme:light]"
+                        aria-label="Inicio del tramo VIP"
+                      />
                       <span className="text-slate-600 text-xs">–</span>
-                      <select
+                      <input
+                        type="time" step={TIME_STEP}
                         value={t.fin || ''}
                         onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, fin: e.target.value } : x))}
-                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="">--:--</option>
-                        {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
-                      </select>
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-primary focus:outline-none focus:border-amber-500 [color-scheme:dark] [html.light_&]:[color-scheme:light]"
+                        aria-label="Fin del tramo VIP"
+                      />
                       <button
                         type="button"
                         onClick={() => set('tramosVip', form.tramosVip.filter((_, idx) => idx !== i))}
