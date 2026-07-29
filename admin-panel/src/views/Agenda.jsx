@@ -1062,6 +1062,36 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     }
   };
 
+  // ── Horas acotadas al turno del profesional elegido ──────────────
+  // Si el local abre a las 9 pero el trabajador entra a las 11, ofrecer 9:00
+  // no tiene sentido (lo pidió Kronnos). Su jornada ya está guardada en
+  // barberos/{id}.horario[díaSemana] desde Equipo → Configurar horario.
+  //
+  // Es una lista APARTE de `pickerLabels` a propósito: ese sigue
+  // representando el rango del LOCAL, y es el que usa `horarioEspecial` más
+  // abajo para marcar una cita fuera de turno. Si lo acotáramos, cualquier
+  // cita fuera del horario del barbero quedaría marcada como especial.
+  //
+  // Cae a la lista completa ante cualquier duda —sin barbero elegido, sin
+  // horario configurado, día libre, o si el filtro deja el select vacío—
+  // porque un desplegable sin horas es peor que uno con horas de más.
+  const horasDelBarbero = useMemo(() => {
+    const b = barberos.find(x => x.id === form.barberoId);
+    const dia = b?.horario?.[String(new Date(form.fecha + 'T12:00:00').getDay())];
+    if (!dia || dia.activo === false || !dia.inicio || !dia.fin) return pickerLabels;
+    const toMin = t => {
+      const [h, m] = String(t).split(':').map(Number);
+      return Number.isFinite(h) ? h * 60 + (m || 0) : NaN;
+    };
+    const ini = toMin(dia.inicio), fin = toMin(dia.fin);
+    if (!Number.isFinite(ini) || !Number.isFinite(fin) || fin <= ini) return pickerLabels;
+    const dentro = pickerLabels.filter(t => {
+      const mm = toMin(t);
+      return mm >= ini && mm < fin;
+    });
+    return dentro.length ? dentro : pickerLabels;
+  }, [barberos, form.barberoId, form.fecha, pickerLabels]);
+
   // Detección de "horario especial": la hora de la cita cae fuera del rango
   // laboral del día (el que arma el select `pickerLabels`). Se persiste como
   // flag adicional para reportes y filtros; no cambia el layout del bloque.
@@ -1709,7 +1739,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               />
             ) : (
               <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-                {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
+                {(horasDelBarbero.includes(form.hora) ? horasDelBarbero : [form.hora, ...horasDelBarbero].filter(Boolean))
                   .map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             )}
@@ -4968,8 +4998,22 @@ export default function Agenda() {
   // citas (por sucursalId/sucursalNombre; las sin sede pasan por compat).
   const citas = useMemo(() => citasAll.filter(matchSucursal), [citasAll, matchSucursal]);
   const { data: bloqueos }    = useCollection('bloqueos', dateRange, [_visibleDatesKey]);
-  const { data: servicios }   = useCollection('servicios');
+  const { data: serviciosRaw } = useCollection('servicios');
   const { data: productos }   = useCollection('productos');
+
+  // Respeta el orden que el local definió arrastrando en Servicios (campo
+  // `orden`). Antes el desplegable de "Servicio" al crear una cita mostraba
+  // el orden interno de Firestore, así que el trabajo de ordenarlos no se
+  // veía acá (lo pidió Kronnos).
+  //
+  // Se ordena en el CLIENTE, no con orderBy('orden') en la query: Firestore
+  // EXCLUYE los docs que no tienen el campo del orderBy, así que un servicio
+  // creado por fuera del panel desaparecería del selector sin aviso. Hoy
+  // todos tienen `orden`, pero el modo de fallar no vale la pena.
+  const servicios = useMemo(
+    () => [...serviciosRaw].sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999)),
+    [serviciosRaw],
+  );
 
   // Rango horario efectivo: parte del rango del tenant y se estira si hay citas
   // (sobrecupos u horarios especiales) que caen antes o después. Así una cita
