@@ -11,7 +11,12 @@ service cloud.firestore {
     //  cada evaluación de regla.
     //
     //  Estructura de claims esperada:
-    //    { role: 'admin' | 'jefe' | 'barbero', tenantId: string }
+    //    { role: 'admin' | 'jefe' | 'barbero' | 'recepcion', tenantId: string }
+    //
+    //  admin/jefe → todo. barbero → su día. recepcion → opera el mostrador
+    //  (agenda, clientes, caja, stock) SIN ver los números del negocio.
+    //  Un rol nuevo debe sumarse también a normalizarRole() en
+    //  functions/index.js, o el trigger de claims lo degrada a 'barbero'.
     // ═══════════════════════════════════════════════════════════════
 
     function autenticado() {
@@ -80,11 +85,15 @@ service cloud.firestore {
     }
 
     // ── Roles ───────────────────────────────────────────────────────
+    // `recepcion` entra como staff: necesita citas, clientes, caja y stock
+    // para trabajar. Lo que NO puede ver son los números del negocio, y eso
+    // lo cierra `esAdmin` (gastos, facturación) — no esta función. Ojo:
+    // `productos` deja que un staff modifique SOLO `stock`, nunca el precio.
     function esStaff(tid) {
-      return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero'])
+      return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero', 'recepcion'])
           || esBootstrap()
           || esKronnosBrandAdmin(tid)
-          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe', 'barbero'])
+          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe', 'barbero', 'recepcion'])
           || esBarberoFirestore(tid); // TEMP: eliminar post-migración
     }
 

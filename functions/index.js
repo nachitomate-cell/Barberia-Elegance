@@ -68,12 +68,21 @@ function resolveUid(docId, data) {
 }
 
 /**
- * Las reglas de Firestore solo reconocen role admin|jefe|barbero.
- * Docs seedeados con otros valores (p. ej. 'profesional' en oren/infinity)
- * dejaban claims que esStaff() rechaza → barberos sin poder agendar.
+ * Las reglas de Firestore solo reconocen estos roles. Docs seedeados con
+ * otros valores (p. ej. 'profesional' en oren/infinity) dejaban claims que
+ * esStaff() rechaza → barberos sin poder agendar.
+ *
+ * `recepcion`: entra al panel y opera el día a día (agenda, clientes, caja,
+ * stock) pero NO ve los números del negocio — métricas, gastos, comisiones,
+ * facturación. La frontera dura está en las reglas: `gastos` exige esAdmin,
+ * y `productos` deja que un staff toque solo `stock`, nunca el precio.
+ *
+ * Cualquier rol nuevo tiene que sumarse ACÁ además de en firestore.rules; si
+ * no, el trigger lo degrada a 'barbero' en silencio y el usuario queda sin
+ * los permisos que su doc dice tener.
  */
 function normalizarRole(rol) {
-  return ['admin', 'jefe', 'barbero'].includes(rol) ? rol : 'barbero';
+  return ['admin', 'jefe', 'barbero', 'recepcion'].includes(rol) ? rol : 'barbero';
 }
 
 // Trigger: /barberos/{docId} (tenant elegance)
