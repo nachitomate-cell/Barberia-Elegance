@@ -170,6 +170,76 @@ exports.evolutionDesvincular = onCall({ region: 'us-central1', cors: true, secre
   return { ok: true };
 });
 
+/* ─────────────────── 3.5) Mi consumo — lo que ve el DUEÑO ───────────────────
+   Deliberadamente NO devuelve costo en USD, tokens ni llamadas a la API. Dos
+   razones:
+     · Comercial: mostrarle al local que su bot costó US$11 mientras le
+       cobramos el add-on abre una conversación sobre el margen que no aporta.
+     · De comportamiento: anclar en costo invita a "estoy pagando por mensaje,
+       hay que exprimirlo". Anclamos en VALOR (citas agendadas) y en
+       PROTECCIÓN (tope del número), que empujan al uso sano.
+
+   El tope se presenta como escudo antiban, no como cuota de plan: es la
+   diferencia entre "me están limitando" y "me están cuidando el número". Y
+   las bajas van visibles a propósito — ver que hubo clientes que pidieron no
+   recibir más mensajes modera el entusiasmo mejor que cualquier candado.
+   ──────────────────────────────────────────────────────────────────────────── */
+exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const tid = tenantDelCaller(req);
+  const { capDiario, capConfirmaciones, resumenHoy } = require('./cuota');
+  const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
+
+  const hoyCl = ahoraChile().fecha;
+  const mes   = hoyCl.slice(0, 7);
+
+  const [waSnap, botSnap, cuota] = await Promise.all([
+    waCfgRef(tid).get(),
+    db.doc(`_metrics/bot_${tid}_${mes}`).get(),
+    resumenHoy(tid),
+  ]);
+  const wa  = waSnap.data() || {};
+  const neg = botSnap.data() || {};
+
+  const capTotal   = capDiario(wa);
+  const capConfirm = capConfirmaciones(wa);
+  const desde   = wa.vinculadoDesde && wa.vinculadoDesde.toMillis ? wa.vinculadoDesde.toMillis() : 0;
+  const edadDias = desde ? Math.floor((Date.now() - desde) / 86400000) : null;
+
+  // Próximo escalón de madurez: convierte el límite en algo que MEJORA solo,
+  // en vez de un techo fijo contra el que uno se frustra.
+  let siguienteNivel = null;
+  if (edadDias !== null) {
+    if (edadDias < 7)       siguienteNivel = { enDias: 7 - edadDias,  nuevoTope: 120 };
+    else if (edadDias < 30) siguienteNivel = { enDias: 30 - edadDias, nuevoTope: 300 };
+  }
+
+  const agendadas = Number(neg.agendada) || 0;
+  const confSi    = Number(neg.conf_si)  || 0;
+  const confNo    = Number(neg.conf_no)  || 0;
+  const bajas     = Number(neg.optout)   || 0;
+
+  return {
+    ok: true,
+    hoy: {
+      enviados: cuota.n,
+      tope: capTotal,
+      pct: capTotal ? Math.round((cuota.n / capTotal) * 100) : 0,
+      confirmaciones: cuota.confOk,
+      topeConfirmaciones: capConfirm,
+    },
+    mes: {
+      etiqueta: mes,
+      citasAgendadas: agendadas,
+      confirmadas: confSi,
+      // "avisaron que no venían" — un CANCELAR es una hora que alcanzaste a
+      // revender, no una pérdida. Se nombra así en la UI a propósito.
+      avisaronQueNo: confNo,
+      bajas,
+    },
+    numero: { edadDias, siguienteNivel, conectado: wa.estadoConexion === 'connected' },
+  };
+});
+
 /* ─────────────────── 4) Webhook — pararrayos del VPS ─────────────────── */
 
 exports.evolutionWebhook = onRequest({

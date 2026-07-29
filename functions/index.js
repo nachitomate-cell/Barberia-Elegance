@@ -1589,6 +1589,8 @@ exports.evolutionVincular    = evolutionGateway.evolutionVincular;
 exports.evolutionEstado      = evolutionGateway.evolutionEstado;
 exports.evolutionDesvincular = evolutionGateway.evolutionDesvincular;
 exports.evolutionWebhook     = evolutionGateway.evolutionWebhook;
+// Consumo que ve el DUEÑO en su panel: valor y tope del número, nunca costo.
+exports.evolutionMiConsumo   = evolutionGateway.evolutionMiConsumo;
 
 // Cron de confirmaciones anti-no-show (Sprint 3): pide CONFIRMAR/CANCELAR por
 // el número propio del local. La respuesta la maneja el cerebro (webhook).

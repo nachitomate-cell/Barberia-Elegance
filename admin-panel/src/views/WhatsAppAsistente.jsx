@@ -213,6 +213,111 @@ function callFn(name, payload) {
   return fn(payload).then((r) => r.data);
 }
 
+/* ── "Tu número, protegido" — el consumo que ve el DUEÑO ────────────────────
+   Encuadre deliberado: el tope NO se presenta como cuota del plan sino como
+   escudo antiban. Es la diferencia entre "me están limitando" y "me están
+   cuidando el número", y cambia por completo cómo se usa el módulo.
+
+   Lo que NO se muestra, a propósito: costo en dólares, tokens y llamadas a la
+   IA. Anclar al dueño en costo abre dos conversaciones que no ayudan — la del
+   margen, y la de "estoy pagando por mensaje, hay que exprimirlo".
+
+   Las bajas van visibles arriba porque son el mejor autorregulador que existe:
+   ver que hubo clientes que pidieron no recibir más mensajes modera el
+   entusiasmo mucho mejor que cualquier candado que pongamos nosotros. */
+function MiConsumo({ tid }) {
+  const [d, setD]   = useState(null);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    httpsCallable(getFunctions(getApp(), 'us-central1'), 'evolutionMiConsumo')({})
+      .then(r => { if (vivo) setD(r.data); })
+      .catch(() => { if (vivo) setErr(true); });
+    return () => { vivo = false; };
+  }, [tid]);
+
+  if (err || !d?.ok) return null;   // sin datos, mejor no mostrar nada que mostrar ceros confusos
+
+  const { hoy, mes, numero } = d;
+  const pct  = Math.min(100, hoy.pct || 0);
+  const tono = pct >= 85 ? 'text-red-300' : pct >= 60 ? 'text-amber-300' : 'text-emerald-300';
+  const barra = pct >= 85 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-500' : 'bg-emerald-500';
+  const bajasAltas = mes.bajas >= 3;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
+      <p className="text-[13px] font-semibold text-slate-200 flex items-center gap-2">
+        <ShieldCheck size={15} className="text-emerald-400" /> Tu número, protegido
+      </p>
+
+      {/* Uso del día — el tope como escudo, no como cuota */}
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between text-[12.5px]">
+          <span className="text-slate-400">Mensajes enviados hoy</span>
+          <span className={`font-bold tabular-nums ${tono}`}>{hoy.enviados} <span className="text-slate-500 font-normal">de {hoy.tope}</span></span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className={`h-full rounded-full transition-all ${barra}`} style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-[11.5px] text-slate-500 leading-relaxed">
+          WhatsApp bloquea los números que envían demasiado. Repartimos los mensajes durante el día y frenamos antes de ese punto para que tu número no corra riesgo.
+        </p>
+      </div>
+
+      {/* Madurez: el límite sube solo — un techo que mejora se resiente menos */}
+      {numero.edadDias !== null && numero.siguienteNivel && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] px-3.5 py-2.5">
+          <p className="text-[11.5px] text-emerald-200/90 leading-relaxed">
+            Tu número lleva <b>{numero.edadDias} día(s)</b> conectado. WhatsApp confía más en los números con historial, así que en <b>{numero.siguienteNivel.enDias} día(s)</b> el límite sube solo a <b>{numero.siguienteNivel.nuevoTope} mensajes diarios</b>.
+          </p>
+        </div>
+      )}
+
+      {/* Valor del mes — lo que el módulo le devuelve, no lo que consume */}
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        {[
+          { n: mes.citasAgendadas, k: 'citas agendadas\npor el asistente' },
+          { n: mes.confirmadas,    k: 'clientes que\nconfirmaron' },
+          { n: mes.avisaronQueNo,  k: 'avisaron que no\nvenían (a tiempo)' },
+        ].map((x, i) => (
+          <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5 text-center">
+            <p className="text-lg font-bold text-slate-100 tabular-nums leading-none">{x.n}</p>
+            <p className="text-[10.5px] text-slate-500 mt-1 leading-tight whitespace-pre-line">{x.k}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bajas — el autorregulador */}
+      <div className={`rounded-xl px-3.5 py-2.5 border ${bajasAltas ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+        <p className={`text-[11.5px] leading-relaxed ${bajasAltas ? 'text-amber-200/90' : 'text-slate-500'}`}>
+          {mes.bajas === 0
+            ? 'Ningún cliente pidió dejar de recibir mensajes este mes. Buena señal: tu número está sano.'
+            : <>
+                <b>{mes.bajas} cliente(s)</b> pidieron dejar de recibir mensajes este mes.
+                {bajasAltas
+                  ? ' Es una señal de alerta: cuando varios se dan de baja, WhatsApp empieza a mirar tu número con lupa. Conviene bajar el ritmo unos días.'
+                  : ' Los sacamos de la lista automáticamente.'}
+              </>}
+        </p>
+      </div>
+
+      {/* El límite, explícito — dicho como cuidado, no como prohibición */}
+      <details className="group">
+        <summary className="text-[11.5px] text-slate-500 cursor-pointer hover:text-slate-300 select-none">
+          Qué cuida tu número (y qué lo pone en riesgo)
+        </summary>
+        <ul className="mt-2 space-y-1.5 text-[11.5px] text-slate-500 leading-relaxed list-disc pl-4">
+          <li>El asistente <b>responde</b> a quien te escribe. Eso es lo más seguro que existe para WhatsApp.</li>
+          <li>Las confirmaciones salen solo a clientes con cita y que aceptaron recibirlas al reservar.</li>
+          <li>No se envía nada entre las 21:00 y las 09:00: un mensaje de madrugada es la forma más rápida de que te bloqueen.</li>
+          <li><b>Este canal no sirve para promociones ni difusiones.</b> Mandar publicidad masiva desde el número del local es la causa número uno de bloqueo, y no hay forma de recuperarlo. Para campañas, hablemos: hay canales hechos para eso.</li>
+        </ul>
+      </details>
+    </div>
+  );
+}
+
 export default function WhatsAppAsistente({ embedded = false }) {
   const tid    = resolveTenantId();
   const tenant = useTenant();
@@ -302,6 +407,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
   }
 
   /* ── Título estándar de la Section (usado en los 3 modos) ── */
+  // (MiConsumo vive fuera del componente, más abajo)
   const sectionTitle = (statusBadge) => (
     <span className="flex items-center gap-2 flex-wrap">
       Asistente IA 24/7
@@ -539,6 +645,8 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 </SettingRow>
               )}
             </SettingsGroup>
+
+            <MiConsumo tid={tid} />
 
             {/* Callout: convivencia bot + humanos.
                 Caso Kronnos 2026-07-21: los mensajes de bienvenida/ausencia
