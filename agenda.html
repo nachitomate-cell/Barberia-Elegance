@@ -4252,6 +4252,19 @@
                 const batch = db.batch();
                 if (bloqueoId) {
                     batch.delete(tenantCol('bloqueos').doc(bloqueoId));
+                    // Un bloqueo de RANGO crea UN candado por franja, pero en
+                    // `slotLockId` queda solo el PRIMERO. Borrando ese uno, los
+                    // demás sobrevivían: la reserva pública seguía mostrando
+                    // esas horas ocupadas con la agenda vacía (visto en Studio
+                    // Dieciséis, 5 horas fantasma). Se borran TODOS los del
+                    // bloqueo, no el registrado.
+                    try {
+                        const qs = await tenantCol('slotLocks')
+                            .where('bloqueoId', '==', bloqueoId).get();
+                        qs.forEach(d => batch.delete(d.ref));
+                    } catch (e) {
+                        console.warn('[Agenda] no se pudieron listar los candados del bloqueo:', e.message);
+                    }
                 }
                 if (slotLockId) {
                     batch.delete(tenantCol('slotLocks').doc(slotLockId));

@@ -5315,6 +5315,21 @@ export default function Agenda() {
   const handleDeleteBloqueo = useCallback(async bloqueo => {
     const batch = writeBatch(db);
     batch.delete(doc(db, `${tenantCol('bloqueos').path}/${bloqueo.id}`));
+
+    // Un bloqueo de RANGO crea UN candado por franja (ver "Bloqueo rango" en
+    // agenda.html), pero en `slotLockId` solo queda el PRIMERO. Borrando ese
+    // uno, los demás sobrevivían al bloqueo: la reserva pública seguía
+    // mostrando esas horas ocupadas aunque la agenda las mostrara libres.
+    // Encontrado en Studio Dieciséis (Omar, 30-jul): 5 horas fantasma.
+    // Por eso se buscan TODOS los candados de este bloqueo, no el registrado.
+    try {
+      const q = query(tenantCol('slotLocks'), where('bloqueoId', '==', bloqueo.id));
+      const snap = await withTimeout(getDocs(q), 10000, 'agenda/locks-del-bloqueo');
+      snap.forEach(d => batch.delete(d.ref));
+    } catch (e) {
+      console.warn('[Agenda] no se pudieron listar los candados del bloqueo:', e?.message);
+    }
+    // Cinturón: si la consulta falló, al menos cae el registrado.
     if (bloqueo.slotLockId) {
       batch.delete(doc(db, `${tenantCol('slotLocks').path}/${bloqueo.slotLockId}`));
     }
