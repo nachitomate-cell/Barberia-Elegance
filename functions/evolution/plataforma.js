@@ -49,7 +49,7 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 const { crearCliente }            = require('./client');
 const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
-const { estaBloqueado }           = require('../lib/wa-consent');
+const { estaBloqueado, detectarStop, registrarOptOut } = require('../lib/wa-consent');
 const { _normalizeCl: normalizeCl } = require('./confirmaciones');
 const { _detectarDecision: detectarDecision,
         _aplicarDecision:  aplicarDecision } = require('./cerebro');
@@ -130,6 +130,21 @@ async function registrarSaliente(tid, ok = true) {
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
 }
+
+/** Telemetría de SALUD del chip. Lo que de verdad anticipa un bloqueo no es el
+ *  volumen: es que la gente deje de contestar (posible shadowban — el mensaje
+ *  "sale" pero no llega) o que empiece a pedir la baja. Se cuenta acá para que
+ *  ops pueda decidir el recambio ANTES de que Meta lo suspenda.
+ *  Nunca lanza: es telemetría, no puede tumbar una respuesta al cliente. */
+async function registrarEvento(tipo) {
+  const fecha = fechaHoy();
+  await cuotaRef(fecha).set({
+    fecha,
+    [tipo]: FieldValue.increment(1),
+    actualizado: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
+}
+exports._registrarEvento = registrarEvento;
 
 /* ─────────────────────────── Vinculación del chip ──────────────────────────── */
 
@@ -233,6 +248,28 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
     catch (e) { logger.warn(`[plataforma] no pude responder a ***${tel.slice(-4)}: ${e.message}`); }
   };
 
+  // Toda respuesta cuenta para la tasa de respuesta del chip, que es la
+  // señal más temprana de un shadowban: los envíos siguen saliendo "ok"
+  // pero nadie contesta porque no están llegando.
+  await registrarEvento('respuestas');
+
+  // ── STOP: se honra ANTES que cualquier otra cosa ──
+  // Obligatorio por política de Meta y por Ley 21.719, y además es el
+  // indicador adelantado del bloqueo: lo que sube primero no es el error de
+  // envío, es la gente pidiendo la baja. Se escribe en el libro GLOBAL
+  // /wa_optout, así que frena también los otros dos canales.
+  if (detectarStop(texto)) {
+    await registrarOptOut(tel, 'stop-plataforma').catch(e =>
+      logger.error(`[plataforma] optout ${tel}:`, e.message));
+    await chatRef(tel).delete().catch(() => {});
+    await registrarEvento('optout');
+    await responder(
+      '🔕 Listo, no volveremos a escribirte por este medio.\n\n' +
+      'Tu cita sigue agendada; si necesitas cambiarla, contacta directamente a tu local.');
+    logger.info(`[plataforma] opt-out ***${tel.slice(-4)}`);
+    return;
+  }
+
   if (!vigente) {
     // Sin cita pendiente no sabemos de qué local habla. Se responde una vez
     // para no dejarlo hablando solo, pero no se inventa nada.
@@ -255,6 +292,7 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   // liberar-slot-on-cancel y libera el cupo.
   await aplicarDecision(pend.tenantId, tel, pend.citaId, decision);
   await chatRef(tel).delete().catch(() => {});
+  await registrarEvento(decision === 'confirmar' ? 'conf_si' : 'conf_no');
 
   await responder(decision === 'confirmar'
     ? `✅ ¡Listo! Tu cita en ${pend.local || 'el local'} quedó confirmada.\n\nTe esperamos el ${pend.fecha} a las ${pend.hora} hrs.`

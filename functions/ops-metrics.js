@@ -339,6 +339,127 @@ async function analizarLocales(hoy, mesActual) {
   return { locales, trials, alertas, negocioTotal };
 }
 
+/* ─────────────── SALUD DEL CHIP DE PLATAFORMA (canal SynapTech) ───────────────
+   El chip compartido de evolution/plataforma.js es un consumible: se va a
+   quemar tarde o temprano y la pregunta operativa es CUÁNDO cambiarlo, no si.
+   Meta no avisa antes de suspender, así que hay que leer las señales
+   adelantadas — y el volumen NO es una de ellas.
+
+   Lo que de verdad anticipa el bloqueo, en orden de utilidad:
+     1. Tasa de respuesta a la baja → posible shadowban: el envío sale "ok"
+        pero el mensaje no llega. Es la señal más temprana y la más ignorada.
+     2. Tasa de bajas (STOP) → la gente pidiendo salir es lo que sube justo
+        antes de que Meta actúe.
+     3. Tasa de fallo de envío → sesión ya degradada.
+     4. Caídas de sesión → inestabilidad; suele acompañar a lo anterior.
+
+   Se mira sobre 7 días y con un piso de volumen: con 3 mensajes enviados
+   cualquier porcentaje es ruido, y una alarma que grita sin motivo se
+   termina ignorando justo el día que importa. */
+const CHIP_UMBRAL = {
+  volMin:        20,    // mensajes en 7d para que los % signifiquen algo
+  respuestaBaja: 0.20,  // <20% contestando con volumen suficiente
+  optoutAlto:    0.05,  // >5% pidiendo baja
+  falloAlto:     0.10,  // >10% de envíos fallando
+  caidasDia:     3,     // caídas de sesión por día
+};
+
+async function saludChip(dias) {
+  const cfg = (await db.doc('_system/wa_plataforma').get()).data() || null;
+  if (!cfg) return null;   // el chip nunca se vinculó: nada que vigilar
+
+  const snaps = await Promise.all(
+    dias.map((d) => db.doc(`wa_plataforma_cuota/${d}`).get()),
+  );
+
+  let enviados = 0, fallos = 0, respuestas = 0, optouts = 0, caidas = 0;
+  let confSi = 0, confNo = 0;
+  const porDia = {};
+  const porLocal = {};
+  snaps.forEach((s, i) => {
+    const d = s.data(); if (!d) return;
+    const n = Number(d.n) || 0;
+    enviados   += n;
+    fallos     += Number(d.fail)       || 0;
+    respuestas += Number(d.respuestas) || 0;
+    optouts    += Number(d.optout)     || 0;
+    caidas     += Number(d.caidas)     || 0;
+    confSi     += Number(d.conf_si)    || 0;
+    confNo     += Number(d.conf_no)    || 0;
+    porDia[dias[i]] = n;
+    Object.keys(d).forEach((k) => {
+      if (k.startsWith('t_')) porLocal[k.slice(2)] = (porLocal[k.slice(2)] || 0) + (Number(d[k]) || 0);
+    });
+  });
+
+  const desde = cfg.vinculadoDesde?.toMillis ? cfg.vinculadoDesde.toMillis() : 0;
+  const diasChip = desde ? (Date.now() - desde) / 86400000 : 0;
+  const cap = diasChip >= 30 ? 300 : diasChip >= 7 ? 120 : 40;
+
+  const suficiente = enviados >= CHIP_UMBRAL.volMin;
+  const tasaResp   = enviados ? respuestas / enviados : null;
+  const tasaOptout = enviados ? optouts / enviados : null;
+  const tasaFallo  = (enviados + fallos) ? fallos / (enviados + fallos) : null;
+
+  const señales = [];
+  if (suficiente && tasaResp < CHIP_UMBRAL.respuestaBaja) {
+    señales.push({
+      nivel: 'rojo',
+      texto: `Solo ${Math.round(tasaResp * 100)}% de los clientes responde (${respuestas} de ${enviados}). ` +
+             'Si el envío sale bien pero nadie contesta, lo más probable es que los mensajes no estén llegando: shadowban.',
+    });
+  }
+  if (suficiente && tasaOptout > CHIP_UMBRAL.optoutAlto) {
+    señales.push({
+      nivel: 'rojo',
+      texto: `${optouts} bajas en ${enviados} envíos (${Math.round(tasaOptout * 100)}%). ` +
+             'La tasa de bajas es lo que sube justo antes de que Meta suspenda.',
+    });
+  }
+  if (suficiente && tasaFallo > CHIP_UMBRAL.falloAlto) {
+    señales.push({
+      nivel: 'ambar',
+      texto: `${Math.round(tasaFallo * 100)}% de los envíos falla (${fallos}). Sesión degradada.`,
+    });
+  }
+  if (caidas > CHIP_UMBRAL.caidasDia * dias.length) {
+    señales.push({
+      nivel: 'ambar',
+      texto: `${caidas} caídas de sesión en ${dias.length} días. Sesión inestable.`,
+    });
+  }
+  if (cfg.estadoConexion !== 'connected') {
+    const horas = cfg.desconectadoEn?.toMillis
+      ? Math.round((Date.now() - cfg.desconectadoEn.toMillis()) / 3600e3) : null;
+    señales.push({
+      nivel: 'rojo',
+      texto: `El chip está desconectado${horas != null ? ` hace ~${horas}h` : ''}. No sale ninguna confirmación.`,
+    });
+  }
+
+  // Veredicto: cambiar el chip solo ante señal roja. Ámbar es vigilar, no
+  // gastar un chip nuevo — cada recambio reinicia el escalonado a 40/día.
+  const veredicto = señales.some((s) => s.nivel === 'rojo') ? 'cambiar'
+                  : señales.length                          ? 'vigilar'
+                  : suficiente                              ? 'sano'
+                  : 'sin-datos';
+
+  return {
+    numero: cfg.numeroVinculado || null,
+    estado: cfg.estadoConexion || 'desconocido',
+    diasVinculado: Number(diasChip.toFixed(1)),
+    cap,
+    dias: dias.length,
+    enviados, fallos, respuestas, optouts, caidas, confSi, confNo,
+    tasaRespuesta: tasaResp, tasaOptout, tasaFallo,
+    volumenSuficiente: suficiente,
+    porDia, porLocal,
+    señales, veredicto,
+  };
+}
+
+exports._saludChip = saludChip;   // para el test de umbrales
+
 exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN] }, async (req) => {
   const email = String(req.auth?.token?.email || '').toLowerCase();
   if (!req.auth || !BOOTSTRAP.includes(email)) {
@@ -383,6 +504,18 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
   const usoEmail = await resumenEmail();
   alertas.push(...alertasEmail(usoEmail));
 
+  // Salud del chip compartido de SynapTech: 7 días, que es la ventana donde
+  // una degradación se nota sin que la diluya el histórico.
+  // Va ANTES del sort: si el chip está rojo tiene que salir arriba, no al
+  // final de la lista por haberse agregado tarde.
+  const chip = await saludChip(ultimosDias(7));
+  if (chip) {
+    chip.señales.forEach((s) => alertas.push({
+      nivel: s.nivel,
+      texto: `Chip SynapTech · ${s.texto}`,
+    }));
+  }
+
   // Rojo primero, luego ámbar, luego info.
   const peso = { rojo: 0, ambar: 1, info: 2 };
   alertas.sort((a, b) => (peso[a.nivel] ?? 9) - (peso[b.nivel] ?? 9));
@@ -395,6 +528,7 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     mensajes: { total: mensajes, ok: mensajesOk, porDia },
     claude: { costoUsd, tokensIn, tokensOut, llamadas },
     negocio: negocioTotal,          // mes en curso
+    chip,
     dias: 30,
   };
 

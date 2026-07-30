@@ -247,6 +247,64 @@
       return `<div class="panel" style="margin-top:14px"><h3>⏳ Trials activos</h3>${rows}</div>`;
     }
 
+    /* ── Salud del chip compartido de SynapTech ──────────────────────────
+       El chip es un consumible: la pregunta no es SI se quema, es cuándo
+       cambiarlo. Meta no avisa antes de suspender, así que este panel
+       muestra las señales adelantadas — y el volumen NO es una de ellas.
+       La que más importa es la tasa de respuesta: si los envíos salen "ok"
+       pero nadie contesta, lo más probable es que no estén llegando. */
+    function chipPanel(c){
+      if(!c) return '';
+      const pct = (v) => v == null ? '—' : Math.round(v*100)+'%';
+      const veredicto = {
+        sano:        { ic:'🟢', t:'Chip sano',            d:'Sin señales de degradación. Seguir usándolo.' },
+        vigilar:     { ic:'🟡', t:'Vigilar',              d:'Hay señales tempranas. Todavía no gastes un chip nuevo: cada recambio reinicia el tope a 40/día.' },
+        cambiar:     { ic:'🔴', t:'Cambiar el chip',      d:'Señal fuerte de degradación o bloqueo. Consigue otro número y re-vincula desde /admin.' },
+        'sin-datos': { ic:'⚪', t:'Sin datos suficientes', d:`Con menos de 20 envíos en 7 días cualquier porcentaje es ruido. Van ${c.enviados}.` },
+      }[c.veredicto] || { ic:'⚪', t:c.veredicto, d:'' };
+
+      const barras = Object.entries(c.porDia||{}).reverse().map(([d,n]) => {
+        const alto = Math.max(2, Math.round((n / Math.max(1, c.cap)) * 40));
+        return `<div title="${d}: ${n} envíos" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:44px;">
+            <div style="background:${n >= c.cap ? 'var(--red)' : '#38bdf8'};height:${alto}px;border-radius:2px;opacity:.85"></div>
+          </div>`;
+      }).join('');
+
+      const locales = Object.entries(c.porLocal||{}).sort((a,b)=>b[1]-a[1])
+        .map(([tid,n]) => `<span class="muted" style="margin-right:10px">${tid}: <b style="color:var(--ink)">${n}</b></span>`).join('');
+
+      return `<div class="box" style="margin-top:16px">
+        <h3 style="margin:0 0 2px">📱 Chip SynapTech · confirmaciones y recordatorios</h3>
+        <p class="muted" style="margin:0 0 12px;font-size:12px">
+          Número compartido por los locales con el módulo. ${c.numero ? '+'+c.numero+' · ' : ''}${c.diasVinculado} días vinculado · tope ${c.cap}/día · últimos ${c.dias} días
+        </p>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:12px;
+             background:${c.veredicto==='cambiar'?'rgba(239,68,68,.12)':c.veredicto==='vigilar'?'rgba(251,191,36,.12)':'rgba(148,163,184,.08)'};
+             border:1px solid ${c.veredicto==='cambiar'?'rgba(239,68,68,.4)':c.veredicto==='vigilar'?'rgba(251,191,36,.35)':'rgba(148,163,184,.2)'}">
+          <span style="font-size:20px">${veredicto.ic}</span>
+          <div><b>${veredicto.t}</b><div class="muted" style="font-size:12px">${veredicto.d}</div></div>
+        </div>
+
+        <div class="kpis" style="margin-bottom:12px">
+          <div class="kpi"><div class="n tnum">${pct(c.tasaRespuesta)}</div><div class="k">Responden${c.volumenSuficiente?'':' (poco volumen)'}</div></div>
+          <div class="kpi"><div class="n tnum">${pct(c.tasaOptout)}</div><div class="k">Piden baja</div></div>
+          <div class="kpi"><div class="n tnum">${pct(c.tasaFallo)}</div><div class="k">Envíos fallidos</div></div>
+          <div class="kpi"><div class="n tnum">${c.caidas}</div><div class="k">Caídas de sesión</div></div>
+        </div>
+
+        <div style="display:flex;gap:2px;align-items:flex-end;margin-bottom:6px">${barras}</div>
+        <p class="muted" style="margin:0 0 12px;font-size:11px">Envíos por día (${c.dias}d) · la barra roja es el tope diario alcanzado</p>
+
+        <p class="muted" style="margin:0;font-size:12px">
+          ${c.enviados} enviados · ${c.respuestas} respuestas (${c.confSi} confirman / ${c.confNo} cancelan) · ${c.optouts} bajas
+        </p>
+        ${locales ? `<p style="margin:6px 0 0;font-size:12px">${locales}</p>` : ''}
+        ${c.señales.length ? `<div style="margin-top:10px">${c.señales.map(s =>
+          `<div class="alerta ${s.nivel}" style="margin-top:4px"><span>${s.nivel==='rojo'?'🔴':'🟡'}</span><span>${s.texto}</span></div>`).join('')}</div>` : ''}
+      </div>`;
+    }
+
     function render(data){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
@@ -275,6 +333,7 @@
             ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
             ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
           </div>
+          ${chipPanel(data.barberia && data.barberia.chip)}
           ${emailPanel(data.email)}
           ${trialsPanel(data.trials)}
           ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}

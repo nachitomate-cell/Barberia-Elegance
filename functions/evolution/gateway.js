@@ -284,10 +284,19 @@ exports.evolutionWebhook = onRequest({
             desconectadoEn:  FieldValue.delete(),
           }, { merge: true }).catch(() => {});
         } else if (state === 'close') {
+          const prev = (await ref.get().catch(() => null))?.data() || {};
           await ref.set({
             estadoConexion: 'disconnected',
-            desconectadoEn: FieldValue.serverTimestamp(),
+            // Conserva el PRIMER momento de la caída: los 'close' se repiten
+            // y sin esto se pierde cuánto lleva realmente caído.
+            ...(prev.estadoConexion === 'disconnected' && prev.desconectadoEn
+              ? {} : { desconectadoEn: FieldValue.serverTimestamp() }),
           }, { merge: true }).catch(() => {});
+          // Cuenta de caídas del día: una sesión que se cae seguido es una
+          // sesión degradada, y eso precede al bloqueo. Solo la transición.
+          if (prev.estadoConexion !== 'disconnected') {
+            await plataforma._registrarEvento('caidas').catch(() => {});
+          }
         }
       } else if (event === 'messages.upsert') {
         try {
