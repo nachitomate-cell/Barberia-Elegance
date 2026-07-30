@@ -11,6 +11,7 @@ import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '..
 import SlideOver from '../components/ui/SlideOver';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
+import { comisionCita, comisionVenta } from '../lib/comisiones-core';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursal } from '../contexts/SucursalContext';
 
@@ -620,25 +621,15 @@ function DetalleBarberoDrawer({
     // principal: primero por barberoId exacto, luego por barberoNombre.
     const matchCita = c => (c.barberoId === barbero.id) || (!c.barberoId && c.barbero === barbero.nombre);
     const matchVenta = v => (v.barberoId === barbero.id) || (!v.barberoId && v.barberoNombre === barbero.nombre);
-    // Detección CP (cartera propia) idéntica al agregador principal: sufijo del
-    // barbero al final del nombre del cliente + arriendo configurado para ese
-    // servicio. Cita CP → el barbero cobró íntegro al cliente, comisión desde
-    // el local = 0, arriendo se descuenta del pago total (ver useMemo `data`).
-    const suf = String(barbero.sufijoClientePropio || '').trim().toLowerCase();
-    const rxCP = suf
-      ? new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i')
-      : null;
+    // Las reglas salen de lib/comisiones-core.js, las mismas que usa la tarjeta.
+    // Antes esto era una segunda implementación y ya había derivado: un
+    // override negativo caía al global en la tarjeta y se usaba tal cual acá.
     const citasB = citas
       .filter(matchCita)
       .map(c => {
-        const precio  = precioServicio(c);
-        const ovr     = barbero.comisionPorServicio?.[c.servicioId];
-        const pct     = (ovr != null && ovr !== '' && Number.isFinite(Number(ovr)))
-          ? Number(ovr) : (barbero.comisionPct || 0);
-        const nombre  = String(c.clienteNombre || c.nombre || '').trim();
-        const rentRaw = (rxCP && rxCP.test(nombre.toLowerCase()))
-          ? Number(barbero.arriendoPorServicio?.[c.servicioId] || 0) : 0;
-        const esCP    = rentRaw > 0 && precio > 0;
+        const precio = precioServicio(c);
+        const nombre = String(c.clienteNombre || c.nombre || '').trim();
+        const r = comisionCita({ cfg: barbero, precio, servicioId: c.servicioId, clienteNombre: nombre });
         return {
           id: c.id, fecha: c.fecha, hora: c.hora,
           cliente: nombre || 'Sin nombre',
@@ -647,10 +638,12 @@ function DetalleBarberoDrawer({
           metodoPago: c.metodoPago || 'Sin dato',
           cortesia: !!c.cortesia,
           precio,
-          pct: esCP ? 0 : pct,
-          comision: esCP ? 0 : Math.round(precio * pct / 100),
-          cp: esCP,
-          arriendo: esCP ? rentRaw : 0,
+          pct: r.pct,
+          // Se redondea solo para mostrar la fila. El total de la tarjeta acumula
+          // en exacto, así que la suma de filas puede quedar a un peso.
+          comision: Math.round(r.comision),
+          cp: r.cp,
+          arriendo: r.arriendo,
           propina: Number(c.propina) || 0,
         };
       })
@@ -660,9 +653,8 @@ function DetalleBarberoDrawer({
       .filter(matchVenta)
       .map(v => {
         const monto = precioVenta(v);
-        const ovr   = barbero.comisionPorProducto?.[v.productId];
-        const pct   = (ovr != null && ovr !== '' && Number.isFinite(Number(ovr)))
-          ? Number(ovr) : (barbero.comisionProductosPct || 0);
+        const r = comisionVenta({ cfg: barbero, monto, productId: v.productId });
+        const pct = r.pct;
         return {
           id: v.id,
           fecha: fechaToStr(v.fecha || v.createdAt || v.creadoEn),
@@ -673,7 +665,7 @@ function DetalleBarberoDrawer({
           metodoPago: v.metodoPago || 'Sin dato',
           monto,
           pct,
-          comision: Math.round(monto * pct / 100) + (barbero.comisionProductosMonto || 0),
+          comision: Math.round(r.comision),
         };
       })
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
@@ -1447,41 +1439,11 @@ export default function Comisiones() {
       return '_sin';
     };
 
-    // % de comisión aplicable a una cita: si el barbero tiene override para
-    // ese servicioId, lo usa; si no, cae al % global. Vacío o inválido → global.
-    const pctPara = (bucket, servicioId) => {
-      const ovr = bucket?.comisionPorServicio?.[servicioId];
-      const n = Number(ovr);
-      return (ovr != null && ovr !== '' && Number.isFinite(n) && n >= 0)
-        ? n
-        : (bucket?.comisionPct || 0);
-    };
-
-    // ¿Es cliente de la cartera propia del barbero? Match del sufijo al final
-    // del nombre del cliente (case-insensitive, admite espacios). Si el
-    // barbero no tiene sufijo configurado → SIEMPRE false (fail-safe: no
-    // dispara arriendo por accidente).
-    const esClientePropio = (bucket, clienteNombre) => {
-      const suf = bucket?.sufijoClientePropio;
-      if (!suf) return false;
-      const nombre = String(clienteNombre || '').trim().toLowerCase();
-      if (!nombre) return false;
-      // Regex: fin de string, precedido por espacio (o inicio), el sufijo literal.
-      const rx = new RegExp(`(^|\\s)${suf.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i');
-      return rx.test(nombre);
-    };
-
-    // Arriendo fijo por servicio (modelo Oren-Pablo): si el servicioId tiene
-    // monto > 0 en el mapa, ese es el fee al local. Se aplica SOLO si el
-    // cliente de la cita es de la cartera propia (esClientePropio); sino
-    // se cobra la comisión normal aunque el mapa tenga valor.
-    // Devuelve monto>0 si aplica, o 0 si no.
-    const arriendoDe = (bucket, servicioId, clienteNombre) => {
-      if (!esClientePropio(bucket, clienteNombre)) return 0;
-      const raw = bucket?.arriendoPorServicio?.[servicioId];
-      const n = Number(raw);
-      return (raw != null && raw !== '' && Number.isFinite(n) && n > 0) ? n : 0;
-    };
+    // Las reglas por ítem (override por servicio, cartera propia, arriendo)
+    // viven en lib/comisiones-core.js. Antes estaban acá Y otra vez adentro de
+    // DetalleBarberoDrawer, con guardas levemente distintas: un override
+    // negativo caía al global en la tarjeta pero se usaba tal cual en el
+    // detalle. Una sola fuente y ese tipo de deriva deja de ser posible.
 
     // Servicios: dos modelos según si es cliente de cartera propia (CP) o no.
     //
@@ -1500,19 +1462,17 @@ export default function Comisiones() {
     citas.forEach(c => {
       const key = resolverBarbero(c.barberoId, c.barbero);
       const precio = precioServicio(c);
+      const r = comisionCita({
+        cfg: map[key], precio, servicioId: c.servicioId, clienteNombre: c.clienteNombre,
+      });
       map[key].citas++;
-      const feeArriendo = arriendoDe(map[key], c.servicioId, c.clienteNombre);
-      const esCP = feeArriendo > 0 && precio > 0;
-      if (esCP) {
-        // Ingreso del local = solo el arriendo. El precio va al barbero directo.
-        map[key].ingresosServicios += feeArriendo;
-        map[key].arriendoTotal     += feeArriendo;
-        map[key].arriendoCount     += 1;
-        // comisionServicios: no se suma (el barbero ya cobró íntegro al cliente)
-      } else {
-        // Modelo normal: local ingresa el precio y paga comisión al barbero.
-        map[key].ingresosServicios += precio;
-        map[key].comisionServicios += precio * (pctPara(map[key], c.servicioId) / 100);
+      // CP → el local ingresa el arriendo (el precio nunca pasó por su caja) y
+      // la comisión es 0. Normal → ingresa el precio y paga comisión.
+      map[key].ingresosServicios += r.ingresoLocal;
+      map[key].comisionServicios += r.comision;
+      if (r.cp) {
+        map[key].arriendoTotal += r.arriendo;
+        map[key].arriendoCount += 1;
       }
       const propina = Number(c.propina) || 0;
       if (propina > 0) {
@@ -1521,23 +1481,14 @@ export default function Comisiones() {
       }
     });
 
-    // % aplicable a UNA venta: si el barbero tiene override para ese productoId,
-    // se usa ese; sino cae al pct global. Mismo patrón que pctPara(bucket, svc).
-    const pctProdPara = (bucket, productoId) => {
-      const raw = bucket?.comisionPorProducto?.[productoId];
-      const n = Number(raw);
-      return (raw != null && raw !== '' && Number.isFinite(n) && n >= 0)
-        ? n
-        : (bucket?.comisionProductosPct || 0);
-    };
-
     // Productos: cada venta paga %comisión producto (override o global) + monto fijo por venta.
     ventas.forEach(v => {
       const key = resolverBarbero(v.barberoId, v.barberoNombre);
       const monto = precioVenta(v);
+      const r = comisionVenta({ cfg: map[key], monto, productId: v.productId });
       map[key].ventas++;
-      map[key].ingresosProductos += monto;
-      map[key].comisionProductos += monto * (pctProdPara(map[key], v.productId) / 100) + map[key].comisionProductosMonto;
+      map[key].ingresosProductos += r.ingresoLocal;
+      map[key].comisionProductos += r.comision;
     });
 
     // Consolidados por barbero: ingresos y comisión totales para la fila.

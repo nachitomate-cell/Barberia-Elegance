@@ -15,6 +15,7 @@ import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { renderTicketTermico, escapeHTML } from '../lib/ticket-termico';
+import { agregarComisiones } from '../lib/comisiones-core';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursal } from '../contexts/SucursalContext';
@@ -2003,6 +2004,9 @@ export default function Caja() {
   const [ventasHoyRaw, setVentasHoyRaw] = useState([]);
   const [gastosHoyRaw, setGastosHoyRaw] = useState([]);
   const [servicios, setServicios] = useState([]);   // catálogo, para valorizar cortesías
+  const [barberosRaw, setBarberosRaw] = useState([]);
+  const [cortesiaPagaComision, setCortesiaPagaComision] = useState(false);
+  const [comisionesAbierto, setComisionesAbierto] = useState(false);
 
   // Historical sessions
   const [historialRaw, setHistorialRaw] = useState([]);
@@ -2093,6 +2097,23 @@ export default function Caja() {
       .catch(() => {});
   }, []);
 
+  /* ── Comisiones del día: equipo + regla de cortesías ────── */
+  // Las mismas dos entradas que usa la vista Comisiones. El cálculo NO se
+  // reimplementa acá: sale de lib/comisiones-core.js, que es la única fuente de
+  // las reglas (ver nota en ese archivo).
+  useEffect(() => {
+    withTimeout(getDocs(tenantCol('barberos')), 15000, 'caja/barberos')
+      // Los docs de enlace SSO duplican al mismo profesional: sin filtrarlos,
+      // cada uno aparece dos veces en el reparto.
+      .then(snap => setBarberosRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId)))
+      .catch(() => {});
+    withTimeout(getDoc(tenantDoc('configuracion', 'comisiones')), 10000, 'caja/config-comisiones')
+      .then(s => setCortesiaPagaComision(!!s.data()?.cortesiaPagaComision))
+      // Si no se puede leer, queda en false: es el comportamiento histórico
+      // (la cortesía no paga comisión), no una suposición nueva.
+      .catch(() => {});
+  }, []);
+
   /* ── Load historical sessions ───────────────────────────── */
   useEffect(() => {
     // 180 y no 20: con 20 el filtro por rango de fechas del historial no podía
@@ -2122,6 +2143,33 @@ export default function Caja() {
     });
     return unsub;
   }, []);
+
+  /* ── Comisiones generadas HOY ───────────────────────────── */
+  // Es lo que el dueño reparte al cerrar. NO es "el total a pagar del mes":
+  // adelantos, ajustes manuales y sueldo base son del período y viven en la
+  // vista Comisiones. Por eso la tarjeta dice "generadas hoy" y no "a pagar".
+  const comisionesHoy = useMemo(() => {
+    const barberos = barberosRaw.filter(matchSucursal);
+    if (!barberos.length) return { filas: [], total: 0 };
+
+    // Mismo criterio de precio que Comisiones.jsx: la cortesía paga $0 salvo que
+    // el toggle esté encendido, y ahí se valoriza con el precio del catálogo.
+    const precioCatalogo = (c) => Number(servicios.find(s => s.id === c.servicioId)?.precio) || 0;
+    const precioServicio = (c) => {
+      if (c.cortesia) return cortesiaPagaComision ? precioCatalogo(c) : 0;
+      if (c.precio != null) return Number(c.precio) || 0;
+      return precioCatalogo(c);
+    };
+    const precioVenta = (v) => Number(v.precio) || Number(v.total) || 0;
+
+    const filas = agregarComisiones({
+      barberos, citas: citasHoy, ventas: ventasHoy, precioServicio, precioVenta,
+    })
+      .filter(b => b.citas > 0 || b.ventas > 0)
+      .sort((a, b) => b.montoComision - a.montoComision);
+
+    return { filas, total: filas.reduce((s, b) => s + b.montoComision, 0) };
+  }, [barberosRaw, matchSucursal, citasHoy, ventasHoy, servicios, cortesiaPagaComision]);
 
   /* ── Computed KPIs ──────────────────────────────────────── */
   const kpis = useMemo(() => {
@@ -2898,6 +2946,61 @@ export default function Caja() {
                         en el cajón: sepáralo del arqueo antes de cerrar. El resto entra con la liquidación del POS.
                       </p>
                     )}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Comisiones generadas hoy — la pregunta al cerrar es a quién le
+                toca cuánto, y hasta ahora había que irse a otra vista. */}
+            {comisionesHoy.filas.length > 0 && (
+              <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setComisionesAbierto(v => !v)}
+                  className="w-full flex items-center justify-between p-3 hover:bg-violet-500/5 transition-colors"
+                  aria-expanded={comisionesAbierto}
+                >
+                  <div className="flex items-center gap-2 text-sm text-violet-300">
+                    <Banknote size={14} /> Comisiones de hoy
+                    <span className="text-[11px] text-slate-500">
+                      · {comisionesHoy.filas.length} {comisionesHoy.filas.length === 1 ? 'profesional' : 'profesionales'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-lg font-bold text-violet-300 tabular-nums">{fmtCurrency(comisionesHoy.total)}</p>
+                    <ChevronDown size={15}
+                      className={`text-violet-400/60 transition-transform ${comisionesAbierto ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+
+                {comisionesAbierto && (
+                  <div className="border-t border-violet-500/15 px-3 py-2.5 space-y-1.5">
+                    {comisionesHoy.filas.map(b => (
+                      <div key={b.id} className="flex items-start justify-between gap-2 py-0.5">
+                        <div className="min-w-0">
+                          <p className="text-[12.5px] text-slate-200 truncate">{b.nombre}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {b.citas > 0 && `${b.citas} ${b.citas === 1 ? 'servicio' : 'servicios'}`}
+                            {b.citas > 0 && b.ventas > 0 && ' · '}
+                            {b.ventas > 0 && `${b.ventas} ${b.ventas === 1 ? 'producto' : 'productos'}`}
+                            {b.arriendoCount > 0 && ` · ${b.arriendoCount} de cartera propia`}
+                          </p>
+                        </div>
+                        <span className="text-[12.5px] text-violet-300 font-semibold tabular-nums shrink-0 ml-2">
+                          {fmtCurrency(b.montoComision)}
+                        </span>
+                      </div>
+                    ))}
+                    {comisionesHoy.filas.some(b => b.arriendoTotal > 0) && (
+                      <p className="text-[11px] text-violet-200/70 leading-relaxed pt-1.5 border-t border-violet-500/10">
+                        Las atenciones de cartera propia no pagan comisión: el profesional le cobró
+                        al cliente y le debe el arriendo al local.
+                      </p>
+                    )}
+                    <p className="text-[11px] text-slate-500 leading-relaxed pt-1.5 border-t border-violet-500/10">
+                      Es lo <strong className="text-slate-400">generado hoy</strong>. Los adelantos, los
+                      ajustes y el sueldo base son del mes y se liquidan en{' '}
+                      <Link to="/comisiones" className="text-violet-300 font-semibold hover:underline">Comisiones</Link>.
+                    </p>
                   </div>
                 )}
               </div>
