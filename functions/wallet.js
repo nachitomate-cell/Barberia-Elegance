@@ -231,6 +231,10 @@ exports.walletGenerarPase = onCall(
         accountName, filled, target, hitos, premios, rango, accent, bg, icon,
         modo, cashbackDisponible, cashbackPct, saldoPrepago, prepagoBonusPct,
         qrStaff: cfg.qrStaff === true,
+        eventoEstado: cfg.eventoEstado,
+        eventoFecha: cfg.eventoFecha,
+        eventoInstrucciones: cfg.eventoInstrucciones,
+        stripUrl: cfg.stripUrl,
       });
       await core.upsertObject(key, obj);
 

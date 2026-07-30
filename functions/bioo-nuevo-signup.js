@@ -5,7 +5,7 @@
 //  BIOO — aviso al superadmin cuando se crea una nueva bioo.
 //
 //  Trigger: onDocumentCreated('bios/{username}')
-//  Acción:  manda un email a Ignacio vía Resend (RESEND_API_KEY ya configurado).
+//  Acción:  manda un email a Ignacio vía lib/mailer.js (Resend primario).
 //
 //  Distingue dos orígenes:
 //    - "Self-service"  → alguien creó su bioo desde bioo.cl/editor (saveBio).
@@ -17,25 +17,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const ADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 const FROM        = 'bioo <hola@synaptechspa.cl>';
 const BIOO_BASE   = 'https://bioo.cl';
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
 
 function buildHtml({ username, email, source, provisioned, perfil }) {
   const titulo    = (perfil && perfil.titulo)    ? String(perfil.titulo)    : '(sin título)';
@@ -71,7 +59,7 @@ function buildHtml({ username, email, source, provisioned, perfil }) {
 }
 
 exports.notificarNuevaBioo = onDocumentCreated(
-  { document: 'bios/{username}', secrets: [RESEND_API_KEY], retry: false },
+  { document: 'bios/{username}', secrets: [...MAIL_SECRETS], retry: false },
   async (event) => {
     const username = event.params.username;
     const data     = event.data?.data() || {};
@@ -82,12 +70,12 @@ exports.notificarNuevaBioo = onDocumentCreated(
     const perfil      = data.perfil || {};
 
     try {
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    FROM,
         to:      [ADMIN_EMAIL],
         subject: `🎉 Nueva bioo — @${username}${provisioned ? ' (provisionada)' : ''}`,
         html:    buildHtml({ username, email, source, provisioned, perfil }),
-      });
+      }, { primario: 'resend', etiqueta: 'bioo-signup' });
       logger.info(`[bioo:nuevo] email enviado por @${username}`);
     } catch (err) {
       logger.error(`[bioo:nuevo] fallo enviando aviso de @${username}:`, err.message);

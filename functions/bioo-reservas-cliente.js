@@ -24,25 +24,13 @@
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule }        = require('firebase-functions/v2/scheduler');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const FROM      = 'bioo <hola@synaptechspa.cl>';
 const BIOO_BASE = 'https://bioo.cl';
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
 
 const DIAS_LARGOS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MESES       = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -180,7 +168,7 @@ function buildHtmlRecordatorio({ username, reserva, fechaFmt, gcalUrl, bioUrl })
 // ════════════════════════════════════════════════════════════════════════════
 
 exports.confirmarReservaCliente = onDocumentCreated(
-  { document: 'bios/{username}/reservas/{reservaId}', secrets: [RESEND_API_KEY], retry: false },
+  { document: 'bios/{username}/reservas/{reservaId}', secrets: [...MAIL_SECRETS], retry: false },
   async (event) => {
     const username = event.params.username;
     const reserva  = event.data?.data() || {};
@@ -202,12 +190,12 @@ exports.confirmarReservaCliente = onDocumentCreated(
     const subject  = `✅ Confirmada — ${reserva.servicioNombre || 'cita'} · ${fechaFmt} ${reserva.hora}`;
 
     try {
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    FROM,
         to:      [email],
         subject,
         html:    buildHtmlConfirmacion({ username, reserva, fechaFmt, gcalUrl, bioUrl }),
-      });
+      }, { primario: 'brevo', etiqueta: 'bioo-conf-cliente' });
       logger.info(`[bioo:cliente:conf] enviado a ${email} (reserva @${username}).`);
     } catch (err) {
       logger.error(`[bioo:cliente:conf] fallo enviando a ${email} (@${username}):`, err.message);
@@ -221,7 +209,7 @@ exports.confirmarReservaCliente = onDocumentCreated(
 // ════════════════════════════════════════════════════════════════════════════
 
 exports.recordatorio24hCliente = onSchedule(
-  { schedule: 'every 15 minutes', secrets: [RESEND_API_KEY], timeZone: 'America/Santiago', region: 'us-central1' },
+  { schedule: 'every 15 minutes', secrets: [...MAIL_SECRETS], timeZone: 'America/Santiago', region: 'us-central1' },
   async () => {
     const db  = admin.firestore();
     const now = admin.firestore.Timestamp.now();
@@ -268,12 +256,12 @@ exports.recordatorio24hCliente = onSchedule(
       const subject  = `⏰ Mañana — ${reserva.servicioNombre || 'cita'} · ${fechaFmt} ${reserva.hora}`;
 
       try {
-        await sendResend(RESEND_API_KEY.value(), {
+        await enviarEmail({
           from:    FROM,
           to:      [email],
           subject,
           html:    buildHtmlRecordatorio({ username, reserva, fechaFmt, gcalUrl, bioUrl }),
-        });
+        }, { primario: 'brevo', etiqueta: 'bioo-recordatorio-cliente' });
         await docSnap.ref.update({ reminderSentAt: admin.firestore.FieldValue.serverTimestamp() });
         enviados++;
       } catch (err) {

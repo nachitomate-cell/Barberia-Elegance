@@ -185,14 +185,11 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
 //  Criterio de membresía = el MISMO que AuthContext usa para el rol:
 //  existe barberos/{uid} (resolviendo link-docs _mainDocId), activo y no QA.
 // ═════════════════════════════════════════════════════════════════
-// Admins de marca (acceso 'admin' a varias sedes sin doc barbero en cada
-// una). Espejo del mapa BRAND_ADMINS del cliente (AuthContext.jsx), sin el
-// marcador unificado 'kronnos' (el hub muestra sedes concretas).
-const HUB_BRAND_ADMINS = {
-  'administracionkronnos@gmail.com': ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-  'claudio.burgos91@gmail.com':      ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-  'grupo.kratos.spa@gmail.com':      ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-};
+// Admins de marca (acceso 'admin' a varias sedes sin doc barbero en cada una).
+// El mapa vive en ./brand-admins y acá se DERIVAN las sedes concretas (sin el
+// marcador unificado 'kronnos': el hub muestra locales reales). Antes era una
+// copia a mano y se desincronizó — ver el comentario de brand-admins.js.
+const { sedesDeMarca, puedeAdministrarTenant } = require('./brand-admins');
 
 exports.resolverMisTenants = onCall({ region: 'us-central1', cors: true }, async (request) => {
   const uid   = request.auth?.uid;
@@ -235,7 +232,7 @@ exports.resolverMisTenants = onCall({ region: 'us-central1', cors: true }, async
   await Promise.all(tasks);
 
   // Admins de marca (acceso por email, sin doc barbero en cada sede).
-  for (const t of (HUB_BRAND_ADMINS[email] || [])) {
+  for (const t of sedesDeMarca(email)) {
     if (!found.has(t)) found.set(t, { tenantId: t, rol: 'admin' });
   }
 
@@ -253,18 +250,14 @@ exports.resolverMisTenants = onCall({ region: 'us-central1', cors: true }, async
 //
 //  Devuelve: { uid, email }
 //
-//  Autorización: superadmin bootstrap OR (role=='admin' && claim
-//  tenantId coincide con el tenantId objetivo).
+//  Autorización: puedeAdministrarTenant() — superadmin bootstrap, admin de
+//  marca, o (role=='admin' && claim tenantId == tenantId objetivo).
 // ═════════════════════════════════════════════════════════════════
 // cors:true → permite llamadas desde custom domains de tenants
 // (delnerobarber.synaptechspa.cl, elegance.synaptechspa.cl, etc.). Sin esto,
 // el default de v2 solo acepta *.web.app / *.firebaseapp.com y bloquea preflight.
 exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
-  const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
-
-  const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
-  const callerRole   = request.auth?.token?.role;
-  const callerTenant = request.auth?.token?.tenantId;
+  const callerEmail = (request.auth?.token?.email || '').toLowerCase();
 
   const { email, password, displayName, tenantId, rol = 'barbero', linkIfExists = false } = request.data || {};
 
@@ -286,9 +279,7 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
   }
 
   // ── Autorización ────────────────────────────────────────────
-  const isSuperadmin  = SUPERADMINS.includes(callerEmail);
-  const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
-  if (!isSuperadmin && !isTenantAdmin) {
+  if (!puedeAdministrarTenant(request, tenantId)) {
     throw new HttpsError('permission-denied', 'Solo el admin del local puede crear accesos.');
   }
 
@@ -360,16 +351,7 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
 //  buscando su doc en tenants/{tid}/barberos con authUid=uid.
 // ─────────────────────────────────────────────────────────────────
 exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
-  const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
-  const BRAND_ADMINS = {
-    'administracionkronnos@gmail.com': ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-    'claudio.burgos91@gmail.com':      ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-    'grupo.kratos.spa@gmail.com':      ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
-  };
-
-  const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
-  const callerRole   = request.auth?.token?.role;
-  const callerTenant = request.auth?.token?.tenantId;
+  const callerEmail = (request.auth?.token?.email || '').toLowerCase();
 
   const { email, nuevaPassword, tenantId } = request.data || {};
 
@@ -383,12 +365,9 @@ exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, asy
     throw new HttpsError('invalid-argument', 'tenantId requerido.');
   }
 
-  // Autorización: superadmin global, admin de marca (BRAND_ADMINS), o
-  // admin/jefe del tenant al que se le cambia la clave.
-  const isSuperadmin  = SUPERADMINS.includes(callerEmail);
-  const isBrandAdmin  = (BRAND_ADMINS[callerEmail] || []).includes(tenantId);
-  const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
-  if (!isSuperadmin && !isBrandAdmin && !isTenantAdmin) {
+  // Autorización: superadmin global, admin de marca, o admin del tenant al que
+  // se le cambia la clave (ver ./brand-admins).
+  if (!puedeAdministrarTenant(request, tenantId)) {
     throw new HttpsError('permission-denied', 'Solo el admin del local puede cambiar contraseñas.');
   }
 
@@ -1196,7 +1175,7 @@ exports.avisoCitaStaffTenant   = avisoCitaStaff.avisoCitaStaffTenant;
 
 // ─────────────────────────────────────────────────────────────────
 //  RECUPERACIÓN DE CONTRASEÑA — ver recuperacion-password.js
-//  Envía el enlace por Resend desde citas@synaptechspa.cl
+//  Envía el enlace por lib/mailer.js desde citas@synaptechspa.cl
 // ─────────────────────────────────────────────────────────────────
 const recuperacionPassword = require('./recuperacion-password');
 exports.enviarRecuperacionPassword = recuperacionPassword.enviarRecuperacionPassword;
@@ -1365,7 +1344,7 @@ exports.mpReembolsar = mpPago.mpReembolsar;
 //  con cargo mensual a la tarjeta del dueño. Cuenta MP de SYNAPTECH
 //  (MP_PLATFORM_ACCESS_TOKEN, app bioo12) — NO MP_ACCESS_TOKEN, que
 //  es la app de Yügen. El webhook actualiza _billing/{tid} y manda el
-//  comprobante (RESEND_API_KEY). Requiere configurar la URL del
+//  comprobante (vía lib/mailer.js). Requiere configurar la URL del
 //  webhook en bioo12 (eventos "Planes y suscripciones").
 // ─────────────────────────────────────────────────────────────────
 const mensualidadMp = require('./mensualidad-mp');
@@ -1499,7 +1478,7 @@ exports.mpBioPlatformVerify   = paymentsMpPlatform.mpBioPlatformVerify;
 
 // ─────────────────────────────────────────────────────────────────
 //  BIOO — aviso por email al superadmin cuando se crea una nueva
-//  bioo (self-service o provisionada). Usa Resend (RESEND_API_KEY).
+//  bioo (self-service o provisionada). Usa lib/mailer.js.
 // ─────────────────────────────────────────────────────────────────
 const biooNuevoSignup = require('./bioo-nuevo-signup');
 exports.notificarNuevaBioo = biooNuevoSignup.notificarNuevaBioo;
@@ -1507,7 +1486,7 @@ exports.notificarNuevaBioo = biooNuevoSignup.notificarNuevaBioo;
 // ─────────────────────────────────────────────────────────────────
 //  BIOO RESERVAS — aviso por email al barbero cuando entra una
 //  cita nueva desde su Bioo pública. Resuelve email vía Auth y usa
-//  Resend (RESEND_API_KEY).
+//  lib/mailer.js (Resend primario, Brevo de respaldo).
 // ─────────────────────────────────────────────────────────────────
 const biooReservasAviso = require('./bioo-reservas-aviso');
 exports.avisarNuevaReservaBioo = biooReservasAviso.avisarNuevaReservaBioo;

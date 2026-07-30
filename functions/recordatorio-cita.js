@@ -14,6 +14,7 @@ const { logger }       = require('firebase-functions');
 const admin            = require('firebase-admin');
 const { writeNotifLog }   = require('./lib/notif-log');
 const { getTenantConfig, mapsUrl } = require('./lib/tenant-mail-config');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -29,7 +30,6 @@ const TENANTS_LIST = [
 const secretSid  = defineSecret('TWILIO_ACCOUNT_SID');
 const secretAuth = defineSecret('TWILIO_AUTH_TOKEN');
 const secretFrom = defineSecret('TWILIO_WA_FROM');
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
 // Config por tenant → única fuente de verdad en lib/tenant-mail-config.js
 // (compartida con confirmacion-cita.js para que ambos handlers siempre
@@ -48,17 +48,6 @@ function fmtPrecio(precio) {
   const n = Number(precio);
   if (!n) return null;
   return `$${n.toLocaleString('es-CL')}`;
-}
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
 }
 
 function getSantiagoDateString(offsetDays = 0) {
@@ -422,7 +411,7 @@ exports.recordatorioCita1h = onSchedule(
   {
     schedule: '*/30 7-22 * * *',
     timeZone: TIMEZONE,
-    secrets:  [RESEND_API_KEY],
+    secrets:  [...MAIL_SECRETS],
   },
   async () => {
     const todayStr    = getSantiagoDateString(0);
@@ -508,7 +497,6 @@ exports.recordatorioCita1h = onSchedule(
     }
 
     logger.info(`[Recordatorio 1h] Enviando correos para ${toSend.length} cita(s)`);
-    const apiKey = RESEND_API_KEY.value();
 
     for (const item of toSend) {
       const { ref, tenantId, citaId, cita } = item;
@@ -526,12 +514,12 @@ exports.recordatorioCita1h = onSchedule(
       const html = build1hEmailHtml({ cfg, cita });
 
       try {
-        await sendResend(apiKey, {
+        await enviarEmail({
           from:    cfg.from,
           to:      [email.toLowerCase().trim()],
           subject: `⏰ Tu cita comienza en 1 hora — ${cfg.nombre}`,
           html,
-        });
+        }, { primario: 'brevo', etiqueta: 'recordatorio-1h' });
         logger.info(`[Email 1H] ✓ Enviado exitosamente a ${email} para cita ${citaId} (${tenantId})`);
         await writeNotifLog(db, {
           tenantId,

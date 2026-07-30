@@ -22,13 +22,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
 const { TENANT_CONFIG }     = require('./lib/tenant-mail-config');
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const db = admin.firestore();
 
@@ -40,17 +39,6 @@ function fmtFecha(fechaStr) {
   return new Date(y, m - 1, d).toLocaleDateString('es-CL', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).replace(/^\w/, c => c.toUpperCase());
-}
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
 }
 
 // Devuelve los destinatarios configurados explícitamente para el tenant.
@@ -168,7 +156,8 @@ async function avisarStaff(tenantId, citaId, cita, panelUrl) {
   const subject = `📅 Nueva cita — ${cita.fecha || ''} ${cita.hora || ''} · ${cliente}`.replace(/\s+/g, ' ').trim();
 
   try {
-    await sendResend(RESEND_API_KEY.value(), { from: cfg.from, to: destinatarios, subject, html });
+    await enviarEmail({ from: cfg.from, to: destinatarios, subject, html },
+      { primario: 'resend', etiqueta: 'aviso-staff' });
     logger.info(`[AvisoStaff] ${tenantId}: email enviado a ${destinatarios.join(', ')} (cita ${citaId})`);
     await writeNotifLog(db, {
       tenantId,
@@ -193,12 +182,12 @@ async function avisarStaff(tenantId, citaId, cita, panelUrl) {
 }
 
 // Para scripts de prueba (scripts/test-aviso-staff.js)
-exports._test = { buildStaffHtml, destinatariosConfigurados, brandingDe, sendResend };
+exports._test = { buildStaffHtml, destinatariosConfigurados, brandingDe, enviarEmail };
 
 // ── Triggers ──────────────────────────────────────────────────────────────────
 
 exports.avisoCitaStaffElegance = onDocumentCreated(
-  { document: 'citas/{citaId}', secrets: [RESEND_API_KEY] },
+  { document: 'citas/{citaId}', secrets: [...MAIL_SECRETS] },
   async (event) => {
     const cita = event.data?.data();
     if (!cita) return null;
@@ -218,7 +207,7 @@ exports.avisoCitaStaffElegance = onDocumentCreated(
 );
 
 exports.avisoCitaStaffTenant = onDocumentCreated(
-  { document: 'tenants/{tenantId}/citas/{citaId}', secrets: [RESEND_API_KEY] },
+  { document: 'tenants/{tenantId}/citas/{citaId}', secrets: [...MAIL_SECRETS] },
   async (event) => {
     const cita = event.data?.data();
     if (!cita) return null;

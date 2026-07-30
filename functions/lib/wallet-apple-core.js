@@ -73,6 +73,34 @@ function hexToRgb(hex, fallback) {
 // ── Logo del tenant (cfg.logoUrl) → PNG contain 320×100 (@2x) ─────
 //  Cualquier formato que decodifique canvas (png/jpg/webp). Si falla,
 //  se omite: el pase muestra logoText igual (lo renderiza iOS).
+/**
+ * Descarga una imagen y la deja a la medida exacta que pide Apple.
+ *
+ * Se usa para el strip de los pases de evento: es el ÚNICO lugar del pase donde
+ * cabe arte propio. Apple no permite tipografías, títulos ni fondos con capas —
+ * todo lo decorativo tiene que entrar en esta banda.
+ *
+ * Se recorta al centro en vez de deformar: un barril estirado se nota.
+ */
+async function fetchImagenExacta(url, ancho, alto) {
+  if (!url || !/^https?:\/\//i.test(String(url))) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const img = await loadImage(Buffer.from(await res.arrayBuffer()));
+    const canvas = createCanvas(ancho, alto);
+    const ctx = canvas.getContext('2d');
+    // cover: llena la banda y recorta el sobrante, centrado.
+    const escala = Math.max(ancho / img.width, alto / img.height);
+    const dw = img.width * escala;
+    const dh = img.height * escala;
+    ctx.drawImage(img, (ancho - dw) / 2, (alto - dh) / 2, dw, dh);
+    return canvas.toBuffer('image/png');
+  } catch (_) {
+    return null;
+  }
+}
+
 async function fetchLogoPng(url) {
   if (!url || !/^https?:\/\//i.test(String(url))) return null;
   try {
@@ -102,43 +130,87 @@ function recompensasListText(premios) {
   return list.map((p) => `Sello ${p.costo} · ${p.nombre}`).join('\n');
 }
 
+// ── Campos del storeCard según el modo del tenant ─────────────────
+//
+// modo 'evento' — pase de participación (ferias, sorteos, lanzamientos).
+// No es una tarjeta de fidelidad: no hay sellos que juntar ni rango que
+// subir, sino la confirmación de que la persona quedó dentro. Mostrar
+// "SELLOS 0/10" en una entrada a un sorteo confunde más de lo que aporta.
+//
+// Cualquier otro modo mantiene la tarjeta de sellos de siempre, así que
+// los tenants existentes no cambian en nada.
+function camposPorModo({ modo, accountName, filled, target, rango, cfg }) {
+  if (modo === 'evento') {
+    return {
+      headerFields: [
+        { key: 'estado', label: 'ESTADO', value: cfg.eventoEstado || 'Participando', changeMessage: '%@' },
+      ],
+      secondaryFields: [
+        { key: 'participante', label: 'PARTICIPANTE', value: accountName || 'Invitado' },
+        ...(cfg.eventoFecha
+          ? [{ key: 'cuando', label: 'CUÁNDO', value: cfg.eventoFecha }]
+          : []),
+      ],
+    };
+  }
+  return {
+    headerFields: [
+      { key: 'sellos', label: 'SELLOS', value: `${filled} / ${target}`, changeMessage: 'Sellos: %@' },
+    ],
+    secondaryFields: [
+      { key: 'cliente', label: 'CLIENTE', value: accountName || 'Cliente' },
+      { key: 'rango', label: 'RANGO', value: rango || 'Silver', changeMessage: 'Nuevo rango: %@' },
+    ],
+  };
+}
+
 // ── pass.json (storeCard = el "LoyaltyObject" de Apple) ───────────
 function buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg = {}, premios = [] }) {
   const organizationName = cfg.issuerName || 'SynapTech';
+  const esEvento = cfg.modo === 'evento';
+  const campos = camposPorModo({ modo: cfg.modo, accountName, filled, target, rango, cfg });
   const p = {
     formatVersion: 1,
     passTypeIdentifier: PASS_TYPE_ID,
     teamIdentifier: TEAM_ID,
     organizationName,
-    description: `${cfg.programName || 'Club de Fidelidad'} — tarjeta de sellos`,
+    description: esEvento
+      ? `${cfg.programName || 'Evento'} — pase de participación`
+      : `${cfg.programName || 'Club de Fidelidad'} — tarjeta de sellos`,
     serialNumber: serial,
     webServiceURL: WS_URL,
     authenticationToken: authToken,
     backgroundColor: hexToRgb(cfg.bg, '#0a0a0a'),
-    foregroundColor: 'rgb(255, 255, 255)',
+    // El blanco puro sobre un fondo cálido se ve frío y barato. Los tenants
+    // que quieran un crema cálido lo definen en cfg.fg; el resto no cambia.
+    foregroundColor: hexToRgb(cfg.fg, '#ffffff'),
     labelColor: hexToRgb(cfg.accent, '#c9a84c'),
     logoText: cfg.programName || 'Club de Fidelidad',
     sharingProhibited: true,
     storeCard: {
       // changeMessage → iOS notifica solo al actualizar el pase.
-      headerFields: [
-        { key: 'sellos', label: 'SELLOS', value: `${filled} / ${target}`, changeMessage: 'Sellos: %@' },
-      ],
-      secondaryFields: [
-        { key: 'cliente', label: 'CLIENTE', value: accountName || 'Cliente' },
-        { key: 'rango', label: 'RANGO', value: rango || 'Silver', changeMessage: 'Nuevo rango: %@' },
-      ],
+      headerFields: campos.headerFields,
+      secondaryFields: campos.secondaryFields,
       backFields: (function () {
         const arr = [
-          {
-            key: 'como',
-            label: '¿Cómo funciona?',
-            value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
-          },
+          esEvento
+            ? {
+                key: 'como',
+                label: '¿Cómo funciona?',
+                value: cfg.eventoInstrucciones
+                  || 'Ya estás participando. Si sales sorteado te avisamos y este pase se actualiza solo — no necesitas hacer nada más.',
+              }
+            : {
+                key: 'como',
+                label: '¿Cómo funciona?',
+                value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
+              },
         ];
         // Lista de recompensas por hito (si el local cargó premios). El
         // cliente ve qué gana en cada sello sin tener que preguntar.
-        const recompensasBody = recompensasListText(premios);
+        // En modo evento no hay premios por hito que listar: el premio es
+        // el del sorteo, y va en el frente del pase.
+        const recompensasBody = esEvento ? null : recompensasListText(premios);
         if (recompensasBody) {
           arr.push({ key: 'recompensas', label: 'Recompensas', value: recompensasBody });
         }
@@ -194,10 +266,29 @@ async function crearPkpass({ certs, uid, serial, authToken, datos }) {
     'icon.png': renderIcon({ size: 29, accent, bg, icon: cfg.stampIcon }),
     'icon@2x.png': renderIcon({ size: 58, accent, bg, icon: cfg.stampIcon }),
     'icon@3x.png': renderIcon({ size: 87, accent, bg, icon: cfg.stampIcon }),
-    'strip.png': strip(1),
-    'strip@2x.png': strip(2),
-    'strip@3x.png': strip(3),
   };
+
+  if (cfg.modo === 'evento') {
+    // En evento no hay sellos que dibujar. Si el tenant subió arte propio, va
+    // acá: es el único lugar del pase donde Apple permite una imagen grande.
+    // Sin arte, el pase queda limpio sobre el color de fondo.
+    if (cfg.stripUrl) {
+      const [s1, s2, s3] = await Promise.all([
+        fetchImagenExacta(cfg.stripUrl, 375, 123),
+        fetchImagenExacta(cfg.stripUrl, 750, 246),
+        fetchImagenExacta(cfg.stripUrl, 1125, 369),
+      ]);
+      if (s1 && s2 && s3) {
+        buffers['strip.png'] = s1;
+        buffers['strip@2x.png'] = s2;
+        buffers['strip@3x.png'] = s3;
+      }
+    }
+  } else {
+    buffers['strip.png'] = strip(1);
+    buffers['strip@2x.png'] = strip(2);
+    buffers['strip@3x.png'] = strip(3);
+  }
 
   const logo = await fetchLogoPng(cfg.logoUrl);
   if (logo) {

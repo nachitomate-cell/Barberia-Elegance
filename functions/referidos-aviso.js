@@ -5,7 +5,7 @@
 //  REFERIDOS — aviso al super-admin cuando entra un signup nuevo.
 //
 //  Trigger: onDocumentCreated('_referralSignups/{signupId}')
-//  Acción:  email a Ignacio vía Resend (RESEND_API_KEY ya está en secrets)
+//  Acción:  email a Ignacio vía lib/mailer.js (Resend primario)
 //           con todos los datos del prospecto y CTAs directos:
 //             - Abrir WhatsApp con mensaje pre-armado.
 //             - Mailto si dejó email.
@@ -15,24 +15,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const ADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 const FROM        = 'SynapTech <hola@synaptechspa.cl>';
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
 
 /** Normaliza un número a digits-only para wa.me. Acepta '+56 9 1234 5678' etc. */
 function onlyDigits(s) {
@@ -85,7 +73,7 @@ function buildHtml({ signup, code, referrerName }) {
 }
 
 exports.avisarNuevoReferido = onDocumentCreated(
-  { document: '_referralSignups/{signupId}', secrets: [RESEND_API_KEY], retry: false },
+  { document: '_referralSignups/{signupId}', secrets: [...MAIL_SECRETS], retry: false },
   async (event) => {
     const signupId = event.params.signupId;
     const signup   = event.data?.data() || {};
@@ -93,12 +81,12 @@ exports.avisarNuevoReferido = onDocumentCreated(
     const referrerName = signup.referrerTenantName || signup.referrerTenantId || '';
 
     try {
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    FROM,
         to:      [ADMIN_EMAIL],
         subject: `🎯 Nuevo referido: ${signup.prospectBarberia || signup.prospectName || 'sin datos'} (${code})`,
         html:    buildHtml({ signup, code, referrerName }),
-      });
+      }, { primario: 'resend', etiqueta: 'referidos' });
       logger.info(`[referidos:aviso] email enviado signupId=${signupId} code=${code}`);
     } catch (err) {
       logger.error(`[referidos:aviso] fallo enviando aviso signupId=${signupId}:`, err.message);

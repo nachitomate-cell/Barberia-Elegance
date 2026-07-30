@@ -22,10 +22,10 @@ const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { Timestamp }          = require('firebase-admin/firestore');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const db = admin.firestore();
 const OPS_TOKEN      = defineSecret('OPS_TOKEN');
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
@@ -417,7 +417,7 @@ exports.opsVigilancia = onSchedule(
     schedule: 'every 30 minutes',
     timeZone: 'America/Santiago',
     region: 'us-central1',
-    secrets: [RESEND_API_KEY],
+    secrets: [...MAIL_SECRETS],
     timeoutSeconds: 180,
   },
   async () => {
@@ -437,20 +437,16 @@ exports.opsVigilancia = onSchedule(
     }
 
     const filas = rojas.map(a => `<li style="margin-bottom:8px">${a.texto}</li>`).join('');
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${RESEND_API_KEY.value()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'SynapTech Ops <avisos@synaptechspa.cl>',
-        to: BOOTSTRAP,
-        subject: `🔴 Ops · ${rojas.length} alerta(s) en el canal WhatsApp`,
-        html: `<div style="font-family:system-ui,sans-serif;max-width:560px">
+    await enviarEmail({
+      from: 'SynapTech Ops <avisos@synaptechspa.cl>',
+      to: BOOTSTRAP,
+      subject: `🔴 Ops · ${rojas.length} alerta(s) en el canal WhatsApp`,
+      html: `<div style="font-family:system-ui,sans-serif;max-width:560px">
           <h2 style="font-size:17px">Alertas activas</h2>
           <ul style="font-size:14px;line-height:1.6;color:#333">${filas}</ul>
           <p style="font-size:13px;color:#666">Abre <a href="https://ops.synaptechspa.cl">ops.synaptechspa.cl</a> para el detalle y el kill switch.</p>
         </div>`,
-      }),
-    }).catch(e => logger.error('[ops:vigilancia] resend:', e.message));
+    }, { primario: 'resend', etiqueta: 'ops-vigilancia', silencioso: true });
 
     await ref.set({ firma, avisadoEn: Timestamp.now(), n: rojas.length }, { merge: true }).catch(() => {});
     logger.warn(`[ops:vigilancia] ${rojas.length} alerta(s) roja(s) notificadas`);

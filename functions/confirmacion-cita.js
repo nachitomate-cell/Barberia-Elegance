@@ -8,17 +8,15 @@
 //    confirmacionCitaElegance  → /citas/{citaId}
 //    confirmacionCitaTenant    → /tenants/{tid}/citas/{citaId}
 //
-//  Requiere la variable de entorno RESEND_API_KEY (Firebase Secret).
+//  El envío va por lib/mailer.js (Resend primario, Brevo de respaldo).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
 const { getTenantConfig, mapsUrl } = require('./lib/tenant-mail-config');
-
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const db = admin.firestore();
 
@@ -36,17 +34,6 @@ function fmtPrecio(precio) {
   const n = Number(precio);
   if (!n) return null;
   return `$${n.toLocaleString('es-CL')}`;
-}
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
 }
 
 // ── Template HTML ─────────────────────────────────────────────────────────────
@@ -320,13 +307,12 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 
   const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl });
 
-  const apiKey = RESEND_API_KEY.value();
-  await sendResend(apiKey, {
+  await enviarEmail({
     from:    cfg.from,
     to:      [email],
     subject: `✅ Cita confirmada — ${data.servicioNombre || 'Tu reserva'} en ${cfg.nombre}`,
     html,
-  });
+  }, { primario: 'brevo', etiqueta: 'confirmacion-cita' });
 
   logger.info(`[Confirmacion] Email enviado a ${email} (cita ${citaId}, tenant ${tenantId})`);
   await writeNotifLog(db, {
@@ -342,7 +328,7 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 // ── Triggers ──────────────────────────────────────────────────────────────────
 
 exports.confirmacionCitaElegance = onDocumentCreated(
-  { document: 'citas/{citaId}', secrets: [RESEND_API_KEY] },
+  { document: 'citas/{citaId}', secrets: [...MAIL_SECRETS] },
   async event => {
     const data = event.data?.data();
     if (!data) return null;
@@ -364,7 +350,7 @@ exports.confirmacionCitaElegance = onDocumentCreated(
 );
 
 exports.confirmacionCitaTenant = onDocumentCreated(
-  { document: 'tenants/{tid}/citas/{citaId}', secrets: [RESEND_API_KEY] },
+  { document: 'tenants/{tid}/citas/{citaId}', secrets: [...MAIL_SECRETS] },
   async event => {
     const data = event.data?.data();
     if (!data) return null;

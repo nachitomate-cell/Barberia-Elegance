@@ -34,12 +34,11 @@
 // ─────────────────────────────────────────────────────────────────
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const db = admin.firestore();
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 const TZ = 'America/Santiago';
 const MAIL_FROM = 'Wallo <cobros@synaptechspa.cl>';
 const WA_SUPPORT = 'https://wa.me/56983568212';
@@ -88,24 +87,13 @@ async function emailsDelDueno(tid, billing) {
   return Array.from(emails).filter(Boolean);
 }
 
-// ── Send via Resend (best-effort — nunca bloquea el cron) ──────────
-async function sendResend(apiKey, payload) {
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!r.ok) {
-      const err = await r.text();
-      logger.warn(`[AvisosWallo] Resend ${r.status}: ${err.slice(0, 200)}`);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    logger.warn(`[AvisosWallo] Resend fetch falló: ${e.message}`);
-    return false;
-  }
+// ── Send (best-effort — nunca bloquea el cron) ─────────────────────
+// Aviso al DUEÑO del local, no al cliente final → Resend primario.
+async function enviarAviso(payload) {
+  const r = await enviarEmail(payload, {
+    primario: 'resend', etiqueta: 'wallet-cobro', silencioso: true,
+  });
+  return r.ok;
 }
 
 // ── Templates HTML — marca Wallo, mismos anchos que otros mails del sistema
@@ -169,10 +157,8 @@ function tplPagoFallido({ local, monto, fecha }) {
 
 // ── Cron principal ─────────────────────────────────────────────────
 exports.walletAvisosCobroCron = onSchedule(
-  { schedule: 'every day 09:00', timeZone: TZ, region: 'us-central1', secrets: [RESEND_API_KEY] },
+  { schedule: 'every day 09:00', timeZone: TZ, region: 'us-central1', secrets: [...MAIL_SECRETS] },
   async () => {
-    const apiKey = RESEND_API_KEY.value();
-    if (!apiKey) { logger.warn('[AvisosWallo] sin RESEND_API_KEY, aborto'); return null; }
 
     const hoyISO = new Date().toISOString().slice(0, 10);
     const hoyMs = Date.now();
@@ -230,7 +216,7 @@ exports.walletAvisosCobroCron = onSchedule(
     logger.info(`[AvisosWallo] ${enviosPorHacer.length} emails a enviar`);
     let ok = 0, fail = 0;
     for (const envio of enviosPorHacer) {
-      const success = await sendResend(apiKey, {
+      const success = await enviarAviso({
         from: MAIL_FROM,
         to: envio.emails,
         subject: envio.subject,

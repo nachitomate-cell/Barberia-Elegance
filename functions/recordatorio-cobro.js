@@ -22,7 +22,6 @@
 // ─────────────────────────────────────────────────────────────────
 
 const { onSchedule }    = require('firebase-functions/v2/scheduler');
-const { defineSecret }  = require('firebase-functions/params');
 const { logger }        = require('firebase-functions');
 const admin             = require('firebase-admin');
 const { dispatchAdminPush } = require('./admin-push');
@@ -34,7 +33,7 @@ const db        = admin.firestore();
 const messaging = admin.messaging();
 const TIMEZONE  = 'America/Santiago';
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 const MAIL_FROM      = 'SynapTech <cobros@synaptechspa.cl>';
 
 // Días respecto al vencimiento en los que se envía recordatorio.
@@ -141,19 +140,8 @@ async function emailsCobro(tid, billingData) {
   return { emails: [], nombreLocal };
 }
 
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
-
 exports.recordatorioCobro = onSchedule(
-  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [RESEND_API_KEY] },
+  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [...MAIL_SECRETS] },
   async () => {
     const hoyUTC   = santiagoHoyUTC();
     const todayStr = new Date(hoyUTC).toISOString().slice(0, 10);
@@ -237,12 +225,12 @@ exports.recordatorioCobro = onSchedule(
 
       if (destinatarios.length) {
         try {
-          await sendResend(RESEND_API_KEY.value(), {
+          await enviarEmail({
             from:    MAIL_FROM,
             to:      destinatarios,
             subject: title,
             html:    buildEmailHtml({ title, body, tid, nombreLocal }),
-          });
+          }, { primario: 'resend', etiqueta: 'recordatorio-cobro' });
           mailOk = true;
           totalMail += destinatarios.length;
           logger.info(`[Cobro] ✉ ${tid} (dias=${dias}) → email a ${destinatarios.length} destinatario(s)`);

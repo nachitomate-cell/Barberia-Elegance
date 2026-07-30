@@ -12,7 +12,7 @@
 //  Dos piezas:
 //    1. synaptechCrearLead   (callable público) — escribe _synaptechLeads/{id}.
 //    2. avisarNuevoLead      (trigger Firestore) — manda email con
-//       "demo-ready brief" + color swatch + checklist a Ignacio vía Resend.
+//       "demo-ready brief" + color swatch + checklist a Ignacio vía lib/mailer.js.
 //
 //  DEPLOY:
 //    firebase deploy --only functions:synaptechCrearLead,functions:avisarNuevoLead
@@ -20,14 +20,13 @@
 
 const { onCall, HttpsError }   = require('firebase-functions/v2/https');
 const { onDocumentCreated }    = require('firebase-functions/v2/firestore');
-const { defineSecret }         = require('firebase-functions/params');
 const { logger }               = require('firebase-functions');
 const admin                    = require('firebase-admin');
 const { FieldValue }           = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 const ADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 const FROM        = 'SynapTech <hola@synaptechspa.cl>';
 
@@ -155,17 +154,6 @@ exports.synaptechCrearLead = onCall(async (req) => {
 });
 
 /* ─────────────────────────── Trigger email aviso ─────────────────────────── */
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
 
 function onlyDigits(s) { return String(s || '').replace(/\D/g, ''); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
@@ -323,19 +311,19 @@ function buildHtml(lead) {
 }
 
 exports.avisarNuevoLead = onDocumentCreated(
-  { document: '_synaptechLeads/{leadId}', secrets: [RESEND_API_KEY], retry: false },
+  { document: '_synaptechLeads/{leadId}', secrets: [...MAIL_SECRETS], retry: false },
   async (event) => {
     const leadId = event.params.leadId;
     const lead   = event.data?.data() || {};
 
     try {
       const ready = demoReadiness(lead);
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    FROM,
         to:      [ADMIN_EMAIL],
         subject: `🎯 [${ready.pct}%] Lead SynapTech: ${lead.barberia || lead.name || 'sin datos'}${lead.source ? ' · ' + lead.source : ''}`,
         html:    buildHtml(lead),
-      });
+      }, { primario: 'resend', etiqueta: 'synaptech-lead' });
       logger.info(`[synaptech:aviso] email enviado leadId=${leadId} readiness=${ready.pct}%`);
     } catch (err) {
       logger.error(`[synaptech:aviso] fallo enviando aviso leadId=${leadId}:`, err.message);

@@ -15,25 +15,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const FROM      = 'bioo <hola@synaptechspa.cl>';
 const BIOO_BASE = 'https://bioo.cl';
-
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
 
 const DIAS_LARGOS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const MESES       = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -163,7 +151,7 @@ async function bumpContadorMensual(username) {
 }
 
 exports.avisarNuevaReservaBioo = onDocumentCreated(
-  { document: 'bios/{username}/reservas/{reservaId}', secrets: [RESEND_API_KEY], retry: false },
+  { document: 'bios/{username}/reservas/{reservaId}', secrets: [...MAIL_SECRETS], retry: false },
   async (event) => {
     const username = event.params.username;
     const reserva  = event.data?.data() || {};
@@ -222,12 +210,12 @@ exports.avisarNuevaReservaBioo = onDocumentCreated(
     const subject  = `📅 Nueva reserva — ${reserva.cliente && reserva.cliente.nombre || 'Cliente'} · ${fechaFmt} ${reserva.hora}`;
 
     try {
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    FROM,
         to:      [email],
         subject,
         html:    buildHtml({ username, reserva, fechaFmt }),
-      });
+      }, { primario: 'resend', etiqueta: 'bioo-aviso-duenio' });
       logger.info(`[bioo:reserva] aviso enviado a ${email} por reserva en @${username}.`);
     } catch (err) {
       logger.error(`[bioo:reserva] fallo enviando aviso a ${email} (@${username}):`, err.message);

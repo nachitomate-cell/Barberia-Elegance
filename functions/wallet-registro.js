@@ -342,6 +342,12 @@ exports.walletRegistrarCliente = onRequest(
           filled, target, hitos, premios, rango,
           accent: cfg.accent, bg: cfg.bg, icon: cfg.stampIcon,
           qrStaff: cfg.qrStaff === true,
+          // Sin el modo, un tenant de evento caía en la rama de sellos.
+          modo: cfg.modo,
+          eventoEstado: cfg.eventoEstado,
+          eventoFecha: cfg.eventoFecha,
+          eventoInstrucciones: cfg.eventoInstrucciones,
+          stripUrl: cfg.stripUrl,
         });
         await core.upsertObject(saKey, obj);
         googleObjectId = obj.id;

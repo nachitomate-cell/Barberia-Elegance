@@ -3,7 +3,11 @@
  * resuelve destinatarios reales del tenant y envía el email de muestra
  * al correo indicado (no al staff).
  *
+ * El envío sale por lib/mailer.js, así que basta con tener configurada al
+ * menos una de las dos keys (la que esté define el canal que se usa).
+ *
  * Uso: RESEND_API_KEY=re_xxx node scripts/test-aviso-staff.js correo@destino.cl
+ *      BREVO_API_KEY=xkeysib-xxx node scripts/test-aviso-staff.js correo@destino.cl
  */
 // Misma instancia de firebase-admin que usa el módulo bajo prueba
 const admin = require('../functions/node_modules/firebase-admin');
@@ -20,10 +24,13 @@ const db = admin.firestore();
 const { _test } = require('../functions/aviso-cita-staff.js');
 const TENANT = 'elbarberomoderno';
 const DESTINO = process.argv[2];
-const API_KEY = process.env.RESEND_API_KEY;
+const API_KEY = process.env.RESEND_API_KEY || process.env.BREVO_API_KEY;
 
 async function run() {
-  if (!DESTINO || !API_KEY) { console.error('Falta destino o RESEND_API_KEY'); process.exit(1); }
+  if (!DESTINO || !API_KEY) {
+    console.error('Falta destino, o RESEND_API_KEY / BREVO_API_KEY');
+    process.exit(1);
+  }
 
   const citaFake = {
     clienteNombre:  'Cliente de Prueba (SynapTech)',
@@ -45,13 +52,13 @@ async function run() {
     panelUrl: String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/gestion-interna/agenda'),
   });
 
-  const r = await _test.sendResend(API_KEY, {
+  const r = await _test.enviarEmail({
     from: cfg.from,
     to: [DESTINO],
     subject: `📅 Nueva cita — ${citaFake.fecha} ${citaFake.hora} · ${citaFake.clienteNombre} [PRUEBA]`,
     html,
-  });
-  console.log('Email de prueba enviado a', DESTINO, '— id:', r.id);
+  }, { primario: 'resend', etiqueta: 'prueba-aviso-staff' });
+  console.log(`Email de prueba enviado a ${DESTINO} por ${r.proveedor} — id: ${r.id}`);
   process.exit(0);
 }
 

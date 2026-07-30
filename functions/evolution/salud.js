@@ -20,14 +20,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onSchedule }   = require('firebase-functions/v2/scheduler');
-const { defineSecret } = require('firebase-functions/params');
 const { logger }       = require('firebase-functions');
 const admin            = require('firebase-admin');
 const { FieldValue }   = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('../lib/mailer');
 
 const MAIL_FROM      = 'SynapTech <avisos@synaptechspa.cl>';
 const EMAIL_SYNAPTECH = 'ignaciiio.mate@gmail.com';
@@ -87,23 +86,12 @@ function htmlAlerta({ local, tid, minutos }) {
   </div>`;
 }
 
-async function sendResend(apiKey, payload) {
-  const res  = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
-
 exports.evolutionSaludSesiones = onSchedule(
   {
     schedule: 'every 30 minutes',
     timeZone: 'America/Santiago',
     region:   'us-central1',
-    secrets:  [RESEND_API_KEY],
+    secrets:  [...MAIL_SECRETS],
   },
   async () => {
     // listDocuments, NO collection().get(): los docs padre tenants/{id}
@@ -133,12 +121,12 @@ exports.evolutionSaludSesiones = onSchedule(
         const local = td.nombre || td.nombreCorto || tid;
         const to    = [...new Set([EMAIL_SYNAPTECH, ...(await emailsDueno(tid))])];
 
-        await sendResend(RESEND_API_KEY.value(), {
+        await enviarEmail({
           from:    MAIL_FROM,
           to,
           subject: `⚠️ WhatsApp desconectado · ${local} (${minutos} min)`,
           html:    htmlAlerta({ local, tid, minutos }),
-        });
+        }, { primario: 'resend', etiqueta: 'evolution-salud' });
         await ref.set({ alertaDesconexionEnviada: true, alertaDesconexionEn: FieldValue.serverTimestamp() }, { merge: true });
         alertas++;
         logger.warn(`[salud] ${tid}: sesión caída ${minutos} min → alerta enviada a ${to.join(', ')}`);

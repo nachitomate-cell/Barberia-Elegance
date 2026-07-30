@@ -172,6 +172,9 @@ function buildObject(tenantId, uid, opts) {
   } = opts || {};
   const esCashback = modo === 'cashback';
   const esPrepago  = modo === 'prepago';
+  // Pase de participación (ferias, sorteos): no hay saldo ni sellos que
+  // mostrar, solo la confirmación de que la persona quedó dentro.
+  const esEvento   = modo === 'evento';
 
   const obj = {
     id: objectIdFor(tenantId, uid),
@@ -195,7 +198,17 @@ function buildObject(tenantId, uid, opts) {
     };
   }
 
-  if (esCashback) {
+  if (esEvento) {
+    obj.loyaltyPoints = {
+      label: 'Estado',
+      balance: { string: opts.eventoEstado || 'Participando' },
+    };
+    // Google acepta una imagen ancha (1032×336 recomendado). Es el equivalente
+    // del strip de Apple y el único lugar con espacio para arte del evento.
+    if (opts.stripUrl) {
+      obj.heroImage = { sourceUri: { uri: opts.stripUrl } };
+    }
+  } else if (esCashback) {
     obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(cashbackDisponible) } };
   } else if (esPrepago) {
     obj.loyaltyPoints = { label: 'Saldo', balance: { string: formatCLP(saldoPrepago) } };
@@ -206,7 +219,17 @@ function buildObject(tenantId, uid, opts) {
   }
 
   const modules = [];
-  if (rango) modules.push({ id: 'rango', header: 'Rango', body: rango });
+  // El rango es del programa de fidelidad; en un pase de evento no significa nada.
+  if (rango && !esEvento) modules.push({ id: 'rango', header: 'Rango', body: rango });
+  if (esEvento) {
+    if (opts.eventoFecha) modules.push({ id: 'cuando', header: 'Cuándo', body: opts.eventoFecha });
+    modules.push({
+      id: 'evento',
+      header: '¿Cómo funciona?',
+      body: opts.eventoInstrucciones
+        || 'Ya estás participando. Si sales sorteado te avisamos y este pase se actualiza solo — no necesitas hacer nada más.',
+    });
+  }
   if (esCashback && cashbackPct) {
     modules.push({
       id: 'cashback',
@@ -221,7 +244,7 @@ function buildObject(tenantId, uid, opts) {
     modules.push({ id: 'prepago', header: '¿Cómo funciona?', body: bonusTxt });
   }
   const recompensasBody = recompensasListText(premios);
-  if (!esCashback && !esPrepago && recompensasBody) {
+  if (!esCashback && !esPrepago && !esEvento && recompensasBody) {
     modules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
   }
   if (modules.length) obj.textModulesData = modules;

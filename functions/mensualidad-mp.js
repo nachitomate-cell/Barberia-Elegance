@@ -52,7 +52,7 @@ const { FieldValue }                    = require('firebase-admin/firestore');
 const db = admin.firestore();
 
 const MP_PLATFORM_ACCESS_TOKEN = defineSecret('MP_PLATFORM_ACCESS_TOKEN');
-const RESEND_API_KEY  = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const MP_API    = 'https://api.mercadopago.com';
 const MAIL_FROM = 'SynapTech <cobros@synaptechspa.cl>';
@@ -146,17 +146,6 @@ async function emailsComprobante(tid, billing) {
     }
   } catch (_) {}
   return [];
-}
-
-async function sendResend(apiKey, payload) {
-  const res  = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
 }
 
 function clp(n) { return '$' + Number(n || 0).toLocaleString('es-CL'); }
@@ -323,7 +312,7 @@ async function procesarPreapproval(preapprovalId, token) {
 }
 
 // Resultado de un cobro mensual. Idempotente por authorizedPaymentId.
-async function procesarCobro(authorizedPaymentId, token, resendKey) {
+async function procesarCobro(authorizedPaymentId, token) {
   const { json: ap } = await mpRequest('GET', `/authorized_payments/${authorizedPaymentId}`, token);
   if (!ap || !ap.id) { logger.warn(`[MPmens] authorized_payment ${authorizedPaymentId} no encontrado`); return; }
 
@@ -412,21 +401,21 @@ async function procesarCobro(authorizedPaymentId, token, resendKey) {
     const bSnap   = await billingRef.get();
     const billing = bSnap.exists ? bSnap.data() : {};
     const emails  = await emailsComprobante(tid, billing);
-    if (emails.length && resendKey) {
+    if (emails.length) {
       const local = await nombreLocal(tid);
-      await sendResend(resendKey, {
+      await enviarEmail({
         from:    MAIL_FROM,
         to:      emails,
         subject: `Pago automático recibido · ${local} (${clp(monto)})`,
         html:    htmlComprobante({ local, monto, fecha: hoy, proximo: next }),
-      });
+      }, { primario: 'resend', etiqueta: 'mensualidad-comprobante' });
       logger.info(`[MPmens] comprobante enviado a ${emails.join(', ')}`);
     }
   } catch (e) { logger.warn(`[MPmens] comprobante falló: ${e.message}`); }
 }
 
 exports.mpMensualidadWebhook = onRequest(
-  { secrets: [MP_PLATFORM_ACCESS_TOKEN, RESEND_API_KEY], region: 'us-central1' },
+  { secrets: [MP_PLATFORM_ACCESS_TOKEN, ...MAIL_SECRETS], region: 'us-central1' },
   async (req, res) => {
     try {
       const q    = req.query || {};
@@ -436,7 +425,7 @@ exports.mpMensualidadWebhook = onRequest(
 
       if (type.includes('subscription_authorized_payment') || type.includes('authorized_payment')) {
         if (!id) return res.status(200).send('no id');
-        await procesarCobro(String(id), MP_PLATFORM_ACCESS_TOKEN.value(), RESEND_API_KEY.value());
+        await procesarCobro(String(id), MP_PLATFORM_ACCESS_TOKEN.value());
       } else if (type.includes('subscription_preapproval_plan')) {
         // Evento del PLAN (alta/edición), no de una suscripción: su data.id es un
         // plan id — consultarlo como preapproval solo generaría 404 y ruido.

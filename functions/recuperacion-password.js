@@ -2,15 +2,14 @@
 
 // recuperacion-password.js
 // Callable: genera un enlace de reset via Firebase Admin y lo envía
-// por Resend desde citas@synaptechspa.cl (dominio con reputación).
+// por lib/mailer.js desde citas@synaptechspa.cl (Brevo primario: es
+// correo al cliente, el volumen alto).
 // El cliente llama: firebase.functions().httpsCallable('enviarRecuperacionPassword')
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
-
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 
 const TENANT_CONFIG = {
   elegance: {
@@ -159,17 +158,6 @@ function resolveTenantId({ tenantId, hostHint, rawRequest }) {
   return 'elegance';
 }
 
-async function sendResend(apiKey, payload) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method:  'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
-  return body;
-}
-
 function buildResetEmailHtml({ cfg, resetLink }) {
   const btnColor   = cfg.color;
   const isDark     = !!cfg.darkHeader;
@@ -236,7 +224,7 @@ function buildResetEmailHtml({ cfg, resetLink }) {
 }
 
 exports.enviarRecuperacionPassword = onCall(
-  { region: 'us-central1', secrets: [RESEND_API_KEY] },
+  { region: 'us-central1', secrets: [...MAIL_SECRETS] },
   async (request) => {
     const { email, tenantId, host } = request.data || {};
 
@@ -270,14 +258,14 @@ exports.enviarRecuperacionPassword = onCall(
     const html = buildResetEmailHtml({ cfg, resetLink });
 
     try {
-      await sendResend(RESEND_API_KEY.value(), {
+      await enviarEmail({
         from:    cfg.from,
         to:      [email.toLowerCase().trim()],
         subject: `🔑 Recupera tu contraseña — ${cfg.nombre}`,
         html,
-      });
+      }, { primario: 'brevo', etiqueta: 'reset-password' });
     } catch (err) {
-      logger.error('[Reset] Resend error:', err.message);
+      logger.error('[Reset] envío falló:', err.message);
       throw new HttpsError('internal', 'No se pudo enviar el correo. Intenta de nuevo.');
     }
 

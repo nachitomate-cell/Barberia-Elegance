@@ -996,4 +996,9 @@ module.exports._cargarServicios     = cargarServicios;
 module.exports._cargarEquipo        = cargarEquipo;
 module.exports._armarContextoLocal  = armarContextoLocal;
 module.exports._MODEL               = MODEL;
+// Reutilizados por evolution/plataforma.js (canal del numero SynapTech): la
+// semantica de CONFIRMAR/CANCELAR tiene que ser UNA sola, o el mismo 'si'
+// significa cosas distintas segun por que numero entro la respuesta.
+module.exports._detectarDecision    = detectarDecision;
+module.exports._aplicarDecision     = aplicarDecision;
 module.exports._CACHE_MIN_TOKENS    = CACHE_MIN_TOKENS;

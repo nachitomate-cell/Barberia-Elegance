@@ -6,25 +6,25 @@
 //
 //  El template por defecto de Firebase sale de noreply@…firebaseapp.com, en
 //  inglés, con el project-id en el asunto y CAE A SPAM. Esta callable genera
-//  el link de restablecimiento server-side y lo envía por Resend
+//  el link de restablecimiento server-side y lo envía por lib/mailer.js
 //  (avisos@synaptechspa.cl, DKIM ok) con plantilla GENÉRICA de SynapTech —
 //  la misma para todos los tenants, a propósito (pedido de Ignacio 2026-07-24).
 //
-//  Autorización: superadmin bootstrap OR admin del tenant (mismo criterio que
-//  crearAccesoStaff). Además el email destino DEBE pertenecer a un miembro del
-//  equipo de ese tenant — evita usar la plataforma para spamear resets a
-//  correos arbitrarios con nuestra marca.
+//  Autorización: puedeAdministrarTenant() — superadmin, admin de marca o admin
+//  del propio tenant (mismo criterio que crearAccesoStaff/cambiarPasswordStaff).
+//  Además el email destino DEBE pertenecer a un miembro del equipo de ese
+//  tenant — evita usar la plataforma para spamear resets a correos arbitrarios
+//  con nuestra marca.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
+const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
+const { esSuperadmin, puedeAdministrarTenant } = require('./brand-admins');
 
 const db = admin.firestore();
-const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
-const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
 const MAIL_FROM   = 'SynapTech <avisos@synaptechspa.cl>';
 const LOGO_URL    = 'https://elegance.synaptechspa.cl/synaptech/ig.png';
 
@@ -56,19 +56,16 @@ function htmlReset({ email, link }) {
 }
 
 exports.enviarLinkAccesoStaff = onCall(
-  { region: 'us-central1', cors: true, secrets: [RESEND_API_KEY] },
+  { region: 'us-central1', cors: true, secrets: [...MAIL_SECRETS] },
   async (request) => {
-    const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
-    const callerRole   = request.auth?.token?.role;
-    const callerTenant = request.auth?.token?.tenantId;
+    const callerEmail = (request.auth?.token?.email || '').toLowerCase();
 
     const { email, tenantId } = request.data || {};
     if (!email || typeof email !== 'string') throw new HttpsError('invalid-argument', 'Email requerido.');
     if (!tenantId || typeof tenantId !== 'string') throw new HttpsError('invalid-argument', 'tenantId requerido.');
 
-    const isSuperadmin  = SUPERADMINS.includes(callerEmail);
-    const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
-    if (!request.auth || (!isSuperadmin && !isTenantAdmin)) {
+    const isSuperadmin = esSuperadmin(callerEmail);
+    if (!puedeAdministrarTenant(request, tenantId)) {
       throw new HttpsError('permission-denied', 'Solo el admin del local puede enviar enlaces de acceso.');
     }
 
@@ -95,19 +92,15 @@ exports.enviarLinkAccesoStaff = onCall(
       throw new HttpsError('internal', 'No se pudo generar el enlace.');
     }
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_API_KEY.value()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: MAIL_FROM,
-        to: [emailNorm],
-        subject: 'Restablece tu contraseña · Acceso al panel',
-        html: htmlReset({ email: emailNorm, link }),
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      logger.error('[accesoStaffEmail] Resend:', res.status, JSON.stringify(body));
+    const envio = await enviarEmail({
+      from:    MAIL_FROM,
+      to:      [emailNorm],
+      subject: 'Restablece tu contraseña · Acceso al panel',
+      html:    htmlReset({ email: emailNorm, link }),
+    }, { primario: 'resend', etiqueta: 'acceso-staff', silencioso: true });
+
+    if (!envio.ok) {
+      logger.error('[accesoStaffEmail] envío falló:', envio.error);
       throw new HttpsError('internal', 'No se pudo enviar el correo.');
     }
 
