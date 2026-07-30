@@ -15,6 +15,17 @@ export class ErrorBoundary extends React.Component {
   }
 
   async componentDidCatch(error, info) {
+    // Chunk stale post-deploy: el listener de `vite:preloadError` en App.jsx
+    // ya recarga la página, así que este error se auto-recupera y no aporta
+    // señal (llenaba el panel de errores con ruido de cada deploy).
+    const msg = String(error?.message || error || '');
+    const isStaleChunk =
+      /Failed to fetch dynamically imported module/i.test(msg) ||
+      /not a valid JavaScript MIME type/i.test(msg) ||
+      /Loading chunk \d+ failed/i.test(msg) ||
+      /Importing a module script failed/i.test(msg);
+    if (isStaleChunk) return;
+
     try {
       await addDoc(collection(db, 'system_errors'), {
         message:        error.message || String(error),
