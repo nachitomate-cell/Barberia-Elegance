@@ -76,13 +76,18 @@ export default function ConfirmHost() {
 
         {/* Botones */}
         <div className="flex gap-3 p-5 pt-5">
-          <button
-            onClick={() => resolveConfirm(false)}
-            className="flex-1 rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 active:scale-95"
-            style={{ color: '#e2e8f0' }}
-          >
-            {cancelText}
-          </button>
+          {/* `cancelText: ''` oculta el botón: convierte el diálogo en un AVISO
+              de un solo botón. Antes había que pasar algo o quedaba un botón en
+              blanco, así que no existía forma de mostrar solo información. */}
+          {cancelText !== '' && (
+            <button
+              onClick={() => resolveConfirm(false)}
+              className="flex-1 rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 active:scale-95"
+              style={{ color: '#e2e8f0' }}
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             autoFocus
             onClick={() => resolveConfirm(true)}

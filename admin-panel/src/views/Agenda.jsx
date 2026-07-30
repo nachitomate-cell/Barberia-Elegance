@@ -791,7 +791,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     hora:            cita?.hora            || defaultHora || '09:00',
     estado:          defaultEstado         || cita?.estado || 'Confirmada',
     nota:            cita?.nota            || '',
-    metodoPago:      cita?.metodoPago      || 'Efectivo',
+    // SIN preseleccionar. Venía en 'Efectivo', y como los 4 chips se ven de
+    // una, ese quedaba marcado y parecía elegido: quien cerraba una cita a la
+    // carrera la dejaba como efectivo aunque el cliente pagara con tarjeta.
+    // Eso infla el efectivo esperado y la caja "falta". Pasó en Kronnos
+    // Peñablanca (29-jul): dos servicios por $37.980 marcados efectivo sin ser.
+    // Una cita que ya tiene método conserva el suyo — esto solo afecta a las
+    // nuevas. Al completar se exige elegir (ver handleSave).
+    metodoPago:      cita?.metodoPago      || '',
     propina:         cita?.propina != null ? Number(cita.propina) : '',
     porcentajeDescuento: cita?.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : '',
     cortesia:        cita?.cortesia || false,
@@ -811,6 +818,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
   const [telError, setTelError] = useState(false);
+  // Resalta el bloque de método de pago cuando se intentó completar sin elegir.
+  const [errorMetodoPago, setErrorMetodoPago] = useState(false);
   const [historialOpen, setHistorialOpen] = useState(false);
   const [gcInput, setGcInput]         = useState(cita?.giftCardCodigo || '');
   const [gcFound, setGcFound]         = useState(null);
@@ -1011,7 +1020,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       packFechaVencimiento: p.fechaVencimiento || null,
       cortesia:             false,
       porcentajeDescuento:  '',
-      metodoPago:           f.metodoPago === 'Cortesía' ? 'Efectivo' : f.metodoPago,
+      metodoPago:           f.metodoPago === 'Cortesía' ? '' : f.metodoPago,
     }));
   };
 
@@ -1243,7 +1252,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       setForm(f => ({ ...f, cortesia: true, precio: 0, porcentajeDescuento: '', metodoPago: 'Cortesía', propina: '' }));
     } else {
       const base = Number(servicios.find(s => s.id === form.servicioId)?.precio) || 0;
-      setForm(f => ({ ...f, cortesia: false, precio: base, metodoPago: f.metodoPago === 'Cortesía' ? 'Efectivo' : f.metodoPago }));
+      setForm(f => ({ ...f, cortesia: false, precio: base, metodoPago: f.metodoPago === 'Cortesía' ? '' : f.metodoPago }));
     }
   };
 
@@ -1270,6 +1279,25 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     // Guard hora: misma protección que agenda.html — sin esto el panel
     // también podía guardar citas con hora vacía (invisibles en la grilla).
     if (!form.hora || !String(form.hora).includes(':')) return;
+
+    // ── Método de pago obligatorio al COMPLETAR ─────────────────────
+    // Solo acá se exige, porque solo acá entra plata: una cita futura no
+    // necesita método. Las cortesías quedan exentas (precio 0, no mueven caja).
+    // Sin este guard la cita se guardaba con el método preseleccionado y el
+    // cierre de caja no cuadraba sin que nadie supiera por qué.
+    if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago) {
+      setErrorMetodoPago(true);
+      await confirmDialog({
+        title: 'Falta el método de pago',
+        message: 'Elige con qué pagó el cliente antes de completar la cita. '
+          + 'Esta cita suma a la caja del día: sin el dato el cierre no cuadra, '
+          + 'y después es difícil reconstruir con qué se pagó.',
+        confirmText: 'Entendido',
+        cancelText: '',
+      });
+      return;
+    }
+    setErrorMetodoPago(false);
 
     // ── Confirmación explícita si la cita involucra un pack ─────────
     // Se dispara SOLO al pasar de "pendiente" a "Completada" — es el momento
@@ -1544,7 +1572,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 status:        'delivered',
                 userName:      form.clienteNombre || 'Cliente',
                 userEmail:     form.clienteEmail  || '',
-                metodoPago:    form.metodoPago    || 'Efectivo',
+                // Hereda el método de la cita. NO defaultea a 'Efectivo': si
+                // la cita no tiene método, la venta queda sin él y Caja la
+                // excluye del efectivo esperado en vez de inventar plata en el
+                // cajón. Al completar ya se exige elegir, así que en la
+                // práctica siempre llega con valor.
+                ...(form.metodoPago ? { metodoPago: form.metodoPago } : {}),
                 barberoId:     form.barberoId,
                 barberoNombre: form.barbero,
                 citaId:        cita.id,
@@ -2175,8 +2208,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   sky=débito, violeta=crédito, ámbar=transf.) para diferenciar
                   y no confundirlo con el bloque de Estado. */}
               <div>
-                <label className={lbl}>Método de Pago *</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <label className={lbl}>
+                  Método de Pago *
+                  {errorMetodoPago && (
+                    <span className="ml-2 normal-case font-semibold text-rose-400">— elige uno</span>
+                  )}
+                </label>
+                <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 ${
+                  errorMetodoPago ? 'ring-1 ring-rose-500/60 rounded-lg p-1 -m-1' : ''}`}>
                   {[
                     { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
                     { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
@@ -2188,7 +2227,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                       <button
                         key={o.v}
                         type="button"
-                        onClick={() => set('metodoPago', o.v)}
+                        onClick={() => { setErrorMetodoPago(false); set('metodoPago', o.v); }}
                         aria-pressed={activo}
                         className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg border text-xs font-bold transition-all active:scale-95 ${
                           activo ? o.on : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
