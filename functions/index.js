@@ -1612,6 +1612,14 @@ exports.evolutionMiConsumo   = evolutionGateway.evolutionMiConsumo;
 
 // Cron de confirmaciones anti-no-show (Sprint 3): pide CONFIRMAR/CANCELAR por
 // el número propio del local. La respuesta la maneja el cerebro (webhook).
+// Canal PLATAFORMA: confirmaciones desde el número propio de SynapTech por
+// Evolution (chip compartido entre locales). Ver evolution/plataforma.js.
+const evolutionPlataforma = require('./evolution/plataforma');
+exports.plataformaVincular       = evolutionPlataforma.plataformaVincular;
+exports.plataformaEstado         = evolutionPlataforma.plataformaEstado;
+exports.plataformaDesvincular    = evolutionPlataforma.plataformaDesvincular;
+exports.plataformaConfirmaciones = evolutionPlataforma.plataformaConfirmaciones;
+
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
 // Espeja configuracion/whatsapp.confirmacionesEnabled → configuracion/main.waConfirmActivo,

@@ -27,6 +27,7 @@ const { FieldValue }                    = require('firebase-admin/firestore');
 const { crearCliente }                  = require('./client');
 const { procesarMensajeEntrante }       = require('./cerebro');
 const { tienePlan }                     = require('../lib/wa-plan');
+const plataforma                        = require('./plataforma');
 
 const db = admin.firestore();
 
@@ -261,9 +262,48 @@ exports.evolutionWebhook = onRequest({
   try {
     const body         = req.body || {};
     const instanceName = body.instance || body.instanceName || '';
-    const tid          = instanceName.replace(/^instance_/, '');
     const event        = String(body.event || '').toLowerCase();
 
+    // ── Instancia COMPARTIDA de SynapTech (evolution/plataforma.js) ──
+    // Se intercepta ANTES de derivar el tid: `instance_synaptech` pasaría el
+    // replace de abajo y quedaría como un tenant llamado "synaptech",
+    // escribiendo en tenants/synaptech/… que no existe. Acá el tenant NO sale
+    // del nombre de la instancia — sale del índice teléfono → tenant.
+    if (plataforma.esInstanciaPlataforma(instanceName)) {
+      if (event === 'connection.update') {
+        const state = body.data?.state || body.data?.connection;
+        const ref   = db.doc('_system/wa_plataforma');
+        if (state === 'open') {
+          const numero = body.data?.wuid || body.data?.me?.id || body.sender || null;
+          const prev = (await ref.get().catch(() => null))?.data() || {};
+          await ref.set({
+            estadoConexion:  'connected',
+            numeroVinculado: numero ? String(numero).replace(/[:@].*$/, '') : null,
+            conectadoEn:     FieldValue.serverTimestamp(),
+            ...(prev.vinculadoDesde ? {} : { vinculadoDesde: FieldValue.serverTimestamp() }),
+            desconectadoEn:  FieldValue.delete(),
+          }, { merge: true }).catch(() => {});
+        } else if (state === 'close') {
+          await ref.set({
+            estadoConexion: 'disconnected',
+            desconectadoEn: FieldValue.serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+        }
+      } else if (event === 'messages.upsert') {
+        try {
+          await plataforma.procesarEntrantePlataforma({
+            body,
+            evoClient: cliente(),
+          });
+        } catch (e) {
+          logger.error('[plataforma:webhook]', e.message);
+        }
+      }
+      res.status(200).send('ok');
+      return;
+    }
+
+    const tid = instanceName.replace(/^instance_/, '');
     if (!tid) { res.status(200).send('ok'); return; }
 
     // ── connection.update → refleja el estado en Firestore (empuje, complementa el polling) ──

@@ -3846,18 +3846,23 @@
       if (!el || !_activeTenant) return;
       const tid = _activeTenant;
 
-      let sys = {}, cfg = {}, waNotif = {}, global = {};
+      let sys = {}, cfg = {}, waNotif = {}, global = {}, plat = {}, platCuota = {};
       try {
-        const [a, b, c, d] = await Promise.all([
+        const hoyCL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+        const [a, b, c, d, e, f] = await Promise.all([
           db.collection('_system').doc(tid).get(),
           waCfgRef(tid).get(),
           db.collection('wa_notif').doc(tid).get(),
           db.collection('_system').doc('whatsapp_notif').get(),
+          db.collection('_system').doc('wa_plataforma').get(),
+          db.collection('wa_plataforma_cuota').doc(hoyCL).get(),
         ]);
-        sys     = a.exists ? a.data() : {};
-        cfg     = b.exists ? b.data() : {};
-        waNotif = c.exists ? c.data() : {};
-        global  = d.exists ? d.data() : {};
+        sys       = a.exists ? a.data() : {};
+        cfg       = b.exists ? b.data() : {};
+        waNotif   = c.exists ? c.data() : {};
+        global    = d.exists ? d.data() : {};
+        plat      = e.exists ? e.data() : {};
+        platCuota = f.exists ? f.data() : {};
       } catch (e) {}
 
       const plan       = waPlanDe(sys);
@@ -3867,11 +3872,23 @@
       const metaConf   = waNotif.planCliente === true;
       const metaRecor  = waNotif.planRecordatorio === true;
       const templatesOn = global.templatesEnabled === true;
+      const platOn      = sys.waPlataforma === true;
+      const platConect  = plat.estadoConexion === 'connected';
+      const platDias    = plat.vinculadoDesde && plat.vinculadoDesde.toMillis
+        ? (Date.now() - plat.vinculadoDesde.toMillis()) / 86400000 : 0;
+      const platCap     = platDias >= 30 ? 300 : platDias >= 7 ? 120 : 40;
+      const platHoy     = Number(platCuota.n) || 0;
 
-      // Choque de canales: el mismo cliente recibiría el recordatorio dos
-      // veces, una por el número del local y otra por el de plataforma.
+      // Choque de canales: los tres miran las MISMAS citas, así que con más de
+      // uno activo el cliente recibe el mismo aviso repetido. Se cuenta la
+      // intención (el switch), no si hoy alcanza a enviar.
       const planIncluyeRecor = plan === 'recordatorios' || plan === 'full';
-      const choque = metaRecor && evoRecor && planIncluyeRecor;
+      const canalesRecor = [
+        planIncluyeRecor && evoRecor ? 'número del local' : null,
+        metaRecor                    ? 'canal oficial'    : null,
+        platOn                       ? 'número SynapTech' : null,
+      ].filter(Boolean);
+      const choque = canalesRecor.length > 1;
 
       const chip = (p) => {
         const on = plan === p.id;
@@ -3912,8 +3929,8 @@
         ${choque ? `
         <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);border-radius:0.5rem;padding:0.5rem 0.65rem;margin-bottom:0.5rem;">
           <p style="font-size:0.7rem;color:#fca5a5;margin:0;line-height:1.4;">
-            <i class="ph-bold ph-warning"></i> <b>Recordatorio duplicado:</b> está activo en los dos canales.
-            El cliente recibe el mismo aviso dos veces. Apaga uno.
+            <i class="ph-bold ph-warning"></i> <b>Recordatorio duplicado:</b> activo en ${canalesRecor.length} canales
+            (${canalesRecor.join(' + ')}). El cliente recibe el mismo aviso repetido. Deja uno.
           </p>
         </div>` : ''}
 
@@ -3955,9 +3972,113 @@
           </button>
         </div>
 
+        <!-- ── Canal plataforma: chip de SynapTech por Evolution ── -->
+        <div style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.22);border-radius:0.625rem;padding:0.7rem 0.85rem;margin-top:0.5rem;">
+          <p style="font-size:0.72rem;font-weight:700;color:#7dd3fc;margin:0 0 0.1rem;">Canal SynapTech · chip propio</p>
+          <p style="font-size:0.66rem;color:#64748b;margin:0 0 0.45rem;">Gratis por mensaje y sin exponer el número del local: el riesgo lo corre un chip nuestro.</p>
+          ${fila('Confirmaciones y recordatorios',
+                 'El local recibe los avisos desde el número de SynapTech.',
+                 platOn, `setWaPlataforma(${!platOn})`)}
+          <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:0.45rem;padding-top:0.45rem;">
+            <p style="font-size:0.66rem;color:#94a3b8;margin:0 0 0.35rem;">
+              <b>Chip (global):</b>
+              ${platConect
+                ? `<span style="color:#4ade80;">conectado</span>${plat.numeroVinculado ? ` · +${plat.numeroVinculado}` : ''} · ${platDias.toFixed(1)} días · ${platHoy}/${platCap} hoy`
+                : '<span style="color:#f87171;">sin vincular</span>'}
+            </p>
+            <div style="display:flex;gap:0.4rem;">
+              <button onclick="vincularChipPlataforma()" style="
+                flex:1;cursor:pointer;border-radius:0.5rem;padding:0.4rem;border:1px solid rgba(56,189,248,0.4);
+                background:rgba(56,189,248,0.1);color:#7dd3fc;font-size:0.68rem;font-weight:700;">
+                ${platConect ? 'Re-vincular chip' : 'Vincular chip (QR)'}
+              </button>
+              ${platConect ? `<button onclick="desvincularChipPlataforma()" style="
+                cursor:pointer;border-radius:0.5rem;padding:0.4rem 0.7rem;border:1px solid rgba(148,163,184,0.25);
+                background:transparent;color:#94a3b8;font-size:0.68rem;font-weight:700;">Desvincular</button>` : ''}
+            </div>
+          </div>
+        </div>
+
         <p style="font-size:0.68rem;color:#64748b;margin:0.5rem 0 0;line-height:1.4;">
           Los switches que ves acá son lo <b>contratado</b>. Dentro de eso, el local prende y apaga desde su panel (p.ej. un feriado).
         </p>`;
+    }
+
+    // Opt-in por local al canal del chip de SynapTech.
+    async function setWaPlataforma(val) {
+      if (!_activeTenant) return;
+      const tid = _activeTenant;
+      try {
+        if (val) {
+          const cfg = (await waCfgRef(tid).get()).data() || {};
+          const sys = (await db.collection('_system').doc(tid).get()).data() || {};
+          const p   = waPlanDe(sys);
+          if (cfg.confirmacionesEnabled === true && (p === 'recordatorios' || p === 'full')) {
+            if (!confirm(
+              'Este local ya manda recordatorios por SU PROPIO número (Evolution).\n\n' +
+              'Con los dos activos el cliente recibe el mismo aviso dos veces. El cron del ' +
+              'canal SynapTech se salta a los locales que ya envían por su número, así que ' +
+              'esto quedaría encendido pero sin efecto.\n\n¿Activar igual?')) return;
+          }
+        }
+        await db.collection('_system').doc(tid).set({ waPlataforma: val }, { merge: true });
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // Vinculación del chip por QR. Es GLOBAL (un chip para todos los locales
+    // que tengan el módulo), aunque se opere desde el drawer de un tenant.
+    async function vincularChipPlataforma() {
+      if (!confirm('Vas a vincular el chip de SynapTech por QR.\n\nEs UN número compartido por todos los locales con este módulo. ¿Seguir?')) return;
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.92);display:flex;align-items:center;justify-content:center;padding:1rem;';
+      ov.innerHTML = `<div style="background:#0f172a;border:1px solid rgba(148,163,184,0.2);border-radius:1rem;padding:1.5rem;max-width:22rem;width:100%;text-align:center;">
+          <p id="pl-t" style="color:#e2e8f0;font-weight:700;margin:0 0 0.75rem;">Generando QR…</p>
+          <div id="pl-qr" style="min-height:14rem;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.8rem;">Conectando con el VPS…</div>
+          <p id="pl-s" style="color:#64748b;font-size:0.72rem;margin:0.75rem 0 0;line-height:1.4;">WhatsApp → Dispositivos vinculados → Vincular dispositivo</p>
+          <button id="pl-x" style="margin-top:0.9rem;width:100%;cursor:pointer;border-radius:0.5rem;padding:0.5rem;border:1px solid rgba(148,163,184,0.25);background:transparent;color:#94a3b8;font-size:0.75rem;font-weight:700;">Cerrar</button>
+        </div>`;
+      document.body.appendChild(ov);
+      let vivo = true;
+      const cerrar = () => { vivo = false; ov.remove(); loadWaModules(); };
+      ov.querySelector('#pl-x').onclick = cerrar;
+
+      try {
+        const r = await firebase.app().functions('us-central1').httpsCallable('plataformaVincular')({});
+        const qr = r.data && r.data.qr;
+        ov.querySelector('#pl-t').textContent = 'Escanea con el chip nuevo';
+        ov.querySelector('#pl-qr').innerHTML = qr
+          ? `<img src="${qr}" alt="QR" style="width:100%;max-width:15rem;border-radius:0.5rem;background:#fff;padding:0.5rem;">`
+          : '<span style="color:#f87171;">El VPS no devolvió QR. Reintenta.</span>';
+
+        // Polling hasta que la sesión quede abierta (el QR caduca solo).
+        const estado = firebase.app().functions('us-central1').httpsCallable('plataformaEstado');
+        for (let i = 0; i < 60 && vivo; i++) {
+          await new Promise(r2 => setTimeout(r2, 3000));
+          if (!vivo) return;
+          try {
+            const e = await estado({});
+            if (e.data && e.data.estado === 'open') {
+              ov.querySelector('#pl-t').textContent = '✅ Chip vinculado';
+              ov.querySelector('#pl-qr').innerHTML = '<span style="color:#4ade80;font-size:2.5rem;">✓</span>';
+              ov.querySelector('#pl-s').textContent = 'Ya puedes activar el módulo en cada local.';
+              setTimeout(cerrar, 1600);
+              return;
+            }
+          } catch (_) {}
+        }
+      } catch (e) {
+        ov.querySelector('#pl-t').textContent = 'Error';
+        ov.querySelector('#pl-qr').innerHTML = `<span style="color:#f87171;font-size:0.78rem;">${e.message}</span>`;
+      }
+    }
+
+    async function desvincularChipPlataforma() {
+      if (!confirm('Vas a cerrar la sesión del chip de SynapTech.\n\nDejan de salir confirmaciones para TODOS los locales que usan este canal. ¿Seguro?')) return;
+      try {
+        await firebase.app().functions('us-central1').httpsCallable('plataformaDesvincular')({});
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     // Módulos del canal oficial (Meta) por local → wa_notif/{tid}.

@@ -25,6 +25,117 @@ import {
 
 const WA_SYNAPTECH = '56983568212';
 
+/* ── Módulo "Confirmaciones por el número de SynapTech" ────────────────
+   Tercer canal (ver functions/evolution/plataforma.js): mismo Evolution,
+   pero sobre un chip de SynapTech compartido entre locales. Gratis por
+   mensaje y sin exponer el número del local — el riesgo de bloqueo lo
+   corre un chip nuestro, no el suyo.
+
+   El local NO lo activa ni vincula: eso es de SynapTech (_system, que solo
+   bootstrap escribe). Acá solo ve el estado y ajusta su ventana de aviso,
+   que sí vive en su propio doc. */
+function ModuloPlataforma({ sys, cfg, tenant, patchCfg }) {
+  const [chip, setChip] = useState(null);
+
+  const activo = sys?.waPlataforma === true;
+
+  useEffect(() => {
+    if (!activo) return undefined;
+    const ref = doc(db, '_system', 'wa_plataforma');
+    return onSnapshot(ref, (s) => setChip(s.exists() ? s.data() : {}), () => setChip({}));
+  }, [activo]);
+
+  // Si el local ya manda por SU número, el cron de plataforma lo salta para
+  // no duplicar. Se dice explícito en vez de mostrar un módulo que no envía.
+  const duplicado = activo
+    && cfg?.confirmacionesEnabled === true
+    && cfg?.estadoConexion === 'connected';
+
+  const ventana = cfg?.recordatorio?.ventanaHoras ?? 24;
+
+  if (!activo) {
+    return (
+      <Section
+        Icon={ShieldCheck}
+        title="Confirmaciones sin exponer tu número"
+        description="Las enviamos desde un número de SynapTech. Tu WhatsApp no se toca."
+      >
+        <SettingsGroup>
+          <SettingRow
+            Icon={Lock}
+            title="Módulo SynapTech"
+            description="Le preguntamos a tu cliente si viene y liberamos el cupo cuando avisa que no — todo desde nuestro número, sin vincular el tuyo."
+          >
+            <a
+              href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(
+                `Hola SynapTech, soy de *${tenant?.name || 'mi local'}* y quiero las confirmaciones de cita desde el número de SynapTech (sin usar mi WhatsApp). ¿Cómo lo activamos?`,
+              )}`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-sky-300 hover:text-sky-200 transition-colors px-3 py-1.5 rounded-full border border-sky-500/30 hover:border-sky-500/60 shrink-0"
+            >
+              Activarlo <ExternalLink size={12} />
+            </a>
+          </SettingRow>
+        </SettingsGroup>
+      </Section>
+    );
+  }
+
+  const conectado = chip?.estadoConexion === 'connected';
+
+  return (
+    <Section
+      Icon={ShieldCheck}
+      title="Confirmaciones por el número de SynapTech"
+      description="Tu WhatsApp no se usa ni se expone: los avisos salen desde nuestro número."
+    >
+      <SettingsGroup divide>
+        <SettingRow
+          Icon={Smartphone}
+          title={conectado
+            ? (chip?.numeroVinculado ? `+${chip.numeroVinculado}` : 'Número de SynapTech')
+            : 'Número de SynapTech'}
+          description={conectado
+            ? 'Activo. Tus clientes reciben el aviso desde este número, con el nombre de tu local en el mensaje.'
+            : 'Temporalmente fuera de línea. Lo estamos reconectando — no necesitas hacer nada.'}
+        >
+          <span className={`text-[12px] font-semibold rounded-full px-3 py-1 shrink-0 border ${
+            conectado
+              ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+              : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+          }`}>
+            {conectado ? 'Activo' : 'Reconectando'}
+          </span>
+        </SettingRow>
+
+        <SettingRow
+          Icon={Clock}
+          title="Ventana de aviso"
+          description="Cuántas horas antes se le pide confirmar al cliente."
+        >
+          <select
+            value={ventana}
+            onChange={(e) => patchCfg({ recordatorio: { ...(cfg?.recordatorio || {}), ventanaHoras: Number(e.target.value) } })}
+            className="bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 text-[13px] text-primary focus:outline-none focus:border-emerald-500 shrink-0"
+          >
+            <option value={12}>12 horas antes</option>
+            <option value={24}>24 horas antes</option>
+            <option value={48}>48 horas antes</option>
+          </select>
+        </SettingRow>
+      </SettingsGroup>
+
+      {duplicado && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-[12.5px] text-amber-200 leading-relaxed">
+          También tienes las confirmaciones encendidas sobre <b>tu propio número</b>. Para no
+          escribirle dos veces al mismo cliente, este módulo se queda en silencio mientras
+          eso siga así. Apaga uno de los dos.
+        </div>
+      )}
+    </Section>
+  );
+}
+
 const TYC_TEXT =
   'Comprendo que al vincular mi línea particular a un asistente automatizado de terceros, ' +
   'asumo las políticas de uso responsable de WhatsApp y de la plataforma.';
@@ -519,6 +630,8 @@ export default function WhatsAppAsistente({ embedded = false }) {
           </SettingsGroup>
         </Section>
 
+        <ModuloPlataforma sys={sys} cfg={cfg} tenant={tenant} patchCfg={patchCfg} />
+
         {showPoliticas && <PoliticasModal onClose={() => setShowPoliticas(false)} />}
         {showCapacidades && <CapacidadesModal onClose={() => setShowCapacidades(false)} />}
       </div>
@@ -528,6 +641,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
   /* ══════════ HABILITADO — módulo operativo ══════════ */
   return (
     <div className={`space-y-6 ${embedded ? '' : 'max-w-3xl'}`}>
+      <ModuloPlataforma sys={sys} cfg={cfg} tenant={tenant} patchCfg={patchCfg} />
 
       <Section
         Icon={Sparkles}

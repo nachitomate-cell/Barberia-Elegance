@@ -333,7 +333,10 @@ async function procesarCiclo({ evoClient }) {
 
     const td      = (await db.doc(`tenants/${tid}`).get()).data() || {};
     const local   = td.nombre || td.nombreCorto || tid;
-    const ventana = Number(sys.waPlataformaVentanaHoras) || 24;
+    // La ventana sale del doc del LOCAL, no de _system: el local no puede
+    // escribir _system, y esta sí es una preferencia suya (misma clave que
+    // usa el canal propio, así que el selector del panel sirve para ambos).
+    const ventana = Number(waCfg?.recordatorio?.ventanaHoras) || 24;
     const nDays   = Math.ceil(ventana / 24);
 
     for (let i = 0; i <= nDays && enviados < MAX_POR_CICLO; i++) {

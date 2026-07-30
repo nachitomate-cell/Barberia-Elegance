@@ -208,6 +208,23 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  Canal PLATAFORMA (chip propio de SynapTech por Evolution)
+    //  · wa_plataforma_chats/{telefono} → índice teléfono → tenant. Es
+    //    lo que permite aplicar un "CONFIRMAR" cuando el número que
+    //    envía es compartido por varios locales. Guarda teléfonos de
+    //    clientes: CERRADO, solo Admin SDK.
+    //  · wa_plataforma_cuota/{fecha} → salientes del chip ese día.
+    //    Lectura de bootstrap para verlo en /admin; escritura solo CF.
+    // ═══════════════════════════════════════════════════════════════
+    match /wa_plataforma_chats/{telefono} {
+      allow read, write: if false;
+    }
+    match /wa_plataforma_cuota/{fecha} {
+      allow read:  if esBootstrap();
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  _billing — estado de pagos por tenant
     //  Lectura solo para staff del tenant. Escritura solo bootstrap.
     // ═══════════════════════════════════════════════════════════════
