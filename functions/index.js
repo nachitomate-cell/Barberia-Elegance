@@ -1404,6 +1404,14 @@ const cobranzaSaas = require('./cobranza-saas-daily');
 exports.cobranzaSaasDaily = cobranzaSaas.cobranzaSaasDaily;
 
 // ─────────────────────────────────────────────────────────────────
+// Guardián diario del espejo de ocupación: repara candados huérfanos y
+// avisa de citas sin candado. Ver la cabecera del archivo para las dos
+// veces que este desajuste llegó a producción sin que nadie lo viera.
+// ─────────────────────────────────────────────────────────────────
+const auditSlotLocks = require('./auditar-slotlocks-daily');
+exports.auditarSlotLocksDaily = auditSlotLocks.auditarSlotLocksDaily;
+
+// ─────────────────────────────────────────────────────────────────
 //  CORTE AL LÁPIZ — reserva sin pasarela para miembros (Yūgen)
 //  ver corte-lapiz-reservar.js. La acumulación a la cuenta corriente
 //  la hace sello-automatico al completar la cita.
