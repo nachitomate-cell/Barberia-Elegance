@@ -340,7 +340,7 @@ exports.recordatorioCita24h = onSchedule(
           const tenantNombre = (await getTenantConfig(tenant.id, logger)).nombre;
           try {
             await twilioClient.messages.create({
-              from: from,
+              from: `whatsapp:${from}`,
               to:   `whatsapp:${phoneE164}`,
               body: buildWAMessage(nombre, hora, barbero, servicio, tenantNombre),
             });
