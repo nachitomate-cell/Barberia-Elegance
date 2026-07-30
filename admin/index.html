@@ -135,7 +135,7 @@
       background: rgba(201,168,76,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(201,168,76,0.08);
     }
-    .tenant-card.mapubarber:hover {
+    .tenant-card.mapubarbershop:hover {
       border-color: rgba(96,165,250,0.4);
       background: rgba(96,165,250,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(96,165,250,0.08);
@@ -257,11 +257,11 @@
       box-shadow: 0 4px 20px rgba(251,191,36,0.25);
     }
     .cta-btn.ferraza:hover { box-shadow: 0 8px 30px rgba(251,191,36,0.35); }
-    .cta-btn.mapubarber {
+    .cta-btn.mapubarbershop {
       background: linear-gradient(135deg,#3b82f6,#2563eb);
       box-shadow: 0 4px 20px rgba(96,165,250,0.25);
     }
-    .cta-btn.mapubarber:hover { box-shadow: 0 8px 30px rgba(96,165,250,0.35); }
+    .cta-btn.mapubarbershop:hover { box-shadow: 0 8px 30px rgba(96,165,250,0.35); }
     .cta-btn.deluxeperfumes {
       background: linear-gradient(135deg,#a78bfa,#7c3aed);
       box-shadow: 0 4px 20px rgba(167,139,250,0.25);
@@ -1554,16 +1554,16 @@
     </button>
 
     <!-- Mapu Barbershop -->
-    <button class="tenant-card mapubarber" onclick="openDrawer('mapubarber')">
-      <img src="/mapubarber.jpg" alt="Mapu"
+    <button class="tenant-card mapubarbershop" onclick="openDrawer('mapubarbershop')">
+      <img src="/mapubarbershop.jpg" alt="Mapu"
         loading="lazy" width="52" height="52" style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(96,165,250,0.25);flex-shrink:0;"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);align-items:center;justify-content:center;">
         <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#60a5fa;"></i>
       </div>
       <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Mapu Barbershop</span>
-      <span id="status-badge-mapubarber" style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;">Cargando…</span>
-      <div id="badge-mapubarber" style="min-height:14px;"></div>
+      <span id="status-badge-mapubarbershop" style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;">Cargando…</span>
+      <div id="badge-mapubarbershop" style="min-height:14px;"></div>
     </button>
 
     <!-- Deluxe Perfumes -->
@@ -2507,19 +2507,19 @@
         usersCol:    () => db.collection('tenants').doc('ferraza').collection('users'),
         soporteCol:  () => db.collection('tenants').doc('ferraza').collection('soporte_mensajes'),
       },
-      mapubarber: {
+      mapubarbershop: {
         nombre:      'Mapu Barbershop',
         direccion:   'Mapu Barbershop',
-        logo:        '/mapubarber.jpg',
+        logo:        '/mapubarbershop.jpg',
         color:       '#60a5fa',
         colorRgb:    '96,165,250',
         profLabel:   'Barberos en local',
         profLabelBtn:'Agregar Barbero',
         profIcon:    'ph-scissors',
-        citasCol:    () => db.collection('tenants').doc('mapubarber').collection('citas'),
-        profCol:     () => db.collection('tenants').doc('mapubarber').collection('barberos'),
-        usersCol:    () => db.collection('tenants').doc('mapubarber').collection('users'),
-        soporteCol:  () => db.collection('tenants').doc('mapubarber').collection('soporte_mensajes'),
+        citasCol:    () => db.collection('tenants').doc('mapubarbershop').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('mapubarbershop').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('mapubarbershop').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('mapubarbershop').collection('soporte_mensajes'),
       },
       chameleon: {
         nombre:      'Chameleon Barber Studio',
@@ -2681,7 +2681,7 @@
       var grid = document.getElementById('grid-ok');
       if (!all || !grid) return;
       // sandbox se oculta (entorno de pruebas). mapubarbershop YA NO se salta:
-      // el id real es ese, y la tarjeta estática 'mapubarber' apunta a un
+      // el id real es ese, y la tarjeta estática 'mapubarbershop' apunta a un
       // tenant que no existe en Firestore.
       var SKIP = { sandbox: 1 };
       var PALETA = ['#34d399','#60a5fa','#f59e0b','#a78bfa','#ec4899','#f97316','#22d3ee','#c9a84c','#94a3b8'];
@@ -2709,8 +2709,10 @@
           soporteCol:  (function(x){ return function(){ return db.collection('tenants').doc(x).collection('soporte_mensajes'); }; })(id),
         };
         var nombre = esc(t.nombre || id), logo = esc(t.logo || '/favicon.ico');
+        if (t.vacio) nombre += ' <span style="opacity:.5;font-weight:600">· vacío</span>';
         var btn = document.createElement('button');
         btn.className = 'tenant-card ' + id;
+        if (t.vacio) btn.style.opacity = '0.55';
         btn.setAttribute('onclick', "openDrawer('" + id + "')");
         btn.innerHTML =
           '<img src="' + logo + '" alt="' + nombre + '" loading="lazy" width="52" height="52" style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(' + rgb + ',0.25);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
@@ -2740,6 +2742,10 @@
               nombre:    t.nombre || estilo.nombre || t.id,
               direccion: estilo.direccion || '',
               logo:      estilo.logo || '/favicon.ico',
+              // Sin servicios, citas, barberos ni clientes. Se muestra igual
+              // —si existe, aparece— pero marcado: son los ids que quedaron de
+              // pruebas o renames y conviene borrarlos, no esconderlos.
+              vacio:     t.conContenido === false,
             };
           });
         }
@@ -2747,6 +2753,16 @@
         console.warn('[admin] adminListarTenants falló, uso config.js:', e && e.message);
       }
       generarTenantsFaltantes(all || window.ALL_TENANTS);
+
+      // OBLIGATORIO recargar los badges acá. loadHomeBadges() corre en
+      // DOMContentLoaded, o sea ANTES de que existan estas tarjetas: sin esta
+      // llamada se quedan en "Cargando…" para siempre Y —peor— nunca se
+      // mueven a la sección "No funcionando", porque quien lee `operativo` y
+      // reubica la tarjeta es justamente ese loop. Con `force` porque el
+      // resultado anterior está cacheado 60s.
+      if (typeof loadHomeBadges === 'function') {
+        loadHomeBadges(true).catch(function(e){ console.warn('[admin] badges:', e); });
+      }
     };
 
     let _activeTenant   = null;
@@ -2887,7 +2903,7 @@
       if (path.includes('/admin/elegance')) openDrawer('elegance', false);
       else if (path.includes('/admin/gitana')) openDrawer('gitana', false);
       else if (path.includes('/admin/ferraza')) openDrawer('ferraza', false);
-      else if (path.includes('/admin/mapubarber')) openDrawer('mapubarber', false);
+      else if (path.includes('/admin/mapubarbershop')) openDrawer('mapubarbershop', false);
       else if (path.includes('/admin/chameleon'))       openDrawer('chameleon',       false);
       else if (path.includes('/admin/deluxeperfumes'))  openDrawer('deluxeperfumes',  false);
       loadHomeBadges();
@@ -4547,7 +4563,7 @@
 
     // ── Link in Bio — Plan (free / pro / studio) ──────────────────
     // El bio/público lee _system/{id-del-bio}; en el panel mapu usa otro id.
-    const BIO_TENANT_ID = { mapubarber: 'mapubarbershop' };
+    const BIO_TENANT_ID = { mapubarbershop: 'mapubarbershop' };
     const bioIdDe = t => BIO_TENANT_ID[t] || t;
     function planDe(data) { return data.bioPlan || (data.bioPro === true ? 'pro' : 'free'); }
     function renderBioPlan(plan) {
@@ -4918,7 +4934,7 @@
       elegance:   { color:'#34d399', rgb:'52,211,153'  },
       gitana:     { color:'#ec4899', rgb:'236,72,153'  },
       ferraza:    { color:'#f59e0b', rgb:'251,191,36'  },
-      mapubarber: { color:'#60a5fa', rgb:'96,165,250'  },
+      mapubarbershop: { color:'#60a5fa', rgb:'96,165,250'  },
     };
 
     function escHtml(str) {
