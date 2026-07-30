@@ -1395,6 +1395,15 @@ const opsSummaryApi = require('./ops-summary-api');
 exports.opsSummaryApi = opsSummaryApi.opsSummaryApi;
 
 // ─────────────────────────────────────────────────────────────────
+//  RECORDATORIO DE COBRANZA SaaS (SynapTech interno)
+//  Cron 09:00 America/Santiago. Push al superadmin cuando hay
+//  cuotas de mensualidad que vencen HOY o MAÑANA.
+//  ver cobranza-saas-daily.js
+// ─────────────────────────────────────────────────────────────────
+const cobranzaSaas = require('./cobranza-saas-daily');
+exports.cobranzaSaasDaily = cobranzaSaas.cobranzaSaasDaily;
+
+// ─────────────────────────────────────────────────────────────────
 //  CORTE AL LÁPIZ — reserva sin pasarela para miembros (Yūgen)
 //  ver corte-lapiz-reservar.js. La acumulación a la cuenta corriente
 //  la hace sello-automatico al completar la cita.
