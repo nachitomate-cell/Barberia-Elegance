@@ -15,7 +15,12 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
     <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+        className="absolute inset-0"
+        style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
+        }}
         onClick={onClose}
       />
 

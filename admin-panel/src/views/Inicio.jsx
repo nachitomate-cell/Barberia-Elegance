@@ -136,16 +136,15 @@ function DayKpiCard({ Icon, label, value, sub, delta, invertDelta, accent, index
   return (
     <motion.div
       variants={fadeUp} initial="hidden" animate="show" custom={index}
-      className="relative overflow-hidden bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-3 md:p-5 hover:border-slate-600 transition-colors"
+      className="relative overflow-hidden bg-white/[0.02] backdrop-blur rounded-2xl p-3 md:p-5 hover:bg-white/[0.04] transition-all duration-200 ease-in-out"
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
     >
-      {/* Ícono semitransparente de fondo */}
-      <Icon className={`absolute -right-3 -bottom-3 ${accent.text} opacity-[0.07] pointer-events-none`} size={104} strokeWidth={1.5} />
       <div className="relative">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-          <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={15} /></div>
+          <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase tracking-[0.08em]">{label}</p>
+          <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={15} strokeWidth={1.75} /></div>
         </div>
-        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-primary mt-2 md:mt-3 tabular-nums">{value}</p>
+        <p className="text-xl md:text-2xl lg:text-3xl font-semibold text-primary mt-2 md:mt-3 tabular-nums tracking-tight">{value}</p>
         <div className="flex items-center gap-2 mt-1 md:mt-1.5 min-h-[16px]">
           {delta !== undefined && <Delta value={delta} invert={invertDelta} />}
           {sub && <p className="text-[9px] md:text-xs text-slate-500 truncate">{sub}</p>}
@@ -163,10 +162,11 @@ function Panel({ title, action, children, className = '', index = 0 }) {
   return (
     <motion.div
       variants={fadeUp} initial="hidden" animate="show" custom={index}
-      className={`bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-5 ${className}`}
+      className={`bg-white/[0.02] backdrop-blur rounded-2xl p-5 ${className}`}
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-primary">{title}</h2>
+        <h2 className="text-sm font-semibold text-primary tracking-tight">{title}</h2>
         {action}
       </div>
       {children}
@@ -178,9 +178,12 @@ function Panel({ title, action, children, className = '', index = 0 }) {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-slate-900/95 backdrop-blur border border-slate-700 rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-sm font-bold text-primary tabular-nums">{fmtCLP(payload[0].value)}</p>
+    <div
+      className="bg-slate-950/95 backdrop-blur-md rounded-xl px-3 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.5)]"
+      style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+    >
+      <p className="text-[10px] text-slate-400 uppercase tracking-[0.08em] mb-0.5">{label}</p>
+      <p className="text-sm font-semibold text-primary tabular-nums tracking-tight">{fmtCLP(payload[0].value)}</p>
     </div>
   );
 }
@@ -494,11 +497,13 @@ export default function Inicio() {
     if (loadError === '__PERMISO__' && !isAdmin) {
       return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center px-6 max-w-md mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            <Lock size={26} className="text-amber-400" />
+          <div
+            className="w-14 h-14 rounded-2xl bg-amber-400/10 flex items-center justify-center ring-1 ring-inset ring-amber-400/15"
+          >
+            <Lock size={26} className="text-amber-300" strokeWidth={1.75} />
           </div>
           <div className="space-y-1.5">
-            <p className="text-base font-bold text-primary">Estás en una cuenta de profesional</p>
+            <p className="text-base font-semibold text-primary tracking-tight">Estás en una cuenta de profesional</p>
             <p className="text-sm text-slate-400 leading-relaxed">
               El Inicio muestra las finanzas del local, que solo ve la cuenta de
               administrador. Para entrar con ella, primero cierra esta sesión.
@@ -506,9 +511,9 @@ export default function Inicio() {
           </div>
           <button
             onClick={() => signOut(auth)}
-            className="mt-1 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-500 hover:bg-amber-400 transition-colors active:scale-95"
+            className="mt-1 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-white bg-amber-500/90 hover:bg-amber-500 transition-all duration-200 ease-in-out active:scale-95 shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]"
           >
-            <LogOut size={16} /> Cerrar sesión
+            <LogOut size={16} strokeWidth={1.75} /> Cerrar sesión
           </button>
           <p className="text-[11px] text-slate-500">
             Después inicia sesión con el correo de administrador del local.
@@ -542,15 +547,22 @@ export default function Inicio() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
-          {tenant.logo && <img src={tenant.logo} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />}
+          {tenant.logo && (
+            <div
+              className="w-12 h-12 rounded-full overflow-hidden bg-white/[0.04] p-1 shrink-0 flex items-center justify-center"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <img src={tenant.logo} alt="" className="w-full h-full rounded-full object-cover" />
+            </div>
+          )}
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">
-              {greeting()}{userName ? `, ${userName}` : ''} 👋
+            <h1 className="text-xl sm:text-2xl font-semibold text-primary tracking-tight">
+              {greeting()}{userName ? <>, <span className="capitalize">{userName}</span></> : ''} 👋
             </h1>
             <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mt-0.5">
               <p className="text-sm text-slate-500 capitalize">{fechaHoy}</p>
               <span className="text-slate-700">·</span>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${open ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${open ? 'text-emerald-300' : 'text-slate-400'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                 {open ? 'Local abierto' : 'Local cerrado'}
               </span>
@@ -560,9 +572,10 @@ export default function Inicio() {
         <button
           onClick={fetchData}
           disabled={fetching}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:text-primary hover:border-slate-600 disabled:opacity-40 transition-all self-start"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.02] hover:bg-white/[0.05] text-slate-400 hover:text-primary disabled:opacity-40 transition-all duration-200 ease-in-out self-start"
+          style={{ border: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
+          <RefreshCcw size={12} strokeWidth={1.75} className={fetching ? 'animate-spin' : ''} />
           Actualizar
         </button>
       </motion.div>
@@ -629,20 +642,21 @@ export default function Inicio() {
               <AreaChart data={semanaData} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revGlow" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor={A.hex} stopOpacity={0.35} />
+                    <stop offset="0%"   stopColor={A.hex} stopOpacity={0.20} />
+                    <stop offset="60%"  stopColor={A.hex} stopOpacity={0.05} />
                     <stop offset="100%" stopColor={A.hex} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="#334155" strokeOpacity={0.35} strokeDasharray="3 3" />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} dy={6} />
+                <CartesianGrid vertical={false} stroke="#ffffff" strokeOpacity={0.05} strokeDasharray="3 3" />
+                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }} dy={6} />
                 <YAxis hide domain={[0, 'dataMax + 100']} />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: A.hex, strokeOpacity: 0.25, strokeWidth: 1 }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: A.hex, strokeOpacity: 0.2, strokeWidth: 1 }} />
                 <Area
                   type="monotone" dataKey="value"
-                  stroke={A.hex} strokeWidth={2.5}
+                  stroke={A.hex} strokeWidth={2} strokeOpacity={0.85}
                   fill="url(#revGlow)"
                   dot={false}
-                  activeDot={{ r: 4, fill: A.hex, stroke: '#0f172a', strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: A.hex, stroke: '#020617', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -767,20 +781,27 @@ export default function Inicio() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
-                    <th className="py-2 font-bold">Nombre</th>
-                    <th className="py-2 font-bold hidden sm:table-cell">Servicio</th>
-                    <th className="py-2 font-bold">Fecha</th>
-                    <th className="py-2 font-bold text-right">Total</th>
+                  <tr
+                    className="text-[10px] text-slate-400 uppercase tracking-[0.08em]"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <th className="py-3 font-medium">Nombre</th>
+                    <th className="py-3 font-medium hidden sm:table-cell">Servicio</th>
+                    <th className="py-3 font-medium text-right">Fecha</th>
+                    <th className="py-3 font-medium text-right">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 [&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
+                <tbody className="[&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
                   {ultimasVisitas.map((c, i) => (
-                    <tr key={c.id || i} className="hover:bg-slate-800/20">
-                      <td className="py-2.5 font-semibold text-primary">{c.clienteNombre || 'Cliente'}</td>
-                      <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.servicioNombre || '—'}</td>
-                      <td className="py-2.5 text-slate-400">{c.fecha}{c.hora ? `, ${c.hora}` : ''}</td>
-                      <td className={`py-2.5 text-right font-bold ${A.text}`}>{fmtCLP(getPrice(c))}</td>
+                    <tr
+                      key={c.id || i}
+                      className="hover:bg-white/[0.02] transition-colors duration-200 ease-in-out"
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    >
+                      <td className="py-4 font-medium text-primary tracking-tight">{c.clienteNombre || 'Cliente'}</td>
+                      <td className="py-4 text-slate-400 hidden sm:table-cell">{c.servicioNombre || '—'}</td>
+                      <td className="py-4 text-slate-400 text-right tabular-nums">{c.fecha}{c.hora ? `, ${c.hora}` : ''}</td>
+                      <td className="py-4 text-right font-semibold text-primary tabular-nums">{fmtCLP(getPrice(c))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -789,7 +810,8 @@ export default function Inicio() {
             {ultimasVisitas.length > 3 && (
               <button
                 onClick={() => navigate('/clientes')}
-                className="md:hidden text-sm text-center text-indigo-400 hover:text-indigo-300 py-3 border-t border-slate-700/50 w-full block mt-2"
+                className="md:hidden text-sm text-center text-slate-300 hover:text-primary py-3 w-full block mt-2 transition-colors duration-200 ease-in-out"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
               >
                 Ver todos los clientes
               </button>
@@ -807,26 +829,35 @@ export default function Inicio() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
-                    <th className="py-2 font-bold">Día</th>
-                    <th className="py-2 font-bold">Nombre</th>
-                    <th className="py-2 font-bold hidden sm:table-cell">Teléfono</th>
-                    <th className="py-2 font-bold text-right">Saludar</th>
+                  <tr
+                    className="text-[10px] text-slate-400 uppercase tracking-[0.08em]"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <th className="py-3 font-medium">Día</th>
+                    <th className="py-3 font-medium">Nombre</th>
+                    <th className="py-3 font-medium text-right hidden sm:table-cell">Teléfono</th>
+                    <th className="py-3 font-medium text-right">Saludar</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 [&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
+                <tbody className="[&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
                   {cumpleaneros.map((c, i) => {
                     const wa = cumpleWaUrl(c);
                     return (
-                      <tr key={c.id || i} className="hover:bg-slate-800/20">
-                        <td className="py-2.5 text-slate-400">{c._dia < 99 ? String(c._dia).padStart(2, '0') : '—'}</td>
-                        <td className="py-2.5 font-semibold text-primary">{c.nombre || 'Cliente'}</td>
-                        <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.telefono || '—'}</td>
-                        <td className="py-2.5 text-right">
+                      <tr
+                        key={c.id || i}
+                        className="hover:bg-white/[0.02] transition-colors duration-200 ease-in-out"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                      >
+                        <td className="py-4 text-slate-400 tabular-nums">{c._dia < 99 ? String(c._dia).padStart(2, '0') : '—'}</td>
+                        <td className="py-4 font-medium text-primary tracking-tight">{c.nombre || 'Cliente'}</td>
+                        <td className="py-4 text-slate-400 text-right tabular-nums hidden sm:table-cell">{c.telefono || '—'}</td>
+                        <td className="py-4 text-right">
                           {wa ? (
-                            <a href={wa} target="_blank" rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
-                              <MessageCircle size={13} /> WhatsApp
+                            <a
+                              href={wa} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/20 transition-all duration-200 ease-in-out"
+                            >
+                              <MessageCircle size={11} strokeWidth={1.75} /> WhatsApp
                             </a>
                           ) : <span className="text-xs text-slate-600">Sin teléfono</span>}
                         </td>
@@ -839,7 +870,8 @@ export default function Inicio() {
             {cumpleaneros.length > 3 && (
               <button
                 onClick={() => navigate('/clientes')}
-                className="md:hidden text-sm text-center text-indigo-400 hover:text-indigo-300 py-3 border-t border-slate-700/50 w-full block mt-2"
+                className="md:hidden text-sm text-center text-slate-300 hover:text-primary py-3 w-full block mt-2 transition-colors duration-200 ease-in-out"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
               >
                 Ver todos los cumpleaños
               </button>
@@ -901,9 +933,9 @@ function MetaMesPanel({ index, accent, finanzas, ventasMes, configurada, onConfi
       </div>
 
       {/* Barra: avance real (sólido) + proyección de cierre (fantasma) */}
-      <div className="relative h-2.5 bg-slate-800 rounded-full overflow-hidden mt-3">
+      <div className="relative h-2.5 bg-white/[0.04] rounded-full overflow-hidden mt-3">
         <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pctProyeccion}%`, background: accent.hex, opacity: 0.18 }} />
-        <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${pctMeta}%`, background: accent.hex }} />
+        <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${pctMeta}%`, background: accent.hex, opacity: 0.85 }} />
       </div>
       <div className="flex justify-between text-[10px] text-slate-500 mt-1 tabular-nums">
         <span>{Math.round(pctMeta)}% real</span>
@@ -912,14 +944,14 @@ function MetaMesPanel({ index, accent, finanzas, ventasMes, configurada, onConfi
 
       {/* Dos mini-stats laterales: proyección de cierre + necesario por día */}
       <div className="grid grid-cols-2 gap-3 mt-4">
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Proyección de cierre</p>
-          <p className="text-base font-bold text-primary tabular-nums mt-1">{fmtCLP(proyeccion)}</p>
+        <div className="bg-white/[0.02] rounded-xl p-3" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-[0.08em]">Proyección de cierre</p>
+          <p className="text-base font-semibold text-primary tabular-nums mt-1 tracking-tight">{fmtCLP(proyeccion)}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">si seguimos al mismo ritmo</p>
         </div>
-        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Necesario por día</p>
-          <p className={`text-base font-bold tabular-nums mt-1 ${faltaPorDia > 0 ? 'text-primary' : 'text-emerald-400'}`}>
+        <div className="bg-white/[0.02] rounded-xl p-3" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-[0.08em]">Necesario por día</p>
+          <p className={`text-base font-semibold tabular-nums mt-1 tracking-tight ${faltaPorDia > 0 ? 'text-primary' : 'text-emerald-300'}`}>
             {faltaPorDia > 0 ? fmtCLP(faltaPorDia) : '¡Meta cubierta!'}
           </p>
           <p className="text-[10px] text-slate-500 mt-0.5">
@@ -954,30 +986,30 @@ function BreakEvenPanel({ index, accent, finanzas, ingresosHoy }) {
       ) : (
         <>
           <div className="flex items-start gap-3">
-            <div className={`p-2 rounded-xl ${cubierto ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-              {cubierto ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            <div className={`p-2 rounded-xl ring-1 ring-inset ${cubierto ? 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/15' : 'bg-amber-400/10 text-amber-300 ring-amber-400/15'}`}>
+              {cubierto ? <CheckCircle2 size={18} strokeWidth={1.75} /> : <AlertTriangle size={18} strokeWidth={1.75} />}
             </div>
             <div className="flex-1 min-w-0">
               {cubierto ? (
                 <>
-                  <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Día cubierto</p>
-                  <p className="text-xl font-bold text-primary tabular-nums mt-0.5">+{fmtCLP(ingresosHoy - costoDiario)}</p>
+                  <p className="text-[11px] font-medium text-emerald-300 uppercase tracking-[0.08em]">Día cubierto</p>
+                  <p className="text-xl font-semibold text-primary tabular-nums mt-0.5 tracking-tight">+{fmtCLP(ingresosHoy - costoDiario)}</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">sobre el break-even</p>
                 </>
               ) : (
                 <>
-                  <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide">Te faltan</p>
-                  <p className="text-xl font-bold text-primary tabular-nums mt-0.5">{fmtCLP(faltaHoy)}</p>
+                  <p className="text-[11px] font-medium text-amber-300 uppercase tracking-[0.08em]">Te faltan</p>
+                  <p className="text-xl font-semibold text-primary tabular-nums mt-0.5 tracking-tight">{fmtCLP(faltaHoy)}</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">para cubrir el día</p>
                 </>
               )}
             </div>
           </div>
 
-          <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden mt-3">
+          <div className="relative h-2 bg-white/[0.04] rounded-full overflow-hidden mt-3">
             <div
               className="absolute inset-y-0 left-0 rounded-full transition-all"
-              style={{ width: `${pctBE}%`, background: cubierto ? '#34d399' : '#fbbf24' }}
+              style={{ width: `${pctBE}%`, background: cubierto ? '#34d399' : '#fbbf24', opacity: 0.85 }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 tabular-nums">
@@ -1001,12 +1033,15 @@ function BreakEvenPanel({ index, accent, finanzas, ingresosHoy }) {
  */
 function MonthStat({ Icon, label, value, delta, invertDelta, accent }) {
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 md:p-5">
+    <div
+      className="bg-white/[0.02] rounded-xl p-3 md:p-5 transition-all duration-200 ease-in-out hover:bg-white/[0.04]"
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+    >
       <div className="flex items-center gap-2 mb-2">
-        <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={14} /></div>
-        <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
+        <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={14} strokeWidth={1.75} /></div>
+        <p className="text-[10px] md:text-[11px] font-medium text-slate-400 uppercase tracking-[0.08em] truncate">{label}</p>
       </div>
-      <p className="text-xl md:text-2xl font-bold text-primary tabular-nums">{value}</p>
+      <p className="text-xl md:text-2xl font-semibold text-primary tabular-nums tracking-tight">{value}</p>
       {delta !== undefined && <div className="mt-1"><Delta value={delta} invert={invertDelta} /></div>}
     </div>
   );

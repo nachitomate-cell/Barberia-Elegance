@@ -56,7 +56,10 @@ function formatFecha(iso) {
   return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-/* ── Stamp grid ── */
+/* ── Stamp grid ──
+   Vacíos: círculo con borde fino y sin relleno (número interior discreto).
+   Llenos: círculo sólido con el color de acento.
+   Chameleon mantiene su render con logo propio de la marca. */
 function StampGrid({ stamps, premios }) {
   const { id: tenantId } = useTenant();
   const isChameleon = tenantId === 'chameleon';
@@ -65,23 +68,31 @@ function StampGrid({ stamps, premios }) {
   const cols    = size <= 10 ? 10 : size <= 15 ? 15 : 20;
 
   return (
-    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {Array.from({ length: size }, (_, i) => {
         const n       = i + 1;
         const filled  = n <= stamps;
         const isPrize = premios.some(p => p.costoSellos === n);
         return (
-          <div key={n} className={`relative aspect-square rounded-md border flex items-center justify-center text-[9px] font-bold ${
-            filled
-              ? isChameleon ? 'bg-black border-zinc-700' : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-              : 'bg-white/3 border-white/8 text-slate-600'
-          }`}>
+          <div
+            key={n}
+            className={`relative aspect-square rounded-full flex items-center justify-center text-[9px] font-medium ${
+              filled
+                ? isChameleon ? 'bg-black' : 'bg-emerald-400/90'
+                : 'text-slate-600'
+            }`}
+            style={{
+              border: filled
+                ? (isChameleon ? '1px solid rgba(255,255,255,0.05)' : 'none')
+                : '1px solid rgba(255,255,255,0.10)',
+            }}
+          >
             {filled
-              ? isChameleon
-                ? <img src="/sellochamaleon.png" style={{ width: '75%', height: '75%', objectFit: 'contain' }} alt="sello" />
-                : <i className="ph-fill ph-scissors text-[9px]" />
+              ? (isChameleon
+                  ? <img src="/sellochamaleon.png" style={{ width: '75%', height: '75%', objectFit: 'contain' }} alt="sello" />
+                  : null)
               : n}
-            {isPrize && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400 border border-slate-950" />}
+            {isPrize && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400" />}
           </div>
         );
       })}
@@ -891,45 +902,54 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         {/* Stamp grid */}
         <StampGrid stamps={stamps} premios={premios} />
 
-        {/* +/- buttons */}
+        {/* +/- buttons — pesos balanceados: primario System Green + secundario translúcido */}
         <div className="flex gap-2 mt-4">
           <button onClick={() => accionSello(-1)} disabled={opLoad || stamps <= 0}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all">
-            <Minus size={13} /> Quitar sello
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-slate-200 text-xs font-medium rounded-full transition-all duration-200 ease-in-out"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Minus size={13} strokeWidth={2} /> Quitar sello
           </button>
           <button onClick={() => accionSello(1)} disabled={opLoad}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-xs font-semibold rounded-lg transition-all">
-            <Plus size={13} /> Añadir sello
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500/90 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-medium rounded-full transition-all duration-200 ease-in-out shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]">
+            <Plus size={13} strokeWidth={2} /> Añadir sello
           </button>
         </div>
       </div>
 
-      {/* Canjear premio */}
+      {/* Canjear premio — grouped list, un contenedor con divisores sutiles */}
       {premios.length > 0 && (
         <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Canjear premio</p>
-          <div className="space-y-1.5 mb-3">
-            {premios.map(p => {
+          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.1em] mb-2">Canjear premio</p>
+          <div
+            className="bg-white/[0.02] rounded-xl overflow-hidden mb-3"
+            style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            {premios.map((p, i) => {
               const puede = stamps >= p.costoSellos;
               const sel   = selPremio?.id === p.id;
               return (
-                <button key={p.id} disabled={!puede} onClick={() => setSelPremio(sel ? null : p)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all text-left ${
-                    sel     ? 'border-yellow-400/60 bg-yellow-400/10 text-primary' :
-                    puede   ? 'border-slate-700 hover:border-slate-500 bg-slate-800/40 text-primary' :
-                              'border-slate-800/40 bg-transparent text-slate-600 cursor-not-allowed opacity-50'
-                  }`}>
-                  <Trophy size={14} className={puede ? 'text-yellow-400' : 'text-slate-600'} />
-                  <span className="flex-1">{p.nombre}</span>
-                  <span className={`text-xs font-bold ${puede ? 'text-yellow-400' : 'text-slate-600'}`}>{p.costoSellos} ✂</span>
+                <button
+                  key={p.id}
+                  disabled={!puede}
+                  onClick={() => setSelPremio(sel ? null : p)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 ease-in-out text-left ${
+                    sel   ? 'bg-yellow-400/10 text-primary' :
+                    puede ? 'hover:bg-white/[0.03] text-primary' :
+                            'bg-transparent text-slate-600 cursor-not-allowed opacity-50'
+                  }`}
+                  style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)' } : undefined}
+                >
+                  <Trophy size={14} className={puede ? 'text-yellow-300' : 'text-slate-600'} strokeWidth={1.75} />
+                  <span className="flex-1 tracking-tight">{p.nombre}</span>
+                  <span className={`text-xs font-semibold tabular-nums ${puede ? 'text-yellow-300' : 'text-slate-600'}`}>{p.costoSellos} ✂</span>
                 </button>
               );
             })}
           </div>
-          {canjeMsg && <p className={`text-xs text-center font-bold mb-2 ${canjeMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{canjeMsg}</p>}
+          {canjeMsg && <p className={`text-xs text-center font-medium mb-2 ${canjeMsg.startsWith('✓') ? 'text-emerald-300' : 'text-rose-300'}`}>{canjeMsg}</p>}
           <button onClick={canjear} disabled={opLoad || !selPremio}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 disabled:opacity-40 border border-yellow-500/30 text-yellow-400 text-sm font-semibold rounded-lg transition-all">
-            <Gift size={15} /> Canjear premio
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-400/15 hover:bg-yellow-400/20 disabled:opacity-40 text-yellow-300 text-sm font-medium rounded-full transition-all duration-200 ease-in-out">
+            <Gift size={15} strokeWidth={1.75} /> Canjear premio
           </button>
         </div>
       )}
@@ -1209,34 +1229,45 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         </div>
       )}
 
-      {/* Citas recientes */}
+      {/* Citas recientes — grouped list, estados en pastel */}
       {citas.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Citas recientes</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.1em]">Citas recientes</p>
             {totalCitas > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-400">
                 {totalCitas} en total
               </span>
             )}
           </div>
-          <div className="space-y-1.5">
-            {citas.map(c => {
-              const col = c.estado === 'Completada' ? 'text-emerald-400' : c.estado === 'Cancelada' ? 'text-red-400' : 'text-yellow-400';
+          <div
+            className="bg-white/[0.02] rounded-xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            {citas.map((c, i) => {
+              const col = c.estado === 'Completada'
+                ? 'bg-emerald-400/15 text-emerald-300'
+                : c.estado === 'Cancelada'
+                  ? 'bg-rose-400/15 text-rose-300'
+                  : 'bg-amber-400/15 text-amber-300';
               return (
-                <div key={c.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-white/[0.02] transition-colors duration-200 ease-in-out"
+                  style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)' } : undefined}
+                >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-primary truncate">{c.servicioNombre || '—'}</p>
+                    <p className="text-xs font-medium text-primary truncate tracking-tight">{c.servicioNombre || '—'}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">
                       {c.fecha} · {c.hora} · {c.barbero || '—'}
                       {c.sucursalNombre && (
-                        <span className="ml-1.5 text-[9px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/25 rounded-full px-1.5 py-0.5">
+                        <span className="ml-1.5 text-[9px] font-medium text-orange-300 bg-orange-400/15 rounded-full px-1.5 py-0.5">
                           📍 {c.sucursalNombre}
                         </span>
                       )}
                     </p>
                   </div>
-                  <span className={`text-[10px] font-bold ${col} shrink-0`}>{c.estado}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${col}`}>{c.estado}</span>
                 </div>
               );
             })}
@@ -2529,14 +2560,15 @@ export default function Clientes() {
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
           <button
             onClick={() => setShowNuevoCliente(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 text-primary hover:bg-slate-700 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-emerald-500/90 hover:bg-emerald-500 text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset] transition-all duration-200 ease-in-out shrink-0"
           >
-            <Plus size={13} />
-            Nuevo Cliente
+            <Plus size={13} strokeWidth={2} />
+            Nuevo cliente
           </button>
           <button
             onClick={() => setShowIA(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#D4AF37]/35 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.02] hover:bg-white/[0.05] text-[#D4AF37] transition-all duration-200 ease-in-out shrink-0"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <img src="/logo1.png" alt="Synaptech" className="w-3.5 h-3.5 object-contain opacity-80" />
             Synaptech IA
@@ -2544,24 +2576,26 @@ export default function Clientes() {
           {migrados.length > 0 && (
             <button
               onClick={() => setShowInvitarMigrados(true)}
-              className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 transition-all shrink-0"
+              className="relative flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.02] hover:bg-white/[0.05] text-slate-200 transition-all duration-200 ease-in-out shrink-0"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
               title="Enviar invitación al Club a clientes migrados de AgendaPro"
             >
-              <Send size={13} />
+              <Send size={13} strokeWidth={1.75} />
               Invitar migrados
-              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px]">
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 font-semibold text-[10px]">
                 {migrados.length}
               </span>
             </button>
           )}
           <button
             onClick={() => setShowSinRegistro(true)}
-            className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
+            className="relative flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.02] hover:bg-white/[0.05] text-slate-200 transition-all duration-200 ease-in-out shrink-0"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <UserX size={13} />
+            <UserX size={13} strokeWidth={1.75} />
             Sin registro
             {sinRegistro.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[10px]">
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 font-semibold text-[10px]">
                 {sinRegistro.length}
               </span>
             )}
@@ -2572,60 +2606,72 @@ export default function Clientes() {
       {/* KPIs — 2x2 en movil, 4 en tablet+ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full mb-5">
         {[
-          { label: 'Clientes',    value: total,            color: 'text-primary' },
-          { label: 'Citas totales', value: totalCitasGlobal, color: 'text-blue-400' },
-          { label: 'Avg sellos',  value: avg,              color: 'text-emerald-400' },
-          { label: 'Con premios', value: conPremio,        color: 'text-yellow-400' },
+          { label: 'Clientes',      value: total,            color: 'text-primary' },
+          { label: 'Citas totales', value: totalCitasGlobal, color: 'text-primary' },
+          { label: 'Avg sellos',    value: avg,              color: 'text-primary' },
+          { label: 'Con premios',   value: conPremio,        color: 'text-primary' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-4 text-center">
-            <p className={`text-2xl md:text-3xl font-bold ${color}`}>{value}</p>
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
+          <div
+            key={label}
+            className="bg-white/[0.02] rounded-2xl p-3 md:p-4 text-center transition-all duration-200 ease-in-out hover:bg-white/[0.04]"
+            style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <p className={`text-2xl md:text-3xl font-semibold tabular-nums tracking-tight ${color}`}>{value}</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.08em] mt-1">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Panel IA — Clientes en riesgo */}
       {clientesEnRiesgo.length > 0 && (
-        <div className="relative overflow-hidden bg-slate-900 border border-orange-500/20 rounded-xl p-4 mb-5">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
+        <div
+          className="relative overflow-hidden bg-white/[0.02] rounded-2xl p-4 mb-5"
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-400/[0.06] rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-400/15">
               <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-              <Sparkles size={11} className="text-orange-400" />
-              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">IA detectó</span>
+              <Sparkles size={11} className="text-orange-300" strokeWidth={1.75} />
+              <span className="text-[10px] font-semibold text-orange-300 uppercase tracking-[0.1em]">IA detectó</span>
             </div>
-            <p className="text-xs font-semibold text-primary">
+            <p className="text-xs font-medium text-primary">
               {clientesEnRiesgo.length} cliente{clientesEnRiesgo.length !== 1 ? 's' : ''} en riesgo de abandono
             </p>
             <button
               onClick={() => setFiltro('sin30')}
-              className="ml-auto text-[10px] text-slate-500 hover:text-orange-400 transition-colors"
+              className="ml-auto text-[11px] text-slate-400 hover:text-orange-300 transition-colors"
             >
               Ver todos →
             </button>
           </div>
-          <div className="space-y-1.5">
-            {clientesEnRiesgo.slice(0, 3).map(c => {
+          {/* Grouped list de clientes en riesgo — sin cajas individuales */}
+          <div className="relative rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+            {clientesEnRiesgo.slice(0, 3).map((c, i) => {
               const raw = normalizePhone(c.telefono);
               const num = raw.length >= 8 ? (raw.startsWith('56') ? raw : `56${raw}`) : null;
               const waHref = num
                 ? `https://wa.me/${num}?text=${encodeURIComponent(`¡Hola ${c.nombre || ''}! 💈 Te extrañamos en la barbería. ¿Cuándo te agendamos tu próximo corte?`)}`
                 : null;
               return (
-                <div key={c.uid || c.id} className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2">
-                  <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-slate-300">{initials(c.nombre || '?')}</span>
+                <div
+                  key={c.uid || c.id}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.02] transition-colors duration-200 ease-in-out"
+                  style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)' } : undefined}
+                >
+                  <div className="w-7 h-7 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-semibold text-slate-300">{initials(c.nombre || '?')}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-primary truncate">{c.nombre || '—'}</p>
+                    <p className="text-xs font-medium text-primary truncate">{c.nombre || '—'}</p>
                     <p className="text-[10px] text-slate-500">Sin visita hace {c.diasSinVisita} días</p>
                   </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                     c.diasSinVisita >= 90
-                      ? 'text-red-400 border-red-400/30 bg-red-400/10'
+                      ? 'text-rose-300 bg-rose-400/15'
                       : c.diasSinVisita >= 60
-                        ? 'text-orange-400 border-orange-400/30 bg-orange-400/10'
-                        : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10'
+                        ? 'text-orange-300 bg-orange-400/15'
+                        : 'text-amber-300 bg-amber-400/15'
                   }`}>
                     {c.diasSinVisita >= 90 ? 'Crítico' : c.diasSinVisita >= 60 ? 'En riesgo' : 'Seguimiento'}
                   </span>
@@ -2635,30 +2681,30 @@ export default function Clientes() {
                       target="_blank"
                       rel="noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 hover:opacity-90 transition-opacity"
-                      style={{ background: '#25D366', color: '#fff' }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium shrink-0 bg-emerald-400/15 hover:bg-emerald-400/20 text-emerald-300 transition-all duration-200 ease-in-out"
                     >
-                      <MessageCircle size={9} /> Contactar
+                      <MessageCircle size={10} strokeWidth={1.75} /> Contactar
                     </a>
                   )}
                 </div>
               );
             })}
-            {clientesEnRiesgo.length > 3 && (
-              <p className="text-[10px] text-slate-500 text-center pt-1">
-                +{clientesEnRiesgo.length - 3} más → usa el filtro &quot;Sin visita 30d&quot;
-              </p>
-            )}
           </div>
+          {clientesEnRiesgo.length > 3 && (
+            <p className="relative text-[10px] text-slate-500 text-center pt-2">
+              +{clientesEnRiesgo.length - 3} más → usa el filtro &quot;Sin visita 30d&quot;
+            </p>
+          )}
         </div>
       )}
 
       {/* Search — full width en cualquier viewport */}
       <div className="relative mb-3 w-full">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" strokeWidth={1.75} />
         <input placeholder="Buscar por nombre, correo o teléfono…"
           value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-primary placeholder-slate-600 focus:outline-none focus:border-slate-600 transition-colors" />
+          className="w-full pl-9 pr-4 py-2.5 bg-white/[0.02] rounded-xl text-sm text-primary placeholder-slate-500 focus:outline-none transition-all duration-200 ease-in-out focus:bg-white/[0.04]"
+          style={{ border: '1px solid rgba(255,255,255,0.06)' }} />
         {search && (
           <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary">
             <X size={14} />
@@ -2666,8 +2712,8 @@ export default function Clientes() {
         )}
       </div>
 
-      {/* Filtros — scroll horizontal nativo con scrollbar oculta */}
-      <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 w-full no-scrollbar [&::-webkit-scrollbar]:hidden">
+      {/* Filtros — píldoras translúcidas, activo = fondo del color / inactivo = solo texto */}
+      <div className="flex flex-nowrap overflow-x-auto gap-1.5 pb-2 mb-4 w-full no-scrollbar [&::-webkit-scrollbar]:hidden">
         {[
           { id: 'todos',       label: 'Todos' },
           { id: 'registrados', label: 'Registrados Club' },
@@ -2682,16 +2728,22 @@ export default function Clientes() {
           { id: 'platinum', label: 'PLATINUM' },
         ].map(f => {
           const active = filtro === f.id;
-          const tierColor =
-            f.id === 'platinum' ? (active ? 'bg-violet-500/20 border-violet-400 text-violet-300' : 'border-violet-400/20 text-violet-400 hover:bg-violet-500/10') :
-            f.id === 'gold'     ? (active ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300' : 'border-yellow-400/20 text-yellow-400 hover:bg-yellow-500/10') :
-            f.id === 'silver'   ? (active ? 'bg-slate-500/40 border-slate-400 text-slate-200'    : 'border-slate-600 text-slate-400 hover:bg-slate-700') :
-            f.id === 'migrados' ? (active ? 'bg-amber-500/20 border-amber-400 text-amber-300'    : 'border-amber-400/25 text-amber-400/90 hover:bg-amber-500/10') :
-            f.id === 'registrados' ? (active ? 'bg-blue-500/20 border-blue-400 text-blue-300'    : 'border-blue-400/25 text-blue-400/90 hover:bg-blue-500/10') :
-            active ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800';
+          const activeCls =
+            f.id === 'platinum'    ? 'bg-violet-400/15 text-violet-300' :
+            f.id === 'gold'        ? 'bg-yellow-400/15 text-yellow-300' :
+            f.id === 'silver'      ? 'bg-white/[0.08] text-slate-200'    :
+            f.id === 'migrados'    ? 'bg-amber-400/15 text-amber-300'    :
+            f.id === 'registrados' ? 'bg-sky-400/15 text-sky-300'        :
+                                     'bg-emerald-400/15 text-emerald-300';
+          const cls = active
+            ? activeCls
+            : 'text-slate-400 hover:text-primary hover:bg-white/[0.03]';
           return (
-            <button key={f.id} onClick={() => setFiltro(f.id)}
-              className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${tierColor}`}>
+            <button
+              key={f.id}
+              onClick={() => setFiltro(f.id)}
+              className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-in-out ${cls}`}
+            >
               {f.label}
             </button>
           );
@@ -2710,68 +2762,79 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* Lista de clientes — mobile-first, cards flex con truncamiento robusto */}
+      {/* Lista de clientes — grouped list estilo iOS: 1 contenedor, filas
+          separadas solo por un divisor sutil (última fila sin borde). */}
       {loading ? (
         <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-slate-600 bg-slate-900 border border-slate-800 rounded-xl">
-          <User size={28} className="mb-3" /><p className="text-sm">Sin clientes</p>
+        <div
+          className="flex flex-col items-center py-16 text-slate-600 bg-white/[0.02] rounded-2xl"
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <User size={28} className="mb-3" strokeWidth={1.75} /><p className="text-sm">Sin clientes</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2 mt-4">
-          {paged.map(c => {
+        <div
+          className="bg-white/[0.02] rounded-2xl overflow-hidden mt-4"
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          {paged.map((c, i) => {
             const stamps  = sellos(c);
             const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
             const stampsPillCls = stamps >= (maxCost || 10)
-              ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/40'
+              ? 'text-yellow-300 bg-yellow-400/15'
               : stamps >= 5
-                ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                : 'text-slate-400 bg-slate-800 border border-slate-700';
+                ? 'text-emerald-300 bg-emerald-400/15'
+                : 'text-slate-400 bg-white/[0.06]';
             const hasPrize = premios.some(p => stamps >= p.costoSellos);
             const numCitas = c.email ? (citasPorEmail[c.email] || 0) : 0;
             return (
               <div
                 key={c.uid || c.id}
                 onClick={() => setSelected(c)}
-                className="group flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer"
+                className="group flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors duration-200 ease-in-out cursor-pointer"
+                style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)' } : undefined}
               >
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                <div
+                  className="w-10 h-10 rounded-full bg-white/[0.04] flex items-center justify-center overflow-hidden shrink-0"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                >
                   {c.photoURL
                     ? <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
+                    : <span className="text-xs font-semibold text-slate-300">{initials(c.nombre || c.email || '?')}</span>}
                 </div>
 
                 {/* Info — flex-1 min-w-0 es CRÍTICO para el truncate */}
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm md:text-base font-bold text-primary truncate block group-hover:text-emerald-400 transition-colors">
+                  <span className="text-sm md:text-base font-medium text-primary truncate block tracking-tight group-hover:text-emerald-300 transition-colors">
                     {c.nombre || '—'}
                   </span>
                   <span className="text-xs text-slate-400 truncate block">
                     {c.email || c.telefono || '—'}
                   </span>
                   {numCitas > 0 && (
-                    <span className="text-[10px] text-blue-400/70 font-semibold">
+                    <span className="text-[10px] text-sky-300/80 font-medium">
                       {numCitas} cita{numCitas !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
 
-                {/* Badges — alineados a la derecha sin competir con el nombre */}
+                {/* Badges — píldoras translúcidas sin borde, alineados a la derecha */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {isLegacy(c) && (
                     <span
                       title="Cliente importado desde AgendaPro. Aún no se ha registrado en el Club."
-                      className="hidden sm:inline-block text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase"
+                      className="hidden sm:inline-block text-[9px] font-semibold tracking-wider text-amber-300 bg-amber-400/15 px-2 py-0.5 rounded-full uppercase"
                     >
                       Migrado
                     </span>
                   )}
-                  <span className={`text-[10px] px-2 py-1 rounded-full whitespace-nowrap font-semibold ${stampsPillCls}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap font-semibold tabular-nums ${stampsPillCls}`}>
                     {stamps} sellos
                   </span>
-                  {hasPrize && <Trophy size={12} className="text-yellow-400 shrink-0" />}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-600 group-hover:text-emerald-400 transition-colors shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                  {hasPrize && <Trophy size={12} className="text-yellow-300 shrink-0" strokeWidth={1.75} />}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-600 group-hover:text-slate-300 transition-colors shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
             );
