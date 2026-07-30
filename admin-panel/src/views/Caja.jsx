@@ -585,6 +585,102 @@ function semanaDe(ts) {
   };
 }
 
+/* ── Flujo por día (gráfico del historial) ───────────────────── */
+// Barras a mano y no recharts: son 14 valores. Arrastrar el chunk de charts
+// (300+ kB) hasta la caja por un sparkline no se paga.
+//
+// Mide lo FACTURADO del día (`ingresosGeneral`), no el efectivo contado: el
+// efectivo depende de con qué pagó la gente y no dice cómo le fue al local.
+const DIAS_GRAFICO = 14;
+function FlujoPorDia({ sesiones }) {
+  const { dias, totalPeriodo, totalVentana, maxDia } = useMemo(() => {
+    const porDia = new Map();
+    let totalPeriodo = 0;
+    for (const h of sesiones) {
+      const ymd = ymdDe(h.fechaApertura);
+      if (!ymd) continue;
+      const v = Number(h.snapshot?.ingresosGeneral) || 0;
+      porDia.set(ymd, (porDia.get(ymd) || 0) + v);
+      totalPeriodo += v;
+    }
+    if (!porDia.size) return { dias: [], totalPeriodo: 0, totalVentana: 0, maxDia: 0 };
+
+    // La ventana termina en el cierre más reciente que quedó VISIBLE, no en hoy:
+    // si el dueño filtra un mes pasado, el gráfico tiene que seguirlo.
+    const [y, m, d] = [...porDia.keys()].sort().pop().split('-').map(Number);
+    const dias = [];
+    let totalVentana = 0, maxDia = 0;
+    for (let i = DIAS_GRAFICO - 1; i >= 0; i--) {
+      const f = new Date(y, m - 1, d - i);
+      const k = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
+      const monto = porDia.get(k) || 0;
+      totalVentana += monto;
+      if (monto > maxDia) maxDia = monto;
+      dias.push({ k, monto, dia: f.getDate(), fecha: f });
+    }
+    return { dias, totalPeriodo, totalVentana, maxDia };
+  }, [sesiones]);
+
+  // Sin monto no hay nada que graficar: los cierres viejos no guardaban
+  // desglose, y una caja de barras vacías confunde más de lo que informa.
+  if (!dias.length || totalPeriodo === 0) return null;
+
+  return (
+    <div className={`mb-3 p-3 rounded-xl border ${SUP_CARD} ${BRD_FUERTE}`}>
+      <div className="flex flex-wrap gap-x-8 gap-y-2 mb-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Facturado en lo filtrado</p>
+          <p className="text-lg font-black text-primary tabular-nums leading-tight">{fmtCurrency(totalPeriodo)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Últimos {DIAS_GRAFICO} días</p>
+          <p className="text-lg font-black text-primary tabular-nums leading-tight">{fmtCurrency(totalVentana)}</p>
+        </div>
+      </div>
+
+      <div className="flex items-end gap-[3px] h-20">
+        {dias.map(d => {
+          const pct = maxDia > 0 ? (d.monto / maxDia) * 100 : 0;
+          const pico = d.monto > 0 && d.monto === maxDia;
+          return (
+            <div
+              key={d.k}
+              className="flex-1 flex flex-col justify-end h-full group relative"
+              title={`${d.fecha.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })} · ${d.monto > 0 ? fmtCurrency(d.monto) : 'sin cierre'}`}
+            >
+              {/* Los días sin cierre dejan un tocón visible: el hueco es
+                  información (el local no abrió), no un error del gráfico. */}
+              <div
+                className={`w-full rounded-t transition-colors ${
+                  d.monto === 0 ? 'bg-slate-700/40 [html.light_&]:bg-slate-300'
+                    : pico ? 'bg-emerald-400'
+                    : 'bg-emerald-500/50 group-hover:bg-emerald-400'
+                }`}
+                style={{ height: d.monto === 0 ? '3px' : `${Math.max(pct, 4)}%` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-[3px] mt-1">
+        {dias.map((d, i) => (
+          <span key={d.k} className="flex-1 text-center text-[9px] text-slate-600 tabular-nums">
+            {/* Uno por medio: con 14 etiquetas seguidas no se lee nada en móvil. */}
+            {i % 2 === 0 ? d.dia : ''}
+          </span>
+        ))}
+      </div>
+
+      {maxDia > 0 && (
+        <p className="mt-1.5 text-[10px] text-slate-500">
+          Mejor día del tramo: <span className="font-semibold text-emerald-400 tabular-nums">{fmtCurrency(maxDia)}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ── Historial de cierres (una sola definición) ──────────────── */
 // Antes este bloque estaba escrito dos veces —con y sin caja abierta— y las dos
 // copias se fueron separando. Una sola fuente: lo que se agregue acá aparece en
@@ -648,9 +744,9 @@ function HistorialCierres({ sesiones, onVer, error }) {
     return true;
   }), [sesiones, fEstado, fResp, desde, hasta]);
 
+  // El facturado lo encabeza el gráfico, así que acá no se repite.
   const resumen = useMemo(() => ({
     contado:    filtradas.reduce((s, h) => s + (Number(h.montoCierreReal) || 0), 0),
-    facturado:  filtradas.reduce((s, h) => s + (Number(h.snapshot?.ingresosGeneral) || 0), 0),
     descuadres: filtradas.filter(h => (h.diferencia ?? 0) !== 0).length,
   }), [filtradas]);
 
@@ -745,12 +841,15 @@ function HistorialCierres({ sesiones, onVer, error }) {
         </div>
       )}
 
-      {/* Resumen de lo filtrado */}
+      {/* Gráfico de flujo diario de lo que quedó filtrado */}
+      <FlujoPorDia sesiones={filtradas} />
+
+      {/* Resumen de lo filtrado — el facturado no se repite acá, lo encabeza
+          el gráfico. */}
       {filtradas.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
           <span><span className="font-bold text-primary tabular-nums">{filtradas.length}</span> {filtradas.length === 1 ? 'cierre' : 'cierres'}</span>
-          <span>Contado: <span className="font-semibold text-primary tabular-nums">{fmtCurrency(resumen.contado)}</span></span>
-          {resumen.facturado > 0 && <span>Facturado: <span className="font-semibold text-primary tabular-nums">{fmtCurrency(resumen.facturado)}</span></span>}
+          <span>Contado en efectivo: <span className="font-semibold text-primary tabular-nums">{fmtCurrency(resumen.contado)}</span></span>
           <span className={resumen.descuadres ? 'text-rose-400 font-semibold' : 'text-emerald-400 font-semibold'}>
             {resumen.descuadres ? `${resumen.descuadres} con descuadre` : 'todas cuadradas'}
           </span>
