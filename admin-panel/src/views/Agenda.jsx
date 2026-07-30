@@ -535,7 +535,10 @@ function LeyendaColores({ tenantId }) {
   const confirmOn  = cfg?.confirmacionesEnabled === true;
   // Esta leyenda habla SOLO de confirmaciones, así que el plan que importa es
   // el que las incluye: un local con plan 'bot' no las tiene contratadas.
-  const contratado = incluyeRecordatorios(sys) || cfg?.estadoConexion === 'connected';
+  // Sin fallback por estadoConexion: tener el número vinculado no es lo mismo
+  // que tener el módulo contratado, y con el fallback quitar el plan no se
+  // notaba en ningún lado.
+  const contratado = incluyeRecordatorios(sys);
 
   const ctaUrl = `https://wa.me/56983568212?text=${encodeURIComponent(
     'Hola SynapTech, quiero activar las *confirmaciones automáticas por WhatsApp* en mi local para dejar de perder horas por clientes que no llegan. ¿Cómo lo hacemos?',

@@ -355,8 +355,9 @@ export default function WhatsAppAsistente({ embedded = false }) {
   const estiloChileno = cfg?.estiloChileno === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
 
-  // Habilitado = tiene ALGÚN plan contratado, o (fallback) ya estaba conectado
-  // desde antes de que existieran los planes.
+  // Habilitado = tiene plan, o el número sigue vinculado. Lo segundo NO es un
+  // permiso: es para que un local al que le quitaron el plan pueda igual ver
+  // su conexión y DESVINCULAR su número. No abre ningún módulo (ver abajo).
   const habilitado = tienePlan(sys) || isConnected;
 
   /* ── Qué módulos cubre su plan ────────────────────────────────────
@@ -364,11 +365,16 @@ export default function WhatsAppAsistente({ embedded = false }) {
      algo fuera del plan son las reglas (waSwitchesDentroDelPlan), y lo
      que impide que un flag viejo siga corriendo son los gates de
      servidor. Esconder el switch acá es cosmético — misma lección que
-     dejó el rol 'recepcion'. */
+     dejó el rol 'recepcion'.
+
+     Sin fallback por `isConnected`: tenerlo hacía que quitar el plan desde
+     /admin no cambiara NADA en este panel — el local seguía viendo "Completo"
+     y los dos módulos. La retrocompat ya la cubre planDe() leyendo el
+     waAsistente:true de los tenants viejos; el fallback solo tapaba la baja. */
   const plan     = planDe(sys);
-  const conBot   = incluyeBot(sys)           || (isConnected && !plan);
-  const conRecor = incluyeRecordatorios(sys) || (isConnected && !plan);
-  const etiqueta = ETIQUETA_PLAN[plan] || (isConnected ? 'Completo' : 'Sin plan');
+  const conBot   = incluyeBot(sys);
+  const conRecor = incluyeRecordatorios(sys);
+  const etiqueta = ETIQUETA_PLAN[plan] || 'Sin plan';
 
   const upsellUrl = (que) => `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(
     `Hola SynapTech, soy de *${tenant?.name || tid}* y quiero sumar *${que}* a mi plan de WhatsApp. ¿Cómo lo hacemos?`,
@@ -603,10 +609,15 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 description={
                   plan === 'recordatorios' ? 'Confirmaciones de cita automáticas.'
                   : plan === 'bot'         ? 'Asistente IA que responde y agenda.'
-                  : 'Asistente IA + confirmaciones de cita.'
+                  : plan === 'full'        ? 'Asistente IA + confirmaciones de cita.'
+                  : 'Tu número sigue vinculado, pero no hay módulos activos.'
                 }
               >
-                <span className="text-[12px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 shrink-0">
+                <span className={`text-[12px] font-semibold rounded-full px-3 py-1 shrink-0 border ${
+                  plan
+                    ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                    : 'text-slate-400 bg-white/[0.04] border-white/10'
+                }`}>
                   {etiqueta}
                 </span>
               </SettingRow>
