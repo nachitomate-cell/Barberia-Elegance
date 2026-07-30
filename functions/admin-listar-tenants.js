@@ -22,6 +22,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { esOperador } = require("./lib/operadores");
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 
@@ -35,7 +36,7 @@ const SEÑALES = ['servicios', 'citas', 'barberos', 'clientes'];
 
 exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const email = String(req.auth?.token?.email || '').toLowerCase();
-  if (!req.auth || !BOOTSTRAP_EMAILS.includes(email)) {
+  if (!req.auth || !esOperador(email)) {
     throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
   }
 

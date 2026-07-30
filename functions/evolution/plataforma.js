@@ -41,6 +41,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { esOperador } = require("../lib/operadores");
 const { onSchedule }         = require('firebase-functions/v2/scheduler');
 const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
@@ -83,7 +84,7 @@ const cliente = () => crearCliente({
 function exigirBootstrap(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
   const email = String(req.auth.token?.email || '').toLowerCase();
-  if (!BOOTSTRAP_EMAILS.includes(email)) {
+  if (!esOperador(email)) {
     throw new HttpsError('permission-denied', 'Solo SynapTech administra el número de plataforma.');
   }
 }

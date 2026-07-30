@@ -1951,9 +1951,25 @@ const FDB = (() => {
     }
   }
 
+  // ── Operadores de la plataforma (no son roles DE un local) ──────────
+  //  bootstrap → Ignacio: todo, incluida la plata.
+  //  socio     → socio developer: opera /admin pero NO ve los ingresos.
+  //  El candado real está en firestore.rules (/_billing y /_ingresos siguen
+  //  exigiendo esBootstrap); acá solo se decide quién ENTRA a /admin y qué
+  //  se le muestra. Espejo en servidor: functions/lib/operadores.js
+  const BOOTSTRAP_ADMINS   = ['ignaciiio.mate@gmail.com'];
+  const SOCIOS_DEVELOPER   = ['simpson7gonzalo@gmail.com'];
+  const _mail = (e) => String(e || '').toLowerCase().trim();
+
+  function esSocioDeveloper(email) { return SOCIOS_DEVELOPER.includes(_mail(email)); }
+  function esOperadorPlataforma(email) {
+    return BOOTSTRAP_ADMINS.includes(_mail(email)) || esSocioDeveloper(email);
+  }
+
   async function getRol(email, uid) {
-    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
-    if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return 'admin';
+    // El socio entra a /admin igual que el bootstrap: lo que lo diferencia no
+    // es la puerta, son las reglas de Firestore sobre los datos de plata.
+    if (email && esOperadorPlataforma(email)) return 'admin';
     try {
       if (uid) {
         const doc = await tenantCol(COL.BARBEROS).doc(uid).get();
@@ -2162,6 +2178,7 @@ const FDB = (() => {
     incrementarSellos, modificarSellos, canjearSellos,
     // Barberos (Permisos + Orden)
     getBarberos, esBarbero, esAdminJefe, getBarberoId, getRol,
+    esSocioDeveloper, esOperadorPlataforma,
     ensureBarberoUidDoc, reordenarBarberos,
     // Shop settings (Configuracion panel: features, nombre, etc.)
     getShopSettings,

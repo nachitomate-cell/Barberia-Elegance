@@ -45,6 +45,8 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     }
     // Tenant que quedó con el bot encendido de un plan anterior: al bajarlo a
     // 'recordatorios' NO debe quedar con la configuración trabada.
+    await setDoc(doc(db, '_billing/delnero'), { monto: 14900 });
+    await setDoc(doc(db, '_ingresos/2026-07'), { total: 100000 });
     await setDoc(doc(db, '_system/t_bajado'), { waPlan: 'recordatorios' });
     await setDoc(doc(db, 'tenants/t_bajado/configuracion/whatsapp'),
                  { estadoConexion: 'connected', botEnabled: true, recordatorio: { ventanaHoras: 24 } });
@@ -58,6 +60,11 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
 
   const wa = (cliente, tid) => doc(cliente, `tenants/${tid}/configuracion/whatsapp`);
   const adminDe = (tid) => como('admin', tid);
+
+  // Operadores de la plataforma: se identifican por EMAIL en las reglas, no
+  // por rol de tenant. El socio developer opera todo menos los números.
+  const socio = env.authenticatedContext('u_socio', { email: 'simpson7gonzalo@gmail.com' }).firestore();
+  const boot  = env.authenticatedContext('u_boot',  { email: 'ignaciiio.mate@gmail.com' }).firestore();
 
   const casos = [
     // ── recepcion: SÍ puede trabajar ──
@@ -98,6 +105,21 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
       () => updateDoc(wa(adminDe('t_bajado'), 't_bajado'), { botEnabled: false }), true],
     ['bajado de plan: NO queda trabado editando el resto del doc',
       () => updateDoc(wa(adminDe('t_bajado'), 't_bajado'), { recordatorio: { ventanaHoras: 12 } }), true],
+
+    // ── Socio developer: opera la plataforma pero NO ve la plata ──
+    // Esconder la tarjeta en /admin es cosmético; el candado es este.
+    ['socio NO lee _billing (ingresos proyectados)',
+      () => getDoc(doc(socio, '_billing/delnero')), false],
+    ['socio NO lee _ingresos',
+      () => getDoc(doc(socio, '_ingresos/2026-07')), false],
+    ['socio SÍ opera _system (planes, kill switch)',
+      () => setDoc(doc(socio, '_system/t_rec'), { waPlan: 'bot' }, { merge: true }), true],
+    ['socio SÍ opera wa_notif',
+      () => setDoc(doc(socio, 'wa_notif/t_rec'), { planCliente: true }, { merge: true }), true],
+    ['socio SÍ lee las citas de un local',
+      () => getDoc(doc(socio, `tenants/${TID}/citas/c1`)), true],
+    ['bootstrap SÍ lee _billing',
+      () => getDoc(doc(boot, '_billing/delnero')), true],
   ];
 
   let fallos = 0;

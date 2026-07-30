@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { esOperador } = require("./lib/operadores");
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 
@@ -40,7 +41,7 @@ exports.broadcastAnuncio = onCall(
   { region: 'us-central1', timeoutSeconds: 300, memory: '512MiB' },
   async (request) => {
     const email = (request.auth?.token?.email || '').toLowerCase();
-    if (!BOOTSTRAP_ADMINS.includes(email)) {
+    if (!esOperador(email)) {
       throw new HttpsError('permission-denied', 'No autorizado.');
     }
 

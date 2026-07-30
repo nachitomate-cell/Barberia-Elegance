@@ -7735,6 +7735,19 @@
         _adminShowState('none');
         _setAdminLoginLoading(false);
         console.log('[Admin] Acceso concedido:', user.email);
+
+        // ── Socio developer: opera la plataforma pero no ve la plata ──
+        // Esconder la tarjeta es SOLO cosmética; lo que de verdad lo impide
+        // son las reglas (/_billing y /_ingresos siguen en esBootstrap), así
+        // que aunque abriera la consola no podría leer el dato. Se oculta
+        // igual para no mostrarle una tarjeta que siempre diría error.
+        var _esSocio = (window.FDB && FDB.esSocioDeveloper && FDB.esSocioDeveloper(user.email)) === true;
+        if (_esSocio) {
+          var ip = document.getElementById('income-projection');
+          if (ip) ip.remove();
+          document.body.setAttribute('data-perfil', 'socio');
+          console.log('[Admin] Perfil socio developer: sin ingresos proyectados.');
+        }
         // La lista de tenants sale de Firestore vía callable, así que recién
         // acá hay sesión para pedirla. Antes se generaba al parsear la página
         // desde config.js, que es una lista a mano y por eso se quedaba corta.
@@ -7748,9 +7761,13 @@
           catch (e) { console.warn('[Admin] tenants:', e); }
         }
         _inicializarAdminPWA().catch(e => console.warn('[Admin PWA] init error:', e));
-        loadIncomeProjection().catch(e => {
-          console.warn('[Admin] loadIncomeProjection error:', e);
-        });
+        // El socio no la carga: sin la tarjeta en el DOM no hay dónde
+        // pintarla, y sus lecturas de /_billing las rechazan las reglas.
+        if (!_esSocio) {
+          loadIncomeProjection().catch(e => {
+            console.warn('[Admin] loadIncomeProjection error:', e);
+          });
+        }
         loadPlatformStats().catch(e => {
           console.warn('[Admin] loadPlatformStats error:', e);
           document.getElementById('ps-loading').textContent = 'Error al cargar estadísticas.';

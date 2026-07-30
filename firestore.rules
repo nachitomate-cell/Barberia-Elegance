@@ -44,6 +44,27 @@ service cloud.firestore {
              ];
     }
 
+    // ── Socio developer ────────────────────────────────────────────
+    //  Opera la plataforma completa desde /admin (locales, WhatsApp,
+    //  staff, kill switch) pero NO ve los números del negocio.
+    //  El corte está en /_billing, que sigue exigiendo esBootstrap():
+    //  ahí viven los ingresos proyectados y el estado de pago, y como
+    //  el panel los lee directo desde el navegador, esconder la tarjeta
+    //  no serviría de nada — el dato quedaría a un get() de distancia.
+    //  Espejo en servidor: functions/lib/operadores.js
+    function esSocio() {
+      return autenticado()
+          && request.auth.token.email in [
+               'simpson7gonzalo@gmail.com'
+             ];
+    }
+
+    // Gate por defecto de la plataforma. Se usa donde antes iba
+    // esBootstrap(), SALVO donde se exponga plata.
+    function esOperador() {
+      return esBootstrap() || esSocio();
+    }
+
     // TEMP: fallback Firestore mientras los barberos no tengan Custom Claims.
     // Eliminar después de ejecutar migrarClaimsExistentes() y que todos
     // cierren sesión y vuelvan a abrir.
@@ -91,7 +112,7 @@ service cloud.firestore {
     // `productos` deja que un staff modifique SOLO `stock`, nunca el precio.
     function esStaff(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero', 'recepcion'])
-          || esBootstrap()
+          || esOperador()
           || esKronnosBrandAdmin(tid)
           || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe', 'barbero', 'recepcion'])
           || esBarberoFirestore(tid); // TEMP: eliminar post-migración
@@ -99,14 +120,14 @@ service cloud.firestore {
 
     function esAdmin(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe'])
-          || esBootstrap()
+          || esOperador()
           || esKronnosBrandAdmin(tid)
           || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe']);
     }
 
     function esAdminEstricto(tid) {
       return (esDeTenant(tid) && rol() == 'admin')
-          || esBootstrap()
+          || esOperador()
           || esKronnosBrandAdmin(tid)
           || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() == 'admin');
     }
@@ -193,7 +214,7 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /_system/{docId} {
       allow read:  if true;
-      allow write: if esBootstrap();
+      allow write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -204,7 +225,7 @@ service cloud.firestore {
     //  Nadie más lo ve: guarda el teléfono del dueño y su ventana de 24h.
     // ═══════════════════════════════════════════════════════════════
     match /wa_notif/{tid} {
-      allow read, write: if esBootstrap();
+      allow read, write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -220,7 +241,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /wa_plataforma_cuota/{fecha} {
-      allow read:  if esBootstrap();
+      allow read:  if esOperador();
       allow write: if false;
     }
 
@@ -229,7 +250,11 @@ service cloud.firestore {
     //  Lectura solo para staff del tenant. Escritura solo bootstrap.
     // ═══════════════════════════════════════════════════════════════
     match /_billing/{tid} {
-      allow read:  if esStaff(tid) || esBootstrap();
+      // El `&& !esSocio()` NO es redundante: esStaff() incluye a esOperador(),
+      // que incluye al socio — sin esta exclusión el socio leía _billing por
+      // la puerta de atrás, que es justo el dato que no debe ver (de acá sale
+      // "ingresos proyectados"). Lo cazó npm run test:rules.
+      allow read:  if esBootstrap() || (esStaff(tid) && !esSocio());
       allow write: if esBootstrap();
     }
 
@@ -240,7 +265,7 @@ service cloud.firestore {
     //  el espejo `barberos/{uid}` a todos los tenants.
     // ═══════════════════════════════════════════════════════════════
     match /_superadmin/{docId} {
-      allow read, write: if esBootstrap();
+      allow read, write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -260,7 +285,7 @@ service cloud.firestore {
     //  panel pueda mostrar/administrar los dispositivos suscritos.
     // ═══════════════════════════════════════════════════════════════
     match /admin_fcm_tokens/{token} {
-      allow read, write: if esBootstrap();
+      allow read, write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -277,8 +302,8 @@ service cloud.firestore {
     //  tenant referidor (su propio panel) o al super-admin global.
     // ═══════════════════════════════════════════════════════════════
     match /_referrals/{tid} {
-      allow read:  if esAdmin(tid) || esBootstrap();
-      allow write: if esBootstrap();
+      allow read:  if esAdmin(tid) || esOperador();
+      allow write: if esOperador();
 
       // Subcolección: referidos que este tenant trajo, con estado y meses gratis.
       // Gestionada 100% desde /admin (superadmin) por ahora — cuando el panel
@@ -292,15 +317,15 @@ service cloud.firestore {
       // para mostrar "te invita @{tenantName}". Solo expone tenantId +
       // tenantName + active — no hay PII.
       allow read:  if true;
-      allow write: if esBootstrap();
+      allow write: if esOperador();
     }
     match /_referralSignups/{signupId} {
       // El staff del tenant referidor ve sus propios signups; el super-
       // admin los ve todos. Las escrituras pasan por Cloud Functions.
-      allow read:  if esBootstrap()
+      allow read:  if esOperador()
                    || (autenticado() && resource.data.get('referrerTenantId', '') == tenantClaim()
                                       && rol() in ['admin', 'jefe']);
-      allow write: if esBootstrap();
+      allow write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -309,8 +334,8 @@ service cloud.firestore {
     //  Solo super-admin lee. Escrituras vía Cloud Function callable.
     // ═══════════════════════════════════════════════════════════════
     match /_synaptechLeads/{leadId} {
-      allow read:  if esBootstrap();
-      allow write: if esBootstrap();
+      allow read:  if esOperador();
+      allow write: if esOperador();
     }
 
     // ═══════════════════════════════════════════════════════════════
