@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef, createContext, useContext } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
-  User, Phone, Mail, Scissors, CalendarDays, DollarSign,
+  User, Phone, Mail, Scissors, CalendarDays, DollarSign, Wallet,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle, Activity,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
@@ -5627,6 +5627,16 @@ export default function Agenda() {
 
         {/* Acciones primarias — pegadas al final del row en desktop */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        {/* Caja y agenda se usan juntas todo el día pero en el menú están a
+            cinco grupos de distancia (Operación vs Finanzas). El atajo va en
+            los dos sentidos: el de vuelta está en la cabecera de la caja. */}
+        <Link
+          to="/caja"
+          title="Ir al control de caja"
+          className="h-9 px-2.5 flex items-center gap-1.5 border border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600 rounded-lg text-xs font-semibold transition-all shrink-0"
+        >
+          <Wallet size={14} /> <span className="hidden sm:inline">Caja</span>
+        </Link>
         <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
           className="h-9 px-3 flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-lg text-xs shadow-md transition-all shrink-0"

@@ -4,7 +4,9 @@ import {
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
   FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown, ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
   onSnapshot, serverTimestamp, Timestamp, getDocs, getDoc, limit,
@@ -568,52 +570,257 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
   );
 }
 
+/* ── Semana (lunes a domingo) de una fecha, para agrupar ─────── */
+function semanaDe(ts) {
+  const d = ts?.toDate ? ts.toDate() : new Date(ts || Date.now());
+  const dia = (d.getDay() + 6) % 7;                     // 0 = lunes
+  const lun = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dia);
+  const dom = new Date(lun.getFullYear(), lun.getMonth(), lun.getDate() + 6);
+  const mes = x => x.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
+  return {
+    key: `${lun.getFullYear()}-${String(lun.getMonth() + 1).padStart(2, '0')}-${String(lun.getDate()).padStart(2, '0')}`,
+    label: lun.getMonth() === dom.getMonth()
+      ? `${lun.getDate()} – ${dom.getDate()} ${mes(dom)}`
+      : `${lun.getDate()} ${mes(lun)} – ${dom.getDate()} ${mes(dom)}`,
+  };
+}
+
 /* ── Historial de cierres (una sola definición) ──────────────── */
 // Antes este bloque estaba escrito dos veces —con y sin caja abierta— y las dos
 // copias se fueron separando. Una sola fuente: lo que se agregue acá aparece en
 // los dos estados.
-function HistorialCierres({ sesiones, onVer, max }) {
+//
+// Los filtros son en memoria a propósito: la consulta ya trae las sesiones
+// cerradas ordenadas por fecha, y filtrar en Firestore por responsable o por
+// rango exigiría índices compuestos nuevos por cada combinación. Con el tope de
+// la consulta esto cubre varios meses de un local que cierra a diario.
+const PASO_HISTORIAL = 12;
+// Quién quedó a cargo de la sesión, y su forma comparable.
+const respDe = h => (h.nombreCierre || h.nombreApertura || h.usuarioCierre || '').trim();
+// \p{Diacritic} y no un rango literal de marcas combinantes: esas son
+// invisibles en el editor y cualquier herramienta que recodifique el archivo
+// las rompe sin dejar rastro.
+const normResp = s => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+function HistorialCierres({ sesiones, onVer, error }) {
+  const [fEstado, setFEstado] = useState('todas');   // todas | cuadradas | descuadre
+  const [fResp, setFResp]     = useState('');
+  const [desde, setDesde]     = useState('');
+  const [hasta, setHasta]     = useState('');
+  const [mostrar, setMostrar] = useState(PASO_HISTORIAL);
+
+  // Los responsables salen de las propias sesiones. Una lista escrita a mano se
+  // queda corta en cuanto entra alguien nuevo al local.
+  //
+  // Se colapsan ignorando mayúsculas y acentos porque el nombre se teclea en
+  // cada apertura y el mismo cajero aparece como "MIGUEL" y "miguel". Lo que NO
+  // se hace es unir variantes distintas ("miguel" vs "miguel angel"): podrían
+  // ser dos personas y el sistema no tiene forma de saberlo.
+  const responsables = useMemo(() => {
+    const porClave = new Map();
+    for (const h of sesiones) {
+      const nombre = respDe(h);
+      if (!nombre) continue;
+      const clave = normResp(nombre);
+      const e = porClave.get(clave) || { conteo: new Map() };
+      e.conteo.set(nombre, (e.conteo.get(nombre) || 0) + 1);
+      porClave.set(clave, e);
+    }
+    // Se muestra la forma más usada, que es la que el dueño va a reconocer.
+    return [...porClave.entries()]
+      .map(([clave, e]) => ({
+        clave,
+        label: [...e.conteo.entries()].sort((a, b) => b[1] - a[1])[0][0],
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [sesiones]);
+
+  const filtradas = useMemo(() => sesiones.filter(h => {
+    const diff = h.diferencia ?? 0;
+    if (fEstado === 'cuadradas' && diff !== 0) return false;
+    if (fEstado === 'descuadre' && diff === 0) return false;
+    if (fResp && normResp(respDe(h)) !== fResp) return false;
+    if (desde || hasta) {
+      const ymd = ymdDe(h.fechaApertura);
+      if (!ymd) return false;
+      if (desde && ymd < desde) return false;
+      if (hasta && ymd > hasta) return false;
+    }
+    return true;
+  }), [sesiones, fEstado, fResp, desde, hasta]);
+
+  const resumen = useMemo(() => ({
+    contado:    filtradas.reduce((s, h) => s + (Number(h.montoCierreReal) || 0), 0),
+    facturado:  filtradas.reduce((s, h) => s + (Number(h.snapshot?.ingresosGeneral) || 0), 0),
+    descuadres: filtradas.filter(h => (h.diferencia ?? 0) !== 0).length,
+  }), [filtradas]);
+
+  // Agrupadas por semana, como el historial de Weibook: un cierre suelto dice
+  // poco, la semana es la unidad en que el dueño piensa la plata.
+  const semanas = useMemo(() => {
+    const out = [];
+    for (const h of filtradas.slice(0, mostrar)) {
+      const { key, label } = semanaDe(h.fechaApertura);
+      const ult = out[out.length - 1];
+      if (ult && ult.key === key) ult.items.push(h);
+      else out.push({ key, label, items: [h] });
+    }
+    return out;
+  }, [filtradas, mostrar]);
+
+  // El error se muestra aunque no haya sesiones: es justo el caso en que la
+  // consulta falló y la lista quedó vacía por eso, no porque no haya cierres.
+  if (error) {
+    return (
+      <div>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+          <History size={14} /> Historial de Cierres
+        </h2>
+        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-2">
+          <AlertTriangle size={14} className="shrink-0 mt-0.5" /> {error}
+        </div>
+      </div>
+    );
+  }
   if (!sesiones.length) return null;
-  const lista = max ? sesiones.slice(0, max) : sesiones;
+  const hayFiltro = fEstado !== 'todas' || fResp || desde || hasta;
+  const limpiar = () => { setFEstado('todas'); setFResp(''); setDesde(''); setHasta(''); };
+  // Los <input type="date"> traen el calendario del navegador: sin color-scheme
+  // el ícono sale negro sobre negro y parece que no existiera.
+  const inputFecha = `bg-slate-800/60 border rounded-lg px-2 py-1.5 text-[11px] text-primary [color-scheme:dark] [html.light_&]:[color-scheme:light] ${BRD_FUERTE}`;
+
   return (
     <div>
-      <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
-        <History size={14} /> Historial de Cierres
-      </h2>
-      <div className="space-y-2">
-        {lista.map(h => {
-          const diff = h.diferencia ?? 0;
-          return (
-            <button
-              key={h.id}
-              onClick={() => onVer(h)}
-              className="w-full text-left bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/50 hover:border-slate-600 rounded-xl p-4 transition-colors group [html.light_&]:bg-slate-100 [html.light_&]:border-slate-300"
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <History size={14} /> Historial de Cierres
+        </h2>
+        {hayFiltro && (
+          <button onClick={limpiar} className="text-[11px] font-semibold text-slate-500 hover:text-primary transition-colors flex items-center gap-1">
+            <X size={12} /> Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {/* Filtros — solo cuando hay suficiente historial para que valgan la pena */}
+      {sesiones.length > 6 && (
+        <div className={`mb-3 p-2.5 rounded-xl border flex flex-wrap items-center gap-2 ${SUP_CARD} ${BRD_FUERTE}`}>
+          <div className="flex rounded-lg overflow-hidden border border-slate-700">
+            {[
+              { v: 'todas',     txt: 'Todas'     },
+              { v: 'cuadradas', txt: 'Cuadradas' },
+              { v: 'descuadre', txt: 'Descuadre' },
+            ].map(o => (
+              <button
+                key={o.v}
+                onClick={() => { setFEstado(o.v); setMostrar(PASO_HISTORIAL); }}
+                className={`px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                  fEstado === o.v ? 'bg-slate-700 text-primary' : 'text-slate-400 hover:text-primary'
+                }`}
+              >
+                {o.txt}
+              </button>
+            ))}
+          </div>
+
+          {responsables.length > 1 && (
+            <select
+              value={fResp}
+              onChange={e => { setFResp(e.target.value); setMostrar(PASO_HISTORIAL); }}
+              className={`bg-slate-800/60 border rounded-lg px-2 py-1.5 text-[11px] text-primary ${BRD_FUERTE}`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-xs shrink-0">
-                  <span className="text-slate-400 hidden sm:inline">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                  <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
-                  <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
-                    diff === 0 ? 'bg-emerald-500/10 text-emerald-400'
-                      : diff > 0 ? 'bg-amber-500/10 text-amber-400'
-                      : 'bg-rose-500/10 text-rose-400'
-                  }`}>
-                    {diff === 0 ? 'Cuadrada' : `${diff > 0 ? '▲' : '▼'} ${fmtCurrency(Math.abs(diff))}`}
+              <option value="">Todos los responsables</option>
+              {responsables.map(r => <option key={r.clave} value={r.clave}>{r.label}</option>)}
+            </select>
+          )}
+
+          <div className="flex items-center gap-1.5">
+            <input type="date" value={desde} max={hasta || undefined}
+              onChange={e => { setDesde(e.target.value); setMostrar(PASO_HISTORIAL); }}
+              className={inputFecha} aria-label="Desde" />
+            <span className="text-slate-600 text-[11px]">a</span>
+            <input type="date" value={hasta} min={desde || undefined}
+              onChange={e => { setHasta(e.target.value); setMostrar(PASO_HISTORIAL); }}
+              className={inputFecha} aria-label="Hasta" />
+          </div>
+        </div>
+      )}
+
+      {/* Resumen de lo filtrado */}
+      {filtradas.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+          <span><span className="font-bold text-primary tabular-nums">{filtradas.length}</span> {filtradas.length === 1 ? 'cierre' : 'cierres'}</span>
+          <span>Contado: <span className="font-semibold text-primary tabular-nums">{fmtCurrency(resumen.contado)}</span></span>
+          {resumen.facturado > 0 && <span>Facturado: <span className="font-semibold text-primary tabular-nums">{fmtCurrency(resumen.facturado)}</span></span>}
+          <span className={resumen.descuadres ? 'text-rose-400 font-semibold' : 'text-emerald-400 font-semibold'}>
+            {resumen.descuadres ? `${resumen.descuadres} con descuadre` : 'todas cuadradas'}
+          </span>
+        </div>
+      )}
+
+      {filtradas.length === 0 ? (
+        <p className={`p-4 rounded-xl border text-xs text-slate-500 text-center ${SUP_CARD} ${BRD_FUERTE}`}>
+          Ningún cierre coincide con esos filtros.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {semanas.map(sem => {
+            const totalSem = sem.items.reduce((s, h) => s + (Number(h.montoCierreReal) || 0), 0);
+            return (
+              <div key={sem.key}>
+                <div className="flex items-center justify-between gap-2 mb-1.5 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{sem.label}</span>
+                  <span className="text-[10px] text-slate-600 tabular-nums">
+                    {sem.items.length} · {fmtCurrency(totalSem)}
                   </span>
-                  <ChevronRight size={15} className="text-slate-600 group-hover:text-slate-300 transition-colors" />
+                </div>
+                <div className="space-y-2">
+                  {sem.items.map(h => {
+                    const diff = h.diferencia ?? 0;
+                    return (
+                      <button
+                        key={h.id}
+                        onClick={() => onVer(h)}
+                        className="w-full text-left bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/50 hover:border-slate-600 rounded-xl p-4 transition-colors group [html.light_&]:bg-slate-100 [html.light_&]:border-slate-300"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs shrink-0">
+                            <span className="text-slate-400 hidden sm:inline">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                            <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                            <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
+                              diff === 0 ? 'bg-emerald-500/10 text-emerald-400'
+                                : diff > 0 ? 'bg-amber-500/10 text-amber-400'
+                                : 'bg-rose-500/10 text-rose-400'
+                            }`}>
+                              {diff === 0 ? 'Cuadrada' : `${diff > 0 ? '▲' : '▼'} ${fmtCurrency(Math.abs(diff))}`}
+                            </span>
+                            <ChevronRight size={15} className="text-slate-600 group-hover:text-slate-300 transition-colors" />
+                          </div>
+                        </div>
+                        <HistorialSnapshotRow snapshot={h.snapshot} />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <HistorialSnapshotRow snapshot={h.snapshot} />
+            );
+          })}
+
+          {filtradas.length > mostrar && (
+            <button
+              onClick={() => setMostrar(m => m + PASO_HISTORIAL)}
+              className={`w-full py-2.5 rounded-xl border text-xs font-semibold text-slate-400 hover:text-primary transition-colors ${SUP_CARD} ${BRD_FUERTE}`}
+            >
+              Ver {filtradas.length - mostrar} {filtradas.length - mostrar === 1 ? 'cierre más' : 'cierres más'}
             </button>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1532,6 +1739,7 @@ export default function Caja() {
 
   // Historical sessions
   const [historialRaw, setHistorialRaw] = useState([]);
+  const [historialError, setHistorialError] = useState('');
   // Caja cerrada que se está mirando en el drawer de análisis (null = ninguna).
   const [sesionVista, setSesionVista] = useState(null);
 
@@ -1620,10 +1828,31 @@ export default function Caja() {
 
   /* ── Load historical sessions ───────────────────────────── */
   useEffect(() => {
-    const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'cerrada'), orderBy('fechaCierre', 'desc'), limit(20));
+    // 180 y no 20: con 20 el filtro por rango de fechas del historial no podía
+    // mirar más atrás que ~3 semanas en un local que cierra a diario, y "ver el
+    // mes pasado" simplemente no salía. Son docs chicos (un puñado de números)
+    // y onSnapshot manda solo los cambios, así que el costo real es despreciable.
+    // Ojo: orderBy('fechaCierre') EXCLUYE los docs sin ese campo — acá está bien
+    // porque solo pedimos cerradas, que siempre lo tienen.
+    const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'cerrada'), orderBy('fechaCierre', 'desc'), limit(180));
     const unsub = onSnapshot(q, snap => {
       setHistorialRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
+      setHistorialError('');
+    }, err => {
+      // ANTES esto era `() => {}` y ocultó un bug de meses: la consulta necesita
+      // un índice compuesto (estado, fechaCierre) que no existía, así que el
+      // servidor la rechazaba siempre. No se notaba porque el SDK igual entrega
+      // un resultado desde el cache local —que NO necesita índices— y el doc
+      // estaba ahí por la consulta de caja abierta. Resultado: el historial se
+      // veía solo en el navegador que había abierto la caja, y salía vacío en
+      // cualquier equipo nuevo o en incógnito. Nunca más en silencio.
+      console.error('[caja] historial de cierres:', err);
+      setHistorialError(
+        err?.code === 'failed-precondition'
+          ? 'Falta un índice de Firestore para listar los cierres. Avísale a soporte.'
+          : 'No se pudo cargar el historial de cierres.',
+      );
+    });
     return unsub;
   }, []);
 
@@ -2100,6 +2329,12 @@ export default function Caja() {
           </div>
           <p className="text-slate-400 text-sm">Abre la caja para comenzar a registrar las transacciones del día.</p>
           <div className="flex flex-wrap gap-2 justify-center mt-4">
+            {/* Vuelta a la agenda: las dos vistas se usan juntas todo el día
+                pero en el menú quedan a cinco grupos de distancia. */}
+            <Link to="/agenda"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-lg text-xs font-semibold transition-colors">
+              <CalendarDays size={13} /> Ir a la agenda
+            </Link>
             <button onClick={() => setShowReporteContador(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-lg text-xs font-semibold transition-colors">
               <FileText size={13} /> Reporte para contador
@@ -2151,7 +2386,7 @@ export default function Caja() {
 
         {/* Historial de cierres */}
         <div className="mt-10">
-          <HistorialCierres sesiones={historial} onVer={setSesionVista} />
+          <HistorialCierres sesiones={historial} onVer={setSesionVista} error={historialError} />
         </div>
 
         {sesionVista && (
@@ -2191,6 +2426,10 @@ export default function Caja() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {/* Vuelta a la agenda — ver nota en el atajo de ida (Agenda.jsx). */}
+          <Link to="/agenda" title="Ir a la agenda" className="flex items-center gap-1.5 px-3 py-2 border border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600 rounded-xl text-xs font-bold transition-colors">
+            <CalendarDays size={14} /> Agenda
+          </Link>
           <button onClick={() => setShowReporteContador(true)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-xl text-xs font-bold transition-colors">
             <FileText size={14} /> Contador
           </button>
@@ -2465,7 +2704,7 @@ export default function Caja() {
       </div>
 
       {/* Historial de cierres */}
-      <HistorialCierres sesiones={historial} onVer={setSesionVista} max={10} />
+      <HistorialCierres sesiones={historial} onVer={setSesionVista} error={historialError} />
 
       {sesionVista && (
         <SesionDetalleDrawer

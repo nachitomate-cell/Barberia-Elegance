@@ -1,6 +1,20 @@
 {
   "indexes": [
     {
+      "collectionGroup": "caja_sesiones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaCierre",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "articulos",
       "queryScope": "COLLECTION",
       "fields": [
