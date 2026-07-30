@@ -26,6 +26,7 @@ const admin                             = require('firebase-admin');
 const { FieldValue }                    = require('firebase-admin/firestore');
 const { crearCliente }                  = require('./client');
 const { procesarMensajeEntrante }       = require('./cerebro');
+const { tienePlan }                     = require('../lib/wa-plan');
 
 const db = admin.firestore();
 
@@ -78,8 +79,11 @@ exports.evolutionVincular = onCall({ region: 'us-central1', cors: true, secrets:
   const esBootstrap = BOOTSTRAP_EMAILS.includes(String(req.auth.token.email || '').toLowerCase());
   if (!esBootstrap) {
     const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
-    if (sys.waAsistente !== true) {
-      throw new HttpsError('permission-denied', 'El Asistente IA aún no está activado para tu local. Solicítalo a SynapTech.');
+    // Cualquiera de los tres planes habilita vincular el número: el QR es el
+    // canal, no el módulo. Qué corre sobre él lo deciden los gates de plan en
+    // cerebro.js y confirmaciones.js (ver lib/wa-plan.js).
+    if (!tienePlan(sys)) {
+      throw new HttpsError('permission-denied', 'El módulo de WhatsApp aún no está activado para tu local. Solicítalo a SynapTech.');
     }
   }
   const instanceName = `instance_${tid}`;

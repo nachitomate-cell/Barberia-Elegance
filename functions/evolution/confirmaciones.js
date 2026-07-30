@@ -29,6 +29,7 @@ const { crearCliente }  = require('./client');
 const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
 const { logWaSend }               = require('../lib/metrics');
 const { estaBloqueado }           = require('../lib/wa-consent');
+const { incluyeRecordatorios }    = require('../lib/wa-plan');
 const {
   capDiario, capConfirmaciones, MAX_POR_CICLO,
   dentroDeVentanaHoraria, registrarSaliente, salientesHoy, HORA_INICIO, HORA_FIN,
@@ -264,6 +265,13 @@ async function escanearTodos({ evoClient }) {
     const cfg = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get()).data() || {};
     if (cfg.confirmacionesEnabled !== true) continue;
     if (cfg.estadoConexion !== 'connected') continue;
+    // El plan manda sobre el switch: un `confirmacionesEnabled` heredado de un
+    // plan anterior no puede seguir mandando proactivos (ver lib/wa-plan.js).
+    const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
+    if (!incluyeRecordatorios(sys)) {
+      logger.info(`[confirm] ${tid}: switch encendido pero el plan no incluye recordatorios; omitido`);
+      continue;
+    }
 
     const td = (await db.doc(`tenants/${tid}`).get()).data() || {};
     const nombreLocal = td.nombre || td.nombreCorto || tid;

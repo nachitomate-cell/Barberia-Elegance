@@ -4,6 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { planDe, incluyeBot, incluyeRecordatorios, tienePlan, ETIQUETA_PLAN } from '../lib/waPlan';
 import { useTenant } from '../contexts/TenantContext';
 import { WaChatPreview, ClaudeBadge, LivePreviewHeader } from '../components/WaChatPreview';
 import { Section, SettingsGroup, SettingRow, IosToggle } from '../components/ui/SettingsPrimitives';
@@ -354,8 +355,24 @@ export default function WhatsAppAsistente({ embedded = false }) {
   const estiloChileno = cfg?.estiloChileno === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
 
-  // Habilitado = la llave de SynapTech, o (fallback) ya estaba conectado.
-  const habilitado = sys?.waAsistente === true || isConnected;
+  // Habilitado = tiene ALGÚN plan contratado, o (fallback) ya estaba conectado
+  // desde antes de que existieran los planes.
+  const habilitado = tienePlan(sys) || isConnected;
+
+  /* ── Qué módulos cubre su plan ────────────────────────────────────
+     Ojo: esto decide qué se MUESTRA. Lo que de verdad impide encender
+     algo fuera del plan son las reglas (waSwitchesDentroDelPlan), y lo
+     que impide que un flag viejo siga corriendo son los gates de
+     servidor. Esconder el switch acá es cosmético — misma lección que
+     dejó el rol 'recepcion'. */
+  const plan     = planDe(sys);
+  const conBot   = incluyeBot(sys)           || (isConnected && !plan);
+  const conRecor = incluyeRecordatorios(sys) || (isConnected && !plan);
+  const etiqueta = ETIQUETA_PLAN[plan] || (isConnected ? 'Completo' : 'Sin plan');
+
+  const upsellUrl = (que) => `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(
+    `Hola SynapTech, soy de *${tenant?.name || tid}* y quiero sumar *${que}* a mi plan de WhatsApp. ¿Cómo lo hacemos?`,
+  )}`;
 
   const solicitarUrl = `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(
     `Hola SynapTech, soy de *${tenant?.name || tid}* y quiero activar el *Asistente IA 24/7* por WhatsApp (el bot que responde y agenda solo). ¿Cómo lo activamos?`,
@@ -580,9 +597,40 @@ export default function WhatsAppAsistente({ embedded = false }) {
                   <Unlink size={13} /> Desvincular
                 </button>
               </SettingRow>
+              <SettingRow
+                Icon={Sparkles}
+                title="Tu plan"
+                description={
+                  plan === 'recordatorios' ? 'Confirmaciones de cita automáticas.'
+                  : plan === 'bot'         ? 'Asistente IA que responde y agenda.'
+                  : 'Asistente IA + confirmaciones de cita.'
+                }
+              >
+                <span className="text-[12px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 shrink-0">
+                  {etiqueta}
+                </span>
+              </SettingRow>
             </SettingsGroup>
 
-            {/* Asistente encendido + estilo */}
+            {/* Asistente encendido + estilo — solo si el plan lo incluye */}
+            {!conBot && (
+              <SettingsGroup label="Asistente">
+                <SettingRow
+                  Icon={Lock}
+                  title="Asistente IA 24/7"
+                  description="No está en tu plan. Responde y agenda solo cuando un cliente escribe, a cualquier hora."
+                >
+                  <a
+                    href={upsellUrl('el Asistente IA 24/7')}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-300 hover:text-emerald-200 transition-colors px-3 py-1.5 rounded-full border border-emerald-500/30 hover:border-emerald-500/60 shrink-0"
+                  >
+                    Sumarlo <ExternalLink size={12} />
+                  </a>
+                </SettingRow>
+              </SettingsGroup>
+            )}
+            {conBot && (
             <SettingsGroup label="Asistente" divide>
               <SettingRow
                 Icon={Zap}
@@ -614,8 +662,27 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 </SettingRow>
               )}
             </SettingsGroup>
+            )}
 
-            {/* Confirmaciones */}
+            {/* Confirmaciones — solo si el plan las incluye */}
+            {!conRecor && (
+              <SettingsGroup label="Confirmaciones de cita">
+                <SettingRow
+                  Icon={Lock}
+                  title="Confirmaciones automáticas"
+                  description="No están en tu plan. Le preguntan al cliente si viene, y liberan el cupo solo cuando avisa que no."
+                >
+                  <a
+                    href={upsellUrl('las confirmaciones de cita')}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-300 hover:text-emerald-200 transition-colors px-3 py-1.5 rounded-full border border-emerald-500/30 hover:border-emerald-500/60 shrink-0"
+                  >
+                    Sumarlas <ExternalLink size={12} />
+                  </a>
+                </SettingRow>
+              </SettingsGroup>
+            )}
+            {conRecor && (
             <SettingsGroup label="Confirmaciones de cita" divide>
               <SettingRow
                 Icon={Clock}
@@ -645,6 +712,7 @@ export default function WhatsAppAsistente({ embedded = false }) {
                 </SettingRow>
               )}
             </SettingsGroup>
+            )}
 
             <MiConsumo tid={tid} />
 

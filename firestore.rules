@@ -146,6 +146,44 @@ service cloud.firestore {
           && !request.resource.data.keys().hasAny(['rol', 'role', 'tenantId', 'adminOverride', 'barberoRol']);
     }
 
+    // ── Planes del add-on de WhatsApp (canal Evolution) ─────────────
+    //  El plan vive en _system/{tid}.waPlan y SOLO lo escribe SynapTech
+    //  (match /_system: write = esBootstrap). Los switches del panel
+    //  —botEnabled / confirmacionesEnabled— son preferencias DENTRO del
+    //  plan: apagar algo un feriado, sí; contratarlo solo, no.
+    //  Espejo en servidor: functions/lib/wa-plan.js (misma derivación).
+    function waPlanDe(tid) {
+      return exists(/databases/$(database)/documents/_system/$(tid))
+        ? waPlanDeSys(get(/databases/$(database)/documents/_system/$(tid)).data)
+        : '';
+    }
+    // Retrocompat: el booleano previo a los planes valía por el paquete completo.
+    function waPlanDeSys(sys) {
+      return sys.get('waPlan', sys.get('waAsistente', false) == true ? 'full' : '');
+    }
+    function waIncluyeBot(tid) {
+      return waPlanDe(tid) in ['bot', 'full'];
+    }
+    function waIncluyeRecordatorios(tid) {
+      return waPlanDe(tid) in ['recordatorios', 'full'];
+    }
+    //  Se bloquea ENCENDER, no tener encendido: si el flag ya venía en true
+    //  (p.ej. quedó de un plan anterior) el local puede seguir editando el
+    //  resto del doc en vez de quedar con la configuración trabada. Lo que
+    //  impide que ese flag viejo siga MANDANDO mensajes es el gate de
+    //  servidor (cerebro.js / confirmaciones.js), no esta regla.
+    //  El `resource != null` no es decorativo: en un CREATE no existe el doc
+    //  previo, y leer resource.data ahí revienta la evaluación y deniega — le
+    //  habría cerrado la puerta hasta al plan completo la primera vez.
+    function waSwitchesDentroDelPlan(tid) {
+      return (request.resource.data.get('botEnabled', false) != true
+              || (resource != null && resource.data.get('botEnabled', false) == true)
+              || waIncluyeBot(tid))
+          && (request.resource.data.get('confirmacionesEnabled', false) != true
+              || (resource != null && resource.data.get('confirmacionesEnabled', false) == true)
+              || waIncluyeRecordatorios(tid));
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  _system — configuración global (versionamiento, kill switch)
     //  Lectura pública: solo contiene metadata no sensible (versión
@@ -780,7 +818,10 @@ service cloud.firestore {
     // toggle de visibilidad del Wallet, configuracion/wallet.enabled).
     match /configuracion/{docId} {
       allow read: if true;
-      allow write: if esAdmin('elegance') || esBootstrap();
+      // Mismo candado de planes que en los tenants (ver waSwitchesDentroDelPlan).
+      allow write: if esBootstrap()
+                   || (esAdmin('elegance')
+                       && (docId != 'whatsapp' || waSwitchesDentroDelPlan('elegance')));
     }
 
     // ── /system_errors ─────────────────────────────────────────────
@@ -1380,7 +1421,12 @@ service cloud.firestore {
         // espejoFlagConfirmaciones). El resto de los docs sigue público
         // porque la reserva los lee sin sesión.
         allow read: if docId != 'whatsapp' || esStaff(tid) || esBootstrap();
-        allow write: if esAdmin(tid) || esBootstrap();
+        // En `whatsapp`, el admin del local no puede encender un módulo que su
+        // plan no incluye (ver waSwitchesDentroDelPlan). El resto de los docs
+        // de configuracion no tiene esa restricción.
+        allow write: if esBootstrap()
+                     || (esAdmin(tid)
+                         && (docId != 'whatsapp' || waSwitchesDentroDelPlan(tid)));
       }
 
       // ── anuncios (push publicitario al cliente) ──────────────────

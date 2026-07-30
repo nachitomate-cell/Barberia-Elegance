@@ -38,6 +38,7 @@ const {
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
 const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
+const { incluyeBot, incluyeRecordatorios } = require('../lib/wa-plan');
 const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 const {
   detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
@@ -742,8 +743,13 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   // ── Gating: conectado siempre; luego bot conversacional Y/O confirmaciones ──
   const waCfg = (await waCfgRef(tid).get()).data() || {};
   if (waCfg.estadoConexion !== 'connected') return;
-  const botOn  = waCfg.botEnabled === true;
-  const confOn = waCfg.confirmacionesEnabled === true;
+  // El PLAN manda sobre el switch. Las reglas impiden que el local encienda un
+  // módulo que no contrató, pero no revisan el pasado: si a un tenant se le
+  // baja de 'full' a 'recordatorios', su `botEnabled` sigue en true en el doc.
+  // Sin este AND, el bot seguiría contestando algo que ya no está pagado.
+  const sys    = (await db.doc(`_system/${tid}`).get()).data() || {};
+  const botOn  = waCfg.botEnabled === true && incluyeBot(sys);
+  const confOn = waCfg.confirmacionesEnabled === true && incluyeRecordatorios(sys);
   if (!botOn && !confOn) return;
 
   // ── ANTI-COLISIÓN (Sprint 4): mensajes SALIENTES (fromMe) ──

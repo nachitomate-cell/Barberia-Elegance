@@ -3817,39 +3817,88 @@
 
     // ── Módulos WhatsApp: la "llave" premium vive en _system/{tid} (solo bootstrap
     //    la escribe; el panel del cliente la lee para mostrar activo/bloqueado). ──
+    // Tres planes vendibles. Espejo de functions/lib/wa-plan.js — si agregas
+    // uno, tócalo también allá, en admin-panel/src/lib/waPlan.js y en
+    // firestore.rules. El guard `npm run check:wa-plan` verifica que coincidan.
+    const WA_PLANES = [
+      { id: 'recordatorios', label: 'Recordatorios', desc: 'Solo confirmaciones de cita.' },
+      { id: 'bot',           label: 'Asistente IA',  desc: 'Solo el bot que responde y agenda.' },
+      { id: 'full',          label: 'Completo',      desc: 'Bot + confirmaciones.' },
+    ];
+
+    // Retrocompat: los tenants activados antes de los planes solo tienen el
+    // booleano waAsistente, y lo que tenían era todo → se lee como 'full'.
+    function waPlanDe(sys) {
+      if (WA_PLANES.some(p => p.id === (sys || {}).waPlan)) return sys.waPlan;
+      if ((sys || {}).waAsistente === true) return 'full';
+      return null;
+    }
+
     async function loadWaModules() {
       const el = document.getElementById('wa-modules-control');
       if (!el || !_activeTenant) return;
-      let asistente = false;
+      let plan = null;
       try {
         const s = await db.collection('_system').doc(_activeTenant).get();
-        asistente = s.exists && s.data().waAsistente === true;
+        plan = waPlanDe(s.exists ? s.data() : {});
       } catch (e) {}
-      const sw = (on, fn) => `<button onclick="${fn}" role="switch" aria-checked="${on}" style="
-          position:relative;width:46px;height:26px;border-radius:999px;border:none;cursor:pointer;flex-shrink:0;
-          background:${on ? '#22c55e' : '#475569'};transition:background 0.2s;">
-          <span style="position:absolute;top:3px;left:${on ? '23px' : '3px'};width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.2s;"></span>
-        </button>`;
+
+      const chip = (p) => {
+        const on = plan === p.id;
+        return `<button onclick="setWaPlan('${p.id}')" title="${p.desc}" style="
+            flex:1;min-width:0;cursor:pointer;border-radius:0.5rem;padding:0.5rem 0.4rem;
+            border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(148,163,184,0.22)'};
+            background:${on ? 'rgba(34,197,94,0.14)' : 'rgba(148,163,184,0.06)'};
+            color:${on ? '#4ade80' : '#94a3b8'};font-size:0.72rem;font-weight:700;transition:all 0.15s;">
+            ${p.label}
+          </button>`;
+      };
+
       el.innerHTML = `
         <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.5rem;">
-          <i class="ph-bold ph-sparkle"></i> Módulos WhatsApp
+          <i class="ph-bold ph-sparkle"></i> Plan de WhatsApp
         </p>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.22);border-radius:0.625rem;padding:0.7rem 0.85rem;">
-          <div style="min-width:0;">
-            <p style="font-size:0.82rem;font-weight:700;color:#fff;margin:0;">Asistente IA 24/7 <span style="font-size:0.6rem;color:#a78bfa;font-weight:800;letter-spacing:0.05em;">PREMIUM</span></p>
-            <p style="font-size:0.7rem;color:#64748b;margin:0.1rem 0 0;">Bot que responde y agenda solo sobre el número del local.</p>
-          </div>
-          ${sw(asistente, `toggleWaAsistente(${!asistente})`)}
+        <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.22);border-radius:0.625rem;padding:0.7rem 0.85rem;">
+          <div style="display:flex;gap:0.4rem;">${WA_PLANES.map(chip).join('')}</div>
+          <button onclick="setWaPlan(null)" style="
+            width:100%;margin-top:0.45rem;cursor:pointer;border-radius:0.5rem;padding:0.4rem;
+            border:1px solid ${plan ? 'rgba(148,163,184,0.22)' : 'rgba(239,68,68,0.5)'};
+            background:${plan ? 'transparent' : 'rgba(239,68,68,0.12)'};
+            color:${plan ? '#64748b' : '#f87171'};font-size:0.68rem;font-weight:700;">
+            Sin plan (bloqueado)
+          </button>
         </div>
         <p style="font-size:0.68rem;color:#64748b;margin:0.5rem 0 0;line-height:1.4;">
-          Encendido → el local puede vincular su WhatsApp y usar el bot. Apagado → el módulo aparece bloqueado en su panel (solo "Solicitar activación").
+          Con plan → el local puede vincular su WhatsApp y usar lo que incluye. Sin plan → ve la tarjeta bloqueada con "Solicitar activación".
+          Al bajar de plan se apaga solo el módulo que deja de estar incluido.
         </p>`;
     }
 
-    async function toggleWaAsistente(val) {
+    async function setWaPlan(plan) {
       if (!_activeTenant) return;
+      const tid = _activeTenant;
       try {
-        await db.collection('_system').doc(_activeTenant).set({ waAsistente: val }, { merge: true });
+        // waAsistente se deja alineado con el plan: hay código antiguo que aún
+        // lo lee (Agenda.jsx) y un booleano que contradiga al plan es
+        // exactamente el bug de lista espejo que ya nos mordió otras veces.
+        await db.collection('_system').doc(tid).set({
+          waPlan: plan,
+          waAsistente: plan !== null,
+        }, { merge: true });
+
+        // Al BAJAR de plan hay que apagar el switch que deja de estar cubierto.
+        // Las reglas impiden ENCENDER fuera del plan, pero no revisan el pasado:
+        // sin esto, el local quedaría con el switch en true (los gates de
+        // servidor no enviarían nada, pero su panel mostraría algo que miente).
+        const apagar = {};
+        if (plan !== 'bot' && plan !== 'full')           apagar.botEnabled = false;
+        if (plan !== 'recordatorios' && plan !== 'full') apagar.confirmacionesEnabled = false;
+        if (Object.keys(apagar).length) {
+          const ref = tid === 'elegance'
+            ? db.collection('configuracion').doc('whatsapp')
+            : db.collection('tenants').doc(tid).collection('configuracion').doc('whatsapp');
+          await ref.set(apagar, { merge: true });
+        }
         loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }

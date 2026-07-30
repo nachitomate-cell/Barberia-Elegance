@@ -32,12 +32,32 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     await setDoc(doc(db, `tenants/${TID}/gastos/g1`),         { monto: 50000, concepto: 'Arriendo' });
     await setDoc(doc(db, `tenants/${TID}/caja_sesiones/s1`),  { abierta: true });
     await setDoc(doc(db, `tenants/${TID}/productos/p1`),      { nombre: 'Cera', precio: 8990, stock: 5 });
+
+    // ── Planes del add-on de WhatsApp (ver lib/wa-plan.js) ──
+    // Un tenant por plan, para probar que el local no se auto-contrata nada.
+    await setDoc(doc(db, '_system/t_rec'),    { waPlan: 'recordatorios' });
+    await setDoc(doc(db, '_system/t_bot'),    { waPlan: 'bot' });
+    await setDoc(doc(db, '_system/t_full'),   { waPlan: 'full' });
+    await setDoc(doc(db, '_system/t_legacy'), { waAsistente: true });   // pre-planes
+    await setDoc(doc(db, '_system/t_nada'),   { });
+    for (const t of ['t_rec', 't_bot', 't_full', 't_legacy', 't_nada']) {
+      await setDoc(doc(db, `tenants/${t}/configuracion/whatsapp`), { estadoConexion: 'disconnected' });
+    }
+    // Tenant que quedó con el bot encendido de un plan anterior: al bajarlo a
+    // 'recordatorios' NO debe quedar con la configuración trabada.
+    await setDoc(doc(db, '_system/t_bajado'), { waPlan: 'recordatorios' });
+    await setDoc(doc(db, 'tenants/t_bajado/configuracion/whatsapp'),
+                 { estadoConexion: 'connected', botEnabled: true, recordatorio: { ventanaHoras: 24 } });
   });
 
-  const como = (role) => env.authenticatedContext(`u_${role}`, { role, tenantId: TID }).firestore();
+  const como = (role, tid = TID) =>
+    env.authenticatedContext(`u_${role}_${tid}`, { role, tenantId: tid }).firestore();
   const recepcion = como('recepcion');
   const admin     = como('admin');
   const barbero   = como('barbero');
+
+  const wa = (cliente, tid) => doc(cliente, `tenants/${tid}/configuracion/whatsapp`);
+  const adminDe = (tid) => como('admin', tid);
 
   const casos = [
     // ── recepcion: SÍ puede trabajar ──
@@ -56,6 +76,28 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     ['admin sí cambia precios',                () => updateDoc(doc(admin, `tenants/${TID}/productos/p1`), { precio: 9990 }), true],
     ['barbero lee citas',                      () => getDoc(doc(barbero, `tenants/${TID}/citas/c1`)),              true],
     ['barbero NO lee gastos',                  () => getDoc(doc(barbero, `tenants/${TID}/gastos/g1`)),             false],
+
+    // ── Planes de WhatsApp: el local NO se auto-contrata un módulo ──
+    ['plan recordatorios: SÍ enciende confirmaciones',
+      () => updateDoc(wa(adminDe('t_rec'), 't_rec'), { confirmacionesEnabled: true }), true],
+    ['plan recordatorios: NO enciende el bot',
+      () => updateDoc(wa(adminDe('t_rec'), 't_rec'), { botEnabled: true }), false],
+    ['plan bot: SÍ enciende el bot',
+      () => updateDoc(wa(adminDe('t_bot'), 't_bot'), { botEnabled: true }), true],
+    ['plan bot: NO enciende confirmaciones',
+      () => updateDoc(wa(adminDe('t_bot'), 't_bot'), { confirmacionesEnabled: true }), false],
+    ['plan full: enciende ambos',
+      () => updateDoc(wa(adminDe('t_full'), 't_full'), { botEnabled: true, confirmacionesEnabled: true }), true],
+    ['legacy waAsistente:true vale por plan full',
+      () => updateDoc(wa(adminDe('t_legacy'), 't_legacy'), { botEnabled: true, confirmacionesEnabled: true }), true],
+    ['sin plan: NO enciende nada',
+      () => updateDoc(wa(adminDe('t_nada'), 't_nada'), { botEnabled: true }), false],
+    ['sin plan: SÍ puede editar lo que no es un módulo',
+      () => updateDoc(wa(adminDe('t_nada'), 't_nada'), { estiloChileno: true }), true],
+    ['apagar siempre se puede, esté o no en el plan',
+      () => updateDoc(wa(adminDe('t_bajado'), 't_bajado'), { botEnabled: false }), true],
+    ['bajado de plan: NO queda trabado editando el resto del doc',
+      () => updateDoc(wa(adminDe('t_bajado'), 't_bajado'), { recordatorio: { ventanaHoras: 12 } }), true],
   ];
 
   let fallos = 0;

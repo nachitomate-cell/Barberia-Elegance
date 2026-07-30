@@ -28,6 +28,7 @@ import { tuuSandboxDialog } from '../lib/tuuSandbox';
 import { withTimeout } from '../lib/firestore-helpers';
 import { buscarClientes } from '../lib/clienteSearch';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
+import { incluyeRecordatorios } from '../lib/waPlan';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
@@ -532,7 +533,9 @@ function LeyendaColores({ tenantId }) {
   }, [open, tenantId]);
 
   const confirmOn  = cfg?.confirmacionesEnabled === true;
-  const contratado = sys?.waAsistente === true || cfg?.estadoConexion === 'connected';
+  // Esta leyenda habla SOLO de confirmaciones, así que el plan que importa es
+  // el que las incluye: un local con plan 'bot' no las tiene contratadas.
+  const contratado = incluyeRecordatorios(sys) || cfg?.estadoConexion === 'connected';
 
   const ctaUrl = `https://wa.me/56983568212?text=${encodeURIComponent(
     'Hola SynapTech, quiero activar las *confirmaciones automáticas por WhatsApp* en mi local para dejar de perder horas por clientes que no llegan. ¿Cómo lo hacemos?',

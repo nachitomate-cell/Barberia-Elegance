@@ -12,12 +12,13 @@
     "check:mojibake": "node scripts/check-mojibake.js",
     "check:tenants": "node scripts/check-tema-tenants.js",
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
-    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks",
+    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
     "check:agenda": "node scripts/check-agenda-visibles.js",
     "test:cancelar": "firebase emulators:exec --only firestore \"node scripts/test-rules-cancelar-cliente.js\"",
     "check:slotlocks": "node scripts/auditar-slotlocks.js ALL 30",
-    "test:slotlocks": "node scripts/test-auditor-slotlocks.js"
+    "test:slotlocks": "node scripts/test-auditor-slotlocks.js",
+    "check:wa-plan": "node scripts/check-wa-plan.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
