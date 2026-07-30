@@ -5,7 +5,6 @@ import Spinner from './components/ui/Spinner';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SucursalProvider } from './contexts/SucursalContext';
-import { resolveTenantId } from './lib/tenantUtils';
 const Membresias = lazy(() => import('./views/Membresias'));
 const CorteAlLapiz = lazy(() => import('./views/CorteAlLapiz'));
 const Rangos = lazy(() => import('./views/Rangos'));
@@ -320,18 +319,6 @@ function ProtectedApp() {
   );
 }
 
-const TENANT_MANIFESTS = {
-  elegance:      '/gestion-interna/manifest-elegance.webmanifest',
-  gitana:        '/gestion-interna/manifest-gitana.webmanifest',
-  ferraza:       '/gestion-interna/manifest-ferraza.webmanifest',
-  mapubarber:    '/gestion-interna/manifest-mapubarber.webmanifest',
-  mapubarbershop:'/gestion-interna/manifest-mapubarber.webmanifest',
-  chameleon:     '/gestion-interna/manifest-chameleon.webmanifest',
-  delnero:       '/gestion-interna/manifest-delnero.webmanifest',
-  marcelo_hairdressing: '/gestion-interna/manifest-marcelo_hairdressing.webmanifest',
-  yugen:         '/gestion-interna/manifest-yugen.webmanifest',
-};
-
 /* Cierra por URL las vistas reservadas al admin.
    Ocultar el ítem del Sidebar no cierra la ruta: recepción escribiendo
    /gestion-interna/metricas entraba igual, y Métricas se calcula desde
@@ -348,16 +335,6 @@ function GuardRutaAdmin({ role, fallback }) {
 
 export default function App() {
   useVersionManager();
-
-  useEffect(() => {
-    const tid  = resolveTenantId();
-    // Solo sobrescribimos a un manifest ESTÁTICO si existe para este tenant.
-    // Los demás conservan el manifest dinámico que el middleware ya sirve por
-    // dominio (con su identidad correcta) → evita que se instalen como "Elegance".
-    const href = TENANT_MANIFESTS[tid];
-    const link = document.querySelector('link[rel="manifest"]');
-    if (href && link) link.setAttribute('href', href);
-  }, []);
 
   return (
     <TenantProvider>
