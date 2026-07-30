@@ -7738,8 +7738,14 @@
         // La lista de tenants sale de Firestore vía callable, así que recién
         // acá hay sesión para pedirla. Antes se generaba al parsear la página
         // desde config.js, que es una lista a mano y por eso se quedaba corta.
+        //
+        // Se ESPERA a propósito: loadPlatformStats y loadIncomeProjection
+        // recorren Object.keys(TENANTS). Lanzarla sin await dejaba a las
+        // estadísticas corriendo contra los 14 tenants hardcodeados —
+        // "14 locales activos" y menos clientes únicos de los que hay.
         if (window.saCargarTenants) {
-          window.saCargarTenants().catch(e => console.warn('[Admin] tenants:', e));
+          try { await window.saCargarTenants(); }
+          catch (e) { console.warn('[Admin] tenants:', e); }
         }
         _inicializarAdminPWA().catch(e => console.warn('[Admin PWA] init error:', e));
         loadIncomeProjection().catch(e => {
