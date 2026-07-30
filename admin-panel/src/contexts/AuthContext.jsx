@@ -42,11 +42,21 @@ export function getBrandTenants(email) {
 // subdomain quedaba redirigido a /agenda.html. Confiamos en Firestore rules
 // para el enforcement real: un admin de tenant X que quiera escribir en Y
 // será rechazado por rules igualmente.
+// El claim se toma tal cual viene. ANTES había acá una lista escrita a mano
+// —`role === 'admin' || role === 'barbero'`— que se quedó corta al aparecer
+// `recepcion`: el claim se descartaba y el rol solo salía del doc del staff.
+// Mientras la lectura del doc funcione no se nota, pero si falla o expira, el
+// fallback de más abajo (`rolClaims || 'barbero'`) degradaba a una recepcionista
+// a barbero y la sacaba del panel.
+//
+// No hace falta validar acá: el backend ya normaliza con normalizarRole()
+// (functions/index.js) antes de escribir el claim, y quién entra al panel lo
+// decide PANEL_ROLES en App.jsx. Una lista menos que se puede quedar corta.
 async function roleFromClaims(firebaseUser) {
   try {
     const tok = await firebaseUser.getIdTokenResult();
     const { role } = tok.claims || {};
-    return (role === 'admin' || role === 'barbero') ? role : null;
+    return (typeof role === 'string' && role) ? role : null;
   } catch {
     return null;
   }

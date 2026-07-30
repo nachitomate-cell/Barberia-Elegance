@@ -1944,7 +1944,11 @@ function ArqueoDenominaciones({ conteo, setConteo, total }) {
 /*  CAJA — Control de Caja                                     */
 /* ════════════════════════════════════════════════════════════ */
 export default function Caja() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  // Recepción opera la caja pero no ve los números del negocio, y "cuánto gana
+  // cada profesional" es de esos: Comisiones está `adminOnly` en el menú, así
+  // que mostrarla dentro de la caja sería una puerta lateral a lo mismo.
+  const puedeVerComisiones = role === 'admin';
   const tenant = useTenant();
   const userEmail = user?.email || 'admin';
   const [showReporteContador, setShowReporteContador] = useState(false);
@@ -2149,6 +2153,9 @@ export default function Caja() {
   // adelantos, ajustes manuales y sueldo base son del período y viven en la
   // vista Comisiones. Por eso la tarjeta dice "generadas hoy" y no "a pagar".
   const comisionesHoy = useMemo(() => {
+    // Ni se calcula si quien mira no puede verlo: la tarjeta es solo UI, pero
+    // no tiene sentido dejar el reparto armado en memoria del cliente.
+    if (!puedeVerComisiones) return { filas: [], total: 0 };
     const barberos = barberosRaw.filter(matchSucursal);
     if (!barberos.length) return { filas: [], total: 0 };
 
@@ -2169,7 +2176,7 @@ export default function Caja() {
       .sort((a, b) => b.montoComision - a.montoComision);
 
     return { filas, total: filas.reduce((s, b) => s + b.montoComision, 0) };
-  }, [barberosRaw, matchSucursal, citasHoy, ventasHoy, servicios, cortesiaPagaComision]);
+  }, [puedeVerComisiones, barberosRaw, matchSucursal, citasHoy, ventasHoy, servicios, cortesiaPagaComision]);
 
   /* ── Computed KPIs ──────────────────────────────────────── */
   const kpis = useMemo(() => {
@@ -2952,7 +2959,7 @@ export default function Caja() {
             )}
             {/* Comisiones generadas hoy — la pregunta al cerrar es a quién le
                 toca cuánto, y hasta ahora había que irse a otra vista. */}
-            {comisionesHoy.filas.length > 0 && (
+            {puedeVerComisiones && comisionesHoy.filas.length > 0 && (
               <div className="bg-violet-500/5 border border-violet-500/20 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setComisionesAbierto(v => !v)}
