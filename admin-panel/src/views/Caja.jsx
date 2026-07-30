@@ -3,7 +3,7 @@ import {
   Wallet, DollarSign, ArrowDownCircle, ArrowUpCircle,
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
-  FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown,
+  FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
@@ -106,6 +106,518 @@ function HistorialSnapshotRow({ snapshot }) {
   );
 }
 
+/* ── YYYY-MM-DD local de un Timestamp ───────────────────────── */
+// Local, no UTC: con toISOString() una caja cerrada a las 21:00 CLT quedaría
+// buscando los movimientos del día siguiente.
+function ymdDe(ts) {
+  if (!ts) return null;
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* ── Superficies del drawer, en los dos temas ────────────────── */
+// El panel es dark-first y el modo claro vive en overrides por vista en
+// index.css. `caja` no tiene bloque propio, así que las clases planas
+// (bg-slate-900, border-slate-800) no se traducen y esto saldría oscuro sobre
+// fondo claro. Se declaran los dos modos acá con `[html.light_&]:` —el mismo
+// patrón que usa el Sidebar— y así no dependemos de index.css ni tocamos otras
+// vistas.
+const SUP_DRAWER = 'bg-slate-900 [html.light_&]:bg-white';
+const SUP_HUNDIDA = 'bg-slate-950 [html.light_&]:bg-slate-100';
+const SUP_CARD = 'bg-slate-800/40 [html.light_&]:bg-slate-100';
+const BRD = 'border-slate-800 [html.light_&]:border-slate-200';
+const BRD_FUERTE = 'border-slate-700 [html.light_&]:border-slate-300';
+const LINEA = 'bg-slate-800 [html.light_&]:bg-slate-200';
+
+const METODO_ESTILO = {
+  'Efectivo':      'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  'Débito':        'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  'Crédito':       'bg-violet-500/15 text-violet-300 border-violet-500/30',
+  'Tarjeta':       'bg-purple-500/15 text-purple-300 border-purple-500/30',
+  'Transferencia': 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+};
+function MetodoBadge({ metodo }) {
+  const estilo = METODO_ESTILO[metodo] || 'bg-rose-500/15 text-rose-300 border-rose-500/40';
+  return (
+    <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold whitespace-nowrap ${estilo}`}>
+      {metodo || 'Sin método'}
+    </span>
+  );
+}
+
+/* ── Fila con barra proporcional (flujo de efectivo) ─────────── */
+function FlujoRow({ label, valor, max, color = 'bg-slate-500', negativo, destacado }) {
+  const pct = max > 0 ? Math.min(100, (Math.abs(Number(valor) || 0) / max) * 100) : 0;
+  const hay = (Number(valor) || 0) !== 0;
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <span className={`text-[11px] w-28 sm:w-36 shrink-0 ${destacado ? 'text-primary font-semibold' : 'text-slate-400'}`}>{label}</span>
+      <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${LINEA}`}>
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`text-xs tabular-nums w-24 text-right shrink-0 ${
+        !hay ? 'text-slate-600' : negativo ? 'text-rose-400 font-semibold' : destacado ? 'text-primary font-bold' : 'text-primary font-semibold'
+      }`}>
+        {negativo && hay ? '−' : ''}{fmtCurrency(valor)}
+      </span>
+    </div>
+  );
+}
+
+/* ── Movimientos del día de una sesión cerrada (carga diferida) ─ */
+// No se cargan al abrir el drawer: el análisis sale del snapshot y no cuesta
+// lecturas. Esto es para cuando el dueño quiere ver el cita por cita — que es
+// justo donde se detecta un método de pago mal marcado.
+function MovimientosDelDia({ ymd }) {
+  const [estado, setEstado] = useState('idle');   // idle | cargando | listo | error
+  const [datos, setDatos]   = useState(null);
+  const [err, setErr]       = useState('');
+
+  const cargar = async () => {
+    setEstado('cargando'); setErr('');
+    try {
+      // `citas` y `product_reservations` guardan `fecha` como string YYYY-MM-DD.
+      // `gastos` la guarda como Timestamp → hay que pedir el rango del día, una
+      // igualdad de string no trae nada.
+      const [y, m, d] = ymd.split('-').map(Number);
+      const ini = Timestamp.fromDate(new Date(y, m - 1, d));
+      const fin = Timestamp.fromDate(new Date(y, m - 1, d + 1));
+      const [cSnap, vSnap, gSnap] = await Promise.all([
+        withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '==', ymd))), 15000, 'sesion/citas'),
+        withTimeout(getDocs(query(tenantCol('product_reservations'), where('fecha', '==', ymd))), 15000, 'sesion/ventas'),
+        withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', ini), where('fecha', '<', fin))), 15000, 'sesion/gastos'),
+      ]);
+      setDatos({
+        // Mismo filtro que usa la caja: solo Completada y sin el barbero de QA.
+        citas: cSnap.docs.map(x => ({ id: x.id, ...x.data() }))
+          .filter(c => c.estado === 'Completada' && !c.origenQA)
+          .sort((a, b) => String(a.hora).localeCompare(String(b.hora))),
+        ventas: vSnap.docs.map(x => ({ id: x.id, ...x.data() })),
+        gastos: gSnap.docs.map(x => ({ id: x.id, ...x.data() })),
+      });
+      setEstado('listo');
+    } catch (e) {
+      console.error(e);
+      setErr(e.message || 'No se pudieron cargar los movimientos.');
+      setEstado('error');
+    }
+  };
+
+  if (estado === 'idle') {
+    return (
+      <button
+        onClick={cargar}
+        className={`w-full mt-2 py-2.5 rounded-xl border text-xs font-semibold text-slate-300 transition-colors flex items-center justify-center gap-2 hover:opacity-80 ${BRD_FUERTE} ${SUP_CARD}`}
+      >
+        <ListChecks size={14} /> Ver movimientos del día
+      </button>
+    );
+  }
+  if (estado === 'cargando') {
+    return (
+      <div className="mt-2 py-6 flex items-center justify-center gap-2 text-xs text-slate-500">
+        <div className="w-3.5 h-3.5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+        Cargando movimientos…
+      </div>
+    );
+  }
+  if (estado === 'error') {
+    return (
+      <div className="mt-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">
+        {err}
+        <button onClick={cargar} className="ml-2 underline font-semibold">Reintentar</button>
+      </div>
+    );
+  }
+
+  const { citas, ventas, gastos } = datos;
+  const sinMetodo = citas.filter(c => !c.metodoPago).length;
+
+  return (
+    <div className="mt-3 space-y-4">
+      {sinMetodo > 0 && (
+        <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-300 flex items-start gap-2">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>{sinMetodo} servicio{sinMetodo > 1 ? 's' : ''} sin método de pago. No entraron al esperado de esa caja.</span>
+        </div>
+      )}
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          Servicios · {citas.length}
+        </p>
+        {citas.length === 0 ? (
+          <p className="text-[11px] text-slate-600 py-2">Sin servicios completados ese día.</p>
+        ) : (
+          <div className="space-y-1">
+            {citas.map(c => (
+              <div key={c.id} className={`flex items-center gap-2 py-1.5 border-b last:border-0 ${BRD}`}>
+                <span className="text-[11px] text-slate-500 tabular-nums w-11 shrink-0">{c.hora || '--:--'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-primary truncate">{c.clienteNombre || c.nombre || 'Cliente'}</p>
+                  <p className="text-[10px] text-slate-500 truncate">
+                    {c.servicioNombre || c.servicio || 'Servicio'} · {c.barbero || 'Sin profesional'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <span className="text-xs font-semibold text-primary tabular-nums">
+                    {c.cortesia ? 'Cortesía' : fmtCurrency(c.precio)}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {(Number(c.propina) || 0) > 0 && (
+                      <span className="text-[10px] text-amber-400 tabular-nums">+{fmtCurrency(c.propina)} prop.</span>
+                    )}
+                    <MetodoBadge metodo={c.metodoPago} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {ventas.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            Productos · {ventas.length}
+          </p>
+          <div className="space-y-1">
+            {ventas.map(v => (
+              <div key={v.id} className={`flex items-center gap-2 py-1.5 border-b last:border-0 ${BRD}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-primary truncate">{v.productName || v.productoNombre || 'Producto'}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{v.userName || v.userEmail || ''}</p>
+                </div>
+                <span className="text-xs font-semibold text-primary tabular-nums shrink-0">{fmtCurrency(v.precio)}</span>
+                <MetodoBadge metodo={v.metodoPago} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {gastos.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            Gastos · {gastos.length}
+          </p>
+          <div className="space-y-1">
+            {gastos.map(g => (
+              <div key={g.id} className={`flex items-center gap-2 py-1.5 border-b last:border-0 ${BRD}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-primary truncate">{g.descripcion || g.concepto || 'Gasto'}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{g.categoria || ''}</p>
+                </div>
+                <span className="text-xs font-semibold text-rose-400 tabular-nums shrink-0">−{fmtCurrency(g.monto)}</span>
+                <MetodoBadge metodo={g.metodoPago} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Drawer: análisis completo de una caja ya cerrada ────────── */
+// Se dibuja con el `snapshot` congelado al cierre, no recalculando: el historial
+// tiene que decir lo mismo dentro de seis meses aunque después se editen citas.
+function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const s = sesion.snapshot || null;
+  const apertura = Number(s?.apertura ?? sesion.montoApertura) || 0;
+  const esperado = Number(sesion.montoCierreEsperado) || 0;
+  const real     = Number(sesion.montoCierreReal) || 0;
+  const diff     = Number(sesion.diferencia ?? (real - esperado)) || 0;
+
+  const facturado = Number(s?.ingresosGeneral) || 0;
+  const efectivo  = Number(s?.ingresosEfectivo) || 0;
+  const tarjeta   = Number(s?.ingresosTarjeta) || 0;
+  const transf    = Number(s?.ingresosTransf) || 0;
+  const sinMetodo = Number(s?.serviciosNoEspecificado) || 0;
+
+  // Escala común de las barras: el mayor de los valores del flujo.
+  const maxFlujo = Math.max(apertura, efectivo, real, esperado, Number(s?.egresosEfectivo) || 0, 1);
+
+  const composicion = [
+    { label: 'Efectivo',      v: efectivo,  color: 'bg-emerald-500', txt: 'text-emerald-400' },
+    { label: 'Tarjeta',       v: tarjeta,   color: 'bg-sky-500',     txt: 'text-sky-400'     },
+    { label: 'Transferencia', v: transf,    color: 'bg-amber-500',   txt: 'text-amber-400'   },
+    { label: 'Sin método',    v: sinMetodo, color: 'bg-rose-500',    txt: 'text-rose-400'    },
+  ].filter(x => x.v > 0);
+
+  const duracion = (() => {
+    const a = sesion.fechaApertura?.toDate?.();
+    const c = sesion.fechaCierre?.toDate?.();
+    if (!a || !c) return null;
+    const min = Math.round((c - a) / 60000);
+    return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+  })();
+
+  const fechaLarga = sesion.fechaApertura?.toDate
+    ? sesion.fechaApertura.toDate().toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })
+    : '—';
+
+  const seccion = (n, titulo) => (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-[10px] font-bold text-slate-600 tabular-nums">{n}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
+      <div className={`flex-1 h-px ${LINEA}`} />
+    </div>
+  );
+  const fila = (label, valor, cls) => (
+    <div className={`flex items-center justify-between py-1.5 border-b last:border-0 ${BRD}`}>
+      <span className="text-xs text-slate-400">{label}</span>
+      <span className={`text-xs font-semibold tabular-nums ${cls || 'text-primary'}`}>{valor}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={`w-full max-w-lg h-full border-l shadow-2xl flex flex-col animate-slide-in-right ${SUP_DRAWER} ${BRD_FUERTE}`}>
+        {/* Cabecera */}
+        <div className={`p-5 pb-4 border-b shrink-0 ${BRD}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Sesión {String(sesion.id || '').slice(-6).toUpperCase()}
+              </p>
+              <h3 className="text-xl font-black text-primary truncate">Caja del {fechaLarga}</h3>
+              <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> Cerrada
+                </span>
+                <span>·</span>
+                <span className="truncate">{sesion.nombreCierre || sesion.nombreApertura || sesion.usuarioCierre || '—'}</span>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-slate-500 hover:text-primary transition-colors shrink-0" aria-label="Cerrar">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Cuerpo */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* Saldo de cierre */}
+          <div className={`rounded-2xl border p-4 ${SUP_HUNDIDA} ${BRD}`}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Saldo de cierre</p>
+            <p className="text-3xl font-black text-primary tracking-tight mt-0.5">{fmtCurrency(real)}</p>
+            {facturado > 0 && (
+              <p className="text-[11px] text-slate-500 mt-1">
+                Facturado en el día <span className="text-slate-300 font-semibold">{fmtCurrency(facturado)}</span>
+              </p>
+            )}
+          </div>
+
+          {/* 01 Arqueo */}
+          <div>
+            {seccion('01', 'Arqueo de efectivo')}
+            <div className={`rounded-xl border p-3 ${
+              diff === 0 ? 'bg-emerald-500/5 border-emerald-500/25' : 'bg-rose-500/5 border-rose-500/25'
+            }`}>
+              {fila('Esperado en caja', fmtCurrency(esperado))}
+              {fila('Contado físicamente', fmtCurrency(real))}
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-700/50">
+                <span className="text-xs font-semibold text-slate-300">Diferencia</span>
+                <span className={`text-sm font-black tabular-nums flex items-center gap-1.5 ${
+                  diff === 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}>
+                  {diff === 0 ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  {diff > 0 ? '+' : ''}{fmtCurrency(diff)}
+                  <span className="text-[10px] font-medium opacity-70">
+                    {diff === 0 ? 'cuadrada' : diff > 0 ? 'sobrante' : 'faltante'}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {!s ? (
+            <div className={`p-3 rounded-xl border text-[11px] text-slate-400 ${SUP_CARD} ${BRD_FUERTE}`}>
+              Esta caja se cerró antes de que el sistema guardara el desglose, así que
+              solo hay arqueo y horarios. Los cierres nuevos guardan todo el detalle.
+            </div>
+          ) : (
+            <>
+              {/* 02 Flujo de efectivo */}
+              <div>
+                {seccion('02', 'Flujo de efectivo')}
+                <FlujoRow label="Base de apertura"  valor={apertura}            max={maxFlujo} color="bg-slate-500" />
+                <FlujoRow label="Ventas en efectivo" valor={s.ingresosEfectivo}  max={maxFlujo} color="bg-emerald-500" />
+                {(s.propinasEfectivo ?? 0) > 0 && (
+                  <FlujoRow label="Propinas efectivo" valor={s.propinasEfectivo} max={maxFlujo} color="bg-amber-500" />
+                )}
+                {(s.egresosEfectivo ?? 0) > 0 && (
+                  <FlujoRow label="Gastos y egresos" valor={s.egresosEfectivo}   max={maxFlujo} color="bg-rose-500" negativo />
+                )}
+                <div className={`my-1.5 h-px ${LINEA}`} />
+                <FlujoRow label="Cierre" valor={real} max={maxFlujo} color="bg-primary/70" destacado />
+              </div>
+
+              {/* 03 Composición */}
+              {facturado > 0 && (
+                <div>
+                  {seccion('03', 'Composición de lo facturado')}
+                  <div className={`flex h-2.5 rounded-full overflow-hidden mb-3 ${LINEA}`}>
+                    {composicion.map(x => (
+                      <div key={x.label} className={x.color} style={{ width: `${(x.v / facturado) * 100}%` }} title={`${x.label}: ${fmtCurrency(x.v)}`} />
+                    ))}
+                  </div>
+                  {composicion.map(x => (
+                    <div key={x.label} className="flex items-center justify-between py-1">
+                      <span className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className={`w-2 h-2 rounded-full ${x.color}`} />
+                        {x.label}
+                        <span className="text-[10px] text-slate-600">{Math.round((x.v / facturado) * 100)}%</span>
+                      </span>
+                      <span className={`text-xs font-semibold tabular-nums ${x.txt}`}>{fmtCurrency(x.v)}</span>
+                    </div>
+                  ))}
+                  {sinMetodo > 0 && (
+                    <p className="mt-2 text-[10px] text-rose-400/80 leading-relaxed">
+                      Lo que quedó sin método no se sumó al esperado de esa caja: por eso puede
+                      aparecer un faltante que en realidad no lo es.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* 04 Detalle */}
+              <div>
+                {seccion('04', 'Detalle')}
+                {fila('Facturado en servicios', fmtCurrency((s.serviciosEfectivo || 0) + (s.serviciosTarjeta || 0) + (s.serviciosTransf || 0) + (s.serviciosNoEspecificado || 0)))}
+                {fila('Facturado en productos', fmtCurrency((s.productosEfectivo || 0) + (s.productosTarjeta || 0) + (s.productosTransf || 0)))}
+                {fila('Propinas del día', fmtCurrency(s.propinasTotal), (s.propinasTotal ?? 0) > 0 ? 'text-amber-400' : undefined)}
+                {fila('Servicios completados', s.totalCitas ?? '—')}
+                {fila('Productos vendidos', s.totalVentas ?? '—')}
+                {fila('Gastos registrados', s.totalGastos ?? '—')}
+              </div>
+            </>
+          )}
+
+          {/* 05 Tiempos */}
+          <div>
+            {seccion('05', 'Tiempos')}
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 rounded-xl border p-3 ${SUP_CARD} ${BRD_FUERTE}`}>
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Apertura</p>
+                <p className="text-base font-bold text-primary">{fmtTime(sesion.fechaApertura)}</p>
+                <p className="text-[10px] text-slate-500 truncate">{sesion.nombreApertura || sesion.usuarioApertura || '—'}</p>
+              </div>
+              <Clock size={14} className="text-slate-600 shrink-0" />
+              <div className={`flex-1 rounded-xl border p-3 ${SUP_CARD} ${BRD_FUERTE}`}>
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Cierre</p>
+                <p className="text-base font-bold text-primary">{fmtTime(sesion.fechaCierre)}</p>
+                <p className="text-[10px] text-slate-500 truncate">{sesion.nombreCierre || sesion.usuarioCierre || '—'}</p>
+              </div>
+            </div>
+            {duracion && <p className="text-[10px] text-slate-500 mt-1.5 text-center">Turno de {duracion}</p>}
+          </div>
+
+          {/* Observaciones del cierre */}
+          {sesion.observaciones && (
+            <div>
+              {seccion('06', 'Observaciones')}
+              <p className={`text-[11px] text-slate-400 leading-relaxed whitespace-pre-line border-l-2 rounded-r-lg p-3 ${SUP_CARD} ${BRD_FUERTE}`}>
+                {sesion.observaciones}
+              </p>
+            </div>
+          )}
+
+          {/* Traza de una corrección posterior al cierre */}
+          {sesion._correccion && (
+            <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/25 text-[11px] text-amber-200/90 flex items-start gap-2">
+              <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-400" />
+              <span>
+                <strong>Registro corregido</strong> el {sesion._correccion.fecha} por {sesion._correccion.por}.
+                {sesion._correccion.original && (
+                  <> Antes decía esperado {fmtCurrency(sesion._correccion.original.montoCierreEsperado)} y
+                  diferencia {fmtCurrency(sesion._correccion.original.diferencia)}.</>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* Movimientos (carga diferida) */}
+          <div>
+            {seccion('07', 'Movimientos del día')}
+            <MovimientosDelDia ymd={ymdDe(sesion.fechaApertura)} />
+          </div>
+        </div>
+
+        {/* Pie */}
+        <div className={`p-4 border-t shrink-0 ${BRD}`}>
+          <button
+            onClick={() => abrirHTML(
+              buildResumenCierreHTML({ tenantName, sesion }),
+              `cierre-caja-${ymdDe(sesion.fechaApertura) || 'sesion'}.html`,
+            )}
+            className={`w-full py-2.5 rounded-xl border text-sm font-semibold text-primary transition-colors flex items-center justify-center gap-2 hover:opacity-80 ${SUP_CARD} ${BRD_FUERTE}`}
+          >
+            <Printer size={15} /> Imprimir resumen de caja
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Historial de cierres (una sola definición) ──────────────── */
+// Antes este bloque estaba escrito dos veces —con y sin caja abierta— y las dos
+// copias se fueron separando. Una sola fuente: lo que se agregue acá aparece en
+// los dos estados.
+function HistorialCierres({ sesiones, onVer, max }) {
+  if (!sesiones.length) return null;
+  const lista = max ? sesiones.slice(0, max) : sesiones;
+  return (
+    <div>
+      <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <History size={14} /> Historial de Cierres
+      </h2>
+      <div className="space-y-2">
+        {lista.map(h => {
+          const diff = h.diferencia ?? 0;
+          return (
+            <button
+              key={h.id}
+              onClick={() => onVer(h)}
+              className="w-full text-left bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/50 hover:border-slate-600 rounded-xl p-4 transition-colors group [html.light_&]:bg-slate-100 [html.light_&]:border-slate-300"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
+                  <p className="text-xs text-slate-500 truncate">
+                    {h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-xs shrink-0">
+                  <span className="text-slate-400 hidden sm:inline">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
+                  <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
+                  <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
+                    diff === 0 ? 'bg-emerald-500/10 text-emerald-400'
+                      : diff > 0 ? 'bg-amber-500/10 text-amber-400'
+                      : 'bg-rose-500/10 text-rose-400'
+                  }`}>
+                    {diff === 0 ? 'Cuadrada' : `${diff > 0 ? '▲' : '▼'} ${fmtCurrency(Math.abs(diff))}`}
+                  </span>
+                  <ChevronRight size={15} className="text-slate-600 group-hover:text-slate-300 transition-colors" />
+                </div>
+              </div>
+              <HistorialSnapshotRow snapshot={h.snapshot} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Mini Modal ───────────────────────────────────────────── */
 function MiniModal({ title, onClose, children }) {
   return (
@@ -144,6 +656,27 @@ function escapeHTML(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
+}
+
+/* ── Abrir un HTML generado en una pestaña nueva ─────────────── */
+// Con caída a descarga: si el navegador bloquea el popup y no hay fallback, el
+// botón no hace nada y parece roto.
+function abrirHTML(html, filename) {
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    return;
+  }
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function fetchDatosMes(mesKey) {
@@ -393,6 +926,81 @@ function buildCorteXHTML({ tenantName, kpis, cajero, efectivoContado, apertura, 
 </body></html>`;
 }
 
+/* ── Resumen de una caja YA CERRADA — HTML imprimible ────────── */
+// Se arma 100% con el `snapshot` congelado al cierre, no con datos de hoy: el
+// papel tiene que decir lo mismo dentro de seis meses aunque las citas cambien.
+function buildResumenCierreHTML({ tenantName, sesion }) {
+  const fmt = v => '$' + Math.round(v || 0).toLocaleString('es-CL');
+  const s = sesion.snapshot || {};
+  const esperado = Number(sesion.montoCierreEsperado) || 0;
+  const real = Number(sesion.montoCierreReal) || 0;
+  const diff = Number(sesion.diferencia ?? (real - esperado)) || 0;
+  const fecha = sesion.fechaApertura?.toDate
+    ? sesion.fechaApertura.toDate().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—';
+  const row = (l, v, cls) => `<div class="row"><span>${escapeHTML(l)}</span><span${cls ? ` class="${cls}"` : ''}>${v}</span></div>`;
+  const opt = (l, v, prefix) => ((v ?? 0) > 0 ? row(l, `${prefix || ''}${fmt(v)}`) : '');
+
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Cierre de caja ${escapeHTML(fecha)} — ${escapeHTML(tenantName || 'Local')}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2937; padding: 24px; max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 12px; margin: 20px 0 6px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  .meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; line-height: 1.5; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .row.total { border-top: 2px solid #111827; padding-top: 8px; margin-top: 6px; font-weight: bold; font-size: 15px; }
+  .ok  { color: #059669; font-weight: bold; }
+  .bad { color: #dc2626; font-weight: bold; }
+  .nota { margin-top: 14px; padding: 10px 12px; background: #f9fafb; border-left: 3px solid #d1d5db; font-size: 11px; color: #4b5563; white-space: pre-line; line-height: 1.5; }
+  .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 10px; text-align: center; }
+  .toolbar { background: #111827; color: #fff; padding: 10px 14px; border-radius: 6px; display: flex; gap: 8px; margin-bottom: 14px; }
+  .toolbar button { background: #fff; color: #111827; border: 0; padding: 5px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; }
+  @media print { body { padding: 12px; } .noprint { display: none; } }
+</style></head>
+<body>
+  <div class="toolbar noprint">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+  <h1>${escapeHTML(tenantName || 'Local')} — Cierre de caja</h1>
+  <div class="meta">
+    Fecha de caja: <strong>${escapeHTML(fecha)}</strong><br>
+    Abrió: <strong>${escapeHTML(sesion.nombreApertura || sesion.usuarioApertura || '—')}</strong> a las ${fmtTime(sesion.fechaApertura)}<br>
+    Cerró: <strong>${escapeHTML(sesion.nombreCierre || sesion.usuarioCierre || '—')}</strong> a las ${fmtTime(sesion.fechaCierre)}
+  </div>
+
+  <h2>Arqueo de efectivo</h2>
+  ${row('Base de apertura', fmt(s.apertura ?? sesion.montoApertura))}
+  ${opt('+ Ventas en efectivo', s.ingresosEfectivo)}
+  ${opt('+ Propinas en efectivo', s.propinasEfectivo)}
+  ${opt('− Gastos y egresos', s.egresosEfectivo, '−')}
+  ${row('Esperado en caja', fmt(esperado))}
+  ${row('Contado físicamente', fmt(real))}
+  ${row('Diferencia', `${diff > 0 ? '+' : ''}${fmt(diff)} ${diff === 0 ? '(cuadrada)' : diff > 0 ? '(sobrante)' : '(faltante)'}`, diff === 0 ? 'ok' : 'bad')}
+
+  <h2>Métodos de pago</h2>
+  ${row('Efectivo', fmt(s.ingresosEfectivo))}
+  ${row('Tarjeta (débito / crédito)', fmt(s.ingresosTarjeta))}
+  ${row('Transferencia', fmt(s.ingresosTransf))}
+  ${(s.serviciosNoEspecificado ?? 0) > 0 ? row('Sin método registrado', fmt(s.serviciosNoEspecificado), 'bad') : ''}
+  ${row('Total facturado', fmt(s.ingresosGeneral), 'total')}
+
+  <h2>Actividad</h2>
+  ${row('Facturado en servicios', fmt((s.serviciosEfectivo || 0) + (s.serviciosTarjeta || 0) + (s.serviciosTransf || 0) + (s.serviciosNoEspecificado || 0)))}
+  ${row('Facturado en productos', fmt((s.productosEfectivo || 0) + (s.productosTarjeta || 0) + (s.productosTransf || 0)))}
+  ${row('Propinas del día', fmt(s.propinasTotal))}
+  ${row('Servicios completados', s.totalCitas ?? '—')}
+  ${row('Productos vendidos', s.totalVentas ?? '—')}
+  ${row('Gastos registrados', s.totalGastos ?? '—')}
+
+  ${sesion.observaciones ? `<div class="nota"><strong>Observaciones</strong>\n${escapeHTML(sesion.observaciones)}</div>` : ''}
+
+  <div class="footer">Cierre de caja · Sesión ${escapeHTML(String(sesion.id || '').slice(-6).toUpperCase())} · SynapTech</div>
+</body></html>`;
+}
+
 function ReporteContadorModal({ tenantName, onClose }) {
   const ahora = new Date();
   const defaultKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
@@ -412,19 +1020,7 @@ function ReporteContadorModal({ tenantName, onClose }) {
       const r = calcReporte(datos);
       const html = buildReporteHTML({ mesKey, tenantName, settings, r });
 
-      // Abrir en nueva ventana. Si el popup está bloqueado, caemos a un blob.
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(html);
-        win.document.close();
-      } else {
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `reporte-contador-${mesKey}.html`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      abrirHTML(html, `reporte-contador-${mesKey}.html`);
       onClose();
     } catch (e) {
       console.error(e);
@@ -936,6 +1532,8 @@ export default function Caja() {
 
   // Historical sessions
   const [historialRaw, setHistorialRaw] = useState([]);
+  // Caja cerrada que se está mirando en el drawer de análisis (null = ninguna).
+  const [sesionVista, setSesionVista] = useState(null);
 
   // ── Caja POR SEDE (tipo Kronnos) ─────────────────────────────────
   // Cada sede tiene su propio cajón (sesión de apertura/cierre). La caja opera
@@ -1403,18 +2001,7 @@ export default function Caja() {
         apertura: kpis.apertura,
         fechaApertura: sesionActiva.fechaApertura,
       });
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(html);
-        win.document.close();
-      } else {
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `corte-x-${todayYMD()}.html`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      abrirHTML(html, `corte-x-${todayYMD()}.html`);
 
       // 2) Registro en el doc de sesión (audit trail — no modifica saldos)
       const cortes = sesionActiva.cortesX || [];
@@ -1563,37 +2150,17 @@ export default function Caja() {
         </div>
 
         {/* Historial de cierres */}
-        {historial.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4">
-              <History size={14} /> Historial de Cierres
-            </h2>
-            <div className="space-y-2">
-              {historial.map(h => {
-                const diff = h.diferencia ?? 0;
-                return (
-                  <div key={h.id} className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
-                        <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}</p>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs">
-                        <span className="text-slate-400">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                        <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
-                        <span className={`font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {diff >= 0 ? '+' : ''}{fmtCurrency(diff)}
-                        </span>
-                      </div>
-                    </div>
-                    <HistorialSnapshotRow snapshot={h.snapshot} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <div className="mt-10">
+          <HistorialCierres sesiones={historial} onVer={setSesionVista} />
+        </div>
 
+        {sesionVista && (
+          <SesionDetalleDrawer
+            sesion={sesionVista}
+            tenantName={tenant?.name}
+            onClose={() => setSesionVista(null)}
+          />
+        )}
         {showReporteContador && (
           <ReporteContadorModal tenantName={tenant?.name} onClose={() => setShowReporteContador(false)} />
         )}
@@ -1898,35 +2465,14 @@ export default function Caja() {
       </div>
 
       {/* Historial de cierres */}
-      {historial.length > 0 && (
-        <div>
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
-            <History size={14} /> Historial de Cierres
-          </h2>
-          <div className="space-y-2">
-            {historial.slice(0, 10).map(h => {
-              const diff = h.diferencia ?? 0;
-              return (
-                <div key={h.id} className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-primary font-semibold">{fmtDateTime(h.fechaApertura)} → {fmtDateTime(h.fechaCierre)}</p>
-                      <p className="text-xs text-slate-500">{h.nombreApertura || h.usuarioApertura || '-'} / {h.nombreCierre || h.usuarioCierre || '-'}{h.observaciones ? ` · ${h.observaciones}` : ''}</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs">
-                      <span className="text-slate-400">Esperado: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreEsperado)}</span></span>
-                      <span className="text-slate-400">Real: <span className="text-primary font-semibold">{fmtCurrency(h.montoCierreReal)}</span></span>
-                      <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${diff >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                        {diff >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(diff))}
-                      </span>
-                    </div>
-                  </div>
-                  <HistorialSnapshotRow snapshot={h.snapshot} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <HistorialCierres sesiones={historial} onVer={setSesionVista} max={10} />
+
+      {sesionVista && (
+        <SesionDetalleDrawer
+          sesion={sesionVista}
+          tenantName={tenant?.name}
+          onClose={() => setSesionVista(null)}
+        />
       )}
 
       {/* ── MODALES ──────────────────────────────────────────── */}
