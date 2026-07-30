@@ -14,6 +14,7 @@ import {
 import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
+import { renderTicketTermico, escapeHTML } from '../lib/ticket-termico';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursal } from '../contexts/SucursalContext';
@@ -321,10 +322,41 @@ function MovimientosDelDia({ ymd }) {
   );
 }
 
+/* ── Elegir térmica vs hoja normal ───────────────────────────── */
+// Un único selector para todo lo imprimible de la caja. El local imprime en el
+// rollo de 80mm del mesón; la hoja carta es para el contador o para archivar, y
+// mandar una a la otra impresora sale cortado o gasta una hoja entera.
+function ElegirFormatoImpresion({ onClose, onElegir }) {
+  const opcion = `w-full p-3 rounded-xl border text-left transition-colors hover:opacity-80 ${SUP_CARD} ${BRD_FUERTE}`;
+  return (
+    <MiniModal title="¿Cómo lo imprimes?" onClose={onClose}>
+      <div className="space-y-2">
+        <button onClick={() => onElegir('termica')} className={opcion}>
+          <span className="flex items-center gap-2 text-sm font-bold text-primary">
+            <Printer size={15} /> Impresora térmica
+          </span>
+          <span className="block mt-0.5 text-[11px] text-slate-400">
+            Rollo de 80&nbsp;mm, el del mesón. El papel se corta al alto del ticket.
+          </span>
+        </button>
+        <button onClick={() => onElegir('carta')} className={opcion}>
+          <span className="flex items-center gap-2 text-sm font-bold text-primary">
+            <FileText size={15} /> Hoja normal
+          </span>
+          <span className="block mt-0.5 text-[11px] text-slate-400">
+            Tamaño carta, para el contador o para archivar.
+          </span>
+        </button>
+      </div>
+    </MiniModal>
+  );
+}
+
 /* ── Drawer: análisis completo de una caja ya cerrada ────────── */
 // Se dibuja con el `snapshot` congelado al cierre, no recalculando: el historial
 // tiene que decir lo mismo dentro de seis meses aunque después se editen citas.
 function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
+  const [imprimir, setImprimir] = useState(false);
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -556,15 +588,28 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
         {/* Pie */}
         <div className={`p-4 border-t shrink-0 ${BRD}`}>
           <button
-            onClick={() => abrirHTML(
-              buildResumenCierreHTML({ tenantName, sesion }),
-              `cierre-caja-${ymdDe(sesion.fechaApertura) || 'sesion'}.html`,
-            )}
+            onClick={() => setImprimir(true)}
             className={`w-full py-2.5 rounded-xl border text-sm font-semibold text-primary transition-colors flex items-center justify-center gap-2 hover:opacity-80 ${SUP_CARD} ${BRD_FUERTE}`}
           >
             <Printer size={15} /> Imprimir resumen de caja
           </button>
         </div>
+
+        {imprimir && (
+          <ElegirFormatoImpresion
+            onClose={() => setImprimir(false)}
+            onElegir={fmt => {
+              const ymd = ymdDe(sesion.fechaApertura) || 'sesion';
+              abrirHTML(
+                fmt === 'termica'
+                  ? buildResumenCierreTermicoHTML({ tenantName, sesion })
+                  : buildResumenCierreHTML({ tenantName, sesion }),
+                `cierre-caja-${ymd}.html`,
+              );
+              setImprimir(false);
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -958,11 +1003,9 @@ function fechaToYMD(f) {
   return '';
 }
 
-function escapeHTML(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
+// escapeHTML vive en ticket-termico.js: la usan los cuatro imprimibles de esta
+// vista y el renderizador del ticket, y tener dos copias de un escapador es
+// pedir que una se quede sin un caso.
 
 /* ── Abrir un HTML generado en una pestaña nueva ─────────────── */
 // Con caída a descarga: si el navegador bloquea el popup y no hay fallback, el
@@ -1161,6 +1204,67 @@ function buildReporteHTML({ mesKey, tenantName, settings, r }) {
 </body></html>`;
 }
 
+/* ── Corte X en formato térmico ──────────────────────────────── */
+// El Corte X es el papel que un cajero le pasa al que entra: sale por la térmica
+// del mesón, no por la impresora de hojas.
+function buildCorteXTermicoHTML({ tenantName, kpis, cajero, efectivoContado, apertura, fechaApertura }) {
+  const f = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-CL');
+  const contado = efectivoContado != null && !isNaN(efectivoContado) ? efectivoContado : null;
+  const diff = contado != null ? contado - kpis.saldoEsperado : null;
+  const opt = (etq, v, pre) => ((v ?? 0) > 0 ? [[etq, `${pre || ''}${f(v)}`]] : []);
+
+  return renderTicketTermico({
+    local: tenantName,
+    titulo: 'Corte X - arqueo intermedio',
+    meta: [
+      ['Cajero', cajero || '--'],
+      ['Caja abierta', fmtTime(fechaApertura)],
+      ['Generado', new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })],
+      ['LA CAJA SIGUE ABIERTA', '', { centro: true, fuerte: true }],
+    ],
+    secciones: [
+      {
+        titulo: 'Movimientos del turno',
+        filas: [
+          ['Apertura', f(apertura)],
+          ...opt('+ Servicios efectivo', kpis.serviciosEfectivo),
+          ...opt('+ Productos efectivo', kpis.productosEfectivo),
+          ...opt('+ Propinas efectivo', kpis.propinasEfectivo),
+          ...opt('+ Ingresos manuales', kpis.ingManuales),
+          ...opt('- Gastos efectivo', kpis.gastosEfectivo, '-'),
+          ...opt('- Egresos manuales', kpis.egrManuales, '-'),
+          ['ESPERADO EN CAJA', f(kpis.saldoEsperado), { fuerte: true }],
+        ],
+      },
+      ...(contado != null ? [{
+        titulo: 'Arqueo fisico',
+        filas: [
+          ['Contado', f(contado)],
+          ['DIFERENCIA', `${diff > 0 ? '+' : ''}${f(diff)}`, { fuerte: true }],
+          [diff === 0 ? 'CUADRADA' : diff > 0 ? 'SOBRANTE' : 'FALTANTE', '', { centro: true, fuerte: true }],
+        ],
+      }] : []),
+      {
+        titulo: 'Otros metodos',
+        filas: [
+          ['Tarjeta', f(kpis.totalIngresosTarjeta)],
+          ['Transferencia', f(kpis.totalIngresosTransf)],
+          ...opt('Propinas totales', kpis.propinasTotal),
+        ],
+      },
+      {
+        titulo: 'Actividad',
+        filas: [
+          ['Servicios', String(kpis.totalCitas ?? '--')],
+          ['Productos', String(kpis.totalVentas ?? '--')],
+          ['Gastos', String(kpis.totalGastos ?? '--')],
+        ],
+      },
+    ],
+    pie: 'Corte X - no cierra la sesion - SynapTech',
+  });
+}
+
 /* ── Corte X — HTML imprimible del arqueo intermedio ─────────── */
 // Snapshot del momento para relevo de turno. NO cierra la sesión.
 function buildCorteXHTML({ tenantName, kpis, cajero, efectivoContado, apertura, fechaApertura }) {
@@ -1230,6 +1334,67 @@ function buildCorteXHTML({ tenantName, kpis, cajero, efectivoContado, apertura, 
 
   <div class="footer">Corte X · No cierra la sesión · SynapTech</div>
 </body></html>`;
+}
+
+/* ── Cierre de caja en formato térmico ───────────────────────── */
+function buildResumenCierreTermicoHTML({ tenantName, sesion }) {
+  const f = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-CL');
+  const s = sesion.snapshot || {};
+  const esperado = Number(sesion.montoCierreEsperado) || 0;
+  const real     = Number(sesion.montoCierreReal) || 0;
+  const diff     = Number(sesion.diferencia ?? (real - esperado)) || 0;
+  const fecha = sesion.fechaApertura?.toDate
+    ? sesion.fechaApertura.toDate().toLocaleDateString('es-CL')
+    : '--';
+  const opt = (etq, v, pre) => ((v ?? 0) > 0 ? [[etq, `${pre || ''}${f(v)}`]] : []);
+
+  return renderTicketTermico({
+    local: tenantName,
+    titulo: 'Cierre de caja',
+    meta: [
+      ['Fecha caja', fecha],
+      ['Abrio', `${sesion.nombreApertura || sesion.usuarioApertura || '--'} ${fmtTime(sesion.fechaApertura)}`],
+      ['Cerro', `${sesion.nombreCierre || sesion.usuarioCierre || '--'} ${fmtTime(sesion.fechaCierre)}`],
+      ['Sesion', String(sesion.id || '').slice(-6).toUpperCase()],
+    ],
+    secciones: [
+      {
+        titulo: 'Arqueo de efectivo',
+        filas: [
+          ['Base apertura', f(s.apertura ?? sesion.montoApertura)],
+          ...opt('+ Ventas efectivo', s.ingresosEfectivo),
+          ...opt('+ Propinas efectivo', s.propinasEfectivo),
+          ...opt('- Gastos y egresos', s.egresosEfectivo, '-'),
+          ['Esperado', f(esperado)],
+          ['Contado', f(real)],
+          ['DIFERENCIA', `${diff > 0 ? '+' : ''}${f(diff)}`, { fuerte: true }],
+          [diff === 0 ? 'CUADRADA' : diff > 0 ? 'SOBRANTE' : 'FALTANTE', '', { centro: true, fuerte: true }],
+        ],
+      },
+      {
+        titulo: 'Metodos de pago',
+        filas: [
+          ['Efectivo', f(s.ingresosEfectivo)],
+          ['Tarjeta', f(s.ingresosTarjeta)],
+          ['Transferencia', f(s.ingresosTransf)],
+          ...((s.serviciosNoEspecificado ?? 0) > 0
+            ? [['SIN METODO', f(s.serviciosNoEspecificado), { fuerte: true }]] : []),
+          ['TOTAL FACTURADO', f(s.ingresosGeneral), { fuerte: true }],
+        ],
+      },
+      {
+        titulo: 'Actividad',
+        filas: [
+          ['Servicios', String(s.totalCitas ?? '--')],
+          ['Productos', String(s.totalVentas ?? '--')],
+          ['Gastos', String(s.totalGastos ?? '--')],
+          ...opt('Propinas del dia', s.propinasTotal),
+        ],
+      },
+    ],
+    nota: sesion.observaciones || '',
+    pie: 'Powered by SynapTech',
+  });
 }
 
 /* ── Resumen de una caja YA CERRADA — HTML imprimible ────────── */
@@ -1829,6 +1994,9 @@ export default function Caja() {
   const [corteXCajero, setCorteXCajero] = useState('');
   const [corteXEfectivo, setCorteXEfectivo] = useState('');
   const [corteXSaving, setCorteXSaving] = useState(false);
+  // Térmica por defecto: el Corte X es el papel que un cajero le pasa al que
+  // entra, y sale por la impresora del mesón.
+  const [corteXFormato, setCorteXFormato] = useState('termica');
 
   // Transactions from today (crudas; se filtran por sede activa)
   const [citasHoyRaw, setCitasHoyRaw] = useState([]);
@@ -2320,16 +2488,19 @@ export default function Caja() {
       const efectivoContado = corteXEfectivo === '' ? null : parseFloat(corteXEfectivo);
       const cajero = corteXCajero.trim() || sesionActiva.nombreApertura || userEmail;
 
-      // 1) Imprimible en nueva ventana
-      const html = buildCorteXHTML({
+      // 1) Imprimible en nueva ventana, en el formato que eligió el cajero
+      const args = {
         tenantName: tenant?.name,
         kpis,
         cajero,
         efectivoContado,
         apertura: kpis.apertura,
         fechaApertura: sesionActiva.fechaApertura,
-      });
-      abrirHTML(html, `corte-x-${todayYMD()}.html`);
+      };
+      abrirHTML(
+        corteXFormato === 'termica' ? buildCorteXTermicoHTML(args) : buildCorteXHTML(args),
+        `corte-x-${todayYMD()}.html`,
+      );
 
       // 2) Registro en el doc de sesión (audit trail — no modifica saldos)
       const cortes = sesionActiva.cortesX || [];
@@ -2979,6 +3150,25 @@ export default function Caja() {
                 </div>
               );
             })()}
+            <div>
+              <label className={lbl}>¿En qué impresora?</label>
+              <div className="flex rounded-xl overflow-hidden border border-slate-700">
+                {[
+                  { v: 'termica', txt: 'Térmica 80 mm', Icon: Printer },
+                  { v: 'carta',   txt: 'Hoja normal',   Icon: FileText },
+                ].map(o => (
+                  <button
+                    key={o.v}
+                    onClick={() => setCorteXFormato(o.v)}
+                    className={`flex-1 py-2 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 ${
+                      corteXFormato === o.v ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-400 hover:text-primary'
+                    }`}
+                  >
+                    <o.Icon size={13} /> {o.txt}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button
               onClick={handleCorteX}
               disabled={corteXSaving}
