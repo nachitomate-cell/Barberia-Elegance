@@ -11,22 +11,22 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 const SALES_WINDOW_DAYS = 30;
 
 const KPI_COLORS = {
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10',
-  amber:   'bg-amber-500/10   text-amber-400   border-amber-500/10',
-  cyan:    'bg-cyan-500/10    text-cyan-400    border-cyan-500/10',
-  purple:  'bg-purple-500/10  text-purple-400  border-purple-500/10',
+  emerald: 'bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/15',
+  amber:   'bg-amber-400/10   text-amber-300   ring-1 ring-inset ring-amber-400/15',
+  cyan:    'bg-cyan-400/10    text-cyan-300    ring-1 ring-inset ring-cyan-400/15',
+  purple:  'bg-purple-400/10  text-purple-300  ring-1 ring-inset ring-purple-400/15',
 };
 
 function KpiCard({ Icon, label, value, sub, color = 'emerald' }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-start gap-4 hover:border-slate-700 transition-all">
-      <div className={`p-2.5 rounded-lg shrink-0 ${KPI_COLORS[color]} border`}>
-        <Icon size={20} />
+    <div className="group bg-slate-900 border border-white/[0.05] rounded-2xl p-5 flex items-start gap-4 hover:bg-white/[0.02] hover:border-white/[0.08] transition-all duration-200 ease-in-out">
+      <div className={`p-2.5 rounded-xl shrink-0 ${KPI_COLORS[color]}`}>
+        <Icon size={20} strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-2xl font-bold text-primary mt-0.5 truncate">{value}</p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
+        <p className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.08em]">{label}</p>
+        <p className="text-2xl font-semibold text-primary mt-1 tracking-tight tabular-nums truncate">{value}</p>
+        {sub && <p className="text-xs text-slate-500 mt-1 truncate">{sub}</p>}
       </div>
     </div>
   );
@@ -146,7 +146,7 @@ export default function Inventario() {
         <button
           onClick={fetchData}
           disabled={fetching}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-primary hover:border-slate-700 disabled:opacity-40 transition-all self-start sm:self-center"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border border-white/[0.06] bg-slate-900 text-slate-400 hover:bg-white/[0.04] hover:text-primary hover:border-white/[0.1] disabled:opacity-40 transition-all duration-200 ease-in-out self-start sm:self-center"
         >
           <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
           Actualizar
@@ -174,57 +174,57 @@ export default function Inventario() {
       </div>
 
       {/* Más vendidos + Rotación de stock */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <Flame size={16} className="text-rose-400" />
+      <div className="bg-slate-900 border border-white/[0.05] rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-4">
+          <div className="flex items-center gap-2.5">
+            <Flame size={16} className="text-rose-300" strokeWidth={1.75} />
             <div>
-              <p className="text-sm font-semibold text-primary">Más vendidos · últimos {SALES_WINDOW_DAYS} días</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-sm font-semibold text-primary tracking-tight">Más vendidos · últimos {SALES_WINDOW_DAYS} días</p>
+              <p className="text-xs text-slate-400 mt-0.5">
                 Velocidad de rotación y proyección de días hasta agotarse.
               </p>
             </div>
           </div>
           {ventasStats.totalUnidades > 0 && (
             <div className="text-right">
-              <p className="text-xs text-slate-500">Total</p>
-              <p className="text-sm font-bold text-primary">{ventasStats.totalUnidades} u · ${Math.round(ventasStats.totalIngresos).toLocaleString('es-CL')}</p>
+              <p className="text-[10px] uppercase tracking-[0.08em] text-slate-500 font-medium">Total</p>
+              <p className="text-sm font-semibold text-primary tabular-nums mt-0.5">{ventasStats.totalUnidades} u · ${Math.round(ventasStats.totalIngresos).toLocaleString('es-CL')}</p>
             </div>
           )}
         </div>
         {ventasStats.filas.length === 0 ? (
-          <p className="text-xs text-slate-500 italic text-center py-8">
+          <p className="text-xs text-slate-400 italic text-center py-8">
             Sin ventas registradas en los últimos {SALES_WINDOW_DAYS} días.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {ventasStats.filas.slice(0, 10).map((r, i) => {
               const sinStock   = r.stockActual === 0;
               const rotacionCls =
-                r.diasParaAgotar === null ? 'text-slate-600' :
-                r.diasParaAgotar <= 7     ? 'text-rose-400'   :
-                r.diasParaAgotar <= 21    ? 'text-amber-400'  :
-                                            'text-emerald-400';
+                r.diasParaAgotar === null ? 'text-slate-500' :
+                r.diasParaAgotar <= 7     ? 'text-rose-300'    :
+                r.diasParaAgotar <= 21    ? 'text-amber-300'   :
+                                            'text-emerald-300';
               return (
-                <div key={r.productId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/3 transition-colors">
-                  <span className="w-6 text-xs font-bold text-slate-500 shrink-0">{i + 1}</span>
+                <div key={r.productId} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.03] transition-all duration-200 ease-in-out">
+                  <span className="w-6 text-xs font-semibold text-slate-500 shrink-0 tabular-nums">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-primary truncate">{r.nombre}</p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-sm font-medium text-primary truncate tracking-tight">{r.nombre}</p>
+                    <p className="text-[11px] text-slate-400 tabular-nums">
                       {r.unidades} vendido{r.unidades !== 1 ? 's' : ''} · ${Math.round(r.ingresos).toLocaleString('es-CL')}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     {sinStock ? (
-                      <p className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
-                        <AlertTriangle size={11} /> Sin stock
-                      </p>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-400/10 text-rose-300 text-[10px] font-semibold ring-1 ring-inset ring-rose-400/20">
+                        <AlertTriangle size={10} /> Sin stock
+                      </span>
                     ) : r.diasParaAgotar === null ? (
-                      <p className="text-[11px] text-slate-600">—</p>
+                      <p className="text-[11px] text-slate-500">—</p>
                     ) : (
                       <>
-                        <p className={`text-[11px] font-bold ${rotacionCls}`}>{r.diasParaAgotar}d hasta agotar</p>
-                        <p className="text-[10px] text-slate-600">{r.stockActual} en stock</p>
+                        <p className={`text-[11px] font-semibold tabular-nums ${rotacionCls}`}>{r.diasParaAgotar}d hasta agotar</p>
+                        <p className="text-[10px] text-slate-500 tabular-nums mt-0.5">{r.stockActual} en stock</p>
                       </>
                     )}
                   </div>
@@ -232,7 +232,7 @@ export default function Inventario() {
               );
             })}
             {ventasStats.filas.length > 10 && (
-              <p className="text-[11px] text-slate-600 text-center pt-2">
+              <p className="text-[11px] text-slate-500 text-center pt-3">
                 +{ventasStats.filas.length - 10} productos más vendidos. Top 10 mostrados.
               </p>
             )}
@@ -241,65 +241,69 @@ export default function Inventario() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
-          <Layers size={16} className="text-slate-400" />
+      <div className="bg-slate-900 border border-white/[0.05] rounded-2xl p-5">
+        <div className="flex items-center gap-2.5 mb-4 border-b border-white/[0.06] pb-4">
+          <Layers size={16} className="text-slate-400" strokeWidth={1.75} />
           <div>
-            <p className="text-sm font-semibold text-primary">Análisis de Rentabilidad por Producto</p>
-            <p className="text-xs text-slate-500 mt-0.5">Ordenados de mayor a menor margen bruto absoluto de ganancia unitaria</p>
+            <p className="text-sm font-semibold text-primary tracking-tight">Análisis de Rentabilidad por Producto</p>
+            <p className="text-xs text-slate-400 mt-0.5">Ordenados de mayor a menor margen bruto absoluto de ganancia unitaria</p>
           </div>
         </div>
         {inventoryStats.items.length === 0 ? (
-          <p className="text-xs text-slate-650 italic text-center py-10">Sin productos guardados en inventario</p>
+          <p className="text-xs text-slate-500 italic text-center py-10">Sin productos guardados en inventario</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-2">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-550 uppercase tracking-wide font-bold">
-                  <th className="py-2.5">Producto</th>
-                  <th className="py-2.5 text-center">Stock</th>
-                  <th className="py-2.5 text-right">Precio Costo</th>
-                  <th className="py-2.5 text-right">Precio Venta</th>
-                  <th className="py-2.5 text-right">Margen Neto ($)</th>
-                  <th className="py-2.5 text-right">Margen Neto (%)</th>
+                <tr className="text-slate-400 uppercase tracking-[0.08em] font-medium text-[10px]">
+                  <th className="py-3 px-2 font-medium">Producto</th>
+                  <th className="py-3 px-2 text-right font-medium">Stock</th>
+                  <th className="py-3 px-2 text-right font-medium">Precio Costo</th>
+                  <th className="py-3 px-2 text-right font-medium">Precio Venta</th>
+                  <th className="py-3 px-2 text-right font-medium">Margen Neto ($)</th>
+                  <th className="py-3 px-2 text-right font-medium">Margen Neto (%)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50">
+              <tbody>
                 {inventoryStats.items.map(p => {
                   const isLowStock = p.stock <= (p.stockMinimo || 0);
                   const isMissingCost = p.costo === 0;
                   return (
-                    <tr key={p.id} className="hover:bg-slate-800/10 text-slate-350 transition-colors">
-                      <td className="py-3 pr-3 font-medium text-primary">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                          <span className="truncate max-w-[240px]">{p.nombre}</span>
-                          <div className="flex flex-wrap items-center gap-1">
+                    <tr key={p.id} className="border-t border-white/[0.06] text-slate-300 hover:bg-white/[0.02] transition-all duration-200 ease-in-out">
+                      <td className="py-4 px-2 pr-3 font-medium text-primary">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <span className="truncate max-w-[240px] tracking-tight">{p.nombre}</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {isLowStock && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[9px] font-bold border border-amber-500/10">
-                                <AlertTriangle size={8} /> Stock Crítico
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 text-[10px] font-medium ring-1 ring-inset ring-amber-400/20">
+                                <AlertTriangle size={9} /> Stock crítico
                               </span>
                             )}
                             {isMissingCost && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-450 text-[9px] font-semibold border border-rose-500/10">
-                                Sin Costo Cargado
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-400/10 text-rose-300 text-[10px] font-medium ring-1 ring-inset ring-rose-400/20">
+                                Sin costo cargado
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className={`py-3 text-center font-bold ${isLowStock ? 'text-amber-500' : 'text-slate-300'}`}>
+                      <td className={`py-4 px-2 text-right font-semibold tabular-nums ${isLowStock ? 'text-amber-300' : 'text-slate-200'}`}>
                         {p.stock}
                       </td>
-                      <td className={`py-3 text-right ${isMissingCost ? 'text-slate-600 italic' : 'text-slate-350'}`}>
-                        {isMissingCost ? '$0' : fmtCLP(p.costo)}
+                      <td className={`py-4 px-2 text-right tabular-nums ${isMissingCost ? 'text-slate-500 italic' : 'text-slate-300'}`}>
+                        {isMissingCost ? '—' : fmtCLP(p.costo)}
                       </td>
-                      <td className="py-3 text-right text-primary font-medium">{fmtCLP(p.precio)}</td>
-                      <td className={`py-3 text-right font-bold ${p.margenAbs > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      <td className="py-4 px-2 text-right text-primary font-medium tabular-nums">{fmtCLP(p.precio)}</td>
+                      <td className={`py-4 px-2 text-right font-semibold tabular-nums ${p.margenAbs > 0 ? 'text-emerald-300' : 'text-slate-500'}`}>
                         {fmtCLP(p.margenAbs)}
                       </td>
-                      <td className="py-3 text-right">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          p.margenPct >= 50 ? 'bg-emerald-500/10 text-emerald-400' : p.margenPct >= 20 ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-800 text-slate-400'
+                      <td className="py-4 px-2 text-right">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold tabular-nums ring-1 ring-inset ${
+                          p.margenPct >= 50
+                            ? 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20'
+                            : p.margenPct >= 20
+                              ? 'bg-sky-400/10 text-sky-300 ring-sky-400/20'
+                              : 'bg-white/[0.04] text-slate-400 ring-white/[0.06]'
                         }`}>
                           {p.margenPct.toFixed(0)}%
                         </span>
