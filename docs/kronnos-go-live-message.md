@@ -16,9 +16,17 @@
 >
 > **Cuentas de acceso:**
 > • Claudio (superadmin marca — ve las 3): administracionkronnos@gmail.com
-> • Peñablanca: kronnospenablanca@gmail.com / kronnospena2026
-> • Limache: kronnoslimache@gmail.com / kronnoslima2026
-> • Woman: kronnoswoman@gmail.com / kronnoswoman2026
+> • Peñablanca: kronnospenablanca@gmail.com
+> • Limache: kronnoslimache@gmail.com
+> • Woman: kronnoswoman@gmail.com
+
+<!-- Las contraseñas estaban acá en texto plano y este repo es PÚBLICO.
+     Quitadas el 2026-07-29; las tres cuentas quedaron DESACTIVADAS en Firebase
+     Auth (nunca se habían usado: cero inicios de sesión desde su creación el
+     29-jun). Sacarlas del archivo no las saca del historial de git, así que lo
+     que cierra el riesgo es la desactivación, no esta edición.
+     Las credenciales se entregan por WhatsApp, nunca versionadas. -->
+
 >
 > **Ya cargado en el sistema:**
 > • 2944 clientes migrados desde Weibook al Club Kronnos
