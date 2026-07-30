@@ -22,7 +22,9 @@ const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { Timestamp }          = require('firebase-admin/firestore');
-const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
+// Las cuotas y la fecha del contador se IMPORTAN del mailer, mismo criterio que
+// capDiario más abajo: una sola definición, sin réplica que se desincronice.
+const { enviarEmail, MAIL_SECRETS, CUOTAS, COL_USO, diaMail } = require('./lib/mailer');
 
 const db = admin.firestore();
 const OPS_TOKEN      = defineSecret('OPS_TOKEN');
@@ -33,6 +35,116 @@ const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 function ultimosDias(n) {
   const out = [];
   for (let i = 0; i < n; i++) out.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  return out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORREO TRANSACCIONAL — consumo por proveedor
+
+   Lee el contador que escribe lib/mailer.js en _mailUsage/{YYYY-MM-DD}.
+   Sirve para una decisión concreta: cuándo dejan de alcanzar los planes free
+   (Resend 100/día, Brevo 300/día) y toca pagar o sumar un tercer canal.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Días hacia atrás desde HOY en Santiago.
+ *  No usa ultimosDias(): esa corta en UTC y el contador corta en Santiago, así
+ *  que pasadas las 20:00 CL el dashboard leería el doc de mañana (vacío) y
+ *  mostraría 0 enviados justo en las horas de más movimiento. */
+function diasMailAtras(n) {
+  const out  = [];
+  // Mediodía UTC como ancla: restar días nunca cruza un cambio de horario.
+  const base = new Date(diaMail() + 'T12:00:00Z');
+  for (let i = 0; i < n; i++) {
+    out.push(new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+async function resumenEmail() {
+  const dias = diasMailAtras(31);
+  const hoy  = dias[0];
+  const mes  = hoy.slice(0, 7);
+
+  const snaps = await Promise.all(dias.map((d) => db.doc(`${COL_USO}/${d}`).get()));
+
+  const porDia = [];
+  const mesTot = { resend: 0, brevo: 0, fallidos: 0 };
+  let diasEnTope = 0;
+
+  snaps.forEach((s, i) => {
+    const d = s.data() || {};
+    const fila = {
+      fecha:    dias[i],
+      resend:   Number(d.resend)   || 0,
+      brevo:    Number(d.brevo)    || 0,
+      fallidos: Number(d.fallidos) || 0,
+    };
+    fila.total = fila.resend + fila.brevo;
+    porDia.push(fila);
+
+    if (dias[i].startsWith(mes)) {
+      mesTot.resend   += fila.resend;
+      mesTot.brevo    += fila.brevo;
+      mesTot.fallidos += fila.fallidos;
+      // Un día en que CUALQUIER canal tocó su techo. Es la señal de compra:
+      // no importa el promedio, importa cuántas veces nos quedamos cortos.
+      if (fila.resend >= CUOTAS.resend.diaria || fila.brevo >= CUOTAS.brevo.diaria) diasEnTope++;
+    }
+  });
+
+  const filaHoy = porDia[0];
+
+  const proveedores = ['brevo', 'resend'].map((id) => {
+    const c = CUOTAS[id];
+    return {
+      id,
+      plan:   c.plan,
+      hoy:    filaHoy[id],
+      capDia: c.diaria,
+      pctDia: c.diaria ? Math.round((filaHoy[id] / c.diaria) * 100) : 0,
+      mes:    mesTot[id],
+      capMes: c.mensual,
+      pctMes: c.mensual ? Math.round((mesTot[id] / c.mensual) * 100) : 0,
+    };
+  });
+
+  // Proyección de cierre de mes al ritmo actual: contesta "¿llego con el free?"
+  const diaDelMes = Number(hoy.slice(8, 10));
+  const diasDelMes = new Date(Number(hoy.slice(0, 4)), Number(hoy.slice(5, 7)), 0).getDate();
+  const totalMes = mesTot.resend + mesTot.brevo;
+
+  return {
+    hoy: filaHoy,
+    mes: {
+      ...mesTot,
+      total:      totalMes,
+      etiqueta:   mes,
+      diasEnTope,
+      proyeccion: diaDelMes ? Math.round((totalMes / diaDelMes) * diasDelMes) : 0,
+    },
+    capacidadDiaria: CUOTAS.resend.diaria + CUOTAS.brevo.diaria,
+    proveedores,
+    porDia: porDia.slice(0, 14).reverse(),   // cronológico para el minigráfico
+  };
+}
+
+/** Alertas del canal de correo. Van a la MISMA lista que las de WhatsApp, así
+ *  que las rojas también disparan el correo de opsVigilancia. */
+function alertasEmail(em) {
+  const out = [];
+  for (const p of em.proveedores) {
+    if (p.pctDia >= 100) {
+      out.push({ nivel: 'rojo', texto: `Correo · ${p.id} agotó su cuota diaria (${p.hoy}/${p.capDia}). Los envíos están cayendo al otro canal.` });
+    } else if (p.pctDia >= UMBRAL.mailPct * 100) {
+      out.push({ nivel: 'ambar', texto: `Correo · ${p.id} al ${p.pctDia}% de su cuota diaria (${p.hoy}/${p.capDia}).` });
+    }
+  }
+  if (em.hoy.total >= em.capacidadDiaria * UMBRAL.mailPct) {
+    out.push({ nivel: 'rojo', texto: `Correo · ${em.hoy.total}/${em.capacidadDiaria} enviados hoy sumando los dos canales. Hora de evaluar plan pago o un tercer proveedor.` });
+  }
+  if (em.hoy.fallidos) {
+    out.push({ nivel: 'ambar', texto: `Correo · ${em.hoy.fallidos} envío(s) fallaron en AMBOS canales hoy.` });
+  }
   return out;
 }
 
@@ -51,6 +163,7 @@ const UMBRAL = {
   cacheHitMin:  0.60,   // bajo esto, el caché del prompt se rompió
   optoutPct:    0.05,   // bajas / envíos del mes
   failPct:      0.20,   // fallos de envío del día
+  mailPct:      0.80,   // % de la cuota diaria de correo de un proveedor
 };
 
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
@@ -266,6 +379,10 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
 
   const { locales, trials, alertas, negocioTotal } = await analizarLocales(hoy, mesActual);
 
+  // ── Correo transaccional (Resend + Brevo) ──
+  const usoEmail = await resumenEmail();
+  alertas.push(...alertasEmail(usoEmail));
+
   // Rojo primero, luego ámbar, luego info.
   const peso = { rojo: 0, ambar: 1, info: 2 };
   alertas.sort((a, b) => (peso[a.nivel] ?? 9) - (peso[b.nivel] ?? 9));
@@ -299,7 +416,7 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     llamadasIA:     barberia.claude.llamadas + (sushipro?.claude?.llamadas || 0),
   };
 
-  return { total, barberia, sushipro, sushiError, alertas, trials, mesActual, generadoEn: Date.now() };
+  return { total, barberia, sushipro, sushiError, alertas, trials, email: usoEmail, mesActual, generadoEn: Date.now() };
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -318,7 +435,13 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
  *  terminarían diciendo cosas distintas. */
 async function recolectarAlertasRojas() {
   const hoy = new Date().toISOString().slice(0, 10);
-  const { alertas } = await analizarLocales(hoy, hoy.slice(0, 7));
+  const [{ alertas }, email] = await Promise.all([
+    analizarLocales(hoy, hoy.slice(0, 7)),
+    resumenEmail(),
+  ]);
+  // Quedarse sin cuota de correo es un incidente que merece aviso: si se agotan
+  // los dos canales, dejan de salir las confirmaciones de cita.
+  alertas.push(...alertasEmail(email));
   return alertas.filter(a => a.nivel === 'rojo');
 }
 

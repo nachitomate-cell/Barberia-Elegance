@@ -47,6 +47,18 @@ const MAIL_SECRETS = [RESEND_API_KEY, BREVO_API_KEY];
 
 const TZ = 'America/Santiago';
 
+// ── Cuotas de los planes contratados ─────────────────────────────────────────
+// Fuente única: el panel de ops las lee DE ACÁ para dibujar las barras. Si
+// alguna vez se contrata un plan pago, se cambia este objeto y el dashboard se
+// actualiza solo — no hay una segunda copia que se pueda desincronizar.
+const CUOTAS = {
+  resend: { plan: 'free', diaria: 100, mensual: 3000 },
+  brevo:  { plan: 'free', diaria: 300, mensual: 9000 }, // 300/día, sin tope mensual propio
+};
+
+// Colección del contador diario. La comparte el dashboard de ops.
+const COL_USO = '_mailUsage';
+
 // ── Estado en memoria: proveedor agotado hoy ──────────────────────────────────
 // Cuando un proveedor responde "sin cuota diaria" lo marcamos para el resto de
 // la vida de esta instancia y dejamos de gastarle una request a cada envío.
@@ -162,7 +174,7 @@ async function contar(campo) {
   try {
     const admin = require('firebase-admin');
     const { FieldValue } = require('firebase-admin/firestore');
-    await admin.firestore().doc(`_mailUsage/${hoyCL()}`).set(
+    await admin.firestore().doc(`${COL_USO}/${hoyCL()}`).set(
       { [campo]: FieldValue.increment(1), actualizado: FieldValue.serverTimestamp() },
       { merge: true },
     );
@@ -243,6 +255,14 @@ module.exports = {
   MAIL_SECRETS,
   RESEND_API_KEY,
   BREVO_API_KEY,
+  // Los consume el dashboard de ops (ops-metrics.js). Se exportan desde acá
+  // para que la fecha del contador y las cuotas tengan UNA sola definición:
+  // ops calcula sus otros rangos en UTC, y con el corte en Santiago las cuentas
+  // no cuadraban de noche.
+  CUOTAS,
+  COL_USO,
+  diaMail: hoyCL,
+  TZ_MAIL: TZ,
   // exportados para tests
   _internos: { parseFrom, normalizarDestinatarios },
 };

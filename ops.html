@@ -189,6 +189,52 @@
       </div>`;
     }
 
+    // ── Correo transaccional ──
+    // La pregunta que contesta este panel es una sola: ¿cuándo dejan de
+    // alcanzar los planes free y hay que pagar? Por eso lo que manda no es el
+    // total del mes sino el consumo del día contra el tope de cada proveedor,
+    // y cuántos días del mes ya tocamos techo.
+    function emailPanel(em){
+      if(!em) return '';
+      const barra = p => {
+        const pct  = Math.min(100, p.pctDia);
+        const base = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
+        return `<div class="loc" style="border:0">
+          <span style="flex:0 0 66px;text-transform:capitalize">${p.id}</span>
+          <span class="bar"><i style="width:${pct}%;background:${base}"></i></span>
+          <span class="tnum" style="flex:0 0 auto;color:#fff;font-weight:600">${num(p.hoy)}/${num(p.capDia)}</span>
+          <span class="tag">${p.plan}</span>
+          <span class="sub2">mes: ${num(p.mes)}${p.capMes?` de ${num(p.capMes)} (${p.pctMes}%)`:''}</span>
+        </div>`;
+      };
+      // Minigráfico de 14 días: la tendencia es lo que anticipa la compra.
+      const max = Math.max(1, ...em.porDia.map(d => d.total));
+      const spark = em.porDia.map(d => {
+        const h = Math.max(2, Math.round((d.total/max)*34));
+        const c = d.total >= em.capacidadDiaria*0.8 ? 'var(--red)'
+                : (d.total >= em.capacidadDiaria*0.5 ? 'var(--amber)' : 'rgba(122,168,255,.55)');
+        return `<span title="${d.fecha}: ${d.total} (brevo ${d.brevo} · resend ${d.resend})"
+          style="flex:1;height:${h}px;background:${c};border-radius:2px;min-width:3px"></span>`;
+      }).join('');
+
+      const proy = em.mes.proyeccion;
+      const cierre = proy > em.capacidadDiaria*28
+        ? `<span style="color:var(--red)">proyección de cierre ${num(proy)} — no alcanza el free</span>`
+        : `proyección de cierre ${num(proy)}`;
+
+      return `<div class="panel" style="margin-top:14px">
+        <h3>📧 Correo transaccional · hoy</h3>
+        ${em.proveedores.map(barra).join('')}
+        <div style="display:flex;align-items:flex-end;gap:3px;height:38px;margin:14px 0 6px">${spark}</div>
+        <div class="muted" style="text-align:center;margin-bottom:6px">últimos 14 días · total diario</div>
+        <div class="row"><span>Hoy, sumando canales</span><span class="v tnum">${num(em.hoy.total)} / ${num(em.capacidadDiaria)}</span></div>
+        <div class="row"><span>Mes ${em.mes.etiqueta}</span><span class="v tnum">${num(em.mes.total)}</span></div>
+        <div class="row"><span>Días del mes en que se topó un canal</span><span class="v tnum" style="color:${em.mes.diasEnTope?'var(--red)':'var(--green)'}">${em.mes.diasEnTope}</span></div>
+        ${em.mes.fallidos?`<div class="row"><span>Fallidos en ambos canales (mes)</span><span class="v tnum" style="color:var(--red)">${num(em.mes.fallidos)}</span></div>`:''}
+        <div class="muted" style="margin-top:8px">${cierre}</div>
+      </div>`;
+    }
+
     function trialsPanel(trials){
       if(!trials || !trials.length) return '';
       // Alerta visual anticipada: ámbar solo cuando faltan ≤7 días (renovación
@@ -219,10 +265,17 @@
             <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">Costo Claude (30d)</div></div>
             <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">Llamadas a la IA</div></div>
           </div>
+          ${data.email ? `<div class="kpis" style="margin-top:12px">
+            <div class="kpi"><div class="n tnum">${num(data.email.hoy.brevo)}<span style="font-size:15px;color:var(--soft)">/${num(data.email.proveedores.find(p=>p.id==='brevo').capDia)}</span></div><div class="k">Brevo · hoy</div></div>
+            <div class="kpi"><div class="n tnum">${num(data.email.hoy.resend)}<span style="font-size:15px;color:var(--soft)">/${num(data.email.proveedores.find(p=>p.id==='resend').capDia)}</span></div><div class="k">Resend · hoy</div></div>
+            <div class="kpi"><div class="n tnum">${num(data.email.mes.total)}</div><div class="k">Correos del mes</div></div>
+            <div class="kpi"><div class="n tnum">${num(data.email.mes.proyeccion)}</div><div class="k">Proyección de cierre</div></div>
+          </div>` : ''}
           <div class="cols">
             ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
             ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
           </div>
+          ${emailPanel(data.email)}
           ${trialsPanel(data.trials)}
           ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
         </div>`;
