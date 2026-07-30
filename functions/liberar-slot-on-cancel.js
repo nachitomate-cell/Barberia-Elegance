@@ -40,13 +40,30 @@ function slotLocksCol(tenantId) {
   return db.collection(tenantId === 'elegance' ? 'slotLocks' : `tenants/${tenantId}/slotLocks`);
 }
 
-function debeLiberar(before, after) {
-  if (!after) return false; // doc eliminado
+/**
+ * ¿Hay que liberar el candado? Devuelve el doc de la cita del que sacar los
+ * datos, o null.
+ *
+ * Dos caminos, y el segundo faltaba:
+ *
+ *  · CANCELADA — la cita sigue existiendo y pasa a 'Cancelada'.
+ *
+ *  · BORRADA — antes esto devolvía false con un "// doc eliminado" y el candado
+ *    quedaba huérfano PARA SIEMPRE: la reserva pública no lee /citas, lee este
+ *    espejo, así que la hora seguía bloqueada sin cita que la respaldara. El
+ *    local veía el hueco libre en su agenda y el cliente no podía reservarlo,
+ *    sin nada visible que explicara por qué. Caso real: José Luis Cordero
+ *    (infinity, 30-jul-2026 13:00) — le cancelaron y borraron la cita, y su
+ *    13:00 quedó tachado en la reserva online.
+ */
+function docPorLiberar(before, after) {
+  // Borrada: los datos del candado están en `before`, que es lo único que queda.
+  if (!after) return before?.slotLockId ? before : null;
   const eAntes  = (before?.estado || '').toLowerCase();
   const eDesp   = (after.estado   || '').toLowerCase();
-  if (eDesp !== 'cancelada') return false;
-  if (eAntes === 'cancelada') return false; // ya estaba cancelada
-  return !!after.slotLockId;
+  if (eDesp !== 'cancelada') return null;
+  if (eAntes === 'cancelada') return null; // ya estaba cancelada
+  return after.slotLockId ? after : null;
 }
 
 function normPhone(phone) {
@@ -116,11 +133,15 @@ async function liberarSlot({ tenantId, citaId, lockId, citaRef, cita, sid, auth,
   } catch (e) {
     logger.warn(`[Liberar] ${tenantId}/${citaId}: no se pudo borrar slotLock ${lockId}:`, e.message);
   }
-  // Limpiar slotLockId de la cita para que no vuelva a dispararse si se vuelve a editar.
-  try {
-    await citaRef.update({ slotLockId: null });
-  } catch (e) {
-    logger.warn(`[Liberar] ${tenantId}/${citaId}: no se pudo limpiar slotLockId:`, e.message);
+  // Limpiar slotLockId de la cita para que no vuelva a dispararse si se vuelve a
+  // editar. Si la cita se BORRÓ no hay doc que actualizar: escribirlo la
+  // resucitaría como documento fantasma con un solo campo.
+  if (citaRef) {
+    try {
+      await citaRef.update({ slotLockId: null });
+    } catch (e) {
+      logger.warn(`[Liberar] ${tenantId}/${citaId}: no se pudo limpiar slotLockId:`, e.message);
+    }
   }
   // Notificar lista de espera
   await notificarListaEspera({ tenantId, cita, sid, auth, from });
@@ -132,10 +153,14 @@ exports.liberarSlotElegance = onDocumentWritten(
     const citaId = event.params.citaId;
     const before = event.data?.before?.data();
     const after  = event.data?.after?.data();
-    if (!debeLiberar(before, after)) return null;
+    const cita   = docPorLiberar(before, after);
+    if (!cita) return null;
     await liberarSlot({
       tenantId: 'elegance', citaId,
-      lockId: after.slotLockId, citaRef: event.data.after.ref, cita: after,
+      lockId: cita.slotLockId,
+      // Si la cita se borró no hay ref que actualizar.
+      citaRef: after ? event.data.after.ref : null,
+      cita,
       sid:  secretSid.value(), auth: secretAuth.value(), from: secretFrom.value(),
     });
     return null;
@@ -148,10 +173,13 @@ exports.liberarSlotTenant = onDocumentWritten(
     const { tid, citaId } = event.params;
     const before = event.data?.before?.data();
     const after  = event.data?.after?.data();
-    if (!debeLiberar(before, after)) return null;
+    const cita   = docPorLiberar(before, after);
+    if (!cita) return null;
     await liberarSlot({
       tenantId: tid, citaId,
-      lockId: after.slotLockId, citaRef: event.data.after.ref, cita: after,
+      lockId: cita.slotLockId,
+      citaRef: after ? event.data.after.ref : null,
+      cita,
       sid:  secretSid.value(), auth: secretAuth.value(), from: secretFrom.value(),
     });
     return null;

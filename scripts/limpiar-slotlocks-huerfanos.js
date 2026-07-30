@@ -46,28 +46,48 @@ const SOLO    = process.argv[2] || null;   // tenant opcional
     try {
       locks = (await t.collection('slotLocks').get()).docs.map(d => ({ id: d.id, ...d.data() }));
     } catch { continue; }
+    // ── Candados de BLOQUEO cuyo bloqueo ya no existe ──
     const deBloqueo = locks.filter(l => l.bloqueoId);
-    if (!deBloqueo.length) continue;
-
     const idsUnicos = [...new Set(deBloqueo.map(l => l.bloqueoId))];
     const vivos = new Set();
     for (const bid of idsUnicos) {
       const s = await t.collection('bloqueos').doc(bid).get();
       if (s.exists) vivos.add(bid);
     }
-    const huerfanos = deBloqueo.filter(l => !vivos.has(l.bloqueoId));
+    const huerfanosBloqueo = deBloqueo.filter(l => !vivos.has(l.bloqueoId));
+
+    // ── Candados de CITA cuya cita ya no existe (o quedó cancelada) ──
+    // El trigger liberarSlot* soltaba el candado al CANCELAR pero se rendía si
+    // la cita se BORRABA ("if (!after) return false"), y el candado quedaba
+    // para siempre bloqueando una hora que la agenda muestra libre. Corregido
+    // en jul-2026; esto limpia lo que quedó de antes.
+    const deCita = locks.filter(l => l.citaId && !l.bloqueoId);
+    const idsCitas = [...new Set(deCita.map(l => l.citaId))];
+    const citasVivas = new Set();
+    for (const cid of idsCitas) {
+      const s = await t.collection('citas').doc(cid).get();
+      if (s.exists && String(s.data()?.estado || '').toLowerCase() !== 'cancelada') citasVivas.add(cid);
+    }
+    const huerfanosCita = deCita.filter(l => !citasVivas.has(l.citaId));
+
+    const huerfanos = [...huerfanosBloqueo, ...huerfanosCita];
     if (!huerfanos.length) continue;
 
     tenantsAfectados++;
     totalHuerfanos += huerfanos.length;
-    console.log(`\n== ${t.id}: ${huerfanos.length} candados de bloqueos YA BORRADOS`);
-    const porBloqueo = {};
-    huerfanos.forEach(l => { (porBloqueo[l.bloqueoId] = porBloqueo[l.bloqueoId] || []).push(l); });
-    Object.entries(porBloqueo).forEach(([bid, ls]) => {
-      const horas = ls.map(l => `${l.fecha} ${l.hora}`).sort();
-      console.log(`   bloqueoId ${bid} (ya no existe) -> ${ls.length} horas bloqueadas de mas`);
-      horas.slice(0, 8).forEach(h => console.log(`       ${h}`));
-      if (horas.length > 8) console.log(`       ... y ${horas.length - 8} mas`);
+    console.log(`\n== ${t.id}: ${huerfanos.length} candado(s) sin respaldo`);
+    if (huerfanosBloqueo.length) {
+      const porBloqueo = {};
+      huerfanosBloqueo.forEach(l => { (porBloqueo[l.bloqueoId] = porBloqueo[l.bloqueoId] || []).push(l); });
+      Object.entries(porBloqueo).forEach(([bid, ls]) => {
+        const horas = ls.map(l => `${l.fecha} ${l.hora}`).sort();
+        console.log(`   bloqueoId ${bid} (ya no existe) -> ${ls.length} horas bloqueadas de mas`);
+        horas.slice(0, 8).forEach(h => console.log(`       ${h}`));
+        if (horas.length > 8) console.log(`       ... y ${horas.length - 8} mas`);
+      });
+    }
+    huerfanosCita.forEach(l => {
+      console.log(`   citaId ${l.citaId} (borrada o cancelada) -> ${l.fecha} ${l.hora} · barbero ${l.barberoId}`);
     });
 
     if (APLICAR) {
