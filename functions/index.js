@@ -1616,6 +1616,7 @@ exports.whatsappWebhook              = whatsappNotif.whatsappWebhook;
 exports.notificarCitaWhatsAppElegance = whatsappNotif.notificarCitaWhatsAppElegance;
 exports.notificarCitaWhatsAppTenant  = whatsappNotif.notificarCitaWhatsAppTenant;
 exports.waNotifEstado                = whatsappNotif.waNotifEstado;
+exports.recordatorioCitaMeta         = whatsappNotif.recordatorioCitaMeta;
 
 // ─────────────────────────────────────────────────────────────────
 //  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del

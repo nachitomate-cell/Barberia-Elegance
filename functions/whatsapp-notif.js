@@ -32,12 +32,27 @@
 //  wa_notif/{tenantId}           estado por local (telefono dueño, ventana, plan)
 //                                — solo Admin SDK (sin reglas: default deny).
 //  wa_notif_phones/{telefono}    índice teléfono → tenantId para rutear entrantes.
+//  wa_cita_pendiente/{telefono}  cita esperando respuesta al recordatorio.
+//                                Raíz y no por tenant a propósito: el número de
+//                                plataforma es compartido, así que al llegar un
+//                                entrante solo tenemos el teléfono.
 //
 //  ── Funciones ────────────────────────────────────────────────────────────────
 //  whatsappWebhook               GET verificación Meta / POST mensajes entrantes
-//                                (ACTIVAR <local> · 1 · PAUSAR · REANUDAR).
+//                                (ACTIVAR <local> · 1 · PAUSAR · REANUDAR) y
+//                                respuestas del cliente al recordatorio (SÍ/NO).
 //  notificarCitaWhatsApp*        triggers onCreate de citas (elegance + tenants).
+//  recordatorioCitaMeta          cron 30 min: recordatorio 24h por plantilla.
 //  waNotifEstado                 callable para el panel (estado del módulo).
+//
+//  ── Los dos canales de WhatsApp, y por qué no se pisan ───────────────────────
+//  · ESTE (Meta Cloud API)  → número de PLATAFORMA compartido. Cuesta plata por
+//    plantilla, pero el número del local nunca se expone a una suspensión.
+//  · Evolution (evolution/) → número PROPIO del local, por sesión/QR. Gratis,
+//    mejor marca, pero el activo en riesgo es el teléfono del local.
+//  Para un mismo tenant se enciende UNO de los dos, nunca los dos: si no, el
+//  cliente recibe el recordatorio duplicado. Flags: wa_notif/{tid}.planRecordatorio
+//  acá vs tenants/{tid}/configuracion/whatsapp.confirmacionesEnabled allá.
 //
 //  ── Setup (una vez, manual) ──────────────────────────────────────────────────
 //  1. Meta Business Manager verificado + app con producto WhatsApp.
@@ -57,11 +72,13 @@
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentCreated }             = require('firebase-functions/v2/firestore');
+const { onSchedule }                    = require('firebase-functions/v2/scheduler');
 const { defineSecret }                  = require('firebase-functions/params');
 const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
 const { FieldValue, Timestamp }         = require('firebase-admin/firestore');
 const { writeNotifLog }                 = require('./lib/notif-log');
+const { _ahoraChile: ahoraChile }       = require('./chat-horas-disponibles');
 
 const db = admin.firestore();
 
@@ -74,6 +91,15 @@ const GRAPH_VERSION = 'v23.0';
 // Margen de seguridad sobre la ventana de 24h y tope diario por tenant.
 const VENTANA_MARGEN_MS = 30 * 60 * 1000;
 const TOPE_DIARIO       = 80;
+
+/* ── Ritmo del recordatorio 24h (plantilla, sale por el número de plataforma) ──
+   Mismo criterio que el canal de Evolution (evolution/cuota.js), con contador
+   PROPIO: allá el pool de riesgo es el número del local y acá es el de
+   plataforma, así que mezclar los contadores mediría la cosa equivocada. */
+const RECORD_HORA_INICIO = 9;   // no se envía antes de las 09:00 Chile
+const RECORD_HORA_FIN    = 21;  // ni a las 21:00 ni después
+const RECORD_MAX_CICLO   = 8;   // reparte la tanda del día entre ciclos
+const RECORD_TOPE_DIA    = 60;  // por local
 
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 
@@ -206,6 +232,53 @@ exports.whatsappWebhook = onRequest(
   },
 );
 
+/* ────────── Cita pendiente de confirmar (respuesta al recordatorio) ──────────
+   El cerebro de Evolution guarda esto en
+   `tenants/{tid}/wa_conversaciones/{tel}.citaPendiente`, pero ahí cada local
+   tiene su propia instancia y el tenant se conoce de antemano. Acá el webhook
+   recibe un teléfono y nada más: el número de plataforma es COMPARTIDO por
+   todos los locales, así que el pendiente tiene que vivir en una colección
+   raíz indexada por teléfono. Solo Admin SDK (default deny en las rules). */
+
+const citaPendienteRef = (fono) => db.collection('wa_cita_pendiente').doc(fono);
+
+const citasColDe = (tid) => (tid === 'elegance'
+  ? db.collection('citas')
+  : db.collection('tenants').doc(tid).collection('citas'));
+
+/** Sin tildes y en minúsculas. Los botones de la plantilla llegan como texto
+ *  ("Si, confirmo") y el cliente escribe "sí" o "si" indistintamente. */
+const normTexto = (s) => String(s || '')
+  .toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+
+/** Intención del cliente sobre su cita.
+ *  El ORDEN importa: "no me escriban más" empieza con "no" y jamás puede
+ *  leerse como "cancelo mi cita". */
+function intencionCita(texto) {
+  const t = normTexto(texto);
+  if (!t) return null;
+  if (/^(stop|baja|salir|desuscrib|no me escrib|no quiero recibir)/.test(t)) return 'stop';
+  if (/^(si|confirmo|confirmar|dale|ok|listo|voy|ahi estare|de acuerdo|perfecto)/.test(t)) return 'confirmar';
+  if (/^(no|cancel)/.test(t)) return 'cancelar';
+  return null;
+}
+
+/** Aplica la decisión a la cita. Misma semántica que aplicarDecision() del
+ *  cerebro (evolution/cerebro.js): 'Cancelada' dispara liberar-slot-on-cancel
+ *  y libera el cupo. Si los dos canales divergen, el mismo "SÍ" significaría
+ *  cosas distintas según por dónde entró la respuesta. */
+async function aplicarDecisionCita(pend, decision) {
+  const patch = decision === 'confirmar'
+    ? { estado: 'Confirmada', waClienteConfirmoEn: FieldValue.serverTimestamp() }
+    : {
+        estado: 'Cancelada',
+        waClienteCanceloEn: FieldValue.serverTimestamp(),
+        canceladaPor: 'cliente',
+        canceladaVia: 'wa_meta',
+      };
+  await citasColDe(pend.tenantId).doc(pend.citaId).update(patch);
+}
+
 async function procesarEntrante(msg) {
   const from = normalizarFono(msg.from);
   if (!from) return;
@@ -231,14 +304,73 @@ async function procesarEntrante(msg) {
   // ── Rutear por teléfono conocido ──
   const idxSnap = await db.collection('wa_notif_phones').doc(from).get();
   if (!idxSnap.exists) {
-    // Número desconocido: puede ser un CLIENTE FINAL respondiendo a una
-    // plantilla que le llegó por confirmación de cita. Interceptamos STOP/
-    // BAJA/CANCELAR ANTES de la respuesta genérica para honrar la baja
-    // (Meta Business Policy + Ley 21.719). Y ACTIVAR/REACTIVAR para
-    // reincorporarlo.
-    const raw = texto.toLowerCase().trim();
-    const esStop      = raw === 'stop' || raw === 'baja' || raw === 'cancelar' || raw === 'no' || raw === 'salir';
-    const esReanudar  = raw === 'activar' || raw === 'reactivar' || raw === 'reanudar' || raw === 'si' || raw === 'sí';
+    // ── ¿Está respondiendo el recordatorio de su cita? ──
+    // Se resuelve ANTES que STOP/BAJA a propósito: en este contexto "cancelar"
+    // y "no" significan "no voy a la cita", no "no me escriban más". Antes
+    // ambos caían en el opt-out y pasaba lo peor de los dos mundos — el
+    // cliente quedaba dado de baja Y su cita seguía en pie, ocupando el cupo.
+    const pendSnap = await citaPendienteRef(from).get();
+    const pend     = pendSnap.exists ? (pendSnap.data() || {}) : null;
+    const vigente  = pend && pend.citaId && pend.tenantId
+      && (!pend.expiraEn || pend.expiraEn.toMillis() > Date.now());
+
+    if (vigente) {
+      const intencion = intencionCita(texto);
+
+      if (intencion === 'confirmar' || intencion === 'cancelar') {
+        try {
+          await aplicarDecisionCita(pend, intencion);
+        } catch (e) {
+          // La cita pudo borrarse o cancelarse por otro lado. No se limpia el
+          // pendiente: que reintente si vuelve a responder.
+          logger.error(`[wa] ${intencion} falló ${pend.tenantId}/${pend.citaId}: ${e.message}`);
+          await enviarTexto(from,
+            'Tuvimos un problema al registrar tu respuesta 😕\n\n' +
+            'Por favor contacta directamente al local para confirmar tu cita.');
+          return;
+        }
+        await citaPendienteRef(from).delete().catch(() => {});
+        await writeNotifLog(db, {
+          tenantId: pend.tenantId, type: 'wa_recordatorio_respuesta',
+          channel: 'whatsapp_template', status: intencion,
+          to: { telefono: from }, meta: { citaId: pend.citaId },
+        }).catch(() => {});
+        await enviarTexto(from, intencion === 'confirmar'
+          ? `✅ ¡Listo! Tu cita quedó confirmada.\n\nTe esperamos el ${fmtFecha(pend.fecha)} a las ${pend.hora} hrs en ${pend.local || 'el local'}.`
+          : `🙏 Listo, cancelamos tu cita del ${fmtFecha(pend.fecha)} a las ${pend.hora} hrs.\n\nCuando quieras volver a agendar, aquí estamos.`);
+        logger.info(`[wa] ${intencion} cliente tenant=${pend.tenantId} cita=${pend.citaId}`);
+        return;
+      }
+
+      if (intencion === 'stop') {
+        // Baja explícita teniendo cita pendiente: se honra la baja pero NO se
+        // toca la cita. Pidió dejar de recibir mensajes, no cancelar.
+        await registrarOptOut(from, 'stop-cliente-final');
+        await citaPendienteRef(from).delete().catch(() => {});
+        await enviarTexto(from,
+          '🔕 *Listo, no recibirás más avisos por WhatsApp.*\n\n' +
+          'Tu cita sigue agendada. Si necesitas cambiarla, contacta directamente al local.\n\n' +
+          'Para volver a recibir avisos responde *ACTIVAR*.');
+        logger.info(`[wa] opt-out con cita pendiente fono=***${from.slice(-4)}`);
+        return;
+      }
+
+      // Texto libre con cita pendiente: no adivinamos qué quiso decir.
+      // Repreguntar es gratis — acaba de escribir, la ventana está abierta.
+      await enviarTexto(from,
+        `Perdona, no te entendí 🙈\n\n` +
+        `Sobre tu cita del ${fmtFecha(pend.fecha)} a las ${pend.hora} hrs: ` +
+        'responde *SÍ* si vienes, o *NO* si no podrás asistir.');
+      return;
+    }
+
+    // ── Sin cita pendiente: solo gestión de consentimiento ──
+    // Ojo: "cancelar" y "no" YA NO dan de baja. Sin una cita de por medio son
+    // ambiguos, y dar de baja en silencio a quien quería cancelar una hora es
+    // un error caro y silencioso. Se repregunta.
+    const raw = normTexto(texto);
+    const esStop      = /^(stop|baja|salir|desuscrib|no me escrib|no quiero recibir)/.test(raw);
+    const esReanudar  = /^(activar|reactivar|reanudar)$/.test(raw);
     if (esStop) {
       await registrarOptOut(from, 'stop-cliente-final');
       await enviarTexto(from,
@@ -252,6 +384,15 @@ async function procesarEntrante(msg) {
       await enviarTexto(from,
         '✅ *Notificaciones reactivadas.*\n\nVolverás a recibir confirmaciones de tus citas por aquí.');
       logger.info(`[wa] opt-in cliente final fono=***${from.slice(-4)}`);
+      return;
+    }
+    if (/^(cancel|no)/.test(raw)) {
+      // Ambiguo sin cita pendiente: puede ser "cancela mi hora" o "cancela los
+      // mensajes". Se pregunta en vez de asumir la baja.
+      await enviarTexto(from,
+        'No tengo ninguna cita pendiente de confirmar a tu nombre 🤔\n\n' +
+        'Si quieres *cancelar una cita*, contacta directamente a tu local.\n' +
+        'Si quieres *dejar de recibir estos mensajes*, responde *STOP*.');
       return;
     }
     // Número desconocido, sin comando: instrucciones (gratis: acaba de
@@ -474,6 +615,163 @@ exports.notificarCitaWhatsAppTenant = onDocumentCreated(
     try { await notificarCita(event.params.citaId, data, event.params.tid); }
     catch (e) { logger.error('[wa tenant]', e.message); }
     return null;
+  },
+);
+
+/* ──────────── Recordatorio 24h por plantilla (canal oficial Meta) ────────────
+   Sale por el número de PLATAFORMA, no por el del local: ese es justamente el
+   punto — si Meta degradara algo, el número del local ni se entera. El canal
+   por sesión (evolution/confirmaciones.js) hace lo mismo sobre el número
+   propio del local; los dos no deben quedar encendidos para el mismo tenant o
+   el cliente recibe el recordatorio dos veces.
+
+   Candados (los mismos del envío al crear la cita, más uno):
+     1. _system/whatsapp_notif.templatesEnabled === true
+     2. wa_notif/{tid}.planRecordatorio === true      ← propio, NO planCliente:
+        un local puede querer la confirmación al reservar y no el recordatorio.
+     3. _system/whatsapp_notif.templateRecordatorio definido y aprobado
+     4. consentimiento del titular (mismo libro /wa_optout que Evolution)                                                   */
+
+/** ¿Estamos en horario para mandar proactivos? */
+function dentroHorarioRecordatorio(now = ahoraChile()) {
+  const h = Math.floor(now.mins / 60);
+  return h >= RECORD_HORA_INICIO && h < RECORD_HORA_FIN;
+}
+
+/** Fecha (YYYY-MM-DD, hora de Chile) desplazada n días. */
+function fechaChile(offsetDias = 0) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(Date.now() + offsetDias * 86400000));
+}
+
+/** Envía los recordatorios pendientes de UN tenant. Devuelve cuántos salieron. */
+async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
+  const fecha = fechaChile(1);   // citas de mañana
+
+  const hoy = fechaChile(0);
+  const rec = wa.recordatoriosHoy || {};
+  let enviadosHoy = rec.fecha === hoy ? (Number(rec.count) || 0) : 0;
+  if (enviadosHoy >= RECORD_TOPE_DIA) {
+    logger.warn(`[wa:record] ${tid}: tope diario ${RECORD_TOPE_DIA} alcanzado`);
+    return 0;
+  }
+
+  const snap = await citasColDe(tid).where('fecha', '==', fecha).get();
+  if (snap.empty) return 0;
+
+  const nombreLocal = wa.nombreLocal
+    || (await db.collection('tenants').doc(tid).get()).data()?.nombre
+    || tid;
+
+  let enviados = 0;
+  for (const doc of snap.docs) {
+    if (enviados >= cupoCiclo || enviadosHoy + enviados >= RECORD_TOPE_DIA) break;
+
+    const cita = doc.data() || {};
+    // Idempotencia: el cron corre cada 30 min, esta marca es lo único que
+    // impide que la misma cita se recuerde en cada ciclo del día.
+    if (cita.waRecordatorioEnviado === true) continue;
+    if (cita.origenQA) continue;                       // barbero fantasma de QA
+    if (cita.skipNotificaciones === true || cita.origen === 'import_manual') continue;
+    if (['Cancelada', 'Completada', 'No asistió'].includes(cita.estado)) continue;
+
+    const fono = normalizarFono(cita.clienteTelefono);
+    if (!fono || fono.length < 11) continue;
+
+    const consent = await consentimientoWa(fono);
+    if (consent === 'optout') continue;
+    if (consent !== 'optin') {
+      if (cita.waOptIn !== true) continue;
+      await registrarOptIn(fono, 'reserva-checkbox').catch(() => {});
+    }
+
+    try {
+      await enviarTemplate(fono, cfg.templateRecordatorio, cfg.templateLang, [
+        cita.clienteNombre || 'Hola',
+        nombreLocal,
+        cita.servicioNombre || 'tu servicio',
+        fmtFecha(cita.fecha),
+        `${cita.hora || ''} hrs`,
+      ]);
+    } catch (e) {
+      logger.warn(`[wa:record] ${tid}/${doc.id} falló: ${e.message}`);
+      continue;
+    }
+
+    // Marca de idempotencia + pendiente para interpretar la respuesta.
+    // El pendiente expira 6h DESPUÉS de la cita: un "sí" que llega tarde ya no
+    // debe revivir una hora que pasó.
+    await doc.ref.update({
+      waRecordatorioEnviado:   true,
+      waRecordatorioEnviadoEn: FieldValue.serverTimestamp(),
+    }).catch(() => {});
+
+    await citaPendienteRef(fono).set({
+      tenantId: tid,
+      citaId:   doc.id,
+      fecha:    cita.fecha,
+      hora:     cita.hora || '',
+      servicio: cita.servicioNombre || '',
+      local:    nombreLocal,
+      creadoEn: FieldValue.serverTimestamp(),
+      expiraEn: Timestamp.fromMillis(Date.now() + 30 * 60 * 60 * 1000),
+    }).catch(() => {});
+
+    await writeNotifLog(db, {
+      tenantId: tid, type: 'wa_recordatorio_24h', channel: 'whatsapp_template',
+      status: 'sent', to: { telefono: fono },
+      meta: { citaId: doc.id, template: cfg.templateRecordatorio },
+    }).catch(() => {});
+
+    enviados++;
+    logger.info(`[wa:record] ${tid}/${doc.id} → recordatorio enviado`);
+  }
+
+  if (enviados > 0) {
+    await db.collection('wa_notif').doc(tid).set({
+      recordatoriosHoy: { fecha: hoy, count: enviadosHoy + enviados },
+    }, { merge: true }).catch(() => {});
+  }
+  return enviados;
+}
+
+exports.recordatorioCitaMeta = onSchedule(
+  {
+    schedule:       'every 30 minutes',
+    timeZone:       'America/Santiago',
+    region:         'us-central1',
+    secrets:        [WHATSAPP_TOKEN, WHATSAPP_PHONE_ID],
+    timeoutSeconds: 300,
+  },
+  async () => {
+    if (!dentroHorarioRecordatorio()) return;
+
+    const cfg = await getGlobalConfig();
+    if (cfg.templatesEnabled !== true || !cfg.templateRecordatorio) return;
+
+    // listDocuments, NO collection().get(): la mayoría de los docs padre
+    // tenants/{id} no existen como documentos y get() los omite. Acá se
+    // enumera wa_notif, que sí tiene docs reales, pero se deja dicho para que
+    // nadie lo "arregle" cambiándolo por un get() sobre tenants.
+    const waRefs = await db.collection('wa_notif').listDocuments();
+    let cupo = RECORD_MAX_CICLO;
+    let total = 0;
+
+    for (const ref of waRefs) {
+      if (cupo <= 0) break;
+      const wa = (await ref.get()).data() || {};
+      if (wa.planRecordatorio !== true) continue;
+
+      try {
+        const n = await recordatoriosDeTenant({ tid: ref.id, wa, cfg, cupoCiclo: cupo });
+        cupo  -= n;
+        total += n;
+      } catch (e) {
+        logger.error(`[wa:record] tenant ${ref.id}:`, e.message);
+      }
+    }
+    if (total > 0) logger.info(`[wa:record] ciclo completo: ${total} recordatorio(s)`);
   },
 );
 
