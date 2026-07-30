@@ -5,7 +5,7 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical, Coffee,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
-  Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle,
+  Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle, Info,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -81,17 +81,18 @@ function PersonalAgendaButton() {
 
   return (
     <div
-      className="group w-full flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 hover:border-slate-600 transition-colors"
+      className="group w-full flex items-center gap-2 bg-white/[0.05] rounded-xl px-3 py-2 hover:bg-white/[0.08] transition-all duration-200 ease-in-out"
+      style={{ border: '1px solid rgba(255,255,255,0.06)' }}
       title={url}>
       <a href={url} target="_blank" rel="noopener noreferrer"
-        className="flex-1 flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm truncate transition-colors">
-        <Lock size={12} className="text-indigo-400 shrink-0" />
+        className="flex-1 flex items-center gap-1.5 text-slate-300 hover:text-primary text-sm truncate transition-colors duration-200 ease-in-out">
+        <Lock size={12} className="text-indigo-300 shrink-0" strokeWidth={1.75} />
         <span className="truncate">/agenda.html</span>
       </a>
       <button onClick={copyUrl}
-        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors"
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors duration-200 ease-in-out"
         title="Copiar enlace de agenda personal">
-        {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+        {copied ? <Check size={14} className="text-emerald-300" strokeWidth={2} /> : <Copy size={14} strokeWidth={1.75} />}
       </button>
     </div>
   );
@@ -278,14 +279,24 @@ function DiasExtraEditor({ value = [], onChange }) {
 function Section({ title, Icon, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-slate-800 rounded-xl overflow-hidden">
+    <div
+      className="rounded-2xl overflow-hidden bg-white/[0.02]"
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+    >
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 w-full px-4 py-3 bg-slate-800/40 hover:bg-slate-800/60 transition-colors text-left">
-        {Icon && <Icon size={14} className="text-slate-400 shrink-0" />}
-        <span className="flex-1 text-sm font-semibold text-primary">{title}</span>
-        <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        className="flex items-center gap-2 w-full px-4 py-3 hover:bg-white/[0.02] transition-colors duration-200 ease-in-out text-left">
+        {Icon && <Icon size={14} className="text-slate-400 shrink-0" strokeWidth={1.75} />}
+        <span className="flex-1 text-sm font-medium text-primary tracking-tight">{title}</span>
+        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ease-in-out ${open ? 'rotate-180' : ''}`} strokeWidth={1.75} />
       </button>
-      {open && <div className="px-4 pb-4 pt-3 space-y-3 border-t border-slate-800">{children}</div>}
+      {open && (
+        <div
+          className="px-4 pb-4 pt-3 space-y-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -385,17 +396,18 @@ function BookingUrlButton({ nombre }) {
 
   return (
     <div
-      className="group w-full flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 hover:border-slate-600 transition-colors"
+      className="group w-full flex items-center gap-2 bg-white/[0.05] rounded-xl px-3 py-2 hover:bg-white/[0.08] transition-all duration-200 ease-in-out"
+      style={{ border: '1px solid rgba(255,255,255,0.06)' }}
       title={url}>
       <a href={url} target="_blank" rel="noopener noreferrer"
-        className="flex-1 flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm truncate transition-colors">
-        <Link2 size={12} className="text-slate-500 shrink-0" />
+        className="flex-1 flex items-center gap-1.5 text-slate-300 hover:text-primary text-sm truncate transition-colors duration-200 ease-in-out">
+        <Link2 size={12} className="text-emerald-300 shrink-0" strokeWidth={1.75} />
         <span className="truncate">/{slugify(nombre)}</span>
       </a>
       <button onClick={copyUrl}
-        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors"
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-primary transition-colors duration-200 ease-in-out"
         title="Copiar enlace">
-        {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+        {copied ? <Check size={14} className="text-emerald-300" strokeWidth={2} /> : <Copy size={14} strokeWidth={1.75} />}
       </button>
     </div>
   );
@@ -529,24 +541,30 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
   ];
 
   return (
-    <div className={`relative bg-slate-800 border rounded-2xl p-5 flex flex-col items-center gap-4 transition-all duration-200 ${isDragging ? 'border-emerald-500/40 opacity-60 shadow-xl' : 'border-slate-700/50 hover:border-slate-500 hover:-translate-y-0.5'}`}>
+    <div
+      className={`relative bg-white/[0.02] rounded-2xl p-5 flex flex-col items-center gap-4 transition-all duration-200 ease-in-out ${isDragging ? 'opacity-60' : 'hover:bg-white/[0.04] hover:-translate-y-0.5'}`}
+      style={{ border: isDragging ? '1px solid rgba(52,199,89,0.35)' : '1px solid rgba(255,255,255,0.05)', boxShadow: isDragging ? '0 10px 25px rgba(0,0,0,0.4)' : undefined }}
+    >
       {dragHandleProps && (
         <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-500 hover:text-primary transition-colors" title="Arrastrar para reordenar">
-          <GripVertical size={14} />
+          <GripVertical size={14} strokeWidth={1.75} />
         </div>
       )}
       {!isStrictAdmin && <div className="absolute top-3 right-3"><DropdownMenu items={menuItems} /></div>}
-      {isStrictAdmin  && <div className="absolute top-3 right-3 text-emerald-500/60"><ShieldCheck size={16} /></div>}
+      {isStrictAdmin  && <div className="absolute top-3 right-3 text-emerald-400/60"><ShieldCheck size={16} strokeWidth={1.75} /></div>}
 
-      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-900 ring-2 ring-slate-700 ring-offset-2 ring-offset-slate-800 shrink-0 mt-1">
+      <div
+        className="w-20 h-20 rounded-full overflow-hidden bg-white/[0.04] shrink-0 mt-1"
+        style={{ border: '2px solid rgba(255,255,255,0.1)' }}
+      >
         {barber.foto
           ? <img src={barber.foto} alt={barber.nombre} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><User size={32} className="text-slate-600" /></div>}
+          : <div className="w-full h-full flex items-center justify-center"><User size={32} className="text-slate-500" strokeWidth={1.5} /></div>}
       </div>
 
       <div className="text-center">
-        <p className="text-lg font-bold text-primary leading-tight">{barber.nombre}</p>
-        {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">Admin</p>}
+        <p className="text-lg font-semibold text-primary leading-tight tracking-tight">{barber.nombre}</p>
+        {isAdmin && <p className="text-[10px] text-emerald-300 font-medium mt-1 uppercase tracking-[0.1em]">Admin</p>}
         {!isStrictAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
         {barber.sucursalId && (() => {
           const suc = sucursales.find(s => s.id === barber.sucursalId);
@@ -557,9 +575,9 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
             </p>
           );
         })()}
-        {barber.comision > 0 && <p className="text-sm text-slate-400 mt-1">{barber.comision}% comisión</p>}
+        {barber.comision > 0 && <p className="text-sm text-slate-400 mt-1 tabular-nums">{barber.comision}% comisión</p>}
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-medium ${isActive ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/[0.06] text-slate-400'}`}>
             {isActive?'Activo':'Inactivo'}
           </span>
           {/* 3 estados de acceso web — la detección refleja los 3 caminos
@@ -576,9 +594,9 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
               return (
                 <span
                   title={`Cuenta creada desde este panel · ${barber.email || 'sin email registrado'}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-400/15 text-emerald-300"
                 >
-                  🔐 Acceso Nativo
+                  🔐 Acceso nativo
                 </span>
               );
             }
@@ -591,16 +609,16 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
               return (
                 <span
                   title={`Puede iniciar sesión (${razon}) — vincula formalmente desde "Editar"`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/15 text-amber-300"
                 >
-                  ⚠️ Acceso Antiguo
+                  ⚠️ Acceso antiguo
                 </span>
               );
             }
             return (
               <span
                 title="Este barbero no tiene cuenta ni email registrado; no puede iniciar sesión"
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/[0.06] text-slate-400"
               >
                 Sin acceso web
               </span>
@@ -611,13 +629,16 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
       {isSupportAdmin ? (
         <a href={waUrl} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1.5 w-full justify-center bg-green-600 hover:bg-green-700 text-primary rounded-xl py-2 font-medium text-sm transition-colors">
-          <MessageCircle size={15} /> Soporte vía WhatsApp
+          className="flex items-center gap-1.5 w-full justify-center bg-emerald-400/15 hover:bg-emerald-400/20 text-emerald-200 rounded-full py-2 font-medium text-sm transition-all duration-200 ease-in-out">
+          <MessageCircle size={15} strokeWidth={1.75} /> Soporte vía WhatsApp
         </a>
       ) : (
-        <button onClick={onVerAgenda}
-          className="flex items-center gap-1.5 w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-primary rounded-xl py-2 font-medium text-sm transition-colors">
-          <Calendar size={15} /> Ver Agenda
+        <button
+          onClick={onVerAgenda}
+          className="group/agenda flex items-center gap-1.5 w-full justify-center bg-white/[0.03] hover:bg-indigo-400/20 text-slate-200 hover:text-indigo-200 rounded-full py-2 font-medium text-sm transition-all duration-200 ease-in-out"
+          style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <Calendar size={15} strokeWidth={1.75} className="text-slate-400 group-hover/agenda:text-indigo-200 transition-colors duration-200 ease-in-out" /> Ver agenda
         </button>
       )}
 
@@ -637,56 +658,53 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
             type="button"
             onClick={() => setLinksOpen(v => !v)}
             aria-expanded={linksOpen}
-            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-900/60 border border-slate-700/60 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:border-slate-600 transition-colors"
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-white/[0.03] rounded-full text-xs font-medium text-slate-300 hover:bg-white/[0.06] transition-all duration-200 ease-in-out"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <span className="flex items-center gap-1.5">
-              <Link2 size={12} className="text-slate-400" />
+              <Link2 size={12} className="text-slate-400" strokeWidth={1.75} />
               Links del barbero
-              <span className="text-[10px] text-slate-500 font-normal">(agenda + reserva)</span>
             </span>
             <ChevronDown
               size={14}
-              className={`text-slate-500 transition-transform duration-200 ${linksOpen ? 'rotate-180' : ''}`}
+              className={`text-slate-500 transition-transform duration-200 ease-in-out ${linksOpen ? 'rotate-180' : ''}`}
+              strokeWidth={1.75}
             />
           </button>
 
-          {/* Contenido colapsable */}
+          {/* Contenido colapsable — tooltips (title) en lugar de párrafos */}
           {linksOpen && (
-            <div className="w-full mt-3 space-y-3">
+            <div className="w-full mt-3 space-y-2.5">
               {/* PRIVADO: Agenda personal del barbero */}
-              <div className="w-full space-y-2 bg-indigo-500/[0.04] border border-indigo-500/15 rounded-xl p-3">
-                <div className="flex items-start gap-2">
-                  <div className="p-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/25 shrink-0 mt-0.5">
-                    <Lock size={11} className="text-indigo-300" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300 leading-tight">
-                      Agenda personal (privada)
-                    </p>
-                    <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
-                      Este link se lo pasas <strong className="text-slate-200">al barbero</strong>.
-                      Es su vista privada para gestionar sus citas del día — inicia sesión con su cuenta y solo ve las suyas.
-                    </p>
-                  </div>
+              <div className="w-full space-y-2">
+                <div className="flex items-center gap-1.5 px-1">
+                  <Lock size={10} className="text-indigo-300" strokeWidth={1.75} />
+                  <p className="text-[10.5px] font-medium uppercase tracking-[0.1em] text-slate-300">
+                    Agenda personal
+                  </p>
+                  <span
+                    title={`Este link se lo pasas al barbero. Es su vista privada para gestionar sus citas del día — inicia sesión con su cuenta y solo ve las suyas.`}
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-slate-500 hover:text-slate-300 transition-colors cursor-help"
+                  >
+                    <Info size={11} strokeWidth={1.75} />
+                  </span>
                 </div>
                 <PersonalAgendaButton />
               </div>
 
               {/* PÚBLICO: Página de reserva del barbero */}
-              <div className="w-full space-y-2 bg-emerald-500/[0.04] border border-emerald-500/15 rounded-xl p-3">
-                <div className="flex items-start gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
-                    <Globe size={11} className="text-emerald-300" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 leading-tight">
-                      Página pública de reserva
-                    </p>
-                    <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
-                      Este link es <strong className="text-slate-200">para tus clientes</strong>.
-                      Al abrirlo, verán la lista de servicios y horarios de {barber.nombre?.split(' ')[0] || 'este barbero'} y pueden reservar con él directo.
-                    </p>
-                  </div>
+              <div className="w-full space-y-2">
+                <div className="flex items-center gap-1.5 px-1">
+                  <Globe size={10} className="text-emerald-300" strokeWidth={1.75} />
+                  <p className="text-[10.5px] font-medium uppercase tracking-[0.1em] text-slate-300">
+                    Página pública
+                  </p>
+                  <span
+                    title={`Este link es para tus clientes. Al abrirlo, verán la lista de servicios y horarios de ${barber.nombre?.split(' ')[0] || 'este barbero'} y pueden reservar con él directo.`}
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-slate-500 hover:text-slate-300 transition-colors cursor-help"
+                  >
+                    <Info size={11} strokeWidth={1.75} />
+                  </span>
                 </div>
                 <BookingUrlButton nombre={barber.nombre} />
               </div>
@@ -1336,8 +1354,8 @@ export default function Equipo() {
     set('ausencias', form.ausencias.map(a => a.id === id ? { ...a, [k]: v } : a));
 
   /* ── Shared styles ── */
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
-  const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
+  const field = 'w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:bg-white/[0.05] transition-all duration-200 ease-in-out';
+  const lbl   = 'block text-[11px] font-medium text-slate-400 uppercase tracking-[0.08em] mb-1.5';
 
   // Barbero editado ya tiene cuenta Firebase Auth (authUid nuevo o uid legacy).
   // Fuente única de verdad para la UI del modal: si es true → mostramos read-only
@@ -1444,13 +1462,16 @@ export default function Equipo() {
       ) : activeTab === 'miembros' ? (
         <>
           {/* Filosofía SynapTech: crecimiento sin cobrar por barbero extra */}
-          <div className="mb-4 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 rounded-xl px-4 py-3 flex items-start gap-3">
-            <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
-              <Sparkles size={14} className="text-emerald-400" />
+          <div
+            className="mb-4 bg-white/[0.02] rounded-2xl px-4 py-3 flex items-start gap-3"
+            style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <div className="p-1.5 rounded-lg bg-emerald-400/10 ring-1 ring-inset ring-emerald-400/15 shrink-0 mt-0.5">
+              <Sparkles size={14} className="text-emerald-300" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-primary leading-tight">
-                En SynapTech creemos que crecer <span className="text-emerald-400">no debería costarte más</span>.
+              <p className="text-sm font-medium text-primary leading-tight tracking-tight">
+                En SynapTech creemos que crecer <span className="text-emerald-300">no debería costarte más</span>.
               </p>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                 Suma todos los {memberLabel}s que quieras — <strong className="text-slate-200">nunca cobramos extra por integrantes del equipo</strong>.
@@ -1460,12 +1481,15 @@ export default function Equipo() {
           </div>
 
           {/* Toggle: aleatorizar orden de barberos en la página pública */}
-          <div className="mb-4 flex items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+          <div
+            className="mb-4 flex items-center justify-between gap-3 bg-white/[0.02] rounded-2xl px-4 py-3"
+            style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+          >
             <div className="flex items-start gap-3 min-w-0">
-              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 border transition-colors ${
-                randomBarberos ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'
+              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ring-1 ring-inset transition-colors duration-200 ease-in-out ${
+                randomBarberos ? 'bg-emerald-400/10 ring-emerald-400/15 text-emerald-300' : 'bg-white/[0.03] ring-white/[0.05] text-slate-500'
               }`}>
-                <Shuffle size={13} />
+                <Shuffle size={13} strokeWidth={1.75} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -1846,20 +1870,24 @@ export default function Equipo() {
           {/* ── Perfil ── */}
           <Section title="Datos del perfil" Icon={User} defaultOpen>
             <div className="flex items-center gap-4 mb-1">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center">
+              <div
+                className="w-16 h-16 rounded-full overflow-hidden bg-white/[0.04] shrink-0 flex items-center justify-center"
+                style={{ border: '2px solid rgba(255,255,255,0.1)' }}
+              >
                 {preview
                   ? <img src={preview} alt="" className="w-full h-full object-cover" />
-                  : <User size={24} className="text-slate-600" />}
+                  : <User size={24} className="text-slate-500" strokeWidth={1.5} />}
               </div>
               <div className="flex-1 space-y-1.5">
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/> : <Upload size={12} />}
-                  {uploading ? 'Subiendo...' : 'Subir foto'}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 text-xs font-medium rounded-full transition-all duration-200 ease-in-out disabled:opacity-50"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/> : <Upload size={12} strokeWidth={1.75} />}
+                  {uploading ? 'Subiendo…' : (preview ? 'Cambiar foto' : 'Subir foto')}
                 </button>
-                {uploadError && <p className="text-xs text-red-400 leading-snug">{uploadError}</p>}
-                <input className={`${field} text-xs`} placeholder="https://..." value={form.foto}
-                  onChange={e => { set('foto', e.target.value); setPreview(e.target.value); }} />
+                {uploadError && <p className="text-xs text-rose-300 leading-snug">{uploadError}</p>}
+                {/* URL cruda de Storage nunca expuesta al usuario: solo el botón
+                    y el preview visual comunican el estado de la foto. */}
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
             </div>
@@ -1891,11 +1919,15 @@ export default function Equipo() {
                       title={activo ? 'Quitar color' : `Usar ${c}`}
                       aria-label={`Color ${c}`}
                       aria-pressed={activo}
-                      className={`relative w-7 h-7 rounded-full transition-transform hover:scale-110 ${activo ? 'scale-110' : ''}`}
-                      style={{ backgroundColor: c }}
+                      className="relative w-7 h-7 rounded-full transition-all duration-200 ease-in-out hover:scale-105"
+                      style={{
+                        backgroundColor: c,
+                        outline: activo ? '2px solid rgba(255,255,255,0.85)' : 'none',
+                        outlineOffset: activo ? '2px' : '0',
+                      }}
                     >
                       {/* text-white literal: va sobre el swatch de color, no debe voltear con el tema */}
-                      {activo && <Check size={14} strokeWidth={3} className="absolute inset-0 m-auto text-white drop-shadow" />}
+                      {activo && <Check size={14} strokeWidth={2.5} className="absolute inset-0 m-auto text-white drop-shadow" />}
                     </button>
                   );
                 })}
@@ -1905,7 +1937,8 @@ export default function Equipo() {
                   onChange={e => set('color', e.target.value)}
                   title="Elegir otro color"
                   aria-label="Elegir otro color"
-                  className="w-7 h-7 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0"
+                  className="w-7 h-7 rounded-lg bg-transparent cursor-pointer p-0.5 shrink-0"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                 />
                 {form.color && (
                   <button type="button" onClick={() => set('color', '')}

@@ -6,62 +6,84 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Operaciones · SynapTech</title>
 <style>
-  :root{ --bg:#0d1117; --card:#161b22; --line:#232a33; --ink:#e6edf3; --soft:#8b949e; --green:#3fb950; --amber:#d29922; --red:#f85149; --accent:#58a6ff; }
+  :root{
+    /* Fondo principal intacto */
+    --bg:#0d1117;
+    /* Cristal + soft */
+    --glass:rgba(255,255,255,0.02);
+    --glass-hover:rgba(255,255,255,0.05);
+    --glass-border:rgba(255,255,255,0.05);
+    --hairline:rgba(255,255,255,0.06);
+    --ink:#e6edf3;
+    --soft:#8b949e;
+    /* Colores pastel tipo System iOS Dark */
+    --green:#5ee89a;
+    --amber:#ffcf6c;
+    --red:#ff7b72;
+    --accent:#7aa8ff;
+  }
   *{ box-sizing:border-box; }
-  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
   .tnum{ font-variant-numeric:tabular-nums; }
-  header{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; }
-  header h1{ font-size:16px; margin:0; font-weight:800; letter-spacing:-.01em; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--glass-border); position:sticky; top:0; background:var(--bg); z-index:5; }
+  header h1{ font-size:16px; margin:0; font-weight:600; letter-spacing:-.01em; }
   header .sub{ font-size:11px; color:var(--soft); }
   header .acts{ display:flex; gap:8px; }
-  button{ font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:7px 13px; font-size:13px; font-weight:600; }
-  button:hover{ border-color:#3d444d; }
-  button.primary{ background:var(--accent); border-color:var(--accent); color:#04101f; }
+  button{ font:inherit; cursor:pointer; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); border-radius:9999px; padding:7px 14px; font-size:13px; font-weight:500; transition:background .2s ease, color .2s ease, border-color .2s ease; }
+  button:hover{ background:var(--glass-hover); }
+  button.primary{ background:var(--accent); border-color:transparent; color:#04101f; }
   .wrap{ max-width:1040px; margin:0 auto; padding:22px; }
   .login{ max-width:340px; margin:14vh auto; text-align:center; }
-  .login h2{ font-size:20px; }
+  .login h2{ font-size:20px; font-weight:600; letter-spacing:-.01em; }
   .login p{ color:var(--soft); font-size:14px; }
   .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
   @media(max-width:720px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
-  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
-  .kpi .n{ font-size:28px; font-weight:800; letter-spacing:-.02em; }
-  .kpi .k{ font-size:12px; color:var(--soft); margin-top:3px; }
+  .kpi{ background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:16px; transition:background .2s ease; }
+  .kpi:hover{ background:var(--glass-hover); }
+  .kpi .n{ font-size:28px; font-weight:600; letter-spacing:-.02em; color:#fff; }
+  .kpi .k{ font-size:11px; color:var(--soft); margin-top:4px; text-transform:uppercase; letter-spacing:.08em; font-weight:500; }
   .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
   @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
-  .panel{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
-  .panel h3{ margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); display:flex; align-items:center; gap:8px; }
-  .row{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
-  .row:last-child{ border-bottom:0; }
-  .row .v{ font-weight:700; }
-  .loc{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; flex-wrap:wrap; }
-  .loc:last-child{ border-bottom:0; }
-  .loc .sub2{ flex-basis:100%; padding-left:16px; font-size:11px; color:var(--soft); }
+  .panel{ background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
+  .panel h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--soft); display:flex; align-items:center; gap:8px; font-weight:500; }
+  /* Efecto ticket: sin divisorias, solo espacio en blanco. */
+  .row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; font-size:14px; }
+  .row span:first-child{ color:var(--soft); }
+  .row .v{ font-weight:600; color:#fff; }
+  .loc{ display:flex; align-items:center; gap:8px; padding:12px 0; font-size:13px; flex-wrap:wrap; }
+  .loc + .loc{ border-top:1px solid var(--hairline); }
+  .loc .sub2{ flex-basis:100%; padding-left:16px; font-size:11px; color:var(--soft); margin-top:2px; }
   .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
-  .dot.on{ background:var(--green); } .dot.off{ background:#484f58; }
-  .dot.warn{ background:var(--red); box-shadow:0 0 6px rgba(248,81,73,.6); }
-  .alerta{ display:flex; gap:9px; align-items:flex-start; border-radius:10px; padding:9px 13px; font-size:13px; margin-bottom:8px; border:1px solid; }
-  .alerta.rojo{ background:rgba(248,81,73,.08); border-color:rgba(248,81,73,.35); color:#ffb3ae; }
-  .alerta.ambar{ background:rgba(210,153,34,.08); border-color:rgba(210,153,34,.35); color:#e8c069; }
-  .alerta.info{ background:rgba(88,166,255,.07); border-color:rgba(88,166,255,.3); color:#a5cfff; }
+  .dot.on{ background:var(--green); box-shadow:0 0 6px rgba(94,232,154,.35); } .dot.off{ background:rgba(255,255,255,.15); }
+  .dot.warn{ background:var(--red); box-shadow:0 0 6px rgba(255,123,114,.6); }
+  .alerta{ display:flex; gap:9px; align-items:flex-start; border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:8px; border:1px solid var(--glass-border); }
+  .alerta.rojo{ background:rgba(255,123,114,.08); color:#ffbcb5; }
+  .alerta.ambar{ background:rgba(255,207,108,.08); color:#f0d38a; }
+  .alerta.info{ background:rgba(122,168,255,.07); color:#b9d0ff; }
   .trial-ok{ color:var(--green); } .trial-pronto{ color:var(--amber); } .trial-vencido{ color:var(--red); }
-  .tag{ font-size:10px; padding:1px 6px; border-radius:999px; border:1px solid var(--line); color:var(--soft); }
-  .tag.g{ color:var(--green); border-color:#1f4028; }
+  .tag{ font-size:10px; padding:2px 8px; border-radius:9999px; background:var(--glass-hover); color:var(--soft); font-weight:500; }
+  .tag.g{ color:var(--green); background:rgba(94,232,154,.15); }
   .muted{ color:var(--soft); font-size:12px; }
-  .warn{ background:rgba(210,153,34,.1); border:1px solid rgba(210,153,34,.3); color:var(--amber); border-radius:10px; padding:10px 14px; font-size:13px; margin-top:14px; }
+  .warn{ background:rgba(255,207,108,.08); border:1px solid var(--glass-border); color:var(--amber); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:14px; }
   #err{ color:var(--red); font-size:13px; margin-top:10px; }
-  button.mini{ padding:2px 8px; font-size:11px; border-radius:6px; }
-  button.mini.danger{ color:#ffb3ae; border-color:rgba(248,81,73,.4); }
-  button.mini.danger:hover{ background:rgba(248,81,73,.12); }
-  button.panic{ background:rgba(248,81,73,.15); border-color:rgba(248,81,73,.5); color:#ffb3ae; }
-  .bar{ flex:1; height:5px; border-radius:3px; background:#21262d; overflow:hidden; min-width:60px; }
-  .bar i{ display:block; height:100%; border-radius:3px; }
-  .modal{ position:fixed; inset:0; background:rgba(1,4,9,.75); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
-  .modal .box{ background:var(--card); border:1px solid var(--line); border-radius:14px; max-width:640px; width:100%; max-height:82vh; overflow-y:auto; padding:18px; }
-  .chat{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  /* Botones mini (ver chats / apagar) — píldoras translúcidas sin borde. */
+  button.mini{ padding:3px 10px; font-size:11px; border-radius:9999px; border:none; background:rgba(255,255,255,.05); color:var(--ink); }
+  button.mini:hover{ background:rgba(255,255,255,.09); }
+  button.mini.danger{ color:#ffbcb5; background:rgba(255,123,114,.1); }
+  button.mini.danger:hover{ background:rgba(255,123,114,.18); }
+  /* "Apagar todo" — destructivo premium, sin outline agresivo. */
+  button.panic{ background:rgba(255,0,0,.1); border:none; color:#ff9088; font-weight:600; }
+  button.panic:hover{ background:rgba(255,0,0,.15); color:#ffb3ae; }
+  /* Barras de progreso más prominentes y suaves. */
+  .bar{ flex:1; height:6px; border-radius:9999px; background:rgba(255,255,255,.05); overflow:hidden; min-width:60px; }
+  .bar i{ display:block; height:100%; border-radius:9999px; transition:width .3s ease; }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal .box{ background:#161b22; border:1px solid var(--glass-border); border-radius:20px; max-width:640px; width:100%; max-height:82vh; overflow-y:auto; padding:20px; box-shadow:0 25px 50px rgba(0,0,0,.5); }
+  .chat{ border:1px solid var(--glass-border); background:var(--glass); border-radius:12px; padding:10px 12px; margin-bottom:10px; }
   .chat .meta{ font-size:11px; color:var(--soft); margin-bottom:6px; }
-  .msg{ font-size:12.5px; line-height:1.5; margin:3px 0; padding:5px 9px; border-radius:8px; white-space:pre-wrap; }
-  .msg.user{ background:#1c2128; }
-  .msg.assistant{ background:rgba(63,185,80,.09); border:1px solid rgba(63,185,80,.18); }
+  .msg{ font-size:12.5px; line-height:1.5; margin:3px 0; padding:5px 9px; border-radius:10px; white-space:pre-wrap; }
+  .msg.user{ background:rgba(255,255,255,.04); }
+  .msg.assistant{ background:rgba(94,232,154,.08); }
 </style>
 </head>
 <body>
@@ -112,11 +134,13 @@
     function cuotaBar(c){
       if(!c || !c.capTotal) return '';
       const pct = Math.min(100, c.pct||0);
-      const col = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
-      return `<span class="sub2" style="display:flex;align-items:center;gap:8px">
-        <span style="flex:0 0 90px">salientes hoy</span>
-        <span class="bar"><i style="width:${pct}%;background:${col}"></i></span>
-        <span class="tnum" style="flex:0 0 auto">${c.salientes}/${c.capTotal}</span>
+      // Gradiente sutil sobre el color base para dar volumen premium.
+      const base = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
+      const fill = `linear-gradient(90deg, ${base} 0%, ${base} 100%)`;
+      return `<span class="sub2" style="display:flex;align-items:center;gap:10px">
+        <span style="flex:0 0 90px;color:var(--soft)">salientes hoy</span>
+        <span class="bar"><i style="width:${pct}%;background:${fill}"></i></span>
+        <span class="tnum" style="flex:0 0 auto;color:#fff;font-weight:500">${c.salientes}/${c.capTotal}</span>
         <span style="color:var(--soft)">· confirm ${c.confirmaciones}/${c.capConfirm}${c.fallos?` · <span style="color:var(--red)">${c.fallos} fallo(s)</span>`:''}</span>
       </span>`;
     }
@@ -167,8 +191,10 @@
 
     function trialsPanel(trials){
       if(!trials || !trials.length) return '';
+      // Alerta visual anticipada: ámbar solo cuando faltan ≤7 días (renovación
+      // inminente); más de 7 queda en verde pastel; vencido en rojo.
       const rows = trials.map(t => {
-        const cls = t.diasRestantes < 0 ? 'trial-vencido' : (t.diasRestantes <= 15 ? 'trial-pronto' : 'trial-ok');
+        const cls = t.diasRestantes < 0 ? 'trial-vencido' : (t.diasRestantes <= 7 ? 'trial-pronto' : 'trial-ok');
         const estado = t.diasRestantes < 0 ? `VENCIDO hace ${Math.abs(t.diasRestantes)} día(s)` : `${t.diasRestantes} día(s) restantes`;
         return `<div class="row"><span>${t.tid}${t.tipo?` <span class="muted">· ${t.tipo}</span>`:''}</span><span class="v tnum ${cls}">${t.fin} · ${estado}</span></div>`;
       }).join('');

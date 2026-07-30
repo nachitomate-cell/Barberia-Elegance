@@ -50,9 +50,10 @@
       position: relative;
       border-radius: 1.25rem;
       padding: 1.25rem 0.75rem 1rem;
-      border: 1px solid rgba(255,255,255,0.07);
-      background: rgba(15,23,42,0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.02);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       text-align: center;
       width: 100%;
       color: inherit;
@@ -62,7 +63,39 @@
       gap: 0.45rem;
       text-decoration: none;
     }
-    .tenant-card:hover { transform: translateY(-3px); }
+    .tenant-card:hover { transform: translateY(-3px); background: rgba(255,255,255,0.04); }
+
+    /* ── Logo unificado (squircle) ──
+       Los logos de terceros vienen con proporciones distintas y `object-fit:cover`
+       recortaba a algunos. Unificamos: contenedor cuadrado con fondo neutro,
+       radio pronunciado tipo squircle y padding interno para que el logo respire.
+       `object-fit: contain` respeta la proporción original sin cortar. */
+    .tenant-card img {
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 16px !important;
+      object-fit: contain !important;
+      background: rgba(255,255,255,0.05) !important;
+      border: 1px solid rgba(255,255,255,0.06) !important;
+      padding: 6px !important;
+      flex-shrink: 0;
+    }
+    /* Fallback (div con icono) — mismas medidas para no mover el layout */
+    .tenant-card > div[style*="display:none"] {
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 16px !important;
+      background: rgba(255,255,255,0.05) !important;
+      border: 1px solid rgba(255,255,255,0.06) !important;
+    }
+
+    /* ── Status badge translúcido: sin borde, fondo del mismo tono del texto.
+       Sobrescribe los `border` inline de los badges cargados desde JS. */
+    [id^="status-badge-"] {
+      border: none !important;
+      padding: 0.2rem 0.55rem !important;
+      font-weight: 600 !important;
+    }
     /* Badge flotante: tenant con módulo Wallet activo (_billing.walletActivo). */
     .wallet-badge {
       position: absolute;
@@ -299,19 +332,21 @@
     .ps-card {
       border-radius: 1rem;
       padding: 1.125rem 1.25rem;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
       display: flex; flex-direction: column; gap: 0.25rem;
+      transition: background 0.2s ease;
     }
+    .ps-card:hover { background: rgba(255,255,255,0.04); }
     .ps-value {
-      font-size: 1.75rem; font-weight: 800;
-      line-height: 1.1; letter-spacing: -0.03em;
+      font-size: 1.75rem; font-weight: 600;
+      line-height: 1.1; letter-spacing: -0.02em;
       color: #fff;
     }
     .ps-label {
-      font-size: 0.6875rem; font-weight: 700;
+      font-size: 0.6875rem; font-weight: 500;
       text-transform: uppercase; letter-spacing: 0.09em;
-      color: #64748b;
+      color: #94a3b8;
     }
 
     /* ── Ghost buttons (top-bar) ── */
@@ -372,7 +407,10 @@
       font-size: 0.75rem; color: #475569; padding: 0.85rem; text-align: center;
       border: 1px dashed rgba(148,163,184,0.2); border-radius: 0.75rem;
     }
-    .tenant-card.is-off { opacity: 0.5; filter: grayscale(0.5); }
+    /* Local inactivo: opacidad global fuerte para comunicar el estado al vuelo.
+       Se recupera al hacer hover, por si el superadmin quiere reactivarlo. */
+    .tenant-card.is-off { opacity: 0.4; filter: grayscale(0.7); }
+    .tenant-card.is-off:hover { opacity: 0.75; }
     .sa-ctx {
       position: absolute; z-index: 9999; display: none; min-width: 220px;
       background: #0f172a; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.625rem;
@@ -1103,29 +1141,31 @@
     </p>
   </div>
 
-  <!-- ── Búsqueda global + Modo Hoy ── -->
+  <!-- ── Búsqueda global + Modo Hoy — cristal genérico ── -->
   <div style="width:100%; max-width:660px; margin-bottom:1.25rem;">
     <div style="position:relative; margin-bottom:0.75rem;">
-      <i class="ph ph-magnifying-glass" style="position:absolute; left:0.9rem; top:0.95rem; color:#475569; font-size:1.1rem; pointer-events:none;"></i>
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:0.9rem; top:0.95rem; color:#64748b; font-size:1.05rem; pointer-events:none;"></i>
       <input id="global-search" type="search" inputmode="search" autocomplete="off" placeholder="Buscar local o slug…" oninput="onGlobalSearch(this.value)" onfocus="onGlobalSearch(this.value)"
-        style="width:100%; box-sizing:border-box; padding:0.8rem 0.9rem 0.8rem 2.6rem; border-radius:0.875rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; font-size:1rem; outline:none;" />
-      <div id="global-search-results" style="display:none; margin-top:0.4rem; background:#0d1526; border:1px solid rgba(255,255,255,0.1); border-radius:0.875rem; overflow:hidden;"></div>
+        style="width:100%; box-sizing:border-box; padding:0.8rem 0.9rem 0.8rem 2.6rem; border-radius:0.875rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); color:#e2e8f0; font-size:1rem; outline:none; transition:background 0.2s ease, border-color 0.2s ease;"
+        onfocus="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.1)'; onGlobalSearch(this.value);"
+        onblur="this.style.background='rgba(255,255,255,0.02)'; this.style.borderColor='rgba(255,255,255,0.05)';" />
+      <div id="global-search-results" style="display:none; margin-top:0.4rem; background:rgba(255,255,255,0.02); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.05); border-radius:0.875rem; overflow:hidden;"></div>
     </div>
     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem;">
-      <button onclick="scrollToSection('cobrar')" id="mh-cobrar" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
-      <button onclick="scrollToSection('leads')" id="mh-leads" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
-      <button onclick="toggleOptionalSection('embudo')" id="mh-estancado" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+      <button onclick="scrollToSection('cobrar')" id="mh-cobrar" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.875rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+      <button onclick="scrollToSection('leads')" id="mh-leads" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.875rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
+      <button onclick="toggleOptionalSection('embudo')" id="mh-estancado" style="display:flex; flex-direction:column; align-items:center; gap:0.2rem; padding:0.7rem 0.4rem; border-radius:0.875rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;"></i></button>
     </div>
-    <div style="margin-top:0.7rem; text-align:center; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:#475569; font-weight:700;">MRR estimado · <span id="mrr-value" style="color:#a3e635; font-weight:800; font-size:1rem; letter-spacing:0;">—</span> <span style="text-transform:none; letter-spacing:0; color:#64748b;">/mes</span></div>
+    <div style="margin-top:0.7rem; text-align:center; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; font-weight:500;">MRR estimado · <span id="mrr-value" style="color:#5ee89a; font-weight:600; font-size:1rem; letter-spacing:0;">—</span> <span style="text-transform:none; letter-spacing:0; color:#64748b;">/mes</span></div>
   </div>
 
-  <!-- ── Ingresos proyectados del mes ── -->
+  <!-- ── Ingresos proyectados del mes — cristal genérico ── -->
   <div id="income-projection" style="width:100%; max-width:660px; margin-bottom:1.5rem;
-    background:linear-gradient(135deg, rgba(132,204,22,0.08), rgba(52,211,153,0.04));
-    border:1px solid rgba(132,204,22,0.22); border-radius:1rem; padding:1.25rem;">
+    background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.05); border-radius:1rem; padding:1.25rem;">
     <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.75rem; gap:0.75rem; flex-wrap:wrap;">
       <div style="flex:1; min-width:0;">
-        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#84cc16; margin:0 0 0.375rem;">
+        <p style="font-size:0.6875rem; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin:0 0 0.375rem;">
           Ingresos proyectados
         </p>
         <div style="display:flex; align-items:center; gap:0.375rem;">
@@ -1149,24 +1189,24 @@
             <i class="ph-bold ph-caret-right" style="font-size:0.75rem;"></i>
           </button>
           <button id="ip-hoy-btn" onclick="ipResetMonth()" title="Volver al mes actual" style="
-            display:none; align-items:center; gap:0.25rem; padding:0.25rem 0.5rem;
-            border-radius:0.5rem; background:rgba(132,204,22,0.08); border:1px solid rgba(132,204,22,0.25);
-            color:#a3e635; font-size:0.6875rem; font-weight:600; cursor:pointer; margin-left:0.25rem;
-            transition:all 0.15s;"
-            onmouseover="this.style.background='rgba(132,204,22,0.15)'"
-            onmouseout="this.style.background='rgba(132,204,22,0.08)'">
+            display:none; align-items:center; gap:0.25rem; padding:0.25rem 0.65rem;
+            border-radius:9999px; background:rgba(255,255,255,0.05); border:none;
+            color:#e2e8f0; font-size:0.6875rem; font-weight:500; cursor:pointer; margin-left:0.25rem;
+            transition:background 0.2s ease;"
+            onmouseover="this.style.background='rgba(255,255,255,0.09)'"
+            onmouseout="this.style.background='rgba(255,255,255,0.05)'">
             Hoy
           </button>
         </div>
       </div>
       <button onclick="loadIncomeProjection()" id="ip-refresh-btn" style="
         display:flex; align-items:center; gap:0.375rem;
-        padding:0.4375rem 0.75rem; border-radius:0.5rem;
-        background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
-        color:#64748b; font-size:0.75rem; font-weight:600; cursor:pointer;
-        transition:all 0.2s; white-space:nowrap;"
-        onmouseover="this.style.color='#a3e635';this.style.borderColor='rgba(132,204,22,0.3)'"
-        onmouseout="this.style.color='#64748b';this.style.borderColor='rgba(255,255,255,0.08)'">
+        padding:0.4375rem 0.9rem; border-radius:9999px;
+        background:rgba(255,255,255,0.05); border:none;
+        color:#94a3b8; font-size:0.75rem; font-weight:500; cursor:pointer;
+        transition:background 0.2s ease, color 0.2s ease; white-space:nowrap;"
+        onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.color='#e2e8f0'"
+        onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='#94a3b8'">
         <i class="ph ph-arrows-clockwise"></i> Refrescar
       </button>
     </div>
@@ -1179,18 +1219,19 @@
     <div id="ip-chips" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
     <div id="ip-chip-detail" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.22); border:1px solid rgba(255,255,255,0.06); border-radius:0.75rem;"></div>
 
-    <!-- Ingreso real cobrado (cuotas.pagada === true del mes en curso) -->
-    <div id="ip-cobrado-real" style="margin-top:0.875rem; padding:0.75rem 0.875rem; border-radius:0.75rem; background:rgba(52,211,153,0.05); border:1px solid rgba(52,211,153,0.18); display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap;">
+    <!-- Ingreso real cobrado (cuotas.pagada === true del mes en curso) —
+         cristal + hair-line verde arriba, en vez del marco verde completo. -->
+    <div id="ip-cobrado-real" style="margin-top:0.875rem; padding:0.75rem 0.875rem; border-radius:0.75rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-top:2px solid rgba(94,232,154,0.4); display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap;">
       <div style="display:flex; align-items:center; gap:0.625rem; min-width:0;">
-        <div style="width:32px; height:32px; border-radius:0.5rem; background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <i class="ph-fill ph-check-circle" style="color:#34d399; font-size:1.05rem;"></i>
+        <div style="width:32px; height:32px; border-radius:0.5rem; background:rgba(94,232,154,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i class="ph-fill ph-check-circle" style="color:#5ee89a; font-size:1.05rem;"></i>
         </div>
         <div style="min-width:0;">
-          <p style="margin:0; font-size:0.6875rem; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; font-weight:700;">Ingreso real cobrado</p>
-          <p id="ip-cobrado-real-sub" style="margin:0.125rem 0 0; font-size:0.75rem; color:#94a3b8;">— cuotas pagadas hoy</p>
+          <p style="margin:0; font-size:0.6875rem; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; font-weight:500;">Ingreso real cobrado</p>
+          <p id="ip-cobrado-real-sub" style="margin:0.125rem 0 0; font-size:0.75rem; color:#64748b;">— cuotas pagadas hoy</p>
         </div>
       </div>
-      <span id="ip-cobrado-real-monto" style="font-size:1.375rem; font-weight:800; color:#34d399; letter-spacing:-0.02em; line-height:1;">—</span>
+      <span id="ip-cobrado-real-monto" style="font-size:1.375rem; font-weight:600; color:#fff; letter-spacing:-0.02em; line-height:1;">—</span>
     </div>
   </div>
 
@@ -1373,23 +1414,23 @@
       </button>
     </div>
 
-    <!-- Pulso del día: reservas CREADAS hoy (creadoEn) + citas PARA hoy (fecha) -->
+    <!-- Pulso del día: cristal + hair-line semántico arriba, número blanco puro. -->
     <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.625rem; margin-bottom:0.625rem;">
-      <div class="ps-card" id="ps-hoy-card" style="display:flex; align-items:center; gap:1rem; border-color:rgba(52,211,153,0.25); background:linear-gradient(135deg, rgba(52,211,153,0.07), rgba(255,255,255,0.02));">
+      <div class="ps-card" id="ps-hoy-card" style="display:flex; align-items:center; gap:1rem; border:1px solid rgba(255,255,255,0.05); border-top:2px solid rgba(94,232,154,0.5); background:rgba(255,255,255,0.02);">
         <div style="flex:1; min-width:0;">
-          <div id="ps-citas-hoy" class="ps-value" style="color:#34d399;">—</div>
+          <div id="ps-citas-hoy" class="ps-value" style="color:#fff;">—</div>
           <div class="ps-label">Citas agendadas hoy</div>
           <div class="ps-sub" id="ps-hoy-sub">reservas creadas hoy · todos los locales</div>
         </div>
-        <i class="ph ph-calendar-plus" style="font-size:1.8rem; color:rgba(52,211,153,0.5); flex-shrink:0;"></i>
+        <i class="ph ph-calendar-plus" style="font-size:1.6rem; color:rgba(94,232,154,0.5); flex-shrink:0;"></i>
       </div>
-      <div class="ps-card" id="ps-parahoy-card" style="display:flex; align-items:center; gap:1rem; border-color:rgba(96,165,250,0.25); background:linear-gradient(135deg, rgba(96,165,250,0.07), rgba(255,255,255,0.02));">
+      <div class="ps-card" id="ps-parahoy-card" style="display:flex; align-items:center; gap:1rem; border:1px solid rgba(255,255,255,0.05); border-top:2px solid rgba(125,211,252,0.5); background:rgba(255,255,255,0.02);">
         <div style="flex:1; min-width:0;">
-          <div id="ps-citas-parahoy" class="ps-value" style="color:#60a5fa;">—</div>
+          <div id="ps-citas-parahoy" class="ps-value" style="color:#fff;">—</div>
           <div class="ps-label">Citas para hoy</div>
           <div class="ps-sub" id="ps-parahoy-sub">con fecha de hoy · sin canceladas</div>
         </div>
-        <i class="ph ph-calendar-check" style="font-size:1.8rem; color:rgba(96,165,250,0.5); flex-shrink:0;"></i>
+        <i class="ph ph-calendar-check" style="font-size:1.6rem; color:rgba(125,211,252,0.5); flex-shrink:0;"></i>
       </div>
     </div>
 
@@ -2874,22 +2915,24 @@
           if (window.saUpdateCounts) window.saUpdateCounts();
         }
 
-        // Actualizar el statusEl (badge comercial/operativo)
+        // Actualizar el statusEl (badge comercial/operativo).
+        // Píldora translúcida al 15% del mismo tono del texto, sin bordes.
         if (statusEl) {
           if (estOperativo === 'suspended') {
             statusEl.textContent = 'SUSPENDIDO';
-            statusEl.style.cssText = 'padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;';
+            statusEl.style.cssText = 'padding:0.2rem 0.55rem;border-radius:999px;font-size:0.625rem;font-weight:600;background:rgba(255,123,114,0.15);border:none;color:#ff9b93;';
           } else {
+            // Colores pastel tipo System iOS Dark — menos neón, mismo tono en texto y fondo.
             const colors = {
-              propuesta:  { label: 'Propuesta',    color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.25)' },
-              visita:     { label: 'Visita Pend.', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.25)'  },
-              prueba:     { label: 'Prueba Gratis',color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)'  },
-              activo_100: { label: 'Activo 100%',  color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)'  },
-              atrasado:   { label: 'Atrasado',     color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)'   },
+              propuesta:  { label: 'Propuesta',    color: '#cbd5e1', bg: 'rgba(203,213,225,0.12)' },
+              visita:     { label: 'Visita Pend.', color: '#ffcf6c', bg: 'rgba(255,207,108,0.15)' },
+              prueba:     { label: 'Prueba Gratis',color: '#7dd3fc', bg: 'rgba(125,211,252,0.15)' },
+              activo_100: { label: 'Activo 100%',  color: '#5ee89a', bg: 'rgba(94,232,154,0.15)' },
+              atrasado:   { label: 'Atrasado',     color: '#ff7b72', bg: 'rgba(255,123,114,0.15)' },
             };
             const c = colors[estComercial] || colors.activo_100;
             statusEl.textContent = c.label.toUpperCase();
-            statusEl.style.cssText = `padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:${c.bg};border:1px solid ${c.border};color:${c.color};`;
+            statusEl.style.cssText = `padding:0.2rem 0.55rem;border-radius:999px;font-size:0.625rem;font-weight:600;background:${c.bg};border:none;color:${c.color};`;
           }
         }
 
@@ -5494,7 +5537,8 @@
       const el = document.getElementById(id);
       if (!el) return;
       const strong = n > 0;
-      el.innerHTML = `<i class="ph-fill ${icon}" style="color:${color}; font-size:1.1rem;"></i><span style="font-size:1.15rem; font-weight:800; color:${strong ? color : '#e2e8f0'};">${n}</span><span style="font-size:0.6rem; text-transform:uppercase; letter-spacing:0.04em; color:#64748b; font-weight:600; text-align:center;">${label}</span>`;
+      // Números en blanco puro (jerarquía dato), label secundaria en slate-500.
+      el.innerHTML = `<i class="ph-fill ${icon}" style="color:${color}; font-size:1.05rem;"></i><span style="font-size:1.15rem; font-weight:600; color:${strong ? '#fff' : '#94a3b8'};">${n}</span><span style="font-size:0.6rem; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; font-weight:500; text-align:center;">${label}</span>`;
     }
     function _setToggleBadge(key, n, txt) {
       const b = document.getElementById('toggle-' + key + '-badge');
@@ -5516,9 +5560,10 @@
       }));
       const mrrEl = document.getElementById('mrr-value');
       if (mrrEl) mrrEl.textContent = '$' + mrr.toLocaleString('es-CL');
-      _renderChip('mh-cobrar', 'ph-hand-coins', porCobrar, 'Por cobrar', '#f59e0b');
-      _renderChip('mh-leads', 'ph-user-plus', leadsNew, 'Leads', '#22d3ee');
-      _renderChip('mh-estancado', 'ph-funnel', estancados, 'Estancados', '#f87171');
+      // Colores pastel (System iOS Dark): naranja→ámbar opaco, celeste→sky suave, rojo→coral.
+      _renderChip('mh-cobrar', 'ph-hand-coins', porCobrar, 'Por cobrar', '#ffcf6c');
+      _renderChip('mh-leads', 'ph-user-plus', leadsNew, 'Leads', '#7dd3fc');
+      _renderChip('mh-estancado', 'ph-funnel', estancados, 'Estancados', '#ff9b93');
       _setToggleBadge('cobrar', porCobrar);
       _setToggleBadge('leads', leadsNew);
       _setToggleBadge('embudo', estancados);
