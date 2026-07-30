@@ -15,6 +15,7 @@ import { useCollection } from '../hooks/useCollection';
 import { useSucursal } from '../contexts/SucursalContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { Section, SettingsGroup, SettingRow, FormField, IosToggle } from '../components/ui/SettingsPrimitives';
+import Spinner from '../components/ui/Spinner';
 import { isDailyWelcomeDisabled, setDailyWelcomeDisabled } from '../components/DailyWelcomePanel';
 
 /* Categorías de recompensa del programa de referidos (mismo patrón que Sorteos).
@@ -1079,7 +1080,7 @@ export default function Configuracion() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={28} className="text-slate-500" />
     </div>
   );
 

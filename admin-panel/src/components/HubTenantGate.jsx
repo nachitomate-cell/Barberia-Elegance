@@ -5,6 +5,7 @@ import { auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { TENANT_META } from '../contexts/TenantContext';
 import { resolveTenantId } from '../lib/tenantUtils';
+import Spinner from './ui/Spinner';
 
 // ════════════════════════════════════════════════════════════════
 //  HubTenantGate — selector de tenant por CUENTA (hub SynapTech Studio)
@@ -115,7 +116,7 @@ export default function HubTenantGate({ children }) {
 function Splash({ label }) {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4">
-      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={32} className="text-slate-500" />
       {label && <p className="text-slate-400 text-sm">{label}</p>}
     </div>
   );

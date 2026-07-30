@@ -9,6 +9,7 @@ import { db } from '../lib/firebase';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
 
 const CALLBACK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
@@ -90,7 +91,7 @@ export default function InstagramPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <Spinner size={28} className="text-slate-500" />
       </div>
     );
   }

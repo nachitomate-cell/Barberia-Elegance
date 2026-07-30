@@ -25,6 +25,7 @@ import { useSucursal }   from '../contexts/SucursalContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
+import { SkeletonList } from '../components/ui/Skeleton';
 
 const ICONS = [
   'ph-scissors','ph-user-focus','ph-mask-happy','ph-magic-wand',
@@ -580,9 +581,7 @@ export default function Servicios() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <SkeletonList count={6} />
         ) : servicios.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-slate-600">
             <Tag size={32} className="mb-3" />

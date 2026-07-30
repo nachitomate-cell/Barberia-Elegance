@@ -21,6 +21,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
 
 /* ── Helpers ──────────────────────────────────────────────── */
 function todayRange() {
@@ -2597,7 +2598,7 @@ export default function Caja() {
   if (loadingSesion) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <Spinner size={32} className="text-slate-500" />
       </div>
     );
   }

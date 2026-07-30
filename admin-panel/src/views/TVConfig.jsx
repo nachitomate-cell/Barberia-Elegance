@@ -14,6 +14,7 @@ import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
 
 /* ── Compresión de imagen vía canvas ─────────────────────────────── */
 async function compressImage(file, { maxPx = 1280, quality = 0.7 } = {}) {
@@ -1051,7 +1052,7 @@ export default function TVConfig() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={28} className="text-slate-500" />
     </div>
   );
 
@@ -1261,7 +1262,7 @@ export default function TVConfig() {
               >
                 {bgUploading ? (
                   <>
-                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <Spinner size={32} className="text-slate-500" />
                     <p className="text-xs text-slate-500">Subiendo archivo…</p>
                   </>
                 ) : (

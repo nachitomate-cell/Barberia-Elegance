@@ -14,6 +14,7 @@ import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import { SkeletonList } from '../components/ui/Skeleton';
 
 function getNinetyDaysAgo() {
   const d = new Date();
@@ -2765,7 +2766,7 @@ export default function Clientes() {
       {/* Lista de clientes — grouped list estilo iOS: 1 contenedor, filas
           separadas solo por un divisor sutil (última fila sin borde). */}
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="mt-4"><SkeletonList count={6} /></div>
       ) : filtered.length === 0 ? (
         <div
           className="flex flex-col items-center py-16 text-slate-600 bg-white/[0.02] rounded-2xl"

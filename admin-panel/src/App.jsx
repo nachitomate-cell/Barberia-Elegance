@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { RUTAS_SOLO_ADMIN } from './components/layout/Sidebar';
+import Spinner from './components/ui/Spinner';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SucursalProvider } from './contexts/SucursalContext';
@@ -110,7 +111,7 @@ function TenantGate({ children }) {
   const { suspended } = useTenant();
   if (suspended === null) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={32} className="text-slate-500" />
     </div>
   );
   if (suspended) return <SuspendedScreen />;
@@ -138,7 +139,7 @@ function RoleRedirectScreen({ role, email, tenantId, suffix }) {
   const rolLabel = rolResuelto ? role : 'aún no resolvió (posible bug de sincronización)';
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={32} className="text-slate-500" />
       <div className="max-w-md text-slate-300">
         <p className="text-sm font-semibold text-slate-200 mb-2">
           {!rolResuelto     ? 'No pudimos confirmar tu rol'
@@ -209,7 +210,7 @@ function ProtectedApp() {
 
   if (loading || (rolePendiente && !roleNoResuelve)) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <Spinner size={32} className="text-slate-500" />
     </div>
   );
 

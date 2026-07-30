@@ -8,6 +8,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { SheetModal, sheetBtn } from '../components/ui/SheetModal';
+import Spinner from '../components/ui/Spinner';
 import {
   Users, UserCheck, AlertTriangle, Plus, XCircle,
   RefreshCw, Settings, Trash2, GripVertical, Search,
@@ -810,7 +811,7 @@ export default function Membresias() {
         {/* Contenido Tabla */}
         {loadingM ? (
           <div className="p-12 flex justify-center">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <Spinner size={32} className="text-slate-500" />
           </div>
         ) : miembrosFiltrados.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-sm flex flex-col items-center justify-center gap-2.5">

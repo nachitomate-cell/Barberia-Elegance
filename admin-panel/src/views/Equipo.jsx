@@ -5,7 +5,7 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical, Coffee,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
-  Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle, Info,
+  Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle, Info, Camera,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -30,6 +30,8 @@ import { useTenant } from '../contexts/TenantContext';
 import DropdownMenu from '../components/ui/DropdownMenu';
 import SlideOver    from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
+import { SkeletonGrid } from '../components/ui/Skeleton';
 
 /* ─── Constants ───────────────────────────────────────────── */
 const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
@@ -140,6 +142,22 @@ const COLORES_BARBERO = [
   '#f59e0b', // ámbar
   '#f97316', // naranja
 ];
+
+/* ── Pestañas del formulario de barbero ───────────────────────────
+   Cinco pasos cortos en vez de una columna con ocho secciones. El orden sigue
+   el de un alta real: quién es → qué hace → cuándo → cuánto se le paga → cómo
+   se ve en la web. `Pago` es solo para admin: ahí vive la plata. */
+const TABS_BARBERO = [
+  { id: 'datos',     label: 'Datos',     Icon: User                    },
+  { id: 'servicios', label: 'Servicios', Icon: Scissors                },
+  { id: 'horario',   label: 'Horario',   Icon: Clock                   },
+  { id: 'pago',      label: 'Pago',      Icon: Percent, soloAdmin: true },
+  { id: 'perfil',    label: 'Perfil',    Icon: Camera                  },
+];
+// La barra de pestañas queda pegada arriba del panel; necesita fondo propio o
+// el contenido se ve pasar por detrás al scrollear.
+const SUP_FORM = 'bg-slate-900 [html.light_&]:bg-white';
+const BRD_FORM = 'border-slate-800 [html.light_&]:border-slate-200';
 
 const BARBER_EMPTY = {
   nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
@@ -746,7 +764,9 @@ export default function Equipo() {
   const { data: servicios }            = useCollection('servicios');
   const { data: productos }            = useCollection('productos');
   const sucursales                     = useSucursales();
-  const { matchSucursal }              = useSucursal();
+  // `sucursalDefault` y no `activeSucursal`: en la vista "Todas" el segundo es
+  // null y el barbero nuevo quedaría sin sede.
+  const { matchSucursal, sucursalDefault } = useSucursal();
   // Filtra por sede activa: un encargado de sede ve solo su equipo; el dueño
   // (Todas) los ve a todos. Barberos sin sucursalId (atienden en ambas) pasan.
   // Además: fantasma QA (esQA:true) invisible a menos que seas superadmin.
@@ -1118,17 +1138,65 @@ export default function Equipo() {
   const [showProdComm,   setShowProdComm]   = useState(false);
   const fileRef = useRef(null);
 
+  // Pestaña activa del formulario. Cinco en vez de una columna larga: dar de
+  // alta a alguien pasaba por ocho secciones desplegables y era fácil no ver
+  // que faltaba algo.
+  const [tab, setTab] = useState('datos');
+
+  // Horario de apertura del local, para que un barbero nuevo nazca con el
+  // horario real y no con un 09:00–20:00 fijo que casi siempre hay que corregir.
+  const [horarioLocal, setHorarioLocal] = useState(null);
+  useEffect(() => {
+    const ref = tenant.id === 'elegance'
+      ? doc(db, 'configuracion', 'main')
+      : doc(db, 'tenants', tenant.id, 'configuracion', 'main');
+    withTimeout(getDoc(ref), 10000, 'equipo/horario-local')
+      .then(s => {
+        const d = s.exists() ? s.data() : {};
+        if (d.horarioInicio && d.horarioFin) {
+          setHorarioLocal({ inicio: d.horarioInicio, fin: d.horarioFin });
+        }
+      })
+      .catch(() => {});   // sin config → se usa el default de siempre
+  }, [tenant.id]);
+
+  const horarioDelLocal = () => {
+    const h = DEFAULT_HORARIO();
+    if (!horarioLocal) return h;
+    // El sábado del default sale antes a propósito; se respeta ese criterio y
+    // solo se mueve la apertura.
+    for (const k of Object.keys(h)) {
+      h[k] = { ...h[k], inicio: horarioLocal.inicio, fin: k === '6' ? h[k].fin : horarioLocal.fin };
+    }
+    return h;
+  };
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  // Alta nueva: se entra con lo que el 99% de los casos necesita, para que dar
+  // de alta a alguien que empieza hoy sea guardar y listo.
+  //   · todos los servicios marcados — el dueño destilda lo que no hace
+  //   · atiende y acepta reservas online
+  //   · horario copiado del local (no el 09:00–20:00 fijo, que casi siempre
+  //     había que corregir a mano)
+  //   · SIN acceso al panel: muchos barberos no lo necesitan, y una cuenta
+  //     creada de más es una puerta abierta que nadie usa
   const openNew = () => {
     setEditing(null);
     setPreview('');
-    setForm({ ...BARBER_EMPTY, horario: DEFAULT_HORARIO() });
+    setForm({
+      ...BARBER_EMPTY,
+      horario: horarioDelLocal(),
+      serviciosIds: servicios.map(s => s.id),
+      disponible: true,
+      sucursalId: sucursalDefault?.id || '',
+    });
     setUploadError('');
     setResetMsg('');
     setAccesoEnabled(false);
     setAccesoPassword('');
     setAccesoMsg('');
+    setTab('datos');
     setSlide(true);
   };
 
@@ -1161,7 +1229,11 @@ export default function Equipo() {
       ausencias:    b.ausencias    || [],
       permitirSobrecupoPublico: !!b.permitirSobrecupoPublico,
       tramosVip: Array.isArray(b.tramosVip) ? b.tramosVip : [],
+      // `disponible` manda si aparece en las dos agendas; sin el campo se asume
+      // que sí, que es cómo se comportaban los barberos de antes.
+      disponible: b.disponible !== false,
     });
+    setTab('datos');
     setUploadError('');
     setResetMsg('');
     setAccesoEnabled(false);
@@ -1275,7 +1347,15 @@ export default function Equipo() {
         payload.foto = form.foto || deleteField();
         await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), payload);
       } else {
-        const payload = { ...form, ...accesoFields, disponible: true, createdAt: serverTimestamp() };
+        // `disponible` sale del formulario, no forzado a true: ahora el toggle
+        // "Acepta reservas en línea" está a la vista al crear, y forzarlo acá
+        // hacía que apagarlo no tuviera efecto. El default del alta ya viene en
+        // true desde openNew().
+        const payload = {
+          ...form, ...accesoFields,
+          disponible: form.disponible !== false,
+          createdAt: serverTimestamp(),
+        };
         if (!payload.foto) delete payload.foto;
         await addDoc(tenantCol('barberos'), payload);
       }
@@ -1456,9 +1536,7 @@ export default function Equipo() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <SkeletonGrid count={8} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" />
       ) : activeTab === 'miembros' ? (
         <>
           {/* Filosofía SynapTech: crecimiento sin cobrar por barbero extra */}
@@ -1761,7 +1839,7 @@ export default function Equipo() {
 
                   {loadingData ? (
                     <div className="flex justify-center py-8">
-                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <Spinner size={22} className="text-slate-500" />
                     </div>
                   ) : citasSueldos.length === 0 ? (
                     <div className="text-center py-8 bg-slate-800/10 border border-dashed border-slate-800 rounded-lg">
@@ -1802,7 +1880,7 @@ export default function Equipo() {
 
                   {loadingData ? (
                     <div className="flex justify-center py-8">
-                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <Spinner size={22} className="text-slate-500" />
                     </div>
                   ) : ventasSueldos.length === 0 ? (
                     <div className="text-center py-8 bg-slate-800/10 border border-dashed border-slate-800 rounded-lg">
@@ -1865,42 +1943,77 @@ export default function Equipo() {
           </div>
         }
       >
+        {/* ── Pestañas ──────────────────────────────────────────────
+            Antes eran ocho secciones desplegables en una sola columna: para
+            dar de alta a alguien había que bajar por todas y era fácil no ver
+            que faltaba algo. Cada paso ahora cabe en una pantalla.
+            `Pago` solo la ve un admin — es donde vive la plata. */}
+        <div className={`sticky top-0 z-10 -mx-4 mb-3 flex gap-1 overflow-x-auto border-b px-4 pb-px sm:-mx-5 sm:px-5 ${SUP_FORM} ${BRD_FORM}`}>
+          {TABS_BARBERO.filter(t => !t.soloAdmin || isAdmin).map(t => {
+            const activa = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`relative shrink-0 px-3 py-2.5 text-xs font-bold transition-colors ${
+                  activa ? 'text-emerald-400' : 'text-slate-400 hover:text-primary'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <t.Icon size={13} /> {t.label}
+                </span>
+                {activa && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-emerald-400" />}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="space-y-3">
 
+          {/* Fuera de las pestañas a propósito: el botón "Subir foto" vive en
+              Perfil y usa este ref. Si el input se montara dentro de una
+              pestaña, al cambiar de pestaña se desmonta, fileRef queda en null
+              y el botón no hace nada. */}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
+          {tab === 'datos' && (<>
           {/* ── Perfil ── */}
           <Section title="Datos del perfil" Icon={User} defaultOpen>
-            <div className="flex items-center gap-4 mb-1">
-              <div
-                className="w-16 h-16 rounded-full overflow-hidden bg-white/[0.04] shrink-0 flex items-center justify-center"
-                style={{ border: '2px solid rgba(255,255,255,0.1)' }}
-              >
-                {preview
-                  ? <img src={preview} alt="" className="w-full h-full object-cover" />
-                  : <User size={24} className="text-slate-500" strokeWidth={1.5} />}
-              </div>
-              <div className="flex-1 space-y-1.5">
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-slate-200 text-xs font-medium rounded-full transition-all duration-200 ease-in-out disabled:opacity-50"
-                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                  {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/> : <Upload size={12} strokeWidth={1.75} />}
-                  {uploading ? 'Subiendo…' : (preview ? 'Cambiar foto' : 'Subir foto')}
-                </button>
-                {uploadError && <p className="text-xs text-rose-300 leading-snug">{uploadError}</p>}
-                {/* URL cruda de Storage nunca expuesta al usuario: solo el botón
-                    y el preview visual comunican el estado de la foto. */}
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-              </div>
-            </div>
-
             <div>
               <label className={lbl}>Nombre *</label>
               <input className={field} placeholder="Nicolás Fabián" value={form.nombre}
                 onChange={e => set('nombre', e.target.value)} />
             </div>
-            <div>
-              <label className={lbl}>Especialidad</label>
-              <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
-                onChange={e => set('especialidad', e.target.value)} />
+            {/* La especialidad se movió a la pestaña Perfil: es copy que ve el
+                cliente, no un dato de alta. */}
+
+            {/* ¿Recibe reservas? Es la pregunta que AgendaPro pone arriba y que
+                acá estaba enterrada en tres booleanos redundantes. Manda
+                `disponible`, que es el que leen las dos agendas (ver
+                lib/roles.js). */}
+            <div className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2.5">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.disponible !== false}
+                onClick={() => set('disponible', form.disponible === false)}
+                className={`mt-0.5 relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                  form.disponible !== false ? 'bg-emerald-500' : 'bg-slate-700'
+                }`}
+              >
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                  form.disponible !== false ? 'left-[1.125rem]' : 'left-0.5'
+                }`} />
+              </button>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-primary">Acepta reservas en línea</p>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  {form.disponible !== false
+                    ? 'Aparece en la página de reservas y como columna en la agenda.'
+                    : 'Queda fuera de la reserva pública y de la agenda. Sus citas ya hechas no se borran.'}
+                </p>
+              </div>
             </div>
 
             {/* Color en la agenda — se guarda en el perfil (barberos/{id}.color).
@@ -2127,10 +2240,12 @@ export default function Equipo() {
               </>
             )}
           </Section>
+          </>)}
 
+          {tab === 'pago' && (<>
           {/* ── Comisión ── */}
           {isAdmin && (
-            <Section title="Sueldo y Comisiones" Icon={Percent}>
+            <Section title="Sueldo y Comisiones" Icon={Percent} defaultOpen>
               <div className="space-y-4">
                 <div>
                   <label className={lbl}>Porcentaje de comisión por servicio</label>
@@ -2418,9 +2533,11 @@ export default function Equipo() {
               </div>
             </Section>
           )}
+          </>)}
 
+          {tab === 'horario' && (<>
           {/* ── Horario semanal ── */}
-          <Section title="Horario semanal" Icon={Clock}>
+          <Section title="Horario semanal" Icon={Clock} defaultOpen>
             <p className="text-[10px] text-slate-500 -mt-1 mb-2">Configura el horario de cada día. Puedes añadir descansos dentro de cada jornada.</p>
             <div className="space-y-2">
               {DIAS_ORDER.map(d => (
@@ -2442,28 +2559,93 @@ export default function Equipo() {
             />
           </Section>
 
+          </>)}
+
+          {tab === 'servicios' && (<>
           {/* ── Servicios ── */}
-          <Section title="Servicios que realiza" Icon={Scissors}>
-            <p className="text-[10px] text-slate-500 -mt-1 mb-2">Si no seleccionas ninguno, aparecerá disponible para todos los servicios.</p>
+          <Section title="Servicios que realiza" Icon={Scissors} defaultOpen>
             {servicios.length === 0 ? (
               <p className="text-xs text-slate-600 italic">Sin servicios configurados aún.</p>
-            ) : (
-              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                {servicios.map(s => {
-                  const checked = form.serviciosIds.includes(s.id);
-                  return (
-                    <label key={s.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-slate-800 cursor-pointer hover:bg-slate-700 transition-colors">
-                      <input type="checkbox" checked={checked} onChange={() => toggleServicio(s.id)}
-                        className="w-4 h-4 accent-emerald-500 shrink-0" />
-                      <span className="text-sm text-primary flex-1">{s.nombre}</span>
-                      {s.duracion && <span className="text-[10px] text-slate-500">{s.duracion}min</span>}
-                    </label>
-                  );
-                })}
-              </div>
-            )}
+            ) : (() => {
+              const ids = servicios.map(s => s.id);
+              const sel = form.serviciosIds || [];
+              const todos = ids.length > 0 && ids.every(id => sel.includes(id));
+              // Agrupados por categoría, como AgendaPro: con 14+ servicios una
+              // lista plana no se lee. Los que no tienen categoría caen en
+              // "Servicios", que es lo que la mayoría tiene hoy.
+              const grupos = {};
+              for (const s of servicios) {
+                const g = (s.categoria || '').trim() || 'Servicios';
+                (grupos[g] = grupos[g] || []).push(s);
+              }
+              const setSel = arr => setForm(f => ({ ...f, serviciosIds: arr }));
+
+              return (
+                <div className="space-y-2">
+                  {/* Seleccionar todo — la casilla que resuelve el 90% de las altas */}
+                  <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-700 bg-slate-950/40 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={todos}
+                      onChange={() => setSel(todos ? [] : ids)}
+                      className="h-4 w-4 shrink-0 accent-emerald-500"
+                    />
+                    <span className="flex-1 text-sm font-bold text-primary">Seleccionar todo</span>
+                    <span className="text-[11px] tabular-nums text-slate-500">{sel.length}/{ids.length}</span>
+                  </label>
+
+                  {Object.entries(grupos).map(([grupo, items]) => {
+                    const gIds = items.map(s => s.id);
+                    const gTodos = gIds.every(id => sel.includes(id));
+                    const gAlgunos = !gTodos && gIds.some(id => sel.includes(id));
+                    return (
+                      <div key={grupo} className="rounded-lg border border-slate-800 overflow-hidden">
+                        <label className="flex cursor-pointer items-center gap-2.5 bg-slate-800/60 px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={gTodos}
+                            // Indeterminado cuando el grupo va a medias: sin esto
+                            // se ve igual que "ninguno" y engaña.
+                            ref={el => { if (el) el.indeterminate = gAlgunos; }}
+                            onChange={() => setSel(gTodos
+                              ? sel.filter(id => !gIds.includes(id))
+                              : [...new Set([...sel, ...gIds])])}
+                            className="h-4 w-4 shrink-0 accent-emerald-500"
+                          />
+                          <span className="flex-1 text-xs font-bold text-primary">{grupo}</span>
+                          <span className="text-[11px] tabular-nums text-slate-500">({items.length})</span>
+                        </label>
+                        <div className="grid grid-cols-1 gap-x-3 p-2 sm:grid-cols-2">
+                          {items.map(s => (
+                            <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1.5 hover:bg-slate-800/60">
+                              <input
+                                type="checkbox"
+                                checked={sel.includes(s.id)}
+                                onChange={() => toggleServicio(s.id)}
+                                className="h-3.5 w-3.5 shrink-0 accent-emerald-500"
+                              />
+                              <span className="min-w-0 flex-1 truncate text-[12.5px] text-slate-200">{s.nombre}</span>
+                              {s.duracion && <span className="shrink-0 text-[10px] text-slate-500">{s.duracion}m</span>}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <p className="text-[10px] leading-relaxed text-slate-500">
+                    {sel.length === 0
+                      ? 'Sin ninguno marcado queda disponible para TODOS los servicios (comportamiento histórico).'
+                      : 'En la reserva pública solo se le puede pedir lo que esté marcado acá.'}
+                  </p>
+                </div>
+              );
+            })()}
           </Section>
 
+          </>)}
+
+          {tab === 'horario' && (<>
           {/* ── Sobrecupos VIP en agenda pública ── */}
           <Section title="Sobrecupos VIP en agenda pública" Icon={Clock}>
             <p className="text-[10px] text-slate-500 -mt-1 mb-2">
@@ -2579,6 +2761,48 @@ export default function Equipo() {
               </button>
             </div>
           </Section>
+          </>)}
+
+          {tab === 'perfil' && (<>
+          {/* ── Cómo se ve en la web ──────────────────────────────────
+              Foto y especialidad viven acá y no en Datos: es lo que ve el
+              cliente al elegir con quién se atiende, y se puede dejar para
+              después sin bloquear el alta. */}
+          <Section title="Foto del profesional" Icon={Camera} defaultOpen>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-20 h-20 rounded-full overflow-hidden bg-white/[0.04] shrink-0 flex items-center justify-center"
+                style={{ border: '2px solid rgba(255,255,255,0.1)' }}
+              >
+                {preview
+                  ? <img src={preview} alt="" className="w-full h-full object-cover" />
+                  : <User size={30} className="text-slate-600" />}
+              </div>
+              <div className="min-w-0">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-lg text-xs font-semibold text-slate-300 transition-colors">
+                  {uploading
+                    ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Upload size={13} />}
+                  {uploading ? 'Subiendo…' : (preview ? 'Cambiar foto' : 'Subir foto')}
+                </button>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                  Cuadrada se ve mejor. Mínimo 100×100 px, hasta 3 MB.
+                </p>
+                {uploadError && <p className="text-[10px] text-rose-400 mt-1">{uploadError}</p>}
+              </div>
+            </div>
+          </Section>
+
+          <Section title="Especialidad" Icon={Sparkles} defaultOpen>
+            <label className={lbl}>Cómo se presenta al cliente</label>
+            <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
+              onChange={e => set('especialidad', e.target.value)} />
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              Sale bajo su nombre en la página de reservas. Se puede dejar vacío.
+            </p>
+          </Section>
+          </>)}
 
         </div>
       </SlideOver>

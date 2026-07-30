@@ -6,6 +6,7 @@ import { resolveTenantId } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import { WaChatPreview, LivePreviewHeader } from '../components/WaChatPreview';
 import { Section, SettingsGroup } from '../components/ui/SettingsPrimitives';
+import Spinner from '../components/ui/Spinner';
 
 // Guion del chat de la vista previa de confirmación automática al cliente.
 const CONFIRM_MSGS = [
@@ -88,7 +89,7 @@ export default function WhatsAppNotif({ embedded = false }) {
     return (
       <div className={embedded ? '' : 'max-w-3xl'}>
         <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <Spinner size={28} className="text-slate-500" />
         </div>
       </div>
     );

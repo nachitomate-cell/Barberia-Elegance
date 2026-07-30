@@ -3,6 +3,7 @@ import { doc, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
 import {
   Medal, Crown, Gem, Save, Check, Pencil, Plus, Trash2,
   Zap, Info, Stamp, Minus,
@@ -171,7 +172,7 @@ export default function Rangos() {
 
       {loading ? (
         <div className="p-12 flex justify-center">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <Spinner size={32} className="text-slate-500" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

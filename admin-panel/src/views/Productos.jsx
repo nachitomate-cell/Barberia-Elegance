@@ -12,6 +12,8 @@ import { useCollection } from '../hooks/useCollection';
 import { useConfig } from '../hooks/useConfig';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import Spinner from '../components/ui/Spinner';
+import { SkeletonGrid } from '../components/ui/Skeleton';
 import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, ellipsize } from '../lib/storyCanvas';
 
 const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true, precioCosto: '', stockMinimo: '', sucursalId: '' };
@@ -1034,7 +1036,7 @@ export default function Productos() {
 
 
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+        <SkeletonGrid count={8} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />
       ) : productos.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-slate-600">
           <ShoppingBag size={40} className="mb-3" />
@@ -1220,7 +1222,7 @@ export default function Productos() {
             {/* Lista */}
             {ventasLoading ? (
               <div className="flex justify-center py-10">
-                <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <Spinner size={24} className="text-slate-500" />
               </div>
             ) : ventasFiltradas.length === 0 ? (
               <div className="flex items-center gap-3 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 text-sm">

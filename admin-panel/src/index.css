@@ -26,6 +26,47 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
+/* ── Spinner radial estilo iOS ─────────────────────────────────
+   Usado por <Spinner /> (components/ui/Spinner.jsx). Cada línea del
+   spinner arranca invisible y se enciende con un delay negativo, así
+   siempre hay una "cabeza" brillante recorriendo el círculo. */
+@keyframes ios-spinner-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────────
+   Usado por <Skeleton /> (components/ui/Skeleton.jsx). Gradiente
+   translúcido que se desliza — mantiene la forma del contenido
+   mientras carga y evita el "brinco" de vacío grande a contenido. */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+html.light .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.04) 25%,
+    rgba(15, 23, 42, 0.08) 50%,
+    rgba(15, 23, 42, 0.04) 75%
+  );
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ios-spinner rect { animation-duration: 0s !important; opacity: 0.6 !important; }
+  .skeleton-shimmer { animation: none; }
+}
+
 /* ── Freeze global de transiciones durante el switch de tema ───
    useTheme() agrega .theme-switching al <html> antes de toggle 'light'
    y la quita 2 frames después. Sin esto, cientos de elementos con
