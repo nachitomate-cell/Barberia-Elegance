@@ -4,202 +4,832 @@
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control",         "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Service-Worker-Allowed","value": "/" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
       ]
     },
     {
       "source": "/firebase-messaging-sw.js",
       "headers": [
-        { "key": "Content-Type",           "value": "application/javascript; charset=utf-8" },
-        { "key": "Cache-Control",          "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Service-Worker-Allowed", "value": "/" }
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
       ]
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "bioo.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/(.*)\\.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/output.css",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/output-lookbook.css",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/config.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/firebase-config.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/firebaseUtils.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/js/(.*)\\.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/sorteo/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/sorteo",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ],
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "deluxeperfumes.synaptechspa.cl"
+        }
+      ],
       "destination": "/catalogo",
       "permanent": false
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "kronnos.synaptechspa.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "kronnos.synaptechspa.cl"
+        }
+      ],
       "destination": "/kronnos",
       "permanent": false
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "admin.kronnos.synaptechspa.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "admin.kronnos.synaptechspa.cl"
+        }
+      ],
       "destination": "/kronnos-admin",
       "permanent": false
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "links.synaptechspa.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "links.synaptechspa.cl"
+        }
+      ],
       "destination": "https://bioo.cl/:path*",
       "permanent": true
     },
     {
       "source": "/admin",
-      "has": [{ "type": "host", "value": "bioo.cl" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
       "destination": "/editor?view=admin",
+      "permanent": false
+    },
+    {
+      "source": "/admin21",
+      "has": [
+        {
+          "type": "host",
+          "value": "agenda.oren.cl"
+        }
+      ],
+      "destination": "/gestion-interna",
+      "permanent": false
+    },
+    {
+      "source": "/admin",
+      "has": [
+        {
+          "type": "host",
+          "value": "agenda.oren.cl"
+        }
+      ],
+      "destination": "/gestion-interna",
       "permanent": false
     }
   ],
   "rewrites": [
-    { "source": "/__/auth/:path*",     "destination": "https://barberia-elegance.firebaseapp.com/__/auth/:path*" },
-    { "source": "/__/firebase/:path*", "destination": "https://barberia-elegance.firebaseapp.com/__/firebase/:path*" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "marcelopalma.synaptechspa.cl" }],        "destination": "/marcelo1.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "marcelohairdressing.synaptechspa.cl" }], "destination": "/marcelo1.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "marcelo-hairdressing.synaptechspa.cl" }],"destination": "/marcelo1.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalon.synaptechspa.cl" }],        "destination": "/aura.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalonmalegrooming.synaptech.cl" }], "destination": "/aura.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalonmalegrooming.synaptechspa.cl" }],"destination": "/aura.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "latincaribe.synaptechspa.cl" }],        "destination": "/latincaribe.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "thelatincaribe.synaptechspa.cl" }],     "destination": "/latincaribe.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "chameleonbarber.synaptechspa.cl" }],    "destination": "/local3.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiaferraza.synaptechspa.cl" }],    "destination": "/ferraza.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "ferrazabarber.synaptechspa.cl" }],     "destination": "/ferraza.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "gitananails.synaptechspa.cl" }],        "destination": "/gitana.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "mapubarbershop.synaptechspa.cl" }],     "destination": "/mapu2.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiaelegance.synaptechspa.cl" }],   "destination": "/logo.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],     "destination": "/logo5.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiadjones.synaptechspa.cl" }],     "destination": "/djones.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "djonesbarberia.synaptechspa.cl" }],     "destination": "/djones.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "delnerobarber.synaptechspa.cl" }],      "destination": "/nero.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "machos.synaptechspa.cl" }],             "destination": "/machos.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "infinity.synaptechspa.cl" }],           "destination": "/infinity.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "studiodieciseis.synaptechspa.cl" }],    "destination": "/dieciseis/logo.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "sionbarberia.synaptechspa.cl" }],       "destination": "/dieciseis/logo.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiasion.synaptechspa.cl" }],       "destination": "/dieciseis/logo.png" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnospenablanca.synaptechspa.cl" }],   "destination": "/kronnos/studio.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoslimache.synaptechspa.cl" }],       "destination": "/kronnos/studio.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoswoman.synaptechspa.cl" }],         "destination": "/kronnos/woman.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barbersclub.synaptechspa.cl" }],          "destination": "/logo.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "elbarberomoderno.synaptechspa.cl" }],     "destination": "/elbarberomoderno/logobarb.webp" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "estudioluxury.synaptechspa.cl" }],        "destination": "/luxury/luxury.jpg" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "wallets.bioo.cl" }], "destination": "/bioo-iso.png" },
-    { "source": "/favicon.ico",            "destination": "/logo.jpg" },
-
-    { "source": "/",            "has": [{ "type": "host", "value": "wallets.bioo.cl" }], "destination": "/wallets-bioo.html" },
-
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bioo-iso.png" },
-    { "source": "/",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/index.html" },
-    { "source": "/registro",    "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/registro.html" },
-    { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bio-app/index.html" },
-    { "source": "/claim",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/claim.html" },
-    { "source": "/refiere",         "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/refiere.html" },
-    { "source": "/refiere/:code",   "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/refiere.html?code=:code" },
-    { "source": "/empieza",         "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/empieza.html" },
-    { "source": "/demo",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/empieza.html" },
-    { "source": "/contacto",        "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/empieza.html" },
-    { "source": "/:user",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/u.html" },
-
-    { "source": "/",            "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/empieza.html" },
-    { "source": "/:path*",      "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/empieza.html" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/logo.jpg" },
-
-    { "source": "/",            "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/crea.html" },
-    { "source": "/:path*",      "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/crea.html" },
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "crea.synaptechspa.cl" }], "destination": "/syn-192.png" },
-
-    { "source": "/dashboard",              "destination": "/dashboard.html" },
-    { "source": "/registro",               "destination": "/registro.html" },
-    { "source": "/refiere",                "destination": "/refiere.html" },
-    { "source": "/refiere/:code",          "destination": "/refiere.html?code=:code" },
-    { "source": "/empieza",                "destination": "/empieza.html" },
-    { "source": "/demo",                   "destination": "/empieza.html" },
-    { "source": "/contacto",               "destination": "/empieza.html" },
-    { "source": "/crea",                   "destination": "/crea.html" },
-    { "source": "/agenda",                 "destination": "/agenda.html" },
-    { "source": "/agenda/:path*",          "destination": "/agenda.html" },
-    { "source": "/servicios",              "destination": "/index.html" },
-    { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
-    { "source": "/catalogo",               "destination": "/catalogo.html" },
-    { "source": "/viking",                 "destination": "/viking.html" },
-    { "source": "/slick",                  "destination": "/slick.html" },
-    { "source": "/membresia",              "destination": "/membresia.html" },
-    { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
-    { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
-    { "source": "/kronnos",                "destination": "/kronnos.html" },
-    { "source": "/kronnos-admin",          "destination": "/kronnos-admin.html" },
-    { "source": "/ayuda",                  "destination": "/ayuda.html" },
-    { "source": "/ayuda/:path*",           "destination": "/ayuda.html" },
-    { "source": "/chat",                    "destination": "/chat.html" },
-    { "source": "/bio",                     "destination": "/bio.html" },
-    { "source": "/sorteo",                  "destination": "/sorteo.html" },
-    { "source": "/sorteo/:id",              "destination": "/sorteo.html?id=:id" },
-    { "source": "/:slug",                  "destination": "/barbero.html" }
+    {
+      "source": "/barbero",
+      "has": [
+        {
+          "type": "host",
+          "value": "agenda.oren.cl"
+        }
+      ],
+      "destination": "/agenda.html"
+    },
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://barberia-elegance.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://barberia-elegance.firebaseapp.com/__/firebase/:path*"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "marcelopalma.synaptechspa.cl"
+        }
+      ],
+      "destination": "/marcelo1.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "marcelohairdressing.synaptechspa.cl"
+        }
+      ],
+      "destination": "/marcelo1.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "marcelo-hairdressing.synaptechspa.cl"
+        }
+      ],
+      "destination": "/marcelo1.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "aurasalon.synaptechspa.cl"
+        }
+      ],
+      "destination": "/aura.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "aurasalonmalegrooming.synaptech.cl"
+        }
+      ],
+      "destination": "/aura.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "aurasalonmalegrooming.synaptechspa.cl"
+        }
+      ],
+      "destination": "/aura.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "latincaribe.synaptechspa.cl"
+        }
+      ],
+      "destination": "/latincaribe.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "thelatincaribe.synaptechspa.cl"
+        }
+      ],
+      "destination": "/latincaribe.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "chameleonbarber.synaptechspa.cl"
+        }
+      ],
+      "destination": "/local3.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "barberiaferraza.synaptechspa.cl"
+        }
+      ],
+      "destination": "/ferraza.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "ferrazabarber.synaptechspa.cl"
+        }
+      ],
+      "destination": "/ferraza.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "gitananails.synaptechspa.cl"
+        }
+      ],
+      "destination": "/gitana.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "mapubarbershop.synaptechspa.cl"
+        }
+      ],
+      "destination": "/mapu2.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "barberiaelegance.synaptechspa.cl"
+        }
+      ],
+      "destination": "/logo.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "deluxeperfumes.synaptechspa.cl"
+        }
+      ],
+      "destination": "/logo5.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "barberiadjones.synaptechspa.cl"
+        }
+      ],
+      "destination": "/djones.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "djonesbarberia.synaptechspa.cl"
+        }
+      ],
+      "destination": "/djones.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "delnerobarber.synaptechspa.cl"
+        }
+      ],
+      "destination": "/nero.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "machos.synaptechspa.cl"
+        }
+      ],
+      "destination": "/machos.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "infinity.synaptechspa.cl"
+        }
+      ],
+      "destination": "/infinity.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "studiodieciseis.synaptechspa.cl"
+        }
+      ],
+      "destination": "/dieciseis/logo.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "sionbarberia.synaptechspa.cl"
+        }
+      ],
+      "destination": "/dieciseis/logo.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "barberiasion.synaptechspa.cl"
+        }
+      ],
+      "destination": "/dieciseis/logo.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "kronnospenablanca.synaptechspa.cl"
+        }
+      ],
+      "destination": "/kronnos/studio.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "kronnoslimache.synaptechspa.cl"
+        }
+      ],
+      "destination": "/kronnos/studio.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "kronnoswoman.synaptechspa.cl"
+        }
+      ],
+      "destination": "/kronnos/woman.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "barbersclub.synaptechspa.cl"
+        }
+      ],
+      "destination": "/logo.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "elbarberomoderno.synaptechspa.cl"
+        }
+      ],
+      "destination": "/elbarberomoderno/logobarb.webp"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "estudioluxury.synaptechspa.cl"
+        }
+      ],
+      "destination": "/luxury/luxury.jpg"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "wallets.bioo.cl"
+        }
+      ],
+      "destination": "/bioo-iso.png"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/logo.jpg"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "wallets.bioo.cl"
+        }
+      ],
+      "destination": "/wallets-bioo.html"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/bioo-iso.png"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/links/index.html"
+    },
+    {
+      "source": "/registro",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/links/registro.html"
+    },
+    {
+      "source": "/editor",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/bio-app/index.html"
+    },
+    {
+      "source": "/claim",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/links/claim.html"
+    },
+    {
+      "source": "/refiere",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/refiere.html"
+    },
+    {
+      "source": "/refiere/:code",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/refiere.html?code=:code"
+    },
+    {
+      "source": "/empieza",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/demo",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/contacto",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/:user",
+      "has": [
+        {
+          "type": "host",
+          "value": "bioo.cl"
+        }
+      ],
+      "destination": "/links/u.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "empieza.synaptechspa.cl"
+        }
+      ],
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "empieza.synaptechspa.cl"
+        }
+      ],
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "empieza.synaptechspa.cl"
+        }
+      ],
+      "destination": "/logo.jpg"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "crea.synaptechspa.cl"
+        }
+      ],
+      "destination": "/crea.html"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "crea.synaptechspa.cl"
+        }
+      ],
+      "destination": "/crea.html"
+    },
+    {
+      "source": "/favicon.ico",
+      "has": [
+        {
+          "type": "host",
+          "value": "crea.synaptechspa.cl"
+        }
+      ],
+      "destination": "/syn-192.png"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/registro",
+      "destination": "/registro.html"
+    },
+    {
+      "source": "/refiere",
+      "destination": "/refiere.html"
+    },
+    {
+      "source": "/refiere/:code",
+      "destination": "/refiere.html?code=:code"
+    },
+    {
+      "source": "/empieza",
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/demo",
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/contacto",
+      "destination": "/empieza.html"
+    },
+    {
+      "source": "/crea",
+      "destination": "/crea.html"
+    },
+    {
+      "source": "/agenda",
+      "destination": "/agenda.html"
+    },
+    {
+      "source": "/agenda/:path*",
+      "destination": "/agenda.html"
+    },
+    {
+      "source": "/servicios",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gestion-interna",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/gestion-interna/:path*",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/catalogo",
+      "destination": "/catalogo.html"
+    },
+    {
+      "source": "/viking",
+      "destination": "/viking.html"
+    },
+    {
+      "source": "/slick",
+      "destination": "/slick.html"
+    },
+    {
+      "source": "/membresia",
+      "destination": "/membresia.html"
+    },
+    {
+      "source": "/chat-miembros",
+      "destination": "/chat-miembros.html"
+    },
+    {
+      "source": "/admin-membresias",
+      "destination": "/admin-membresias.html"
+    },
+    {
+      "source": "/kronnos",
+      "destination": "/kronnos.html"
+    },
+    {
+      "source": "/kronnos-admin",
+      "destination": "/kronnos-admin.html"
+    },
+    {
+      "source": "/ayuda",
+      "destination": "/ayuda.html"
+    },
+    {
+      "source": "/ayuda/:path*",
+      "destination": "/ayuda.html"
+    },
+    {
+      "source": "/chat",
+      "destination": "/chat.html"
+    },
+    {
+      "source": "/bio",
+      "destination": "/bio.html"
+    },
+    {
+      "source": "/sorteo",
+      "destination": "/sorteo.html"
+    },
+    {
+      "source": "/sorteo/:id",
+      "destination": "/sorteo.html?id=:id"
+    },
+    {
+      "source": "/:slug",
+      "destination": "/barbero.html"
+    }
   ]
 }

@@ -48,6 +48,11 @@ const DOMAIN_MAP = {
   'renacer.synaptechspa.cl':           'renacer',
   'orenbarber.synaptechspa.cl':        'oren',
   'orenbarbercl.synaptechspa.cl':      'oren',
+  // Dominio propio del local (jul-2026). Se SUMA a los de synaptechspa.cl, que
+  // siguen vivos: si el DNS del cliente falla, el enlace antiguo lo salva.
+  // Un solo hostname a propósito: /barbero y /admin21 son RUTAS, no
+  // subdominios — menos certificados y menos mapas que mantener en espejo.
+  'agenda.oren.cl':                    'oren',
   'omega.synaptechspa.cl':             'omega',
   'restodemo.synaptechspa.cl':         'restodemo',
   // Sion Barbería (2026-07-27) — NO confundir con 'sionbarberia' (Estudio Dieciséis).

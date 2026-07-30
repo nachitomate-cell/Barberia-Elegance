@@ -52,6 +52,9 @@
     'renacer.synaptechspa.cl':            'renacer',
     'orenbarber.synaptechspa.cl':         'oren',
     'orenbarbercl.synaptechspa.cl':       'oren',
+    // Dominio propio del local — ver nota en middleware.js. Sin esta entrada
+    // el visitante cae al fallback y ve Elegance, que es peor que un error.
+    'agenda.oren.cl':                     'oren',
     'restodemo.synaptechspa.cl':          'restodemo',
     // Sion Barbería · Viña del Mar — tenant nuevo 2026-07-27 (recreado desde
     // AgendaPro, location 477414). NO confundir con `sionbarberia` (Estudio
