@@ -1,17 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, getDocs } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { PLANES, CADENA, PROMOS, fmtCLP, conIva } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
+import { abrirHTML } from '../lib/print';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   CheckCircle2, AlertCircle, XCircle, MessageSquare,
   ExternalLink, CreditCard, Sparkles, Copy, Check, Send,
   Calendar, Building2, User, Hash, Mail, Wallet, Clock,
-  Headphones, ChevronRight, Repeat, Zap,
+  Headphones, ChevronRight, Repeat, Zap, Layers, Users, FileText, Printer,
 } from 'lucide-react';
 
 /* ── Configuración por estado ───────────────────────────────────── */
@@ -211,6 +215,38 @@ export default function Mensualidad() {
     return unsub;
   }, [tenantId]);
 
+  // ── Qué incluye el plan y con qué datos se factura ──
+  // Los datos tributarios NO se piden acá: ya viven en Facturación
+  // (configuracion/facturacion.emisorLocal). Se leen de ahí para no tener dos
+  // copias que se contradigan.
+  const [emisor, setEmisor]       = useState(null);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [conteos, setConteos]     = useState({ locales: 1, profesionales: 0 });
+
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const [fact, sucs, barb] = await Promise.all([
+          withTimeout(getDoc(tenantDoc('configuracion', 'facturacion')), 10000, 'mensualidad/facturacion').catch(() => null),
+          withTimeout(getDocs(tenantCol('sucursales')), 10000, 'mensualidad/sucursales').catch(() => null),
+          withTimeout(getDocs(tenantCol('barberos')), 10000, 'mensualidad/barberos').catch(() => null),
+        ]);
+        if (!vivo) return;
+        setEmisor(fact?.exists() ? (fact.data().emisorLocal || null) : null);
+        // Mismo criterio que Equipo: fuera los docs de enlace SSO y el fantasma
+        // de QA, o el conteo sale inflado.
+        const pros = barb
+          ? barb.docs.map(d => d.data()).filter(b => !b._mainDocId && !b.esQA && b.activo !== false).length
+          : 0;
+        setConteos({ locales: Math.max(1, sucs?.size || 1), profesionales: pros });
+      } finally {
+        if (vivo) setCargandoDatos(false);
+      }
+    })();
+    return () => { vivo = false; };
+  }, [tenantId]);
+
   // ── Estado automático por fecha (solo lectura) ──
   const _fechaPP = billing?.fechaProximoPago;
   const _dpp = useMemo(() => {
@@ -256,6 +292,21 @@ export default function Mensualidad() {
     setCopiadoField(key);
     setTimeout(() => setCopiadoField(null), 1500);
   };
+
+  const verComprobante = (c) => abrirHTML(
+    buildComprobanteHTML({
+      tenantName: tenantName || tenantId,
+      cuota: {
+        mesLabel: mesLabel(c.mes),
+        monto: c.monto,
+        fechaPagoFmt: formatFecha(c.fechaPago),
+        medio: c.medioPago,
+      },
+      emisor,
+      ivaPct: IVA_PCT,
+    }),
+    `comprobante-${c.mes || 'mensualidad'}.html`,
+  );
 
   const primerPendiente = cuotas.find(c => claseCuota(c) === 'pendiente')
     || cuotas.find(c => claseCuota(c) === 'proxima');
@@ -330,6 +381,16 @@ export default function Mensualidad() {
             diasParaVencer={diasParaVencer}
           />
 
+          {/* ─────── Qué incluye el plan y cómo se descompone ─────── */}
+          {Number(billing?.montoPendiente) > 0 && (
+            <PlanDetalleCard
+              planNombre={billing?.plan}
+              neto={Number(billing?.montoPendiente) || 0}
+              locales={conteos.locales}
+              profesionales={conteos.profesionales}
+            />
+          )}
+
           {/* ─────── Pago automático (Suscripciones MP) ─────── */}
           {billing && Number(billing?.montoPendiente) > 0 && (
             <AutopayCard
@@ -386,8 +447,13 @@ export default function Mensualidad() {
               pendientes={pendientes}
               proximas={proximas}
               progresoPct={progresoPct}
+              formatFecha={formatFecha}
+              onComprobante={verComprobante}
             />
           )}
+
+          {/* ─────── Datos con los que se emite la factura ─────── */}
+          <DatosFacturacionCard emisor={emisor} cargando={cargandoDatos} />
 
           {/* ─────── Mensaje admin ─────── */}
           {billing?.mensajeAdmin && (
@@ -833,7 +899,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
 /* ════════════════════════════════════════════════════════════════
    CUOTAS — con progress bar y rows polished
    ════════════════════════════════════════════════════════════════ */
-function CuotasCard({ cuotas, claseCuota, pagadas, pendientes, proximas, progresoPct }) {
+function CuotasCard({ cuotas, claseCuota, pagadas, pendientes, proximas, progresoPct, formatFecha, onComprobante }) {
   return (
     <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
       <div className="mb-4 border-b border-slate-800 pb-4">
@@ -891,22 +957,224 @@ function CuotasCard({ cuotas, claseCuota, pagadas, pendientes, proximas, progres
               <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${badge.cls}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} /> {badge.txt}
               </span>
-              <span className={`flex-1 truncate text-sm font-semibold ${
-                clase === 'pagada'      ? 'text-slate-500 line-through'
-                : clase === 'pendiente' ? 'text-slate-100'
-                :                         'text-slate-400'
-              }`}>
-                {mesLabel(c.mes)}
+              <span className="min-w-0 flex-1">
+                <span className={`block truncate text-sm font-semibold ${
+                  clase === 'pagada'      ? 'text-slate-400'
+                  : clase === 'pendiente' ? 'text-slate-100'
+                  :                         'text-slate-400'
+                }`}>
+                  {mesLabel(c.mes)}
+                </span>
+                {/* La fecha de pago es lo que el dueño busca cuando revisa si ya
+                    pagó un mes; antes solo se veía el mes tachado. */}
+                {clase === 'pagada' && (formatFecha?.(c.fechaPago) || c.medioPago) && (
+                  <span className="block truncate text-[10px] text-slate-500">
+                    {[formatFecha?.(c.fechaPago), c.medioPago].filter(Boolean).join(' · ')}
+                  </span>
+                )}
               </span>
               {c.monto > 0 && (
                 <span className="shrink-0 font-mono text-xs font-black tabular-nums text-slate-300">
                   ${Number(c.monto).toLocaleString('es-CL')}
                 </span>
               )}
+              {clase === 'pagada' && onComprobante && (
+                <button
+                  type="button"
+                  onClick={() => onComprobante(c)}
+                  title="Ver comprobante de este pago"
+                  className="shrink-0 rounded-lg border border-slate-700 p-1.5 text-slate-400 transition-colors hover:border-slate-600 hover:text-primary"
+                >
+                  <Printer size={13} />
+                </button>
+              )}
             </motion.div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   COMPROBANTE DE UNA CUOTA PAGADA (imprimible)
+   ════════════════════════════════════════════════════════════════ */
+// Se llama COMPROBANTE y no factura a propósito: es constancia de un pago
+// recibido, no un documento tributario. Prometer una factura acá sería mentir
+// hasta que la emisión esté conectada.
+function buildComprobanteHTML({ tenantName, cuota, emisor, ivaPct }) {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const f = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-CL');
+  const neto  = Number(cuota.monto) || 0;
+  const iva   = Math.round(neto * ivaPct / 100);
+  const fila  = (l, v, cls) => `<div class="row${cls ? ' ' + cls : ''}"><span>${esc(l)}</span><span>${v}</span></div>`;
+  const opt   = (l, v) => (v ? fila(l, esc(v)) : '');
+
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Comprobante ${esc(cuota.mesLabel)} — ${esc(tenantName || '')}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2937; padding: 24px; max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  h2 { font-size: 12px; margin: 20px 0 6px; color: #374151; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+  .meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; line-height: 1.5; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .row.total { border-top: 2px solid #111827; padding-top: 8px; margin-top: 6px; font-weight: bold; font-size: 15px; }
+  .pill { display: inline-block; background: #059669; color: #fff; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .aviso { margin-top: 18px; padding: 10px 12px; background: #f9fafb; border-left: 3px solid #d1d5db; font-size: 11px; color: #4b5563; line-height: 1.5; }
+  .footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 10px; text-align: center; }
+  .toolbar { background: #111827; color: #fff; padding: 10px 14px; border-radius: 6px; display: flex; gap: 8px; margin-bottom: 14px; }
+  .toolbar button { background: #fff; color: #111827; border: 0; padding: 5px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; }
+  @media print { body { padding: 12px; } .noprint { display: none; } }
+</style></head>
+<body>
+  <div class="toolbar noprint">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+  <h1>Comprobante de pago</h1>
+  <div class="meta">
+    Mensualidad de <strong>Viernes</strong> · ${esc(cuota.mesLabel)}<br>
+    Local: <strong>${esc(tenantName || '—')}</strong><br>
+    <span class="pill">PAGADO</span>
+  </div>
+
+  <h2>Detalle</h2>
+  ${fila('Mensualidad ' + esc(cuota.mesLabel), f(neto))}
+  ${fila(`IVA ${ivaPct}%`, f(iva))}
+  ${fila('Total', f(neto + iva), 'total')}
+  ${cuota.fechaPagoFmt ? fila('Fecha de pago', esc(cuota.fechaPagoFmt)) : ''}
+  ${cuota.medio ? fila('Medio de pago', esc(cuota.medio)) : ''}
+
+  ${(emisor?.rut || emisor?.razonSocial) ? `
+  <h2>Datos del local</h2>
+  ${opt('Razón social', emisor.razonSocial)}
+  ${opt('RUT', emisor.rut)}
+  ${opt('Giro', emisor.giro)}
+  ${opt('Dirección', [emisor.direccion, emisor.comuna].filter(Boolean).join(', '))}
+  ` : ''}
+
+  <div class="aviso">
+    Este documento es un <strong>comprobante de pago</strong>, no un documento
+    tributario. La factura la emite SynapTech por separado.
+  </div>
+
+  <div class="footer">Viernes · por SynapTech</div>
+</body></html>`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DETALLE DEL PLAN — qué estás pagando y cómo se descompone
+   ════════════════════════════════════════════════════════════════ */
+// Los "incluye" no son texto fijo: salen de lo que el local realmente tiene
+// cargado. Una lista escrita a mano se desactualiza en cuanto suman un
+// profesional, y ahí el detalle deja de explicar la boleta.
+const IVA_PCT = 19;
+function PlanDetalleCard({ planNombre, neto, locales, profesionales }) {
+  const iva   = Math.round(neto * IVA_PCT / 100);
+  const total = neto + iva;
+  const fila = (l, v, fuerte) => (
+    <div className={`flex items-center justify-between py-1.5 ${fuerte ? 'border-t border-slate-800 pt-2.5 mt-1' : ''}`}>
+      <span className={fuerte ? 'text-sm font-bold text-primary' : 'text-[13px] text-slate-400'}>{l}</span>
+      <span className={`tabular-nums ${fuerte ? 'text-base font-black text-primary' : 'text-[13px] font-semibold text-slate-200'}`}>
+        ${Number(v).toLocaleString('es-CL')}
+      </span>
+    </div>
+  );
+  return (
+    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/25">
+          <Layers size={14} />
+        </span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-300">Tu plan</p>
+          <p className="text-[11px] text-slate-500">{planNombre || 'Plan Viernes'}</p>
+        </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-300 ring-1 ring-slate-700">
+          <Building2 size={11} className="text-slate-400" />
+          {locales} {locales === 1 ? 'local' : 'locales'}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-300 ring-1 ring-slate-700">
+          <Users size={11} className="text-slate-400" />
+          {profesionales} {profesionales === 1 ? 'profesional' : 'profesionales'}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/25">
+          <Check size={11} /> Sin límite de integrantes
+        </span>
+      </div>
+
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-2.5">
+        {fila('Valor del plan (neto)', neto)}
+        {fila(`IVA ${IVA_PCT}%`, iva)}
+        {fila('Total mensual', total, true)}
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+        Agregar profesionales no sube la mensualidad. Si abres otro local, se cobra aparte.
+      </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DATOS DE FACTURACIÓN — se leen de donde ya viven
+   ════════════════════════════════════════════════════════════════ */
+// NO hay un segundo formulario acá: el RUT, la razón social y el giro ya se
+// cargan en Facturación (configuracion/facturacion.emisorLocal). Pedirlos otra
+// vez crearía dos copias que se contradicen apenas una cambie.
+function DatosFacturacionCard({ emisor, cargando }) {
+  const campos = [
+    ['RUT', emisor?.rut],
+    ['Razón social', emisor?.razonSocial],
+    ['Giro', emisor?.giro],
+    ['Dirección', [emisor?.direccion, emisor?.comuna].filter(Boolean).join(', ')],
+  ];
+  const faltan = campos.filter(([, v]) => !v).map(([l]) => l);
+  const completo = faltan.length === 0;
+
+  return (
+    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/25">
+          <FileText size={14} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-300">Datos para tu factura</p>
+          <p className="text-[11px] text-slate-500">Con estos te emitimos el documento del mes</p>
+        </div>
+      </div>
+
+      {cargando ? (
+        <div className="h-16 animate-pulse rounded-2xl bg-slate-800/40" />
+      ) : (
+        <>
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-2.5">
+            {campos.map(([label, valor]) => (
+              <div key={label} className="flex items-start justify-between gap-3 py-1.5">
+                <span className="text-[13px] text-slate-400">{label}</span>
+                <span className={`text-right text-[13px] font-semibold ${valor ? 'text-slate-200' : 'text-amber-400/80'}`}>
+                  {valor || 'falta'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-500">
+            {completo
+              ? 'Estos datos se toman de Facturación. Si cambian, edítalos ahí y se actualizan solos acá.'
+              : `Falta ${faltan.join(', ')}. Se cargan una sola vez en Facturación y sirven tanto para tus boletas como para la nuestra.`}
+          </p>
+          <Link
+            to="/facturacion"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-slate-700 px-3 py-2 text-xs font-bold text-slate-300 transition-colors hover:border-slate-600 hover:text-primary"
+          >
+            {completo ? 'Editar en Facturación' : 'Completar en Facturación'} <ChevronRight size={13} />
+          </Link>
+        </>
+      )}
     </div>
   );
 }

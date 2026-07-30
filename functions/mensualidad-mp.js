@@ -367,9 +367,20 @@ async function procesarCobro(authorizedPaymentId, token, resendKey) {
     const billing = bSnap.exists ? bSnap.data() : {};
 
     // Marcar la cuota del mes como pagada (si el superadmin lleva cuotas[]).
+    // Se guarda CUÁNDO y CON QUÉ, no solo `pagada`: el historial de la
+    // mensualidad muestra la fecha y el medio, y sin esto queda un mes tachado
+    // sin forma de saber cuándo entró la plata ni de emitir el comprobante.
     let cuotas = Array.isArray(billing.cuotas) ? billing.cuotas.map(c => ({ ...c })) : [];
     const idx  = cuotas.findIndex(c => c && c.mes === mesActual && !c.pagada);
-    if (idx !== -1) cuotas[idx] = { ...cuotas[idx], pagada: true };
+    if (idx !== -1) {
+      cuotas[idx] = {
+        ...cuotas[idx],
+        pagada:     true,
+        fechaPago:  hoy,
+        medioPago:  'Mercado Pago (automático)',
+        mpPaymentId: (ap.payment && ap.payment.id) ? String(ap.payment.id) : null,
+      };
+    }
 
     tx.set(reciboRef, {
       monto,

@@ -3888,6 +3888,22 @@
     function toggleCuota(i) {
       _syncCuotaMontos();
       _cuotas[i].pagada = !_cuotas[i].pagada;
+      // Registrar CUÁNDO y CON QUÉ, no solo el booleano: el historial de la
+      // mensualidad del local muestra la fecha y el medio, y el comprobante
+      // imprimible los necesita. Al desmarcar se limpian, para no dejar una
+      // cuota "no pagada" arrastrando la fecha de un pago que se revirtio.
+      if (_cuotas[i].pagada) {
+        const h = new Date();
+        _cuotas[i].fechaPago = h.getFullYear() + '-' +
+          String(h.getMonth() + 1).padStart(2, '0') + '-' +
+          String(h.getDate()).padStart(2, '0');
+        // Lo manual es siempre transferencia; el cobro por MP lo marca el
+        // webhook con su propio medio.
+        _cuotas[i].medioPago = 'Transferencia';
+      } else {
+        delete _cuotas[i].fechaPago;
+        delete _cuotas[i].medioPago;
+      }
       // Al marcar PAGADA una cuota, correr el "próximo vencimiento" al mes
       // siguiente de esa cuota (mismo día). Sin esto el panel del local sigue
       // gritando "Pago atrasado": Mensualidad.jsx deriva el estado por

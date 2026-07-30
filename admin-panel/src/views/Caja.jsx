@@ -15,6 +15,7 @@ import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { renderTicketTermico, escapeHTML } from '../lib/ticket-termico';
+import { abrirHTML } from '../lib/print';
 import { agregarComisiones } from '../lib/comisiones-core';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -1008,26 +1009,8 @@ function fechaToYMD(f) {
 // vista y el renderizador del ticket, y tener dos copias de un escapador es
 // pedir que una se quede sin un caso.
 
-/* ── Abrir un HTML generado en una pestaña nueva ─────────────── */
-// Con caída a descarga: si el navegador bloquea el popup y no hay fallback, el
-// botón no hace nada y parece roto.
-function abrirHTML(html, filename) {
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    return;
-  }
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+// abrirHTML vive en lib/print.js: lo usan los imprimibles de esta vista y el
+// comprobante de la mensualidad.
 
 async function fetchDatosMes(mesKey) {
   // mesKey = 'YYYY-MM'. Hacemos un único rango de string para citas (campo
