@@ -1098,6 +1098,19 @@ service cloud.firestore {
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada')
+                      // El dashboard del cliente escribe `estado` Y
+                      // `canceladaPor: 'cliente'` (lo agregó e499d20 para que la
+                      // CF avise al staff). Con solo la rama de arriba el write
+                      // de dos campos se rechazaba y el cliente veía "No se pudo
+                      // cancelar la cita" — roto para todos desde el 19-jul-2026.
+                      // Los únicos que cancelaban bien eran los que además son
+                      // staff, que pasan por la rama de arriba de todo.
+                      // Se fija el valor a 'cliente': que no se atribuya la
+                      // cancelación al staff. Ver scripts/test-rules-cancelar-cliente.js
+                      || (esCliente(resource.data)
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'canceladaPor'])
+                          && request.resource.data.estado == 'Cancelada'
+                          && request.resource.data.canceladaPor == 'cliente')
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGoogleReview'])
                           && request.resource.data.pendingGoogleReview == false)
@@ -1113,7 +1126,20 @@ service cloud.firestore {
         allow update: if esStaff(tid)
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
-                          && request.resource.data.estado == 'Cancelada');
+                          && request.resource.data.estado == 'Cancelada')
+                      // El dashboard del cliente escribe `estado` Y
+                      // `canceladaPor: 'cliente'` (lo agregó e499d20 para que la
+                      // CF avise al staff). Con solo la rama de arriba el write
+                      // de dos campos se rechazaba y el cliente veía "No se pudo
+                      // cancelar la cita" — roto para todos desde el 19-jul-2026.
+                      // Los únicos que cancelaban bien eran los que además son
+                      // staff, que pasan por la rama de arriba de todo.
+                      // Se fija el valor a 'cliente': que no se atribuya la
+                      // cancelación al staff. Ver scripts/test-rules-cancelar-cliente.js
+                      || (esCliente(resource.data)
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'canceladaPor'])
+                          && request.resource.data.estado == 'Cancelada'
+                          && request.resource.data.canceladaPor == 'cliente');
         allow delete: if esAdmin(tid);
       }
 

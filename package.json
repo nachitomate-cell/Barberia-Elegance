@@ -14,7 +14,8 @@
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
     "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
-    "check:agenda": "node scripts/check-agenda-visibles.js"
+    "check:agenda": "node scripts/check-agenda-visibles.js",
+    "test:cancelar": "firebase emulators:exec --only firestore \"node scripts/test-rules-cancelar-cliente.js\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
