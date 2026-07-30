@@ -5,6 +5,11 @@
 // Configura el PILOTO del recordatorio 24h por el canal oficial de
 // Meta (plantilla `recordatorio_cita`, número de plataforma).
 //
+// ⚠️ Para el día a día usa /admin → drawer del tenant → WhatsApp. Ahí
+//    están los mismos switches (`planCliente`, `planRecordatorio`, y la
+//    llave global de plantillas) con aviso de choque entre canales.
+//    Este script queda para pruebas y para el arranque del piloto.
+//
 // Deja el sistema listo pero DORMIDO: `templatesEnabled` sigue en
 // false hasta que la plantilla esté APPROVED y tú lo decidas. Sin
 // ese flag global no se envía ni una plantilla, así que correr esto

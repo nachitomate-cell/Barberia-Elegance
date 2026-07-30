@@ -197,6 +197,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  wa_notif — estado por local del canal OFICIAL (Cloud API Meta)
+    //  Lo escribe el Admin SDK (Cloud Functions). Se abre SOLO a
+    //  bootstrap para que el superadmin active/desactive los módulos de
+    //  cada local desde /admin en vez de correr un script a mano.
+    //  Nadie más lo ve: guarda el teléfono del dueño y su ventana de 24h.
+    // ═══════════════════════════════════════════════════════════════
+    match /wa_notif/{tid} {
+      allow read, write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  _billing — estado de pagos por tenant
     //  Lectura solo para staff del tenant. Escritura solo bootstrap.
     // ═══════════════════════════════════════════════════════════════

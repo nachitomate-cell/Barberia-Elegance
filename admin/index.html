@@ -3834,14 +3834,44 @@
       return null;
     }
 
+    // Ref al doc configuracion/whatsapp del tenant (elegance vive en la raíz).
+    function waCfgRef(tid) {
+      return tid === 'elegance'
+        ? db.collection('configuracion').doc('whatsapp')
+        : db.collection('tenants').doc(tid).collection('configuracion').doc('whatsapp');
+    }
+
     async function loadWaModules() {
       const el = document.getElementById('wa-modules-control');
       if (!el || !_activeTenant) return;
-      let plan = null;
+      const tid = _activeTenant;
+
+      let sys = {}, cfg = {}, waNotif = {}, global = {};
       try {
-        const s = await db.collection('_system').doc(_activeTenant).get();
-        plan = waPlanDe(s.exists ? s.data() : {});
+        const [a, b, c, d] = await Promise.all([
+          db.collection('_system').doc(tid).get(),
+          waCfgRef(tid).get(),
+          db.collection('wa_notif').doc(tid).get(),
+          db.collection('_system').doc('whatsapp_notif').get(),
+        ]);
+        sys     = a.exists ? a.data() : {};
+        cfg     = b.exists ? b.data() : {};
+        waNotif = c.exists ? c.data() : {};
+        global  = d.exists ? d.data() : {};
       } catch (e) {}
+
+      const plan       = waPlanDe(sys);
+      const conectado  = cfg.estadoConexion === 'connected';
+      const evoBot     = cfg.botEnabled === true;
+      const evoRecor   = cfg.confirmacionesEnabled === true;
+      const metaConf   = waNotif.planCliente === true;
+      const metaRecor  = waNotif.planRecordatorio === true;
+      const templatesOn = global.templatesEnabled === true;
+
+      // Choque de canales: el mismo cliente recibiría el recordatorio dos
+      // veces, una por el número del local y otra por el de plataforma.
+      const planIncluyeRecor = plan === 'recordatorios' || plan === 'full';
+      const choque = metaRecor && evoRecor && planIncluyeRecor;
 
       const chip = (p) => {
         const on = plan === p.id;
@@ -3854,11 +3884,43 @@
           </button>`;
       };
 
+      const sw = (on, fn) => `<button onclick="${fn}" role="switch" aria-checked="${on}" style="
+          position:relative;width:42px;height:24px;border-radius:999px;border:none;cursor:pointer;flex-shrink:0;
+          background:${on ? '#22c55e' : '#475569'};transition:background 0.2s;">
+          <span style="position:absolute;top:3px;left:${on ? '21px' : '3px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:left 0.2s;"></span>
+        </button>`;
+
+      const fila = (titulo, desc, on, fn) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.7rem;padding:0.45rem 0;">
+          <div style="min-width:0;">
+            <p style="font-size:0.78rem;font-weight:600;color:#e2e8f0;margin:0;">${titulo}</p>
+            <p style="font-size:0.67rem;color:#64748b;margin:0.1rem 0 0;line-height:1.35;">${desc}</p>
+          </div>
+          ${sw(on, fn)}
+        </div>`;
+
+      const estadoEvo = !conectado
+        ? '<span style="color:#64748b;">sin vincular</span>'
+        : `<span style="color:#4ade80;">conectado</span>${cfg.numeroVinculado ? ` · +${cfg.numeroVinculado}` : ''}`
+          + ` · bot ${evoBot ? 'ON' : 'off'} · recordatorios ${evoRecor ? 'ON' : 'off'}`;
+
       el.innerHTML = `
         <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.5rem;">
-          <i class="ph-bold ph-sparkle"></i> Plan de WhatsApp
+          <i class="ph-bold ph-whatsapp-logo"></i> WhatsApp
         </p>
+
+        ${choque ? `
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);border-radius:0.5rem;padding:0.5rem 0.65rem;margin-bottom:0.5rem;">
+          <p style="font-size:0.7rem;color:#fca5a5;margin:0;line-height:1.4;">
+            <i class="ph-bold ph-warning"></i> <b>Recordatorio duplicado:</b> está activo en los dos canales.
+            El cliente recibe el mismo aviso dos veces. Apaga uno.
+          </p>
+        </div>` : ''}
+
+        <!-- ── Canal propio: número del local (Evolution) ── -->
         <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.22);border-radius:0.625rem;padding:0.7rem 0.85rem;">
+          <p style="font-size:0.72rem;font-weight:700;color:#c4b5fd;margin:0 0 0.1rem;">Canal propio · número del local</p>
+          <p style="font-size:0.66rem;color:#64748b;margin:0 0 0.55rem;">Gratis por mensaje. El riesgo de bloqueo lo corre el número del local.</p>
           <div style="display:flex;gap:0.4rem;">${WA_PLANES.map(chip).join('')}</div>
           <button onclick="setWaPlan(null)" style="
             width:100%;margin-top:0.45rem;cursor:pointer;border-radius:0.5rem;padding:0.4rem;
@@ -3867,11 +3929,72 @@
             color:${plan ? '#64748b' : '#f87171'};font-size:0.68rem;font-weight:700;">
             Sin plan (bloqueado)
           </button>
+          <p style="font-size:0.65rem;color:#64748b;margin:0.5rem 0 0;">Estado: ${estadoEvo}</p>
         </div>
+
+        <!-- ── Canal oficial: número de plataforma (Cloud API Meta) ── -->
+        <div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);border-radius:0.625rem;padding:0.7rem 0.85rem;margin-top:0.5rem;">
+          <p style="font-size:0.72rem;font-weight:700;color:#6ee7b7;margin:0 0 0.1rem;">Canal oficial · número SynapTech</p>
+          <p style="font-size:0.66rem;color:#64748b;margin:0 0 0.35rem;">~US$0,02 por mensaje. El número del local nunca se expone.</p>
+          ${fila('Confirmación al reservar',
+                 'Plantilla apenas el cliente agenda.',
+                 metaConf, `setWaMeta('planCliente', ${!metaConf})`)}
+          ${fila('Recordatorio 24h antes',
+                 'Plantilla el día previo, con botones Sí / No podré.',
+                 metaRecor, `setWaMeta('planRecordatorio', ${!metaRecor})`)}
+          ${!templatesOn ? `
+          <p style="font-size:0.66rem;color:#fbbf24;margin:0.4rem 0 0;line-height:1.35;">
+            <i class="ph-bold ph-power"></i> La llave global de plantillas está <b>apagada</b>: nada sale aunque estos switches estén encendidos.
+          </p>` : ''}
+          <button onclick="toggleWaTemplatesGlobal(${!templatesOn})" style="
+            width:100%;margin-top:0.45rem;cursor:pointer;border-radius:0.5rem;padding:0.4rem;
+            border:1px solid ${templatesOn ? 'rgba(34,197,94,0.4)' : 'rgba(251,191,36,0.45)'};
+            background:${templatesOn ? 'rgba(34,197,94,0.1)' : 'rgba(251,191,36,0.1)'};
+            color:${templatesOn ? '#4ade80' : '#fbbf24'};font-size:0.66rem;font-weight:700;">
+            Llave global de plantillas: ${templatesOn ? 'ENCENDIDA' : 'APAGADA'} — afecta a TODOS los locales
+          </button>
+        </div>
+
         <p style="font-size:0.68rem;color:#64748b;margin:0.5rem 0 0;line-height:1.4;">
-          Con plan → el local puede vincular su WhatsApp y usar lo que incluye. Sin plan → ve la tarjeta bloqueada con "Solicitar activación".
-          Al bajar de plan se apaga solo el módulo que deja de estar incluido.
+          Los switches que ves acá son lo <b>contratado</b>. Dentro de eso, el local prende y apaga desde su panel (p.ej. un feriado).
         </p>`;
+    }
+
+    // Módulos del canal oficial (Meta) por local → wa_notif/{tid}.
+    async function setWaMeta(campo, val) {
+      if (!_activeTenant) return;
+      const tid = _activeTenant;
+      try {
+        if (val && campo === 'planRecordatorio') {
+          // Aviso de choque ANTES de encender: el cron de Evolution y el de
+          // Meta miran las mismas citas, así que con los dos activos el
+          // cliente recibe el recordatorio dos veces.
+          const cfg  = (await waCfgRef(tid).get()).data() || {};
+          const sys  = (await db.collection('_system').doc(tid).get()).data() || {};
+          const p    = waPlanDe(sys);
+          if (cfg.confirmacionesEnabled === true && (p === 'recordatorios' || p === 'full')) {
+            const ok = confirm(
+              'Este local ya manda recordatorios por su número propio (Evolution).\n\n' +
+              'Si enciendes también el canal oficial, el cliente recibirá el MISMO aviso dos veces.\n\n' +
+              '¿Encender igual?');
+            if (!ok) return;
+          }
+        }
+        await db.collection('wa_notif').doc(tid).set({ [campo]: val }, { merge: true });
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // Llave global de plantillas: sin esto NINGÚN local envía por Meta.
+    async function toggleWaTemplatesGlobal(val) {
+      const ok = confirm(val
+        ? 'Vas a ENCENDER las plantillas de Meta para TODOS los locales que las tengan contratadas.\n\nCada mensaje cuesta ~US$0,02. ¿Seguro?'
+        : 'Vas a APAGAR las plantillas de Meta para TODOS los locales.\n\nDeja de salir cualquier confirmación y recordatorio por el canal oficial. ¿Seguro?');
+      if (!ok) return;
+      try {
+        await db.collection('_system').doc('whatsapp_notif').set({ templatesEnabled: val }, { merge: true });
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     async function setWaPlan(plan) {

@@ -6,6 +6,10 @@
 // Enciende los flags, crea citas falsas para que el cron mande las
 // confirmaciones, y reporta el costo real de la IA.
 //
+// ⚠️ Lo CONTRATADO se gestiona en /admin → drawer del tenant → WhatsApp
+//    (el plan: recordatorios / bot / completo). Lo de acá son los
+//    switches operativos del local + utilidades de prueba.
+//
 // ⚠️ OJO CON EL BOT: `botEnabled` hace que el asistente responda a
 //    CUALQUIERA que escriba al número vinculado. En delnero ese número
 //    es el WhatsApp comercial de SynapTech, así que encenderlo hace que
