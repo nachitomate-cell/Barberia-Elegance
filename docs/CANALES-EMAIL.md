@@ -69,17 +69,36 @@ Para cambiar el canal de un envío puntual, se toca su `primario` en la llamada.
 Para forzar **todo** el sistema a un canal (incidente, prueba), se setea la env
 var `MAIL_PRIMARIO=resend|brevo` en las Functions — pisa todos los `primario`.
 
-### Contador de uso
+### Contador de uso y dashboard
 
-Cada envío incrementa `_mailUsage/{YYYY-MM-DD}` en Firestore:
+Cada envío incrementa `_mailUsage/{YYYY-MM-DD}` en Firestore (fecha en horario de
+Santiago):
 
 ```
 _mailUsage/2026-07-30 → { resend: 84, brevo: 121, fallidos: 0 }
 ```
 
-Sirve para ver de un vistazo qué tan cerca del techo vamos sin esperar el correo
-de aviso de Resend. Es best-effort: si falla la escritura, el correo se manda
-igual.
+Es best-effort: si falla la escritura, el correo se manda igual.
+
+Eso alimenta el panel **📧 Correo transaccional** en `ops.synaptechspa.cl`:
+consumo del día por proveedor contra su tope, total del mes, proyección de
+cierre, minigráfico de 14 días y **días del mes en que se topó un canal** — esa
+última es la señal de compra real, porque el promedio mensual esconde los días
+puntuales en que nos quedamos cortos.
+
+Alertas (van a la misma lista que las de WhatsApp, así que las rojas también
+salen por el correo de `opsVigilancia`):
+
+| Nivel | Condición |
+|---|---|
+| ámbar | un proveedor al 80% de su cuota diaria |
+| rojo | un proveedor agotó su cuota diaria |
+| rojo | la suma del día pasa el 80% de los 400 combinados |
+| ámbar | hubo envíos que fallaron en AMBOS canales |
+
+**Los topes viven en `CUOTAS`, en `lib/mailer.js`.** Si se contrata un plan pago
+se cambia ese objeto y el dashboard se actualiza solo — ops los importa, no los
+copia (mismo criterio que `capDiario` con `evolution/cuota.js`).
 
 ## Puesta en marcha
 
