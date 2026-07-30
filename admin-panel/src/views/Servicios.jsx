@@ -567,14 +567,14 @@ export default function Servicios() {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">Arrastra para reordenar. El orden se guarda en Firestore.</p>
           </div>
-          {/* Dos CTAs: pack a la izquierda (violeta, decisión secundaria),
-              servicio a la derecha (verde, acción primaria del día). */}
+          {/* Dos CTAs: servicio a la derecha (primaria, System Green),
+              pack a la izquierda (secundaria, ghost). */}
           <div className="hidden md:flex items-center gap-2">
-            <button onClick={openNewPack} className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              <Package size={16} /> Nuevo pack
+            <button onClick={openNewPack} className="flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14] text-slate-200 text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ease-in-out">
+              <Package size={16} strokeWidth={1.75} /> Nuevo pack
             </button>
-            <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              <Plus size={16} /> Nuevo servicio
+            <button onClick={openNew} className="flex items-center gap-2 bg-emerald-500/90 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-full shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset] transition-all duration-200 ease-in-out">
+              <Plus size={16} strokeWidth={2} /> Nuevo servicio
             </button>
           </div>
         </div>
@@ -629,44 +629,46 @@ export default function Servicios() {
         )}
       </div>
 
-      {/* ── Sidebar: categorías ── */}
+      {/* ── Sidebar: categorías (grouped list estilo iOS) ── */}
       <div className="w-full lg:w-64 shrink-0">
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <Tag size={14} className="text-slate-400" />
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl overflow-hidden">
+          <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-[0.08em] px-5 pt-5 pb-3 flex items-center gap-2">
+            <Tag size={12} className="text-slate-500" strokeWidth={1.75} />
             Categorías
           </h2>
 
-          <div className="space-y-1.5 mb-4">
+          <ul>
             {categorias.map(c => (
-              <div key={c} className="bg-slate-900/50 border border-slate-700 rounded-lg p-2.5 flex justify-between items-center">
+              <li
+                key={c}
+                className="group/row flex justify-between items-center px-5 py-3 border-t border-white/[0.08] hover:bg-white/[0.02] transition-colors duration-200 ease-in-out"
+              >
                 <span className="text-sm text-slate-200">{c}</span>
                 <button
                   onClick={() => delCategoria(c)}
-                  className="text-slate-500 hover:text-red-400 transition-colors p-0.5 rounded"
+                  className="text-slate-600 group-hover/row:text-slate-400 hover:!text-rose-300 transition-colors p-1 rounded-md"
                   aria-label={`Eliminar categoría ${c}`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              className="flex-1 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm px-3 py-2 text-primary placeholder-slate-500 focus:outline-none transition-colors"
-              placeholder="Nueva categoría..." value={newCat} onChange={e => setNewCat(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCategoria()}
-            />
-            <button
-              onClick={addCategoria}
-              disabled={!newCat.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-primary rounded-lg w-9 h-9 flex items-center justify-center transition-colors shrink-0"
-              aria-label="Añadir categoría"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-            </button>
-          </div>
+            <li className="flex items-center gap-2 px-5 py-2.5 border-t border-white/[0.08]">
+              <input
+                className="flex-1 min-w-0 bg-transparent border-0 text-sm text-primary placeholder-slate-500 focus:outline-none focus:ring-0"
+                placeholder="Nueva categoría…" value={newCat} onChange={e => setNewCat(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addCategoria()}
+              />
+              <button
+                onClick={addCategoria}
+                disabled={!newCat.trim()}
+                className="text-slate-500 hover:text-emerald-300 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors duration-200 ease-in-out w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/[0.04] shrink-0"
+                aria-label="Añadir categoría"
+              >
+                <Plus size={16} strokeWidth={2} />
+              </button>
+            </li>
+          </ul>
         </div>
 
         {/* ── Módulo: Recomendaciones al reservar ── */}
@@ -703,21 +705,21 @@ export default function Servicios() {
         </div>
       </div>
 
-      {/* FABs móviles apilados — pack arriba (violeta), servicio abajo (verde) */}
+      {/* FABs móviles apilados — pack arriba (ghost), servicio abajo (primaria) */}
       <div className="fixed bottom-6 right-6 md:hidden flex flex-col gap-3 z-50">
         <button
           onClick={openNewPack}
-          className="bg-violet-600 hover:bg-violet-500 text-primary rounded-full p-3.5 shadow-lg shadow-violet-900/50 transition-colors"
+          className="bg-slate-900/80 backdrop-blur-md hover:bg-slate-900 text-slate-200 border border-white/[0.08] rounded-full p-3.5 shadow-lg shadow-black/30 transition-all duration-200 ease-in-out"
           aria-label="Nuevo pack"
         >
-          <Package size={22} strokeWidth={2.5} />
+          <Package size={22} strokeWidth={1.75} />
         </button>
         <button
           onClick={openNew}
-          className="bg-emerald-600 hover:bg-emerald-500 text-primary rounded-full p-4 shadow-lg shadow-emerald-900/50 transition-colors"
+          className="bg-emerald-500/90 hover:bg-emerald-500 text-white rounded-full p-4 shadow-lg shadow-emerald-950/40 transition-all duration-200 ease-in-out"
           aria-label="Nuevo servicio"
         >
-          <Plus size={24} strokeWidth={2.5} />
+          <Plus size={24} strokeWidth={2} />
         </button>
       </div>
 
@@ -1635,42 +1637,42 @@ function ServicioCardBody({ s, topServicio }) {
   return (
     <>
       {s.imagen ? (
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shrink-0 border border-slate-700">
+        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shrink-0 ring-1 ring-inset ring-white/[0.06]">
           <img src={s.imagen} alt={s.nombre} className="w-full h-full object-cover" />
         </div>
       ) : (
-        <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-emerald-400">
+        <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/15">
           <i className={`ph ${s.icono || 'ph-scissors'} text-lg md:text-xl`} />
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <span className="text-sm md:text-base font-bold text-primary truncate w-full block">{s.nombre}</span>
-        <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5">
+        <span className="text-sm md:text-base font-semibold text-primary truncate w-full block tracking-tight">{s.nombre}</span>
+        <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5 tabular-nums">
           <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
           <span className="mx-1.5 text-slate-600">·</span>
           <span>{s.duracion} min</span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-medium">
+          <span className="bg-white/[0.06] text-slate-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-medium">
             {s.categoria || 'Otro'}
           </span>
           {topServicio === s.nombre && (
-            <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-purple-400/15 text-purple-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               ✦ Más solicitado
             </span>
           )}
           {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
-            <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-amber-400/15 text-amber-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               precio variable
             </span>
           )}
           {s.preciosSucursal && Object.keys(s.preciosSucursal).length > 0 && (
-            <span className="bg-orange-400/10 text-orange-400 border border-orange-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-orange-400/15 text-orange-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               📍 precio por sede
             </span>
           )}
           {Array.isArray(s.diasDisponibles) && s.diasDisponibles.length > 0 && (
-            <span className="bg-teal-400/10 text-teal-300 border border-teal-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-teal-400/15 text-teal-200 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               📅 {(() => {
                 const ETQ = { 0: 'Do', 1: 'Lu', 2: 'Ma', 3: 'Mi', 4: 'Ju', 5: 'Vi', 6: 'Sá' };
                 return [...s.diasDisponibles].sort((a, b) => a - b).map(d => ETQ[d]).join(' · ');
@@ -1678,17 +1680,17 @@ function ServicioCardBody({ s, topServicio }) {
             </span>
           )}
           {Array.isArray(s.sucursalesDisponibles) && s.sucursalesDisponibles.length > 0 && (
-            <span className="bg-fuchsia-400/10 text-fuchsia-300 border border-fuchsia-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-fuchsia-400/15 text-fuchsia-200 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               📍 solo {s.sucursalesDisponibles.length === 1 ? '1 sede' : `${s.sucursalesDisponibles.length} sedes`}
             </span>
           )}
           {Array.isArray(s.recomendados) && s.recomendados.length > 0 && (
-            <span className="bg-sky-400/10 text-sky-400 border border-sky-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-sky-400/15 text-sky-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               ✨ recomienda {s.recomendados.length}
             </span>
           )}
           {s.soloStaff && (
-            <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+            <span className="bg-amber-400/15 text-amber-300 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-semibold">
               🔒 solo staff
             </span>
           )}
@@ -1715,10 +1717,10 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
       ref={setNodeRef}
       style={style}
       onClick={() => openEdit(s)}
-      className={`group flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-colors ${
+      className={`group flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-all duration-200 ease-in-out ${
         isDragging
-          ? 'opacity-40 bg-slate-900 border-2 border-dashed border-slate-700'
-          : 'bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600'
+          ? 'opacity-30 bg-white/[0.02] border border-dashed border-white/10'
+          : 'bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.1]'
       }`}
     >
       {/* Drag handle — únicos listeners. touch-none evita que Chrome mobile
@@ -1729,7 +1731,7 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
         {...listeners}
         onClick={e => e.stopPropagation()}
         aria-label="Reordenar servicio"
-        className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing touch-none transition-colors"
+        className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-600 group-hover:text-slate-400 hover:!text-slate-100 cursor-grab active:cursor-grabbing touch-none transition-colors duration-200 ease-in-out"
       >
         <GripIcon />
       </button>
@@ -1738,26 +1740,26 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
 
       {/* Chevron sutil en móvil, ghost buttons en desktop */}
       <svg
-        className="md:hidden text-slate-500 w-5 flex-shrink-0"
+        className="md:hidden text-slate-600 w-5 flex-shrink-0"
         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
         aria-hidden="true"
       >
         <polyline points="9 6 15 12 9 18" />
       </svg>
       <div
-        className="hidden md:flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
+        className="hidden md:flex items-center gap-0.5 shrink-0"
         onClick={e => e.stopPropagation()}
       >
         <button
           onClick={() => openEdit(s)}
-          className="text-slate-400 hover:bg-slate-700 hover:text-primary p-2 rounded-lg transition-colors"
+          className="text-slate-600 group-hover:text-slate-400 hover:!bg-white/[0.05] hover:!text-primary p-2 rounded-lg transition-all duration-200 ease-in-out"
           title="Editar"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
         </button>
         <button
           onClick={() => handleDelete(s.id)}
-          className="text-slate-400 hover:bg-red-500/10 hover:text-red-400 p-2 rounded-lg transition-colors"
+          className="text-slate-600 group-hover:text-slate-400 hover:!bg-rose-400/10 hover:!text-rose-300 p-2 rounded-lg transition-all duration-200 ease-in-out"
           title="Eliminar"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -1767,12 +1769,20 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
   );
 }
 
-/* ── Card elevada del DragOverlay (lo que "flota" con el dedo) ── */
+/* ── Card elevada del DragOverlay (lo que "flota" con el dedo) ──
+    Estado `is-dragging`: scale sutil, borde iluminado y sombra paralela. */
 function ServicioOverlayCard({ s, topServicio }) {
   if (!s) return null;
   return (
-    <div className="flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-grabbing bg-slate-800/95 border border-indigo-500 shadow-2xl shadow-black/60 scale-[1.02] transition-transform duration-200">
-      <div className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-300"><GripIcon /></div>
+    <div
+      className="is-dragging flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-grabbing bg-slate-900/95 backdrop-blur-md"
+      style={{
+        transform: 'scale(1.02)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+      }}
+    >
+      <div className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-200"><GripIcon /></div>
       <ServicioCardBody s={s} topServicio={topServicio} />
     </div>
   );

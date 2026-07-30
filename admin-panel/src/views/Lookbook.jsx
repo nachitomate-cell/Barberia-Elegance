@@ -443,19 +443,19 @@ function StatsGroup({ totalFotos, totalLikes, conFoco, max }) {
   return (
     <SettingsGroup label="Resumen">
       <div className="grid grid-cols-3 divide-x divide-white/[0.05]">
-        <StatCell Icon={Images}     label="Fotos"     value={`${totalFotos}/${max}`} color="text-emerald-300" />
-        <StatCell Icon={Heart}      label="Likes"     value={totalLikes}             color="text-rose-300" />
-        <StatCell Icon={Crosshair}  label="Con foco"  value={conFoco}                color="text-amber-300" />
+        <StatCell Icon={Images}     label="Fotos"     value={`${totalFotos}/${max}`} />
+        <StatCell Icon={Heart}      label="Likes"     value={totalLikes} />
+        <StatCell Icon={Crosshair}  label="Con foco"  value={conFoco} />
       </div>
     </SettingsGroup>
   );
 }
 
-function StatCell({ Icon, label, value, color }) {
+function StatCell({ Icon, label, value }) {
   return (
     <div className="px-4 py-4 flex flex-col items-start gap-1">
-      <div className={`flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${color}`}>
-        <Icon size={11} /> <span>{label}</span>
+      <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.1em] text-slate-500">
+        <Icon size={11} strokeWidth={1.75} /> <span>{label}</span>
       </div>
       <p className="text-xl sm:text-2xl font-semibold tabular-nums text-primary tracking-tight">{value}</p>
     </div>
@@ -495,8 +495,8 @@ function InstagramConnectRow() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-medium text-primary leading-snug">Conectar Instagram</p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-lime-400/10 border border-lime-400/25 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-lime-300">
-              <Sparkles size={9} /> Ilimitado
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] text-emerald-300">
+              <Sparkles size={9} strokeWidth={2.25} /> Ilimitado
             </span>
           </div>
           <p className="text-[12px] text-slate-500 mt-0.5 leading-relaxed">
@@ -507,14 +507,14 @@ function InstagramConnectRow() {
         <button
           type="button"
           onClick={() => alert('Próximamente — conexión OAuth con Instagram.')}
-          className="group shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-semibold text-white transition-all active:scale-[0.98]"
+          className="group shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-medium text-white/95 transition-all duration-200 ease-in-out active:scale-[0.98]"
           style={{
-            background: 'linear-gradient(135deg, #d62976 0%, #962fbf 100%)',
-            boxShadow: '0 4px 14px -6px rgba(214, 41, 118, 0.5)',
+            background: 'linear-gradient(135deg, rgba(214,41,118,0.6) 0%, rgba(150,47,191,0.6) 100%)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
           }}
         >
           Conectar
-          <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight size={12} strokeWidth={1.75} className="transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
     </SettingsGroup>
@@ -531,7 +531,12 @@ function ConfirmActivationModal({ onCancel, onConfirm }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[9100] flex items-center justify-center p-4"
+      style={{
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
       onClick={onCancel}
     >
       <motion.div
@@ -540,11 +545,16 @@ function ConfirmActivationModal({ onCancel, onConfirm }) {
         exit={{ opacity: 0, scale: 0.97, y: 4 }}
         transition={{ type: 'spring', damping: 22, stiffness: 260 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl"
+        className="w-full max-w-sm overflow-hidden bg-slate-950"
+        style={{
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        }}
       >
         <div className="p-6">
-          <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 mb-4">
-            <AlertTriangle size={20} />
+          <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300 ring-1 ring-inset ring-amber-400/20 mb-4">
+            <AlertTriangle size={20} strokeWidth={1.75} />
           </div>
           <h3 className="text-[17px] font-semibold text-primary tracking-tight">Activar el Lookbook</h3>
           <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
@@ -552,18 +562,19 @@ function ConfirmActivationModal({ onCancel, onConfirm }) {
             <span className="text-amber-300"> Revisa que estén listas antes de activar.</span>
           </p>
         </div>
-        <div className="flex gap-2 border-t border-white/[0.06] p-3">
+        <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <button
             onClick={onCancel}
-            className="flex-1 rounded-full border border-white/10 px-4 py-2.5 text-[13px] font-semibold text-slate-300 transition-colors hover:bg-white/[0.03]"
+            className="flex-1 rounded-full px-4 py-2.5 text-[13px] font-medium text-slate-300 transition-all duration-200 ease-in-out hover:bg-white/[0.03]"
+            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-[13px] font-semibold text-white transition-all active:scale-[0.98] shadow-[0_4px_14px_-4px_rgba(16,185,129,0.5)]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-500/90 hover:bg-emerald-500 px-4 py-2.5 text-[13px] font-medium text-white transition-all duration-200 ease-in-out active:scale-[0.98] shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]"
           >
-            <Check size={14} /> Activar
+            <Check size={14} strokeWidth={2} /> Activar
           </button>
         </div>
       </motion.div>
@@ -589,9 +600,12 @@ function PhotoCard({
       onDragLeave={onDragLeave}
       onDrop={e      => onDrop(e, idx)}
       onDragEnd={onDragEnd}
-      className={`group relative mb-3 break-inside-avoid cursor-grab overflow-hidden rounded-2xl border border-white/[0.06] transition-all active:cursor-grabbing ${
-        isDraggingOver ? 'ring-2 ring-emerald-400 scale-[1.02]' : ''
+      className={`group relative mb-3 break-inside-avoid cursor-grab overflow-hidden rounded-2xl transition-all duration-200 ease-in-out active:cursor-grabbing ${
+        isDraggingOver
+          ? 'ring-1 ring-emerald-300/60 ring-offset-2 ring-offset-slate-950 shadow-[0_0_30px_-4px_rgba(52,199,89,0.35)] scale-[1.01]'
+          : ''
       }`}
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
     >
       <img
         src={foto.url}
@@ -604,44 +618,52 @@ function PhotoCard({
       {/* Gradient bottom para legibilidad de controles */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-b-2xl bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-b-2xl bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100"
       />
 
-      {/* Badge de índice (siempre visible) */}
-      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 backdrop-blur-sm px-2 py-1 text-[10.5px] font-semibold text-white">
-        <GripVertical size={10} className="text-white/60" /> {idx + 1}
+      {/* Badge de índice — píldora translúcida flotante */}
+      <span
+        className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-medium text-white"
+        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+      >
+        <GripVertical size={10} className="text-white/60" strokeWidth={1.75} /> {idx + 1}
       </span>
 
-      {/* Likes contador */}
+      {/* Likes contador — mismo estilo */}
       {(foto.likes || 0) > 0 && (
-        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-black/55 backdrop-blur-sm px-2 py-1 text-[10.5px] font-semibold text-white">
-          <Heart size={10} className="text-rose-400 fill-rose-400" /> {foto.likes}
+        <span
+          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-medium text-white"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+        >
+          <Heart size={10} className="text-rose-300 fill-rose-300" /> {foto.likes}
         </span>
       )}
 
       {/* Punto focal indicador (siempre discreto) */}
       {foto.focalX !== undefined && (
         <div
-          className="pointer-events-none absolute h-2 w-2 -ml-1 -mt-1 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] transition-transform duration-300 group-hover:scale-150"
+          className="pointer-events-none absolute h-2 w-2 -ml-1 -mt-1 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.7)] transition-transform duration-300 group-hover:scale-150"
           style={{ left: `${foto.focalX}%`, top: `${foto.focalY}%` }}
         />
       )}
 
-      {/* Controles overlay (bottom) */}
-      <div className="absolute inset-x-2 bottom-2 flex items-center justify-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Controles overlay (bottom) — píldoras translúcidas, opacity 0 por defecto */}
+      <div className="absolute inset-x-2 bottom-2 flex items-center justify-end gap-1.5 opacity-0 transition-opacity duration-200 ease-in-out group-hover:opacity-100">
         <button
           onClick={e => onFocal(e, foto)}
-          className="inline-flex items-center gap-1 rounded-full bg-amber-500/95 px-2.5 py-1.5 text-[10.5px] font-semibold text-amber-950 backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10.5px] font-medium text-amber-200 bg-amber-400/20 hover:bg-amber-400/30 transition-all duration-200 ease-in-out active:scale-95"
+          style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
           title="Ajustar enfoque"
         >
-          <Crosshair size={11} /> Foco
+          <Crosshair size={11} strokeWidth={1.75} /> Foco
         </button>
         <button
           onClick={() => onDelete(foto)}
-          className="inline-flex items-center gap-1 rounded-full bg-red-500/95 px-2.5 py-1.5 text-[10.5px] font-semibold text-white backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[10.5px] font-medium text-rose-200 bg-rose-400/20 hover:bg-rose-400/30 transition-all duration-200 ease-in-out active:scale-95"
+          style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
           title="Eliminar"
         >
-          <Trash2 size={11} /> Borrar
+          <Trash2 size={11} strokeWidth={1.75} /> Borrar
         </button>
       </div>
     </div>
@@ -708,7 +730,12 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[9100] flex items-center justify-center p-4"
+      style={{
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
       onClick={onCancel}
     >
       <motion.div
@@ -717,21 +744,27 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
         exit={{ opacity: 0, scale: 0.97, y: 6 }}
         transition={{ type: 'spring', damping: 22, stiffness: 240 }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl"
+        className="relative w-full max-w-xl overflow-hidden bg-slate-950"
+        style={{
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        }}
       >
         <button
           type="button"
           onClick={onCancel}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/[0.05] text-slate-400 border border-white/10 transition-colors hover:bg-white/[0.08] hover:text-primary"
+          className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/[0.05] text-slate-400 transition-all duration-200 ease-in-out hover:bg-white/[0.08] hover:text-primary"
+          style={{ border: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <X size={14} />
+          <X size={14} strokeWidth={1.75} />
         </button>
 
         <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
-              <Crosshair size={18} />
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-400/10 text-amber-300 ring-1 ring-inset ring-amber-400/20">
+              <Crosshair size={18} strokeWidth={1.75} />
             </div>
             <div>
               <h3 className="text-[16px] font-semibold text-primary tracking-tight leading-tight">Ajustar punto focal</h3>
@@ -741,26 +774,36 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
             </div>
           </div>
 
-          <div className="relative flex select-none items-center justify-center overflow-hidden rounded-2xl bg-black border border-white/[0.06]" style={{ maxHeight: '380px' }}>
+          <div
+            className="relative flex select-none items-center justify-center overflow-hidden rounded-2xl bg-black"
+            style={{ maxHeight: '380px', border: '1px solid rgba(255,255,255,0.05)' }}
+          >
             <img
               src={target.url}
               alt="Ajustar enfoque"
               className="max-h-[380px] max-w-full cursor-crosshair object-contain"
               onClick={onImageClick}
             />
+            {/* Indicador de enfoque: círculo ámbar con anillo blanco fino
+                para asegurar contraste sobre cualquier foto. */}
             <div
-              className="pointer-events-none absolute -ml-5 -mt-5 flex h-10 w-10 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-400/15 shadow-[0_0_20px_rgba(251,191,36,0.7)] transition-all duration-150"
-              style={{ left: `${tempFocal.x}%`, top: `${tempFocal.y}%` }}
+              className="pointer-events-none absolute -ml-5 -mt-5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/20 transition-all duration-150"
+              style={{
+                left: `${tempFocal.x}%`,
+                top: `${tempFocal.y}%`,
+                border: '1px solid rgba(255,255,255,0.9)',
+                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+              }}
             >
-              <div className="absolute h-10 w-10 animate-ping rounded-full border border-amber-400/50" />
-              <div className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(251,191,36,1)]" />
+              <div className="absolute h-10 w-10 animate-ping rounded-full border border-amber-300/50" />
+              <div className="h-2 w-2 rounded-full bg-amber-200" style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.9)' }} />
             </div>
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
-              <span className="rounded-full bg-white/[0.04] border border-white/10 px-2.5 py-1 font-mono text-amber-200">X {tempFocal.x}%</span>
-              <span className="rounded-full bg-white/[0.04] border border-white/10 px-2.5 py-1 font-mono text-amber-200">Y {tempFocal.y}%</span>
+              <span className="rounded-full bg-white/[0.04] px-2.5 py-1 font-mono text-amber-200" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>X {tempFocal.x}%</span>
+              <span className="rounded-full bg-white/[0.04] px-2.5 py-1 font-mono text-amber-200" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>Y {tempFocal.y}%</span>
             </div>
             <span className="text-[10.5px] uppercase tracking-[0.1em] text-slate-500">
               Click en la imagen
@@ -768,22 +811,23 @@ function FocalModal({ target, tempFocal, saving, onCancel, onSave, onImageClick 
           </div>
         </div>
 
-        <div className="flex gap-2 border-t border-white/[0.06] p-3">
+        <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <button
             onClick={onCancel}
             disabled={saving}
-            className="flex-1 rounded-full border border-white/10 px-4 py-2.5 text-[13px] font-semibold text-slate-300 transition-colors hover:bg-white/[0.03] disabled:opacity-50"
+            className="flex-1 rounded-full px-4 py-2.5 text-[13px] font-medium text-slate-300 transition-all duration-200 ease-in-out hover:bg-white/[0.03] disabled:opacity-50"
+            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
           >
             Cancelar
           </button>
           <button
             onClick={onSave}
             disabled={saving}
-            className="flex flex-[1.5] items-center justify-center gap-1.5 rounded-full bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-[13px] font-semibold text-amber-950 shadow-[0_4px_14px_-4px_rgba(251,191,36,0.5)] transition-all active:scale-[0.98] disabled:opacity-60"
+            className="flex flex-[1.5] items-center justify-center gap-1.5 rounded-full bg-amber-500/90 hover:bg-amber-500 px-4 py-2.5 text-[13px] font-medium text-white transition-all duration-200 ease-in-out active:scale-[0.98] disabled:opacity-60 shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]"
           >
             {saving
-              ? <><Loader2 size={14} className="animate-spin" /> Guardando…</>
-              : <><Check size={14} /> Guardar enfoque</>}
+              ? <><Loader2 size={14} className="animate-spin" strokeWidth={1.75} /> Guardando…</>
+              : <><Check size={14} strokeWidth={2} /> Guardar enfoque</>}
           </button>
         </div>
       </motion.div>

@@ -171,13 +171,12 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
   const isColacion = estado.estado === 'colacion';
   const isDiaLibre = estado.estado === 'dia_libre';
 
-  const wrap = isLibre
-    ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_40px_-15px_rgba(16,185,129,0.5)]'
-    : isColacion
-      ? 'bg-amber-500/10 border-amber-500/40'
-      : isDiaLibre
-        ? 'bg-slate-800/20 border-slate-700/40 opacity-70'
-        : 'bg-slate-800/40 border-slate-700/50';
+  // Base cristal para todas las tarjetas — la diferenciación viaja por el
+  // gradiente radial detrás del avatar y por el badge, no por el borde de
+  // la caja completa (que antes era verde/ámbar saturado).
+  const wrap = isDiaLibre
+    ? 'bg-white/[0.015] opacity-70'
+    : 'bg-white/[0.02]';
 
   const iniciales = String(b.nombre || '?')
     .split(/\s+/).filter(Boolean).slice(0, 2)
@@ -192,36 +191,67 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
     || estado.huecoMin === Infinity || estado.huecoMin >= MIN_WALKIN;
 
   return (
-    <div className={`relative rounded-2xl border p-5 md:p-6 transition-colors ${wrap}`}>
-      <div className="flex items-center gap-4">
+    <div
+      className={`relative rounded-2xl p-5 md:p-6 overflow-hidden transition-all duration-200 ease-in-out ${wrap}`}
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+    >
+      {/* Resplandor sutil detrás del avatar solo en libres.
+          Radial verde translúcido, no invade la caja. */}
+      {isLibre && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-32"
+          style={{
+            background:
+              'radial-gradient(ellipse 50% 100% at 20% 0%, rgba(52,199,89,0.18) 0%, rgba(52,199,89,0.06) 40%, transparent 75%)',
+          }}
+        />
+      )}
+      {isColacion && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-32"
+          style={{
+            background:
+              'radial-gradient(ellipse 50% 100% at 20% 0%, rgba(255,159,10,0.14) 0%, rgba(255,159,10,0.04) 40%, transparent 75%)',
+          }}
+        />
+      )}
+      <div className="relative flex items-center gap-4">
         {b.foto ? (
-          <img src={b.foto} alt={b.nombre}
-            className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover ring-2 ring-white/10 shrink-0" />
+          <img
+            src={b.foto} alt={b.nombre}
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover shrink-0"
+            style={{ border: '2px solid rgba(255,255,255,0.1)' }}
+          />
         ) : (
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-700 text-primary text-xl font-bold flex items-center justify-center shrink-0">
+          <div
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.04] text-slate-200 text-xl font-semibold flex items-center justify-center shrink-0"
+            style={{ border: '2px solid rgba(255,255,255,0.1)' }}
+          >
             {iniciales || '?'}
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg md:text-xl font-bold text-primary truncate">{b.nombre}</h3>
+          <h3 className="text-lg md:text-xl font-semibold text-primary truncate tracking-tight">{b.nombre}</h3>
           {isLibre && (
-            <p className="text-emerald-400 text-xs md:text-sm font-semibold uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
-              <Zap size={14} /> Libre ahora
-            </p>
+            <span className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-emerald-400/15 text-emerald-300 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.08em] px-2 py-0.5">
+              <Zap size={11} strokeWidth={2.25} /> Libre ahora
+            </span>
           )}
           {isOcupado && (
-            <p className="text-slate-400 text-xs md:text-sm mt-0.5 flex items-center gap-1.5">
-              <Clock size={14} /> Ocupado
+            <p className="text-slate-400 text-xs md:text-sm mt-1 flex items-center gap-1.5">
+              <Clock size={13} strokeWidth={1.75} /> Ocupado
             </p>
           )}
           {isColacion && (
-            <p className="text-amber-400 text-xs md:text-sm font-semibold uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
-              <Coffee size={14} /> En colación
-            </p>
+            <span className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-amber-400/15 text-amber-300 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.08em] px-2 py-0.5">
+              <Coffee size={11} strokeWidth={2.25} /> En colación
+            </span>
           )}
           {isDiaLibre && (
-            <p className="text-slate-400 text-xs md:text-sm font-semibold uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
-              <CalendarOff size={14} /> Día libre
+            <p className="text-slate-500 text-xs md:text-sm mt-1 flex items-center gap-1.5">
+              <CalendarOff size={13} strokeWidth={1.75} /> Día libre
             </p>
           )}
         </div>
@@ -229,38 +259,40 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
 
       {/* Día libre: mensaje simple y CTA cortada (sin walk-in posible). */}
       {isDiaLibre ? (
-        <div className="mt-5">
-          <p className="text-slate-300 text-lg md:text-xl font-bold leading-tight">
+        <div className="relative mt-5">
+          <p className="text-slate-200 text-lg md:text-xl font-semibold leading-tight tracking-tight">
             Hoy no atiende
           </p>
           <p className="text-slate-500 text-xs md:text-sm mt-1">
             Su agenda semanal marca este día como no laborable.
           </p>
-          <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700/40 bg-slate-800/20 px-3 py-2.5 text-xs md:text-sm font-semibold text-slate-500">
-            <CalendarOff size={15} className="shrink-0" />
+          <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white/[0.02] px-3 py-2.5 text-xs md:text-sm font-medium text-slate-500" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+            <CalendarOff size={15} className="shrink-0" strokeWidth={1.75} />
             <span>No disponible para walk-in</span>
           </div>
         </div>
       ) : (
       <>
-      {/* Contador grande — el dato que el barbero grita al cliente */}
-      <div className="mt-5 flex items-baseline gap-2">
+      {/* Contador grande — el dato que el barbero grita al cliente.
+          "Todo el día" queda en gris claro (info secundaria), no compite
+          con el nombre. Los contadores numéricos sí conservan peso. */}
+      <div className="relative mt-5 flex items-baseline gap-2">
         {isLibre ? (
           estado.libreDuranteMin === Infinity ? (
-            <span className="text-3xl md:text-4xl font-black text-emerald-300 leading-none">
+            <span className="text-xl md:text-2xl font-medium text-slate-200 leading-none tracking-tight">
               Todo el día
             </span>
           ) : (
             <>
-              <span className="text-4xl md:text-5xl font-black text-emerald-300 leading-none tabular-nums">
+              <span className="text-4xl md:text-5xl font-semibold text-primary leading-none tabular-nums tracking-tight">
                 {formatWait(estado.libreDuranteMin)}
               </span>
-              <span className="text-sm text-emerald-400/70">hasta {minToHhmm(estado.libreHastaMin)}</span>
+              <span className="text-sm text-slate-400">hasta {minToHhmm(estado.libreHastaMin)}</span>
             </>
           )
         ) : (
           <>
-            <span className={`text-4xl md:text-5xl font-black leading-none tabular-nums ${isColacion ? 'text-amber-300' : 'text-primary'}`}>
+            <span className={`text-4xl md:text-5xl font-semibold leading-none tabular-nums tracking-tight ${isColacion ? 'text-amber-200' : 'text-primary'}`}>
               {formatWait(estado.faltaMin)}
             </span>
             <span className="text-sm text-slate-400">hasta {minToHhmm(estado.hastaMin)}</span>
@@ -270,8 +302,8 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
 
       {/* Chip de contexto — cliente actual o próximo */}
       {isOcupado && (estado.cliente || estado.servicio) && (
-        <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center gap-2 text-xs md:text-sm text-slate-400">
-          <User size={13} className="shrink-0" />
+        <div className="relative mt-4 pt-4 flex items-center gap-2 text-xs md:text-sm text-slate-400" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <User size={13} className="shrink-0" strokeWidth={1.75} />
           <span className="truncate">
             <span className="text-slate-300">{estado.cliente || 'Cliente'}</span>
             {estado.servicio && <span className="text-slate-500"> · {estado.servicio}</span>}
@@ -279,8 +311,8 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
         </div>
       )}
       {isLibre && estado.proxCliente && estado.libreDuranteMin !== Infinity && (
-        <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center gap-2 text-xs md:text-sm text-slate-500">
-          <Clock size={13} className="shrink-0" />
+        <div className="relative mt-4 pt-4 flex items-center gap-2 text-xs md:text-sm text-slate-500" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <Clock size={13} className="shrink-0" strokeWidth={1.75} />
           <span className="truncate">Siguiente: <span className="text-slate-400">{estado.proxCliente}</span></span>
         </div>
       )}
@@ -289,7 +321,7 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
           una cadena de citas pegadas. Sin esto, "Ocupado hasta 20:00" con una
           cita que termina 18:00 se lee como un error del sistema. */}
       {isOcupado && estado.encadenado && (
-        <p className="mt-3 text-[11px] md:text-xs leading-snug text-slate-500">
+        <p className="relative mt-3 text-[11px] md:text-xs leading-snug text-slate-500">
           Tiene citas seguidas hasta esa hora.
         </p>
       )}
@@ -297,26 +329,30 @@ function BarberoCard({ b, estado, walkinHora, onWalkin }) {
       {/* CTA walk-in — abre la Agenda con barbero + hora ya resueltos:
           libre → ahora; ocupado/colación → cuando termina su cadena de citas.
           Si el hueco que queda es más corto que un servicio típico, no se
-          ofrece: mandaba a crear una cita que no cabe. */}
+          ofrece: mandaba a crear una cita que no cabe.
+          Layout: acción a la izquierda, temporizador a la derecha. */}
       {huecoUtil ? (
         <button
           onClick={onWalkin}
-          className={`mt-4 w-full flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs md:text-sm font-bold transition-colors ${
+          className={`relative mt-4 w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-xs md:text-sm font-medium transition-all duration-200 ease-in-out ${
             isLibre
-              ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+              ? 'bg-emerald-400/10 hover:bg-emerald-400/15 text-emerald-200'
               : isColacion
-                ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                : 'bg-slate-700/40 hover:bg-slate-700/70 text-slate-300 border-slate-600/50'
+                ? 'bg-amber-400/10 hover:bg-amber-400/15 text-amber-200'
+                : 'bg-white/[0.03] hover:bg-white/[0.06] text-slate-200'
           }`}
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
           title={`Crear cita con ${b.nombre} a las ${walkinHora}`}
         >
-          <UserPlus size={15} className="shrink-0" />
-          <span>Agregar cliente de paso</span>
-          <span className="tabular-nums opacity-70">· {walkinHora}</span>
+          <span className="inline-flex items-center gap-2 min-w-0">
+            <UserPlus size={15} className="shrink-0" strokeWidth={1.75} />
+            <span className="truncate">Agregar cliente de paso</span>
+          </span>
+          <span className="tabular-nums text-white/60 shrink-0">{walkinHora}</span>
         </button>
       ) : (
-        <div className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/30 px-3 py-2.5 text-xs md:text-sm font-semibold text-slate-500">
-          <CalendarOff size={15} className="shrink-0" />
+        <div className="relative mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white/[0.02] px-3 py-2.5 text-xs md:text-sm font-medium text-slate-500" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+          <CalendarOff size={15} className="shrink-0" strokeWidth={1.75} />
           <span>Sin espacio libre hoy</span>
         </div>
       )}
@@ -431,8 +467,12 @@ export default function Pizarra() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl md:text-2xl font-bold text-primary">Pizarra walk-in</h1>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
+            <h1 className="text-xl md:text-2xl font-semibold text-primary tracking-tight">Pizarra walk-in</h1>
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300 bg-emerald-400/15 rounded-full px-2 py-0.5">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-70" />
+                <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              </span>
               en vivo
             </span>
           </div>
@@ -454,10 +494,11 @@ export default function Pizarra() {
           </div>
           <button
             onClick={() => setFullscreen(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-white/[0.03] hover:bg-white/[0.06] rounded-full transition-all duration-200 ease-in-out"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
             title={fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa (ideal para tablet)'}
           >
-            {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            {fullscreen ? <Minimize2 size={13} strokeWidth={1.75} /> : <Maximize2 size={13} strokeWidth={1.75} />}
             {fullscreen ? 'Salir' : 'Pantalla'}
           </button>
         </div>

@@ -159,65 +159,76 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
   }
 
   return (
-    <div className={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-transform hover:-translate-y-1 group relative ${producto.activo === false ? 'opacity-60' : ''}`}>
-      {/* Badges flotantes */}
+    <div
+      className={`bg-white/[0.02] rounded-2xl overflow-hidden group relative transition-all duration-200 ease-in-out hover:bg-white/[0.04] ${producto.activo === false ? 'opacity-60' : ''}`}
+      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+    >
+      {/* Badges flotantes — píldoras translúcidas sin bordes */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
         {producto.activo === false && (
-          <div className="flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5 w-max">
-            <EyeOff size={10} className="text-slate-400" />
-            <span className="text-[10px] text-slate-400 font-semibold">Oculto</span>
+          <div className="flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-full px-2 py-0.5 w-max">
+            <EyeOff size={10} className="text-slate-300" />
+            <span className="text-[10px] text-slate-200 font-medium">Oculto</span>
           </div>
         )}
         {producto.sucursalNombre && (
-          <div className="flex items-center gap-1 bg-orange-500/15 border border-orange-500/40 rounded-full px-2 py-0.5 w-max">
+          <div className="flex items-center gap-1 bg-orange-400/15 backdrop-blur-md rounded-full px-2 py-0.5 w-max">
             <span aria-hidden="true" className="text-[9px]">📍</span>
-            <span className="text-[10px] text-orange-300 font-semibold truncate max-w-[110px]">{producto.sucursalNombre}</span>
+            <span className="text-[10px] text-orange-200 font-medium truncate max-w-[110px]">{producto.sucursalNombre}</span>
           </div>
         )}
         {isCriticalStock && (
-          <div className="flex items-center gap-1 bg-amber-500 border border-amber-400/30 rounded-full px-2 py-0.5 w-max animate-pulse shadow-lg text-black">
-            <AlertTriangle size={10} className="text-ink-950" />
-            <span className="text-[9px] font-extrabold tracking-wide text-ink-950">STOCK CRÍTICO ({producto.stock})</span>
+          <div className="flex items-center gap-1 bg-amber-400/15 backdrop-blur-md rounded-full px-2 py-0.5 w-max">
+            <AlertTriangle size={10} className="text-amber-300" />
+            <span className="text-[10px] font-semibold tracking-wide text-amber-200">Stock crítico · {producto.stock}</span>
           </div>
         )}
       </div>
 
-      {/* Escaparate: fondo claro para que la imagen se integre bien */}
-      <div className="bg-white/95 aspect-square p-4 flex items-center justify-center relative">
-        {producto.imagen
-          ? <img src={producto.imagen} alt={producto.nombre} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" />
-          : <ImageOff size={28} className="text-slate-400" />}
+      {/* Escaparate: fondo claro con padding interno para que la foto no
+          toque los bordes de la card oscura ("foto enmarcada"). */}
+      <div className="p-4">
+        <div className="bg-white/95 aspect-square rounded-xl p-3 flex items-center justify-center relative overflow-hidden">
+          {producto.imagen
+            ? <img src={producto.imagen} alt={producto.nombre} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+            : <ImageOff size={28} className="text-slate-400" />}
+        </div>
       </div>
 
       {/* Info */}
-      <div className="p-4 bg-slate-900">
-        <h3 className="font-semibold text-primary text-sm leading-tight line-clamp-2 min-h-[2.5rem]">{producto.nombre}</h3>
+      <div className="px-4 pb-4">
+        <h3 className="font-medium text-primary text-sm leading-tight line-clamp-2 min-h-[2.5rem] tracking-tight">{producto.nombre}</h3>
         <div className="flex items-baseline gap-2 mt-2">
           {producto.precio ? (
-            <span className="text-lg font-bold text-emerald-400">${Number(producto.precio).toLocaleString('es-CL')}</span>
+            <span className="text-lg font-semibold text-primary tabular-nums tracking-tight">${Number(producto.precio).toLocaleString('es-CL')}</span>
           ) : (
             <span className="text-slate-500 text-xs italic">Consultar</span>
           )}
           {off > 0 && (
-            <span className="text-[10px] font-bold text-slate-500 line-through">${Number(producto.precioOriginal).toLocaleString('es-CL')}</span>
+            <span className="text-[10px] font-medium text-slate-500 line-through tabular-nums">${Number(producto.precioOriginal).toLocaleString('es-CL')}</span>
           )}
           {off > 0 && (
-            <span className="text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-400 rounded-full px-1.5 py-0.5">-{off}%</span>
+            <span className="text-[10px] font-semibold bg-rose-400/15 text-rose-300 rounded-full px-1.5 py-0.5">-{off}%</span>
           )}
         </div>
         {(producto.stock !== undefined && producto.stock !== null && producto.stock !== '') && (
-          <span className={`mt-2 inline-block bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded-md border border-slate-700 ${
-            isCriticalStock ? 'text-amber-400 border-amber-500/50' : Number(producto.stock) === 0 ? 'text-red-400 border-red-500/40' : ''
+          <span className={`mt-2 inline-block text-[10px] font-medium px-2 py-0.5 rounded-full tabular-nums ${
+            isCriticalStock
+              ? 'bg-amber-400/15 text-amber-300'
+              : Number(producto.stock) === 0
+                ? 'bg-rose-400/15 text-rose-300'
+                : 'bg-white/10 text-slate-300'
           }`}>
             Stock: {producto.stock}{isCriticalStock && ` · min ${producto.stockMinimo}`}
           </span>
         )}
-        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-lg text-xs font-semibold transition-colors">
-            <Edit2 size={11} /> Editar
+        {/* Acciones: ocultas por defecto, visibles al hover de la card */}
+        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
+          <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-sky-400/10 hover:bg-sky-400/15 text-sky-300 rounded-full text-xs font-medium transition-all duration-200 ease-in-out">
+            <Edit2 size={11} strokeWidth={1.75} /> Editar
           </button>
-          <button onClick={() => onDelete(producto.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-semibold transition-colors">
-            <Trash2 size={11} /> Eliminar
+          <button onClick={() => onDelete(producto.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-rose-400/10 hover:bg-rose-400/15 text-rose-300 rounded-full text-xs font-medium transition-all duration-200 ease-in-out">
+            <Trash2 size={11} strokeWidth={1.75} /> Eliminar
           </button>
         </div>
       </div>
@@ -926,53 +937,61 @@ export default function Productos() {
             onClick={() => setStoryOpen(true)}
             disabled={loading}
             title="Generar imagen para historia de Instagram"
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-primary text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] text-slate-200 text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ease-in-out"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <Share2 size={16} className="text-emerald-400" /> Imagen historia
+            <Share2 size={16} className="text-slate-400" strokeWidth={1.75} /> Imagen historia
           </button>
           <button
             onClick={openVentaRapida}
             disabled={loading}
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-primary text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] text-slate-200 text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ease-in-out"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <ShoppingBag size={16} className="text-emerald-400" /> Venta Rápida
+            <ShoppingBag size={16} className="text-slate-400" strokeWidth={1.75} /> Venta rápida
           </button>
           <button
             onClick={openNew}
             disabled={loading}
-            className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-primary text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-500/90 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-full shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset] transition-all duration-200 ease-in-out"
           >
-            <Plus size={16} /> Agregar producto
+            <Plus size={16} strokeWidth={2} /> Agregar producto
           </button>
         </div>
       </div>
 
-      {/* Global Critical Stock Alert Banner */}
+      {/* Global Critical Stock Alert Banner — cristal + tinte ámbar sutil */}
       {criticalProductsCount > 0 && (
-        <div className="mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border border-amber-500/30 bg-amber-500/5 animate-pulse shadow-md">
-          <AlertTriangle size={20} className="shrink-0 mt-0.5 text-amber-400" />
+        <div
+          className="mb-6 flex items-start gap-4 px-5 py-4 rounded-2xl bg-amber-400/[0.05]"
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <AlertTriangle size={20} className="shrink-0 mt-0.5 text-amber-300" strokeWidth={1.75} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary">
-              Alerta de Inventario: <span className="text-amber-400">{criticalProductsCount} {criticalProductsCount === 1 ? 'producto requiere' : 'productos requieren'} reposición urgente.</span>
+            <p className="text-sm font-medium text-primary">
+              Alerta de inventario: <span className="text-amber-300 font-semibold">{criticalProductsCount} {criticalProductsCount === 1 ? 'producto requiere' : 'productos requieren'} reposición urgente.</span>
             </p>
-            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-              Hay artículos cuyo stock actual está en o por debajo del stock mínimo configurado. Por favor, revisa las tarjetas marcadas con la alerta de Stock Crítico.
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              Hay artículos cuyo stock actual está en o por debajo del stock mínimo configurado. Revisa las tarjetas marcadas con la alerta de stock crítico.
             </p>
           </div>
         </div>
       )}
 
-      {/* Activation banner */}
+      {/* Activation banner — cristal + tinte verde/neutro sutil */}
       {!activoLoad && (
-        <div className={`mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border transition-all ${
-          activo ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-slate-900'
-        }`}>
-          <Power size={20} className={`shrink-0 mt-0.5 ${activo ? 'text-emerald-400' : 'text-slate-500'}`} />
+        <div
+          className={`mb-6 flex items-start gap-4 px-5 py-4 rounded-2xl transition-all duration-200 ease-in-out ${
+            activo ? 'bg-emerald-400/[0.05]' : 'bg-white/[0.02]'
+          }`}
+          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <Power size={20} className={`shrink-0 mt-0.5 ${activo ? 'text-emerald-300' : 'text-slate-500'}`} strokeWidth={1.75} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary">
-              Sección de productos: <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>{activo ? 'Activa' : 'Inactiva'}</span>
+            <p className="text-sm font-medium text-primary">
+              Sección de productos: <span className={activo ? 'text-emerald-300 font-semibold' : 'text-slate-400 font-semibold'}>{activo ? 'Activa' : 'Inactiva'}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-1">
               {activo
                 ? 'Los clientes pueden ver los productos publicados en su perfil del club (pestaña "Productos").'
                 : 'Al activar, los clientes verán una pestaña "Productos" en su perfil del club.'}
@@ -980,10 +999,10 @@ export default function Productos() {
           </div>
           <button
             onClick={() => activo ? toggleActivo(false) : setConfirmOn(true)}
-            className={`shrink-0 px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${
+            className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 ease-in-out ${
               activo
-                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-                : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                ? 'bg-rose-400/10 hover:bg-rose-400/15 text-rose-300'
+                : 'bg-emerald-400/10 hover:bg-emerald-400/15 text-emerald-300'
             }`}
           >
             {activo ? 'Desactivar' : 'Activar'}
