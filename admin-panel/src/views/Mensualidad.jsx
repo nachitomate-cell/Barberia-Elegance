@@ -1035,7 +1035,7 @@ function buildComprobanteHTML({ tenantName, cuota, emisor, ivaPct }) {
   </div>
   <h1>Comprobante de pago</h1>
   <div class="meta">
-    Mensualidad de <strong>Viernes</strong> · ${esc(cuota.mesLabel)}<br>
+    Mensualidad de <strong>SynapTech Studio</strong> · ${esc(cuota.mesLabel)}<br>
     Local: <strong>${esc(tenantName || '—')}</strong><br>
     <span class="pill">PAGADO</span>
   </div>
@@ -1060,7 +1060,7 @@ function buildComprobanteHTML({ tenantName, cuota, emisor, ivaPct }) {
     tributario. La factura la emite SynapTech por separado.
   </div>
 
-  <div class="footer">Viernes · por SynapTech</div>
+  <div class="footer">SynapTech Studio · SynapTech SpA</div>
 </body></html>`;
 }
 
@@ -1090,7 +1090,7 @@ function PlanDetalleCard({ planNombre, neto, locales, profesionales }) {
         </span>
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-slate-300">Tu plan</p>
-          <p className="text-[11px] text-slate-500">{planNombre || 'Plan Viernes'}</p>
+          <p className="text-[11px] text-slate-500">{planNombre || 'Plan mensual'}</p>
         </div>
       </div>
 
