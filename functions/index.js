@@ -1620,6 +1620,10 @@ exports.plataformaEstado         = evolutionPlataforma.plataformaEstado;
 exports.plataformaDesvincular    = evolutionPlataforma.plataformaDesvincular;
 exports.plataformaConfirmaciones = evolutionPlataforma.plataformaConfirmaciones;
 
+// Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
+// puede enumerarlos). Ver functions/admin-listar-tenants.js.
+exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;
+
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
 // Espeja configuracion/whatsapp.confirmacionesEnabled → configuracion/main.waConfirmActivo,

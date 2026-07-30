@@ -2663,13 +2663,27 @@
       },
     };
 
-    // ── Tenants que faltan: se generan desde la config canónica (window.ALL_TENANTS)
-    //    para no mantener cards a mano. Los 12 de arriba mandan; estos se suman. ──
-    (function generarTenantsFaltantes(){
-      var all  = window.ALL_TENANTS;
+    // ── Tarjetas de tenants: se generan solas ────────────────────────────
+    //  FUENTE DE VERDAD = Firestore, vía el callable adminListarTenants.
+    //
+    //  Por qué un callable y no leer Firestore acá: el navegador NO puede
+    //  enumerar tenants. `collection('tenants').get()` devuelve 4 de 33,
+    //  porque la mayoría de los docs padre no existen — el tenant vive en sus
+    //  subcolecciones. Enumerar de verdad exige listDocuments(), que es Admin
+    //  SDK. Antes la lista salía de config.js + un objeto TENANTS hardcodeado
+    //  acá, así que crear un tenant sin tocar esos dos archivos lo dejaba
+    //  INVISIBLE para el superadmin aunque estuviera operando con citas
+    //  reales. Ya había 3 tenants en Firestore que config.js no conocía.
+    //
+    //  window.ALL_TENANTS queda como respaldo si el callable falla: mejor una
+    //  lista incompleta que una pantalla vacía.
+    function generarTenantsFaltantes(all){
       var grid = document.getElementById('grid-ok');
       if (!all || !grid) return;
-      var SKIP = { sandbox: 1, mapubarbershop: 1 }; // mapubarbershop ya está como 'mapubarber'
+      // sandbox se oculta (entorno de pruebas). mapubarbershop YA NO se salta:
+      // el id real es ese, y la tarjeta estática 'mapubarber' apunta a un
+      // tenant que no existe en Firestore.
+      var SKIP = { sandbox: 1 };
       var PALETA = ['#34d399','#60a5fa','#f59e0b','#a78bfa','#ec4899','#f97316','#22d3ee','#c9a84c','#94a3b8'];
       var RGB = { '#34d399':'52,211,153','#60a5fa':'96,165,250','#f59e0b':'245,158,11','#a78bfa':'167,139,250','#ec4899':'236,72,153','#f97316':'249,115,22','#22d3ee':'34,211,238','#c9a84c':'201,168,76','#94a3b8':'148,163,184' };
       function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
@@ -2707,7 +2721,33 @@
         grid.appendChild(btn);
       });
       if (window.saUpdateCounts) window.saUpdateCounts();
-    })();
+    }
+
+    // Pide la lista real a Firestore; si algo falla, cae a config.js.
+    // Se expone en window para poder re-ejecutarla tras el login.
+    window.saCargarTenants = async function(){
+      var all = null;
+      try {
+        var r = await firebase.app().functions('us-central1').httpsCallable('adminListarTenants')({});
+        var lista = (r.data && r.data.tenants) || [];
+        if (lista.length) {
+          all = {};
+          lista.forEach(function(t){
+            // El estilo por marca sigue saliendo de config.js (allowlist
+            // deliberada). Lo que manda Firestore es QUIÉN existe.
+            var estilo = (window.ALL_TENANTS && window.ALL_TENANTS[t.id]) || {};
+            all[t.id] = {
+              nombre:    t.nombre || estilo.nombre || t.id,
+              direccion: estilo.direccion || '',
+              logo:      estilo.logo || '/favicon.ico',
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('[admin] adminListarTenants falló, uso config.js:', e && e.message);
+      }
+      generarTenantsFaltantes(all || window.ALL_TENANTS);
+    };
 
     let _activeTenant   = null;
     let _profListLoaded = false;
@@ -7679,6 +7719,12 @@
         _adminShowState('none');
         _setAdminLoginLoading(false);
         console.log('[Admin] Acceso concedido:', user.email);
+        // La lista de tenants sale de Firestore vía callable, así que recién
+        // acá hay sesión para pedirla. Antes se generaba al parsear la página
+        // desde config.js, que es una lista a mano y por eso se quedaba corta.
+        if (window.saCargarTenants) {
+          window.saCargarTenants().catch(e => console.warn('[Admin] tenants:', e));
+        }
         _inicializarAdminPWA().catch(e => console.warn('[Admin PWA] init error:', e));
         loadIncomeProjection().catch(e => {
           console.warn('[Admin] loadIncomeProjection error:', e);
