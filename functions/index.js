@@ -1286,6 +1286,13 @@ exports.asegurarSlotTenant   = asegurarSlot.asegurarSlotTenant;
 const pushCliente = require('./push-cliente');
 exports.pushCitaConfirmadaElegance = pushCliente.pushCitaConfirmadaElegance;
 exports.pushCitaConfirmadaTenant   = pushCliente.pushCitaConfirmadaTenant;
+
+// Push al PROFESIONAL cuando el cliente responde CONFIRMAR/CANCELAR por
+// WhatsApp. Distinto público que pushCitaConfirmada* (que le habla al
+// cliente). Ver functions/push-agenda-respuesta.js.
+const pushAgendaResp = require('./push-agenda-respuesta');
+exports.pushAgendaRespuestaElegance = pushAgendaResp.pushAgendaRespuestaElegance;
+exports.pushAgendaRespuestaTenant   = pushAgendaResp.pushAgendaRespuestaTenant;
 exports.pushSelloGanadoElegance    = pushCliente.pushSelloGanadoElegance;
 exports.pushSelloGanadoTenant      = pushCliente.pushSelloGanadoTenant;
 

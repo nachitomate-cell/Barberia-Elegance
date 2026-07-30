@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 const path  = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const admin = require('firebase-admin');
 
 const sa = require(path.resolve(__dirname, '..', 'service-account.json'));
@@ -141,9 +141,34 @@ async function estado() {
       process.exit(1);
     }
 
-    // Nombre real de un servicio del local, para que el mensaje se vea creíble.
+    // Servicio real del local, para que el mensaje se vea creíble.
     const sv = await db.collection(`tenants/${tid}/servicios`).limit(1).get().catch(() => null);
-    const servicio = (sv && !sv.empty && sv.docs[0].data().nombre) || 'Corte';
+    const svDoc    = sv && !sv.empty ? sv.docs[0] : null;
+    const servicio = (svDoc && svDoc.data().nombre) || 'Corte';
+    const duracion = (svDoc && Number(svDoc.data().duracion)) || 30;
+
+    // ── BARBERO: sin esto la cita es INVISIBLE en la agenda ──
+    // El panel arma una columna por profesional y ubica cada cita por
+    // `barberoId`. Una cita sin barbero existe en Firestore, dispara el
+    // WhatsApp… y no se ve en ninguna parte. Ya nos pasó.
+    // Mismo filtrado que el panel: fuera los doc-espejo (_mainDocId), el
+    // fantasma de QA y los inactivos.
+    const bs = await db.collection(`tenants/${tid}/barberos`).get().catch(() => null);
+    let barbero = null;
+    if (bs) {
+      for (const d of bs.docs) {
+        const b = d.data() || {};
+        if (b._mainDocId || b.esQA === true) continue;
+        if (b.disponible === false || b.activo === false) continue;
+        if (!String(b.nombre || '').trim()) continue;
+        barbero = { id: d.id, nombre: String(b.nombre).trim() };
+        break;
+      }
+    }
+    if (!barbero) {
+      console.error(`✗ ${tid} no tiene ningún barbero activo — la cita quedaría invisible en la agenda.`);
+      process.exit(1);
+    }
 
     // El cron exige 0 < diffH <= ventana. Se agenda +2h si cabe hoy; si no, mañana.
     const [h] = horaChile().split(':').map(Number);
@@ -152,17 +177,28 @@ async function estado() {
       clienteNombre:   'Prueba Plataforma',
       clienteTelefono: tel,
       servicioNombre:  servicio,
+      servicioId:      svDoc ? svDoc.id : '',
+      duracion,
+      duracionServicio: duracion,
+      // Los tres: distintos tenants nacieron con convenciones distintas
+      // (delnero usa barberoNombre, ferraza usa barbero) y la agenda ubica
+      // la columna por barberoId.
+      barberoId:       barbero.id,
+      barberoNombre:   barbero.nombre,
+      barbero:         barbero.nombre,
       fecha:           hoyCabe ? fechaChile(0) : fechaChile(1),
       hora:            hoyCabe ? `${String((h + 2) % 24).padStart(2, '0')}:00` : '11:00',
       precio:          15000,
       estado:          'Pendiente',   // el cron SOLO toma 'Pendiente'
       waOptIn:         true,          // doble opt-in explícito
+      origen:          'test_plataforma',
       [MARCA]:         true,
       createdAt:       FieldValue.serverTimestamp(),
+      creadoEn:        FieldValue.serverTimestamp(),
     };
     const ref = await citasCol(tid).add(cita);
     console.log(`\n✓ tenants/${tid}/citas/${ref.id}`);
-    console.log(`  ${cita.fecha} ${cita.hora} · ${servicio} · destino ${tel}\n`);
+    console.log(`  ${cita.fecha} ${cita.hora} · ${servicio} · ${barbero.nombre} · destino ${tel}\n`);
     console.log('Dispara el envío ya:  node scripts/wa-plataforma-test.js --correr\n');
     process.exit(0);
   }
@@ -171,10 +207,40 @@ async function estado() {
   if (a.includes('--correr')) {
     const url = secreto('EVOLUTION_API_URL'), key = secreto('EVOLUTION_API_KEY');
     if (!url || !key) { console.error('✗ No pude leer los secrets de Evolution (firebase login?).'); process.exit(1); }
-    const { crearCliente } = require(path.resolve(__dirname, '..', 'functions', 'evolution', 'client'));
-    const { _procesarCiclo } = require(path.resolve(__dirname, '..', 'functions', 'evolution', 'plataforma'));
-    console.log('Ejecutando un ciclo del canal plataforma…');
-    const n = await _procesarCiclo({ evoClient: crearCliente({ baseUrl: url, apiKey: key }) });
+
+    // Se ejecuta en un proceso hijo con cwd=functions A PROPÓSITO. Si se
+    // requiriera plataforma.js desde acá, este script resolvería
+    // `firebase-admin` desde la raíz y el módulo lo resolvería desde
+    // functions/node_modules: DOS instancias distintas, y la segunda revienta
+    // con "The default Firebase app does not exist" aunque ya lo inicializamos.
+    console.log('Ejecutando un ciclo del canal plataforma…\n');
+    const runner = `
+      const admin = require('firebase-admin');
+      admin.initializeApp({ credential: admin.credential.cert(require('../service-account.json')) });
+      const { crearCliente }   = require('./evolution/client');
+      const { _procesarCiclo } = require('./evolution/plataforma');
+      (async () => {
+        const n = await _procesarCiclo({ evoClient: crearCliente({
+          baseUrl: process.env.EVO_URL, apiKey: process.env.EVO_KEY,
+        }) });
+        console.log('ENVIADOS=' + n);
+        process.exit(0);
+      })().catch(e => { console.error('ERROR:', e.message); process.exit(1); });
+    `;
+    let out = '';
+    try {
+      out = execFileSync(process.execPath, ['-e', runner], {
+        encoding: 'utf8',
+        cwd: path.resolve(__dirname, '..', 'functions'),
+        env: { ...process.env, EVO_URL: url, EVO_KEY: key },
+      });
+    } catch (e) {
+      console.error((e.stdout || '') + (e.stderr || e.message));
+      process.exit(1);
+    }
+    const m = out.match(/ENVIADOS=(\d+)/);
+    console.log(out.replace(/ENVIADOS=\d+\n?/, '').trim());
+    const n = m ? Number(m[1]) : 0;
     console.log(`\n→ ${n} mensaje(s) enviado(s).`);
     if (!n) console.log('  (revisa --estado: chip conectado, módulo activo, cita Pendiente con waOptIn y dentro de la ventana)');
     await estado(); process.exit(0);

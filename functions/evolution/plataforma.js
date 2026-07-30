@@ -102,9 +102,14 @@ function capDiario(cfg) {
   const desde = cfg && cfg.vinculadoDesde && cfg.vinculadoDesde.toMillis
     ? cfg.vinculadoDesde.toMillis() : 0;
   const dias = desde ? (Date.now() - desde) / 86400000 : 0;
-  if (dias >= 30) return 300;
-  if (dias >= 7)  return 120;
-  return 40;
+  const porEdad = dias >= 30 ? 300 : dias >= 7 ? 120 : 40;
+
+  // Tope MANUAL para arrancar de a poco (`_system/wa_plataforma.topeDiario`).
+  // Solo puede BAJAR el límite, nunca subirlo: si alguien escribe 500 acá, el
+  // escalonado por antigüedad sigue mandando. Un override que pudiera elevar
+  // el tope convertiría la protección anti-bloqueo en una sugerencia.
+  const manual = Number(cfg && cfg.topeDiario);
+  return Number.isFinite(manual) && manual >= 0 ? Math.min(porEdad, manual) : porEdad;
 }
 
 const fechaHoy = () => ahoraChile().fecha;
@@ -212,6 +217,71 @@ exports.plataformaDesvincular = onCall({ region: 'us-central1', cors: true, secr
   return { ok: true };
 });
 
+/* ───────────── Índice teléfono → citas pendientes (multi-local) ─────────────
+   Un MISMO cliente puede tener hora en dos locales distintos, y el número que
+   pregunta es el mismo para todos. Por eso el índice guarda una LISTA, no una
+   cita: con un solo doc por teléfono, la segunda confirmación pisaba a la
+   primera y un "CONFIRMAR" se aplicaba a la cita equivocada, dejando la otra
+   colgada para siempre.
+
+   Cuando hay más de una pendiente no se adivina: se listan y se pregunta cuál.
+   La intención ("confirmar" / "cancelar") queda guardada mientras el cliente
+   elige, así no tiene que repetirla. */
+
+/** Lee las pendientes vigentes de un teléfono, descartando las vencidas. */
+async function leerPendientes(tel) {
+  const snap = await chatRef(tel).get();
+  if (!snap.exists) return { pendientes: [], intencion: null };
+  const d = snap.data() || {};
+  const ahora = Date.now();
+  const vivas = (Array.isArray(d.pendientes) ? d.pendientes : [])
+    .filter(p => p && p.citaId && p.tenantId && (!p.expiraMs || p.expiraMs > ahora));
+  return { pendientes: vivas, intencion: d.intencion || null };
+}
+
+async function guardarPendientes(tel, pendientes, intencion = null) {
+  if (!pendientes.length) { await chatRef(tel).delete().catch(() => {}); return; }
+  await chatRef(tel).set({
+    pendientes, intencion,
+    actualizado: FieldValue.serverTimestamp(),
+  }).catch(() => {});
+}
+
+/** Agrega una cita al índice sin pisar las que ya estaban. */
+async function agregarPendiente(tel, item) {
+  const { pendientes } = await leerPendientes(tel);
+  const sinDuplicar = pendientes.filter(p => p.citaId !== item.citaId);
+  sinDuplicar.push(item);
+  await guardarPendientes(tel, sinDuplicar, null);
+}
+
+/** Texto numerado de las citas pendientes, para que el cliente elija. */
+function listarPendientes(pendientes) {
+  const num = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
+  return pendientes
+    .map((p, i) => `${num[i] || (i + 1) + '.'} *${p.local}* — ${p.fecha} a las ${p.hora} hrs`)
+    .join('\n');
+}
+
+/** ¿A cuál de las pendientes se refiere el cliente? Por número o por nombre
+ *  del local. Devuelve el índice, o -1 si no quedó claro. */
+function elegirPendiente(texto, pendientes) {
+  const t = String(texto || '').toLowerCase().trim()
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  const m = t.match(/^\s*([1-9])\b/);
+  if (m) {
+    const i = Number(m[1]) - 1;
+    if (i >= 0 && i < pendientes.length) return i;
+  }
+  // Por nombre del local: basta una palabra distintiva ("ferraza", "nero").
+  const porNombre = pendientes.findIndex(p => {
+    const local = String(p.local || '').toLowerCase()
+      .normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    return local.split(/\s+/).filter(w => w.length >= 4).some(w => t.includes(w));
+  });
+  return porNombre;
+}
+
 /* ─────────────────────── Entrante: rutear al tenant correcto ───────────────── */
 
 /** ¿Este webhook es de la instancia compartida? */
@@ -239,10 +309,7 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   ).trim();
   if (!texto) return;
 
-  const snap = await chatRef(tel).get();
-  const pend = snap.exists ? (snap.data() || {}) : null;
-  const vigente = pend && pend.tenantId && pend.citaId
-    && (!pend.expiraEn || pend.expiraEn.toMillis() > Date.now());
+  const { pendientes, intencion: intencionGuardada } = await leerPendientes(tel);
 
   const responder = async (t) => {
     try { await evoClient.enviarTexto(INSTANCIA, tel, t); }
@@ -271,7 +338,7 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
     return;
   }
 
-  if (!vigente) {
+  if (!pendientes.length) {
     // Sin cita pendiente no sabemos de qué local habla. Se responde una vez
     // para no dejarlo hablando solo, pero no se inventa nada.
     await responder(
@@ -280,26 +347,61 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
     return;
   }
 
-  const decision = detectarDecision(texto);
-  if (!decision) {
-    await responder(
-      `Perdona, no te entendí 🙈\n\n` +
-      `Sobre tu cita en ${pend.local || 'el local'} del ${pend.fecha} a las ${pend.hora} hrs: ` +
-      'responde *CONFIRMAR* si vienes, o *CANCELAR* si no podrás.');
+  /** Aplica la decisión a UNA pendiente y la saca del índice. */
+  const resolver = async (idx, decision) => {
+    const p = pendientes[idx];
+    await aplicarDecision(p.tenantId, tel, p.citaId, decision);
+    await guardarPendientes(tel, pendientes.filter((_, i) => i !== idx), null);
+    await registrarEvento(decision === 'confirmar' ? 'conf_si' : 'conf_no');
+    await responder(decision === 'confirmar'
+      ? `✅ ¡Listo! Tu cita en *${p.local}* quedó confirmada.\n\nTe esperamos el ${p.fecha} a las ${p.hora} hrs.`
+      : `🙏 Listo, cancelamos tu cita en *${p.local}* del ${p.fecha} a las ${p.hora} hrs.`);
+    logger.info(`[plataforma] ${decision} tenant=${p.tenantId} cita=${p.citaId}`);
+  };
+
+  // ── Una sola pendiente: camino directo ──
+  if (pendientes.length === 1) {
+    const decision = detectarDecision(texto);
+    if (!decision) {
+      const p = pendientes[0];
+      await responder(
+        `Perdona, no te entendí 🙈\n\n` +
+        `Sobre tu cita en *${p.local}* del ${p.fecha} a las ${p.hora} hrs: ` +
+        'responde *CONFIRMAR* si vienes, o *CANCELAR* si no podrás.');
+      return;
+    }
+    await resolver(0, decision);
     return;
   }
 
-  // Misma semántica que el canal propio: 'Cancelada' dispara
-  // liberar-slot-on-cancel y libera el cupo.
-  await aplicarDecision(pend.tenantId, tel, pend.citaId, decision);
-  await chatRef(tel).delete().catch(() => {});
-  await registrarEvento(decision === 'confirmar' ? 'conf_si' : 'conf_no');
+  // ── Varias pendientes: NO se adivina ──
+  // Aplicar la decisión a la última recibida sería lo cómodo y lo incorrecto:
+  // el cliente cancelaría una hora que no quería cancelar.
+  const idx = elegirPendiente(texto, pendientes);
 
-  await responder(decision === 'confirmar'
-    ? `✅ ¡Listo! Tu cita en ${pend.local || 'el local'} quedó confirmada.\n\nTe esperamos el ${pend.fecha} a las ${pend.hora} hrs.`
-    : `🙏 Listo, cancelamos tu cita del ${pend.fecha} a las ${pend.hora} hrs.\n\nCuando quieras volver a agendar, escríbele a ${pend.local || 'tu local'}.`);
+  // Ya venía eligiendo (guardamos su intención en el turno anterior).
+  if (intencionGuardada && idx >= 0) { await resolver(idx, intencionGuardada); return; }
 
-  logger.info(`[plataforma] ${decision} tenant=${pend.tenantId} cita=${pend.citaId}`);
+  const decision = detectarDecision(texto);
+
+  // Dijo "confirmar" y además cuál ("cancelar la de ferraza"): resolver ya.
+  if (decision && idx >= 0) { await resolver(idx, decision); return; }
+
+  // Dijo qué quiere pero no de cuál: guardar la intención y preguntar.
+  if (decision) {
+    await guardarPendientes(tel, pendientes, decision);
+    await responder(
+      `Tienes ${pendientes.length} citas pendientes 🤔 ¿A cuál te refieres?\n\n` +
+      `${listarPendientes(pendientes)}\n\n` +
+      `Responde con el número (por ejemplo *1*) y la ${decision === 'confirmar' ? 'confirmo' : 'cancelo'}.`);
+    return;
+  }
+
+  // Ni qué ni cuál: listar y pedir las dos cosas.
+  await responder(
+    `Tienes ${pendientes.length} citas pendientes 🤔\n\n` +
+    `${listarPendientes(pendientes)}\n\n` +
+    'Responde con el número y qué quieres hacer — por ejemplo *1 CONFIRMAR* o *2 CANCELAR*.');
 }
 exports.procesarEntrantePlataforma = procesarEntrantePlataforma;
 
@@ -435,18 +537,18 @@ async function procesarCiclo({ evoClient }) {
         }).catch(() => {});
 
         // Índice teléfono → tenant. Sin esto la respuesta no se puede aplicar.
+        // Se AGREGA a la lista, no se pisa: el mismo cliente puede tener hora
+        // en dos locales y el número que pregunta es el mismo para todos.
         // Expira 6h DESPUÉS de la cita: un "sí" que llega tarde no revive una
         // hora que ya pasó.
-        await chatRef(tel).set({
+        await agregarPendiente(tel, {
           tenantId: tid,
           citaId:   doc.id,
           fecha:    cita.fecha,
           hora:     cita.hora,
           local,
-          creadoEn: FieldValue.serverTimestamp(),
-          expiraEn: Timestamp.fromMillis(
-            Date.now() + Math.max(1, diffH + 6) * 3600e3),
-        }).catch(() => {});
+          expiraMs: Date.now() + Math.max(1, diffH + 6) * 3600e3,
+        });
 
         await registrarSaliente(tid, true);
         await logWaSend(tid, 'confirmacion', true).catch(() => {});

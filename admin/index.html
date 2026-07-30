@@ -4052,6 +4052,27 @@
                 cursor:pointer;border-radius:0.5rem;padding:0.4rem 0.7rem;border:1px solid rgba(148,163,184,0.25);
                 background:transparent;color:#94a3b8;font-size:0.68rem;font-weight:700;">Desvincular</button>` : ''}
             </div>
+
+            <!-- Tope manual: solo puede BAJAR el límite del escalonado -->
+            <p style="font-size:0.66rem;color:#94a3b8;margin:0.55rem 0 0.3rem;">
+              Tope manual de envíos por día
+              <span style="color:#64748b;">· para arrancar de a poco; nunca sube del ${platCap} que permite la antigüedad</span>
+            </p>
+            <div style="display:flex;gap:0.3rem;">
+              ${[3, 5, 10, 20].map(function(n){
+                var on = Number(plat.topeDiario) === n;
+                return `<button onclick="setTopeChip(${n})" style="
+                  flex:1;cursor:pointer;border-radius:0.45rem;padding:0.35rem;font-size:0.68rem;font-weight:700;
+                  border:1px solid ${on ? 'rgba(56,189,248,0.55)' : 'rgba(148,163,184,0.2)'};
+                  background:${on ? 'rgba(56,189,248,0.15)' : 'transparent'};
+                  color:${on ? '#7dd3fc' : '#94a3b8'};">${n}</button>`;
+              }).join('')}
+              <button onclick="setTopeChip(null)" style="
+                flex:1.4;cursor:pointer;border-radius:0.45rem;padding:0.35rem;font-size:0.68rem;font-weight:700;
+                border:1px solid ${plat.topeDiario == null ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.2)'};
+                background:${plat.topeDiario == null ? 'rgba(148,163,184,0.12)' : 'transparent'};
+                color:#94a3b8;">Sin tope manual</button>
+            </div>
           </div>
         </div>
 
@@ -4127,6 +4148,18 @@
         ov.querySelector('#pl-t').textContent = 'Error';
         ov.querySelector('#pl-qr').innerHTML = `<span style="color:#f87171;font-size:0.78rem;">${e.message}</span>`;
       }
+    }
+
+    // Tope manual del chip. Solo BAJA: el escalonado por antigüedad sigue
+    // mandando (ver capDiario en evolution/plataforma.js), así que esto no
+    // puede usarse para saltarse la protección anti-bloqueo.
+    async function setTopeChip(n) {
+      try {
+        await db.collection('_system').doc('wa_plataforma').set({
+          topeDiario: n === null ? firebase.firestore.FieldValue.delete() : n,
+        }, { merge: true });
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     async function desvincularChipPlataforma() {
