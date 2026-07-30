@@ -1374,6 +1374,27 @@ exports.mpMensualidadWebhook   = mensualidadMp.mpMensualidadWebhook;
 exports.mpMensualidadCancelar  = mensualidadMp.mpMensualidadCancelar;
 
 // ─────────────────────────────────────────────────────────────────
+//  API FINANCIERA (server-to-server) — /api/v1/finances
+//  Devuelve las cuotas de mensualidad NO pagadas del período en
+//  curso al asistente financiero de SynapTech. Autenticación por
+//  Bearer (SYNAPTECH_FINANCE_API_KEY). Rewrite en vercel.json
+//  expone la URL bajo /api/v1/finances.
+//  ver finance-api.js
+// ─────────────────────────────────────────────────────────────────
+const financeApi = require('./finance-api');
+exports.financeApi = financeApi.financeApi;
+
+// ─────────────────────────────────────────────────────────────────
+//  API OPS SUMMARY (server-to-server) — /api/v1/ops-summary
+//  Resumen operativo agregado: locales activos + costos de los
+//  últimos 30 días (Claude USD, mensajes WhatsApp, llamadas IA) +
+//  trials vigentes. Misma auth Bearer que finance-api.
+//  ver ops-summary-api.js
+// ─────────────────────────────────────────────────────────────────
+const opsSummaryApi = require('./ops-summary-api');
+exports.opsSummaryApi = opsSummaryApi.opsSummaryApi;
+
+// ─────────────────────────────────────────────────────────────────
 //  CORTE AL LÁPIZ — reserva sin pasarela para miembros (Yūgen)
 //  ver corte-lapiz-reservar.js. La acumulación a la cuenta corriente
 //  la hace sello-automatico al completar la cita.

@@ -218,6 +218,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/v1/finances",
+      "destination": "https://us-central1-barberia-elegance.cloudfunctions.net/financeApi"
+    },
+    {
+      "source": "/api/v1/ops-summary",
+      "destination": "https://us-central1-barberia-elegance.cloudfunctions.net/opsSummaryApi"
+    },
+    {
       "source": "/barbero",
       "has": [
         {
