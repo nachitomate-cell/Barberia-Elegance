@@ -1,80 +1,110 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { RUTAS_SOLO_ADMIN } from './components/layout/Sidebar';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SucursalProvider } from './contexts/SucursalContext';
 import { resolveTenantId } from './lib/tenantUtils';
-import Membresias from './views/Membresias';
-import CorteAlLapiz from './views/CorteAlLapiz';
-import Rangos from './views/Rangos';
+const Membresias = lazy(() => import('./views/Membresias'));
+const CorteAlLapiz = lazy(() => import('./views/CorteAlLapiz'));
+const Rangos = lazy(() => import('./views/Rangos'));
 import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
 import { useBillingPlan } from './hooks/useBillingPlan';
 import AdminLayout from './components/layout/AdminLayout';
-import Inicio      from './views/Inicio';
-import InicioWallet from './views/InicioWallet';
-import Servicios   from './views/Servicios';
-import Menu        from './views/Menu';
-import Agenda      from './views/Agenda';
-import Pizarra     from './views/Pizarra';
-import CitasPorCerrar from './views/CitasPorCerrar';
-import Equipo      from './views/Equipo';
-import Clientes    from './views/Clientes';
-import ListaNegra  from './views/ListaNegra';
-import Publicidad  from './views/Publicidad';
-import Metricas    from './views/Metricas';
-import Premios     from './views/Premios';
-import Canjes      from './views/Canjes';
-import Fidelizacion from './views/Fidelizacion';
-import Productos   from './views/Productos';
-import Inventario  from './views/Inventario';
-import Lookbook       from './views/Lookbook';
-import LinkBio        from './views/LinkBio';
-import Configuracion    from './views/Configuracion';
-import Gastos           from './views/Gastos';
-import Caja             from './views/Caja';
-import BookingFlow     from './views/BookingFlow';
-import AgendaBarbero    from './views/AgendaBarbero';
-import Chat            from './views/Chat';
-import ChatbotConfig   from './views/ChatbotConfig';
-import Marketing        from './views/Marketing';
-import Anuncios         from './views/Anuncios';
-import Aura             from './views/Aura';
-import Ayuda            from './views/Ayuda';
-import ServicioFavorito from './views/ServicioFavorito';
-import LoginPage        from './views/LoginPage';
-import BarberTV         from './views/BarberTV';
-import TVConfig         from './views/TVConfig';
-import Finanzas         from './views/Finanzas';
-import Mensualidad      from './views/Mensualidad';
-import Soporte          from './views/Soporte';
-import Consultas        from './views/Consultas';
-import HistorialCortes  from './views/HistorialCortes';
-import InstagramPage    from './views/Instagram';
-import Academia         from './views/Academia';
-import Resenas          from './views/Resenas';
-import ReservaPublica   from './views/ReservaPublica';
-import Comisiones       from './views/Comisiones';
-import GiftCards        from './views/GiftCards';
-import Sorteos          from './views/Sorteos';
-import Google           from './views/Google';
-import WhatsApp         from './views/WhatsApp';
-import ListaEspera      from './views/ListaEspera';
-import Sucursales       from './views/Sucursales';
-import RecibirPagos     from './views/RecibirPagos';
-import Integraciones    from './views/Integraciones';
-import Wallets          from './views/Wallets';
-import Facturacion      from './views/Facturacion';
-import Referidos        from './views/Referidos';
-import SaldoGiftCard    from './views/SaldoGiftCard';
-import VIPDashboard        from './views/VIPDashboard';
+const Inicio = lazy(() => import('./views/Inicio'));
+const InicioWallet = lazy(() => import('./views/InicioWallet'));
+const Servicios = lazy(() => import('./views/Servicios'));
+const Menu = lazy(() => import('./views/Menu'));
+const Agenda = lazy(() => import('./views/Agenda'));
+const Pizarra = lazy(() => import('./views/Pizarra'));
+const CitasPorCerrar = lazy(() => import('./views/CitasPorCerrar'));
+const Equipo = lazy(() => import('./views/Equipo'));
+const Clientes = lazy(() => import('./views/Clientes'));
+const ListaNegra = lazy(() => import('./views/ListaNegra'));
+const Publicidad = lazy(() => import('./views/Publicidad'));
+const Metricas = lazy(() => import('./views/Metricas'));
+const Premios = lazy(() => import('./views/Premios'));
+const Canjes = lazy(() => import('./views/Canjes'));
+const Fidelizacion = lazy(() => import('./views/Fidelizacion'));
+const Productos = lazy(() => import('./views/Productos'));
+const Inventario = lazy(() => import('./views/Inventario'));
+const Lookbook = lazy(() => import('./views/Lookbook'));
+const LinkBio = lazy(() => import('./views/LinkBio'));
+const Configuracion = lazy(() => import('./views/Configuracion'));
+const Gastos = lazy(() => import('./views/Gastos'));
+const Caja = lazy(() => import('./views/Caja'));
+const BookingFlow = lazy(() => import('./views/BookingFlow'));
+const AgendaBarbero = lazy(() => import('./views/AgendaBarbero'));
+const Chat = lazy(() => import('./views/Chat'));
+const ChatbotConfig = lazy(() => import('./views/ChatbotConfig'));
+const Marketing = lazy(() => import('./views/Marketing'));
+const Anuncios = lazy(() => import('./views/Anuncios'));
+const Aura = lazy(() => import('./views/Aura'));
+const Ayuda = lazy(() => import('./views/Ayuda'));
+const ServicioFavorito = lazy(() => import('./views/ServicioFavorito'));
+const LoginPage = lazy(() => import('./views/LoginPage'));
+const BarberTV = lazy(() => import('./views/BarberTV'));
+const TVConfig = lazy(() => import('./views/TVConfig'));
+const Finanzas = lazy(() => import('./views/Finanzas'));
+const Mensualidad = lazy(() => import('./views/Mensualidad'));
+const Soporte = lazy(() => import('./views/Soporte'));
+const Consultas = lazy(() => import('./views/Consultas'));
+const HistorialCortes = lazy(() => import('./views/HistorialCortes'));
+const InstagramPage = lazy(() => import('./views/Instagram'));
+const Academia = lazy(() => import('./views/Academia'));
+const Resenas = lazy(() => import('./views/Resenas'));
+const ReservaPublica = lazy(() => import('./views/ReservaPublica'));
+const Comisiones = lazy(() => import('./views/Comisiones'));
+const GiftCards = lazy(() => import('./views/GiftCards'));
+const Sorteos = lazy(() => import('./views/Sorteos'));
+const Google = lazy(() => import('./views/Google'));
+const WhatsApp = lazy(() => import('./views/WhatsApp'));
+const ListaEspera = lazy(() => import('./views/ListaEspera'));
+const Sucursales = lazy(() => import('./views/Sucursales'));
+const RecibirPagos = lazy(() => import('./views/RecibirPagos'));
+const Integraciones = lazy(() => import('./views/Integraciones'));
+const Wallets = lazy(() => import('./views/Wallets'));
+const Facturacion = lazy(() => import('./views/Facturacion'));
+const Referidos = lazy(() => import('./views/Referidos'));
+const SaldoGiftCard = lazy(() => import('./views/SaldoGiftCard'));
+const VIPDashboard = lazy(() => import('./views/VIPDashboard'));
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import TuuSandboxHost      from './components/ui/TuuSandboxHost';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
 import HubTenantGate        from './components/HubTenantGate';
+
+
+/* Cada vista se carga bajo demanda (lazy). Antes las 60 se empaquetaban juntas
+   en un archivo de 3,6 MB que había que bajar completo para pintar cualquier
+   pantalla. Este es el placeholder mientras baja el chunk de la vista. */
+function CargandoVista() {
+  return (
+    <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <span className="sr-only">Cargando…</span>
+    </div>
+  );
+}
+
+/* Si tras un deploy el navegador pide un chunk cuyo hash ya no existe, el
+   import dinámico falla y la vista queda en blanco para siempre. Vite avisa con
+   `vite:preloadError`; recargamos UNA vez para tomar el index.html nuevo. El
+   candado en sessionStorage evita el bucle si la recarga tampoco lo resuelve. */
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', () => {
+    try {
+      if (sessionStorage.getItem('chunk-reload')) return;
+      sessionStorage.setItem('chunk-reload', '1');
+    } catch { /* modo privado: se recarga igual */ }
+    window.location.reload();
+  });
+  window.addEventListener('load', () => {
+    try { sessionStorage.removeItem('chunk-reload'); } catch { /* noop */ }
+  });
+}
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -209,6 +239,7 @@ function ProtectedApp() {
 
   return (
     <HubTenantGate>
+    <Suspense fallback={<CargandoVista />}>
     <Routes>
       {/* Vista TV: pantalla completa, sin sidebar ni navbar */}
       <Route path="tv" element={<BarberTV />} />
@@ -283,6 +314,7 @@ function ProtectedApp() {
         </AdminLayout>
       } />
     </Routes>
+    </Suspense>
     </HubTenantGate>
   );
 }

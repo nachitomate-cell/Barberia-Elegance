@@ -18,9 +18,17 @@ export default defineConfig({
       // dinámico. El <link rel="manifest"> vive manual en index.html.
       manifest: false,
       workbox: {
+        // Sin esto los caches de deploys anteriores quedan vivos y el SW puede
+        // servir un index.html viejo que apunta a un chunk cuyo hash ya no
+        // existe → la vista no monta. Es la causa del "a veces no cargan los
+        // módulos": no es lentitud, es cache envenenado tras cada deploy.
+        cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 5000000,
         importScripts: ['/gestion-interna/firebase-messaging-sw.js'],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Los PNG salen del precache: eran la mayor parte de los 9,7 MB que el
+        // SW bajaba en la primera visita. Se sirven desde la red, y los íconos
+        // de la PWA siguen cubiertos por includeAssets.
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
         navigateFallback: '/gestion-interna/index.html',
         navigateFallbackAllowlist: [/^\/gestion-interna/],
         runtimeCaching: [
@@ -115,5 +123,23 @@ export default defineConfig({
   build: {
     outDir: '../gestion-interna',
     emptyOutDir: true,
+    // El bundle era UN archivo de 3,6 MB. Separar las dependencias que casi
+    // nunca cambian permite que el navegador las reuse entre deploys, en vez
+    // de rebajarlas cada vez que tocamos una vista.
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('@firebase') || id.includes('/firebase/')) return 'firebase';
+          if (id.includes('framer-motion')) return 'motion';
+          if (id.includes('@dnd-kit')) return 'dnd';
+          if (id.includes('recharts') || id.includes('/d3-')) return 'charts';
+          if (id.includes('lucide-react')) return 'icons';
+          if (id.includes('xlsx')) return 'xlsx';
+          return 'vendor';
+        },
+      },
+    },
   },
 });
