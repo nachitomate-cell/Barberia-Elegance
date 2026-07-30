@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
+import { atiendeSillon } from '../lib/roles';
 import SlideOver from '../components/ui/SlideOver';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
@@ -5242,26 +5243,12 @@ export default function Agenda() {
     el.scrollTo({ top: Math.max(0, 36 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
   }, [showNowLine, nowOffsetPx]);
 
-  // Un admin también puede atender sillón: aparece como columna si su doc lo
-  // marca explícitamente (mostrarEnAgenda / esBarbero) o si el tenant sigue la
-  // convención admin===barbero (delnero). Sin opt-in, seguimos ocultando a los
-  // admins puros para no ensuciar la grilla del equipo.
+  // Quién es columna de la agenda. El predicado vive en lib/roles.js y lo
+  // comparte la reserva pública (vía ReservaCore): antes cada lado preguntaba
+  // distinto y se podía ofrecer online a alguien que acá no se dibuja, dejando
+  // citas que nadie ve. El fantasma de QA solo lo ve el superadmin.
   const barberos = useMemo(() =>
-    rawBarberos.filter(b => {
-      if (b._mainDocId) return false;
-      if (b.disponible === false) return false;
-      // Fantasma QA (esQA:true) solo lo ve el superadmin. Para el dueño del
-      // local es transparente: nunca aparece como columna en la agenda ni
-      // ensucia sus métricas.
-      if (b.esQA && !_isSuperadmin) return false;
-      if (!matchSucursal(b)) return false;   // filtro por sede activa
-      if (b.rol !== 'admin') return true;
-      return (
-        tenantId === 'delnero' ||
-        b.mostrarEnAgenda === true ||
-        b.esBarbero === true
-      );
-    }),
+    rawBarberos.filter(b => atiendeSillon(b, tenantId, _isSuperadmin) && matchSucursal(b)),
   [rawBarberos, tenantId, matchSucursal, _isSuperadmin]);
 
   // Deep-link ?nueva=1&barbero=<id>&hora=HH:MM — la Pizarra walk-in manda aquí

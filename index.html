@@ -12111,7 +12111,24 @@
       // Fantasma QA del superadmin: invisible en la reserva pública. Se propaga
       // a cada tenant vía qa-fantasma.js con esQA:true; acá lo filtramos SIEMPRE
       // (el cliente jamás debe verlo, aunque sea barbero "activo").
-      _fsBarberos = (_fsBarberos || []).filter(b => !b.esQA);
+      //
+      // Y el staff de mostrador: hasta ahora esta lista NO miraba el rol, así
+      // que la reserva pública ofrecía admins y recepción que el panel del local
+      // ni dibuja como columna. Una cita ahí entra al sistema y no aparece en
+      // ninguna agenda — nadie la atiende. Pasó de verdad: al pasar las cuentas
+      // de sede de Kronnos a 'recepcion' quedaron reservables, y un admin que
+      // sí atendía quedó al revés (público sí, panel no) con 4 citas
+      // confirmadas invisibles.
+      //
+      // Mismo criterio que Agenda.jsx (ver ATIENDE_SILLON allá): los roles de
+      // mostrador no atienden salvo que el doc lo diga explícitamente.
+      // Guard que verifica que las dos listas coincidan:
+      // scripts/check-agenda-visibles.js
+      // Si ReservaCore no cargó, se cae al filtro viejo (solo QA) antes que
+      // dejar la lista vacía: una agenda sin nadie reservable es peor que una
+      // con un admin de más.
+      const _atiende = window.ReservaCore?.atiendeSillon || (() => true);
+      _fsBarberos = (_fsBarberos || []).filter(b => !b.esQA && _atiende(b));
       // Servicios internos (soloStaff:true) — ocultos en la reserva pública.
       // Solo el staff los agenda desde el panel/agenda del barbero. Ver
       // Servicios.jsx (toggle "Servicio interno").

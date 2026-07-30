@@ -2414,6 +2414,38 @@ window.ReservaCore = (function () {
     };
   }
 
+  /**
+   * ¿Este miembro del equipo atiende sillón? Decide si se ofrece como
+   * profesional reservable y si aparece como columna en la agenda.
+   *
+   * La pregunta correcta es "¿atiende?", NO "¿su rol es admin?". El filtro
+   * viejo enumeraba un solo rol, así que al aparecer `recepcion` esas cuentas
+   * se volvieron reservables sin que nadie lo pidiera. Peor: la reserva pública
+   * no miraba el rol para nada, así que podía ofrecer a alguien que el panel no
+   * dibuja — y una cita ahí no aparece en ninguna agenda.
+   *
+   * Es una lista de NEGACIÓN a propósito. Con una lista de los roles que sí
+   * atienden, un rol nuevo que atiende (tatuador, podóloga) quedaría oculto y
+   * sus citas invisibles. Al revés, un rol nuevo de escritorio que se cuele
+   * aparece de más: molesta, pero se ve y se corrige.
+   *
+   * Espejo de ATIENDE_SILLON en admin-panel/src/lib/roles.js. Las dos listas no
+   * pueden compartir código (una es módulo Vite, la otra script global), así que
+   * el guard `scripts/check-agenda-visibles.js` verifica que digan lo mismo.
+   */
+  const ROLES_MOSTRADOR = ['admin', 'jefe', 'recepcion'];
+  function atiendeSillon(b, tenantId) {
+    if (!b) return false;
+    if (b._mainDocId) return false;          // doc espejo de SSO, no una persona más
+    if (b.disponible === false) return false;
+    if (b.esQA) return false;
+    if (!ROLES_MOSTRADOR.includes(b.rol)) return true;
+    // Roles de mostrador: solo si el doc dice explícitamente que atienden.
+    // delnero sigue la convención admin === barbero desde antes.
+    const tid = tenantId || window.CURRENT_TENANT_ID;
+    return tid === 'delnero' || b.mostrarEnAgenda === true || b.esBarbero === true;
+  }
+
   return {
     TERMINOS_VERSION,
     normalizarTelefono,
@@ -2426,5 +2458,7 @@ window.ReservaCore = (function () {
     puedeReservar,
     registrarReserva,
     payloadBase,
+    ROLES_MOSTRADOR,
+    atiendeSillon,
   };
 })();
