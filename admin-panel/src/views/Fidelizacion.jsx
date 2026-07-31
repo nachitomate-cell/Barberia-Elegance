@@ -637,18 +637,27 @@ function ResumenFidelizacion() {
   );
 }
 
+// Glass color-map: ícono tintado en color semántico, contenedor glass.
+// El borde de color desaparece — solo tinte suave de bg + text para el ícono.
 const COLOR_MAP = {
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  blue:    'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  amber:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  rose:    'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  emerald: 'text-emerald-300',
+  blue:    'text-sky-300',
+  amber:   'text-amber-300',
+  rose:    'text-rose-300',
+};
+const ICON_BG_MAP = {
+  emerald: 'bg-emerald-500/10',
+  blue:    'bg-sky-500/10',
+  amber:   'bg-amber-500/10',
+  rose:    'bg-rose-500/10',
 };
 
+// StatCard con glass base — el color vive SOLO en el chip del ícono.
 function StatCard({ Icon, label, value, sub, color = 'emerald', action = null }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+    <div className="rounded-xl p-4 flex flex-col gap-3 bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm">
       <div className="flex items-start gap-3">
-        <div className={`p-2.5 rounded-lg shrink-0 border ${COLOR_MAP[color] || COLOR_MAP.emerald}`}>
+        <div className={`p-2.5 rounded-lg shrink-0 ${ICON_BG_MAP[color] || ICON_BG_MAP.emerald} ${COLOR_MAP[color] || COLOR_MAP.emerald}`}>
           <Icon size={20} />
         </div>
         <div className="min-w-0 flex-1">
@@ -660,7 +669,7 @@ function StatCard({ Icon, label, value, sub, color = 'emerald', action = null })
       {action && (
         <button
           onClick={action.onClick}
-          className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/25 transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-300 hover:text-emerald-200 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] transition-colors"
         >
           <MessageCircle size={12} />
           <span className="truncate">{action.label}</span>
@@ -705,10 +714,10 @@ function TrendCard({ Icon, label, color = 'blue', data, buckets }) {
   const strokeColor = TREND_COLOR[color] || TREND_COLOR.blue;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div className="rounded-xl p-4 bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 min-w-0">
-          <div className={`p-1.5 rounded-lg border ${COLOR_MAP[color] || COLOR_MAP.blue}`}>
+          <div className={`p-1.5 rounded-lg ${ICON_BG_MAP[color] || ICON_BG_MAP.blue} ${COLOR_MAP[color] || COLOR_MAP.blue}`}>
             <Icon size={14} />
           </div>
           <div className="min-w-0">
@@ -1328,16 +1337,17 @@ export default function Fidelizacion() {
     <div data-view="fidelizacion" className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <header className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
-          <Trophy size={20} className="text-amber-400" />
+        <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm shrink-0">
+          <Trophy size={20} className="text-amber-300" />
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-2xl font-bold text-primary truncate">Fidelización</h1>
           <p className="text-xs text-slate-500 truncate">Club, premios, canjes y rangos — todo en un solo lugar</p>
         </div>
+        {/* CTA "Nuevo premio" — glass secundario, sin fill sólido. Atajo al tab. */}
         <button
           onClick={() => setActiveTab('premios')}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-amber-300 hover:text-amber-200 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] backdrop-blur-sm transition-colors"
         >
           <Plus size={13} />
           <span className="hidden sm:inline">Nuevo premio</span>
@@ -1345,21 +1355,23 @@ export default function Fidelizacion() {
         </button>
       </header>
 
-      {/* Toolbar de tabs */}
-      <div className="flex flex-wrap gap-1 border-b border-slate-800">
+      {/* Segmented Control — patrón iOS: pill contenedor + tab activo con pill
+          interno. Sin subrayados ni bordes duros. Transición 200ms. Se envuelve
+          en flex-wrap para no colapsar con muchos tabs (tenants con Membresías). */}
+      <div className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.05] backdrop-blur-sm">
         {tabs.map(t => {
           const isActive = activeTab === t.key;
           return (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`flex items-center gap-2 px-3 md:px-4 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
+              className={`flex items-center gap-1.5 px-3 md:px-3.5 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? 'text-amber-400 border-amber-400'
-                  : 'text-slate-500 border-transparent hover:text-slate-300'
+                  ? 'bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
             >
-              <t.Icon size={14} />
+              <t.Icon size={13} className={isActive ? 'text-amber-300' : ''} />
               <span>{t.label}</span>
             </button>
           );

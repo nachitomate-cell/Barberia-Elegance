@@ -357,11 +357,14 @@ export default function Canjes() {
         {/* Columna PIN + tarjeta candidato */}
         <div className="lg:col-span-3 space-y-4">
 
-          {/* Input PIN */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
+          {/* Input PIN — glass container + input glass. Auto-focus y auto-submit
+              al 4to dígito ya están implementados (buscarPorPin en onChange). El
+              botón "Validar" queda como fallback secundario (glass, no fill),
+              porque la interacción principal es escribir → se valida solo. */}
+          <div className="rounded-xl p-4 sm:p-5 bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <KeyRound size={12} className="text-amber-400" /> PIN del cliente
+                <KeyRound size={12} className="text-amber-300" /> PIN del cliente
               </label>
               <span className="text-[10px] text-slate-600 italic flex items-center gap-1">
                 <Timer size={10} /> Válido 5 min
@@ -370,6 +373,7 @@ export default function Canjes() {
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 ref={pinRef}
+                autoFocus
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={4}
@@ -382,15 +386,15 @@ export default function Canjes() {
                 }}
                 onKeyDown={e => e.key === 'Enter' && buscarPorPin(pin)}
                 placeholder="0000"
-                className="w-full sm:flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 sm:px-4 py-3 sm:py-4 text-2xl sm:text-3xl font-black text-center text-primary tracking-[0.4em] sm:tracking-[0.6em] focus:border-amber-400 focus:outline-none"
+                className="w-full sm:flex-1 rounded-lg px-3 sm:px-4 py-3 sm:py-4 text-2xl sm:text-3xl font-black text-center text-primary tracking-[0.6em] sm:tracking-[0.7em] bg-white/[0.02] border border-white/[0.05] focus:border-amber-400/60 focus:bg-white/[0.04] focus:outline-none transition-colors"
               />
               <button
                 onClick={() => buscarPorPin(pin)}
                 disabled={searching || pin.length !== 4}
-                className="w-full sm:w-auto px-5 py-3 sm:py-0 rounded-lg bg-amber-400 text-black font-bold text-sm disabled:opacity-40 hover:bg-amber-300 transition-colors flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto px-5 py-3 sm:py-0 rounded-lg text-amber-300 hover:text-amber-200 font-bold text-sm disabled:opacity-30 disabled:hover:text-amber-300 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] transition-colors flex items-center justify-center gap-1.5"
               >
                 {searching
-                  ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ? <span className="w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
                   : <ScanLine size={16} />}
                 Validar
               </button>

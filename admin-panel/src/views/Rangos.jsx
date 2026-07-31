@@ -31,27 +31,25 @@ const DEFAULT_RANGOS = [
   { id: 'platinum', nombre: 'Platinum', minSellos: 25, sellosPorVisita: 1, descuentoServicios: false, beneficios: [], beneficiosCustom: [] },
 ];
 
+// Estilos por rango — glass unificado. El color semántico (plata/oro/violeta)
+// vive SOLO en el ícono superior; el contenedor es cristal como el resto de
+// la vista. Sin border-top gruesos ni shadows tintados: la jerarquía visual
+// de "prestigio" queda en el ícono, no en el marco de la card.
 const RANGO_STYLE = {
   silver: {
-    Icon: Medal, color: '#cbd5e1', text: 'text-slate-200',
-    borderTop: 'border-t-4 border-t-slate-400',
-    iconBg:    'bg-ink-400/10 text-slate-300',
-    shadow:    'shadow-[0_0_15px_rgba(148,163,184,0.06)]',
-    checkedBg: '#94a3b8',  // slate-400
+    Icon: Medal, color: '#cbd5e1',
+    iconBg:    'bg-slate-400/10 text-slate-200',
+    checkedBg: '#94a3b8',
   },
   gold: {
-    Icon: Crown, color: '#eab308', text: 'text-yellow-500',
-    borderTop: 'border-t-4 border-t-yellow-500',
-    iconBg:    'bg-yellow-500/10 text-yellow-500',
-    shadow:    'shadow-[0_0_15px_rgba(234,179,8,0.1)]',
-    checkedBg: '#eab308',  // yellow-500
+    Icon: Crown, color: '#eab308',
+    iconBg:    'bg-yellow-500/10 text-yellow-300',
+    checkedBg: '#eab308',
   },
   platinum: {
-    Icon: Gem, color: '#a855f7', text: 'text-purple-400',
-    borderTop: 'border-t-4 border-t-purple-500',
-    iconBg:    'bg-purple-500/10 text-purple-400',
-    shadow:    'shadow-[0_0_15px_rgba(168,85,247,0.12)]',
-    checkedBg: '#a855f7',  // purple-500
+    Icon: Gem, color: '#a855f7',
+    iconBg:    'bg-purple-500/10 text-purple-300',
+    checkedBg: '#a855f7',
   },
 };
 
@@ -180,7 +178,7 @@ export default function Rangos() {
             const st = RANGO_STYLE[r.id] || RANGO_STYLE.silver;
             const Icon = st.Icon;
             return (
-              <div key={r.id} className={`bg-slate-800/40 ${st.borderTop} border-x border-b border-slate-700/40 rounded-2xl p-5 ${st.shadow} flex flex-col`}>
+              <div key={r.id} className="rounded-2xl p-5 flex flex-col bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm">
 
                 {/* Cabecera: ícono circular tintado + nombre + umbral */}
                 <div className="flex items-center gap-3 mb-5">

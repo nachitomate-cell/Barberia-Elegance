@@ -801,10 +801,13 @@ export default function Premios() {
             )}
           </div>
 
-          {/* CTA principal — abre el bottom-sheet en móvil o el form inline en desktop */}
+          {/* CTA "Nuevo Premio" — glass secundario. Antes era un fill dorado
+              gigante ancho que competía con las tarjetas de arriba; el look
+              premium prefiere jerarquía calmada — el ícono dorado alcanza para
+              señalar la acción. */}
           <button
             onClick={openNew}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#D4AF37] hover:bg-yellow-500 text-black font-bold text-sm transition-colors shadow-[0_4px_18px_rgba(212,175,55,0.28)]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] text-amber-300 hover:text-amber-200 font-bold text-sm transition-colors backdrop-blur-sm"
           >
             <Plus size={16} strokeWidth={2.5} />
             Nuevo Premio
@@ -995,24 +998,27 @@ export default function Premios() {
             </span>
             <ChevronDown size={14} className={`text-slate-400 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
           </button>
-          <div className={`${aiOpen ? '' : 'hidden lg:block'} bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg lg:sticky lg:top-6`}>
-            
-            {/* Header del Asistente */}
-            <div className="p-4 border-b border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
+          {/* Panel IA — glass unificado, sin gradientes pesados ni shadow-lg.
+              Las alertas internas ya son bg-COLOR-500/5 (glass suave), solo se
+              limpia el chrome del contenedor y del header. */}
+          <div className={`${aiOpen ? '' : 'hidden lg:block'} bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden backdrop-blur-sm lg:sticky lg:top-6`}>
+
+            {/* Header del Asistente — hair-line inferior blanca 5% */}
+            <div className="p-4 border-b border-white/[0.05] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center border border-white/[0.05] shrink-0">
                   <img src="/logo1.png" alt="SynapTech" className="w-4 h-4 object-contain" />
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-primary tracking-wide">SYNAPTECH IA™</h3>
-                  <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">PREDICTIVE ADVISOR v1.4</p>
+                  <p className="text-[9px] text-amber-300/80 font-bold font-mono tracking-wider">PREDICTIVE ADVISOR v1.4</p>
                 </div>
               </div>
-              
-              <button 
-                onClick={triggerAiScan} 
+
+              <button
+                onClick={triggerAiScan}
                 disabled={aiLoading}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-[#D4AF37] hover:bg-slate-800/50 transition-colors disabled:opacity-30"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-amber-300 hover:bg-white/[0.05] transition-colors disabled:opacity-30"
                 title="Recalcular análisis">
                 <RefreshCw size={12} className={aiLoading ? 'animate-spin' : ''} />
               </button>
@@ -1038,8 +1044,8 @@ export default function Premios() {
               ) : (
                 /* Resultados del Análisis */
                 <>
-                  {/* Score de Retención */}
-                  <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                  {/* Score de Retención — glass consistente con el panel */}
+                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Retención Proyectada</span>
                       <span className="text-2xl font-black text-primary tracking-tight">{aiAnalysis.finalScore}%</span>
