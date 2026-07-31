@@ -84,12 +84,23 @@ export default function Select({
       if (listaRef.current?.contains(e.target)) return;
       cerrar();
     };
+    // El scroll se escucha en captura (los contenedores internos no burbujean
+    // el evento), así que llega TAMBIÉN el de la propia lista: sin este filtro
+    // la lista se cerraba apenas la rueda la movía un pixel, y con 30 horas o
+    // 20 servicios era imposible llegar al final. Mismo caso al abrirla con un
+    // valor de más abajo: el scrollIntoView que deja la fila a la vista
+    // disparaba un scroll y se cerraba sola.
+    const scroll = (e) => {
+      const lista = listaRef.current;
+      if (lista && (e.target === lista || lista.contains(e.target))) return;
+      cerrar();
+    };
     document.addEventListener('mousedown', fuera, true);
-    document.addEventListener('scroll', cerrar, true);
+    document.addEventListener('scroll', scroll, true);
     window.addEventListener('resize', cerrar);
     return () => {
       document.removeEventListener('mousedown', fuera, true);
-      document.removeEventListener('scroll', cerrar, true);
+      document.removeEventListener('scroll', scroll, true);
       window.removeEventListener('resize', cerrar);
     };
   }, [abierto, cerrar]);
