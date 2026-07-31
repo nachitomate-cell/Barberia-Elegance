@@ -658,7 +658,12 @@ function DetalleBarberoDrawer({
         return {
           id: c.id, fecha: c.fecha, hora: c.hora,
           cliente: nombre || 'Sin nombre',
-          servicio: c.servicioNombre || c.servicio || '',
+          // El servicio extra viaja en el nombre ("Corte + Perfilado"): su
+          // monto ya está dentro de `precio` (total) y la comisión se calcula
+          // sobre ese total, así que solo faltaba DECIRLO en la fila.
+          servicio: (c.servicioNombre || c.servicio || '')
+            + (Array.isArray(c.serviciosExtra) && c.serviciosExtra.length
+               ? ' + ' + c.serviciosExtra.map(e => e.nombre).join(' + ') : ''),
           servicioId: c.servicioId,
           metodoPago: c.metodoPago || 'Sin dato',
           cortesia: !!c.cortesia,

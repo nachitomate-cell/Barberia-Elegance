@@ -94,12 +94,31 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const nombreLocal = tenant?.name || tenantId || 'Tu Local';
   const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
 
-  const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y quiero activar las confirmaciones automáticas por WhatsApp para mis clientes (plan pagado). ¿Me cuentas cómo funciona?`;
-  const pagoMsg    = `Hola SynapTech, soy de *${tenant?.name || tenantId}*. Acabo de pagar el plan de confirmaciones oficiales de WhatsApp por Mercado Pago. ¿Me lo activan?`;
-  // Presupuesto: precio y link de pago vienen de waNotifEstado (los fija
-  // SynapTech en _system/whatsapp_notif, sin deploy). Sin link → solo CTA.
-  const planPrecio   = Number(estado?.planPrecio) || null;
-  const planLinkPago = estado?.planLinkPago || null;
+  const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y tengo una duda sobre las confirmaciones automáticas por WhatsApp (bolsas de mensajes).`;
+  // Bolsas de mensajes: catálogo (neto + IVA) y saldo vienen de waNotifEstado;
+  // el catálogo lo fija SynapTech en _system/whatsapp_notif.bolsas sin deploy.
+  const bolsas     = Array.isArray(estado?.bolsas) ? estado.bolsas : [];
+  const bolsaSaldo = Number(estado?.bolsaSaldo) || 0;
+  const saldoBajo  = planCliente && bolsaSaldo <= 10;
+
+  const [bolsaSel, setBolsaSel]   = useState('');
+  const [comprando, setComprando] = useState(false);
+  const [errCompra, setErrCompra] = useState('');
+  const comprarBolsa = async () => {
+    if (!bolsaSel || comprando) return;
+    setComprando(true);
+    setErrCompra('');
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaCrearLink');
+      const r  = await fn({ bolsaId: bolsaSel });
+      if (r.data?.initPoint) window.open(r.data.initPoint, '_blank', 'noopener');
+      else setErrCompra('No se pudo generar el link de pago. Intenta de nuevo.');
+    } catch (e) {
+      setErrCompra(e.message || 'No se pudo generar el link de pago.');
+    } finally {
+      setComprando(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -149,64 +168,74 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                 Usa plantillas oficiales verificadas por WhatsApp (mensajería con costo, por eso es parte del plan pagado). Los envíos quedan registrados y no dependen de que respondas a mano.
               </p>
 
-              {planCliente ? (
-                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-4 text-sm text-slate-200 flex items-center gap-3">
-                  <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
-                  Activo — tus clientes reciben la confirmación automáticamente al reservar.
+              {planCliente && (
+                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-4 text-sm text-slate-200 space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
+                    <span>Activo — tus clientes reciben confirmación y recordatorio automáticamente.</span>
+                  </div>
+                  <div className={`flex items-baseline justify-between rounded-xl px-3 py-2 border ${saldoBajo ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.03]'}`}>
+                    <span className={`text-[12px] ${saldoBajo ? 'text-amber-200/90' : 'text-slate-400'}`}>Saldo de tu bolsa</span>
+                    <span className="text-base font-bold tabular-nums text-slate-100">
+                      {bolsaSaldo} <span className="text-[11px] font-normal text-slate-500">mensaje{bolsaSaldo === 1 ? '' : 's'}</span>
+                    </span>
+                  </div>
+                  {saldoBajo && (
+                    <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                      Quedan pocos mensajes: recarga abajo para que las confirmaciones no se detengan.
+                    </p>
+                  )}
                 </div>
-              ) : (
-                /* ── Presupuesto activable ── */
-                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.05] overflow-hidden">
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-sm font-semibold text-slate-100">Confirmaciones oficiales</p>
-                      {planPrecio ? (
-                        <p className="text-right shrink-0">
-                          <span className="text-xl font-bold text-slate-50">${planPrecio.toLocaleString('es-CL')}</span>
-                          <span className="text-[11px] text-slate-500"> /mes</span>
-                        </p>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 shrink-0">precio a convenir</span>
-                      )}
-                    </div>
-                    <ul className="space-y-1.5 text-[12.5px] text-slate-300">
-                      {[
-                        'Confirmación oficial al cliente apenas reserva',
-                        'Recordatorio automático 24 horas antes de la cita',
-                        'Sale por el número verificado de la plataforma: tu número no corre riesgo',
-                      ].map((t, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <CheckCircle2 size={13} className="text-violet-400 shrink-0 mt-0.5" />
-                          <span>{t}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="px-4 pb-4 space-y-2">
-                    {planLinkPago && (
-                      <a
-                        href={planLinkPago}
-                        target="_blank" rel="noopener noreferrer"
-                        className="w-full inline-flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]"
+              )}
+
+              {/* ── Bolsas de mensajes: compras solo lo que usas ── */}
+              {bolsas.length > 0 && (
+                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.05] p-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-100">
+                    {planCliente ? 'Recargar bolsa de mensajes' : 'Elige tu bolsa de mensajes'}
+                  </p>
+                  <p className="text-[12px] text-slate-400 leading-relaxed">
+                    Cada confirmación o recordatorio descuenta 1 mensaje de tu bolsa. Sin mensualidad: compras solo lo que usas{planCliente ? '' : ', y con tu primera bolsa el módulo se activa solo'}.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {bolsas.map(b => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setBolsaSel(b.id)}
+                        className={`rounded-xl border px-2 py-3 text-center transition-colors ${bolsaSel === b.id
+                          ? 'border-violet-400 bg-violet-500/15'
+                          : 'border-white/10 bg-white/[0.03] hover:border-white/25'}`}
                       >
-                        Activar y pagar con Mercado Pago
-                      </a>
-                    )}
-                    <a
-                      href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(planLinkPago ? pagoMsg : upgradeMsg)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className={planLinkPago
-                        ? 'w-full inline-flex items-center justify-center gap-2 border border-white/10 hover:border-white/25 text-slate-300 hover:text-white text-[13px] font-semibold px-5 py-2.5 rounded-full transition-colors'
-                        : 'w-full inline-flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]'}
-                    >
-                      <MessageCircle size={15} /> {planLinkPago ? 'Ya pagué / tengo una duda' : 'Solicitar activación'}
-                    </a>
-                    {planLinkPago && (
-                      <p className="text-[11px] text-slate-500 leading-relaxed text-center">
-                        Después del pago, la activación se confirma dentro del mismo día.
-                      </p>
-                    )}
+                        <p className="text-lg font-bold text-slate-100 tabular-nums leading-none">{b.mensajes}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">mensajes</p>
+                        <p className="text-[12px] font-semibold text-slate-200 mt-1.5">${Number(b.precio).toLocaleString('es-CL')}</p>
+                        <p className="text-[10px] text-slate-500">+ IVA</p>
+                      </button>
+                    ))}
                   </div>
+                  <button
+                    type="button"
+                    onClick={comprarBolsa}
+                    disabled={!bolsaSel || comprando}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-400 disabled:opacity-40 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]"
+                  >
+                    {comprando ? 'Generando link…' : 'Comprar con Mercado Pago'}
+                  </button>
+                  {bolsaSel && (
+                    <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+                      Total: ${Number(bolsas.find(b => b.id === bolsaSel)?.precioConIva || 0).toLocaleString('es-CL')} IVA incluido.
+                      El saldo se carga automáticamente apenas se acredite el pago.
+                    </p>
+                  )}
+                  {errCompra && <p className="text-[11px] text-red-400 text-center">{errCompra}</p>}
+                  <a
+                    href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(upgradeMsg)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 border border-white/10 hover:border-white/25 text-slate-400 hover:text-white text-[12px] font-semibold px-5 py-2 rounded-full transition-colors"
+                  >
+                    <MessageCircle size={13} /> ¿Dudas? Habla con SynapTech
+                  </a>
                 </div>
               )}
             </div>

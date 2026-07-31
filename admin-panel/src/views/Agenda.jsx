@@ -3102,6 +3102,9 @@ function HistorialClienteDrawer({ isOpen, onClose, clienteId, nombre, email, tel
                         <td className="py-2 px-3 text-slate-300 truncate max-w-[130px]" title={barbNombre(c.barberoId)}>{barbNombre(c.barberoId)}</td>
                         <td className="py-2 px-3 text-slate-300">
                           {c.servicioNombre || c.servicio || '—'}
+                          {Array.isArray(c.serviciosExtra) && c.serviciosExtra.length > 0 && (
+                            <span className="text-emerald-400/90"> + {c.serviciosExtra.map(e => e.nombre).join(' + ')}</span>
+                          )}
                           {c.cortesia && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">cortesía</span>}
                         </td>
                         <td className="py-2 px-3">

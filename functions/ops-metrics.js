@@ -245,10 +245,29 @@ async function analizarLocales(hoy, mesActual) {
  *  null si el tenant no tiene canal de WhatsApp vinculado. */
 async function analizarLocal(tid, hoy, mesActual) {
   const alertas = [];
-  const [waSnap, sysSnap] = await Promise.all([
+  const [waSnap, sysSnap, notifSnap] = await Promise.all([
       db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
       db.doc(`_system/${tid}`).get(),
+      db.doc(`wa_notif/${tid}`).get(),
     ]);
+
+  // ── Canal OFICIAL (plantillas Meta + bolsas de mensajes, wa-bolsas.js) ──
+  // El saldo es dinero de por medio en las dos direcciones: sin saldo el
+  // local queda mudo (y reclama), y el consumo es el costo Meta de SynapTech.
+  const notif = notifSnap.data() || {};
+  const oficial = {
+    planCliente:      notif.planCliente === true,
+    planRecordatorio: notif.planRecordatorio === true,
+    saldo:  Number(notif.bolsaSaldo)  || 0,
+    usados: Number(notif.bolsaUsados) || 0,
+  };
+  if (oficial.planCliente || oficial.planRecordatorio) {
+    if (oficial.saldo <= 0) {
+      alertas.push({ nivel: 'rojo', texto: `${tid}: bolsa de mensajes AGOTADA — confirmaciones oficiales detenidas hasta que recargue.` });
+    } else if (oficial.saldo <= 10) {
+      alertas.push({ nivel: 'ambar', texto: `${tid}: quedan ${oficial.saldo} mensaje(s) en la bolsa del canal oficial (${oficial.usados} usados).` });
+    }
+  }
 
     // Trial del asistente (independiente de si ya vinculó el canal).
     const trial = (sysSnap.data() || {}).waAsistenteTrial || null;
@@ -383,6 +402,7 @@ async function analizarLocal(tid, hoy, mesActual) {
         pct: capTotal ? Math.round(cuota.n / capTotal * 100) : 0,
       },
       negocio,
+      oficial,          // canal oficial: plan + saldo/consumo de la bolsa
       trial: trialInfo,
   };
   return { alertas, trial: trialOut, local };

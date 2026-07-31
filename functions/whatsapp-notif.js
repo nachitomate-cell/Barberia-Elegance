@@ -560,6 +560,17 @@ async function notificarCita(citaId, cita, tenantId) {
   if (cfg.templatesEnabled === true && wa.planCliente === true && cfg.templateCita) {
     const fonoCliente = normalizarFono(cita.clienteTelefono);
     if (fonoCliente && fonoCliente.length >= 11) {
+      // Quinto candado — BOLSA DE MENSAJES (wa-bolsas.js): cada plantilla
+      // descuenta 1 del saldo del local; sin saldo NO se envía. Fail-closed a
+      // propósito: nadie le genera costo Meta a la plataforma sin bolsa pagada.
+      if (!(Number(wa.bolsaSaldo) > 0)) {
+        logger.info(`[wa] template omitido por bolsa agotada tenant=${tenantId}`);
+        await writeNotifLog(db, {
+          tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'skipped_sin_bolsa',
+          to: { telefono: fonoCliente }, meta: { citaId },
+        }).catch(() => {});
+        return;
+      }
       // Cuarto candado — consentimiento explícito del titular. Requiere
       // que el cliente haya marcado el opt-in en el flujo (cita.waOptIn
       // === true en la reserva pública, o registro/dashboard) O que ya
@@ -605,6 +616,11 @@ async function notificarCita(citaId, cita, tenantId) {
           tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'sent',
           to: { telefono: fonoCliente }, meta: { citaId, template: cfg.templateCita },
         }).catch(() => {});
+        // Descuento de la bolsa: 1 envío = 1 mensaje. Solo tras éxito real.
+        await db.collection('wa_notif').doc(tenantId).set({
+          bolsaSaldo:  FieldValue.increment(-1),
+          bolsaUsados: FieldValue.increment(1),
+        }, { merge: true }).catch(() => {});
         logger.info(`[wa] template cliente enviada tenant=${tenantId} cita=${citaId}`);
       } catch (e) {
         logger.warn(`[wa] fallo template cliente tenant=${tenantId}: ${e.message}`);
@@ -686,6 +702,15 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
     return 0;
   }
 
+  // Bolsa de mensajes: mismo candado que la confirmación (wa-bolsas.js). Si el
+  // saldo se agota a mitad de tanda, las citas restantes NO se marcan y el
+  // próximo ciclo las retoma cuando el local recargue.
+  let bolsaSaldo = Number(wa.bolsaSaldo) || 0;
+  if (bolsaSaldo <= 0) {
+    logger.warn(`[wa:record] ${tid}: sin saldo en la bolsa de mensajes; recordatorios en pausa`);
+    return 0;
+  }
+
   const snap = await citasColDe(tid).where('fecha', '==', fecha).get();
   if (snap.empty) return 0;
 
@@ -696,6 +721,10 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
   let enviados = 0;
   for (const doc of snap.docs) {
     if (enviados >= cupoCiclo || enviadosHoy + enviados >= RECORD_TOPE_DIA) break;
+    if (bolsaSaldo <= 0) {
+      logger.warn(`[wa:record] ${tid}: bolsa agotada a mitad de tanda; el resto espera recarga`);
+      break;
+    }
 
     const cita = doc.data() || {};
     // Idempotencia: el cron corre cada 30 min, esta marca es lo único que
@@ -722,6 +751,13 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
       logger.warn(`[wa:record] ${tid}/${doc.id} falló: ${e.message}`);
       continue;
     }
+
+    // Descuento de la bolsa: 1 envío = 1 mensaje (solo tras éxito real).
+    bolsaSaldo--;
+    await db.collection('wa_notif').doc(tid).set({
+      bolsaSaldo:  FieldValue.increment(-1),
+      bolsaUsados: FieldValue.increment(1),
+    }, { merge: true }).catch(() => {});
 
     // Marca de idempotencia + pendiente para interpretar la respuesta.
     // El pendiente expira 6h DESPUÉS de la cita: un "sí" que llega tarde ya no
@@ -834,12 +870,11 @@ exports.waNotifEstado = onCall(async (req) => {
     ventanaHasta: wa.ventanaAbiertaHasta ? wa.ventanaAbiertaHasta.toDate().toISOString() : null,
     planCliente: wa.planCliente === true,
     planRecordatorio: wa.planRecordatorio === true,
-    // Presupuesto del plan pagado — precio y link de pago (Mercado Pago de
-    // SynapTech). Viven en _system/whatsapp_notif para poder ajustarlos sin
-    // deploy: planClientePrecio (CLP/mes) y planClienteLinkMp (link de pago).
-    planPrecio:   Number(cfg.planClientePrecio) || null,
-    planLinkPago: typeof cfg.planClienteLinkMp === 'string' && /^https:\/\//.test(cfg.planClienteLinkMp)
-      ? cfg.planClienteLinkMp : null,
+    // Bolsas de mensajes (wa-bolsas.js): catálogo con neto + IVA para la
+    // tarjeta de compra del panel, y el saldo/consumo del local.
+    bolsas:      require('./wa-bolsas')._bolsasDe(cfg),
+    bolsaSaldo:  Number(wa.bolsaSaldo)  || 0,
+    bolsaUsados: Number(wa.bolsaUsados) || 0,
     activadoEn: wa.activadoEn ? wa.activadoEn.toDate().toISOString() : null,
   };
 });
