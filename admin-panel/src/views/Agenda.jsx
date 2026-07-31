@@ -1366,16 +1366,15 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     finally { setGcSearching(false); }
   };
 
-  // Wrapper del click "Guardar": si aplica el gate de reabrir venta cerrada,
-  // muestra el modal de contraseña antes de ejecutar el guardado real.
-  // El gate solo se activa si:
-  //  - la cita ya existía como Completada
-  //  - se está cambiando a un estado != Completada (reabrir/reagendar)
-  //  - el tenant tiene el toggle ON y un hash guardado
+  // Wrapper del click "Guardar": si aplica el gate de venta cerrada, muestra
+  // el modal de contraseña antes del guardado real. El gate se activa para
+  // CUALQUIER edición de una cita que ya estaba Completada — tanto cambiar
+  // el estado (reabrir) como editar precio/método/notas manteniéndola cerrada.
+  // Sino el cajero podría "corregir" el precio de una venta ya cerrada sin
+  // que descuadre el arqueo, lo que es el mismo problema que reabrirla.
   const attemptSave = () => {
     const yaCompletada = !isNew && cita?.estado === 'Completada';
-    const seEstaReabriendo = yaCompletada && form.estado !== 'Completada';
-    if (seEstaReabriendo && gateVenta.enabled && gateVenta.passHash) {
+    if (yaCompletada && gateVenta.enabled && gateVenta.passHash) {
       setGatePending(true);
       return;
     }
@@ -2730,11 +2729,17 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
         />
       )}
 
-      {/* Gate anti-descuido: reabrir venta cerrada pide contraseña opt-in. */}
+      {/* Gate anti-descuido para venta cerrada: cualquier edición sobre una
+          cita ya Completada (reabrirla o modificarla) requiere la contraseña
+          definida en Configuración → Seguridad. */}
       {gatePending && (
         <ReopenPassModal
-          titulo="Reabrir venta cerrada"
-          contexto={`Vas a cambiar el estado de esta cita de "Completada" a "${form.estado}". Esto reabre una venta ya cerrada y puede descuadrar la caja. Ingresa la contraseña definida en Configuración → Seguridad.`}
+          titulo="Venta cerrada"
+          contexto={
+            form.estado !== 'Completada'
+              ? `Vas a cambiar el estado de esta cita de "Completada" a "${form.estado}". Esto reabre una venta ya cerrada y puede descuadrar la caja.`
+              : 'Esta cita ya está cerrada. Cualquier cambio (precio, método de pago, notas, etc.) afecta el arqueo del día. Ingresa la contraseña para confirmar la edición.'
+          }
           passHash={gateVenta.passHash}
           onOk={() => { setGatePending(false); handleSave(); }}
           onCancel={() => setGatePending(false)}

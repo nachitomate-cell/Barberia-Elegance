@@ -2276,9 +2276,9 @@ export default function Configuracion() {
             <div className="flex items-center gap-2.5 min-w-0">
               <Lock size={15} className="text-slate-400 shrink-0" />
               <div className="min-w-0">
-                <span className="text-sm font-semibold text-primary block truncate">Reabrir venta cerrada</span>
+                <span className="text-sm font-semibold text-primary block truncate">Editar o reabrir venta cerrada</span>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                  Cuando alguien intente cambiar el estado de una cita <strong className="text-slate-300">ya completada</strong> (por ejemplo, volverla a &quot;Confirmada&quot;), le pediremos esta contraseña antes de guardar.
+                  Cuando alguien intente <strong className="text-slate-300">editar cualquier cosa</strong> de una cita ya completada (precio, método de pago, notas, o cambiar el estado a &quot;Confirmada&quot;), le pediremos esta contraseña antes de guardar.
                 </p>
               </div>
             </div>
