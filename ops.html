@@ -274,9 +274,9 @@
         .map(([tid,n]) => `<span class="muted" style="margin-right:10px">${tid}: <b style="color:var(--ink)">${n}</b></span>`).join('');
 
       return `<div class="box" style="margin-top:16px">
-        <h3 style="margin:0 0 2px">📱 Chip SynapTech · confirmaciones y recordatorios</h3>
+        <h3 style="margin:0 0 2px">📱 ${c.nombre || 'Chip SynapTech'} · confirmaciones y recordatorios</h3>
         <p class="muted" style="margin:0 0 12px;font-size:12px">
-          Número compartido por los locales con el módulo. ${c.numero ? '+'+c.numero+' · ' : ''}${c.diasVinculado} días vinculado · tope ${c.cap}/día · últimos ${c.dias} días
+          Cupo y locales propios de este chip. ${c.numero ? '+'+c.numero+' · ' : ''}${c.diasVinculado} días vinculado · tope ${c.cap}/día · últimos ${c.dias} días
         </p>
 
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:12px;
@@ -306,7 +306,7 @@
              local: comparten el mismo. Si uno se lo come, los demás quedan
              mudos aunque no hayan enviado nada. -->
         <p class="muted" style="margin:0 0 6px;font-size:12px;font-weight:600">
-          Locales con el chip activo (${(c.activos||[]).length}) · consumo de hoy sobre el cupo compartido
+          Locales en este chip (${(c.activos||[]).length}) · consumo de hoy sobre SU cupo
         </p>
         ${(c.activos||[]).length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
           ${c.activos.map(a => `<tr style="border-bottom:1px solid rgba(148,163,184,.08)">
@@ -356,7 +356,14 @@
             ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
             ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
           </div>
-          ${chipPanel(data.barberia && data.barberia.chip)}
+          <!-- Una tarjeta por chip: cada uno tiene su propio cupo, su propia
+               sesión y sus propios locales, así que promediarlos escondería
+               justo lo que hay que ver (uno sano y otro degradándose).
+               Ojo: este comentario vive DENTRO de un template literal — nada de
+               backticks acá, cierran el literal y rompen el script entero.
+               Fallback al chip singular por si la CF todavía es la vieja. -->
+          ${((data.barberia && data.barberia.chips) ||
+             [data.barberia && data.barberia.chip].filter(Boolean)).map(chipPanel).join('')}
           ${emailPanel(data.email)}
           ${trialsPanel(data.trials)}
           ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
