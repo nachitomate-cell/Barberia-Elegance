@@ -186,6 +186,9 @@ function exigirBootstrap(req) {
 const HORA_INICIO   = 9;
 const HORA_FIN      = 21;
 const MAX_POR_CICLO = 8;
+// Fallos seguidos antes de abandonar el ciclo. Con la sesión caída, cada
+// intento extra es martillar un número que WhatsApp acaba de cerrar.
+const FALLOS_PARA_CORTAR = 3;
 
 /** Tope diario del CHIP, escalonado por su antigüedad. Mismos números que
  *  evolution/cuota.js: un número recién vinculado despachando decenas de
@@ -876,11 +879,31 @@ async function procesarCicloChip({ evoClient, chipId }) {
   candidatas.sort((a, b) => a.diffH - b.diffH);
 
   // ── FASE 3: enviar hasta donde alcance el cupo ──
+  //
+  // El margen cuenta INTENTOS, no éxitos. Contaba éxitos y eso convertía el
+  // tope por ciclo en nada cuando algo fallaba: el 31-07 la sesión se cerró
+  // después de dos envíos y el bucle siguió recorriendo candidatas —16
+  // intentos seguidos contra una sesión muerta— porque ninguno sumaba. Un
+  // limitador de ritmo que solo cuenta los que salen bien no limita el ritmo
+  // justo cuando más falta hace.
   const margen = Math.min(MAX_POR_CICLO, cap - enviadosHoy);
   let enviados = 0;
+  let intentos = 0;
+  let fallosSeguidos = 0;
 
   for (const c of candidatas) {
-    if (enviados >= margen) { enEsperaPorCupo++; continue; }
+    if (intentos >= margen) { enEsperaPorCupo++; continue; }
+
+    // Cortacircuitos: si fallan varios seguidos, la sesión está caída y seguir
+    // martillándola solo empeora las cosas — un chip nuevo insistiendo contra
+    // WhatsApp es la diferencia entre un cierre temporal y un baneo. Se corta
+    // el ciclo; las citas quedan sin marcar y el siguiente ciclo las retoma
+    // (si para entonces el chip volvió).
+    if (fallosSeguidos >= FALLOS_PARA_CORTAR) {
+      enEsperaPorCupo += candidatas.length - candidatas.indexOf(c);
+      logger.error(`[plataforma:${chipId}] ${fallosSeguidos} fallos seguidos → ciclo abortado, la sesión parece caída`);
+      break;
+    }
 
     if (await estaBloqueado(c.tel)) {
       await c.doc.ref.update({ waConfirmSolicitada: true, waOmitidaMotivo: 'optout' }).catch(() => {});
@@ -906,13 +929,18 @@ async function procesarCicloChip({ evoClient, chipId }) {
       esRecordatorio: c.esRecordatorio,
     });
 
+    // Cuenta ANTES de mandar: lo que hay que limitar es cuántas veces se toca
+    // WhatsApp por ciclo, salga bien o mal.
+    intentos++;
     try {
       await evoClient.enviarTexto(INSTANCIA, c.tel, texto);
     } catch (e) {
       logger.error(`[plataforma:${chipId}] ${c.tid}/${c.doc.id} falló: ${e.message}`);
       await registrarSaliente(chipId, c.tid, false);
+      fallosSeguidos++;
       continue;
     }
+    fallosSeguidos = 0;   // salió uno: la sesión respira
 
     await c.doc.ref.update({
       waConfirmSolicitada:   true,
