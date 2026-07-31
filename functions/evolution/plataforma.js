@@ -420,7 +420,7 @@ const sumarDias = (fecha, n) => {
   return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`;
 };
 
-function armarMensaje({ nombre, local, fecha, hora, servicio }) {
+function armarMensaje({ nombre, local, fecha, hora, servicio, esRecordatorio }) {
   // El cliente NO conoce este número, así que el local va en la PRIMERA línea:
   // sin eso el mensaje parece spam y sube la tasa de bloqueo, que es
   // justamente lo que quema el chip.
@@ -428,12 +428,16 @@ function armarMensaje({ nombre, local, fecha, hora, servicio }) {
   return [
     `Hola${quien} 👋 Te escribimos de *${local}*.`,
     '',
-    `Tienes tu cita agendada:`,
+    esRecordatorio ? 'Te recordamos tu cita:' : 'Tienes tu cita agendada:',
     `📅 ${fecha}`,
     `🕐 ${hora} hrs`,
     servicio ? `✂️ ${servicio}` : '',
     '',
-    '¿La confirmas? Responde *CONFIRMAR* para asistir o *CANCELAR* si no podrás. 🙌',
+    esRecordatorio
+      // Una cita que el cliente YA agendó no necesita que "confirme" de nuevo;
+      // lo que el local necesita saber es si NO va a ir, para liberar el cupo.
+      ? '¿Sigue en pie? Responde *CONFIRMAR* si vienes, o *CANCELAR* para liberar tu hora. 🙌'
+      : '¿La confirmas? Responde *CONFIRMAR* para asistir o *CANCELAR* si no podrás. 🙌',
   ].filter(Boolean).join('\n');
 }
 
@@ -484,6 +488,8 @@ async function procesarCiclo({ evoClient }) {
     // usa el canal propio, así que el selector del panel sirve para ambos).
     const ventana = Number(waCfg?.recordatorio?.ventanaHoras) || 24;
     const nDays   = Math.ceil(ventana / 24);
+    // Ver el bloque de consentimiento más abajo. Por local y a conciencia.
+    const optInImplicito = sys.waPlataformaOptInImplicito === true;
 
     for (let i = 0; i <= nDays && enviados < MAX_POR_CICLO; i++) {
       const fecha = sumarDias(now.fecha, i);
@@ -493,12 +499,32 @@ async function procesarCiclo({ evoClient }) {
         if (enviados >= MAX_POR_CICLO || enviadosHoy + enviados >= cap) break;
 
         const cita = doc.data() || {};
-        if ((cita.estado || '') !== 'Pendiente') continue;
+
+        // ── Qué citas entran ──
+        // 'Pendiente'  → nació esperando confirmación (bot/agenda interna).
+        // 'Confirmada' → el cliente la agendó él mismo en la web. NO necesita
+        //   "confirmarla" de nuevo, pero sí un RECORDATORIO: lo que el local
+        //   necesita es enterarse si no va a ir, para liberar el cupo.
+        // Sin aceptar 'Confirmada' este canal no serviría para ningún local
+        // cuyas reservas vengan de la agenda pública — o sea, casi todos.
+        const estado = String(cita.estado || '');
+        if (estado !== 'Pendiente' && estado !== 'Confirmada') continue;
+        const esRecordatorio = estado === 'Confirmada';
+
         if (cita.waConfirmSolicitada === true)   continue;
-        if (cita.waOptIn !== true)               continue;   // doble opt-in
         if (cita.waNumeroInvalido === true)      continue;
         if (cita.origenQA)                       continue;   // barbero fantasma
         if (typeof cita.hora !== 'string' || !cita.hora.includes(':')) continue;
+
+        // ── Consentimiento ──
+        // Por defecto se exige `waOptIn` explícito (la casilla de la reserva).
+        // `optInImplicito` lo releva SOLO para mensajes transaccionales sobre
+        // la propia cita del titular: no es marketing, es el servicio que el
+        // cliente contrató. Se activa por local y a conciencia, porque las
+        // reservas anteriores a la casilla no traen el flag y si no, el canal
+        // queda mudo para todo el histórico.
+        // El opt-out global NUNCA se releva: quien dijo STOP sigue fuera.
+        if (cita.waOptIn !== true && !optInImplicito) continue;
 
         const tel = normalizeCl(cita.clienteTelefono);
         if (!tel) continue;
@@ -525,6 +551,7 @@ async function procesarCiclo({ evoClient }) {
           nombre:   String(cita.clienteNombre || '').trim().split(/\s+/)[0] || '',
           local, fecha: cita.fecha, hora: cita.hora,
           servicio: cita.servicioNombre || '',
+          esRecordatorio,
         });
 
         try {
