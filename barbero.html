@@ -988,7 +988,11 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
-            Correo <span class="normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
+            Correo
+            <!-- Antes decía "(opcional)" fijo, cuando index.html lo exigía
+                 siempre. Ahora lo decide configuracion/main.correoObligatorio,
+                 y nace oculto porque el default es exigirlo. -->
+            <span id="correoOpcionalHint" class="hidden normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
           </label>
           <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" class="booking-input">
         </div>
@@ -2181,6 +2185,12 @@
     if (!telefono)  return showToast('Por favor, ingresa tu teléfono.');
     if (telefono.replace(/\D/g,'').length < 8)
       return showToast('Ingresa un teléfono válido.');
+    // Acá el correo era opcional SIEMPRE, mientras index.html lo exigía
+    // siempre: la misma reserva del mismo cliente, con dos reglas distintas.
+    // Ahora manda configuracion/main.correoObligatorio (encendido por defecto)
+    // y la regla es una sola, en ReservaCore.validarCorreo().
+    const _correo = ReservaCore.validarCorreo(email, _fsConfig);
+    if (!_correo.ok) return showToast(_correo.motivo);
 
     // Anti-spam: mismo criterio que la agenda del local — configurable por
     // tenant en configuracion/main.{reservaMaxPorDia, reservaCooldownMin}.
@@ -2408,17 +2418,24 @@
         kronnos_limache:    { r:249, g:115, b:22  }, // #f97316
         kronnos_woman:      { r:236, g:72,  b:153 }, // #ec4899
       };
-      // Doble opt-in de WhatsApp: la casilla nace oculta y solo se muestra si
-      // el local tiene confirmaciones activas. Falla-cerrado: sin flag o con
-      // error, no hay casilla → waOptInMarcado() = false → no sale WhatsApp.
+      // Formulario del paso final: casilla de WhatsApp + regla del correo.
+      // La casilla nace oculta y solo se muestra si el local tiene un canal de
+      // confirmaciones activo. Falla-cerrado: sin flag o con error, no hay
+      // casilla → waOptInMarcado() = false → no sale WhatsApp. El correo, al
+      // revés, falla-obligatorio: sin config se sigue pidiendo.
       (async () => {
         try {
+          if (typeof ReservaCore === 'undefined') return;
+          const cfg = await ReservaCore.leerConfigPublica(window.CURRENT_TENANT_ID || 'elegance');
+
           const wrap = document.getElementById('waOptInWrap');
-          if (!wrap || typeof ReservaCore === 'undefined') return;
-          if (await ReservaCore.waConfirmActivo(window.CURRENT_TENANT_ID || 'elegance')) {
+          if (wrap && cfg.waConfirmActivo === true) {
             wrap.classList.remove('hidden');
             wrap.classList.add('flex');
           }
+
+          const hint = document.getElementById('correoOpcionalHint');
+          if (hint && !ReservaCore.correoObligatorio(cfg)) hint.classList.remove('hidden');
         } catch (_) {}
       })();
 

@@ -44,6 +44,17 @@ for (const p of PAGINAS) {
   if (!/correo<\/b>/.test(src)) {
     fallos.push(`${p}: la casilla ya no dice que sin marcarla el aviso llega por correo`);
   }
+
+  // ── El respaldo prometido: la regla del correo ──
+  // La casilla promete el correo como plan B. Si una página deja de validarlo,
+  // esa promesa se vuelve falsa justo para quien NO marcó WhatsApp: se queda
+  // sin ningún aviso posible.
+  if (!/ReservaCore\.validarCorreo\(/.test(src)) {
+    fallos.push(`${p}: ya no usa ReservaCore.validarCorreo() — cada página volvería a tener su propia regla de correo (index lo exigía siempre y barbero.html nunca)`);
+  }
+  if (!/id="correoOpcionalHint"[^>]*class="hidden/.test(src)) {
+    fallos.push(`${p}: falta el hint "(opcional)" naciendo oculto — o el campo mentiría sobre si el correo es obligatorio`);
+  }
 }
 
 // ── 2. El estado inicial se deriva del opt-in, en un solo lugar ──
@@ -60,6 +71,20 @@ if (usos < 2) {
 }
 if (!/waOptInMarcado/.test(utils)) {
   fallos.push('firebaseUtils.js: desapareció waOptInMarcado() — nadie leería la casilla');
+}
+// El correo se exige por DEFECTO. El día que esto pase a `=== true`, todos los
+// tenants que no tienen el campo dejan de pedir correo de golpe y en silencio.
+if (!/cfg\.correoObligatorio !== false/.test(utils)) {
+  fallos.push('firebaseUtils.js: correoObligatorio() dejó de tratar el campo ausente como encendido — los tenants sin el flag dejarían de pedir correo');
+}
+
+// ── 2b. El panel escribe el flag con el mismo default ──
+const cfgView = leer('admin-panel/src/views/Configuracion.jsx');
+if (!/correoObligatorio:\s*!!correoObligatorio/.test(cfgView)) {
+  fallos.push('admin-panel/src/views/Configuracion.jsx: ya no guarda correoObligatorio — el toggle quedaría decorativo');
+}
+if (!/cd\.correoObligatorio !== false/.test(cfgView)) {
+  fallos.push('admin-panel/src/views/Configuracion.jsx: lee correoObligatorio con otro default que la agenda pública — el panel mostraría apagado algo que sí se está exigiendo');
 }
 
 // ── 3. El servidor sigue exigiendo el opt-in ──

@@ -9961,7 +9961,12 @@
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
           <div>
-            <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Correo</label>
+            <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
+              Correo
+              <!-- Solo si el local apagó configuracion/main.correoObligatorio.
+                   Nace oculto: el default es exigirlo. -->
+              <span id="correoOpcionalHint" class="hidden normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
+            </label>
             <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email"
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
@@ -14161,13 +14166,13 @@
         const telDigitos = tel.replace(/\D/g, '');
         if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
-        if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
-        // Validación básica de formato de email — evita cuentas huérfanas por typos
-        // ("asdf" sin @) y previene el bug de "cliente no ve sus sellos al volver
-        // al dashboard" (necesitamos email válido para linkLegacy por email).
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          return showToast('Ingresa un correo válido (por ejemplo: nombre@ejemplo.com).');
-        }
+        // El correo se exige o no según configuracion/main.correoObligatorio
+        // (encendido por defecto), pero el FORMATO se valida siempre que haya
+        // algo escrito: un "asdf" sin @ deja cuentas huérfanas y rompe el
+        // linkeo por email del club. La regla vive una sola vez en
+        // ReservaCore.validarCorreo(), compartida con barbero.html.
+        const _correo = ReservaCore.validarCorreo(email, _fsConfig);
+        if (!_correo.ok) return showToast(_correo.motivo);
 
         // El lock de UI ("Confirmando tu reserva…") NO va acá: primero se
         // corren las validaciones anti-spam y la pregunta de Aura, que son
@@ -15174,17 +15179,24 @@
        casilla no aparece, waOptInMarcado() devuelve false y no sale ningún
        WhatsApp: falla-cerrado a propósito — es más barato perder un
        recordatorio que ganarse un reporte de spam. */
-    (function initWaOptIn() {
+    (function initFormularioPaso4() {
       const run = async () => {
         try {
-          const wrap = document.getElementById('waOptInWrap');
-          if (!wrap || typeof ReservaCore === 'undefined') return;
+          if (typeof ReservaCore === 'undefined') return;
           const tid = window.CURRENT_TENANT_ID || 'elegance';
-          if (await ReservaCore.waConfirmActivo(tid)) {
+          const cfg = await ReservaCore.leerConfigPublica(tid);   // una sola lectura
+
+          const wrap = document.getElementById('waOptInWrap');
+          if (wrap && cfg.waConfirmActivo === true) {
             wrap.classList.remove('hidden');
             wrap.classList.add('flex');
           }
-        } catch (_) { /* sin casilla = sin envío, no hay nada que romper */ }
+
+          // "(opcional)" solo si el local apagó el correo obligatorio. Si no
+          // se dice acá, el cliente lo descubre con un toast de error.
+          const hint = document.getElementById('correoOpcionalHint');
+          if (hint && !ReservaCore.correoObligatorio(cfg)) hint.classList.remove('hidden');
+        } catch (_) { /* sin casilla = sin envío; correo queda obligatorio */ }
       };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
       else run();

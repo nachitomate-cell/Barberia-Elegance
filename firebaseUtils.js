@@ -2379,15 +2379,29 @@ window.ReservaCore = (function () {
      La casilla la dibuja cada página con su propio estilo, pero el id
      `waOptInCheck` es contrato compartido: si mañana alguien lo renombra en
      una sola página, esa página deja de pedir consentimiento en silencio. */
-  async function waConfirmActivo(tenantId) {
+  /* Lee configuracion/main (el doc público del tenant) una sola vez por carga.
+     Lo consultan la casilla de WhatsApp y la regla del correo, y sin la caché
+     eran dos idas a Firestore para el mismo documento en el mismo tick. */
+  let _cfgPublicaCache = null;
+  async function leerConfigPublica(tenantId) {
+    if (_cfgPublicaCache) return _cfgPublicaCache;
     try {
       const fs  = firebase.firestore();
       const ref = (!tenantId || tenantId === 'elegance')
         ? fs.collection('configuracion').doc('main')
         : fs.collection('tenants').doc(tenantId).collection('configuracion').doc('main');
       const snap = await ref.get();
-      return snap.exists && snap.data().waConfirmActivo === true;
-    } catch (_) { return false; }   // ante la duda, no se pide ni se envía nada
+      _cfgPublicaCache = (snap.exists && snap.data()) || {};
+    } catch (_) {
+      _cfgPublicaCache = {};   // sin config: cada lector decide su falla-seguro
+    }
+    return _cfgPublicaCache;
+  }
+
+  async function waConfirmActivo(tenantId) {
+    // Ante la duda (doc ausente o Firestore caído) queda en false: no se pide
+    // el consentimiento y por lo tanto no se envía nada.
+    return (await leerConfigPublica(tenantId)).waConfirmActivo === true;
   }
 
   /** ¿Marcó la casilla? Sin casilla en el DOM → false (no hay consentimiento
@@ -2395,6 +2409,42 @@ window.ReservaCore = (function () {
   function waOptInMarcado() {
     const el = document.getElementById('waOptInCheck');
     return !!(el && el.checked);
+  }
+
+  /* ── Correo obligatorio ──────────────────────────────────────────────
+     configuracion/main.correoObligatorio, editable por el dueño desde
+     /gestion-interna/configuracion. Encendido por defecto, y por defecto se
+     entiende AUSENTE también: los tenants que existen desde antes del flag
+     no tienen el campo y tienen que seguir pidiendo correo.
+
+     Por qué encendido: el correo es el canal que NO depende de que el cliente
+     acepte nada. Si no marca la casilla de WhatsApp y tampoco dejó correo, la
+     reserva queda sin ningún aviso posible — y la casilla le prometió
+     literalmente que "igual te llega todo a tu correo". Se puede apagar (hay
+     locales que reservan a punta de teléfono y no quieren la fricción), pero
+     es una decisión consciente del dueño, no el default. */
+  function correoObligatorio(cfg) {
+    return !cfg || cfg.correoObligatorio !== false;
+  }
+
+  /* Valida el correo con la regla del tenant. Una sola función para las dos
+     páginas públicas: cuando cada una tenía su propio `if (!email)`, index
+     pedía correo siempre y barbero.html no lo pedía nunca, y nadie se enteró
+     hasta que la casilla de WhatsApp prometió el correo como respaldo.
+
+     Devuelve { ok, motivo } — el toast lo dibuja cada página a su manera. */
+  function validarCorreo(email, cfg) {
+    const v = String(email || '').trim();
+    if (!v) {
+      return correoObligatorio(cfg)
+        ? { ok: false, motivo: 'Por favor ingresa tu correo para recibir la confirmación.' }
+        : { ok: true };
+    }
+    // Formato: se valida SIEMPRE que haya algo escrito, obligatorio o no. Un
+    // "asdf" sin @ deja cuentas huérfanas y rompe el linkeo por email del club.
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+      ? { ok: true }
+      : { ok: false, motivo: 'Ingresa un correo válido (por ejemplo: nombre@ejemplo.com).' };
   }
 
   /* ── Días en que el servicio se puede reservar ───────────────
@@ -2515,8 +2565,11 @@ window.ReservaCore = (function () {
     normalizarTelefono,
     generarCodigoCita,
     consentimiento,
+    leerConfigPublica,
     waConfirmActivo,
     waOptInMarcado,
+    correoObligatorio,
+    validarCorreo,
     diaPermitido,
     nombresDiasServicio,
     puedeReservar,

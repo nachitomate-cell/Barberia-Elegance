@@ -775,6 +775,12 @@ export default function Configuracion() {
   // maxPorDia: máx reservas en 24h por dispositivo.
   const [reservaCooldownMin, setReservaCooldownMin] = useState(30);
   const [reservaMaxPorDia,   setReservaMaxPorDia]   = useState(3);
+  // Correo obligatorio en la reserva pública (index.html y barbero.html leen
+  // configuracion/main.correoObligatorio vía ReservaCore.validarCorreo).
+  // Arranca en true y el `!== false` de la carga mantiene ese default para los
+  // tenants que no tienen el campo: el correo es el único canal que no depende
+  // de que el cliente acepte nada.
+  const [correoObligatorio,  setCorreoObligatorio]  = useState(true);
   // Toggles y mensaje para el flujo de cancelar/reagendar via /chat con código
   const [chatCancelEnabled,   setChatCancelEnabled]   = useState(true);
   const [chatReagendarEnabled, setChatReagendarEnabled] = useState(true);
@@ -864,6 +870,10 @@ export default function Configuracion() {
         if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
         if (cd.reservaCooldownMin !== undefined) setReservaCooldownMin(Number(cd.reservaCooldownMin) || 0);
         if (cd.reservaMaxPorDia   !== undefined) setReservaMaxPorDia(Number(cd.reservaMaxPorDia)   || 0);
+        // `!== false` y no `=== true`: ausente significa encendido. Misma regla
+        // que ReservaCore.correoObligatorio(), o el panel mostraría apagado un
+        // correo que la agenda pública sí está exigiendo.
+        setCorreoObligatorio(cd.correoObligatorio !== false);
         if (cd.chatCancelEnabled !== undefined) setChatCancelEnabled(!!cd.chatCancelEnabled);
         if (cd.chatReagendarEnabled !== undefined) setChatReagendarEnabled(!!cd.chatReagendarEnabled);
         // Ausente = apagado: un tenant que nunca abrió esta sección no ve los
@@ -1031,6 +1041,8 @@ export default function Configuracion() {
           // Anti-spam de reservas (leído por index.html en el paso 4)
           reservaCooldownMin:      Math.max(0, Math.round(Number(reservaCooldownMin) || 0)),
           reservaMaxPorDia:        Math.max(0, Math.round(Number(reservaMaxPorDia)   || 0)),
+          // Correo obligatorio en la reserva pública (index.html + barbero.html)
+          correoObligatorio:       !!correoObligatorio,
           // Toggles del chat (cancelar/reagendar vía código) + mensaje opcional
           chatCancelEnabled:       !!chatCancelEnabled,
           chatReagendarEnabled:    !!chatReagendarEnabled,
@@ -1725,6 +1737,34 @@ export default function Configuracion() {
           </div>
         </div>
 
+      </Card>
+
+      {/* Correo obligatorio en la reserva pública */}
+      <Card Icon={Mail} title="Correo del cliente">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-primary">Pedir el correo obligatoriamente</span>
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              El correo es el único aviso que llega <strong className="text-slate-300">siempre</strong>: el
+              WhatsApp depende de que el cliente marque la casilla al reservar, y ahí mismo le prometemos
+              que si no la marca igual le llega todo al correo.
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              Apágalo solo si prefieres menos fricción y te basta con el teléfono. Los clientes que no
+              dejen correo ni marquen WhatsApp no van a recibir confirmación ni recordatorio.
+            </p>
+            {!correoObligatorio && (
+              <p className="text-[10px] text-amber-400/90 mt-1.5">
+                Con esto apagado, en tu agenda pública el campo aparece marcado como “(opcional)”.
+              </p>
+            )}
+          </div>
+          <IosToggle
+            checked={correoObligatorio}
+            onChange={v => { setCorreoObligatorio(v); setDirty(true); }}
+            size="sm"
+          />
+        </div>
       </Card>
 
       {/* Multi-servicio en la reserva pública — MOVIDO desde "Preferencias" (2026-07).
