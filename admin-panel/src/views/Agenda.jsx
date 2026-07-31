@@ -794,10 +794,15 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   const initialRecargo = cita?.recargoSobrecupo != null
     ? Number(cita.recargoSobrecupo) || 0
     : (sobrecupo ? (Number(matchedSvc?.recargoSobrecupoDefault ?? firstSvc?.recargoSobrecupoDefault) || 0) : 0);
+  // Servicios extra ya guardados (otro servicio en la misma atención, sumado
+  // al total). Se restan del precio guardado para recuperar el precio BASE:
+  // sin esto, editar una cita con extras duplicaba su monto en cada guardado.
+  const extrasIniciales = Array.isArray(cita?.serviciosExtra) ? cita.serviciosExtra : [];
+  const totalExtrasIniciales = extrasIniciales.reduce((s, e) => s + (Number(e.precio) || 0), 0);
   const initialBasePrecio = cita?.precioBase != null
     ? Number(cita.precioBase) || 0
     : (cita?.precio != null
-        ? Math.max(0, Number(cita.precio) - initialRecargo)
+        ? Math.max(0, Number(cita.precio) - initialRecargo - totalExtrasIniciales)
         : (Number(matchedSvc?.precio || firstSvc?.precio) || 0));
 
   const [form, setForm] = useState({
@@ -863,6 +868,12 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   const [gcFound, setGcFound]         = useState(null);
   const [gcSearching, setGcSearching] = useState(false);
   const [gcErr, setGcErr]             = useState('');
+
+  /* Servicios extra de la misma cita (ej: pidió barba estando en el sillón).
+     Cada uno suma su precio al total; el desglose queda en `serviciosExtra`. */
+  const [extras, setExtras] = useState(extrasIniciales);
+  const [addingServicio, setAddingServicio] = useState(false);
+  const [newServicioId, setNewServicioId] = useState('');
 
   /* Productos vendidos junto a esta cita */
   const ticketPrev = useMemo(() => Array.isArray(cita?.ticketProductos) ? cita.ticketProductos : [], [cita]);
@@ -1115,7 +1126,10 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
 
   const totalProductosPrev   = ticketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
   const totalProductosNuevos = ticketNuevos.reduce((s, p) => s + p.totalLinea, 0);
-  const totalTicket          = (Number(form.precio) || 0) + totalProductosPrev + totalProductosNuevos;
+  // Cortesía = la atención completa es gratis, extras incluidos (mismo criterio
+  // que el recargo de sobrecupo, que también se anula en cortesía).
+  const totalExtrasNum = form.cortesia ? 0 : extras.reduce((s, e) => s + (Number(e.precio) || 0), 0);
+  const totalTicket          = (Number(form.precio) || 0) + totalExtrasNum + totalProductosPrev + totalProductosNuevos;
 
   // ── Split de pago + vuelto ─────────────────────────────────────
   // `isSplit` es true cuando el cliente divide el pago en varios métodos.
@@ -1279,6 +1293,21 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     set('barberoId', id);
     set('barbero', b?.nombre || '');
   };
+
+  // ── Servicios extra ──────────────────────────────────────────────
+  const addServicioExtra = () => {
+    const s = servicios.find(x => x.id === newServicioId);
+    if (!s) return;
+    setExtras(prev => [...prev, {
+      servicioId: s.id,
+      nombre:     s.nombre,
+      precio:     Math.round(Number(s.precio) || 0),
+      duracion:   Number(s.duracion) || 0,
+    }]);
+    setNewServicioId('');
+    setAddingServicio(false);
+  };
+  const quitarServicioExtra = idx => setExtras(prev => prev.filter((_, i) => i !== idx));
 
   const toggleSobrecupo = on => {
     setSobrecupoActivo(on);
@@ -1615,6 +1644,24 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
         payload.recargoSobrecupo = 0;
         payload.precioTotal      = basePrecioPersist;
         payload.precio           = basePrecioPersist;
+      }
+
+      // ── Servicios extra: se suman al TOTAL, mismo criterio que el recargo ──
+      // `precio` sigue siendo el total a cobrar (Caja/Comisiones/Métricas ya
+      // leen ese campo); el desglose queda en `serviciosExtra` + `precioBase`.
+      // Se escribe también cuando quedó vacío (extras.length 0 con iniciales >0)
+      // para que QUITAR un extra persista.
+      if (extras.length || extrasIniciales.length) {
+        const totalExtrasPersist = form.cortesia ? 0 : extras.reduce((s, e) => s + (Number(e.precio) || 0), 0);
+        payload.serviciosExtra = extras.map(e => ({
+          servicioId: e.servicioId || null,
+          nombre:     String(e.nombre || ''),
+          precio:     Math.round(Number(e.precio) || 0),
+          duracion:   Number(e.duracion) || 0,
+        }));
+        if (payload.precioBase == null) payload.precioBase = basePrecioPersist;
+        payload.precio      = (form.cortesia ? 0 : Math.max(0, Math.round(Number(payload.precio) || 0))) + totalExtrasPersist;
+        payload.precioTotal = payload.precio;
       }
 
       // Corte al Lápiz: si el cliente es miembro y se cobra "a fin de mes",
@@ -2037,6 +2084,71 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
             }))}
           />
         </div>
+
+        {/* Servicios extra: otro servicio en la misma atención, sumado al total */}
+        {(extras.length > 0 || servicios.length > 1) && (
+          <div className="space-y-1.5 -mt-1">
+            {extras.map((e, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-slate-900/60 border border-slate-700/70 rounded-lg text-xs">
+                <span className="text-slate-200 truncate flex-1">
+                  <span className="text-emerald-400/80 mr-1.5">+</span>{e.nombre}
+                </span>
+                <span className="text-emerald-400 font-bold font-mono shrink-0">${Math.round(Number(e.precio) || 0).toLocaleString('es-CL')}</span>
+                <button
+                  type="button"
+                  onClick={() => quitarServicioExtra(i)}
+                  className="text-rose-400/70 hover:text-rose-400 shrink-0 p-0.5"
+                  title="Quitar servicio extra"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {addingServicio ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Select
+                    className={field}
+                    ariaLabel="Servicio extra"
+                    value={newServicioId}
+                    onChange={setNewServicioId}
+                    placeholder="— elegir servicio —"
+                    options={servicios
+                      .filter(s => s.id !== form.servicioId)
+                      .map(s => ({ value: s.id, label: `${s.nombre} · $${(Number(s.precio) || 0).toLocaleString('es-CL')}` }))}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={addServicioExtra}
+                  disabled={!newServicioId}
+                  className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold shrink-0"
+                >
+                  Sumar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAddingServicio(false); setNewServicioId(''); }}
+                  className="p-2 text-slate-400 hover:text-slate-200 shrink-0"
+                  title="Cancelar"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAddingServicio(true)}
+                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                + Agregar otro servicio
+              </button>
+            )}
+            {form.cortesia && extras.length > 0 && (
+              <p className="text-[10px] text-amber-300/80">Cortesía activa: los servicios extra tampoco se cobran.</p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
