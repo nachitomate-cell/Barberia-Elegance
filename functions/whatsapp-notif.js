@@ -563,8 +563,8 @@ async function notificarCita(citaId, cita, tenantId) {
       // Quinto candado — BOLSA DE MENSAJES (wa-bolsas.js): cada plantilla
       // descuenta 1 del saldo del local; sin saldo NO se envía. Fail-closed a
       // propósito: nadie le genera costo Meta a la plataforma sin bolsa pagada.
-      if (!(Number(wa.bolsaSaldo) > 0)) {
-        logger.info(`[wa] template omitido por bolsa agotada tenant=${tenantId}`);
+      if (!(Number(wa.bolsaSaldoConf) > 0)) {
+        logger.info(`[wa] template omitido por cupo de confirmaciones agotado tenant=${tenantId}`);
         await writeNotifLog(db, {
           tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'skipped_sin_bolsa',
           to: { telefono: fonoCliente }, meta: { citaId },
@@ -616,10 +616,10 @@ async function notificarCita(citaId, cita, tenantId) {
           tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'sent',
           to: { telefono: fonoCliente }, meta: { citaId, template: cfg.templateCita },
         }).catch(() => {});
-        // Descuento de la bolsa: 1 envío = 1 mensaje. Solo tras éxito real.
+        // Descuento del cupo de CONFIRMACIONES: 1 envío = 1 mensaje.
         await db.collection('wa_notif').doc(tenantId).set({
-          bolsaSaldo:  FieldValue.increment(-1),
-          bolsaUsados: FieldValue.increment(1),
+          bolsaSaldoConf: FieldValue.increment(-1),
+          bolsaUsados:    FieldValue.increment(1),
         }, { merge: true }).catch(() => {});
         logger.info(`[wa] template cliente enviada tenant=${tenantId} cita=${citaId}`);
       } catch (e) {
@@ -705,9 +705,9 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
   // Bolsa de mensajes: mismo candado que la confirmación (wa-bolsas.js). Si el
   // saldo se agota a mitad de tanda, las citas restantes NO se marcan y el
   // próximo ciclo las retoma cuando el local recargue.
-  let bolsaSaldo = Number(wa.bolsaSaldo) || 0;
+  let bolsaSaldo = Number(wa.bolsaSaldoRec) || 0;
   if (bolsaSaldo <= 0) {
-    logger.warn(`[wa:record] ${tid}: sin saldo en la bolsa de mensajes; recordatorios en pausa`);
+    logger.warn(`[wa:record] ${tid}: sin cupo de recordatorios en la bolsa; en pausa`);
     return 0;
   }
 
@@ -752,11 +752,11 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
       continue;
     }
 
-    // Descuento de la bolsa: 1 envío = 1 mensaje (solo tras éxito real).
+    // Descuento del cupo de RECORDATORIOS: 1 envío = 1 mensaje.
     bolsaSaldo--;
     await db.collection('wa_notif').doc(tid).set({
-      bolsaSaldo:  FieldValue.increment(-1),
-      bolsaUsados: FieldValue.increment(1),
+      bolsaSaldoRec: FieldValue.increment(-1),
+      bolsaUsados:   FieldValue.increment(1),
     }, { merge: true }).catch(() => {});
 
     // Marca de idempotencia + pendiente para interpretar la respuesta.
@@ -873,7 +873,12 @@ exports.waNotifEstado = onCall(async (req) => {
     // Bolsas de mensajes (wa-bolsas.js): catálogo con neto + IVA para la
     // tarjeta de compra del panel, y el saldo/consumo del local.
     bolsas:      require('./wa-bolsas')._bolsasDe(cfg),
-    bolsaSaldo:  Number(wa.bolsaSaldo)  || 0,
+    // Dos cupos: el local decide cuánto de su bolsa va a confirmar reservas y
+    // cuánto a recordar citas (repartoConfPct, callable waBolsaReparto).
+    bolsaSaldoConf: Number(wa.bolsaSaldoConf) || 0,
+    bolsaSaldoRec:  Number(wa.bolsaSaldoRec)  || 0,
+    bolsaSaldo:  (Number(wa.bolsaSaldoConf) || 0) + (Number(wa.bolsaSaldoRec) || 0),
+    repartoConfPct: Number.isFinite(Number(wa.repartoConfPct)) ? Number(wa.repartoConfPct) : 50,
     bolsaUsados: Number(wa.bolsaUsados) || 0,
     // Cupo mensual incluido en la mensualidad (tratos a medida): se repone
     // hasta N el día 1 (cron waBolsaReponerMensual), no se acumula.

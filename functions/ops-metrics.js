@@ -258,7 +258,9 @@ async function analizarLocal(tid, hoy, mesActual) {
   const oficial = {
     planCliente:      notif.planCliente === true,
     planRecordatorio: notif.planRecordatorio === true,
-    saldo:  Number(notif.bolsaSaldo)  || 0,
+    saldo:  (Number(notif.bolsaSaldoConf) || 0) + (Number(notif.bolsaSaldoRec) || 0),
+    saldoConf: Number(notif.bolsaSaldoConf) || 0,
+    saldoRec:  Number(notif.bolsaSaldoRec)  || 0,
     usados: Number(notif.bolsaUsados) || 0,
   };
   if (oficial.planCliente || oficial.planRecordatorio) {

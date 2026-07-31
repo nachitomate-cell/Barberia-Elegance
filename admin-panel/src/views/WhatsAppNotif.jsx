@@ -101,9 +101,23 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const bolsaSaldo = Number(estado?.bolsaSaldo) || 0;
   const saldoBajo  = planCliente && bolsaSaldo <= 10;
 
-  const [bolsaSel, setBolsaSel]   = useState('');
-  const [comprando, setComprando] = useState(false);
-  const [errCompra, setErrCompra] = useState('');
+  const [bolsaSel, setBolsaSel]     = useState('');
+  const [comprando, setComprando]   = useState(false);
+  const [errCompra, setErrCompra]   = useState('');
+  const [repartiendo, setRepartiendo] = useState(false);
+  const cambiarReparto = async (pct) => {
+    if (repartiendo) return;
+    setRepartiendo(true);
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaReparto');
+      await fn({ pct });
+      await cargar();   // refresca saldos por cupo
+    } catch (e) {
+      setErrCompra(e.message || 'No se pudo cambiar el reparto.');
+    } finally {
+      setRepartiendo(false);
+    }
+  };
   const comprarBolsa = async () => {
     if (!bolsaSel || comprando) return;
     setComprando(true);
@@ -174,11 +188,42 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                     <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
                     <span>Activo — tus clientes reciben confirmación y recordatorio automáticamente.</span>
                   </div>
-                  <div className={`flex items-baseline justify-between rounded-xl px-3 py-2 border ${saldoBajo ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.03]'}`}>
-                    <span className={`text-[12px] ${saldoBajo ? 'text-amber-200/90' : 'text-slate-400'}`}>Saldo de tu bolsa</span>
-                    <span className="text-base font-bold tabular-nums text-slate-100">
-                      {bolsaSaldo} <span className="text-[11px] font-normal text-slate-500">mensaje{bolsaSaldo === 1 ? '' : 's'}</span>
-                    </span>
+                  <div className={`rounded-xl px-3 py-2 border space-y-1.5 ${saldoBajo ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.03]'}`}>
+                    <div className="flex items-baseline justify-between">
+                      <span className={`text-[12px] ${saldoBajo ? 'text-amber-200/90' : 'text-slate-400'}`}>Saldo de tu bolsa</span>
+                      <span className="text-base font-bold tabular-nums text-slate-100">
+                        {bolsaSaldo} <span className="text-[11px] font-normal text-slate-500">mensaje{bolsaSaldo === 1 ? '' : 's'}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <span>Confirmaciones: <b className="text-slate-300 tabular-nums">{Number(estado?.bolsaSaldoConf) || 0}</b></span>
+                      <span>Recordatorios: <b className="text-slate-300 tabular-nums">{Number(estado?.bolsaSaldoRec) || 0}</b></span>
+                    </div>
+                  </div>
+
+                  {/* Reparto del cupo: hay locales que prefieren confirmar y otros recordar */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-slate-500">¿En qué prefieres gastar tus mensajes?</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { pct: 100, label: 'Todo confirmaciones' },
+                        { pct: 50,  label: 'Equilibrado' },
+                        { pct: 0,   label: 'Todo recordatorios' },
+                      ].map(o => (
+                        <button
+                          key={o.pct}
+                          type="button"
+                          disabled={repartiendo}
+                          onClick={() => cambiarReparto(o.pct)}
+                          className={`rounded-lg border px-2 py-1.5 text-[10.5px] font-semibold transition-colors ${Number(estado?.repartoConfPct) === o.pct
+                            ? 'border-violet-400 bg-violet-500/15 text-violet-200'
+                            : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/25'}`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-600 leading-relaxed">El cambio re-reparte tu saldo actual al instante y aplica también a las recargas futuras.</p>
                   </div>
                   {Number(estado?.bolsaMensual) > 0 && (
                     <p className="text-[11px] text-slate-500 leading-relaxed">

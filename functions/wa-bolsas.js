@@ -70,6 +70,45 @@ function bolsasDe(cfg) {
 exports._bolsasDe = bolsasDe;
 exports._BOLSAS_DEFAULT = BOLSAS_DEFAULT;
 
+/* La bolsa se divide en DOS cupos — confirmaciones y recordatorios — según
+   `repartoConfPct` (0–100, default 50): hay locales que prefieren gastar todo
+   en confirmar la reserva y otros solo en recordar. El reparto se aplica al
+   ACREDITAR (compra, cupo mensual) y al REBALANCEAR (waBolsaReparto). */
+const repartoDe = (wa) => {
+  const p = Number(wa?.repartoConfPct);
+  return Number.isFinite(p) ? Math.max(0, Math.min(100, Math.round(p))) : 50;
+};
+const partir = (total, pct) => {
+  const conf = Math.round(total * pct / 100);
+  return { conf, rec: total - conf };
+};
+
+/** Cambia el reparto y REBALANCEA el saldo actual (total se conserva). */
+exports.waBolsaReparto = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
+  const claims = req.auth.token || {};
+  const boot = esBootstrap(claims.email);
+  let tid = claims.tenantId || null;
+  if (boot && req.data?.tenantId) tid = String(req.data.tenantId);
+  if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
+  if (!boot && !['admin', 'jefe'].includes(claims.role || '')) {
+    throw new HttpsError('permission-denied', 'Solo administradores del local.');
+  }
+  const pct = Math.max(0, Math.min(100, Math.round(Number(req.data?.pct))));
+  if (!Number.isFinite(pct)) throw new HttpsError('invalid-argument', 'Falta pct (0–100).');
+
+  const ref = db.doc(`wa_notif/${tid}`);
+  const out = await db.runTransaction(async (tx) => {
+    const wa = (await tx.get(ref)).data() || {};
+    const total = (Number(wa.bolsaSaldoConf) || 0) + (Number(wa.bolsaSaldoRec) || 0);
+    const { conf, rec } = partir(total, pct);
+    tx.set(ref, { repartoConfPct: pct, bolsaSaldoConf: conf, bolsaSaldoRec: rec }, { merge: true });
+    return { conf, rec };
+  });
+  logger.info(`[wa-bolsa] ${tid}: reparto ${pct}% conf → conf=${out.conf} rec=${out.rec}`);
+  return { ok: true, pct, ...out };
+});
+
 /* ─────────────── 1) Crear link de pago (Checkout Pro) ─────────────── */
 
 exports.waBolsaCrearLink = onCall(
@@ -148,10 +187,12 @@ exports.waBolsaReponerMensual = onSchedule(
           const d = s.data() || {};
           const incluida = Math.round(Number(d.bolsaMensualIncluida) || 0);
           if (incluida <= 0) return;
-          const saldo = Number(d.bolsaSaldo) || 0;
+          const saldo = (Number(d.bolsaSaldoConf) || 0) + (Number(d.bolsaSaldoRec) || 0);
           if (saldo >= incluida) return;   // compró bolsas o no gastó: no se toca
+          const { conf, rec } = partir(incluida, repartoDe(d));
           tx.set(ref, {
-            bolsaSaldo:       incluida,
+            bolsaSaldoConf:   conf,
+            bolsaSaldoRec:    rec,
             bolsaRepuestaEn:  FieldValue.serverTimestamp(),
           }, { merge: true });
           repuestos++;
@@ -197,16 +238,20 @@ exports.waBolsaWebhook = onRequest(
       // Idempotencia: MP reintenta webhooks — el ledger decide una sola vez.
       const ledger = db.doc(`wa_bolsa_pagos/${payId}`);
       const acreditado = await db.runTransaction(async (tx) => {
-        const s = await tx.get(ledger);
+        // TODAS las lecturas antes de cualquier escritura (regla de Firestore).
+        const [s, waSnap] = await Promise.all([tx.get(ledger), tx.get(db.doc(`wa_notif/${tid}`))]);
         if (s.exists) return false;
+        const waPrev = waSnap.data() || {};
         tx.set(ledger, {
           tid, bolsaId, mensajes,
           monto:    Number(pago.transaction_amount) || 0,
           payerEmail: pago.payer?.email || '',
           creadoEn: FieldValue.serverTimestamp(),
         });
+        const { conf, rec } = partir(mensajes, repartoDe(waPrev));
         tx.set(db.doc(`wa_notif/${tid}`), {
-          bolsaSaldo:  FieldValue.increment(mensajes),
+          bolsaSaldoConf: FieldValue.increment(conf),
+          bolsaSaldoRec:  FieldValue.increment(rec),
           // La primera compra ACTIVA el módulo completo; las siguientes solo recargan.
           planCliente:      true,
           planRecordatorio: true,

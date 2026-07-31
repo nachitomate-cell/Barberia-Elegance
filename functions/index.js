@@ -1610,6 +1610,7 @@ const waBolsas = require('./wa-bolsas');
 exports.waBolsaCrearLink      = waBolsas.waBolsaCrearLink;
 exports.waBolsaWebhook        = waBolsas.waBolsaWebhook;
 exports.waBolsaReponerMensual = waBolsas.waBolsaReponerMensual;
+exports.waBolsaReparto        = waBolsas.waBolsaReparto;
 
 // ─────────────────────────────────────────────────────────────────
 //  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del
