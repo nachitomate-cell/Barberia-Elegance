@@ -465,65 +465,55 @@ async function procesarCiclo({ evoClient }) {
 
   const now    = ahoraChile();
   const nowAbs = absMin(now.fecha, now.mins);
-  let enviados = 0;
+
+  // ── FASE 1: juntar candidatas de TODOS los locales ──
+  // Antes se enviaba local por local hasta agotar el cupo. Con un tope
+  // apretado eso significa que el primero de la lista se lo come todo y los
+  // últimos no reciben nada NUNCA — no es un retraso, es hambre permanente.
+  // Y dentro de un mismo día el orden de Firestore es arbitrario, así que una
+  // cita de mañana a las 9 podía perder su recordatorio frente a una de las 20.
+  const candidatas = [];
+  let enEsperaPorCupo = 0;
 
   for (const tid of tids) {
-    if (enviados >= MAX_POR_CICLO || enviadosHoy + enviados >= cap) break;
-
     const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
     if (sys.waPlataforma !== true) continue;
 
-    // Guard anti doble envío: si el local ya manda recordatorios por SU
-    // número, este canal se calla. Los dos crons miran las mismas citas.
+    // Guard anti doble envío: si el local ya manda por SU número, este canal
+    // se calla. Los dos crons miran las mismas citas.
     const waCfg = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get()).data() || {};
     if (waCfg.confirmacionesEnabled === true && waCfg.estadoConexion === 'connected') {
       logger.warn(`[plataforma] ${tid}: ya manda por su propio número; omitido para no duplicar`);
       continue;
     }
 
-    const td      = (await db.doc(`tenants/${tid}`).get()).data() || {};
-    const local   = td.nombre || td.nombreCorto || tid;
+    const td    = (await db.doc(`tenants/${tid}`).get()).data() || {};
+    const local = td.nombre || td.nombreCorto || tid;
     // La ventana sale del doc del LOCAL, no de _system: el local no puede
-    // escribir _system, y esta sí es una preferencia suya (misma clave que
-    // usa el canal propio, así que el selector del panel sirve para ambos).
+    // escribir _system, y esta sí es una preferencia suya.
     const ventana = Number(waCfg?.recordatorio?.ventanaHoras) || 24;
-    const nDays   = Math.ceil(ventana / 24);
-    // Ver el bloque de consentimiento más abajo. Por local y a conciencia.
     const optInImplicito = sys.waPlataformaOptInImplicito === true;
 
-    for (let i = 0; i <= nDays && enviados < MAX_POR_CICLO; i++) {
-      const fecha = sumarDias(now.fecha, i);
-      const snap  = await citasCol(tid).where('fecha', '==', fecha).get();
+    for (let i = 0; i <= Math.ceil(ventana / 24); i++) {
+      const snap = await citasCol(tid).where('fecha', '==', sumarDias(now.fecha, i)).get();
 
       for (const doc of snap.docs) {
-        if (enviados >= MAX_POR_CICLO || enviadosHoy + enviados >= cap) break;
-
         const cita = doc.data() || {};
 
-        // ── Qué citas entran ──
         // 'Pendiente'  → nació esperando confirmación (bot/agenda interna).
-        // 'Confirmada' → el cliente la agendó él mismo en la web. NO necesita
-        //   "confirmarla" de nuevo, pero sí un RECORDATORIO: lo que el local
-        //   necesita es enterarse si no va a ir, para liberar el cupo.
-        // Sin aceptar 'Confirmada' este canal no serviría para ningún local
-        // cuyas reservas vengan de la agenda pública — o sea, casi todos.
+        // 'Confirmada' → el cliente la agendó él mismo: no hay que pedirle que
+        //   confirme de nuevo, pero sí recordarle y dejarle cancelar.
         const estado = String(cita.estado || '');
         if (estado !== 'Pendiente' && estado !== 'Confirmada') continue;
-        const esRecordatorio = estado === 'Confirmada';
 
-        if (cita.waConfirmSolicitada === true)   continue;
-        if (cita.waNumeroInvalido === true)      continue;
-        if (cita.origenQA)                       continue;   // barbero fantasma
+        if (cita.waConfirmSolicitada === true) continue;
+        if (cita.waNumeroInvalido === true)    continue;
+        if (cita.origenQA)                     continue;   // barbero fantasma
         if (typeof cita.hora !== 'string' || !cita.hora.includes(':')) continue;
 
-        // ── Consentimiento ──
-        // Por defecto se exige `waOptIn` explícito (la casilla de la reserva).
-        // `optInImplicito` lo releva SOLO para mensajes transaccionales sobre
-        // la propia cita del titular: no es marketing, es el servicio que el
-        // cliente contrató. Se activa por local y a conciencia, porque las
-        // reservas anteriores a la casilla no traen el flag y si no, el canal
-        // queda mudo para todo el histórico.
-        // El opt-out global NUNCA se releva: quien dijo STOP sigue fuera.
+        // Consentimiento: por defecto la casilla explícita de la reserva.
+        // optInImplicito la releva SOLO para mensajes transaccionales sobre la
+        // cita del propio titular. El opt-out global nunca se releva.
         if (cita.waOptIn !== true && !optInImplicito) continue;
 
         const tel = normalizeCl(cita.clienteTelefono);
@@ -532,63 +522,91 @@ async function procesarCiclo({ evoClient }) {
         const diffH = (absMin(cita.fecha, toMins(cita.hora)) - nowAbs) / 60;
         if (diffH <= 0 || diffH > ventana) continue;
 
-        if (await estaBloqueado(tel)) {
-          await doc.ref.update({ waConfirmSolicitada: true, waOmitidaMotivo: 'optout' }).catch(() => {});
-          continue;
-        }
-
-        try {
-          const existe = await evoClient.verificarNumeros(INSTANCIA, [tel]);
-          if (existe.size && existe.get(tel) === false) {
-            await doc.ref.update({ waNumeroInvalido: true, waOmitidaMotivo: 'sin-whatsapp' }).catch(() => {});
-            continue;
-          }
-        } catch (e) {
-          logger.warn(`[plataforma] verificarNumeros falló (${e.message}); se envía sin verificar`);
-        }
-
-        const texto = armarMensaje({
-          nombre:   String(cita.clienteNombre || '').trim().split(/\s+/)[0] || '',
-          local, fecha: cita.fecha, hora: cita.hora,
-          servicio: cita.servicioNombre || '',
-          esRecordatorio,
+        candidatas.push({
+          tid, local, doc, cita, tel, diffH,
+          esRecordatorio: estado === 'Confirmada',
         });
-
-        try {
-          await evoClient.enviarTexto(INSTANCIA, tel, texto);
-        } catch (e) {
-          logger.error(`[plataforma] ${tid}/${doc.id} falló: ${e.message}`);
-          await registrarSaliente(tid, false);
-          continue;
-        }
-
-        await doc.ref.update({
-          waConfirmSolicitada:   true,
-          waConfirmSolicitadaEn: FieldValue.serverTimestamp(),
-          waConfirmCanal:        'plataforma',
-        }).catch(() => {});
-
-        // Índice teléfono → tenant. Sin esto la respuesta no se puede aplicar.
-        // Se AGREGA a la lista, no se pisa: el mismo cliente puede tener hora
-        // en dos locales y el número que pregunta es el mismo para todos.
-        // Expira 6h DESPUÉS de la cita: un "sí" que llega tarde no revive una
-        // hora que ya pasó.
-        await agregarPendiente(tel, {
-          tenantId: tid,
-          citaId:   doc.id,
-          fecha:    cita.fecha,
-          hora:     cita.hora,
-          local,
-          expiraMs: Date.now() + Math.max(1, diffH + 6) * 3600e3,
-        });
-
-        await registrarSaliente(tid, true);
-        await logWaSend(tid, 'confirmacion', true).catch(() => {});
-        enviados++;
-        logger.info(`[plataforma] ${tid}/${doc.id} → confirmación enviada a ***${tel.slice(-4)}`);
       }
     }
   }
+
+  // ── FASE 2: la más urgente primero ──
+  // Cuando el cupo no alcanza, se gasta en la cita que está por ocurrir. Una
+  // que quede fuera hoy se recupera en el ciclo siguiente; una que ya pasó,
+  // no — el recordatorio pierde todo su sentido.
+  candidatas.sort((a, b) => a.diffH - b.diffH);
+
+  // ── FASE 3: enviar hasta donde alcance el cupo ──
+  const margen = Math.min(MAX_POR_CICLO, cap - enviadosHoy);
+  let enviados = 0;
+
+  for (const c of candidatas) {
+    if (enviados >= margen) { enEsperaPorCupo++; continue; }
+
+    if (await estaBloqueado(c.tel)) {
+      await c.doc.ref.update({ waConfirmSolicitada: true, waOmitidaMotivo: 'optout' }).catch(() => {});
+      continue;
+    }
+
+    try {
+      const existe = await evoClient.verificarNumeros(INSTANCIA, [c.tel]);
+      if (existe.size && existe.get(c.tel) === false) {
+        await c.doc.ref.update({ waNumeroInvalido: true, waOmitidaMotivo: 'sin-whatsapp' }).catch(() => {});
+        continue;
+      }
+    } catch (e) {
+      logger.warn(`[plataforma] verificarNumeros falló (${e.message}); se envía sin verificar`);
+    }
+
+    const texto = armarMensaje({
+      nombre:   String(c.cita.clienteNombre || '').trim().split(/\s+/)[0] || '',
+      local:    c.local,
+      fecha:    c.cita.fecha,
+      hora:     c.cita.hora,
+      servicio: c.cita.servicioNombre || '',
+      esRecordatorio: c.esRecordatorio,
+    });
+
+    try {
+      await evoClient.enviarTexto(INSTANCIA, c.tel, texto);
+    } catch (e) {
+      logger.error(`[plataforma] ${c.tid}/${c.doc.id} falló: ${e.message}`);
+      await registrarSaliente(c.tid, false);
+      continue;
+    }
+
+    await c.doc.ref.update({
+      waConfirmSolicitada:   true,
+      waConfirmSolicitadaEn: FieldValue.serverTimestamp(),
+      waConfirmCanal:        'plataforma',
+    }).catch(() => {});
+
+    // Índice teléfono → tenant. Se AGREGA, no se pisa: el mismo cliente puede
+    // tener hora en dos locales y el número que pregunta es el mismo.
+    await agregarPendiente(c.tel, {
+      tenantId: c.tid,
+      citaId:   c.doc.id,
+      fecha:    c.cita.fecha,
+      hora:     c.cita.hora,
+      local:    c.local,
+      expiraMs: Date.now() + Math.max(1, c.diffH + 6) * 3600e3,
+    });
+
+    await registrarSaliente(c.tid, true);
+    await logWaSend(c.tid, 'confirmacion', true).catch(() => {});
+    enviados++;
+    logger.info(`[plataforma] ${c.tid}/${c.doc.id} → enviada a ***${c.tel.slice(-4)} (en ${c.diffH.toFixed(1)}h)`);
+  }
+
+  // Deja el pendiente visible en ops: sin esto, un cupo apretado se ve igual
+  // que 'no había nada que enviar'.
+  if (enEsperaPorCupo) {
+    logger.warn(`[plataforma] ${enEsperaPorCupo} cita(s) esperando cupo (tope ${cap}/día)`);
+  }
+  await cuotaRef(fechaHoy()).set({
+    fecha: fechaHoy(), enEsperaPorCupo,
+    actualizado: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
 
   return enviados;
 }
