@@ -328,7 +328,183 @@
       </div>`;
     }
 
-    function render(data){
+    /* ── Administración de chips ─────────────────────────────────────────
+       Vincular por QR, desvincular y decidir qué locales atiende cada chip,
+       todo desde acá. Antes había que entrar al drawer de CADA local en /admin
+       para moverlo de chip: para repartir 6 locales entre 2 chips eran 6
+       viajes, y en ninguno se veía el reparto completo — que es lo único que
+       importa, porque el cupo diario es del chip y se comparte.
+
+       ops.html NO carga el SDK de Firestore (solo auth y functions), así que
+       todo pasa por callables. Es mejor así: el chipId se valida contra los
+       que existen de verdad en el servidor, y un id mal escrito no puede dejar
+       a un local mandando desde el número equivocado. */
+    let _chips = [], _locales = [];
+
+    function chipsAdminPanel(chips, locales){
+      _chips = chips || []; _locales = locales || [];
+      if (!_chips.length) return '';
+
+      const tarjeta = (c) => {
+        const vivo = c.estadoConexion === 'connected';
+        const dias = c.vinculadoDesde ? ((Date.now() - c.vinculadoDesde)/86400000).toFixed(1) : null;
+        return `<div style="border:1px solid rgba(148,163,184,.18);border-radius:10px;padding:12px;flex:1;min-width:260px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="color:${vivo?'var(--ok,#4ade80)':'var(--red)'};font-size:15px">●</span>
+            <b>${c.nombre}</b>
+            <span class="muted" style="font-size:11px">${c.chipId}</span>
+          </div>
+          <p class="muted" style="margin:0 0 10px;font-size:12px">
+            ${c.numeroVinculado ? '+'+c.numeroVinculado : '<span style="color:var(--red)">sin vincular</span>'}
+            ${dias ? ' · '+dias+' días' : ''} · ${c.usadosHoy}/${c.cap} hoy · ${c.tenants.length} local(es)
+          </p>
+          <div style="display:flex;gap:6px">
+            <button onclick="opsVincularChip('${c.chipId}')" style="flex:1">${vivo?'Re-vincular':'Vincular (QR)'}</button>
+            <button onclick="opsDesvincularChip('${c.chipId}')">Desvincular</button>
+          </div>
+        </div>`;
+      };
+
+      // Solo los locales con el módulo ENCENDIDO se reparten: asignarle un chip
+      // a uno apagado no hace nada y solo alarga la tabla. Los apagados van en
+      // el desplegable de abajo, para poder encenderlos desde acá.
+      const activos = _locales.filter(l => l.activo);
+      const apagados = _locales.filter(l => !l.activo);
+
+      const filas = activos.map(l => `<tr style="border-bottom:1px solid rgba(148,163,184,.08)">
+          <td style="padding:6px 0">${l.nombre}<span class="muted" style="font-size:11px"> · ${l.id}</span></td>
+          <td style="padding:6px 0;text-align:right">
+            ${_chips.map(c => `<button onclick="opsAsignar('${l.id}','${c.chipId}')"
+                style="margin-left:4px;padding:3px 8px;font-size:11px;${l.chipId===c.chipId
+                  ? 'border-color:#38bdf8;color:#7dd3fc;background:rgba(56,189,248,.15)' : ''}">${c.nombre}</button>`).join('')}
+            <button onclick="opsAsignar('${l.id}',null,false)" title="Apagar el módulo en este local"
+              style="margin-left:6px;padding:3px 8px;font-size:11px;color:#f87171">apagar</button>
+          </td>
+        </tr>`).join('');
+
+      return `<div class="box" style="margin-top:16px">
+        <h3 style="margin:0 0 2px">🔗 Chips · vinculación y reparto de locales</h3>
+        <p class="muted" style="margin:0 0 12px;font-size:12px">
+          El cupo diario es del chip: los locales que comparten chip comparten cupo. Repartirlos acá es repartir riesgo.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${_chips.map(tarjeta).join('')}
+          <div style="border:1px dashed rgba(56,189,248,.35);border-radius:10px;padding:12px;flex:1;min-width:200px;display:flex;align-items:center;justify-content:center">
+            <button onclick="opsVincularChip(null)">+ Vincular chip nuevo</button>
+          </div>
+        </div>
+
+        <p class="muted" style="margin:0 0 6px;font-size:12px;font-weight:600">Locales con el canal encendido (${activos.length})</p>
+        ${activos.length
+          ? `<table style="width:100%;border-collapse:collapse;font-size:12px">${filas}</table>`
+          : '<p class="muted" style="font-size:12px;margin:0">Ninguno todavía.</p>'}
+
+        ${apagados.length ? `<div style="margin-top:12px">
+          <p class="muted" style="margin:0 0 6px;font-size:12px;font-weight:600">Encender el canal en otro local</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select id="ops-nuevo-local" style="flex:1;min-width:180px;padding:6px;border-radius:6px;background:#0b1220;color:inherit;border:1px solid rgba(148,163,184,.25)">
+              ${apagados.map(l => `<option value="${l.id}">${l.nombre}</option>`).join('')}
+            </select>
+            <select id="ops-nuevo-chip" style="padding:6px;border-radius:6px;background:#0b1220;color:inherit;border:1px solid rgba(148,163,184,.25)">
+              ${_chips.map(c => `<option value="${c.chipId}">${c.nombre}</option>`).join('')}
+            </select>
+            <button onclick="opsEncenderLocal()">Encender</button>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }
+
+    const _fn = (n) => firebase.app().functions('us-central1').httpsCallable(n);
+
+    async function opsAsignar(tenantId, chipId, activo){
+      const payload = { tenantId };
+      if (chipId != null)  payload.chipId = chipId;
+      if (activo != null)  payload.activo = activo;
+      if (activo === false && !confirm('¿Apagar las confirmaciones por chip en este local?')) return;
+      try { await _fn('plataformaAsignar')(payload); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+
+    async function opsEncenderLocal(){
+      const tid  = document.getElementById('ops-nuevo-local').value;
+      const chip = document.getElementById('ops-nuevo-chip').value;
+      if (!tid || !chip) return;
+      try { await _fn('plataformaAsignar')({ tenantId: tid, chipId: chip, activo: true }); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+
+    async function opsDesvincularChip(chipId){
+      if (!confirm('Vas a cerrar la sesión del chip "' + chipId + '".\n\nLos locales asignados a EL dejan de recibir confirmaciones.')) return;
+      const fn = _fn('plataformaDesvincular');
+      try { await fn({ chipId }); }
+      catch(e){
+        // La CF frena si el chip todavía atiende locales: quedarse sin número
+        // no falla en ninguna parte, simplemente se quedan mudos.
+        if (e.code === 'functions/failed-precondition'){
+          if (!confirm(e.message + '\n\n¿Desvincular igual?')) return;
+          try { await fn({ chipId, confirmado: true }); }
+          catch(e2){ alert('Error: ' + e2.message); return; }
+        } else { alert('Error: ' + e.message); return; }
+      }
+      await cargar();
+    }
+
+    /* QR de vinculación. `chipId` null = chip nuevo (lo pide). */
+    async function opsVincularChip(chipId){
+      let nombre = null;
+      if (!chipId){
+        const raw = prompt('Identificador del chip nuevo (minúsculas, sin espacios).\nEj: "sion" si es el chip dedicado a Sion.\n\nSe usa en las rutas internas y no se puede cambiar después.');
+        if (raw === null) return;
+        chipId = String(raw).trim().toLowerCase();
+        if (!/^[a-z0-9][a-z0-9_-]{1,23}$/.test(chipId)){
+          alert('Identificador inválido: minúsculas, números, guion o guion bajo (2 a 24 caracteres).');
+          return;
+        }
+        nombre = prompt('Nombre para mostrar (opcional)', 'Chip ' + chipId) || null;
+      }
+
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.93);display:flex;align-items:center;justify-content:center;padding:16px';
+      ov.innerHTML = '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:14px;padding:22px;max-width:340px;width:100%;text-align:center">'
+        + '<p id="q-t" style="font-weight:700;margin:0 0 10px">Generando QR…</p>'
+        + '<div id="q-qr" style="min-height:220px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:12px">Conectando con el VPS…</div>'
+        + '<p id="q-s" class="muted" style="font-size:11px;margin:10px 0 0">WhatsApp → Dispositivos vinculados → Vincular dispositivo</p>'
+        + '<button id="q-x" style="margin-top:12px;width:100%">Cerrar</button></div>';
+      document.body.appendChild(ov);
+      let vivo = true;
+      const cerrar = () => { vivo = false; ov.remove(); cargar(); };
+      ov.querySelector('#q-x').onclick = cerrar;
+
+      try {
+        const r = await _fn('plataformaVincular')({ chipId, nombre });
+        const qr = r.data && r.data.qr;
+        ov.querySelector('#q-t').textContent = 'Escanea con el chip';
+        ov.querySelector('#q-qr').innerHTML = qr
+          ? '<img src="' + qr + '" alt="QR" style="width:100%;max-width:240px;border-radius:8px;background:#fff;padding:8px">'
+          : '<span style="color:#f87171">El VPS no devolvió QR. Reintenta.</span>';
+
+        // El QR caduca solo: se sondea hasta que la sesión quede abierta.
+        const estado = _fn('plataformaEstado');
+        for (let i = 0; i < 60 && vivo; i++){
+          await new Promise(res => setTimeout(res, 3000));
+          if (!vivo) return;
+          try {
+            const e = await estado({ chipId });
+            if (e.data && e.data.estado === 'open'){
+              ov.querySelector('#q-t').textContent = '✅ Chip vinculado';
+              ov.querySelector('#q-qr').innerHTML = '<span style="color:#4ade80;font-size:44px">✓</span>';
+              ov.querySelector('#q-s').textContent = 'Ahora asígnale los locales que va a atender.';
+              setTimeout(cerrar, 1600);
+              return;
+            }
+          } catch(_){}
+        }
+      } catch(e){
+        ov.querySelector('#q-t').textContent = 'Error';
+        ov.querySelector('#q-qr').innerHTML = '<span style="color:#f87171;font-size:12px">' + e.message + '</span>';
+      }
+    }
+
+    function render(data, chipsData){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
@@ -362,6 +538,7 @@
                Ojo: este comentario vive DENTRO de un template literal — nada de
                backticks acá, cierran el literal y rompen el script entero.
                Fallback al chip singular por si la CF todavía es la vieja. -->
+          ${chipsData ? chipsAdminPanel(chipsData.chips, chipsData.locales) : ''}
           ${((data.barberia && data.barberia.chips) ||
              [data.barberia && data.barberia.chip].filter(Boolean)).map(chipPanel).join('')}
           ${emailPanel(data.email)}
@@ -431,9 +608,18 @@
     async function cargar(){
       app.innerHTML = `<div class="login"><p class="muted">Cargando métricas…</p></div>`;
       try {
-        const fn = firebase.app().functions('us-central1').httpsCallable('opsMetrics');
-        const r = await fn({});
-        render(r.data);
+        // Las dos en paralelo: opsMetrics recorre todos los locales y tarda
+        // varios segundos, y encadenar la de chips detrás duplicaría la espera
+        // por un dato que no depende de ella.
+        //
+        // Si la de chips falla, el panel de administración simplemente no se
+        // dibuja: las métricas son lo importante y no se pierden por no poder
+        // listar los chips.
+        const [rm, rc] = await Promise.all([
+          _fn('opsMetrics')({}),
+          _fn('plataformaChips')({}).catch(() => null),
+        ]);
+        render(rm.data, rc && rc.data);
       } catch(e){
         app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
         const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();

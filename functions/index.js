@@ -1627,6 +1627,7 @@ exports.plataformaVincular       = evolutionPlataforma.plataformaVincular;
 exports.plataformaEstado         = evolutionPlataforma.plataformaEstado;
 exports.plataformaDesvincular    = evolutionPlataforma.plataformaDesvincular;
 exports.plataformaChips          = evolutionPlataforma.plataformaChips;
+exports.plataformaAsignar        = evolutionPlataforma.plataformaAsignar;
 exports.plataformaConfirmaciones = evolutionPlataforma.plataformaConfirmaciones;
 
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO

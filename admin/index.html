@@ -3897,6 +3897,20 @@
         : db.collection('tenants').doc(tid).collection('configuracion').doc('whatsapp');
     }
 
+    // Caché en memoria de los chips: son globales (no dependen del tenant), así
+    // que abrir el drawer de otro local no tiene por qué volver a esperarlos.
+    //
+    // El TTL no es una optimización, es lo que corta el bucle: al llegar la
+    // respuesta se repinta, y repintar vuelve a entrar acá. Sin la marca de
+    // tiempo, cada respuesta dispararía la siguiente llamada para siempre.
+    // `_chipsAt = 0` invalida a mano después de vincular, desvincular o
+    // cambiar el tope.
+    let _chipsCache    = null;
+    let _chipsAt       = 0;
+    let _chipsPidiendo = false;
+    const CHIPS_TTL    = 15000;
+    const invalidarChips = () => { _chipsAt = 0; };
+
     async function loadWaModules() {
       const el = document.getElementById('wa-modules-control');
       if (!el || !_activeTenant) return;
@@ -3922,10 +3936,24 @@
       // evolution/plataforma.js, acá se seguirían mostrando los viejos —
       // mintiendo sobre el límite anti-bloqueo, que es lo peor sobre lo que
       // este panel puede mentir.
-      try {
-        const r = await firebase.app().functions('us-central1').httpsCallable('plataformaChips')({});
-        chips = (r.data && r.data.chips) || [];
-      } catch (e) { chips = []; }
+      //
+      // NO se espera a la CF para dibujar. Esperarla dejaba todo el bloque de
+      // WhatsApp en blanco hasta que la función respondía —y en frío eso son
+      // varios segundos, con el botón de vincular apareciendo tarde justo
+      // cuando lo necesitas—. Se pinta con lo último que se sabe (caché en
+      // memoria) y cuando llega la respuesta se vuelve a pintar.
+      chips = _chipsCache || [];
+      if (!_chipsPidiendo && Date.now() - _chipsAt > CHIPS_TTL) {
+        _chipsPidiendo = true;
+        firebase.app().functions('us-central1').httpsCallable('plataformaChips')({})
+          .then(r => {
+            _chipsCache = (r.data && r.data.chips) || [];
+            _chipsAt = Date.now();
+            _chipsPidiendo = false;
+            if (_activeTenant === tid) loadWaModules();   // repinta ya con datos
+          })
+          .catch(() => { _chipsPidiendo = false; });
+      }
 
       const plan       = waPlanDe(sys);
       const conectado  = cfg.estadoConexion === 'connected';
@@ -4092,9 +4120,13 @@
                 background:rgba(56,189,248,0.1);color:#7dd3fc;font-size:0.68rem;font-weight:700;">
                 ${platConect ? 'Re-vincular' : 'Vincular (QR)'}
               </button>
-              ${platConect ? `<button onclick="desvincularChipPlataforma('${plat.chipId}')" style="
+              <!-- Desvincular SIEMPRE, no solo con la sesión abierta. Un chip
+                   que quedó en 'qr' o colgado de un intento a medias es
+                   justamente el que hay que poder resetear, y esconder el botón
+                   ahí dejaba sin salida. -->
+              <button onclick="desvincularChipPlataforma('${plat.chipId}')" style="
                 cursor:pointer;border-radius:0.5rem;padding:0.4rem 0.7rem;border:1px solid rgba(148,163,184,0.25);
-                background:transparent;color:#94a3b8;font-size:0.68rem;font-weight:700;">Desvincular</button>` : ''}
+                background:transparent;color:#94a3b8;font-size:0.68rem;font-weight:700;">Desvincular</button>
             </div>
 
             <!-- Tope manual: solo puede BAJAR el límite del escalonado -->
@@ -4187,7 +4219,7 @@
         </div>`;
       document.body.appendChild(ov);
       let vivo = true;
-      const cerrar = () => { vivo = false; ov.remove(); loadWaModules(); };
+      const cerrar = () => { vivo = false; ov.remove(); invalidarChips(); loadWaModules(); };
       ov.querySelector('#pl-x').onclick = cerrar;
 
       try {
@@ -4229,6 +4261,7 @@
         await db.collection('_system').doc(docId).set({
           topeDiario: n === null ? firebase.firestore.FieldValue.delete() : n,
         }, { merge: true });
+        invalidarChips();
         loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }
@@ -4250,6 +4283,7 @@
           alert('Error: ' + e.message); return;
         }
       }
+      invalidarChips();
       loadWaModules();
     }
 

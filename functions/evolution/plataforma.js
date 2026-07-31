@@ -359,51 +359,126 @@ async function tenantsDelChip(chipId) {
   return out;
 }
 
-/* Panorama de todos los chips para /admin: quién está conectado, cuánto le
-   queda hoy y qué locales atiende. Una sola llamada — el panel armaba esto con
-   un get() por tenant desde el navegador y con 33 tenants se notaba. */
+/* Panorama de todos los chips: quién está conectado, cuánto le queda hoy y qué
+   locales atiende. Una sola llamada — el panel armaba esto con un get() por
+   tenant desde el navegador y con 33 tenants se notaba.
+
+   TODO en paralelo. La primera versión encadenaba un await por tenant y otro
+   por chip: ~70 idas a Firestore en serie, y el panel de /admin se quedaba en
+   blanco varios segundos esperándolas antes de dibujar nada.
+
+   `locales` trae TODOS los tenants, no solo los que tienen el módulo activo:
+   ops necesita poder asignarle a un chip un local que todavía no lo tiene
+   encendido, que es justamente el caso de dar de alta uno nuevo. */
 exports.plataformaChips = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
   exigirBootstrap(req);
-  const hoy   = fechaHoy();
-  const ids   = await listarChips();
+  const hoy = fechaHoy();
+
+  const [sysRefs, tenantRefs] = await Promise.all([
+    db.collection('_system').listDocuments(),
+    db.collection('tenants').listDocuments(),
+  ]);
+
+  const ids = [];
+  const sysTenantRefs = [];
+  for (const r of sysRefs) {
+    if (r.id === 'wa_plataforma') { ids.push(CHIP_DEFAULT); continue; }
+    if (r.id.startsWith('wa_plataforma_')) {
+      const id = r.id.slice('wa_plataforma_'.length);
+      if (id) ids.push(id);
+      continue;
+    }
+    sysTenantRefs.push(r);
+  }
   if (!ids.includes(CHIP_DEFAULT)) ids.unshift(CHIP_DEFAULT);   // aunque nunca se haya vinculado
 
-  // Los locales se recorren UNA vez y se agrupan; con un recorrido por chip
-  // esto sería O(chips × tenants) de lecturas.
-  const refs = await db.collection('_system').listDocuments();
-  const porChip = {};
-  for (const r of refs) {
-    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) continue;
-    const s = (await r.get()).data() || {};
-    if (s.waPlataforma !== true) continue;
-    const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
-    (porChip[chipDeTenant(s)] = porChip[chipDeTenant(s)] || []).push({
-      id: r.id, nombre: td.nombre || td.nombreCorto || r.id,
-    });
-  }
+  // Universo de tenants: los de /tenants (fuente de verdad) más 'elegance',
+  // que vive en la raíz de Firestore y no aparece ahí.
+  const tids = new Set(tenantRefs.map(r => r.id));
+  tids.add('elegance');
+  for (const r of sysTenantRefs) if (r.id !== 'whatsapp_notif') tids.add(r.id);
 
-  const chips = [];
-  for (const chipId of ids) {
-    const cfg   = (await chipRef(chipId).get()).data() || {};
-    const cuota = (await cuotaRef(chipId, hoy).get()).data() || {};
+  const locales = (await Promise.all([...tids].map(async (tid) => {
+    const [sysSnap, tSnap] = await Promise.all([
+      db.doc(`_system/${tid}`).get().catch(() => null),
+      db.doc(`tenants/${tid}`).get().catch(() => null),
+    ]);
+    const s  = sysSnap?.data() || {};
+    const td = tSnap?.data()   || {};
+    // Sin nombre y sin módulo, casi seguro no es un tenant real (docs sueltos
+    // de infraestructura en /_system). No se listan para no ensuciar el panel.
+    const nombre = td.nombre || td.nombreCorto || null;
+    if (!nombre && s.waPlataforma !== true && tid !== 'elegance') return null;
+    return {
+      id: tid,
+      nombre: nombre || tid,
+      activo: s.waPlataforma === true,
+      chipId: chipDeTenant(s),
+    };
+  }))).filter(Boolean).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  const chips = await Promise.all(ids.map(async (chipId) => {
+    const [cfgSnap, cuotaSnap] = await Promise.all([
+      chipRef(chipId).get(),
+      cuotaRef(chipId, hoy).get(),
+    ]);
+    const cfg   = cfgSnap.data()   || {};
+    const cuota = cuotaSnap.data() || {};
     const cap   = capDiario(cfg);
-    chips.push({
+    const usados = Number(cuota.n) || 0;
+    return {
       chipId,
       nombre:          cfg.nombre || (chipId === CHIP_DEFAULT ? 'Chip principal' : chipId),
       instanceName:    instanciaDe(chipId),
       estadoConexion:  cfg.estadoConexion || 'disconnected',
       numeroVinculado: cfg.numeroVinculado || null,
       topeDiario:      cfg.topeDiario ?? null,
+      vinculadoDesde:  cfg.vinculadoDesde?.toMillis ? cfg.vinculadoDesde.toMillis() : null,
       cap,
-      usadosHoy:       Number(cuota.n) || 0,
-      restanteHoy:     Math.max(0, cap - (Number(cuota.n) || 0)),
-      tenants:         porChip[chipId] || [],
-    });
-  }
+      usadosHoy:       usados,
+      restanteHoy:     Math.max(0, cap - usados),
+      tenants:         locales.filter(l => l.activo && l.chipId === chipId),
+    };
+  }));
+
   // Locales apuntando a un chip que no existe: el cron los manda por el de por
   // defecto, pero hay que verlo en el panel y no solo en los logs.
-  const huerfanos = Object.keys(porChip).filter(c => !ids.includes(c));
-  return { chips, huerfanos: huerfanos.flatMap(c => porChip[c].map(t => ({ ...t, chipId: c }))) };
+  const huerfanos = locales.filter(l => l.activo && !ids.includes(l.chipId));
+  return { chips, locales, huerfanos };
+});
+
+/* Asigna un local a un chip (y opcionalmente enciende/apaga su módulo).
+   Es una callable y no una escritura directa porque ops.html NO carga el SDK de
+   Firestore —solo auth y functions— y porque el chipId hay que validarlo contra
+   los que existen de verdad: un id mal escrito manda al local al chip por
+   defecto sin que nadie se entere hasta que el cliente recibe el aviso desde
+   otro número. */
+exports.plataformaAsignar = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
+  exigirBootstrap(req);
+  const tenantId = String(req.data?.tenantId || '').trim();
+  if (!tenantId || !/^[a-zA-Z0-9_-]{2,60}$/.test(tenantId)) {
+    throw new HttpsError('invalid-argument', 'Falta el local.');
+  }
+
+  const patch = {};
+
+  if (req.data?.chipId !== undefined) {
+    const chipId = normalizarChipId(req.data.chipId);
+    const vivos = await listarChips();
+    if (!vivos.includes(chipId)) {
+      throw new HttpsError('failed-precondition',
+        `El chip '${chipId}' no está vinculado. Vincúlalo antes de asignarle locales.`);
+    }
+    patch.waPlataformaChip = chipId;
+  }
+
+  if (req.data?.activo !== undefined) patch.waPlataforma = req.data.activo === true;
+
+  if (!Object.keys(patch).length) throw new HttpsError('invalid-argument', 'Nada que cambiar.');
+
+  await db.doc(`_system/${tenantId}`).set(patch, { merge: true });
+  logger.info(`[plataforma] ${tenantId}: ${JSON.stringify(patch)}`);
+  return { ok: true, tenantId, ...patch };
 });
 
 /* ───────────── Índice teléfono → citas pendientes (multi-local) ─────────────
