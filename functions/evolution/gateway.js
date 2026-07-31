@@ -247,10 +247,11 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
     else if (edadDias < 30) siguienteNivel = { enDias: 30 - edadDias, nuevoTope: 300 };
   }
 
-  const agendadas = Number(neg.agendada) || 0;
-  const confSi    = Number(neg.conf_si)  || 0;
-  const confNo    = Number(neg.conf_no)  || 0;
-  const bajas     = Number(neg.optout)   || 0;
+  const agendadas  = Number(neg.agendada)   || 0;
+  const confSi     = Number(neg.conf_si)    || 0;
+  const confNo     = Number(neg.conf_no)    || 0;
+  const bajas      = Number(neg.optout)     || 0;
+  const reubicadas = Number(neg.reagendada) || 0;
 
   return {
     ok: true,
@@ -268,6 +269,9 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
       // "avisaron que no venían" — un CANCELAR es una hora que alcanzaste a
       // revender, no una pérdida. Se nombra así en la UI a propósito.
       avisaronQueNo: confNo,
+      // Citas que el bot MOVIÓ en vez de dejar caer (tool reagendar_cita):
+      // narrativa de valor — es una hora salvada, no un trámite.
+      reubicadas,
       bajas,
     },
     numero: { edadDias, siguienteNivel, conectado: wa.estadoConexion === 'connected' },

@@ -286,6 +286,17 @@ function MiConsumo({ tid }) {
         ))}
       </div>
 
+      {/* Narrativa de valor: horas que el bot MOVIÓ en vez de dejar caer.
+          Solo cuando pasó de verdad — un "0 reubicadas" no cuenta ninguna
+          historia y le resta peso al resto de los números. */}
+      {Number(mes.reubicadas) > 0 && (
+        <div className="rounded-xl px-3.5 py-2.5 border border-emerald-500/25 bg-emerald-500/[0.06]">
+          <p className="text-[11.5px] leading-relaxed text-emerald-200/90">
+            🌱 El asistente reubicó <b>{mes.reubicadas} hora{Number(mes.reubicadas) === 1 ? '' : 's'}</b> que se {Number(mes.reubicadas) === 1 ? 'iba' : 'iban'} a perder este mes: en vez de cancelar, el cliente movió su cita conversando por WhatsApp.
+          </p>
+        </div>
+      )}
+
       {/* Bajas — el autorregulador */}
       <div className={`rounded-xl px-3.5 py-2.5 border ${bajasAltas ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.02]'}`}>
         <p className={`text-[11.5px] leading-relaxed ${bajasAltas ? 'text-amber-200/90' : 'text-slate-500'}`}>

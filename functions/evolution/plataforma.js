@@ -790,6 +790,13 @@ async function procesarCiclo({ evoClient }) {
 async function procesarCicloChip({ evoClient, chipId }) {
   const INSTANCIA = instanciaDe(chipId);
   const cfg = (await chipRef(chipId).get()).data() || {};
+  // `apagado` = decisión (SynapTech lo sacó de servicio a propósito);
+  // `estadoConexion` = estado (se cayó). Se distinguen para que un chip
+  // retirado no siga sumando alertas rojas ni intentos de envío.
+  if (cfg.apagado === true) {
+    logger.info(`[plataforma:${chipId}] chip apagado a propósito; ciclo omitido`);
+    return 0;
+  }
   if (cfg.estadoConexion !== 'connected') {
     logger.info(`[plataforma:${chipId}] chip no conectado; ciclo omitido`);
     return 0;

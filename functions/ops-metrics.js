@@ -230,7 +230,7 @@ async function analizarLocales(hoy, mesActual) {
   const locales = [];
   const trials = [];
   const alertas = [];
-  const negocioTotal = { agendadas: 0, canceladas: 0, confSi: 0, confNo: 0, optout: 0 };
+  const negocioTotal = { agendadas: 0, canceladas: 0, reubicadas: 0, confSi: 0, confNo: 0, optout: 0 };
   for (const r of porTenant) {
     alertas.push(...r.alertas);
     if (r.trial) trials.push(r.trial);
@@ -329,11 +329,12 @@ async function analizarLocal(tid, hoy, mesActual) {
     const aiHoy = aiD.data() || {};
     const neg  = botV.data() || {};
     const negocio = {
-      agendadas:  Number(neg.agendada)  || 0,
-      canceladas: Number(neg.cancelada) || 0,
-      confSi:     Number(neg.conf_si)   || 0,
-      confNo:     Number(neg.conf_no)   || 0,
-      optout:     Number(neg.optout)    || 0,
+      agendadas:  Number(neg.agendada)   || 0,
+      canceladas: Number(neg.cancelada)  || 0,
+      reubicadas: Number(neg.reagendada) || 0,   // citas movidas por el bot en vez de perderse
+      confSi:     Number(neg.conf_si)    || 0,
+      confNo:     Number(neg.conf_no)    || 0,
+      optout:     Number(neg.optout)     || 0,
     };
 
     // ── Salud del caché del prompt ──
@@ -415,6 +416,10 @@ const CHIP_UMBRAL = {
 async function saludChip(dias, chipId = CHIP_DEFAULT) {
   const cfg = (await chipRef(chipId).get()).data() || null;
   if (!cfg) return null;   // el chip nunca se vinculó: nada que vigilar
+  // Apagado a propósito (cfg.apagado, ej. chip2 desde el 31-jul): no se
+  // vigila. Una alerta roja permanente por algo decidido entrena a ignorar
+  // las alertas el día que una sí importe.
+  if (cfg.apagado === true) return null;
 
   const snaps = await Promise.all(
     dias.map((d) => cuotaRefChip(chipId, d).get()),

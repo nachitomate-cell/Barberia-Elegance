@@ -833,6 +833,13 @@ exports.waNotifEstado = onCall(async (req) => {
     ventanaAbierta,
     ventanaHasta: wa.ventanaAbiertaHasta ? wa.ventanaAbiertaHasta.toDate().toISOString() : null,
     planCliente: wa.planCliente === true,
+    planRecordatorio: wa.planRecordatorio === true,
+    // Presupuesto del plan pagado — precio y link de pago (Mercado Pago de
+    // SynapTech). Viven en _system/whatsapp_notif para poder ajustarlos sin
+    // deploy: planClientePrecio (CLP/mes) y planClienteLinkMp (link de pago).
+    planPrecio:   Number(cfg.planClientePrecio) || null,
+    planLinkPago: typeof cfg.planClienteLinkMp === 'string' && /^https:\/\//.test(cfg.planClienteLinkMp)
+      ? cfg.planClienteLinkMp : null,
     activadoEn: wa.activadoEn ? wa.activadoEn.toDate().toISOString() : null,
   };
 });

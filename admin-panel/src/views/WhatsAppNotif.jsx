@@ -95,6 +95,11 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
 
   const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y quiero activar las confirmaciones automáticas por WhatsApp para mis clientes (plan pagado). ¿Me cuentas cómo funciona?`;
+  const pagoMsg    = `Hola SynapTech, soy de *${tenant?.name || tenantId}*. Acabo de pagar el plan de confirmaciones oficiales de WhatsApp por Mercado Pago. ¿Me lo activan?`;
+  // Presupuesto: precio y link de pago vienen de waNotifEstado (los fija
+  // SynapTech en _system/whatsapp_notif, sin deploy). Sin link → solo CTA.
+  const planPrecio   = Number(estado?.planPrecio) || null;
+  const planLinkPago = estado?.planLinkPago || null;
 
   if (loading) {
     return (
@@ -150,13 +155,59 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                   Activo — tus clientes reciben la confirmación automáticamente al reservar.
                 </div>
               ) : (
-                <a
-                  href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(upgradeMsg)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]"
-                >
-                  <MessageCircle size={16} /> Solicitar activación
-                </a>
+                /* ── Presupuesto activable ── */
+                <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.05] overflow-hidden">
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-100">Confirmaciones oficiales</p>
+                      {planPrecio ? (
+                        <p className="text-right shrink-0">
+                          <span className="text-xl font-bold text-slate-50">${planPrecio.toLocaleString('es-CL')}</span>
+                          <span className="text-[11px] text-slate-500"> /mes</span>
+                        </p>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 shrink-0">precio a convenir</span>
+                      )}
+                    </div>
+                    <ul className="space-y-1.5 text-[12.5px] text-slate-300">
+                      {[
+                        'Confirmación oficial al cliente apenas reserva',
+                        'Recordatorio automático 24 horas antes de la cita',
+                        'Sale por el número verificado de la plataforma: tu número no corre riesgo',
+                      ].map((t, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-violet-400 shrink-0 mt-0.5" />
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="px-4 pb-4 space-y-2">
+                    {planLinkPago && (
+                      <a
+                        href={planLinkPago}
+                        target="_blank" rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]"
+                      >
+                        Activar y pagar con Mercado Pago
+                      </a>
+                    )}
+                    <a
+                      href={`https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(planLinkPago ? pagoMsg : upgradeMsg)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className={planLinkPago
+                        ? 'w-full inline-flex items-center justify-center gap-2 border border-white/10 hover:border-white/25 text-slate-300 hover:text-white text-[13px] font-semibold px-5 py-2.5 rounded-full transition-colors'
+                        : 'w-full inline-flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-bold px-5 py-3 rounded-full transition-all active:scale-[0.98] shadow-[0_6px_20px_-8px_rgba(139,92,246,0.6)]'}
+                    >
+                      <MessageCircle size={15} /> {planLinkPago ? 'Ya pagué / tengo una duda' : 'Solicitar activación'}
+                    </a>
+                    {planLinkPago && (
+                      <p className="text-[11px] text-slate-500 leading-relaxed text-center">
+                        Después del pago, la activación se confirma dentro del mismo día.
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
