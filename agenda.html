@@ -1743,9 +1743,16 @@
                 .where('fecha', '>=', desdeStr)
                 .where('fecha', '<=', hoyStr);
             _unsubPorCerrar = q.onSnapshot(snap => {
+                // 'Pendiente' cuenta igual que 'Confirmada': las dos son citas
+                // en pie sin cerrar. Desde que la casilla de WhatsApp decide el
+                // estado inicial, la mayoría de las reservas online nacen ámbar
+                // — filtrando solo 'Confirmada' el banner se quedaba mudo justo
+                // con las citas que sí hay que cobrar. Mismo criterio en
+                // PendingAppointmentsBanner.jsx y CitasPorCerrar.jsx.
+                const EN_PIE = ['Confirmada', 'Pendiente'];
                 const items = snap.docs
                     .map(d => ({ id: d.id, ...d.data() }))
-                    .filter(c => c.barberoId === uid && c.estado === 'Confirmada' && _citaYaPaso(c));
+                    .filter(c => c.barberoId === uid && EN_PIE.includes(c.estado) && _citaYaPaso(c));
                 // Más recientes primero: lo que acaba de terminar es lo más urgente.
                 items.sort((a, b) => (b.fecha + (b.hora || '')).localeCompare(a.fecha + (a.hora || '')));
                 renderBannerPorCerrar(items);

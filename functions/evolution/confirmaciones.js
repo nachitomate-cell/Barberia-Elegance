@@ -324,29 +324,72 @@ exports.evolutionConfirmaciones = onSchedule(
    que quedar bien en los tres casos. (Mismo patrón que ya nos mordió con los
    doc-espejo de roles y con las storage rules por tenant.)
 
-   Nota: cuando el canal OFICIAL de Meta entre en producción, este flag debe
-   pasar a ser un OR de ambos canales — hoy solo Evolution está vivo. */
+   Es un OR de los DOS canales que le escriben al cliente, porque a la casilla
+   solo le importa "¿va a salir un WhatsApp?", no cuál número lo manda:
+
+     · el número PROPIO del local  → configuracion/whatsapp.confirmacionesEnabled
+     · el chip de SynapTech        → _system/{tid}.waPlataforma
+
+   Sin el segundo, Kronnos —que usa el chip nuestro y no tiene número propio
+   vinculado— nunca mostraba la casilla, así que el canal quedaba dependiendo
+   de waPlataformaOptInImplicito: mandar sin haber preguntado. Justo lo que
+   hay que evitar. Falta el canal oficial de Meta; cuando entre, se suma acá
+   y en ninguna otra parte.
+
+   El OR se calcula UNA vez y los dos triggers la llaman: si cada uno espejara
+   su propio flag, el último en escribir apagaría el canal del otro. */
+async function recomputarEspejoConfirmaciones(tid) {
+  // elegance vive en la raíz de Firestore, no bajo tenants/.
+  const raiz    = tid === 'elegance';
+  const waRef   = raiz ? db.doc('configuracion/whatsapp') : db.doc(`tenants/${tid}/configuracion/whatsapp`);
+  const destino = raiz ? db.doc('configuracion/main')     : db.doc(`tenants/${tid}/configuracion/main`);
+
+  const [waSnap, sysSnap] = await Promise.all([
+    waRef.get().catch(() => null),
+    db.doc(`_system/${tid}`).get().catch(() => null),
+  ]);
+
+  const propio     = (waSnap?.data()  || {}).confirmacionesEnabled === true;
+  const plataforma = (sysSnap?.data() || {}).waPlataforma          === true;
+  const activo     = propio || plataforma;
+
+  await destino.set({ waConfirmActivo: activo }, { merge: true });
+  logger.info(`[confirm:espejo] ${tid}: waConfirmActivo=${activo} (propio=${propio} plataforma=${plataforma})`);
+}
+
 exports.espejoFlagConfirmaciones = onDocumentWritten(
   { document: 'tenants/{tid}/configuracion/whatsapp', region: 'us-central1' },
   async (event) => {
-    const tid    = event.params.tid;
-    const antes  = event.data?.before?.data() || {};
-    const ahora  = event.data?.after?.data()  || {};
+    const antes = event.data?.before?.data() || {};
+    const ahora = event.data?.after?.data()  || {};
     if (antes.confirmacionesEnabled === ahora.confirmacionesEnabled) return; // sin cambio real
+    await recomputarEspejoConfirmaciones(event.params.tid)
+      .catch(e => logger.error(`[confirm:espejo] ${event.params.tid}:`, e.message));
+  },
+);
 
-    const activo = ahora.confirmacionesEnabled === true;
-    // elegance vive en la raíz de Firestore, no bajo tenants/.
-    const destino = tid === 'elegance'
-      ? db.doc('configuracion/main')
-      : db.doc(`tenants/${tid}/configuracion/main`);
+/* Segundo disparador: el módulo del chip de SynapTech se enciende desde /admin
+   escribiendo _system/{tid}, que este trigger observa.
 
-    await destino.set({ waConfirmActivo: activo }, { merge: true }).catch(e =>
-      logger.error(`[confirm:espejo] ${tid}:`, e.message));
-    logger.info(`[confirm:espejo] ${tid}: waConfirmActivo=${activo}`);
+   Ojo con el path: /_system NO es solo el índice de tenants — ahí viven también
+   docs de infraestructura (wa_plataforma con la sesión del chip, qaBarbero…).
+   El guard es que `waPlataforma` haya CAMBIADO: en esos docs el campo no existe
+   ni antes ni después, así que salen por la puerta de al lado sin que haya que
+   mantener una lista de ids a mano —que es justo la clase de lista espejo que
+   se desactualiza. */
+exports.espejoFlagConfirmacionesPlataforma = onDocumentWritten(
+  { document: '_system/{tid}', region: 'us-central1' },
+  async (event) => {
+    const antes = event.data?.before?.data() || {};
+    const ahora = event.data?.after?.data()  || {};
+    if (antes.waPlataforma === ahora.waPlataforma) return;
+    await recomputarEspejoConfirmaciones(event.params.tid)
+      .catch(e => logger.error(`[confirm:espejo:plataforma] ${event.params.tid}:`, e.message));
   },
 );
 
 // Para tests locales (scripts con Admin SDK): no es parte del API público.
+module.exports._recomputarEspejo            = recomputarEspejoConfirmaciones;
 module.exports._escanearTodos               = escanearTodos;
 module.exports._procesarConfirmacionesTenant = procesarConfirmacionesTenant;
 module.exports._enviarConfirmacion          = enviarConfirmacion;

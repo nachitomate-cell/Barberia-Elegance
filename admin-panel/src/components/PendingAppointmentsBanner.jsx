@@ -150,8 +150,16 @@ export default function PendingAppointmentsBanner() {
     if (!citas) return [];
 
     return citas.filter(cita => {
-      // Solo estado 'Confirmada' aún sin cerrar → candidata a cierre.
-      if (cita.estado !== 'Confirmada') return false;
+      // Citas en pie y aún sin cerrar → candidatas a cierre.
+      //
+      // 'Pendiente' cuenta igual que 'Confirmada'. Antes solo se miraba
+      // 'Confirmada' porque el ámbar era rarísimo (lo ponía el bot y nada más);
+      // desde que la casilla de WhatsApp decide el estado inicial, la mayoría
+      // de las reservas online nacen ámbar. Sin esto, el cliente que pidió el
+      // recordatorio y no alcanzó a contestar se atendía, quedaba sin cerrar y
+      // el aviso nunca se lo recordaba al barbero — plata que no se registra.
+      // Misma lista que CitasPorCerrar.jsx, que ya la tenía bien.
+      if (cita.estado !== 'Confirmada' && cita.estado !== 'Pendiente') return false;
 
       // Defensivos: si la cita ya lleva señales de haber sido cerrada por el
       // barbero (metodoPago cargado, sello procesado, cierre masivo), no la

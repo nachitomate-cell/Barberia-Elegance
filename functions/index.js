@@ -1633,9 +1633,13 @@ exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenant
 
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
-// Espeja configuracion/whatsapp.confirmacionesEnabled → configuracion/main.waConfirmActivo,
-// que es el flag público que la agenda usa para mostrar la casilla de consentimiento.
+// Espejan → configuracion/main.waConfirmActivo, el flag público con el que la
+// agenda decide si muestra la casilla de consentimiento. Es un OR de los dos
+// canales que le escriben al cliente y por eso son DOS triggers sobre el mismo
+// cálculo: el número propio del local (configuracion/whatsapp) y el chip de
+// SynapTech (_system/{tid}.waPlataforma).
 exports.espejoFlagConfirmaciones = evolutionConfirmaciones.espejoFlagConfirmaciones;
+exports.espejoFlagConfirmacionesPlataforma = evolutionConfirmaciones.espejoFlagConfirmacionesPlataforma;
 
 // Salud de sesiones Evolution: alerta por email (SynapTech + dueño) cuando el
 // WhatsApp de un local con bot/confirmaciones lleva >20 min desconectado —

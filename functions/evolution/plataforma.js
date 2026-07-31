@@ -500,9 +500,14 @@ async function procesarCiclo({ evoClient }) {
       for (const doc of snap.docs) {
         const cita = doc.data() || {};
 
-        // 'Pendiente'  → nació esperando confirmación (bot/agenda interna).
-        // 'Confirmada' → el cliente la agendó él mismo: no hay que pedirle que
-        //   confirme de nuevo, pero sí recordarle y dejarle cancelar.
+        // 'Pendiente'  → el cliente pidió el WhatsApp y todavía no contesta.
+        //   Desde que la casilla de la reserva decide el estado inicial
+        //   (estadoInicialCita en firebaseUtils.js), ámbar significa
+        //   exactamente eso. También lo pone el bot al agendar.
+        // 'Confirmada' → no hay nada que preguntar: o no marcó la casilla —y
+        //   entonces el filtro de consentimiento de más abajo la descarta— o la
+        //   reservó con menos de 12 h de anticipación. En ese caso sí se le
+        //   escribe, pero como recordatorio, no como pregunta.
         const estado = String(cita.estado || '');
         if (estado !== 'Pendiente' && estado !== 'Confirmada') continue;
 
@@ -511,9 +516,20 @@ async function procesarCiclo({ evoClient }) {
         if (cita.origenQA)                     continue;   // barbero fantasma
         if (typeof cita.hora !== 'string' || !cita.hora.includes(':')) continue;
 
-        // Consentimiento: por defecto la casilla explícita de la reserva.
-        // optInImplicito la releva SOLO para mensajes transaccionales sobre la
-        // cita del propio titular. El opt-out global nunca se releva.
+        // Consentimiento: la casilla explícita de la reserva y nada más.
+        //
+        // optInImplicito existía porque la casilla no se mostraba en los
+        // locales que usan el chip de SynapTech: waConfirmActivo solo miraba el
+        // número propio del local, así que sin este bypass no salía un solo
+        // mensaje. Eso se arregló en el espejo (evolution/confirmaciones.js) y
+        // el bypass quedó APAGADO en todos los tenants: mandarle a alguien que
+        // no lo pidió es lo que se lleva el número por delante, y además hace
+        // indistinguible quién aceptó de quién no.
+        //
+        // Sigue en el código para el caso de reservas que no pasan por la
+        // agenda pública (carga manual, migración), donde no hay casilla que
+        // marcar. No es una perilla de volumen. El opt-out global nunca se
+        // releva, ni con esto encendido.
         if (cita.waOptIn !== true && !optInImplicito) continue;
 
         const tel = normalizeCl(cita.clienteTelefono);

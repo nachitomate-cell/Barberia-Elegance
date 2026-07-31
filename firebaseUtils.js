@@ -6,6 +6,44 @@
 'use strict';
 
 /* ════════════════════════════════════════════════════════════════
+   Estado inicial de una cita nueva — lo decide el opt-in de WhatsApp
+   ════════════════════════════════════════════════════════════════
+
+   Marcó la casilla → le vamos a PREGUNTAR si viene, así que la cita nace
+   'Pendiente' (ámbar en la agenda) y pasa sola a 'Confirmada' cuando responde.
+   No la marcó → no hay nada que esperar: nace 'Confirmada' y el aviso le llega
+   por correo. El ámbar deja de ser decorativo: significa "falta que conteste".
+
+   El corte de 12 horas es el mismo que ya usa el bot (evolution/cerebro.js):
+   para una cita de aquí a un rato no alcanza a haber ida y vuelta, y dejarla
+   ámbar solo confunde al barbero. Ahí nace confirmada y el WhatsApp que reciba
+   será un recordatorio, no una pregunta.
+
+   Vive en el scope del archivo, fuera de FDB, porque la usan los DOS caminos
+   que crean citas públicas (addCita y addCitasGrupo). Duplicar la regla en
+   cada uno es exactamente cómo se desincronizan las listas espejo.
+
+   Sin waOptIn (staff cargando a mano, imports, pasarelas) devuelve
+   'Confirmada' — o sea, el comportamiento de siempre. */
+function estadoInicialCita(cita) {
+  if (!cita || cita.waOptIn !== true) return 'Confirmada';
+  try {
+    // Sin hora parseable no se puede saber si alcanza la ida y vuelta. Vale la
+    // pena el guard explícito: sin él, `''.split(':')` cae a medianoche y una
+    // cita rota se iba a 'Pendiente' — ámbar eterno, porque el cron descarta
+    // igual las citas sin hora y nunca llega a preguntar nada.
+    if (!/^\d{1,2}:\d{2}/.test(String(cita.hora || ''))) return 'Confirmada';
+    const [h, m] = String(cita.hora).split(':').map(Number);
+    const cuando = new Date(`${cita.fecha}T00:00:00`);
+    if (isNaN(cuando.getTime())) return 'Confirmada';
+    cuando.setHours(h || 0, m || 0, 0, 0);
+    return (cuando.getTime() - Date.now()) / 3600000 > 12 ? 'Pendiente' : 'Confirmada';
+  } catch (_) {
+    return 'Confirmada';   // ante la duda, el estado de siempre
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    FDB — API de Firestore (equivalente a firebaseUtils.js en React)
    ════════════════════════════════════════════════════════════════ */
 const FDB = (() => {
@@ -718,7 +756,9 @@ const FDB = (() => {
       precio:           Number(cita.precio)   || 0,
       barbero:          cita.barbero          || '',
       barberoId:        cita.barberoId        || null,
-      estado:           'Confirmada',
+      // 'Pendiente' si el cliente pidió el WhatsApp (hay que esperar su
+      // respuesta), 'Confirmada' si no. Ver estadoInicialCita().
+      estado:           estadoInicialCita(cita),
       nota:             '',
       origen:           cita.origen || (esSobrecupo ? 'reserva_online_sobrecupo' : 'reserva_online'),
       codigoCita:       codigoCitaFinal,
@@ -946,7 +986,14 @@ const FDB = (() => {
           precio:           Number(base.precio) || 0,
           barbero:          it.barbero,
           barberoId:        it.barberoId,
-          estado:           'Confirmada',
+          // Misma regla que la reserva individual. Como el opt-in es solo del
+          // reservante, sus acompañantes nacen 'Confirmada': a ellos no se les
+          // va a preguntar nada.
+          estado:           estadoInicialCita({
+            fecha:   base.fecha,
+            hora:    base.hora,
+            waOptIn: esPrincipal && base.waOptIn === true,
+          }),
           nota:             '',
           origen:           'reserva_online_grupo',
           codigoCita:       esPrincipal && base.codigoCita ? base.codigoCita : _genCodigo(),

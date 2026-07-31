@@ -993,18 +993,29 @@
           <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" class="booking-input">
         </div>
 
-        <!-- Doble opt-in de WhatsApp. Oculto salvo que el local tenga las
-             confirmaciones activas (configuracion/main.waConfirmActivo). El id
-             `waOptInCheck` es contrato con ReservaCore.waOptInMarcado(): si se
-             renombra acá y no allá, esta página deja de pedir consentimiento
-             en silencio. -->
-        <label id="waOptInWrap" class="hidden items-start gap-3 pt-1 cursor-pointer group">
+        <!-- Doble opt-in de WhatsApp. Oculto salvo que el local tenga algún
+             canal de confirmaciones activo (configuracion/main.waConfirmActivo,
+             que la CF espeja desde el número propio del local Y desde el chip
+             de SynapTech). El id `waOptInCheck` es contrato con
+             ReservaCore.waOptInMarcado(): si se renombra acá y no allá, esta
+             página deja de pedir consentimiento en silencio.
+
+             Marcarla también decide que la cita nazca 'Pendiente' (ámbar) en
+             vez de 'Confirmada' — hay una respuesta que esperar. La regla es
+             una sola: estadoInicialCita() en firebaseUtils.js.
+
+             Espejo textual de index.html a propósito: es la misma decisión para
+             el mismo cliente y tiene que leerse igual en las dos páginas. -->
+        <label id="waOptInWrap" class="hidden items-start gap-3 p-4 rounded-2xl cursor-pointer group transition-colors"
+               style="background:#0a0807;border:1px solid rgba(255,255,255,0.08);">
           <input type="checkbox" id="waOptInCheck"
             class="mt-0.5 w-[18px] h-[18px] shrink-0 rounded-md border border-white/20 bg-[#0a0a0d] accent-white cursor-pointer">
-          <span class="text-[11px] text-gray-400 leading-relaxed select-none group-hover:text-gray-300 transition-colors">
-            Quiero recibir la confirmación y el recordatorio de <b class="text-white/80">esta cita</b> por
-            <b class="text-white/80">WhatsApp</b>. Puedes darte de baja cuando quieras respondiendo
-            <b class="text-white/80">STOP</b>.
+          <span class="text-[12px] text-gray-400 leading-relaxed select-none group-hover:text-gray-300 transition-colors">
+            <b class="block text-white/90 mb-0.5">Avísame por WhatsApp
+              <span class="font-normal text-gray-600">· opcional</span></b>
+            Te escribimos solo por <b class="text-white/70">esta cita</b>: el recordatorio y el enlace por si
+            necesitas cancelar. Si no la marcas, igual te llega todo a tu <b class="text-white/70">correo</b>.
+            <span class="block mt-1 text-[10.5px] text-gray-600">Puedes darte de baja cuando quieras respondiendo STOP.</span>
           </span>
         </label>
       </div>
