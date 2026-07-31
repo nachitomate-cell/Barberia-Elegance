@@ -27,6 +27,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule }                    = require('firebase-functions/v2/scheduler');
 const { defineSecret }                  = require('firebase-functions/params');
 const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
@@ -122,6 +123,44 @@ exports.waBolsaCrearLink = onCall(
 
     logger.info(`[wa-bolsa] link creado tid=${tid} bolsa=${bolsa.id} ($${bolsa.precioConIva} IVA inc.)`);
     return { ok: true, initPoint: j.init_point, bolsa };
+  },
+);
+
+/* ─────────────── 1.5) Cupo mensual incluido (tratos tipo Renacer) ───────────
+   Tenants con `wa_notif/{tid}.bolsaMensualIncluida = N` tienen N mensajes/mes
+   DENTRO de su mensualidad. El día 1 el saldo se REPONE HASTA N — dos reglas
+   anti-quiebra, deliberadas:
+     · NO se acumula: lo que no usó en el mes se pierde (como toda bolsa de
+       telefonía). Sumar en vez de reponer dejaría a un tenant inactivo
+       juntando saldo gratis que después es costo Meta real, todo junto.
+     · NUNCA se pisa saldo mayor: si compró bolsas y tiene 250, se queda con
+       250 — lo pagado no expira. El costo regalado queda acotado a N×$19/mes. */
+
+exports.waBolsaReponerMensual = onSchedule(
+  { schedule: '0 6 1 * *', timeZone: 'America/Santiago', region: 'us-central1' },
+  async () => {
+    const refs = await db.collection('wa_notif').listDocuments();
+    let repuestos = 0;
+    for (const ref of refs) {
+      try {
+        await db.runTransaction(async (tx) => {
+          const s = await tx.get(ref);
+          const d = s.data() || {};
+          const incluida = Math.round(Number(d.bolsaMensualIncluida) || 0);
+          if (incluida <= 0) return;
+          const saldo = Number(d.bolsaSaldo) || 0;
+          if (saldo >= incluida) return;   // compró bolsas o no gastó: no se toca
+          tx.set(ref, {
+            bolsaSaldo:       incluida,
+            bolsaRepuestaEn:  FieldValue.serverTimestamp(),
+          }, { merge: true });
+          repuestos++;
+        });
+      } catch (e) {
+        logger.error(`[wa-bolsa] reposición ${ref.id}:`, e.message);
+      }
+    }
+    logger.info(`[wa-bolsa] reposición mensual: ${repuestos} tenant(s) repuestos a su cupo incluido`);
   },
 );
 

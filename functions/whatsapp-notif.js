@@ -875,6 +875,9 @@ exports.waNotifEstado = onCall(async (req) => {
     bolsas:      require('./wa-bolsas')._bolsasDe(cfg),
     bolsaSaldo:  Number(wa.bolsaSaldo)  || 0,
     bolsaUsados: Number(wa.bolsaUsados) || 0,
+    // Cupo mensual incluido en la mensualidad (tratos a medida): se repone
+    // hasta N el día 1 (cron waBolsaReponerMensual), no se acumula.
+    bolsaMensual: Number(wa.bolsaMensualIncluida) || 0,
     activadoEn: wa.activadoEn ? wa.activadoEn.toDate().toISOString() : null,
   };
 });

@@ -180,6 +180,11 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                       {bolsaSaldo} <span className="text-[11px] font-normal text-slate-500">mensaje{bolsaSaldo === 1 ? '' : 's'}</span>
                     </span>
                   </div>
+                  {Number(estado?.bolsaMensual) > 0 && (
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Tu plan incluye <b className="text-slate-300">{estado.bolsaMensual} mensajes al mes</b>: el cupo se repone cada día 1 (no se acumula; lo que compres aparte no vence).
+                    </p>
+                  )}
                   {saldoBajo && (
                     <p className="text-[11px] text-amber-300/90 leading-relaxed">
                       Quedan pocos mensajes: recarga abajo para que las confirmaciones no se detengan.

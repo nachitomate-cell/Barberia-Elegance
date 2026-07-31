@@ -1607,8 +1607,9 @@ exports.recordatorioCitaMeta         = whatsappNotif.recordatorioCitaMeta;
 // Bolsas de mensajes del canal oficial (compra por Mercado Pago + webhook
 // que acredita el saldo y activa el plan solo). Ver functions/wa-bolsas.js.
 const waBolsas = require('./wa-bolsas');
-exports.waBolsaCrearLink = waBolsas.waBolsaCrearLink;
-exports.waBolsaWebhook   = waBolsas.waBolsaWebhook;
+exports.waBolsaCrearLink      = waBolsas.waBolsaCrearLink;
+exports.waBolsaWebhook        = waBolsas.waBolsaWebhook;
+exports.waBolsaReponerMensual = waBolsas.waBolsaReponerMensual;
 
 // ─────────────────────────────────────────────────────────────────
 //  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del
