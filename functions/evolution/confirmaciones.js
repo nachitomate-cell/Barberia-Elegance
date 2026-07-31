@@ -56,14 +56,37 @@ function sumarDias(fecha, n) {
 }
 
 /** Normaliza a formato internacional CL (56 9 XXXXXXXX) para Evolution. */
+/* Teléfono chileno a formato E.164 sin el '+'  →  569XXXXXXXX (11 dígitos).
+   Devuelve null si NO se puede formar un móvil chileno válido.
+
+   Los dos últimos casos eran un "prefija 56 y reza": un número tecleado con un
+   dígito de más (569 + 9 dígitos, típico al copiar desde otra agenda) salía
+   como 5692235018839 —13 dígitos— y el cron intentaba enviarle. Que no llegue
+   a nadie depende de que verificarNumeros responda a tiempo, y ese chequeo
+   tiene un `catch` que envía igual si el VPS falla. O sea: la única defensa
+   real contra un teléfono mal escrito estaba en el camino feliz.
+
+   Ahora un número que no cuadra se descarta acá y la cita queda marcada como
+   `waNumeroInvalido` río abajo. Perder un recordatorio por un teléfono mal
+   escrito es barato; mandárselo a un desconocido, no. */
 function normalizeCl(phone) {
-  let n = String(phone || '').replace(/\D/g, '');
+  const n = String(phone || '').replace(/\D/g, '');
   if (!n) return null;
-  if (n.length === 11 && n.startsWith('569')) return n;
-  if (n.length === 9  && n.startsWith('9'))   return '56' + n;
-  if (n.length === 8)                         return '569' + n;
-  if (n.startsWith('56'))                     return n;
-  return '56' + n;
+
+  // Solo se COMPLETA lo que falta sin ambigüedad; nunca se reordena ni se
+  // recorta. Un 5692235018 (10 dígitos) podría ser un 56 + 8 al que le falta
+  // el 9, o un móvil con un dígito comido: adivinar produce un número VÁLIDO
+  // pero de otra persona, que es peor que no enviar. Cae al descarte.
+  let e164;
+  if      (n.length === 11 && n.startsWith('569')) e164 = n;         // ya viene bien
+  else if (n.length === 9  && n.startsWith('9'))   e164 = '56' + n;  // 9XXXXXXXX
+  else if (n.length === 8)                         e164 = '569' + n; // sin el 9 inicial
+  else if (n.startsWith('56'))                     e164 = n;         // se valida abajo
+  else                                             e164 = '56' + n;
+
+  // Único formato aceptable: 56 + 9 + 8 dígitos. Cualquier otra cosa es un
+  // teléfono mal escrito, no un formato exótico que haya que adivinar.
+  return /^569\d{8}$/.test(e164) ? e164 : null;
 }
 
 function fechaBonita(fecha) {
