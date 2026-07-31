@@ -108,24 +108,37 @@ function estaCobrado(item) {
 }
 
 /* ── KPI Card ─────────────────────────────────────────────── */
+// Glass container común para todos los KPIs: fondo casi transparente sobre el
+// dark base de la app (NO cambia el bg global — respeta la regla) + hair-line
+// blanca sutil. El color semántico vive SOLO en el número y en un glow radial
+// muy difuminado en la esquina sup-der — señal de estado sin gritar.
 function KpiCard({ icon: Icon, label, value, color = 'emerald', sub }) {
-  const colors = {
-    emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400',
-    amber:   'from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400',
-    blue:    'from-blue-500/20 to-blue-500/5 border-blue-500/30 text-blue-400',
-    rose:    'from-rose-500/20 to-rose-500/5 border-rose-500/30 text-rose-400',
-    purple:  'from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400',
-    cyan:    'from-cyan-500/20 to-cyan-500/5 border-cyan-500/30 text-cyan-400',
+  // rgba(r,g,b) por color — se usa en el radial-gradient y en el texto del valor.
+  // Alpha muy baja (0.06) para que el glow sea insinuación, no protagonista.
+  const glow = {
+    emerald: { rgb: '52,211,153',  text: 'text-emerald-300', icon: 'text-emerald-400/70' },
+    amber:   { rgb: '251,191,36',  text: 'text-amber-300',   icon: 'text-amber-400/70'   },
+    blue:    { rgb: '96,165,250',  text: 'text-sky-300',     icon: 'text-sky-400/70'     },
+    rose:    { rgb: '244,63,94',   text: 'text-rose-300',    icon: 'text-rose-400/70'    },
+    purple:  { rgb: '167,139,250', text: 'text-violet-300',  icon: 'text-violet-400/70'  },
+    cyan:    { rgb: '34,211,238',  text: 'text-cyan-300',    icon: 'text-cyan-400/70'    },
   };
-  const c = colors[color] || colors.emerald;
+  const g = glow[color] || glow.emerald;
   return (
-    <div className={`bg-gradient-to-br ${c} border rounded-2xl p-4 backdrop-blur-sm`}>
-      <div className="flex items-center gap-2 mb-2">
-        <Icon size={16} className="opacity-80" />
-        <span className="text-[11px] font-bold uppercase tracking-wider opacity-70">{label}</span>
+    <div
+      className="relative overflow-hidden rounded-2xl border border-white/[0.05] p-4 backdrop-blur-sm"
+      style={{
+        // Glass base sobre el fondo dark de la app (transparente al bg global).
+        background: `linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+                     radial-gradient(circle at top right, rgba(${g.rgb},0.08), transparent 55%)`,
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2 relative">
+        <Icon size={16} className={g.icon} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
       </div>
-      <p className="text-2xl font-black tracking-tight">{value}</p>
-      {sub && <p className="text-[11px] mt-1 opacity-60">{sub}</p>}
+      <p className={`text-2xl font-black tracking-tight tabular-nums ${g.text}`}>{value}</p>
+      {sub && <p className="text-[11px] mt-1 text-slate-500">{sub}</p>}
     </div>
   );
 }
@@ -442,23 +455,33 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
     ? sesion.fechaApertura.toDate().toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })
     : '—';
 
+  // Encabezado de sección con hair-line — reemplaza el LINEA plano por una
+  // línea blanca 5% que integra con el resto del glass.
   const seccion = (n, titulo) => (
     <div className="flex items-center gap-2 mb-2">
       <span className="text-[10px] font-bold text-slate-600 tabular-nums">{n}</span>
       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{titulo}</span>
-      <div className={`flex-1 h-px ${LINEA}`} />
+      <div className="flex-1 h-px bg-white/[0.05]" />
     </div>
   );
+  // Fila de resumen: flex space-between estricto — label izq, monto der,
+  // divisor sutil abajo (blanco 5%). Sin puntos ni conectores visuales.
   const fila = (label, valor, cls) => (
-    <div className={`flex items-center justify-between py-1.5 border-b last:border-0 ${BRD}`}>
+    <div className="flex justify-between items-center py-1.5 border-b border-white/[0.05] last:border-0">
       <span className="text-xs text-slate-400">{label}</span>
       <span className={`text-xs font-semibold tabular-nums ${cls || 'text-primary'}`}>{valor}</span>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`w-full max-w-lg h-full border-l shadow-2xl flex flex-col animate-slide-in-right ${SUP_DRAWER} ${BRD_FUERTE}`}>
+    // Backdrop con blur real de 5px — el resto de la app se difumina detrás
+    // (sensación de profundidad Apple/iOS-style).
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/50"
+      style={{ backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className={`w-full max-w-lg h-full border-l flex flex-col animate-slide-in-right ${SUP_DRAWER} border-white/[0.05]`}>
         {/* Cabecera */}
         <div className={`p-5 pb-4 border-b shrink-0 ${BRD}`}>
           <div className="flex items-start justify-between gap-3">
@@ -2817,58 +2840,86 @@ export default function Caja() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Vuelta a la agenda — ver nota en el atajo de ida (Agenda.jsx). */}
-          <Link to="/agenda" title="Ir a la agenda" className="flex items-center gap-1.5 px-3 py-2 border border-slate-700 text-slate-400 hover:text-primary hover:border-slate-600 rounded-xl text-xs font-bold transition-colors">
-            <CalendarDays size={14} /> Agenda
+          {/* Ghost glass consistente en TODA la fila — el CTA principal (Vender)
+              rompe con fill mate, todo lo demás es cristal con hair-line + ícono
+              tintado en el color semántico. Zero shadows: la jerarquía sale del
+              fill sólido vs. cristal, no de glows. */}
+          <Link
+            to="/agenda"
+            title="Ir a la agenda"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-slate-300 hover:bg-white/[0.05] hover:text-primary rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
+            <CalendarDays size={14} className="text-slate-400" /> Agenda
           </Link>
-          <button onClick={() => setShowReporteContador(true)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-primary rounded-xl text-xs font-bold transition-colors">
-            <FileText size={14} /> Contador
+          <button
+            onClick={() => setShowReporteContador(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-slate-300 hover:bg-white/[0.05] hover:text-primary rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
+            <FileText size={14} className="text-slate-400" /> Contador
           </button>
-          <button onClick={() => setShowConciliacion(true)} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-xl text-xs font-bold transition-colors">
+          <button
+            onClick={() => setShowConciliacion(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-cyan-400 hover:bg-white/[0.05] rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
             <ListChecks size={14} /> Conciliar
           </button>
-          {/* Vender: CTA principal — filled emerald para destacar sobre los ghost buttons */}
+          {/* Vender — CTA principal · System Green mate, sin glow */}
           <button
             onClick={() => setShowVender(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black tracking-wide shadow-lg shadow-emerald-500/30 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black tracking-wide transition-colors"
           >
             <ShoppingCart size={14} /> Vender
           </button>
-          <button onClick={() => setShowIngreso(true)} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500/20 transition-colors">
+          <button
+            onClick={() => setShowIngreso(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-emerald-400 hover:bg-white/[0.05] rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
             <ArrowDownCircle size={14} /> Ingreso
           </button>
-          <button onClick={() => setShowEgreso(true)} className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500/20 transition-colors">
+          <button
+            onClick={() => setShowEgreso(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-rose-400 hover:bg-white/[0.05] rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
             <ArrowUpCircle size={14} /> Egreso
           </button>
-          <button onClick={() => setShowCorteX(true)} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-xl text-xs font-bold hover:bg-indigo-500/20 transition-colors">
+          <button
+            onClick={() => setShowCorteX(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-indigo-300 hover:bg-white/[0.05] rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
             <Scissors size={14} /> Corte X
           </button>
-          <button onClick={() => setShowCierre(true)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-bold hover:bg-amber-500/20 transition-colors">
+          <button
+            onClick={() => setShowCierre(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] text-amber-400 hover:bg-white/[0.05] rounded-xl text-xs font-bold transition-colors backdrop-blur-sm"
+          >
             <Lock size={14} /> Cerrar Caja
           </button>
         </div>
       </div>
 
       {/* Alerta CRÍTICA: caja olvidada de un día anterior */}
+      {/* Glass rojo translúcido — señal fuerte SIN pegar en la retina. El
+          borde sutil y la ausencia de shadow-glow es lo que da el aire premium.
+          El botón "Cerrar ahora" mantiene fill rojo pero mate (sin shadow). */}
       {sesionOlvidada && (
-        <div className="bg-rose-500/15 border-2 border-rose-500/50 rounded-xl px-4 py-4 flex items-start gap-3 shadow-lg shadow-rose-500/10">
-          <AlertTriangle size={22} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+        <div className="rounded-xl px-4 py-4 flex items-start gap-3 border border-rose-500/20 bg-rose-500/[0.06] backdrop-blur-sm">
+          <AlertTriangle size={22} className="text-rose-400/90 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-base font-black text-rose-300">
+            <p className="text-base font-black text-rose-200">
               Caja abierta desde {sesionOlvidada.fechaLabel}
               {sesionOlvidada.diasAtras >= 1 && (
-                <span className="ml-2 text-xs font-bold uppercase tracking-wider bg-rose-500/30 text-rose-200 px-2 py-0.5 rounded-full">
+                <span className="ml-2 text-[10px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-200 px-2 py-0.5 rounded-full border border-rose-500/20">
                   hace {sesionOlvidada.diasAtras} {sesionOlvidada.diasAtras === 1 ? 'día' : 'días'}
                 </span>
               )}
             </p>
-            <p className="text-xs text-rose-200/80 mt-1">
-              Se abrió a las {sesionOlvidada.horaLabel}. Los KPIs de abajo <strong>solo cuentan movimientos de hoy</strong> — no incluyen ventas/gastos de los días anteriores de esta misma sesión. Ciérrala antes de abrir la del día actual, o el arqueo va a descuadrar.
+            <p className="text-xs text-rose-200/70 mt-1">
+              Se abrió a las {sesionOlvidada.horaLabel}. Los KPIs de abajo <strong className="text-rose-100">solo cuentan movimientos de hoy</strong> — no incluyen ventas/gastos de los días anteriores de esta misma sesión. Ciérrala antes de abrir la del día actual, o el arqueo va a descuadrar.
             </p>
           </div>
           <button
             onClick={() => setShowCierre(true)}
-            className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-primary font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+            className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
           >
             <Lock size={14} /> Cerrar ahora
           </button>
@@ -2877,10 +2928,10 @@ export default function Caja() {
 
       {/* Alerta: citas sin método de pago — lista CUÁLES para poder accionarlas */}
       {kpis.citasSinMetodo > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="rounded-xl px-4 py-3 flex items-start gap-3 border border-amber-500/20 bg-amber-500/[0.06] backdrop-blur-sm">
+          <AlertTriangle size={18} className="text-amber-400/90 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-amber-300">
+            <p className="text-sm font-bold text-amber-200">
               {kpis.citasSinMetodo} {kpis.citasSinMetodo === 1 ? 'cita' : 'citas'} sin método de pago por {fmtCurrency(kpis.serviciosNoEspecificado)}
             </p>
             <p className="text-xs text-amber-200/70 mt-0.5">
@@ -3493,11 +3544,12 @@ function VenderDrawer({ citas, onClose, onCitaClick }) {
       .sort((a, b) => String(a.hora || '').localeCompare(String(b.hora || '')));
   }, [citas]);
 
+  // Fila glass — space-between estricto, hair-line 5%, sin bordes fuertes.
   const rowFor = (c) => (
     <button
       key={c.id}
       onClick={() => onCitaClick(c)}
-      className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-colors flex items-center gap-3"
+      className="w-full text-left px-3 py-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.05] transition-colors flex items-center gap-3"
     >
       <div className="text-xs font-mono font-bold text-slate-400 shrink-0 w-12 tabular-nums">
         {c.hora || '--:--'}
@@ -3510,27 +3562,36 @@ function VenderDrawer({ citas, onClose, onCitaClick }) {
         </p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-sm font-bold text-emerald-400 tabular-nums">{fmtCurrency(c.precio)}</p>
+        <p className="text-sm font-bold text-emerald-300 tabular-nums">{fmtCurrency(c.precio)}</p>
         <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500">{c.estado || 'Pendiente'}</p>
       </div>
     </button>
   );
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
+    // Backdrop con blur 5px real — consistente con SesionDetalleDrawer.
+    <div
+      className="fixed inset-0 z-40 flex justify-end"
+      style={{
+        background: 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(5px)',
+        WebkitBackdropFilter: 'blur(5px)',
+      }}
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md bg-slate-950 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        className="w-full max-w-md bg-slate-950 border-l border-white/[0.05] h-full flex flex-col animate-in slide-in-from-right duration-200"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
+        {/* Header con hair-line inferior blanca 5% (no slate-800 duro) */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05] shrink-0">
           <div>
             <h3 className="text-base font-black text-primary flex items-center gap-2">
-              <ShoppingCart size={18} className="text-emerald-400" /> Vender
+              <ShoppingCart size={18} className="text-emerald-400/80" /> Vender
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">Reservas por cobrar hoy · cierra como cobrada o cancélala</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-white/[0.05]">
             <X size={18} />
           </button>
         </div>
