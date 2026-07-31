@@ -14,7 +14,12 @@ import { Link } from 'react-router-dom';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
   onSnapshot, serverTimestamp, Timestamp, getDocs, getDoc, limit,
+  arrayUnion,
 } from 'firebase/firestore';
+import { useConfig } from '../hooks/useConfig';
+import { readGateConfig } from '../lib/reopenGate';
+import ReopenPassModal from '../components/ui/ReopenPassModal';
+import { Unlock } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -415,6 +420,56 @@ function ElegirFormatoImpresion({ onClose, onElegir }) {
 // tiene que decir lo mismo dentro de seis meses aunque después se editen citas.
 function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
   const [imprimir, setImprimir] = useState(false);
+  // Reabrir esta caja: gate opt-in con contraseña. Config vive en configuracion/main.
+  const { user } = useAuth();
+  const { config: mainConfig } = useConfig();
+  const gateCaja = readGateConfig(mainConfig, 'cajaCerrada');
+  const [gatePendingReabrir, setGatePendingReabrir] = useState(false);
+  const [reabriendo, setReabriendo] = useState(false);
+  const [reabrirErr, setReabrirErr] = useState('');
+
+  async function reabrirCaja() {
+    setReabriendo(true);
+    setReabrirErr('');
+    try {
+      // Guard: solo una sesión abierta por sede. Si ya hay una activa en la
+      // misma sede, la reapertura arma un descuadre — bloqueamos y avisamos.
+      const abiertasSnap = await withTimeout(
+        getDocs(query(tenantCol('caja_sesiones'), where('estado', '==', 'abierta'))),
+        10000,
+        'caja/reabrir-check-abiertas',
+      );
+      const mismaSede = abiertasSnap.docs.find(d => (d.data().sucursalId || null) === (sesion.sucursalId || null));
+      if (mismaSede) {
+        setReabrirErr('Ya hay una caja abierta en esta sede. Ciérrala antes de reabrir esta.');
+        setReabriendo(false);
+        return;
+      }
+      // Volver la sesión a abierta y limpiar los campos de cierre para que un
+      // nuevo cierre se calcule desde cero. `_reaperturas[]` deja rastro para
+      // auditoría (quién, cuándo, qué montos había antes).
+      await updateDoc(doc(tenantCol('caja_sesiones'), sesion.id), {
+        estado: 'abierta',
+        fechaCierre: null,
+        montoCierreEsperado: null,
+        montoCierreReal: null,
+        diferencia: null,
+        snapshot: null,
+        _reaperturas: arrayUnion({
+          fecha: Timestamp.now(),
+          por: user?.email || 'admin',
+          esperadoPrevio: Number(sesion.montoCierreEsperado) || 0,
+          realPrevio: Number(sesion.montoCierreReal) || 0,
+        }),
+      });
+      onClose();
+    } catch (e) {
+      setReabrirErr(e?.message || 'No se pudo reabrir la caja.');
+    } finally {
+      setReabriendo(false);
+    }
+  }
+
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -654,14 +709,43 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
         </div>
 
         {/* Pie */}
-        <div className={`p-4 border-t shrink-0 ${BRD}`}>
+        <div className={`p-4 border-t shrink-0 space-y-2 ${BRD}`}>
+          {reabrirErr && (
+            <p className="text-xs text-rose-400 font-semibold">{reabrirErr}</p>
+          )}
           <button
             onClick={() => setImprimir(true)}
             className={`w-full py-2.5 rounded-xl border text-sm font-semibold text-primary transition-colors flex items-center justify-center gap-2 hover:opacity-80 ${SUP_CARD} ${BRD_FUERTE}`}
           >
             <Printer size={15} /> Imprimir resumen de caja
           </button>
+          {/* Reabrir esta caja — solo visible si el tenant activó el gate. Al
+              tocarlo, pedimos la contraseña definida en Configuración → Seguridad.
+              Sirve para corregir un arqueo mal cerrado sin tener que borrar la
+              sesión ni migrar movimientos. */}
+          {gateCaja.enabled && gateCaja.passHash && (
+            <button
+              onClick={() => setGatePendingReabrir(true)}
+              disabled={reabriendo}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] text-amber-300 hover:text-amber-200 transition-colors disabled:opacity-40"
+            >
+              {reabriendo
+                ? <span className="w-3.5 h-3.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                : <Unlock size={15} />}
+              Reabrir esta caja
+            </button>
+          )}
         </div>
+
+        {gatePendingReabrir && (
+          <ReopenPassModal
+            titulo="Reabrir caja cerrada"
+            contexto="Vas a reabrir esta caja: el estado vuelve a &quot;abierta&quot; y se limpian los montos de cierre. La sesión queda activa para que puedas corregir el arqueo y cerrarla de nuevo. Queda registrado quién la reabrió."
+            passHash={gateCaja.passHash}
+            onOk={() => { setGatePendingReabrir(false); reabrirCaja(); }}
+            onCancel={() => setGatePendingReabrir(false)}
+          />
+        )}
 
         {imprimir && (
           <ElegirFormatoImpresion

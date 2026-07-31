@@ -4,8 +4,9 @@ import {
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
   Package, Tag, PenLine, Award, Bell, Mail, Users, SlidersHorizontal,
   MessageCircle, Lock, Gift, ChevronRight, CalendarClock,
-  Wrench, LifeBuoy,
+  Wrench, LifeBuoy, ShieldCheck, Eye, EyeOff,
 } from 'lucide-react';
+import { sha256Hex } from '../lib/reopenGate';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { activarNotificaciones } from '../hooks/useFCMToken';
@@ -810,6 +811,15 @@ export default function Configuracion() {
   // usa el fallback automático en Inicio) de 0 (forzar a 0).
   const [metaMensual,   setMetaMensual]   = useState('');
   const [costoDiario,   setCostoDiario]   = useState('');
+  // ── Gates de reapertura (opt-in por tenant) ─────────────────
+  // Contraseña anti-descuido para reabrir una venta cerrada (cambiar estado
+  // de una cita de Completada) y para reabrir una caja ya cerrada. Se
+  // guardan hasheadas en configuracion/main.reopenGates. Por default apagado
+  // → los flujos actuales quedan intactos hasta que el dueño lo active.
+  // `passInput` es el input CRUDO (solo para el UI, no se persiste); solo se
+  // hashea y guarda cuando el usuario aprieta Guardar y hay valor nuevo.
+  const [gateVenta, setGateVenta] = useState({ enabled: false, hasHash: false, passInput: '', showPass: false });
+  const [gateCaja,  setGateCaja]  = useState({ enabled: false, hasHash: false, passInput: '', showPass: false });
   const [loading,       setLoading]       = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -886,6 +896,15 @@ export default function Configuracion() {
         if (cd.politicaMensaje !== undefined) setPoliticaMensaje(String(cd.politicaMensaje || ''));
         if (cd.metaMensualVentas != null) setMetaMensual(String(cd.metaMensualVentas));
         if (cd.costoDiarioFijo   != null) setCostoDiario(String(cd.costoDiarioFijo));
+        // Gates de reapertura: `hasHash` marca si ya hay una contraseña guardada
+        // (para no forzar al dueño a re-tipearla cada vez que abre configuración).
+        // El passInput queda vacío hasta que el usuario decida cambiarla.
+        if (cd.reopenGates && typeof cd.reopenGates === 'object') {
+          const gv = cd.reopenGates.ventaCerrada || {};
+          const gc = cd.reopenGates.cajaCerrada  || {};
+          setGateVenta({ enabled: !!gv.enabled, hasHash: !!gv.passHash, passInput: '', showPass: false });
+          setGateCaja({  enabled: !!gc.enabled, hasHash: !!gc.passHash, passInput: '', showPass: false });
+        }
         // Opciones avanzadas: solo overrideamos los flags que ya vinieron guardados;
         // el resto conserva su default `true`. Así al agregar flags nuevos, los
         // tenants existentes los reciben activos sin migración.
@@ -986,9 +1005,30 @@ export default function Configuracion() {
       setSaveErr(`La duración del turno debe ser un número entre ${INTERVALO_MIN} y ${INTERVALO_MAX} minutos.`);
       return;
     }
+    // Gates de reapertura: si el toggle está ON pero no hay hash previo y el
+    // usuario no ingresó una contraseña, bloqueamos el save — sino se activa
+    // el gate sin nada que verificar y el flujo queda roto (siempre denegado).
+    if (gateVenta.enabled && !gateVenta.hasHash && !gateVenta.passInput.trim()) {
+      setSaveErr('Definí una contraseña para el gate de venta cerrada, o desactiva el toggle.');
+      return;
+    }
+    if (gateCaja.enabled && !gateCaja.hasHash && !gateCaja.passInput.trim()) {
+      setSaveErr('Definí una contraseña para el gate de caja cerrada, o desactiva el toggle.');
+      return;
+    }
+
     setSaving(true);
     setSaveErr('');
     try {
+      // Hashear contraseñas nuevas de los gates (solo si el usuario tipeó algo).
+      // Si no tipeó nada, conservamos el hash previo — save es un merge.
+      const ventaHash = gateVenta.passInput.trim()
+        ? await sha256Hex(gateVenta.passInput.trim())
+        : undefined;
+      const cajaHash = gateCaja.passInput.trim()
+        ? await sha256Hex(gateCaja.passInput.trim())
+        : undefined;
+
       // Convertir form.horario al formato que usa firebaseUtils / booking.service
       const diasLaborales = [];
       const diasConfig = {};
@@ -1075,6 +1115,20 @@ export default function Configuracion() {
           diasConfig,
           horarioInicio,
           horarioFin,
+          // Gates de reapertura: enabled + (passHash solo si se ingresó una nueva).
+          // Sin passHash en el patch → merge conserva el hash previo. Al
+          // desactivar, no borramos el hash: si el dueño reactiva, no tiene
+          // que re-tipear la contraseña.
+          reopenGates: {
+            ventaCerrada: {
+              enabled: !!gateVenta.enabled,
+              ...(ventaHash ? { passHash: ventaHash } : {}),
+            },
+            cajaCerrada: {
+              enabled: !!gateCaja.enabled,
+              ...(cajaHash ? { passHash: cajaHash } : {}),
+            },
+          },
         }, { merge: true }),
       ]);
       setSaved(true);
@@ -1101,13 +1155,14 @@ export default function Configuracion() {
   // una "página" con encabezado grande + grupos tipo iOS. Mobile: pills
   // scrollables arriba; desktop: rail vertical sticky a la izquierda.
   const SECTIONS = [
-    { key: 'general',  label: 'General',            Icon: Store,         desc: 'Datos del local, contactos y correo de avisos.' },
-    { key: 'horarios', label: 'Horarios',           Icon: Clock,         desc: 'Días de atención y duración de turnos.' },
-    { key: 'reservas', label: 'Reservas online',    Icon: CalendarClock, desc: 'Cancelaciones, reservas en grupo y anti-spam.' },
-    { key: 'agenda',   label: 'Agenda del barbero', Icon: Wrench,        desc: 'Módulos internos que ven los profesionales.' },
-    { key: 'cliente',  label: 'Cliente y marca',    Icon: Sparkles,      desc: 'Qué ve el cliente en la agenda pública y programa de referidos.' },
-    { key: 'metas',    label: 'Metas y finanzas',   Icon: Target,        desc: 'Meta mensual y costo diario para tus reportes.' },
-    { key: 'sistema',  label: 'Sistema y ayuda',    Icon: LifeBuoy,      desc: 'Notificaciones del panel y contacto de soporte.' },
+    { key: 'general',   label: 'General',            Icon: Store,         desc: 'Datos del local, contactos y correo de avisos.' },
+    { key: 'horarios',  label: 'Horarios',           Icon: Clock,         desc: 'Días de atención y duración de turnos.' },
+    { key: 'reservas',  label: 'Reservas online',    Icon: CalendarClock, desc: 'Cancelaciones, reservas en grupo y anti-spam.' },
+    { key: 'agenda',    label: 'Agenda del barbero', Icon: Wrench,        desc: 'Módulos internos que ven los profesionales.' },
+    { key: 'cliente',   label: 'Cliente y marca',    Icon: Sparkles,      desc: 'Qué ve el cliente en la agenda pública y programa de referidos.' },
+    { key: 'metas',     label: 'Metas y finanzas',   Icon: Target,        desc: 'Meta mensual y costo diario para tus reportes.' },
+    { key: 'seguridad', label: 'Seguridad',          Icon: ShieldCheck,   desc: 'Contraseñas anti-descuido para reabrir ventas y cajas cerradas.' },
+    { key: 'sistema',   label: 'Sistema y ayuda',    Icon: LifeBuoy,      desc: 'Notificaciones del panel y contacto de soporte.' },
   ];
   const activeSection = SECTIONS.find(s => s.key === tab) || SECTIONS[0];
   const changeTab = (k) => {
@@ -2199,6 +2254,121 @@ export default function Configuracion() {
             Cuánto necesitas facturar al día para cubrir gastos fijos (arriendo, sueldos base, servicios). Si lo dejas vacío, se calcula automáticamente con los gastos del mes anterior ÷ 30.
           </p>
         </Field>
+      </Card>
+
+      </Section>
+      </div>
+      )}
+
+      {/* ═══ SECCIÓN · SEGURIDAD ═══ */}
+      {/* Gates opt-in con contraseña para dos acciones destructivas de cierre:
+          reabrir una venta ya completada y reabrir una caja ya cerrada. Sirve
+          para que el cajero no las use por descuido — el hash vive en Firestore,
+          quien tiene admin puede desactivar el toggle igual. Anti-descuido, no auth. */}
+      {tab === 'seguridad' && (
+      <div className="cfg-fade-in" key="seguridad">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
+
+      <Card Icon={ShieldCheck} title="Reapertura con contraseña">
+        {/* ── Gate 1: reabrir venta cerrada ─────────────────────── */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden mb-3">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Lock size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Reabrir venta cerrada</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Cuando alguien intente cambiar el estado de una cita <strong className="text-slate-300">ya completada</strong> (por ejemplo, volverla a &quot;Confirmada&quot;), le pediremos esta contraseña antes de guardar.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setGateVenta(g => ({ ...g, enabled: !g.enabled })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${gateVenta.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              aria-pressed={gateVenta.enabled}
+            >
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${gateVenta.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          {gateVenta.enabled && (
+            <div className="px-4 py-3 border-t border-slate-700/40 bg-slate-950/40">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mb-1.5">
+                <Lock size={11} />
+                Contraseña {gateVenta.hasHash && <span className="normal-case font-normal text-slate-600">· ya hay una guardada — dejar vacío para no cambiarla</span>}
+              </label>
+              <div className="relative">
+                <input
+                  type={gateVenta.showPass ? 'text' : 'password'}
+                  value={gateVenta.passInput}
+                  onChange={e => { setGateVenta(g => ({ ...g, passInput: e.target.value })); setDirty(true); }}
+                  placeholder={gateVenta.hasHash ? '••••••••' : 'Define una contraseña'}
+                  className="w-full px-3 py-2 pr-9 rounded-lg text-sm text-primary bg-slate-950 border border-slate-700 focus:border-emerald-500/60 focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setGateVenta(g => ({ ...g, showPass: !g.showPass }))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300"
+                  aria-label={gateVenta.showPass ? 'Ocultar' : 'Mostrar'}
+                >
+                  {gateVenta.showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Gate 2: reabrir caja cerrada ─────────────────────── */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Lock size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Reabrir caja cerrada</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Habilita un botón <strong className="text-slate-300">&quot;Reabrir esta caja&quot;</strong> en el historial de cierres. Al usarlo, pediremos esta contraseña y volveremos la caja al estado abierto para poder corregir el arqueo.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setGateCaja(g => ({ ...g, enabled: !g.enabled })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${gateCaja.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              aria-pressed={gateCaja.enabled}
+            >
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${gateCaja.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          {gateCaja.enabled && (
+            <div className="px-4 py-3 border-t border-slate-700/40 bg-slate-950/40">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mb-1.5">
+                <Lock size={11} />
+                Contraseña {gateCaja.hasHash && <span className="normal-case font-normal text-slate-600">· ya hay una guardada — dejar vacío para no cambiarla</span>}
+              </label>
+              <div className="relative">
+                <input
+                  type={gateCaja.showPass ? 'text' : 'password'}
+                  value={gateCaja.passInput}
+                  onChange={e => { setGateCaja(g => ({ ...g, passInput: e.target.value })); setDirty(true); }}
+                  placeholder={gateCaja.hasHash ? '••••••••' : 'Define una contraseña'}
+                  className="w-full px-3 py-2 pr-9 rounded-lg text-sm text-primary bg-slate-950 border border-slate-700 focus:border-emerald-500/60 focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setGateCaja(g => ({ ...g, showPass: !g.showPass }))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300"
+                  aria-label={gateCaja.showPass ? 'Ocultar' : 'Mostrar'}
+                >
+                  {gateCaja.showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+          <strong className="text-slate-400">Nota:</strong> son 2 contraseñas independientes. Podés activar una sola o las dos. Los hashes se guardan en Firestore; esto no es una barrera contra alguien con acceso al panel de admin, es un freno para que el cajero de turno no reabra cosas por descuido.
+        </p>
       </Card>
 
       </Section>

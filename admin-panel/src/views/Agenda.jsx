@@ -28,6 +28,9 @@ import { confirmDialog } from '../lib/confirmDialog';
 import { tuuSandboxDialog } from '../lib/tuuSandbox';
 import { withTimeout } from '../lib/firestore-helpers';
 import { buscarClientes, normalizarTexto } from '../lib/clienteSearch';
+import { useConfig } from '../hooks/useConfig';
+import { readGateConfig } from '../lib/reopenGate';
+import ReopenPassModal from '../components/ui/ReopenPassModal';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { incluyeRecordatorios } from '../lib/waPlan';
 import { useCollection } from '../hooks/useCollection';
@@ -757,6 +760,14 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const firstSvc = servicios[0];
 
+  // Gate opt-in para reabrir una venta cerrada (config del tenant). Si está
+  // activo, cambiar el estado de una cita ya Completada pide contraseña.
+  const { config: mainConfig } = useConfig();
+  const gateVenta = readGateConfig(mainConfig, 'ventaCerrada');
+  // Cuando el usuario intenta guardar y aplica el gate, guardamos aquí el
+  // "trabajo pendiente" — el modal de contraseña llama a onOk() para continuar.
+  const [gatePending, setGatePending] = useState(false);
+
   const matchedSvc = (() => {
     if (!cita) return null;
     if (cita.servicioId) {
@@ -1355,6 +1366,22 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     finally { setGcSearching(false); }
   };
 
+  // Wrapper del click "Guardar": si aplica el gate de reabrir venta cerrada,
+  // muestra el modal de contraseña antes de ejecutar el guardado real.
+  // El gate solo se activa si:
+  //  - la cita ya existía como Completada
+  //  - se está cambiando a un estado != Completada (reabrir/reagendar)
+  //  - el tenant tiene el toggle ON y un hash guardado
+  const attemptSave = () => {
+    const yaCompletada = !isNew && cita?.estado === 'Completada';
+    const seEstaReabriendo = yaCompletada && form.estado !== 'Completada';
+    if (seEstaReabriendo && gateVenta.enabled && gateVenta.passHash) {
+      setGatePending(true);
+      return;
+    }
+    handleSave();
+  };
+
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
     // Guard hora: misma protección que agenda.html — sin esto el panel
@@ -1836,7 +1863,7 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
           {/* El botón nombra el resultado: si la cita se va a cerrar, lo dice.
               Un "Guardar" neutro no le confirmaba al usuario que la acción
               que buscaba (dar por terminada la cita) era la correcta. */}
-          <button onClick={handleSave} disabled={saving || !form.clienteNombre || !form.hora}
+          <button onClick={attemptSave} disabled={saving || !form.clienteNombre || !form.hora}
             className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-primary text-sm font-semibold rounded-lg transition-all">
             {saving
               ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -2700,6 +2727,17 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
           barberos={barberos}
           servicios={servicios}
           citaActualId={cita?.id || null}
+        />
+      )}
+
+      {/* Gate anti-descuido: reabrir venta cerrada pide contraseña opt-in. */}
+      {gatePending && (
+        <ReopenPassModal
+          titulo="Reabrir venta cerrada"
+          contexto={`Vas a cambiar el estado de esta cita de "Completada" a "${form.estado}". Esto reabre una venta ya cerrada y puede descuadrar la caja. Ingresa la contraseña definida en Configuración → Seguridad.`}
+          passHash={gateVenta.passHash}
+          onOk={() => { setGatePending(false); handleSave(); }}
+          onCancel={() => setGatePending(false)}
         />
       )}
     </Modal>
