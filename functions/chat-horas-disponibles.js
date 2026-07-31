@@ -273,9 +273,18 @@ async function buscarDisponibilidad(tenantId, desdeFecha) {
  * Elige un profesional ELEGIBLE que esté LIBRE en [hora, hora+dur) de `fechaStr`.
  * Reusa la misma regla de elegibilidad y de ocupación que `horasParaFecha`.
  * (El bot lo usa para asignar barbero al agendar; devuelve null si no hay ninguno.)
+ *
+ * @param {object} [opts]
+ * @param {string} [opts.preferirBarberoId] Si ese profesional está libre, se
+ *   devuelve a ÉL antes que a cualquier otro. Al reagendar, el cliente espera
+ *   quedarse con la misma persona; sin esto el orden del snapshot decidía.
+ * @param {string} [opts.excluirCitaId] Ignora esa cita y su candado al calcular
+ *   ocupación. Necesario al MOVER una cita: su propio cupo actual no puede
+ *   bloquear el traslado (pasaba al mover a un horario solapado, ej. 13:00→12:45).
  * @returns {Promise<{ id:string, nombre:string }|null>}
  */
-async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
+async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
+  const { preferirBarberoId = null, excluirCitaId = null } = opts || {};
   const c = cols(tenantId);
   const startMin = toMins(hora);
   const endMin   = startMin + (Number(dur) || 30);
@@ -305,6 +314,7 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
   };
   citasSnap.forEach(d => {
     const x = d.data();
+    if (excluirCitaId && d.id === excluirCitaId) return;
     if (x.estado === 'Cancelada' || x.estado === 'NoAsistio') return;
     if (typeof x.hora !== 'string' || !x.hora.includes(':')) return;
     const ini = toMins(x.hora);
@@ -312,6 +322,7 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
   });
   locksSnap.forEach(d => {
     const x = d.data();
+    if (excluirCitaId && x.citaId === excluirCitaId) return;
     if (typeof x.hora !== 'string' || !x.hora.includes(':')) return;
     const ini = toMins(x.hora);
     addBusy(x.barberoId, ini, ini + (Number(x.duracion) || 30));
@@ -328,9 +339,18 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur) {
 
   const global = busy.get('*') || [];
   if (global.some(([a, b]) => solapan(startMin, endMin, a, b))) return null;
-  for (const barb of barberos) {
+  const libre = (barb) => {
     const propios = busy.get(barb.id) || [];
-    if (!propios.some(([a, b]) => solapan(startMin, endMin, a, b))) return { id: barb.id, nombre: barb.nombre };
+    return !propios.some(([a, b]) => solapan(startMin, endMin, a, b));
+  };
+  // Al reagendar: quedarse con el MISMO profesional si puede (el cliente ya
+  // eligió persona; cambiársela sin avisar es peor que ofrecerle otra hora).
+  if (preferirBarberoId) {
+    const pref = barberos.find(b => b.id === preferirBarberoId);
+    if (pref && libre(pref)) return { id: pref.id, nombre: pref.nombre };
+  }
+  for (const barb of barberos) {
+    if (libre(barb)) return { id: barb.id, nombre: barb.nombre };
   }
   return null;
 }

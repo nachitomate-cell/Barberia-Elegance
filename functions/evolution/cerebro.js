@@ -13,6 +13,7 @@
 //    · agendar_cita             → crea la cita + candado (misma tx que addCita)
 //    · consultar_mis_citas      → citas futuras del número que escribe
 //    · cancelar_cita            → cancela una cita PROPIA (respeta política del local)
+//    · reagendar_cita           → mueve una cita PROPIA de hora/día (misma tx: candado viejo fuera, nuevo dentro)
 //    · pasar_con_humano         → deriva al equipo (silencia el bot 2h en el chat)
 //
 //  Blindajes de este sprint:
@@ -113,16 +114,27 @@ async function cargarServicios(tid) {
   snap.forEach(d => {
     const s = d.data() || {};
     if (s.activo === false) return;
+    // Restricción de días (0=Dom … 6=Sáb), la MISMA que respeta la reserva
+    // pública (ReservaCore.diaPermitido). Array vacío o ausente = todos los días.
+    const dias = Array.isArray(s.diasDisponibles)
+      ? s.diasDisponibles.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6)
+      : [];
     out.push({
       id:       d.id,
       nombre:   String(s.nombre || '').trim(),
       precio:   Number(s.precio) || 0,
       duracion: Number(s.duracion || s.duracionServicio) || 30,
       descripcion: String(s.descripcion || '').replace(/\s+/g, ' ').trim(),
+      dias:     dias.length ? dias.sort((a, b) => a - b) : null,
     });
   });
   return out.filter(s => s.nombre).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
+
+/** Día de la semana (0=Dom…6=Sáb) de una fecha YYYY-MM-DD, sin sorpresas de
+ *  zona horaria: se ancla a mediodía UTC, igual que ultimosDias() en ops. */
+const dowDe = (fechaStr) => new Date(fechaStr + 'T12:00:00Z').getUTCDay();
+const nombresDias = (dias) => dias.map(d => DIAS[d] ?? d).join(', ');
 
 /** Equipo visible para el cliente: MISMA regla que la reserva pública
  *  (_mainDocId / disponible / activo / admin oculto) + fuera el barbero
@@ -194,13 +206,26 @@ const TOOLS = [
   },
   {
     name: 'cancelar_cita',
-    description: 'Cancela UNA cita futura del cliente. Primero llama a consultar_mis_citas, confirma con el cliente CUÁL cancelar, y recién entonces llama esto. Para CAMBIAR de hora: cancela la actual y agenda la nueva (consultar_disponibilidad → agendar_cita).',
+    description: 'Cancela UNA cita futura del cliente. Primero llama a consultar_mis_citas, confirma con el cliente CUÁL cancelar, y recién entonces llama esto. Si lo que quiere es CAMBIAR de hora (no anular), usa reagendar_cita en vez de esta.',
     input_schema: {
       type: 'object',
       properties: {
         cita_id: { type: 'string', description: 'El cita_id devuelto por consultar_mis_citas.' },
       },
       required: ['cita_id'],
+    },
+  },
+  {
+    name: 'reagendar_cita',
+    description: 'Mueve una cita YA EXISTENTE del cliente a otra fecha/hora, conservando su servicio y su código de reserva. Úsala siempre que quiera adelantar, atrasar o cambiar el día de su cita. Flujo: consultar_mis_citas (para saber cuál) → consultar_disponibilidad (para la hora nueva) → reagendar_cita. NUNCA le digas al cliente que le cambiaste la hora sin haber llamado a esta herramienta y recibido ok:true.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cita_id: { type: 'string', description: 'El cita_id de la cita a mover, devuelto por consultar_mis_citas.' },
+        fecha:   { type: 'string', description: 'Nueva fecha en formato YYYY-MM-DD.' },
+        hora:    { type: 'string', description: 'Nueva hora en formato HH:MM (24h). Debe haber salido de consultar_disponibilidad.' },
+      },
+      required: ['cita_id', 'fecha', 'hora'],
     },
   },
   {
@@ -323,6 +348,144 @@ async function ejecutarTool(name, input, ctx) {
     return { ok: true, cancelada: { fecha: x.fecha, hora: x.hora, servicio: x.servicioNombre || '' } };
   }
 
+  if (name === 'reagendar_cita') {
+    const id    = String(input?.cita_id || '').trim();
+    const fecha = String(input?.fecha   || '').trim();
+    const hora  = String(input?.hora    || '').trim();
+    if (!id) return { ok: false, motivo: 'Falta cita_id (llama antes a consultar_mis_citas).' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, motivo: 'Fecha inválida (usa YYYY-MM-DD).' };
+    if (!/^\d{2}:\d{2}$/.test(hora))        return { ok: false, motivo: 'Hora inválida (usa HH:MM).' };
+
+    const citaRef = citasCol(tid).doc(id);
+    const snap    = await citaRef.get();
+    if (!snap.exists) return { ok: false, motivo: 'No encontré esa cita.' };
+    const x = snap.data();
+
+    // Solo SUS citas: mismo candado que cancelar_cita (jamás mover ajenas).
+    const suf9 = String(telefono).slice(-9);
+    const esSuya = x.clienteTelefonoSuf9 === suf9
+      || String(x.clienteTelefono || '').replace(/\D/g, '').endsWith(suf9);
+    if (!esSuya) return { ok: false, motivo: 'Esa cita no pertenece a este número.' };
+    if (['Cancelada', 'Completada', 'NoAsistio'].includes(x.estado)) {
+      return { ok: false, motivo: `Esa cita figura como ${x.estado} y ya no se puede mover. Si quiere una nueva hora, agenda una cita desde cero.` };
+    }
+    // Sobrecupo = overbooking que puso el local a mano, sin candado propio.
+    // Moverlo por bot rompería esa intención: que lo vea una persona.
+    if (x.sobrecupo === true) {
+      return { ok: false, motivo: 'Esa cita la gestionó el local a mano: indícale que se comunique directo con el local para cambiarla.' };
+    }
+    if (x.fecha === fecha && x.hora === hora) {
+      return { ok: true, sin_cambios: true, fecha, hora, codigo: x.codigoCita || '', nota: 'La cita ya estaba a esa misma fecha y hora: no había nada que cambiar.' };
+    }
+
+    // Cinturón: nunca mover al pasado (igual que agendar_cita).
+    const hoyC = ahoraChile();
+    const faltanMin = absMin(fecha, toMinsHHMM(hora)) - absMin(hoyC.fecha, hoyC.mins);
+    if (faltanMin <= 0) return { ok: false, motivo: `Esa fecha/hora ya pasó (hoy es ${hoyC.fecha}). Ofrece horarios desde hoy en adelante.` };
+
+    // Servicio restringido por días: la cita conserva su servicio al moverse,
+    // así que el día NUEVO también tiene que ser un día válido del servicio
+    // (misma regla que agendar_cita). Falla-abierto si el catálogo no se pudo
+    // leer: bloquear un cambio legítimo por un error de lectura es peor.
+    const serviciosR = await cargarServicios(tid).catch(() => []);
+    const svcR = serviciosR.find(s => s.id === x.servicioId) || matchServicio(serviciosR, x.servicioNombre);
+    if (svcR && svcR.dias && !svcR.dias.includes(dowDe(fecha))) {
+      return { ok: false, motivo: `"${svcR.nombre}" solo está disponible los días: ${nombresDias(svcR.dias)}. El ${fecha} cae ${DIAS[dowDe(fecha)]}: ofrece uno de sus días válidos.` };
+    }
+
+    // Política del local: mover suelta el cupo igual que cancelar, así que pasa
+    // por la MISMA puerta que cancelar_cita.
+    const conf = (await configRef(tid).get()).data() || {};
+    if (conf.chatCancelEnabled === false) {
+      return { ok: false, motivo: 'Este local gestiona los cambios de hora directamente: indícale al cliente que llame o escriba al local.' };
+    }
+    const limMin = Number(conf.minutosLimiteReagendar) || 0;
+    if (limMin > 0 && typeof x.fecha === 'string' && typeof x.hora === 'string') {
+      const faltanActual = absMin(x.fecha, toMinsHHMM(x.hora)) - absMin(hoyC.fecha, hoyC.mins);
+      if (faltanActual < limMin) {
+        return { ok: false, motivo: `La cita está muy próxima (el local pide al menos ${Math.round(limMin / 60)}h de anticipación). Indícale que se comunique directo con el local.` };
+      }
+    }
+
+    const dur = Number(x.duracionServicio ?? x.duracion) || 30;
+    // Profesional para el horario nuevo, prefiriendo al mismo que ya tenía. Se
+    // excluye esta cita del cálculo: su propio cupo actual no puede bloquear el
+    // traslado (mordía al mover a un horario solapado, ej. 13:00 → 12:45).
+    const barb = await barberoLibreParaSlot(tid, fecha, hora, dur, {
+      preferirBarberoId: x.barberoId || null,
+      excluirCitaId:     id,
+    });
+    if (!barb) return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
+
+    const oldLockId  = x.slotLockId
+      || (x.barberoId && x.fecha && x.hora ? lockIdFor(x.barberoId, x.fecha, x.hora) : null);
+    const nextLockId = lockIdFor(barb.id, fecha, hora);
+    const lockRef    = slotLocksCol(tid).doc(nextLockId);
+    // El código de reserva NO cambia al mover: es el mismo compromiso. Si la
+    // cita venía sin código (Flow, Mercado Pago, citas viejas del panel) se
+    // genera uno ahora, para poder dárselo al cliente sin inventarlo.
+    const codigo = String(x.codigoCita || '').trim() || genCodigoCita();
+
+    try {
+      await db.runTransaction(async (tx) => {
+        // TODAS las lecturas antes de cualquier escritura (regla de Firestore).
+        const oldRef = (oldLockId && oldLockId !== nextLockId) ? slotLocksCol(tid).doc(oldLockId) : null;
+        const [ls, olds] = await Promise.all([tx.get(lockRef), oldRef ? tx.get(oldRef) : null]);
+        if (ls.exists && ls.data()?.citaId !== id) {
+          const e = new Error('slot-taken'); e.code = 'slot-taken'; throw e;
+        }
+        tx.set(lockRef, {
+          citaId: id, fecha, hora, barberoId: barb.id,
+          duracion: dur, origen: 'wa_bot', creadoEn: FieldValue.serverTimestamp(),
+        });
+        // Soltar el cupo viejo. asegurarSlot solo CREA el candado del horario
+        // actual: si no lo borramos acá, el horario viejo queda ocupado para
+        // siempre (mismo batch que usa el panel al mover una cita). Solo si es
+        // SUYO: en citas viejas sin slotLockId el id se deduce de barbero+hora
+        // y podría caer sobre el candado de otra cita.
+        if (oldRef && olds?.exists && olds.data()?.citaId === id) {
+          tx.delete(oldRef);
+        }
+        tx.update(citaRef, {
+          fecha,
+          hora,
+          barbero:    barb.nombre,
+          barberoId:  barb.id,
+          slotLockId: nextLockId,
+          codigoCita: codigo,
+          // Los avisos ya enviados eran del horario VIEJO: se rearman para que
+          // el recordatorio salga con la hora nueva ('false' = pendiente de envío).
+          recordatorio24hEnviado: false,
+          recordatorio1hEnviado:  false,
+          reagendadaVia:   'wa_bot',
+          reagendadaEn:    FieldValue.serverTimestamp(),
+          reagendadaDesde: { fecha: x.fecha || '', hora: x.hora || '', barberoId: x.barberoId || '', barbero: x.barbero || '' },
+          updatedAt:       FieldValue.serverTimestamp(),
+        });
+      });
+    } catch (e) {
+      if (e.code === 'slot-taken') {
+        return { ok: false, motivo: 'Alguien tomó esa hora recién. Ofrece otra hora libre.' };
+      }
+      throw e;
+    }
+
+    const cambioProfesional = !!x.barberoId && x.barberoId !== barb.id;
+    logger.info(`[cerebro] ${tid}: cita ${id} (${codigo}) movida ${x.fecha} ${x.hora} → ${fecha} ${hora} (${barb.nombre}) vía bot`);
+    logBotNegocio(tid, 'reagendada').catch(() => {});   // métrica de negocio para ops
+    return {
+      ok: true,
+      codigo,
+      antes:    { fecha: x.fecha || '', hora: x.hora || '' },
+      fecha, hora,
+      servicio: x.servicioNombre || '',
+      precio:   Number(x.precio) || 0,
+      profesional: barb.nombre,
+      cambio_profesional: cambioProfesional,
+      ...(cambioProfesional ? { nota: `A esa hora no estaba ${x.barbero || 'su profesional habitual'}: la cita queda con ${barb.nombre}. AVÍSASELO al cliente.` } : {}),
+    };
+  }
+
   if (name === 'pasar_con_humano') {
     await convRef(tid, ctx.chatId).set({
       botSilencedUntil: Timestamp.fromMillis(Date.now() + SILENCIO_MS),
@@ -335,7 +498,10 @@ async function ejecutarTool(name, input, ctx) {
   if (name === 'consultar_servicios') {
     const servicios = await cargarServicios(tid);
     if (!servicios.length) return { servicios: [], nota: 'El local aún no cargó servicios.' };
-    return { servicios: servicios.map(s => ({ nombre: s.nombre, precio: s.precio, duracion_min: s.duracion })) };
+    return { servicios: servicios.map(s => ({
+      nombre: s.nombre, precio: s.precio, duracion_min: s.duracion,
+      ...(s.dias ? { solo_dias: nombresDias(s.dias) } : {}),
+    })) };
   }
 
   if (name === 'consultar_disponibilidad') {
@@ -361,6 +527,14 @@ async function ejecutarTool(name, input, ctx) {
     const servicios = await cargarServicios(tid);
     const svc = matchServicio(servicios, input?.servicio_nombre);
     if (!svc) return { ok: false, motivo: 'Servicio no encontrado.', servicios_validos: servicios.map(s => s.nombre) };
+
+    // Cinturón: servicio restringido por días (ej. una promoción de lunes a
+    // jueves) JAMÁS se agenda fuera de sus días, aunque el modelo lo ofrezca.
+    // Misma regla que la reserva pública. Mordió el 31-jul (viernes): el bot
+    // ofreció "Corte Masculino (Promoción)" que es solo Lu-Ju.
+    if (svc.dias && !svc.dias.includes(dowDe(fecha))) {
+      return { ok: false, motivo: `"${svc.nombre}" solo está disponible los días: ${nombresDias(svc.dias)}. El ${fecha} cae ${DIAS[dowDe(fecha)]}: ofrece uno de sus días válidos u otro servicio del catálogo.` };
+    }
 
     // Elegir profesional libre en ese slot exacto (misma regla que la agenda pública).
     const barb = await barberoLibreParaSlot(tid, fecha, hora, svc.duracion);
@@ -481,7 +655,10 @@ const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
  *  herramienta en pedir algo que ya podemos entregarle escrito. */
 function formatearCatalogo(servicios) {
   return servicios.map(s => {
-    const base = `- ${s.nombre} — ${clp(s.precio)} · ${s.duracion} min`;
+    // La restricción de días viaja EN la línea del servicio: si viviera solo en
+    // una regla general, un modelo chico la pierde justo cuando lista opciones.
+    const soloDias = s.dias ? ` · SOLO ${nombresDias(s.dias)}` : '';
+    const base = `- ${s.nombre} — ${clp(s.precio)} · ${s.duracion} min${soloDias}`;
     return s.descripcion ? `${base}\n  ${s.descripcion}` : base;
   }).join('\n');
 }
@@ -537,7 +714,7 @@ FECHAS Y AMBIGÜEDADES:
 DESPUÉS DE AGENDAR:
 - Entrega el código de la reserva, el día, la hora y el servicio en un mensaje corto.
 - No sigas ofreciendo servicios ni intentes vender más. La conversación terminó bien: cierra cálido y corto.
-- Si después pide cambiar algo, no edites la cita: cancela la que tiene y agenda la nueva.
+- Si después pide cambiar la hora o el día, usa el flujo de reagendar (consultar_mis_citas → consultar_disponibilidad → reagendar_cita). No la canceles para volver a agendarla.
 
 SI ALGO FALLA:
 - Si una herramienta devuelve un error o no encuentra lo que buscabas, NO se lo expliques con términos técnicos al cliente y no muestres mensajes de sistema.
@@ -592,17 +769,21 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     // Estilo configurable por local (configuracion/whatsapp.estiloChileno).
     // Default = neutro (doctrina de copy externo de la plataforma).
     estiloChileno
-      ? '- ESTILO CHILENO CERCANO: habla como un chileno amable. Puedes usar modismos suaves con moderación ("bacán", "al tiro", "ya po") — máximo UNO por mensaje y siempre entendible. SIN voseo escrito ("querís", "podís", "vos") ni groserías. La claridad manda: fechas, horas y precios siempre en lenguaje estándar.'
-      : '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres). PROHIBIDO el voseo ("querís", "podís", "vos", "tenés") y los modismos o chilenismos ("bacán", "al tiro", "cachai", "po", "filete", "la raja"). Escribe claro y universal, como para cualquier país hispanohablante.',
+      ? '- ESTILO CHILENO CERCANO: habla como un chileno amable. Puedes usar modismos suaves CHILENOS con moderación ("bacán", "al tiro", "ya po") — máximo UNO por mensaje y siempre entendible. SIN voseo escrito ("querís", "podís", "vos") ni groserías. PROHIBIDOS los modismos de otros países: nada mexicano ("te late", "órale", "ahorita", "padrísimo", "chido") ni rioplatense ("dale che", "querés", "tenés", "elegís"). La claridad manda: fechas, horas y precios siempre en lenguaje estándar.'
+      : '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres, prefieres). PROHIBIDO el voseo en cualquier variante ("querís", "podís", "vos", "querés", "tenés", "elegís") y los modismos REGIONALES DE CUALQUIER PAÍS: ni chilenos ("bacán", "al tiro", "cachai", "po"), ni mexicanos ("te late", "órale", "ahorita", "padrísimo", "chido"), ni argentinos ("che", "dale che"), ni de ningún otro. En vez de "¿cuál te late?" di "¿cuál prefieres?". Escribe claro y universal, como para cualquier país hispanohablante.',
     '- Tu único trabajo es informar del local y agendar/gestionar citas. Si preguntan otra cosa, redirige con amabilidad.',
     '- NUNCA inventes precios ni servicios: los del CATÁLOGO de arriba son los únicos que existen y ya los tienes completos, no necesitas ninguna herramienta para consultarlos.',
+    '- Si un servicio del catálogo dice "SOLO <días>", existe ÚNICAMENTE esos días: no lo ofrezcas ni lo agendes para ningún otro día. Antes de listar opciones, descarta los que no correspondan al día que pide el cliente; si insiste en ese servicio otro día, explica la restricción y ofrece su día válido más próximo u otro servicio.',
     '- NUNCA inventes horas libres: sácalas SIEMPRE de consultar_disponibilidad. El HORARIO DE ATENCIÓN te dice cuándo abre el local, no qué horas quedan libres.',
     '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
     '- Solo llama a agendar_cita con una hora que haya salido de consultar_disponibilidad.',
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
     '- Al agendar con éxito, dale el código de la reserva y recuérdale día, hora y servicio.',
+    '- NUNCA inventes un código de reserva: el único código válido es el que te devuelve la herramienta en el campo `codigo`. Si no tienes ese campo, no menciones ningún código.',
+    '- REGLA DE ORO — nada de cambios imaginarios: JAMÁS afirmes que agendaste, cancelaste o cambiaste una cita si no llamaste a la herramienta correspondiente y te respondió ok:true. Nada de "listo", "ya te lo cambié" ni "quedó agendado" por adelantado. Si la herramienta falla o no la llamaste, dile la verdad al cliente u ofrécele hablar con el local. Prometer un cambio que no ocurrió es el peor error posible: el cliente llega y su hora no existe.',
     '- Si una hora ya no está disponible, discúlpate y ofrece las alternativas reales que devuelva la herramienta.',
-    '- Si el cliente pregunta por su cita, o quiere CANCELARLA o CAMBIARLA: usa consultar_mis_citas, confirma con él de cuál se trata y recién entonces llama a cancelar_cita. Para cambiar de hora: cancela la actual y agenda la nueva (consultar_disponibilidad → agendar_cita).',
+    '- Si el cliente pregunta por su cita, o quiere CANCELARLA: usa consultar_mis_citas, confirma con él de cuál se trata y recién entonces llama a cancelar_cita.',
+    '- Si quiere CAMBIAR la hora o el día de su cita (adelantar, atrasar, moverla): consultar_mis_citas → consultar_disponibilidad → reagendar_cita. NO la canceles para volver a agendarla: reagendar_cita la mueve conservando su código. Solo después de recibir ok:true confírmale el cambio.',
     '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
     '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',
     '- No prometas nada fuera de las herramientas (no cobras online, no cambias precios, no confirmas cosas del local que no sepas).',
@@ -728,7 +909,14 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
 async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const data      = body?.data || {};
   const key       = data.key || {};
-  const remoteJid = String(key.remoteJid || '');
+  let   remoteJid = String(key.remoteJid || '');
+  // LID: WhatsApp puede dirigir un chat con un id de privacidad (…@lid) y el
+  // número real viaja en `remoteJidAlt`. Sin este mapeo el silencio
+  // anti-colisión caía en un doc @lid huérfano mientras los mensajes del
+  // MISMO cliente seguían llegando a su doc por número: el equipo tomaba el
+  // control y el bot igual se metía (visto en kronnos_penablanca, 31-jul).
+  const jidAlt = String(key.remoteJidAlt || key.senderPn || '');
+  if (remoteJid.endsWith('@lid') && jidAlt.endsWith('@s.whatsapp.net')) remoteJid = jidAlt;
   const fromMe    = key.fromMe === true;
   const msgId     = String(key.id || '');
 

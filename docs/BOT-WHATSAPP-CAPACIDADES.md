@@ -17,7 +17,8 @@
 | **Revisa disponibilidad real** | Horas libres respetando: horario del local, **horario personal de cada profesional** (día libre, descansos, colación), duración del servicio y citas ya tomadas. | Tool `consultar_disponibilidad` (mismo motor que la agenda pública, `chat-horas-disponibles.js`) |
 | **Agenda citas por sí solo** | Confirma servicio + fecha + hora con el cliente, elige profesional libre y crea la cita con código de reserva. Sin dobles reservas. | Tool `agendar_cita` — misma transacción de candado (`slotLocks`) que la agenda |
 | **Consulta las citas del cliente que escribe** | "¿A qué hora era mi hora?" → busca las citas futuras de ESE número y las recuerda. | Tool `consultar_mis_citas` (match por sufijo-9 del teléfono) |
-| **Cancela o cambia citas del propio cliente** | Solo citas del número que escribe (jamás ajenas). Respeta la política del local: cancelación online desactivada o anticipación mínima → explica y deriva. Cancelar libera el cupo al instante. Cambio de hora = cancelar + re-agendar. | Tool `cancelar_cita` (respeta `chatCancelEnabled` y `minutosLimiteReagendar`); trigger `liberarSlot` |
+| **Cancela citas del propio cliente** | Solo citas del número que escribe (jamás ajenas). Respeta la política del local: cancelación online desactivada o anticipación mínima → explica y deriva. Cancelar libera el cupo al instante. | Tool `cancelar_cita` (respeta `chatCancelEnabled` y `minutosLimiteReagendar`); trigger `liberarSlot` |
+| **Mueve la cita de hora o de día** | "¿Puedo adelantar mi hora?" → la mueve de verdad, **conservando su código de reserva** y, si puede, al mismo profesional (si no, avisa que cambió). Suelta el cupo viejo en la misma transacción. Misma política que cancelar. | Tool `reagendar_cita` (candado viejo fuera + nuevo dentro, atómico) |
 | **Pide confirmación de asistencia** | Con confirmaciones activas escribe antes de la cita (12/24/48 h configurables): "Responde CONFIRMAR o CANCELAR". CANCELAR libera el cupo solo. | Cron `evolutionConfirmaciones` (cada 30 min) + fast-path sin IA en el webhook |
 | **Deriva a un humano cuando corresponde** | Si el cliente pide hablar con una persona, reclama, o pide algo fuera de alcance (pagos, convenios, cotizaciones): avisa que el equipo seguirá la conversación y se calla 2 h en ese chat. | Tool `pasar_con_humano` (`botSilencedUntil`) |
 | **Habla español neutro o chileno** | Neutro por defecto (tú estándar, sin modismos). "Chileno cercano" activable por local: modismos suaves, máx. uno por mensaje, sin voseo escrito. | `configuracion/whatsapp.estiloChileno` |
@@ -35,6 +36,7 @@
 | **No cae en abusos** | Máx. **30 respuestas al día por chat**: al topar avisa una vez que el equipo seguirá y se detiene. | Anti-troll / anti-loop (costo + señal anti-ban) |
 | **No agenda en el pasado ni inventa horas** | Fechas pasadas se rechazan siempre; toda hora ofrecida sale del cálculo real. | Validación dura en `agendar_cita` + reglas del prompt |
 | **No revive citas canceladas** | Un "CONFIRMAR" tardío no puede reactivar una cita que ya se canceló. | Limpieza de `citaPendiente` al cancelar |
+| **No confirma cambios que no ocurrieron** | Nunca dice "listo, te lo cambié" ni entrega un código de reserva sin que la herramienta haya respondido `ok:true`. Si falla, lo dice u ofrece hablar con el local. | Regla de oro del prompt + `npm run test:reagendar` (21 casos) |
 
 ## Reglas operativas del onboarding (resumen)
 
