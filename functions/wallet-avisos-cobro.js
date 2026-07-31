@@ -91,7 +91,7 @@ async function emailsDelDueno(tid, billing) {
 // Aviso al DUEÑO del local, no al cliente final → Resend primario.
 async function enviarAviso(payload) {
   const r = await enviarEmail(payload, {
-    primario: 'resend', etiqueta: 'wallet-cobro', silencioso: true,
+    grupo: 'interno', etiqueta: 'wallet-cobro', silencioso: true,
   });
   return r.ok;
 }

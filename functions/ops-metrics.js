@@ -24,7 +24,7 @@ const admin                  = require('firebase-admin');
 const { Timestamp }          = require('firebase-admin/firestore');
 // Las cuotas y la fecha del contador se IMPORTAN del mailer, mismo criterio que
 // capDiario más abajo: una sola definición, sin réplica que se desincronice.
-const { enviarEmail, MAIL_SECRETS, CUOTAS, COL_USO, diaMail } = require('./lib/mailer');
+const { enviarEmail, MAIL_SECRETS, CANALES, COL_USO, diaMail } = require('./lib/mailer');
 
 const db = admin.firestore();
 const OPS_TOKEN      = defineSecret('OPS_TOKEN');
@@ -79,37 +79,42 @@ async function resumenEmail() {
 
   const snaps = await Promise.all(dias.map((d) => db.doc(`${COL_USO}/${d}`).get()));
 
+  const ids = Object.keys(CANALES);          // brevo_sy, brevo_bioo, resend_sy…
   const porDia = [];
-  const mesTot = { resend: 0, brevo: 0, fallidos: 0 };
+  const mesTot = Object.fromEntries(ids.map((c) => [c, 0]));
+  mesTot.fallidos = 0;
   let diasEnTope = 0;
 
   snaps.forEach((s, i) => {
     const d = s.data() || {};
-    const fila = {
-      fecha:    dias[i],
-      resend:   Number(d.resend)   || 0,
-      brevo:    Number(d.brevo)    || 0,
-      fallidos: Number(d.fallidos) || 0,
-    };
-    fila.total = fila.resend + fila.brevo;
+    const fila = { fecha: dias[i], fallidos: Number(d.fallidos) || 0 };
+    ids.forEach((c) => { fila[c] = Number(d[c]) || 0; });
+
+    // Los docs anteriores al reparto en 4 canales contaban por PROVEEDOR
+    // (`resend`/`brevo`). Se suman a la cuenta de SynapTech, que era la única
+    // que existía entonces — si no, el histórico del mes aparecería en cero.
+    fila.brevo_sy  += Number(d.brevo)  || 0;
+    fila.resend_sy += Number(d.resend) || 0;
+
+    fila.total = ids.reduce((t, c) => t + fila[c], 0);
     porDia.push(fila);
 
     if (dias[i].startsWith(mes)) {
-      mesTot.resend   += fila.resend;
-      mesTot.brevo    += fila.brevo;
+      ids.forEach((c) => { mesTot[c] += fila[c]; });
       mesTot.fallidos += fila.fallidos;
       // Un día en que CUALQUIER canal tocó su techo. Es la señal de compra:
       // no importa el promedio, importa cuántas veces nos quedamos cortos.
-      if (fila.resend >= CUOTAS.resend.diaria || fila.brevo >= CUOTAS.brevo.diaria) diasEnTope++;
+      if (ids.some((c) => fila[c] >= CANALES[c].diaria)) diasEnTope++;
     }
   });
 
   const filaHoy = porDia[0];
 
-  const proveedores = ['brevo', 'resend'].map((id) => {
-    const c = CUOTAS[id];
+  const canales = ids.map((id) => {
+    const c = CANALES[id];
     return {
       id,
+      nombre: c.etiqueta,
       plan:   c.plan,
       hoy:    filaHoy[id],
       capDia: c.diaria,
@@ -123,7 +128,7 @@ async function resumenEmail() {
   // Proyección de cierre de mes al ritmo actual: contesta "¿llego con el free?"
   const diaDelMes = Number(hoy.slice(8, 10));
   const diasDelMes = new Date(Number(hoy.slice(0, 4)), Number(hoy.slice(5, 7)), 0).getDate();
-  const totalMes = mesTot.resend + mesTot.brevo;
+  const totalMes = ids.reduce((t, c) => t + mesTot[c], 0);
 
   return {
     hoy: filaHoy,
@@ -134,8 +139,8 @@ async function resumenEmail() {
       diasEnTope,
       proyeccion: diaDelMes ? Math.round((totalMes / diaDelMes) * diasDelMes) : 0,
     },
-    capacidadDiaria: CUOTAS.resend.diaria + CUOTAS.brevo.diaria,
-    proveedores,
+    capacidadDiaria: ids.reduce((t, c) => t + CANALES[c].diaria, 0),
+    canales,
     porDia: porDia.slice(0, 14).reverse(),   // cronológico para el minigráfico
   };
 }
@@ -144,18 +149,21 @@ async function resumenEmail() {
  *  que las rojas también disparan el correo de opsVigilancia. */
 function alertasEmail(em) {
   const out = [];
-  for (const p of em.proveedores) {
-    if (p.pctDia >= 100) {
-      out.push({ nivel: 'rojo', texto: `Correo · ${p.id} agotó su cuota diaria (${p.hoy}/${p.capDia}). Los envíos están cayendo al otro canal.` });
-    } else if (p.pctDia >= UMBRAL.mailPct * 100) {
-      out.push({ nivel: 'ambar', texto: `Correo · ${p.id} al ${p.pctDia}% de su cuota diaria (${p.hoy}/${p.capDia}).` });
+  // Que se agote UN canal ya no es rojo: quedan otros tres y el failover los
+  // usa. Rojo se reserva para cuando la suma del día se acerca al techo, que es
+  // el momento en que de verdad hay que comprar.
+  for (const c of em.canales) {
+    if (c.pctDia >= 100) {
+      out.push({ nivel: 'ambar', texto: `Correo · ${c.nombre} agotó su cuota diaria (${c.hoy}/${c.capDia}). Los envíos siguen por los otros canales.` });
+    } else if (c.pctDia >= UMBRAL.mailPct * 100) {
+      out.push({ nivel: 'ambar', texto: `Correo · ${c.nombre} al ${c.pctDia}% de su cuota diaria (${c.hoy}/${c.capDia}).` });
     }
   }
   if (em.hoy.total >= em.capacidadDiaria * UMBRAL.mailPct) {
-    out.push({ nivel: 'rojo', texto: `Correo · ${em.hoy.total}/${em.capacidadDiaria} enviados hoy sumando los dos canales. Hora de evaluar plan pago o un tercer proveedor.` });
+    out.push({ nivel: 'rojo', texto: `Correo · ${em.hoy.total}/${em.capacidadDiaria} enviados hoy sumando los cuatro canales. Hora de evaluar plan pago.` });
   }
   if (em.hoy.fallidos) {
-    out.push({ nivel: 'ambar', texto: `Correo · ${em.hoy.fallidos} envío(s) fallaron en AMBOS canales hoy.` });
+    out.push({ nivel: 'rojo', texto: `Correo · ${em.hoy.fallidos} envío(s) no salieron por NINGÚN canal hoy.` });
   }
   return out;
 }
@@ -784,7 +792,7 @@ exports.opsVigilancia = onSchedule(
           <ul style="font-size:14px;line-height:1.6;color:#333">${filas}</ul>
           <p style="font-size:13px;color:#666">Abre <a href="https://ops.synaptechspa.cl">ops.synaptechspa.cl</a> para el detalle y el kill switch.</p>
         </div>`,
-    }, { primario: 'resend', etiqueta: 'ops-vigilancia', silencioso: true });
+    }, { grupo: 'interno', etiqueta: 'ops-vigilancia', silencioso: true });
 
     await ref.set({ firma, avisadoEn: Timestamp.now(), n: rojas.length }, { merge: true }).catch(() => {});
     logger.warn(`[ops:vigilancia] ${rojas.length} alerta(s) roja(s) notificadas`);

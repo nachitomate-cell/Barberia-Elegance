@@ -157,7 +157,7 @@ async function avisarStaff(tenantId, citaId, cita, panelUrl) {
 
   try {
     await enviarEmail({ from: cfg.from, to: destinatarios, subject, html },
-      { primario: 'resend', etiqueta: 'aviso-staff' });
+      { grupo: 'interno', etiqueta: 'aviso-staff' });
     logger.info(`[AvisoStaff] ${tenantId}: email enviado a ${destinatarios.join(', ')} (cita ${citaId})`);
     await writeNotifLog(db, {
       tenantId,

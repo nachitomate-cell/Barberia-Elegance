@@ -408,7 +408,7 @@ async function procesarCobro(authorizedPaymentId, token) {
         to:      emails,
         subject: `Pago automático recibido · ${local} (${clp(monto)})`,
         html:    htmlComprobante({ local, monto, fecha: hoy, proximo: next }),
-      }, { primario: 'resend', etiqueta: 'mensualidad-comprobante' });
+      }, { grupo: 'interno', etiqueta: 'mensualidad-comprobante' });
       logger.info(`[MPmens] comprobante enviado a ${emails.join(', ')}`);
     }
   } catch (e) { logger.warn(`[MPmens] comprobante falló: ${e.message}`); }

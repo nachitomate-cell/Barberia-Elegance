@@ -2,8 +2,8 @@
 
 // recuperacion-password.js
 // Callable: genera un enlace de reset via Firebase Admin y lo envía
-// por lib/mailer.js desde citas@synaptechspa.cl (Brevo primario: es
-// correo al cliente, el volumen alto).
+// por lib/mailer.js desde citas@synaptechspa.cl (grupo 'citas': es correo
+// al cliente, el volumen alto, y va por las dos cuentas Brevo).
 // El cliente llama: firebase.functions().httpsCallable('enviarRecuperacionPassword')
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -263,7 +263,7 @@ exports.enviarRecuperacionPassword = onCall(
         to:      [email.toLowerCase().trim()],
         subject: `🔑 Recupera tu contraseña — ${cfg.nombre}`,
         html,
-      }, { primario: 'brevo', etiqueta: 'reset-password' });
+      }, { grupo: 'citas', etiqueta: 'reset-password' });
     } catch (err) {
       logger.error('[Reset] envío falló:', err.message);
       throw new HttpsError('internal', 'No se pudo enviar el correo. Intenta de nuevo.');

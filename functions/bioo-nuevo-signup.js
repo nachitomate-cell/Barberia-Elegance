@@ -75,7 +75,7 @@ exports.notificarNuevaBioo = onDocumentCreated(
         to:      [ADMIN_EMAIL],
         subject: `🎉 Nueva bioo — @${username}${provisioned ? ' (provisionada)' : ''}`,
         html:    buildHtml({ username, email, source, provisioned, perfil }),
-      }, { primario: 'resend', etiqueta: 'bioo-signup' });
+      }, { grupo: 'interno', etiqueta: 'bioo-signup' });
       logger.info(`[bioo:nuevo] email enviado por @${username}`);
     } catch (err) {
       logger.error(`[bioo:nuevo] fallo enviando aviso de @${username}:`, err.message);

@@ -97,7 +97,7 @@ exports.enviarLinkAccesoStaff = onCall(
       to:      [emailNorm],
       subject: 'Restablece tu contraseña · Acceso al panel',
       html:    htmlReset({ email: emailNorm, link }),
-    }, { primario: 'resend', etiqueta: 'acceso-staff', silencioso: true });
+    }, { grupo: 'interno', etiqueta: 'acceso-staff', silencioso: true });
 
     if (!envio.ok) {
       logger.error('[accesoStaffEmail] envío falló:', envio.error);

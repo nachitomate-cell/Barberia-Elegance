@@ -195,7 +195,7 @@ exports.confirmarReservaCliente = onDocumentCreated(
         to:      [email],
         subject,
         html:    buildHtmlConfirmacion({ username, reserva, fechaFmt, gcalUrl, bioUrl }),
-      }, { primario: 'brevo', etiqueta: 'bioo-conf-cliente' });
+      }, { grupo: 'bioo', etiqueta: 'bioo-conf-cliente' });
       logger.info(`[bioo:cliente:conf] enviado a ${email} (reserva @${username}).`);
     } catch (err) {
       logger.error(`[bioo:cliente:conf] fallo enviando a ${email} (@${username}):`, err.message);
@@ -261,7 +261,7 @@ exports.recordatorio24hCliente = onSchedule(
           to:      [email],
           subject,
           html:    buildHtmlRecordatorio({ username, reserva, fechaFmt, gcalUrl, bioUrl }),
-        }, { primario: 'brevo', etiqueta: 'bioo-recordatorio-cliente' });
+        }, { grupo: 'bioo', etiqueta: 'bioo-recordatorio-cliente' });
         await docSnap.ref.update({ reminderSentAt: admin.firestore.FieldValue.serverTimestamp() });
         enviados++;
       } catch (err) {

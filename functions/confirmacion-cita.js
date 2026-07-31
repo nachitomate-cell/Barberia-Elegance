@@ -312,7 +312,7 @@ async function enviarConfirmacion(citaId, data, tenantId) {
     to:      [email],
     subject: `✅ Cita confirmada — ${data.servicioNombre || 'Tu reserva'} en ${cfg.nombre}`,
     html,
-  }, { primario: 'brevo', etiqueta: 'confirmacion-cita' });
+  }, { grupo: 'citas', etiqueta: 'confirmacion-cita' });
 
   logger.info(`[Confirmacion] Email enviado a ${email} (cita ${citaId}, tenant ${tenantId})`);
   await writeNotifLog(db, {

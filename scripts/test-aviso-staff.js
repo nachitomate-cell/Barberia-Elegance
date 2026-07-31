@@ -57,7 +57,7 @@ async function run() {
     to: [DESTINO],
     subject: `📅 Nueva cita — ${citaFake.fecha} ${citaFake.hora} · ${citaFake.clienteNombre} [PRUEBA]`,
     html,
-  }, { primario: 'resend', etiqueta: 'prueba-aviso-staff' });
+  }, { grupo: 'interno', etiqueta: 'prueba-aviso-staff' });
   console.log(`Email de prueba enviado a ${DESTINO} por ${r.proveedor} — id: ${r.id}`);
   process.exit(0);
 }

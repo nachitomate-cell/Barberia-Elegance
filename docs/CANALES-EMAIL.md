@@ -1,4 +1,30 @@
-# Canales de email — Resend + Brevo
+# Canales de email — cuatro cuentas
+
+> **La cuota es por CUENTA, no por dominio.** Agregar un dominio a una cuenta
+> existente no suma ni un correo; abrir otra cuenta sí. Por eso hay cuatro
+> canales y no dos proveedores.
+
+| Canal | Cuenta | Cuota | Dominios autenticados | Para qué |
+|---|---|---|---|---|
+| `brevo_sy` | Brevo · SynaptechSpa | 300/día | synaptechspa.cl | citas |
+| `brevo_bioo` | Brevo · bioo | 300/día | bioo.cl + synaptechspa.cl | citas |
+| `resend_sy` | Resend · SynapTech | 100/día | synaptechspa.cl | interno y respaldo |
+| `resend_bioo` | Resend · bioo | 100/día | bioo.cl | bioo (pendiente la cuenta) |
+
+**600/día para las citas de barbería**, porque el mismo dominio SÍ puede vivir en
+dos cuentas Brevo: el CNAME de DKIM apunta al mismo destino
+(`b1.synaptechspa-cl.dkim.brevo.com`) y los dos `brevo-code` conviven como TXT
+distintos en la raíz. Verificado con envíos reales por ambas cuentas desde
+`citas@synaptechspa.cl`.
+
+Los grupos (`citas`, `interno`, `bioo`) ordenan los canales; el dominio del
+remitente los filtra. Un canal que no tenga autenticado ese dominio se descarta
+**antes** de intentarlo: Brevo acepta con 201 aunque el dominio no esté
+autenticado y después marca el envío como `error` en silencio.
+
+---
+
+# Historia — Resend + Brevo
 
 **Estado:** implementado 2026-07-30. Falta el paso humano de la sección
 [Puesta en marcha](#puesta-en-marcha) antes del deploy.

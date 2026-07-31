@@ -215,7 +215,7 @@ exports.avisarNuevaReservaBioo = onDocumentCreated(
         to:      [email],
         subject,
         html:    buildHtml({ username, reserva, fechaFmt }),
-      }, { primario: 'resend', etiqueta: 'bioo-aviso-duenio' });
+      }, { grupo: 'bioo', etiqueta: 'bioo-aviso-duenio' });
       logger.info(`[bioo:reserva] aviso enviado a ${email} por reserva en @${username}.`);
     } catch (err) {
       logger.error(`[bioo:reserva] fallo enviando aviso a ${email} (@${username}):`, err.message);

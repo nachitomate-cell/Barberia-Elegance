@@ -230,7 +230,7 @@ exports.recordatorioCobro = onSchedule(
             to:      destinatarios,
             subject: title,
             html:    buildEmailHtml({ title, body, tid, nombreLocal }),
-          }, { primario: 'resend', etiqueta: 'recordatorio-cobro' });
+          }, { grupo: 'interno', etiqueta: 'recordatorio-cobro' });
           mailOk = true;
           totalMail += destinatarios.length;
           logger.info(`[Cobro] ✉ ${tid} (dias=${dias}) → email a ${destinatarios.length} destinatario(s)`);

@@ -107,7 +107,7 @@ async function revisar({ ref, antes, ahora, tid, periodo, campoAviso, campoCorte
       ? `🔴 Asistente IA en pausa · ${local} (tope ${periodo} ${usd(tope)})`
       : `⚠️ Gasto de IA al ${Math.round(AVISO_PCT * 100)}% · ${local} (${usd(gasto)} de ${usd(tope)} ${periodo})`,
     html: html({ local, periodo, gasto, tope, pct: Math.round((gasto / tope) * 100), cortado: corte }),
-  }, { primario: 'resend', etiqueta: `gasto-ia-${periodo}-${corte ? 'corte' : 'aviso'}` });
+  }, { grupo: 'interno', etiqueta: `gasto-ia-${periodo}-${corte ? 'corte' : 'aviso'}` });
 
   await ref.set({ [corte ? campoCorte : campoAviso]: true }, { merge: true }).catch(() => {});
   logger.warn(`[gasto-ia] ${tid} ${periodo}: ${usd(gasto)} de ${usd(tope)} → ${corte ? 'CORTE' : 'aviso'}`);

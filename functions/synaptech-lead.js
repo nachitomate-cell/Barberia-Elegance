@@ -323,7 +323,7 @@ exports.avisarNuevoLead = onDocumentCreated(
         to:      [ADMIN_EMAIL],
         subject: `🎯 [${ready.pct}%] Lead SynapTech: ${lead.barberia || lead.name || 'sin datos'}${lead.source ? ' · ' + lead.source : ''}`,
         html:    buildHtml(lead),
-      }, { primario: 'resend', etiqueta: 'synaptech-lead' });
+      }, { grupo: 'interno', etiqueta: 'synaptech-lead' });
       logger.info(`[synaptech:aviso] email enviado leadId=${leadId} readiness=${ready.pct}%`);
     } catch (err) {
       logger.error(`[synaptech:aviso] fallo enviando aviso leadId=${leadId}:`, err.message);

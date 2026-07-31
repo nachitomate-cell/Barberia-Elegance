@@ -112,7 +112,7 @@ async function avisar({ ref, antes, ahora, etiqueta, nombre, destinatarios, url,
         queHacer: 'Nada. Este correo es solo para que no te quedes con la duda.',
         url, urlTexto,
       }),
-    }, { primario: 'resend', etiqueta: `${etiqueta}-recuperada` }).catch(e =>
+    }, { grupo: 'interno', etiqueta: `${etiqueta}-recuperada` }).catch(e =>
       logger.error(`[alerta-sesion] recuperada ${nombre}:`, e.message));
     logger.info(`[alerta-sesion] ${nombre}: reconectada → aviso de recuperación`);
     return;
@@ -160,7 +160,7 @@ async function avisar({ ref, antes, ahora, etiqueta, nombre, destinatarios, url,
       ? `🔴 URGENTE · WhatsApp cerró la sesión de ${nombre}`
       : `⚠️ WhatsApp desconectado · ${nombre}`,
     html: html({ ...contenido, url, urlTexto }),
-  }, { primario: 'resend', etiqueta: `${etiqueta}-${terminal ? 'terminal' : 'caida'}` });
+  }, { grupo: 'interno', etiqueta: `${etiqueta}-${terminal ? 'terminal' : 'caida'}` });
 
   await ref.set({
     alertaDesconexionEnviada: true,

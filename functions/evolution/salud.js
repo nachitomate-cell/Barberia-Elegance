@@ -136,7 +136,7 @@ exports.evolutionSaludSesiones = onSchedule(
           to,
           subject: `⚠️ WhatsApp desconectado · ${local} (${minutos} min)`,
           html:    htmlAlerta({ local, tid, minutos }),
-        }, { primario: 'resend', etiqueta: 'evolution-salud' });
+        }, { grupo: 'interno', etiqueta: 'evolution-salud' });
         await ref.set({ alertaDesconexionEnviada: true, alertaDesconexionEn: FieldValue.serverTimestamp() }, { merge: true });
         alertas++;
         logger.warn(`[salud] ${tid}: sesión caída ${minutos} min → alerta enviada a ${to.join(', ')}`);
@@ -170,7 +170,7 @@ exports.evolutionSaludSesiones = onSchedule(
           to:      [EMAIL_SYNAPTECH],
           subject: `⚠️ Chip de SynapTech desconectado · ${nombre} (${minutos} min)`,
           html:    htmlAlerta({ local: nombre, minutos, url: 'https://ops.synaptechspa.cl' }),
-        }, { primario: 'resend', etiqueta: 'evolution-salud-chip' });
+        }, { grupo: 'interno', etiqueta: 'evolution-salud-chip' });
         await r.set({ alertaDesconexionEnviada: true, alertaDesconexionEn: FieldValue.serverTimestamp() }, { merge: true });
         alertas++;
         logger.warn(`[salud] chip ${chipId}: caído ${minutos} min → alerta enviada`);

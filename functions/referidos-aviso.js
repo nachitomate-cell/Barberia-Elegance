@@ -86,7 +86,7 @@ exports.avisarNuevoReferido = onDocumentCreated(
         to:      [ADMIN_EMAIL],
         subject: `🎯 Nuevo referido: ${signup.prospectBarberia || signup.prospectName || 'sin datos'} (${code})`,
         html:    buildHtml({ signup, code, referrerName }),
-      }, { primario: 'resend', etiqueta: 'referidos' });
+      }, { grupo: 'interno', etiqueta: 'referidos' });
       logger.info(`[referidos:aviso] email enviado signupId=${signupId} code=${code}`);
     } catch (err) {
       logger.error(`[referidos:aviso] fallo enviando aviso signupId=${signupId}:`, err.message);

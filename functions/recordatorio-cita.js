@@ -519,7 +519,7 @@ exports.recordatorioCita1h = onSchedule(
           to:      [email.toLowerCase().trim()],
           subject: `⏰ Tu cita comienza en 1 hora — ${cfg.nombre}`,
           html,
-        }, { primario: 'brevo', etiqueta: 'recordatorio-1h' });
+        }, { grupo: 'citas', etiqueta: 'recordatorio-1h' });
         logger.info(`[Email 1H] ✓ Enviado exitosamente a ${email} para cita ${citaId} (${tenantId})`);
         await writeNotifLog(db, {
           tenantId,
