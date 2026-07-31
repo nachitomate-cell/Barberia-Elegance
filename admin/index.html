@@ -1479,6 +1479,42 @@
       </div>
     </div>
 
+    <!-- ── Fidelización: sellos + premios (histórico + mes) ── -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.625rem; margin-bottom:0.625rem;">
+      <div class="ps-card">
+        <div id="ps-sellos-hist" class="ps-value">—</div>
+        <div class="ps-label">Sellos entregados</div>
+        <div class="ps-sub">histórico · todos los locales</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-sellos-mes" class="ps-value">—</div>
+        <div class="ps-label">Sellos este mes</div>
+        <div class="ps-sub" id="ps-sellos-mes-sub">mes actual</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-premios-hist" class="ps-value">—</div>
+        <div class="ps-label">Premios canjeados</div>
+        <div class="ps-sub">histórico · canjes aprobados</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-premios-mes" class="ps-value">—</div>
+        <div class="ps-label">Premios este mes</div>
+        <div class="ps-sub" id="ps-premios-mes-sub">mes actual</div>
+      </div>
+    </div>
+
+    <!-- ── Wallets guardadas (ancha, hair-line violeta) ── -->
+    <div style="display:grid; grid-template-columns:1fr; gap:0.625rem; margin-bottom:0.625rem;">
+      <div class="ps-card" id="ps-wallets-card" style="flex-direction:row; align-items:center; gap:1rem; border-top:2px solid rgba(196,181,253,0.5);">
+        <div style="flex:1; min-width:0;">
+          <div id="ps-wallets" class="ps-value" style="color:#fff;">—</div>
+          <div class="ps-label">Wallets guardadas</div>
+          <div class="ps-sub" id="ps-wallets-sub">Google Wallet + Apple Wallet · instalaciones activas</div>
+        </div>
+        <i class="ph ph-wallet" style="font-size:1.6rem; color:rgba(196,181,253,0.5); flex-shrink:0;"></i>
+      </div>
+    </div>
+
     <div id="ps-loading" style="text-align:center; padding:0.75rem 0; color:#475569; font-size:0.75rem;">
       <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
       Cargando estadísticas…
@@ -7232,25 +7268,60 @@
       document.getElementById('ps-locales').textContent = localesActivos;
       document.getElementById('ps-locales').classList.add('loaded');
 
+      // Ventana "este mes" (YYYY-MM) para filtrar historialSellos[].fecha (ISO
+      // string). approvedAt de premios es Timestamp → comparamos por millis.
+      const yyyyMm = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+      const thisMonthStartMs = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+      // redemptions vive en `redemptions` para elegance, `tenants/{tid}/redemptions`
+      // para el resto (mismo patrón que citasCol/usersCol en TENANTS).
+      const redemptionsCol = (tid) => tid === 'elegance'
+        ? db.collection('redemptions')
+        : db.collection('tenants').doc(tid).collection('redemptions');
+
       const results = await Promise.allSettled(tenantKeys.map(async tid => {
         const cfg = TENANTS[tid];
-        const [citasSnap, usersSnap, profSnap] = await Promise.allSettled([
+        const [citasSnap, usersSnap, profSnap, canjesSnap] = await Promise.allSettled([
           cfg.citasCol().where('fecha', '>=', sixMonthsAgo).get(),
           cfg.usersCol().get(),
           cfg.profCol().get(),
+          // Solo canjes ejecutados (status='approved'). Los pending/expired no
+          // cuentan como "premio entregado".
+          redemptionsCol(tid).where('status', '==', 'approved').get(),
         ]);
 
         const citas = citasSnap.status === 'fulfilled' ? citasSnap.value.docs.map(d => d.data()) : [];
 
-        // Usuarios: quedarse con identificadores para dedup cross-tenant.
-        // Preferimos telefonoSuf9 (estable cross-tenant); si no hay, uid del doc
-        // (queda per-tenant, pero al menos no doblamos dentro de un mismo tenant).
-        const userKeys = usersSnap.status === 'fulfilled'
-          ? usersSnap.value.docs.map(d => {
-              const data = d.data() || {};
-              return data.telefonoSuf9 || `${tid}:${d.id}`;
-            })
-          : [];
+        // Usuarios: dedup cross-tenant + sellos + wallets en UNA sola pasada
+        // para no re-fetchear la colección. Todo lo de fidelización vive en el
+        // doc user (sellosHistoricos, historialSellos[], walletObjectId,
+        // appleWalletSerial) — piggyback perfecto sobre el fetch existente.
+        const userKeys = [];
+        let sellosHist = 0;      // suma de user.sellosHistoricos (running total)
+        let sellosMes  = 0;      // sellos otorgados este mes calendario
+        let walletsG   = 0;      // Google Wallet activo (walletObjectId presente)
+        let walletsA   = 0;      // Apple Wallet activo (appleWalletSerial presente)
+        if (usersSnap.status === 'fulfilled') {
+          usersSnap.value.docs.forEach(d => {
+            const data = d.data() || {};
+            userKeys.push(data.telefonoSuf9 || `${tid}:${d.id}`);
+            // Sellos históricos: fallback a `stamps` (legacy pre-2026-01) y 0.
+            sellosHist += Number(data.sellosHistoricos ?? data.stamps ?? 0) || 0;
+            // Sellos este mes: historialSellos[] guarda cada otorgamiento con
+            // { fecha: ISO, tipo: 'suma'|'canje', cantidad }. Filtramos por
+            // prefijo YYYY-MM y sumamos solo entradas positivas (tipo='suma').
+            const hist = Array.isArray(data.historialSellos) ? data.historialSellos : [];
+            hist.forEach(h => {
+              if (h && h.tipo === 'suma' && typeof h.fecha === 'string' && h.fecha.startsWith(yyyyMm)) {
+                sellosMes += Number(h.cantidad) || 0;
+              }
+            });
+            // Wallets: contamos INSTALACIONES (un mismo user con iOS+Android
+            // suma 2). Es lo que "cuántas wallets se han guardado" pide.
+            if (data.walletObjectId)     walletsG++;
+            if (data.appleWalletSerial)  walletsA++;
+          });
+        }
 
         // Profesionales activos: excluir docs-enlace UID Y los desactivados
         // (disponible === false). Antes contaba también inactivos.
@@ -7289,6 +7360,18 @@
           if (c.servicioNombre) serviciosSet.add(c.servicioNombre);
         });
 
+        // Premios canjeados: query ya filtró status='approved', solo separamos
+        // total vs este mes por approvedAt (Timestamp → millis).
+        let premiosHist = 0, premiosMes = 0;
+        if (canjesSnap.status === 'fulfilled') {
+          canjesSnap.value.docs.forEach(d => {
+            premiosHist++;
+            const t = d.data()?.approvedAt;
+            const ms = (t && typeof t.toMillis === 'function') ? t.toMillis() : 0;
+            if (ms >= thisMonthStartMs) premiosMes++;
+          });
+        }
+
         return {
           tid,
           citasTotal: citasPasadas.length,
@@ -7300,10 +7383,19 @@
           userKeys,
           profCount,
           servicios: serviciosSet,
+          sellosHist,
+          sellosMes,
+          walletsG,
+          walletsA,
+          premiosHist,
+          premiosMes,
         };
       }));
 
       let totCitas = 0, totCitasMes = 0, totCitasHoy = 0, totParaHoy = 0, totCanceladas = 0, totProf = 0;
+      let totSellosHist = 0, totSellosMes = 0;
+      let totWalletsG = 0, totWalletsA = 0;
+      let totPremiosHist = 0, totPremiosMes = 0;
       const hoyPorTenant       = [];  // desglose de "agendadas hoy" para el sub
       const paraHoyPorTenant   = [];  // desglose de "para hoy" para el sub
       const globalUsers        = new Set();
@@ -7321,6 +7413,12 @@
         if (v.citasParaHoy > 0) paraHoyPorTenant.push({ tid: v.tid, n: v.citasParaHoy });
         totCanceladas += v.canceladas;
         totProf       += v.profCount;
+        totSellosHist += v.sellosHist  || 0;
+        totSellosMes  += v.sellosMes   || 0;
+        totWalletsG   += v.walletsG    || 0;
+        totWalletsA   += v.walletsA    || 0;
+        totPremiosHist += v.premiosHist || 0;
+        totPremiosMes  += v.premiosMes  || 0;
         v.userKeys.forEach(k => globalUsers.add(k));
         v.citasPasadas.forEach(c => {
           // Identidad: id > teléfono > nombre. Cross-tenant se agrupa igual.
@@ -7363,6 +7461,21 @@
       setVal('ps-retencion',     retencion + '%');
       setVal('ps-cancelacion',   cancelacion + '%');
       setVal('ps-servicios',     allServicios.size);
+
+      // Fidelización — sellos + premios (histórico + mes actual)
+      setVal('ps-sellos-hist',   totSellosHist.toLocaleString('es-CL'));
+      setVal('ps-sellos-mes',    totSellosMes.toLocaleString('es-CL'));
+      document.getElementById('ps-sellos-mes-sub').textContent  = mesNames[now.getMonth()];
+      setVal('ps-premios-hist',  totPremiosHist.toLocaleString('es-CL'));
+      setVal('ps-premios-mes',   totPremiosMes.toLocaleString('es-CL'));
+      document.getElementById('ps-premios-mes-sub').textContent = mesNames[now.getMonth()];
+
+      // Wallets: total = Google + Apple (instalaciones, no usuarios únicos).
+      // Sub-texto rompe el número en G/A para dar señal de plataforma.
+      const totWallets = totWalletsG + totWalletsA;
+      setVal('ps-wallets', totWallets.toLocaleString('es-CL'));
+      document.getElementById('ps-wallets-sub').textContent =
+        `Google ${totWalletsG.toLocaleString('es-CL')} · Apple ${totWalletsA.toLocaleString('es-CL')}`;
 
       document.getElementById('ps-loading').style.display = 'none';
 
