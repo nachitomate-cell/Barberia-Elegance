@@ -32,9 +32,32 @@ const OPS_TOKEN      = defineSecret('OPS_TOKEN');
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 
+/** YYYY-MM-DD en Santiago. Es `diaMail` de lib/mailer, importado arriba y
+ *  renombrado acá para que se lea por lo que hace y no por quién lo escribió
+ *  primero. NO se define uno nuevo a propósito: entre el mailer, el contador
+ *  de métricas y el canal de WhatsApp ya había tres formas de decir "hoy en
+ *  Chile", y de ahí salió justamente el desfase que este cambio corrige. */
+const diaChile = diaMail;
+
+/** Días hacia atrás desde HOY en Santiago.
+ *
+ *  Cortaba en UTC igual que el escritor (lib/metrics.js), así que la serie era
+ *  internamente coherente pero desfasada 4 h respecto de todo lo demás del
+ *  panel: el cupo del chip, el correo y el consumo que ve el dueño ya cortaban
+ *  en Santiago. Ahora los cuatro cuentan el mismo día.
+ *
+ *  El ancla es MEDIODÍA de la fecha chilena: restar días desde ahí nunca cruza
+ *  un cambio de horario de verano, que en Chile mueve el reloj y a medianoche
+ *  haría que un día se repita o se salte.
+ *
+ *  Sustituye también a diasMailAtras(): eran la misma función con distinto
+ *  nombre desde el momento en que las dos series pasaron a cortar en Chile. */
 function ultimosDias(n) {
-  const out = [];
-  for (let i = 0; i < n; i++) out.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  const out  = [];
+  const base = new Date(diaChile() + 'T12:00:00Z');
+  for (let i = 0; i < n; i++) {
+    out.push(new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10));
+  }
   return out;
 }
 
@@ -46,22 +69,11 @@ function ultimosDias(n) {
    (Resend 100/día, Brevo 300/día) y toca pagar o sumar un tercer canal.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Días hacia atrás desde HOY en Santiago.
- *  No usa ultimosDias(): esa corta en UTC y el contador corta en Santiago, así
- *  que pasadas las 20:00 CL el dashboard leería el doc de mañana (vacío) y
- *  mostraría 0 enviados justo en las horas de más movimiento. */
-function diasMailAtras(n) {
-  const out  = [];
-  // Mediodía UTC como ancla: restar días nunca cruza un cambio de horario.
-  const base = new Date(diaMail() + 'T12:00:00Z');
-  for (let i = 0; i < n; i++) {
-    out.push(new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10));
-  }
-  return out;
-}
-
 async function resumenEmail() {
-  const dias = diasMailAtras(31);
+  // Antes tenía su propia diasMailAtras() porque ultimosDias() cortaba en UTC
+  // y el contador de correo en Santiago. Ahora las dos series cortan igual, así
+  // que la copia sobraba — y una copia que sobra es una que se desincroniza.
+  const dias = ultimosDias(31);
   const hoy  = dias[0];
   const mes  = hoy.slice(0, 7);
 
@@ -633,7 +645,11 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
  *  dashboard. Si esto reevaluara sus propios umbrales, el correo y el panel
  *  terminarían diciendo cosas distintas. */
 async function recolectarAlertasRojas() {
-  const hoy = new Date().toISOString().slice(0, 10);
+  // Chile, no UTC: `hoy` se usa para leer _metrics/ai_dia_{tid}_{hoy}, que
+  // ahora se escribe con la fecha chilena. Con UTC, el correo de alertas de
+  // las 20:00 en adelante leería el doc de mañana —vacío— y reportaría consumo
+  // cero justo en las horas de más movimiento.
+  const hoy = diaChile();
   const [{ alertas }, email] = await Promise.all([
     analizarLocales(hoy, hoy.slice(0, 7)),
     resumenEmail(),

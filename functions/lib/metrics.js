@@ -15,8 +15,25 @@ const PRICE = {
   'claude-sonnet-4-6':        { in: 3.0, out: 15.0 },
 };
 
-const hoy = () => new Date().toISOString().slice(0, 10);
-const mes = () => new Date().toISOString().slice(0, 7);
+/* Día y mes en hora de CHILE, no UTC.
+   Con toISOString() el contador cortaba a las 20:00 de Chile (medianoche UTC),
+   así que todo lo que pasaba entre las 20:00 y las 00:00 —que son horas de
+   movimiento real en una barbería— se anotaba en el día siguiente. En el mismo
+   dashboard convivía con el cupo de WhatsApp, que sí corta en Santiago: dos
+   cifras que se leen juntas y contaban días distintos.
+
+   Es el mismo problema que ya tenía el contador de correo y que resolvió
+   diaMail() en lib/mailer.js. Acá se usa el mismo criterio para que no haya
+   dos definiciones de "hoy" conviviendo en el proyecto.
+
+   ⚠️ Los docs escritos ANTES de este cambio siguen con clave UTC. Para la
+   franja de las 20:00–00:00 quedaron en el día siguiente y ahí se quedan: son
+   pocos y migrarlos costaría más de lo que valen. */
+const DIA_CL = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+const hoy = () => DIA_CL.format(new Date());   // en-CA da YYYY-MM-DD
+const mes = () => hoy().slice(0, 7);
 
 /** Registra un envío de WhatsApp por Evolution (tipo: 'bot' | 'confirmacion'). */
 async function logWaSend(tid, tipo, ok) {
