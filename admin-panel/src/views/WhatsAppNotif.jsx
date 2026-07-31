@@ -51,7 +51,10 @@ function Badge({ tone = 'slate', children }) {
 // `embedded`: sin ancho máximo — la vista unificada WhatsApp.jsx la renderiza
 // como sub-página. Cuando se accede directo a /whatsapp-notif se renderiza sin
 // header propio también (embedded=false), pero con el mismo layout de Section.
-export default function WhatsAppNotif({ embedded = false }) {
+//
+// `onEstado`: le dice a WhatsApp.jsx si el módulo está contratado, para que lo
+// ubique arriba o al final. Opcional — accediendo directo, nadie escucha.
+export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const tenant   = useTenant();
   const tenantId = resolveTenantId();
 
@@ -79,6 +82,14 @@ export default function WhatsAppNotif({ embedded = false }) {
   // de avisos al dueño se retiró de esta vista, pero la callable sigue siendo
   // la fuente del entitlement del plan pagado.
   const planCliente = !!estado?.planCliente;
+
+  // Solo se reporta con respuesta en mano. Si la callable falla no se dice
+  // 'disponible': mandaría abajo un módulo que quizá sí está contratado, y el
+  // dueño leería el error como "me lo quitaron".
+  useEffect(() => {
+    if (loading || error) return;
+    onEstado?.(planCliente ? 'activo' : 'disponible');
+  }, [loading, error, planCliente, onEstado]);
 
   const nombreLocal = tenant?.name || tenantId || 'Tu Local';
   const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();

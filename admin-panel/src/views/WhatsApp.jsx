@@ -1,17 +1,27 @@
+import { useState, useCallback } from 'react';
 import WhatsAppNotif from './WhatsAppNotif';
+import WhatsAppPlataforma from './WhatsAppPlataforma';
 import WhatsAppAsistente from './WhatsAppAsistente';
 
-// Vista unificada "WhatsApp" — página fluida con los módulos del canal, uno
-// debajo del otro (sin pestañas). El cliente ve de un vistazo qué tiene y qué
-// puede pedir:
-//   1. Confirmación al cliente        (PLAN PAGADO)                   → WhatsAppNotif
-//   2. Asistente IA 24/7              (PREMIUM · lo activa SynapTech) → WhatsAppAsistente
+// Vista unificada "WhatsApp" — los tres módulos del canal, uno debajo del otro.
 //
-// Había un módulo previo, "Aviso de reservas al local" (gratis, avisaba al
-// dueño de cada reserva por WhatsApp de sesión), que se retiró de la vista.
+//   · Confirmación al cliente (plantilla oficial de Meta)  → WhatsAppNotif
+//   · Confirmaciones por el número de SynapTech            → WhatsAppPlataforma
+//   · Asistente IA 24/7 (bot en el número del local)       → WhatsAppAsistente
 //
-// Los módulos pagados NO se auto-activan: la "llave" vive en _system/{tid}
-// (solo SynapTech escribe) y el cliente solo puede solicitar la activación.
+// ORDENADOS POR ESTADO, no por código. Antes se renderizaban en orden fijo y el
+// dueño abría la página encontrándose primero un módulo que NO tiene, con su
+// botón de "Solicitar activación", mientras el que sí está funcionando quedaba
+// más abajo. Peor: dos de los tres se llaman "confirmaciones", así que sin
+// jerarquía no había forma de saber cuál le aplica.
+//
+// Ahora cada módulo reporta si está contratado y la página lo ubica: lo activo
+// arriba, lo disponible al final bajo un separador. Se hace con CSS `order` en
+// vez de reordenar el árbol, así cada módulo sigue siendo dueño de su estado y
+// no hay que levantarlo acá — que obligaría a duplicar sus lecturas.
+//
+// Los módulos NO se auto-activan: la llave vive en _system/{tid}, que solo
+// SynapTech escribe. El cliente únicamente puede solicitarlos.
 
 function WhatsAppLogo({ size = 22 }) {
   return (
@@ -22,7 +32,27 @@ function WhatsAppLogo({ size = 22 }) {
   );
 }
 
+// order 0 = contratado · 5 = separador · 10 = disponible.
+// Mientras un módulo no reporta (aún leyendo Firestore) se lo trata como
+// activo: si se asumiera lo contrario, los bloques saltarían de abajo hacia
+// arriba al terminar de cargar, que se ve peor que esperar un instante.
+const ORDEN = { activo: 0, disponible: 10 };
+
 export default function WhatsApp() {
+  const [estado, setEstado] = useState({});
+
+  // useCallback por módulo: sin esto, cada render crea una función nueva, el
+  // useEffect del hijo la ve cambiada y vuelve a reportar — bucle infinito.
+  const reportar = {
+    notif:      useCallback((e) => setEstado(p => (p.notif      === e ? p : { ...p, notif:      e })), []),
+    plataforma: useCallback((e) => setEstado(p => (p.plataforma === e ? p : { ...p, plataforma: e })), []),
+    bot:        useCallback((e) => setEstado(p => (p.bot        === e ? p : { ...p, bot:        e })), []),
+  };
+
+  const orden = (k) => ORDEN[estado[k]] ?? ORDEN.activo;
+  const hayDisponibles = Object.values(estado).some(e => e === 'disponible');
+  const hayActivos     = Object.values(estado).some(e => e === 'activo');
+
   return (
     <div data-view="whatsapp" className="max-w-3xl mx-auto pb-12">
 
@@ -41,12 +71,36 @@ export default function WhatsApp() {
         </div>
       </div>
 
-      {/* ── Módulos apilados ── */}
-      <div className="space-y-10">
-        <WhatsAppNotif embedded />
-        <WhatsAppAsistente embedded />
-      </div>
+      {/* ── Módulos apilados y ordenados por estado ──
+          `gap`, no `space-y`: space-y pone el margen según el orden del DOM
+          (`* + *`), que acá ya no es el orden visual — quedarían huecos
+          disparejos y un margen colgando arriba del primer bloque. */}
+      <div className="flex flex-col gap-10">
 
+        <div style={{ order: orden('plataforma') }}>
+          <WhatsAppPlataforma onEstado={reportar.plataforma} />
+        </div>
+
+        <div style={{ order: orden('bot') }}>
+          <WhatsAppAsistente embedded onEstado={reportar.bot} />
+        </div>
+
+        <div style={{ order: orden('notif') }}>
+          <WhatsAppNotif embedded onEstado={reportar.notif} />
+        </div>
+
+        {/* Separador: solo tiene sentido si hay algo a cada lado. */}
+        {hayActivos && hayDisponibles && (
+          <div style={{ order: 5 }} className="flex items-center gap-3 -my-2">
+            <div className="h-px flex-1 bg-white/[0.07]" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 shrink-0">
+              Otros módulos disponibles
+            </span>
+            <div className="h-px flex-1 bg-white/[0.07]" />
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
