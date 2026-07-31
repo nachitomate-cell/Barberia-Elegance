@@ -190,6 +190,39 @@ const MAX_POR_CICLO = 8;
 // intento extra es martillar un número que WhatsApp acaba de cerrar.
 const FALLOS_PARA_CORTAR = 3;
 
+/* Pausa entre un mensaje y el siguiente DENTRO del mismo ciclo.
+   Antes salían de corrido: ocho mensajes en un par de segundos desde un número
+   que nadie contactó es, para WhatsApp, exactamente la forma de un bot de
+   spam. El tope diario no cubre esto — se puede respetar el día entero y aun
+   así mandar la ráfaga en tres segundos.
+   Aleatoria a propósito: un intervalo exacto también es una firma. */
+const PAUSA_MIN_MS = 18_000;
+const PAUSA_MAX_MS = 42_000;
+/* Techo de tiempo por chip. Las pausas hacen que el ciclo dure de verdad: 8
+   mensajes a 42s son 294s, y con dos chips se pasa del timeout de la función y
+   el ciclo muere a medias. Con el techo, lo que no alcanzó queda sin marcar y
+   lo toma el ciclo siguiente — media hora después, que es justo el ritmo lento
+   que se busca. */
+const MAX_MS_POR_CHIP = 200_000;
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+const pausaEntreEnvios = () =>
+  dormir(PAUSA_MIN_MS + Math.floor(Math.random() * (PAUSA_MAX_MS - PAUSA_MIN_MS)));
+
+/* Citas "comodín": huecos que el local se reserva a sí mismo, con un teléfono
+   de la casa. No son clientes y no hay que escribirles nunca. Se detectan por
+   el nombre porque no llevan ninguna marca en el doc, y cada sede lo escribe a
+   su manera ("Comodin Kronnos", "woman comodín").
+
+   Los números concretos, además, quedan en el libro global /wa_optout: eso los
+   frena en los TRES canales para siempre, sin depender de que el nombre se
+   siga escribiendo igual. Este filtro es el cinturón; el opt-out, el tirante. */
+const RE_COMODIN = /\bcomod[ií]n(es)?\b/i;
+const esComodin = (cita) => RE_COMODIN.test(
+  String((cita && cita.clienteNombre) || '').normalize('NFD').replace(/\p{Diacritic}/gu, '') +
+  ' ' + String((cita && cita.clienteNombre) || ''),
+);
+exports._esComodin = esComodin;
+
 /** Tope diario del CHIP, escalonado por su antigüedad. Mismos números que
  *  evolution/cuota.js: un número recién vinculado despachando decenas de
  *  mensajes el día uno es el patrón que Meta suspende primero. */
@@ -840,6 +873,12 @@ async function procesarCicloChip({ evoClient, chipId }) {
         if (cita.waConfirmSolicitada === true) continue;
         if (cita.waNumeroInvalido === true)    continue;
         if (cita.origenQA)                     continue;   // barbero fantasma
+        if (esComodin(cita)) {                             // hueco interno del local
+          // Se marca para que no vuelva a evaluarse en cada ciclo, y para que
+          // en la agenda quede claro por qué nunca se le preguntó.
+          await doc.ref.update({ waConfirmSolicitada: true, waOmitidaMotivo: 'comodin' }).catch(() => {});
+          continue;
+        }
         if (typeof cita.hora !== 'string' || !cita.hora.includes(':')) continue;
 
         // Consentimiento: la casilla explícita de la reserva y nada más.
@@ -886,13 +925,26 @@ async function procesarCicloChip({ evoClient, chipId }) {
   // intentos seguidos contra una sesión muerta— porque ninguno sumaba. Un
   // limitador de ritmo que solo cuenta los que salen bien no limita el ritmo
   // justo cuando más falta hace.
-  const margen = Math.min(MAX_POR_CICLO, cap - enviadosHoy);
+  // Cuántos por ciclo. Configurable por chip (`_system/wa_plataforma*.maxPorCiclo`)
+  // para poder bajar el ritmo de uno recién revinculado sin tocar a los demás:
+  // con 2 por ciclo y el cron cada 30 min son 4 mensajes por hora, muy lejos
+  // de la ráfaga que cerró la sesión.
+  const porCiclo = Number.isFinite(Number(cfg.maxPorCiclo)) && Number(cfg.maxPorCiclo) > 0
+    ? Math.min(MAX_POR_CICLO, Number(cfg.maxPorCiclo))
+    : MAX_POR_CICLO;
+  const margen = Math.min(porCiclo, cap - enviadosHoy);
   let enviados = 0;
   let intentos = 0;
   let fallosSeguidos = 0;
+  const t0 = Date.now();
 
   for (const c of candidatas) {
     if (intentos >= margen) { enEsperaPorCupo++; continue; }
+    if (Date.now() - t0 > MAX_MS_POR_CHIP) {
+      enEsperaPorCupo += candidatas.length - candidatas.indexOf(c);
+      logger.info(`[plataforma:${chipId}] techo de tiempo del ciclo; el resto va en el siguiente`);
+      break;
+    }
 
     // Cortacircuitos: si fallan varios seguidos, la sesión está caída y seguir
     // martillándola solo empeora las cosas — un chip nuevo insistiendo contra
@@ -932,6 +984,9 @@ async function procesarCicloChip({ evoClient, chipId }) {
     // Cuenta ANTES de mandar: lo que hay que limitar es cuántas veces se toca
     // WhatsApp por ciclo, salga bien o mal.
     intentos++;
+    // Pausa entre mensajes, no antes del primero: si no, cada ciclo empieza
+    // esperando aunque solo haya uno que mandar.
+    if (intentos > 1) await pausaEntreEnvios();
     try {
       await evoClient.enviarTexto(INSTANCIA, c.tel, texto);
     } catch (e) {
@@ -987,7 +1042,9 @@ exports.plataformaConfirmaciones = onSchedule({
   timeZone:       'America/Santiago',
   region:         'us-central1',
   secrets:        SECRETS,
-  timeoutSeconds: 300,
+  // Las pausas entre mensajes hacen que el ciclo dure minutos, no segundos.
+  // MAX_MS_POR_CHIP lo acota por chip; esto deja aire para varios chips.
+  timeoutSeconds: 540,
 }, async () => {
   if (!dentroDeVentanaHoraria()) {
     logger.info(`[plataforma] fuera de ventana (${HORA_INICIO}:00–${HORA_FIN}:00 Chile); ciclo omitido`);
