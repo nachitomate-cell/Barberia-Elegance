@@ -38,6 +38,7 @@ const {
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
 const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
+const { puedeGastar } = require('../lib/ai-presupuesto');
 const { incluyeBot, incluyeRecordatorios } = require('../lib/wa-plan');
 const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 const {
@@ -969,6 +970,27 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     systemVariable += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
   }
   const tools = citaPendiente ? [...toolsBase, GESTION_CONFIRMACION_TOOL] : toolsBase;
+
+  // ── Tope de gasto ──
+  // Se revisa acá y no en el gate de arriba a propósito: arriba también pasan
+  // las CONFIRMACIONES, que se resuelven con una expresión regular y no cuestan
+  // IA. Cortarlas por un tope de tokens sería cambiar plata por citas perdidas.
+  // Solo se apaga el bot conversacional, que es lo que gasta.
+  const presupuesto = await puedeGastar(tid, sys);
+  if (!presupuesto.ok) {
+    // Una sola vez por conversación: repetirlo en cada mensaje es spam, y el
+    // cliente ya entendió a la primera que no le va a contestar un robot.
+    const conv = (await ref.get()).data() || {};
+    if (!conv.avisoTopeIaAt) {
+      await responder('Gracias por escribir 🙌 En este momento no puedo responderte automáticamente, ' +
+        'pero tu mensaje quedó registrado y te contactamos a la brevedad.');
+      await ref.set({ avisoTopeIaAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+    }
+    logger.warn(`[cerebro] ${tid}: tope de gasto ${presupuesto.motivo} alcanzado ` +
+      `(día $${presupuesto.gastoDia?.toFixed(4)}/$${presupuesto.topeDia} · ` +
+      `mes $${presupuesto.gastoMes?.toFixed(4)}/$${presupuesto.topeMes}) → bot en pausa`);
+    return;
+  }
 
   // ── Pensar ──
   let respuesta;

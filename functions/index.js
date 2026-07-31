@@ -1659,6 +1659,10 @@ const evolutionAlertaSesion = require('./evolution/alerta-sesion');
 exports.alertaSesionTenant = evolutionAlertaSesion.alertaSesionTenant;
 exports.alertaSesionChip   = evolutionAlertaSesion.alertaSesionChip;
 
+// Tope de gasto de Claude por local: el corte lo aplica el cerebro
+// (lib/ai-presupuesto.js) y este trigger avisa por correo al 70% y al 100%.
+exports.alertaGastoIa = require('./alerta-gasto-ia').alertaGastoIa;
+
 // Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;
