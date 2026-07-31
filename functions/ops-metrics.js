@@ -155,7 +155,18 @@ function alertasEmail(em) {
 // que no tener panel.
 const { capDiario, capConfirmaciones, resumenHoy } = require('./evolution/cuota');
 // Tope del chip compartido: se importa por el mismo motivo que los de arriba.
-const { _capDiario: capDiarioChip } = require('./evolution/plataforma');
+// Todo lo del chip se IMPORTA de evolution/plataforma: tope, rutas de los docs
+// y la lista de chips vinculados. El dashboard no puede tener su propia idea de
+// ninguna de las tres — ya pasó con los topes del canal propio, que cambiaron
+// en el módulo y acá siguieron mostrándose los viejos durante semanas.
+const {
+  _capDiario:     capDiarioChip,
+  _chipRef:       chipRef,
+  _cuotaRef:      cuotaRefChip,
+  _listarChips:   listarChips,
+  _chipDeTenant:  chipDeTenant,
+  _CHIP_DEFAULT:  CHIP_DEFAULT,
+} = require('./evolution/plataforma');
 
 // Umbrales de vigilancia. Son los que disparan alerta en el dashboard y en el
 // correo de `opsVigilancia`.
@@ -366,12 +377,12 @@ const CHIP_UMBRAL = {
   caidasDia:     3,     // caídas de sesión por día
 };
 
-async function saludChip(dias) {
-  const cfg = (await db.doc('_system/wa_plataforma').get()).data() || null;
+async function saludChip(dias, chipId = CHIP_DEFAULT) {
+  const cfg = (await chipRef(chipId).get()).data() || null;
   if (!cfg) return null;   // el chip nunca se vinculó: nada que vigilar
 
   const snaps = await Promise.all(
-    dias.map((d) => db.doc(`wa_plataforma_cuota/${d}`).get()),
+    dias.map((d) => cuotaRefChip(chipId, d).get()),
   );
 
   let enviados = 0, fallos = 0, respuestas = 0, optouts = 0, caidas = 0;
@@ -406,14 +417,18 @@ async function saludChip(dias) {
   // se muestra el consumo de cada uno contra el restante GLOBAL — si un local
   // se come el día, los demás quedan mudos aunque no hayan enviado nada.
   const hoyCL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
-  const cuotaHoy = (await db.doc(`wa_plataforma_cuota/${hoyCL}`).get()).data() || {};
+  const cuotaHoy = (await cuotaRefChip(chipId, hoyCL).get()).data() || {};
   const usadosHoy = Number(cuotaHoy.n) || 0;
 
   const sysRefs = await db.collection('_system').listDocuments();
   const activos = [];
   for (const r of sysRefs) {
+    // Los docs de los propios chips viven en /_system: sin este filtro
+    // aparecerían como si fueran locales.
+    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) continue;
     const s = (await r.get()).data() || {};
     if (s.waPlataforma !== true) continue;
+    if (chipDeTenant(s) !== chipId) continue;   // cada chip lista SUS locales
     const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
     const waCfg = (await db.doc(`tenants/${r.id}/configuracion/whatsapp`).get()).data() || {};
     activos.push({
@@ -476,6 +491,8 @@ async function saludChip(dias) {
                   : 'sin-datos';
 
   return {
+    chipId,
+    nombre: cfg.nombre || (chipId === CHIP_DEFAULT ? 'Chip principal' : chipId),
     numero: cfg.numeroVinculado || null,
     estado: cfg.estadoConexion || 'desconocido',
     diasVinculado: Number(diasChip.toFixed(1)),
@@ -539,17 +556,25 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
   const usoEmail = await resumenEmail();
   alertas.push(...alertasEmail(usoEmail));
 
-  // Salud del chip compartido de SynapTech: 7 días, que es la ventana donde
-  // una degradación se nota sin que la diluya el histórico.
-  // Va ANTES del sort: si el chip está rojo tiene que salir arriba, no al
+  // Salud de CADA chip de SynapTech: 7 días, que es la ventana donde una
+  // degradación se nota sin que la diluya el histórico.
+  // Va ANTES del sort: si un chip está rojo tiene que salir arriba, no al
   // final de la lista por haberse agregado tarde.
-  const chip = await saludChip(ultimosDias(7));
-  if (chip) {
-    chip.señales.forEach((s) => alertas.push({
+  //
+  // La alerta lleva el nombre del chip: con dos o más, "el chip está
+  // desconectado" no dice cuál hay que ir a reconectar.
+  const idsChips = await listarChips();
+  const chips = (await Promise.all(idsChips.map((id) => saludChip(ultimosDias(7), id))))
+    .filter(Boolean);
+  for (const c of chips) {
+    c.señales.forEach((s) => alertas.push({
       nivel: s.nivel,
-      texto: `Chip SynapTech · ${s.texto}`,
+      texto: `Chip ${c.nombre} · ${s.texto}`,
     }));
   }
+  // `chip` (singular) se mantiene apuntando al principal: ops.html lo lee así
+  // desde antes y no tiene por qué romperse mientras se actualiza la vista.
+  const chip = chips.find((c) => c.chipId === CHIP_DEFAULT) || chips[0] || null;
 
   // Rojo primero, luego ámbar, luego info.
   const peso = { rojo: 0, ambar: 1, info: 2 };
@@ -563,7 +588,8 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     mensajes: { total: mensajes, ok: mensajesOk, porDia },
     claude: { costoUsd, tokensIn, tokensOut, llamadas },
     negocio: negocioTotal,          // mes en curso
-    chip,
+    chip,     // el principal — compat con la vista actual de ops
+    chips,    // todos, para el panel por chip
     dias: 30,
   };
 

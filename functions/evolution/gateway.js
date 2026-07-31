@@ -264,19 +264,26 @@ exports.evolutionWebhook = onRequest({
     const instanceName = body.instance || body.instanceName || '';
     const event        = String(body.event || '').toLowerCase();
 
-    // ── Instancia COMPARTIDA de SynapTech (evolution/plataforma.js) ──
+    // ── Chips de SynapTech (evolution/plataforma.js) ──
     // Se intercepta ANTES de derivar el tid: `instance_synaptech` pasaría el
     // replace de abajo y quedaría como un tenant llamado "synaptech",
     // escribiendo en tenants/synaptech/… que no existe. Acá el tenant NO sale
     // del nombre de la instancia — sale del índice teléfono → tenant.
-    if (plataforma.esInstanciaPlataforma(instanceName)) {
+    //
+    // Puede haber varios chips; `chipIdDeInstancia` devuelve cuál (o null si la
+    // instancia es del canal propio de un local). Es UNA función y no dos
+    // condiciones sueltas justamente para que reconocer la instancia y saber de
+    // qué chip es no puedan contradecirse.
+    const chipId = plataforma.chipIdDeInstancia(instanceName);
+    if (chipId) {
       if (event === 'connection.update') {
         const state = body.data?.state || body.data?.connection;
-        const ref   = db.doc('_system/wa_plataforma');
+        const ref   = plataforma._chipRef(chipId);
         if (state === 'open') {
           const numero = body.data?.wuid || body.data?.me?.id || body.sender || null;
           const prev = (await ref.get().catch(() => null))?.data() || {};
           await ref.set({
+            chipId,
             estadoConexion:  'connected',
             numeroVinculado: numero ? String(numero).replace(/[:@].*$/, '') : null,
             conectadoEn:     FieldValue.serverTimestamp(),
@@ -295,7 +302,7 @@ exports.evolutionWebhook = onRequest({
           // Cuenta de caídas del día: una sesión que se cae seguido es una
           // sesión degradada, y eso precede al bloqueo. Solo la transición.
           if (prev.estadoConexion !== 'disconnected') {
-            await plataforma._registrarEvento('caidas').catch(() => {});
+            await plataforma._registrarEvento(chipId, 'caidas').catch(() => {});
           }
         }
       } else if (event === 'messages.upsert') {
@@ -303,9 +310,10 @@ exports.evolutionWebhook = onRequest({
           await plataforma.procesarEntrantePlataforma({
             body,
             evoClient: cliente(),
+            chipId,
           });
         } catch (e) {
-          logger.error('[plataforma:webhook]', e.message);
+          logger.error(`[plataforma:webhook:${chipId}]`, e.message);
         }
       }
       res.status(200).send('ok');

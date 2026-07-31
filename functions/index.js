@@ -1620,11 +1620,13 @@ exports.evolutionMiConsumo   = evolutionGateway.evolutionMiConsumo;
 // Cron de confirmaciones anti-no-show (Sprint 3): pide CONFIRMAR/CANCELAR por
 // el número propio del local. La respuesta la maneja el cerebro (webhook).
 // Canal PLATAFORMA: confirmaciones desde el número propio de SynapTech por
-// Evolution (chip compartido entre locales). Ver evolution/plataforma.js.
+// Evolution: chips de SynapTech, compartidos entre locales. Puede haber varios
+// (cada uno con su propio cupo y sus propios locales). Ver evolution/plataforma.js.
 const evolutionPlataforma = require('./evolution/plataforma');
 exports.plataformaVincular       = evolutionPlataforma.plataformaVincular;
 exports.plataformaEstado         = evolutionPlataforma.plataformaEstado;
 exports.plataformaDesvincular    = evolutionPlataforma.plataformaDesvincular;
+exports.plataformaChips          = evolutionPlataforma.plataformaChips;
 exports.plataformaConfirmaciones = evolutionPlataforma.plataformaConfirmaciones;
 
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO

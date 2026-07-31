@@ -27,17 +27,28 @@
 //  ⚠️ EL TOPE ANTI-BLOQUEO ES DEL CHIP, NO DEL TENANT
 //  ──────────────────────────────────────────────────
 //  En el canal propio cada local arriesga su propio número, así que el tope
-//  vive en `tenants/{tid}/wa_cuota`. Acá todos comparten UN número: si cada
-//  tenant llevara su propio contador, diez locales a 20 mensajes serían 200
-//  salientes del mismo chip en un día — exactamente el patrón que Meta
-//  suspende. El contador es global: `wa_plataforma_cuota/{fecha}`.
+//  vive en `tenants/{tid}/wa_cuota`. Acá varios locales comparten UN número: si
+//  cada tenant llevara su propio contador, diez locales a 20 mensajes serían
+//  200 salientes del mismo chip en un día — exactamente el patrón que Meta
+//  suspende. El contador es por CHIP, no por local.
+//
+//  ⚠️ PUEDE HABER VARIOS CHIPS
+//  ───────────────────────────
+//  Arrancó con uno solo para todos. Ahora un local con volumen propio (o al que
+//  no conviene mezclar con el resto) puede tener el suyo: si un chip se quema,
+//  se lleva puestos únicamente a los locales que estaban en él. Lo que un chip
+//  NO puede es partirse — un chip = una sesión = un número.
 //
 //  ── Datos ───────────────────────────────────────────────────────────────────
-//  _system/wa_plataforma          estado del chip (instancia, número, conexión,
+//  _system/wa_plataforma          chip POR DEFECTO (instancia, número, conexión,
 //                                 vinculadoDesde) — lo escribe SynapTech.
+//  _system/wa_plataforma_{chipId} los demás chips, misma forma.
 //  _system/{tid}.waPlataforma     opt-in por local (solo bootstrap lo escribe).
-//  wa_plataforma_chats/{telefono} índice teléfono → tenant + cita pendiente.
-//  wa_plataforma_cuota/{fecha}    salientes del chip ese día (tope global).
+//  _system/{tid}.waPlataformaChip a qué chip está asignado. Ausente = el de
+//                                 por defecto, así nada se movió al sumar el 2º.
+//  wa_plataforma_chats/{telefono} índice teléfono → tenant + cita + chip.
+//  wa_plataforma_cuota/{fecha}          salientes del chip por defecto ese día.
+//  wa_plataforma_cuota/{chipId}__{fecha} ídem para los demás.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -65,16 +76,97 @@ const EVOLUTION_WEBHOOK_TOKEN = defineSecret('EVOLUTION_WEBHOOK_TOKEN');
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 const WEBHOOK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/evolutionWebhook';
 
-/** Nombre fijo de la instancia compartida. El webhook lo usa para distinguir
- *  este canal del canal propio de cada local (`instance_{tid}`). */
-const INSTANCIA = 'instance_synaptech';
+/* ───────────────────────────── Rutas de cada chip ────────────────────────────
+   El chip por defecto CONSERVA sus rutas históricas: `_system/wa_plataforma`,
+   `wa_plataforma_cuota/{fecha}` e `instance_synaptech`. Migrarlo a un esquema
+   uniforme habría dejado a ops sin historial y —peor— al chip que está andando
+   ahora mismo sin su sesión: se habría desvinculado solo y había que volver a
+   escanear el QR. El precio es este `if`, que vive en UNA función por ruta en
+   vez de repartido por el archivo.
 
-const cfgRef   = () => db.doc('_system/wa_plataforma');
+   ⚠️ La instancia de los chips nuevos es `instance_plat_{chipId}`, NO
+   `instance_{chipId}`: el canal PROPIO de cada local usa `instance_{tid}` y el
+   gateway deriva el tenant de ahí. Un chip llamado 'sion' habría chocado de
+   frente con la instancia del bot de Sion, y el webhook habría metido las
+   respuestas del chip en el flujo del bot del local. */
+const CHIP_DEFAULT      = 'synaptech';
+const INSTANCIA_DEFAULT = 'instance_synaptech';
+const PREFIJO_INSTANCIA = 'instance_plat_';
+const RE_CHIP_ID        = /^[a-z0-9][a-z0-9_-]{1,23}$/;
+
+const esDefault = (chipId) => !chipId || chipId === CHIP_DEFAULT;
+
+const instanciaDe = (chipId) => (esDefault(chipId)
+  ? INSTANCIA_DEFAULT
+  : `${PREFIJO_INSTANCIA}${chipId}`);
+
+/** Inversa de instanciaDe(). null si la instancia NO es de este canal — así el
+ *  gateway distingue con una sola llamada en vez de con dos condiciones que se
+ *  pueden desincronizar. */
+function chipIdDeInstancia(instanceName) {
+  const n = String(instanceName || '');
+  if (n === INSTANCIA_DEFAULT) return CHIP_DEFAULT;
+  if (n.startsWith(PREFIJO_INSTANCIA)) return n.slice(PREFIJO_INSTANCIA.length) || null;
+  return null;
+}
+
+/** Valida y normaliza lo que venga de fuera. Un chipId sucio termina siendo un
+ *  path de Firestore y un nombre de instancia: no puede pasar sin revisar. */
+function normalizarChipId(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v || v === CHIP_DEFAULT) return CHIP_DEFAULT;
+  if (!RE_CHIP_ID.test(v)) {
+    throw new HttpsError('invalid-argument',
+      'El identificador del chip debe ser minúsculas, números, guion o guion bajo (2 a 24 caracteres).');
+  }
+  return v;
+}
+
+const chipRef  = (chipId) => (esDefault(chipId)
+  ? db.doc('_system/wa_plataforma')
+  : db.doc(`_system/wa_plataforma_${chipId}`));
+
 const chatRef  = (tel) => db.doc(`wa_plataforma_chats/${tel}`);
-const cuotaRef = (fecha) => db.doc(`wa_plataforma_cuota/${fecha}`);
+
+const cuotaRef = (chipId, fecha) => (esDefault(chipId)
+  ? db.doc(`wa_plataforma_cuota/${fecha}`)
+  : db.doc(`wa_plataforma_cuota/${chipId}__${fecha}`));
+
 const citasCol = (tid) => (tid === 'elegance'
   ? db.collection('citas')
   : db.collection(`tenants/${tid}/citas`));
+
+/** Chips vinculados. Se DERIVAN de los docs que existen en /_system y no de
+ *  una lista aparte: una lista hay que acordarse de actualizarla al vincular y
+ *  al desvincular, y el día que alguien se olvide el chip queda invisible para
+ *  el cron —o peor, el cron intenta enviar por una sesión que ya no existe. */
+async function listarChips() {
+  const refs = await db.collection('_system').listDocuments();
+  const ids = [];
+  for (const r of refs) {
+    if (r.id === 'wa_plataforma') ids.push(CHIP_DEFAULT);
+    else if (r.id.startsWith('wa_plataforma_')) {
+      const id = r.id.slice('wa_plataforma_'.length);
+      if (id) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+/** ¿Por qué chip sale este local? Ausente = el de por defecto, que es lo que
+ *  hace que sumar un chip nuevo no mueva a nadie de lugar. */
+const chipDeTenant = (sys) => {
+  const v = String((sys && sys.waPlataformaChip) || '').trim().toLowerCase();
+  return v && RE_CHIP_ID.test(v) ? v : CHIP_DEFAULT;
+};
+
+exports._CHIP_DEFAULT     = CHIP_DEFAULT;
+exports._chipRef          = chipRef;
+exports._cuotaRef         = cuotaRef;
+exports._listarChips      = listarChips;
+exports._chipDeTenant     = chipDeTenant;
+exports._instanciaDe      = instanciaDe;
+exports.chipIdDeInstancia = chipIdDeInstancia;
 
 const SECRETS = [EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_WEBHOOK_TOKEN];
 const cliente = () => crearCliente({
@@ -124,17 +216,17 @@ function dentroDeVentanaHoraria(now = ahoraChile()) {
   return h >= HORA_INICIO && h < HORA_FIN;
 }
 
-async function salientesHoy() {
+async function salientesHoy(chipId) {
   try {
-    const s = await cuotaRef(fechaHoy()).get();
+    const s = await cuotaRef(chipId, fechaHoy()).get();
     return s.exists ? (Number(s.data().n) || 0) : 0;
   } catch (_) { return 0; }
 }
 
-async function registrarSaliente(tid, ok = true) {
+async function registrarSaliente(chipId, tid, ok = true) {
   const fecha = fechaHoy();
-  await cuotaRef(fecha).set({
-    fecha,
+  await cuotaRef(chipId, fecha).set({
+    fecha, chipId,
     ...(ok ? { n: FieldValue.increment(1) } : {}),
     [`t_${tid}`]: FieldValue.increment(1),   // desglose por local, para cobrar
     [ok ? 'ok' : 'fail']: FieldValue.increment(1),
@@ -147,10 +239,10 @@ async function registrarSaliente(tid, ok = true) {
  *  "sale" pero no llega) o que empiece a pedir la baja. Se cuenta acá para que
  *  ops pueda decidir el recambio ANTES de que Meta lo suspenda.
  *  Nunca lanza: es telemetría, no puede tumbar una respuesta al cliente. */
-async function registrarEvento(tipo) {
+async function registrarEvento(chipId, tipo) {
   const fecha = fechaHoy();
-  await cuotaRef(fecha).set({
-    fecha,
+  await cuotaRef(chipId, fecha).set({
+    fecha, chipId,
     [tipo]: FieldValue.increment(1),
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
@@ -161,44 +253,53 @@ exports._registrarEvento = registrarEvento;
 
 exports.plataformaVincular = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
   exigirBootstrap(req);
+  const chipId = normalizarChipId(req.data?.chipId);
+  const inst   = instanciaDe(chipId);
   const c = cliente();
   const opts = { webhookUrl: WEBHOOK_URL, webhookToken: EVOLUTION_WEBHOOK_TOKEN.value() };
 
   let r;
   try {
-    r = await c.crearInstancia(INSTANCIA, opts);
+    r = await c.crearInstancia(inst, opts);
   } catch (e) {
     // Puede quedar colgada de un intento previo sin escanear. Se destruye y
     // se reintenta UNA vez para entregar un QR fresco (mismo auto-sanado que
     // el canal propio, que ya nos mordió una vez).
-    logger.warn(`[plataforma] create falló (${e.message}); auto-sanando`);
-    try { await c.logout(INSTANCIA); }           catch (_) {}
-    try { await c.eliminarInstancia(INSTANCIA); } catch (_) {}
+    logger.warn(`[plataforma:${chipId}] create falló (${e.message}); auto-sanando`);
+    try { await c.logout(inst); }           catch (_) {}
+    try { await c.eliminarInstancia(inst); } catch (_) {}
     try {
-      r = await c.crearInstancia(INSTANCIA, opts);
+      r = await c.crearInstancia(inst, opts);
     } catch (e2) {
-      logger.error('[plataforma] vincular:', e2.message);
+      logger.error(`[plataforma:${chipId}] vincular:`, e2.message);
       throw new HttpsError('internal', 'No se pudo iniciar la vinculación. Reintenta en unos segundos.');
     }
   }
 
-  await cfgRef().set({
-    instanceName:   INSTANCIA,
+  await chipRef(chipId).set({
+    chipId,
+    instanceName:   inst,
     estadoConexion: 'qr',
+    // Etiqueta para /admin y ops. Sin esto, el segundo chip aparece como un id
+    // suelto y a los dos meses nadie se acuerda de para qué era.
+    ...(req.data?.nombre ? { nombre: String(req.data.nombre).slice(0, 60) } : {}),
     creadoEn:       FieldValue.serverTimestamp(),
   }, { merge: true });
 
-  return { instanceName: INSTANCIA, qr: r.qr, pairingCode: r.pairingCode };
+  return { chipId, instanceName: inst, qr: r.qr, pairingCode: r.pairingCode };
 });
 
 exports.plataformaEstado = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
   exigirBootstrap(req);
+  const chipId = normalizarChipId(req.data?.chipId);
+  const inst   = instanciaDe(chipId);
   let estado = 'unknown';
-  try { estado = await cliente().estadoConexion(INSTANCIA); } catch (_) {}
-  const cfg = (await cfgRef().get()).data() || {};
+  try { estado = await cliente().estadoConexion(inst); } catch (_) {}
+  const cfg = (await chipRef(chipId).get()).data() || {};
 
   if (estado === 'open' && cfg.estadoConexion !== 'connected') {
-    await cfgRef().set({
+    await chipRef(chipId).set({
+      chipId,
       estadoConexion: 'connected',
       conectadoEn:    FieldValue.serverTimestamp(),
       // vinculadoDesde: PRIMERA conexión. No se pisa al reconectar — es la
@@ -206,20 +307,103 @@ exports.plataformaEstado = onCall({ region: 'us-central1', cors: true, secrets: 
       ...(cfg.vinculadoDesde ? {} : { vinculadoDesde: FieldValue.serverTimestamp() }),
     }, { merge: true }).catch(() => {});
   }
-  return { estado, cfg: { ...cfg, estadoConexion: estado === 'open' ? 'connected' : cfg.estadoConexion } };
+  return { chipId, estado, cfg: { ...cfg, estadoConexion: estado === 'open' ? 'connected' : cfg.estadoConexion } };
 });
 
 exports.plataformaDesvincular = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
   exigirBootstrap(req);
+  const chipId = normalizarChipId(req.data?.chipId);
+  const inst   = instanciaDe(chipId);
+
+  // Desvincular un chip que todavía tiene locales asignados los deja mudos sin
+  // que nadie se entere: el cron no falla, simplemente no encuentra sesión. Se
+  // avisa con los nombres para que sea una decisión y no un accidente.
+  const asignados = await tenantsDelChip(chipId);
+  if (asignados.length && req.data?.confirmado !== true) {
+    throw new HttpsError('failed-precondition',
+      `Este chip atiende a ${asignados.length} local(es): ${asignados.join(', ')}. ` +
+      'Reasígnalos primero, o vuelve a intentar confirmando.');
+  }
+
   const c = cliente();
-  try { await c.logout(INSTANCIA); }           catch (_) {}
-  try { await c.eliminarInstancia(INSTANCIA); } catch (_) {}
-  await cfgRef().set({
-    estadoConexion:  'disconnected',
-    numeroVinculado: FieldValue.delete(),
-    desvinculadoEn:  FieldValue.serverTimestamp(),
-  }, { merge: true }).catch(() => {});
-  return { ok: true };
+  try { await c.logout(inst); }           catch (_) {}
+  try { await c.eliminarInstancia(inst); } catch (_) {}
+
+  // El chip por defecto conserva su doc (ops lee su historial y el resto del
+  // código lo asume existente); los demás se borran para que desaparezcan de
+  // listarChips() — si no, quedan de fantasmas y el cron los recorre en vano.
+  if (esDefault(chipId)) {
+    await chipRef(chipId).set({
+      estadoConexion:  'disconnected',
+      numeroVinculado: FieldValue.delete(),
+      desvinculadoEn:  FieldValue.serverTimestamp(),
+    }, { merge: true }).catch(() => {});
+  } else {
+    await chipRef(chipId).delete().catch(() => {});
+  }
+  return { ok: true, chipId, reasignar: asignados };
+});
+
+/** Locales asignados a un chip (por nombre legible, para los avisos). */
+async function tenantsDelChip(chipId) {
+  const refs = await db.collection('_system').listDocuments();
+  const out = [];
+  for (const r of refs) {
+    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) continue;
+    const s = (await r.get()).data() || {};
+    if (s.waPlataforma !== true) continue;
+    if (chipDeTenant(s) !== chipId) continue;
+    const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
+    out.push(td.nombre || td.nombreCorto || r.id);
+  }
+  return out;
+}
+
+/* Panorama de todos los chips para /admin: quién está conectado, cuánto le
+   queda hoy y qué locales atiende. Una sola llamada — el panel armaba esto con
+   un get() por tenant desde el navegador y con 33 tenants se notaba. */
+exports.plataformaChips = onCall({ region: 'us-central1', cors: true, secrets: SECRETS }, async (req) => {
+  exigirBootstrap(req);
+  const hoy   = fechaHoy();
+  const ids   = await listarChips();
+  if (!ids.includes(CHIP_DEFAULT)) ids.unshift(CHIP_DEFAULT);   // aunque nunca se haya vinculado
+
+  // Los locales se recorren UNA vez y se agrupan; con un recorrido por chip
+  // esto sería O(chips × tenants) de lecturas.
+  const refs = await db.collection('_system').listDocuments();
+  const porChip = {};
+  for (const r of refs) {
+    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) continue;
+    const s = (await r.get()).data() || {};
+    if (s.waPlataforma !== true) continue;
+    const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
+    (porChip[chipDeTenant(s)] = porChip[chipDeTenant(s)] || []).push({
+      id: r.id, nombre: td.nombre || td.nombreCorto || r.id,
+    });
+  }
+
+  const chips = [];
+  for (const chipId of ids) {
+    const cfg   = (await chipRef(chipId).get()).data() || {};
+    const cuota = (await cuotaRef(chipId, hoy).get()).data() || {};
+    const cap   = capDiario(cfg);
+    chips.push({
+      chipId,
+      nombre:          cfg.nombre || (chipId === CHIP_DEFAULT ? 'Chip principal' : chipId),
+      instanceName:    instanciaDe(chipId),
+      estadoConexion:  cfg.estadoConexion || 'disconnected',
+      numeroVinculado: cfg.numeroVinculado || null,
+      topeDiario:      cfg.topeDiario ?? null,
+      cap,
+      usadosHoy:       Number(cuota.n) || 0,
+      restanteHoy:     Math.max(0, cap - (Number(cuota.n) || 0)),
+      tenants:         porChip[chipId] || [],
+    });
+  }
+  // Locales apuntando a un chip que no existe: el cron los manda por el de por
+  // defecto, pero hay que verlo en el panel y no solo en los logs.
+  const huerfanos = Object.keys(porChip).filter(c => !ids.includes(c));
+  return { chips, huerfanos: huerfanos.flatMap(c => porChip[c].map(t => ({ ...t, chipId: c }))) };
 });
 
 /* ───────────── Índice teléfono → citas pendientes (multi-local) ─────────────
@@ -236,18 +420,21 @@ exports.plataformaDesvincular = onCall({ region: 'us-central1', cors: true, secr
 /** Lee las pendientes vigentes de un teléfono, descartando las vencidas. */
 async function leerPendientes(tel) {
   const snap = await chatRef(tel).get();
-  if (!snap.exists) return { pendientes: [], intencion: null };
+  if (!snap.exists) return { pendientes: [], intencion: null, intencionChip: null };
   const d = snap.data() || {};
   const ahora = Date.now();
   const vivas = (Array.isArray(d.pendientes) ? d.pendientes : [])
-    .filter(p => p && p.citaId && p.tenantId && (!p.expiraMs || p.expiraMs > ahora));
-  return { pendientes: vivas, intencion: d.intencion || null };
+    .filter(p => p && p.citaId && p.tenantId && (!p.expiraMs || p.expiraMs > ahora))
+    // Las pendientes anteriores al segundo chip no traen chipId: son del de por
+    // defecto, que es el único que existía cuando se escribieron.
+    .map(p => ({ ...p, chipId: p.chipId || CHIP_DEFAULT }));
+  return { pendientes: vivas, intencion: d.intencion || null, intencionChip: d.intencionChip || null };
 }
 
-async function guardarPendientes(tel, pendientes, intencion = null) {
+async function guardarPendientes(tel, pendientes, intencion = null, intencionChip = null) {
   if (!pendientes.length) { await chatRef(tel).delete().catch(() => {}); return; }
   await chatRef(tel).set({
-    pendientes, intencion,
+    pendientes, intencion, intencionChip,
     actualizado: FieldValue.serverTimestamp(),
   }).catch(() => {});
 }
@@ -289,8 +476,8 @@ function elegirPendiente(texto, pendientes) {
 
 /* ─────────────────────── Entrante: rutear al tenant correcto ───────────────── */
 
-/** ¿Este webhook es de la instancia compartida? */
-exports.esInstanciaPlataforma = (instanceName) => instanceName === INSTANCIA;
+/** ¿Este webhook es de alguna instancia de este canal? */
+exports.esInstanciaPlataforma = (instanceName) => chipIdDeInstancia(instanceName) !== null;
 
 /**
  * Procesa una respuesta que llegó al número de plataforma.
@@ -298,7 +485,7 @@ exports.esInstanciaPlataforma = (instanceName) => instanceName === INSTANCIA;
  * varias barberías distintas es una mala idea de producto y una señal rara
  * para Meta. Solo se interpreta CONFIRMAR / CANCELAR sobre la cita pendiente.
  */
-async function procesarEntrantePlataforma({ body, evoClient }) {
+async function procesarEntrantePlataforma({ body, evoClient, chipId = CHIP_DEFAULT }) {
   const data = body.data || {};
   const key  = data.key || {};
   if (key.fromMe) return;                                   // eco nuestro
@@ -314,17 +501,31 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   ).trim();
   if (!texto) return;
 
-  const { pendientes, intencion: intencionGuardada } = await leerPendientes(tel);
+  // El índice de pendientes es por TELÉFONO, no por chip: el mismo cliente
+  // puede tener hora en un local del chip A y otra en uno del chip B, y su
+  // número es el mismo para los dos.
+  //
+  // Solo se atienden las de ESTE chip. Si no se filtrara, el cliente que
+  // escribe al chip de Sion vería listada su cita de Kronnos y este número le
+  // hablaría de un local al que nunca le escribió — desde su punto de vista,
+  // un desconocido que sabe dónde tiene hora.
+  //
+  // `otras` se conserva aparte y se vuelve a guardar SIEMPRE: escribir solo la
+  // lista filtrada borraría las pendientes del otro chip, y esas citas se
+  // quedarían sin poder confirmarse nunca.
+  const { pendientes: todas, intencion: intencionGuardada, intencionChip } = await leerPendientes(tel);
+  const pendientes = todas.filter(p => p.chipId === chipId);
+  const otras      = todas.filter(p => p.chipId !== chipId);
 
   const responder = async (t) => {
-    try { await evoClient.enviarTexto(INSTANCIA, tel, t); }
-    catch (e) { logger.warn(`[plataforma] no pude responder a ***${tel.slice(-4)}: ${e.message}`); }
+    try { await evoClient.enviarTexto(instanciaDe(chipId), tel, t); }
+    catch (e) { logger.warn(`[plataforma:${chipId}] no pude responder a ***${tel.slice(-4)}: ${e.message}`); }
   };
 
   // Toda respuesta cuenta para la tasa de respuesta del chip, que es la
   // señal más temprana de un shadowban: los envíos siguen saliendo "ok"
   // pero nadie contesta porque no están llegando.
-  await registrarEvento('respuestas');
+  await registrarEvento(chipId, 'respuestas');
 
   // ── STOP: se honra ANTES que cualquier otra cosa ──
   // Obligatorio por política de Meta y por Ley 21.719, y además es el
@@ -332,10 +533,12 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   // envío, es la gente pidiendo la baja. Se escribe en el libro GLOBAL
   // /wa_optout, así que frena también los otros dos canales.
   if (detectarStop(texto)) {
+    // El opt-out es GLOBAL: se borra el índice entero, no solo lo de este chip.
+    // "No me escriban más" no significa "que me escriba el otro número".
     await registrarOptOut(tel, 'stop-plataforma').catch(e =>
-      logger.error(`[plataforma] optout ${tel}:`, e.message));
+      logger.error(`[plataforma:${chipId}] optout ${tel}:`, e.message));
     await chatRef(tel).delete().catch(() => {});
-    await registrarEvento('optout');
+    await registrarEvento(chipId, 'optout');
     await responder(
       '🔕 Listo, no volveremos a escribirte por este medio.\n\n' +
       'Tu cita sigue agendada; si necesitas cambiarla, contacta directamente a tu local.');
@@ -356,12 +559,13 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   const resolver = async (idx, decision) => {
     const p = pendientes[idx];
     await aplicarDecision(p.tenantId, tel, p.citaId, decision);
-    await guardarPendientes(tel, pendientes.filter((_, i) => i !== idx), null);
-    await registrarEvento(decision === 'confirmar' ? 'conf_si' : 'conf_no');
+    // `otras` vuelve entera: son las pendientes del otro chip y no se tocan.
+    await guardarPendientes(tel, [...otras, ...pendientes.filter((_, i) => i !== idx)], null);
+    await registrarEvento(chipId, decision === 'confirmar' ? 'conf_si' : 'conf_no');
     await responder(decision === 'confirmar'
       ? `✅ ¡Listo! Tu cita en *${p.local}* quedó confirmada.\n\nTe esperamos el ${p.fecha} a las ${p.hora} hrs.`
       : `🙏 Listo, cancelamos tu cita en *${p.local}* del ${p.fecha} a las ${p.hora} hrs.`);
-    logger.info(`[plataforma] ${decision} tenant=${p.tenantId} cita=${p.citaId}`);
+    logger.info(`[plataforma:${chipId}] ${decision} tenant=${p.tenantId} cita=${p.citaId}`);
   };
 
   // ── Una sola pendiente: camino directo ──
@@ -384,8 +588,14 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
   // el cliente cancelaría una hora que no quería cancelar.
   const idx = elegirPendiente(texto, pendientes);
 
-  // Ya venía eligiendo (guardamos su intención en el turno anterior).
-  if (intencionGuardada && idx >= 0) { await resolver(idx, intencionGuardada); return; }
+  // Ya venía eligiendo (guardamos su intención en el turno anterior). La
+  // intención se guarda con el chip en que se produjo: si no, una conversación
+  // a medias con el chip A haría que un "2" escrito al chip B cancelara una
+  // cita sin que el cliente haya dicho "cancelar" a ESE número.
+  if (intencionGuardada && intencionChip === chipId && idx >= 0) {
+    await resolver(idx, intencionGuardada);
+    return;
+  }
 
   const decision = detectarDecision(texto);
 
@@ -394,7 +604,7 @@ async function procesarEntrantePlataforma({ body, evoClient }) {
 
   // Dijo qué quiere pero no de cuál: guardar la intención y preguntar.
   if (decision) {
-    await guardarPendientes(tel, pendientes, decision);
+    await guardarPendientes(tel, [...otras, ...pendientes], decision, chipId);
     await responder(
       `Tienes ${pendientes.length} citas pendientes 🤔 ¿A cuál te refieres?\n\n` +
       `${listarPendientes(pendientes)}\n\n` +
@@ -441,19 +651,40 @@ function armarMensaje({ nombre, local, fecha, hora, servicio, esRecordatorio }) 
   ].filter(Boolean).join('\n');
 }
 
-/** Recorre los tenants con el módulo activo y manda lo que toque.
- *  Devuelve cuántos mensajes salieron. */
+/** Un ciclo por cada chip vinculado. Cada uno con su propio cupo, su propia
+ *  sesión y sus propios locales: si un chip está caído o llegó a su tope, los
+ *  del otro salen igual. Devuelve el total de mensajes enviados. */
 async function procesarCiclo({ evoClient }) {
-  const cfg = (await cfgRef().get()).data() || {};
+  const chips = await listarChips();
+  if (!chips.length) { logger.info('[plataforma] no hay chips vinculados'); return 0; }
+
+  let total = 0;
+  for (const chipId of chips) {
+    try {
+      total += await procesarCicloChip({ evoClient, chipId });
+    } catch (e) {
+      // Un chip que revienta no puede llevarse los demás: el cron corre cada
+      // 30 min y perder la vuelta entera por uno solo es perder el recordatorio
+      // de todos.
+      logger.error(`[plataforma:${chipId}] ciclo falló:`, e.message);
+    }
+  }
+  return total;
+}
+
+/** Recorre los tenants de ESTE chip y manda lo que toque. */
+async function procesarCicloChip({ evoClient, chipId }) {
+  const INSTANCIA = instanciaDe(chipId);
+  const cfg = (await chipRef(chipId).get()).data() || {};
   if (cfg.estadoConexion !== 'connected') {
-    logger.info('[plataforma] chip no conectado; ciclo omitido');
+    logger.info(`[plataforma:${chipId}] chip no conectado; ciclo omitido`);
     return 0;
   }
 
   const cap = capDiario(cfg);
-  let enviadosHoy = await salientesHoy();
+  let enviadosHoy = await salientesHoy(chipId);
   if (enviadosHoy >= cap) {
-    logger.warn(`[plataforma] tope diario del chip alcanzado (${enviadosHoy}/${cap})`);
+    logger.warn(`[plataforma:${chipId}] tope diario alcanzado (${enviadosHoy}/${cap})`);
     return 0;
   }
 
@@ -462,6 +693,8 @@ async function procesarCiclo({ evoClient }) {
   const refs = await db.collection('tenants').listDocuments();
   const tids = new Set(refs.map(r => r.id));
   tids.add('elegance');
+
+  const chipsVivos = new Set(await listarChips());
 
   const now    = ahoraChile();
   const nowAbs = absMin(now.fecha, now.mins);
@@ -478,6 +711,18 @@ async function procesarCiclo({ evoClient }) {
   for (const tid of tids) {
     const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
     if (sys.waPlataforma !== true) continue;
+
+    // ¿Le toca a este chip? Un local asignado a un chip que ya no existe
+    // (desvinculado, o un id mal escrito a mano) cae al de por defecto en vez
+    // de quedarse mudo: preferimos que el cliente reciba su recordatorio desde
+    // el número compartido —que es de donde salía antes— a que no lo reciba.
+    // El warning es para que no se quede así para siempre.
+    let suyo = chipDeTenant(sys);
+    if (!chipsVivos.has(suyo)) {
+      logger.warn(`[plataforma] ${tid} apunta al chip '${suyo}', que no existe; va por '${CHIP_DEFAULT}'`);
+      suyo = CHIP_DEFAULT;
+    }
+    if (suyo !== chipId) continue;
 
     // Guard anti doble envío: si el local ya manda por SU número, este canal
     // se calla. Los dos crons miran las mismas citas.
@@ -586,8 +831,8 @@ async function procesarCiclo({ evoClient }) {
     try {
       await evoClient.enviarTexto(INSTANCIA, c.tel, texto);
     } catch (e) {
-      logger.error(`[plataforma] ${c.tid}/${c.doc.id} falló: ${e.message}`);
-      await registrarSaliente(c.tid, false);
+      logger.error(`[plataforma:${chipId}] ${c.tid}/${c.doc.id} falló: ${e.message}`);
+      await registrarSaliente(chipId, c.tid, false);
       continue;
     }
 
@@ -605,22 +850,25 @@ async function procesarCiclo({ evoClient }) {
       fecha:    c.cita.fecha,
       hora:     c.cita.hora,
       local:    c.local,
+      // Por qué número salió: la respuesta va a llegar a ESE, y solo ese debe
+      // poder resolverla.
+      chipId,
       expiraMs: Date.now() + Math.max(1, c.diffH + 6) * 3600e3,
     });
 
-    await registrarSaliente(c.tid, true);
+    await registrarSaliente(chipId, c.tid, true);
     await logWaSend(c.tid, 'confirmacion', true).catch(() => {});
     enviados++;
-    logger.info(`[plataforma] ${c.tid}/${c.doc.id} → enviada a ***${c.tel.slice(-4)} (en ${c.diffH.toFixed(1)}h)`);
+    logger.info(`[plataforma:${chipId}] ${c.tid}/${c.doc.id} → enviada a ***${c.tel.slice(-4)} (en ${c.diffH.toFixed(1)}h)`);
   }
 
   // Deja el pendiente visible en ops: sin esto, un cupo apretado se ve igual
   // que 'no había nada que enviar'.
   if (enEsperaPorCupo) {
-    logger.warn(`[plataforma] ${enEsperaPorCupo} cita(s) esperando cupo (tope ${cap}/día)`);
+    logger.warn(`[plataforma:${chipId}] ${enEsperaPorCupo} cita(s) esperando cupo (tope ${cap}/día)`);
   }
-  await cuotaRef(fechaHoy()).set({
-    fecha: fechaHoy(), enEsperaPorCupo,
+  await cuotaRef(chipId, fechaHoy()).set({
+    fecha: fechaHoy(), chipId, enEsperaPorCupo,
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
 

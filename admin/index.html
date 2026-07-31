@@ -3902,24 +3902,30 @@
       if (!el || !_activeTenant) return;
       const tid = _activeTenant;
 
-      let sys = {}, cfg = {}, waNotif = {}, global = {}, plat = {}, platCuota = {};
+      let sys = {}, cfg = {}, waNotif = {}, global = {}, chips = [];
       try {
-        const hoyCL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
-        const [a, b, c, d, e, f] = await Promise.all([
+        const [a, b, c, d] = await Promise.all([
           db.collection('_system').doc(tid).get(),
           waCfgRef(tid).get(),
           db.collection('wa_notif').doc(tid).get(),
           db.collection('_system').doc('whatsapp_notif').get(),
-          db.collection('_system').doc('wa_plataforma').get(),
-          db.collection('wa_plataforma_cuota').doc(hoyCL).get(),
         ]);
         sys       = a.exists ? a.data() : {};
         cfg       = b.exists ? b.data() : {};
         waNotif   = c.exists ? c.data() : {};
         global    = d.exists ? d.data() : {};
-        plat      = e.exists ? e.data() : {};
-        platCuota = f.exists ? f.data() : {};
       } catch (e) {}
+
+      // Los chips vienen de la CF y no de un get() a _system: el tope efectivo
+      // mezcla el escalonado por antigüedad con el override manual, y el panel
+      // lo recalculaba por su cuenta. Cuando cambien los tramos en
+      // evolution/plataforma.js, acá se seguirían mostrando los viejos —
+      // mintiendo sobre el límite anti-bloqueo, que es lo peor sobre lo que
+      // este panel puede mentir.
+      try {
+        const r = await firebase.app().functions('us-central1').httpsCallable('plataformaChips')({});
+        chips = (r.data && r.data.chips) || [];
+      } catch (e) { chips = []; }
 
       const plan       = waPlanDe(sys);
       const conectado  = cfg.estadoConexion === 'connected';
@@ -3929,11 +3935,19 @@
       const metaRecor  = waNotif.planRecordatorio === true;
       const templatesOn = global.templatesEnabled === true;
       const platOn      = sys.waPlataforma === true;
+      // A qué chip está asignado ESTE local. Ausente = el principal, que es lo
+      // que hace que sumar un chip nuevo no mueva a nadie de su sitio.
+      const chipTid     = String(sys.waPlataformaChip || 'synaptech');
+      const plat        = chips.find(c => c.chipId === chipTid)
+                        || chips.find(c => c.chipId === 'synaptech')
+                        || { chipId: chipTid, nombre: chipTid, estadoConexion: 'disconnected', cap: 0, usadosHoy: 0, tenants: [] };
+      // `chips.length` en el guard: si la CF falló, la lista viene vacía y sin
+      // esto TODOS los locales se verían como huérfanos — una alarma inventada
+      // por un problema de red.
+      const platHuerfano = chips.length > 0 && !chips.some(c => c.chipId === chipTid);
       const platConect  = plat.estadoConexion === 'connected';
-      const platDias    = plat.vinculadoDesde && plat.vinculadoDesde.toMillis
-        ? (Date.now() - plat.vinculadoDesde.toMillis()) / 86400000 : 0;
-      const platCap     = platDias >= 30 ? 300 : platDias >= 7 ? 120 : 40;
-      const platHoy     = Number(platCuota.n) || 0;
+      const platCap     = Number(plat.cap) || 0;
+      const platHoy     = Number(plat.usadosHoy) || 0;
 
       // Choque de canales: los tres miran las MISMAS citas, así que con más de
       // uno activo el cliente recibe el mismo aviso repetido. Se cuenta la
@@ -4036,38 +4050,68 @@
                  'El local recibe los avisos desde el número de SynapTech.',
                  platOn, `setWaPlataforma(${!platOn})`)}
           <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:0.45rem;padding-top:0.45rem;">
+
+            <!-- ── Qué chip atiende a ESTE local ──
+                 El cupo diario es del chip, no del local: los que comparten
+                 chip comparten cupo. Por eso al lado de cada uno va cuántos
+                 locales lleva encima — mover un local acá no es cosmético. -->
+            <p style="font-size:0.66rem;color:#94a3b8;margin:0 0 0.3rem;"><b>Chip que atiende a este local</b></p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.5rem;">
+              ${chips.map(function(c){
+                var on = c.chipId === chipTid;
+                var vivo = c.estadoConexion === 'connected';
+                return `<button onclick="setChipDeTenant('${c.chipId}')" title="${c.numeroVinculado ? '+' + c.numeroVinculado : 'sin vincular'} · ${c.tenants.length} local(es)" style="
+                  cursor:pointer;border-radius:0.45rem;padding:0.3rem 0.55rem;font-size:0.67rem;font-weight:700;
+                  border:1px solid ${on ? 'rgba(56,189,248,0.6)' : 'rgba(148,163,184,0.2)'};
+                  background:${on ? 'rgba(56,189,248,0.16)' : 'transparent'};
+                  color:${on ? '#7dd3fc' : '#94a3b8'};">
+                  <span style="color:${vivo ? '#4ade80' : '#f87171'};">●</span> ${c.nombre}
+                  <span style="color:#64748b;font-weight:400;">· ${c.tenants.length}</span>
+                </button>`;
+              }).join('')}
+              <button onclick="vincularChipPlataforma(null)" style="
+                cursor:pointer;border-radius:0.45rem;padding:0.3rem 0.55rem;font-size:0.67rem;font-weight:700;
+                border:1px dashed rgba(56,189,248,0.4);background:transparent;color:#7dd3fc;">+ chip nuevo</button>
+            </div>
+
+            ${platHuerfano ? `
+            <p style="font-size:0.66rem;color:#fca5a5;margin:0 0 0.4rem;line-height:1.35;">
+              <i class="ph-bold ph-warning"></i> Está asignado al chip <b>${chipTid}</b>, que no existe.
+              Los avisos salen igual, pero por el chip principal. Elige uno de arriba.
+            </p>` : ''}
+
             <p style="font-size:0.66rem;color:#94a3b8;margin:0 0 0.35rem;">
-              <b>Chip (global):</b>
+              <b>${plat.nombre}:</b>
               ${platConect
-                ? `<span style="color:#4ade80;">conectado</span>${plat.numeroVinculado ? ` · +${plat.numeroVinculado}` : ''} · ${platDias.toFixed(1)} días · ${platHoy}/${platCap} hoy`
+                ? `<span style="color:#4ade80;">conectado</span>${plat.numeroVinculado ? ` · +${plat.numeroVinculado}` : ''} · ${platHoy}/${platCap} hoy`
                 : '<span style="color:#f87171;">sin vincular</span>'}
             </p>
             <div style="display:flex;gap:0.4rem;">
-              <button onclick="vincularChipPlataforma()" style="
+              <button onclick="vincularChipPlataforma('${plat.chipId}')" style="
                 flex:1;cursor:pointer;border-radius:0.5rem;padding:0.4rem;border:1px solid rgba(56,189,248,0.4);
                 background:rgba(56,189,248,0.1);color:#7dd3fc;font-size:0.68rem;font-weight:700;">
-                ${platConect ? 'Re-vincular chip' : 'Vincular chip (QR)'}
+                ${platConect ? 'Re-vincular' : 'Vincular (QR)'}
               </button>
-              ${platConect ? `<button onclick="desvincularChipPlataforma()" style="
+              ${platConect ? `<button onclick="desvincularChipPlataforma('${plat.chipId}')" style="
                 cursor:pointer;border-radius:0.5rem;padding:0.4rem 0.7rem;border:1px solid rgba(148,163,184,0.25);
                 background:transparent;color:#94a3b8;font-size:0.68rem;font-weight:700;">Desvincular</button>` : ''}
             </div>
 
             <!-- Tope manual: solo puede BAJAR el límite del escalonado -->
             <p style="font-size:0.66rem;color:#94a3b8;margin:0.55rem 0 0.3rem;">
-              Tope manual de envíos por día
-              <span style="color:#64748b;">· para arrancar de a poco; nunca sube del ${platCap} que permite la antigüedad</span>
+              Tope diario de <b>${plat.nombre}</b>
+              <span style="color:#64748b;">· nunca sube del ${platCap} que permite su antigüedad</span>
             </p>
             <div style="display:flex;gap:0.3rem;">
               ${[3, 5, 10, 20].map(function(n){
                 var on = Number(plat.topeDiario) === n;
-                return `<button onclick="setTopeChip(${n})" style="
+                return `<button onclick="setTopeChip('${plat.chipId}', ${n})" style="
                   flex:1;cursor:pointer;border-radius:0.45rem;padding:0.35rem;font-size:0.68rem;font-weight:700;
                   border:1px solid ${on ? 'rgba(56,189,248,0.55)' : 'rgba(148,163,184,0.2)'};
                   background:${on ? 'rgba(56,189,248,0.15)' : 'transparent'};
                   color:${on ? '#7dd3fc' : '#94a3b8'};">${n}</button>`;
               }).join('')}
-              <button onclick="setTopeChip(null)" style="
+              <button onclick="setTopeChip('${plat.chipId}', null)" style="
                 flex:1.4;cursor:pointer;border-radius:0.45rem;padding:0.35rem;font-size:0.68rem;font-weight:700;
                 border:1px solid ${plat.topeDiario == null ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.2)'};
                 background:${plat.topeDiario == null ? 'rgba(148,163,184,0.12)' : 'transparent'};
@@ -4103,10 +4147,36 @@
       } catch (e) { alert('Error: ' + e.message); }
     }
 
-    // Vinculación del chip por QR. Es GLOBAL (un chip para todos los locales
-    // que tengan el módulo), aunque se opere desde el drawer de un tenant.
-    async function vincularChipPlataforma() {
-      if (!confirm('Vas a vincular el chip de SynapTech por QR.\n\nEs UN número compartido por todos los locales con este módulo. ¿Seguir?')) return;
+    // Qué chip atiende a este local. El cupo es del CHIP: mover un local de
+    // chip le quita carga a uno y se la pone al otro.
+    async function setChipDeTenant(chipId) {
+      if (!_activeTenant) return;
+      try {
+        await db.collection('_system').doc(_activeTenant).set({
+          waPlataformaChip: chipId,
+        }, { merge: true });
+        loadWaModules();
+      } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // Vinculación de un chip por QR. `chipId` null = chip nuevo (lo pide).
+    // Cada chip es un número distinto con su propio cupo y sus propios locales.
+    async function vincularChipPlataforma(chipId) {
+      let nombre = null;
+      if (!chipId) {
+        const raw = prompt(
+          'Identificador del chip nuevo (minúsculas, sin espacios).\n' +
+          'Ej: "sion" si es el chip dedicado a Sion.\n\n' +
+          'Se usa en las rutas internas y no se puede cambiar después.');
+        if (raw === null) return;
+        chipId = String(raw).trim().toLowerCase();
+        if (!/^[a-z0-9][a-z0-9_-]{1,23}$/.test(chipId)) {
+          alert('Identificador inválido. Usa minúsculas, números, guion o guion bajo (2 a 24 caracteres).');
+          return;
+        }
+        nombre = prompt('Nombre para mostrar (opcional)', 'Chip ' + chipId) || null;
+      }
+      if (!confirm(`Vas a vincular el chip "${chipId}" por QR.\n\nAtenderá solo a los locales que le asignes. ¿Seguir?`)) return;
       const ov = document.createElement('div');
       ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.92);display:flex;align-items:center;justify-content:center;padding:1rem;';
       ov.innerHTML = `<div style="background:#0f172a;border:1px solid rgba(148,163,184,0.2);border-radius:1rem;padding:1.5rem;max-width:22rem;width:100%;text-align:center;">
@@ -4121,7 +4191,7 @@
       ov.querySelector('#pl-x').onclick = cerrar;
 
       try {
-        const r = await firebase.app().functions('us-central1').httpsCallable('plataformaVincular')({});
+        const r = await firebase.app().functions('us-central1').httpsCallable('plataformaVincular')({ chipId, nombre });
         const qr = r.data && r.data.qr;
         ov.querySelector('#pl-t').textContent = 'Escanea con el chip nuevo';
         ov.querySelector('#pl-qr').innerHTML = qr
@@ -4134,11 +4204,11 @@
           await new Promise(r2 => setTimeout(r2, 3000));
           if (!vivo) return;
           try {
-            const e = await estado({});
+            const e = await estado({ chipId });
             if (e.data && e.data.estado === 'open') {
               ov.querySelector('#pl-t').textContent = '✅ Chip vinculado';
               ov.querySelector('#pl-qr').innerHTML = '<span style="color:#4ade80;font-size:2.5rem;">✓</span>';
-              ov.querySelector('#pl-s').textContent = 'Ya puedes activar el módulo en cada local.';
+              ov.querySelector('#pl-s').textContent = 'Ahora asígnale los locales que va a atender.';
               setTimeout(cerrar, 1600);
               return;
             }
@@ -4153,21 +4223,34 @@
     // Tope manual del chip. Solo BAJA: el escalonado por antigüedad sigue
     // mandando (ver capDiario en evolution/plataforma.js), así que esto no
     // puede usarse para saltarse la protección anti-bloqueo.
-    async function setTopeChip(n) {
+    async function setTopeChip(chipId, n) {
       try {
-        await db.collection('_system').doc('wa_plataforma').set({
+        const docId = (!chipId || chipId === 'synaptech') ? 'wa_plataforma' : 'wa_plataforma_' + chipId;
+        await db.collection('_system').doc(docId).set({
           topeDiario: n === null ? firebase.firestore.FieldValue.delete() : n,
         }, { merge: true });
         loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }
 
-    async function desvincularChipPlataforma() {
-      if (!confirm('Vas a cerrar la sesión del chip de SynapTech.\n\nDejan de salir confirmaciones para TODOS los locales que usan este canal. ¿Seguro?')) return;
+    async function desvincularChipPlataforma(chipId) {
+      if (!confirm(`Vas a cerrar la sesión del chip "${chipId}".\n\nDejan de salir confirmaciones para los locales asignados a ÉL. ¿Seguro?`)) return;
+      const fn = firebase.app().functions('us-central1').httpsCallable('plataformaDesvincular');
       try {
-        await firebase.app().functions('us-central1').httpsCallable('plataformaDesvincular')({});
-        loadWaModules();
-      } catch (e) { alert('Error: ' + e.message); }
+        await fn({ chipId });
+      } catch (e) {
+        // La CF frena si el chip todavía atiende locales: dejarlos sin número
+        // no falla en ninguna parte, simplemente se quedan mudos. Se pregunta
+        // en vez de hacerlo callado.
+        if (e.code === 'functions/failed-precondition') {
+          if (!confirm(e.message + '\n\n¿Desvincular igual?')) return;
+          try { await fn({ chipId, confirmado: true }); }
+          catch (e2) { alert('Error: ' + e2.message); return; }
+        } else {
+          alert('Error: ' + e.message); return;
+        }
+      }
+      loadWaModules();
     }
 
     // Módulos del canal oficial (Meta) por local → wa_notif/{tid}.
