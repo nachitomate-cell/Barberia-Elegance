@@ -12,7 +12,7 @@
     "check:mojibake": "node scripts/check-mojibake.js",
     "check:tenants": "node scripts/check-tema-tenants.js",
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
-    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run test:mailer",
+    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run test:alerta-sesion && npm run test:mailer",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
     "check:agenda": "node scripts/check-agenda-visibles.js",
     "test:cancelar": "firebase emulators:exec --only firestore \"node scripts/test-rules-cancelar-cliente.js\"",
@@ -20,7 +20,8 @@
     "test:slotlocks": "node scripts/test-auditor-slotlocks.js",
     "test:mailer": "node scripts/test-mailer.js",
     "check:wa-plan": "node scripts/check-wa-plan.js",
-    "check:wa-optin": "node scripts/check-wa-optin.js"
+    "check:wa-optin": "node scripts/check-wa-optin.js",
+    "test:alerta-sesion": "node scripts/test-alerta-sesion.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",

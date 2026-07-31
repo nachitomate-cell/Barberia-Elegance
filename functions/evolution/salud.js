@@ -2,14 +2,21 @@
 
 // functions/evolution/salud.js
 // ─────────────────────────────────────────────────────────────────────────────
-//  SALUD DE SESIONES — alerta cuando el WhatsApp de un local se desconecta.
+//  SALUD DE SESIONES — RED DE SEGURIDAD del aviso de caída.
 //
-//  Antes, una sesión caída (QR desvinculado, teléfono apagado, VPS) dejaba
-//  el bot y las confirmaciones MUDOS en silencio hasta que el dueño
-//  reclamaba. Este cron (cada 30 min) detecta sesiones de tenants que USAN
-//  el módulo (bot o confirmaciones activas) caídas hace >20 min (margen
-//  anti-flapping: Baileys reconecta solo en cortes breves) y avisa UNA vez
-//  por caída, por email (Resend), a SynapTech + al dueño del local.
+//  ⚠️ El aviso INMEDIATO ya no vive acá: lo manda evolution/alerta-sesion.js
+//  con triggers sobre el doc, en el momento en que el webhook escribe el
+//  cambio de estado. Este cron quedó para el caso que ese trigger NO puede
+//  cubrir: si el VPS se muere, no llega ningún webhook, nadie escribe nada y
+//  el trigger jamás se dispara. O sea, uno cubre "me avisaron que se cayó" y
+//  el otro "nadie avisó nada y esto lleva rato callado".
+//
+//  Los dos comparten el candado `alertaDesconexionEnviada`, así que no se
+//  duplican: el que llegue primero lo levanta y el otro se calla.
+//
+//  Cada 30 min, sesiones caídas hace >20 min (margen anti-flapping: Baileys
+//  reconecta solo en cortes breves), un aviso por caída, por email (Resend).
+//  Cubre tanto los números de los locales como los CHIPS de SynapTech.
 //
 //  El rastro lo deja el gateway en tenants/{tid}/configuracion/whatsapp:
 //    desconectadoEn            → primer momento de la caída (webhook 'close')
@@ -54,8 +61,11 @@ async function emailsDueno(tid) {
   return [];
 }
 
-function htmlAlerta({ local, tid, minutos }) {
-  const panelUrl = `https://${tid}.synaptechspa.cl/gestion-interna/whatsapp?local=${tid}`;
+function htmlAlerta({ local, tid, minutos, url }) {
+  // `url` explícita para los chips: son de SynapTech y se gestionan desde ops,
+  // no desde el panel de un local. Componer la del tenant con tid='ops' daba
+  // una dirección que no existe.
+  const panelUrl = url || `https://${tid}.synaptechspa.cl/gestion-interna/whatsapp?local=${tid}`;
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;background:#0b1220;color:#e2e8f0;border-radius:14px;overflow:hidden;border:1px solid #1e293b;">
     <div style="padding:22px 26px;border-bottom:1px solid #1e293b;">
@@ -134,6 +144,41 @@ exports.evolutionSaludSesiones = onSchedule(
         logger.error(`[salud] ${tid}:`, e.message);
       }
     }
+    // ── Chips de SynapTech ──
+    // El trigger inmediato ya los vigila; esto es para cuando el VPS se cae
+    // entero y no llega el webhook. Van solo a SynapTech: el chip es nuestro.
+    const sysRefs = await db.collection('_system').listDocuments();
+    for (const r of sysRefs) {
+      if (r.id !== 'wa_plataforma' && !r.id.startsWith('wa_plataforma_')) continue;
+      try {
+        const cfg = (await r.get()).data();
+        if (!cfg) continue;
+        if (cfg.estadoConexion !== 'disconnected') continue;
+        if (cfg.alertaDesconexionEnviada === true) continue;
+        if (cfg.cierreManual === true) continue;            // lo desvinculamos nosotros
+
+        const caidaMs = cfg.desconectadoEn?.toMillis ? cfg.desconectadoEn.toMillis() : 0;
+        if (!caidaMs) continue;
+        const minutos = Math.floor((Date.now() - caidaMs) / 60000);
+        if (minutos < GRACIA_MIN) continue;
+
+        const chipId = r.id === 'wa_plataforma' ? 'synaptech' : r.id.slice('wa_plataforma_'.length);
+        const nombre = cfg.nombre || (chipId === 'synaptech' ? 'Chip principal' : `Chip ${chipId}`);
+
+        await enviarEmail({
+          from:    MAIL_FROM,
+          to:      [EMAIL_SYNAPTECH],
+          subject: `⚠️ Chip de SynapTech desconectado · ${nombre} (${minutos} min)`,
+          html:    htmlAlerta({ local: nombre, minutos, url: 'https://ops.synaptechspa.cl' }),
+        }, { primario: 'resend', etiqueta: 'evolution-salud-chip' });
+        await r.set({ alertaDesconexionEnviada: true, alertaDesconexionEn: FieldValue.serverTimestamp() }, { merge: true });
+        alertas++;
+        logger.warn(`[salud] chip ${chipId}: caído ${minutos} min → alerta enviada`);
+      } catch (e) {
+        logger.error(`[salud] chip ${r.id}:`, e.message);
+      }
+    }
+
     if (alertas) logger.info(`[salud] ciclo: ${alertas} alerta(s) de sesión caída`);
   },
 );

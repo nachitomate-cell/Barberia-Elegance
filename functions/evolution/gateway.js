@@ -50,6 +50,31 @@ function waCfgRef(tid) {
   return db.doc(`tenants/${tid}/configuracion/whatsapp`);
 }
 
+/* Por qué se cerró la sesión.
+   Hasta ahora se guardaba QUE se cayó pero no POR QUÉ, y esa es toda la
+   diferencia entre "se fue el wifi, vuelve sola" y "WhatsApp cerró la sesión,
+   hay que escanear el QR de nuevo". Sin el código no se puede avisar distinto,
+   y avisar igual de las dos cosas entrena a ignorar el aviso.
+
+   Baileys lo manda en distintos sitios según la versión de Evolution, así que
+   se buscan todos y gana el primero que aparezca. Si no viene ninguno se
+   guarda `null` y el que avise lo tratará como caída común — nunca se inventa
+   un código, porque un 401 falso mandaría un correo de "te bloquearon" por un
+   corte de red. */
+function motivoCierre(body) {
+  const d = body?.data || {};
+  const code = d.statusCode
+    ?? d.lastDisconnect?.error?.output?.statusCode
+    ?? d.lastDisconnect?.error?.data?.statusCode
+    ?? d.error?.output?.statusCode
+    ?? null;
+  const razon = d.reason || d.lastDisconnect?.error?.message || d.message || null;
+  return {
+    cierreStatusCode: Number.isFinite(Number(code)) ? Number(code) : null,
+    cierreRazon:      razon ? String(razon).slice(0, 200) : null,
+  };
+}
+
 /** Resuelve el tenant del caller (claims) y exige rol admin/jefe. Bootstrap ve todo. */
 function tenantDelCaller(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
@@ -169,6 +194,10 @@ exports.evolutionDesvincular = onCall({ region: 'us-central1', cors: true, secre
     botEnabled:      false,
     numeroVinculado: null,
     desvinculadoEn:  FieldValue.serverTimestamp(),
+    // Lo desvinculó una persona desde el panel: el trigger de alerta lo lee y
+    // NO manda correo. Avisarle a alguien de algo que acaba de hacer él mismo
+    // es la forma más rápida de que deje de leer estos correos.
+    cierreManual:    true,
   }, { merge: true });
 
   logger.info(`[evolution:desvincular] tid=${tid} sesión destruida`);
@@ -288,7 +317,14 @@ exports.evolutionWebhook = onRequest({
             numeroVinculado: numero ? String(numero).replace(/[:@].*$/, '') : null,
             conectadoEn:     FieldValue.serverTimestamp(),
             ...(prev.vinculadoDesde ? {} : { vinculadoDesde: FieldValue.serverTimestamp() }),
-            desconectadoEn:  FieldValue.delete(),
+            // Reconectó → se borra el rastro de la caída y se re-arma la
+            // alerta. Sin limpiar el candado, la SIGUIENTE caída de este chip
+            // sería silenciosa: el trigger la vería como "ya avisada".
+            desconectadoEn:           FieldValue.delete(),
+            alertaDesconexionEnviada: FieldValue.delete(),
+            cierreStatusCode:         FieldValue.delete(),
+            cierreRazon:              FieldValue.delete(),
+            cierreManual:             FieldValue.delete(),
           }, { merge: true }).catch(() => {});
         } else if (state === 'close') {
           const prev = (await ref.get().catch(() => null))?.data() || {};
@@ -298,6 +334,7 @@ exports.evolutionWebhook = onRequest({
             // y sin esto se pierde cuánto lleva realmente caído.
             ...(prev.estadoConexion === 'disconnected' && prev.desconectadoEn
               ? {} : { desconectadoEn: FieldValue.serverTimestamp() }),
+            ...motivoCierre(body),
           }, { merge: true }).catch(() => {});
           // Cuenta de caídas del día: una sesión que se cae seguido es una
           // sesión degradada, y eso precede al bloqueo. Solo la transición.
@@ -339,6 +376,9 @@ exports.evolutionWebhook = onRequest({
           // Reconectó → se limpia el rastro de la caída y re-arma la alerta.
           desconectadoEn:           FieldValue.delete(),
           alertaDesconexionEnviada: FieldValue.delete(),
+          cierreStatusCode:         FieldValue.delete(),
+          cierreRazon:              FieldValue.delete(),
+          cierreManual:             FieldValue.delete(),
         }, { merge: true }).catch(() => {});
       } else if (state === 'close') {
         const prev = (await waCfgRef(tid).get().catch(() => null))?.data() || {};
@@ -348,6 +388,7 @@ exports.evolutionWebhook = onRequest({
           // el cron de salud alerta si lleva >20 min caída (anti-flapping).
           ...(prev.estadoConexion === 'disconnected' && prev.desconectadoEn
             ? {} : { desconectadoEn: FieldValue.serverTimestamp() }),
+          ...motivoCierre(body),
         }, { merge: true }).catch(() => {});
       }
     }

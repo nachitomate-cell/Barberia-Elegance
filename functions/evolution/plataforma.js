@@ -337,6 +337,9 @@ exports.plataformaDesvincular = onCall({ region: 'us-central1', cors: true, secr
       estadoConexion:  'disconnected',
       numeroVinculado: FieldValue.delete(),
       desvinculadoEn:  FieldValue.serverTimestamp(),
+      // Desvinculación hecha a mano desde el panel: evolution/alerta-sesion.js
+      // lo lee y no manda el correo de caída. Ya lo sabe quien apretó el botón.
+      cierreManual:    true,
     }, { merge: true }).catch(() => {});
   } else {
     await chipRef(chipId).delete().catch(() => {});

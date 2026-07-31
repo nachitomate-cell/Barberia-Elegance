@@ -1650,6 +1650,15 @@ exports.espejoFlagConfirmacionesPlataforma = evolutionConfirmaciones.espejoFlagC
 const evolutionSalud = require('./evolution/salud');
 exports.evolutionSaludSesiones = evolutionSalud.evolutionSaludSesiones;
 
+// Aviso INMEDIATO por email cuando una sesión se desvincula o la bloquean.
+// Triggers sobre el doc de estado, así que salta pase lo que pase por el
+// webhook, por el polling o por /admin. El cron de arriba queda de red de
+// seguridad para cuando el VPS muere y no llega ningún webhook.
+// Ver evolution/alerta-sesion.js.
+const evolutionAlertaSesion = require('./evolution/alerta-sesion');
+exports.alertaSesionTenant = evolutionAlertaSesion.alertaSesionTenant;
+exports.alertaSesionChip   = evolutionAlertaSesion.alertaSesionChip;
+
 // Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;
