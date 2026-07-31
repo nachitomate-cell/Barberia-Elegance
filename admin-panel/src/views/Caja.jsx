@@ -4,7 +4,7 @@ import {
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
   FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown, ChevronRight,
-  CalendarDays, ShoppingCart, UserPlus,
+  CalendarDays, ShoppingCart,
 } from 'lucide-react';
 // Reutilizamos el mismo modal de editar cita de la agenda para no duplicar la
 // lógica de guardar/completar. Al guardar como Completada, la CF sello-automatico
@@ -2057,14 +2057,13 @@ export default function Caja() {
   // Help modal
   const [showHelp, setShowHelp] = useState(false);
 
-  // ── Vender: drawer con citas del día + reutilización del CitaModal ──
-  // El drawer lista las citas de hoy (todos los estados) y al click abre el
-  // MISMO modal de editar de la agenda. `citaEnEdicion` puede ser un doc de
-  // cita existente o `null` para crear una nueva (venta walk-in sin reserva
-  // previa). `nuevaWalkIn` marca cuando venimos por el CTA "+ Nueva venta".
+  // ── Vender: drawer con reservas por cobrar del día ──
+  // Lista SOLO citas no-completadas (Pendiente / Confirmada). Al click abre
+  // el MISMO CitaModal de la agenda para cobrarlas (cambiar a Completada) o
+  // cancelarlas (Cancelada / NoAsistio). No hay flujo walk-in: si el cliente
+  // llegó sin reserva, se crea desde /agenda y se cobra desde acá.
   const [showVender, setShowVender]           = useState(false);
   const [citaEnEdicion, setCitaEnEdicion]     = useState(null);
-  const [nuevaWalkIn, setNuevaWalkIn]         = useState(false);
   const [productos, setProductos]             = useState([]);
 
   /* ── Load active session (por sede) ─────────────────────── */
@@ -3437,30 +3436,27 @@ export default function Caja() {
         <ConciliacionModal onClose={() => setShowConciliacion(false)} />
       )}
 
-      {/* ── Drawer "Vender": lista citas de hoy + acceso a nueva venta ── */}
+      {/* ── Drawer "Vender": reservas por cobrar del día ── */}
       {showVender && (
         <VenderDrawer
           citas={citasHoy}
           onClose={() => setShowVender(false)}
-          onCitaClick={(cita) => { setCitaEnEdicion(cita); setNuevaWalkIn(false); }}
-          onWalkIn={() => { setCitaEnEdicion(null); setNuevaWalkIn(true); }}
+          onCitaClick={(cita) => setCitaEnEdicion(cita)}
         />
       )}
 
       {/* ── CitaModal reutilizado (mismo componente que /agenda) ── */}
       {/* Se muestra sobre el drawer (z superior). Al guardar como Completada, */}
       {/* la CF sello-automatico dispara igual que desde la agenda. */}
-      {(citaEnEdicion || nuevaWalkIn) && (
+      {citaEnEdicion && (
         <CitaModal
           cita={citaEnEdicion}
           barberos={barberosRaw}
           servicios={servicios}
           productos={productos}
           dateStr={todayYMD()}
-          defaultHora={nuevaWalkIn ? new Date().toTimeString().slice(0, 5) : undefined}
-          defaultEstado={nuevaWalkIn ? 'Completada' : undefined}
-          onClose={() => { setCitaEnEdicion(null); setNuevaWalkIn(false); }}
-          onComplete={() => { setCitaEnEdicion(null); setNuevaWalkIn(false); }}
+          onClose={() => setCitaEnEdicion(null)}
+          onComplete={() => setCitaEnEdicion(null)}
         />
       )}
     </div>
@@ -3468,17 +3464,15 @@ export default function Caja() {
 }
 
 /* ────────────────────────────────────────────────────────────
- * VenderDrawer — panel lateral con las citas de hoy.
+ * VenderDrawer — panel lateral con las reservas del día POR COBRAR.
  *
- * Click en cualquier fila → abre el CitaModal reutilizado (mismo form de
- * editar cita de la agenda). El botón "Nueva venta walk-in" arriba abre
- * el CitaModal en modo creación (defaultEstado='Completada', hora=ahora)
- * para cobros sin reserva previa (cliente entró sin cita).
- *
- * Las citas se agrupan por estado para escanear rápido: pendientes de
- * cobrar arriba, completadas del día abajo (referencia visual).
+ * Solo muestra citas no-completadas (Pendiente / Confirmada). Click →
+ * abre el CitaModal reutilizado (mismo form de editar cita de /agenda)
+ * para cerrarla como Completada (cobrar) o marcarla Cancelada/NoAsistió.
+ * Las ya cobradas y canceladas quedan fuera — este panel es la lista de
+ * pendientes de acción. Para crear una cita nueva se usa /agenda.
  * ──────────────────────────────────────────────────────────── */
-function VenderDrawer({ citas, onClose, onCitaClick, onWalkIn }) {
+function VenderDrawer({ citas, onClose, onCitaClick }) {
   // ESC cierra — patrón consistente con SesionDetalleDrawer.
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -3486,18 +3480,17 @@ function VenderDrawer({ citas, onClose, onCitaClick, onWalkIn }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Orden: pendientes/confirmadas primero (más urgente cobrarlas), luego
-  // completadas del día (referencia). Dentro de cada grupo, por hora ascendente.
-  const [pendientes, completadas, otras] = useMemo(() => {
-    const pend = [], comp = [], otr = [];
-    (citas || []).forEach(c => {
-      const est = String(c.estado || '').toLowerCase();
-      if (est === 'completada')                              comp.push(c);
-      else if (est.startsWith('cancelad') || est === 'noasistio') otr.push(c);
-      else                                                    pend.push(c);
-    });
-    const byHora = (a, b) => String(a.hora || '').localeCompare(String(b.hora || ''));
-    return [pend.sort(byHora), comp.sort(byHora), otr.sort(byHora)];
+  // Solo estados accionables: Pendiente / Confirmada. Excluye Completada
+  // (ya cerradas) y Cancelada/NoAsistio (ya resueltas). Orden por hora asc.
+  const pendientes = useMemo(() => {
+    return (citas || [])
+      .filter(c => {
+        const est = String(c.estado || '').toLowerCase();
+        return est !== 'completada'
+          && !est.startsWith('cancelad')
+          && est !== 'noasistio';
+      })
+      .sort((a, b) => String(a.hora || '').localeCompare(String(b.hora || '')));
   }, [citas]);
 
   const rowFor = (c) => (
@@ -3535,60 +3528,27 @@ function VenderDrawer({ citas, onClose, onCitaClick, onWalkIn }) {
             <h3 className="text-base font-black text-primary flex items-center gap-2">
               <ShoppingCart size={18} className="text-emerald-400" /> Vender
             </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Citas de hoy · cobra o registra una venta walk-in</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Reservas por cobrar hoy · cierra como cobrada o cancélala</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800">
             <X size={18} />
           </button>
         </div>
 
-        {/* CTA walk-in — arriba, visible sin scroll */}
-        <div className="px-5 py-3 border-b border-slate-800 shrink-0">
-          <button
-            onClick={onWalkIn}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-sm font-black tracking-wide shadow-lg shadow-emerald-500/30 transition-colors"
-          >
-            <UserPlus size={16} /> Nueva venta walk-in
-          </button>
-          <p className="text-[10px] text-slate-500 mt-1.5 text-center">
-            Cliente sin reserva previa — crea la cita y ciérrala como completada en un paso.
-          </p>
-        </div>
-
         {/* Lista scrollable */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {pendientes.length > 0 && (
+          {pendientes.length > 0 ? (
             <div>
               <p className="text-[10px] uppercase tracking-wider font-bold text-amber-400 mb-2 flex items-center gap-1.5">
                 <Clock size={11} /> Por cobrar ({pendientes.length})
               </p>
               <div className="space-y-1.5">{pendientes.map(rowFor)}</div>
             </div>
-          )}
-
-          {completadas.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 mb-2 flex items-center gap-1.5">
-                <CheckCircle2 size={11} /> Ya cobradas ({completadas.length})
-              </p>
-              <div className="space-y-1.5">{completadas.map(rowFor)}</div>
-            </div>
-          )}
-
-          {otras.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">
-                Otras ({otras.length})
-              </p>
-              <div className="space-y-1.5 opacity-60">{otras.map(rowFor)}</div>
-            </div>
-          )}
-
-          {!pendientes.length && !completadas.length && !otras.length && (
+          ) : (
             <div className="text-center py-12">
-              <ShoppingCart size={40} className="text-slate-700 mx-auto mb-3" />
-              <p className="text-sm font-bold text-slate-500">Sin citas hoy</p>
-              <p className="text-xs text-slate-600 mt-1">Usa "Nueva venta walk-in" para registrar una atención sin reserva previa.</p>
+              <CheckCircle2 size={40} className="text-emerald-500/40 mx-auto mb-3" />
+              <p className="text-sm font-bold text-slate-400">Nada pendiente por cobrar</p>
+              <p className="text-xs text-slate-500 mt-1">Todas las citas de hoy ya están cerradas o canceladas.</p>
             </div>
           )}
         </div>
