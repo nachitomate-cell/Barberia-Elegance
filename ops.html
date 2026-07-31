@@ -293,7 +293,13 @@
             </div>
             <div class="k">Mensajes que quedan hoy${c.topeManual != null ? ' · tope manual' : ''}</div>
           </div>
-          <div class="kpi"><div class="n tnum">${pct(c.tasaRespuesta)}</div><div class="k">Responden${c.volumenSuficiente?'':' (poco volumen)'}</div></div>
+          <!-- "Respuestas por envío", no "% que responde": se cuenta CADA
+               mensaje entrante, y un cliente que escribe "hola", "1" y
+               "confirmar" son tres. Por eso puede pasar del 100% — apareció un
+               130% en pantalla bajo la etiqueta "Responden", que se lee como
+               un dato imposible y hace desconfiar del panel entero. El umbral
+               de shadowban (bajo = malo) sigue funcionando igual. -->
+          <div class="kpi"><div class="n tnum">${pct(c.tasaRespuesta)}</div><div class="k">Respuestas por envío${c.volumenSuficiente?'':' (poco volumen)'}</div></div>
           <div class="kpi"><div class="n tnum">${pct(c.tasaOptout)}</div><div class="k">Piden baja</div></div>
           <div class="kpi"><div class="n tnum">${pct(c.tasaFallo)}</div><div class="k">Envíos fallidos</div></div>
         </div>

@@ -451,7 +451,11 @@ async function saludChip(dias, chipId = CHIP_DEFAULT) {
   if (suficiente && tasaResp < CHIP_UMBRAL.respuestaBaja) {
     señales.push({
       nivel: 'rojo',
-      texto: `Solo ${Math.round(tasaResp * 100)}% de los clientes responde (${respuestas} de ${enviados}). ` +
+      // "X respuestas para Y envíos" y no "X% de los clientes responde": se
+      // cuenta cada mensaje entrante, no cada cliente. Con la redacción vieja,
+      // 13 respuestas sobre 10 envíos salía como "130% de los clientes
+      // responde (13 de 10)", que es literalmente imposible.
+      texto: `Solo ${respuestas} respuesta(s) para ${enviados} envíos (${Math.round(tasaResp * 100)}%). ` +
              'Si el envío sale bien pero nadie contesta, lo más probable es que los mensajes no estén llegando: shadowban.',
     });
   }
