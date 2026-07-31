@@ -621,6 +621,11 @@ async function notificarCita(citaId, cita, tenantId) {
           bolsaSaldoConf: FieldValue.increment(-1),
           bolsaUsados:    FieldValue.increment(1),
         }, { merge: true }).catch(() => {});
+        // Si con este envío el cupo llegó a 0, el checkbox de la reserva
+        // pública desaparece: todas las citas siguientes nacen verdes.
+        if ((Number(wa.bolsaSaldoConf) || 0) - 1 <= 0) {
+          require('./wa-bolsas')._syncCheckboxPublico(tenantId).catch(() => {});
+        }
         logger.info(`[wa] template cliente enviada tenant=${tenantId} cita=${citaId}`);
       } catch (e) {
         logger.warn(`[wa] fallo template cliente tenant=${tenantId}: ${e.message}`);
@@ -758,6 +763,9 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
       bolsaSaldoRec: FieldValue.increment(-1),
       bolsaUsados:   FieldValue.increment(1),
     }, { merge: true }).catch(() => {});
+    if (bolsaSaldo <= 0) {   // cupo agotado con este envío → checkbox fuera
+      require('./wa-bolsas')._syncCheckboxPublico(tid).catch(() => {});
+    }
 
     // Marca de idempotencia + pendiente para interpretar la respuesta.
     // El pendiente expira 6h DESPUÉS de la cita: un "sí" que llega tarde ya no

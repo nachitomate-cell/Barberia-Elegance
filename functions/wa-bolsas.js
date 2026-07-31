@@ -83,6 +83,25 @@ const partir = (total, pct) => {
   return { conf, rec: total - conf };
 };
 
+/** Mantiene el checkbox de la reserva pública (configuracion/main.waConfirmActivo)
+ *  sincronizado con la realidad: visible SOLO si hay con qué avisar — cupo
+ *  oficial con saldo, o confirmaciones Evolution conectadas. Sin saldo, el
+ *  checkbox desaparece y todas las citas nacen verdes (regla de producto). */
+async function syncCheckboxPublico(tid) {
+  try {
+    const [nS, eS] = await Promise.all([
+      db.doc(`wa_notif/${tid}`).get(),
+      db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
+    ]);
+    const n = nS.data() || {}, e = eS.data() || {};
+    const oficial = (n.planRecordatorio === true && (Number(n.bolsaSaldoRec) || 0) > 0)
+                 || (n.planCliente === true && (Number(n.bolsaSaldoConf) || 0) > 0);
+    const evolution = e.confirmacionesEnabled === true && e.estadoConexion === 'connected';
+    await db.doc(`tenants/${tid}/configuracion/main`).set({ waConfirmActivo: oficial || evolution }, { merge: true });
+  } catch (err) { logger.warn(`[wa-bolsa] syncCheckbox ${tid}:`, err.message); }
+}
+exports._syncCheckboxPublico = syncCheckboxPublico;
+
 /** Cambia el reparto y REBALANCEA el saldo actual (total se conserva). */
 exports.waBolsaReparto = onCall({ region: 'us-central1', cors: true }, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
@@ -106,6 +125,7 @@ exports.waBolsaReparto = onCall({ region: 'us-central1', cors: true }, async (re
     return { conf, rec };
   });
   logger.info(`[wa-bolsa] ${tid}: reparto ${pct}% conf → conf=${out.conf} rec=${out.rec}`);
+  await syncCheckboxPublico(tid);
   return { ok: true, pct, ...out };
 });
 
@@ -197,6 +217,7 @@ exports.waBolsaReponerMensual = onSchedule(
           }, { merge: true });
           repuestos++;
         });
+        await syncCheckboxPublico(ref.id);
       } catch (e) {
         logger.error(`[wa-bolsa] reposición ${ref.id}:`, e.message);
       }
@@ -262,6 +283,7 @@ exports.waBolsaWebhook = onRequest(
       });
 
       if (acreditado) {
+        await syncCheckboxPublico(tid);
         logger.info(`[wa-bolsa] ✅ ${tid}: +${mensajes} mensajes (pago ${payId}, $${pago.transaction_amount})`);
         await enviarEmail({
           from: 'SynapTech <cobros@synaptechspa.cl>',
