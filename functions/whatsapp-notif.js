@@ -119,6 +119,35 @@ function fmtFecha(fechaStr) {
   }).replace(/^\w/, c => c.toUpperCase());
 }
 
+/* Parámetros {{1}}..{{n}} del recordatorio, en el orden que espera la plantilla.
+   El orden viaja JUNTO al nombre de la plantilla (`templateRecordatorioParams`)
+   porque son inseparables: apuntar a otra plantilla sin cambiar el orden manda
+   la fecha donde va el nombre del local, y Meta lo acepta sin chistar — el
+   cliente recibe un mensaje absurdo y nosotros no nos enteramos.
+
+   El orden por defecto es el de `recordatorio_cita`. `confirmacion_cita`, que
+   es la única aprobada hoy, usa otro:
+     recordatorio_cita*  → nombre · local · servicio · fecha · hora
+     confirmacion_cita   → nombre · servicio · fecha · hora · local          */
+const ORDEN_RECORDATORIO = ['nombre', 'local', 'servicio', 'fecha', 'hora'];
+
+function paramsRecordatorio(cfg, { cita, nombreLocal }) {
+  const valores = {
+    nombre:   cita.clienteNombre  || 'Hola',
+    local:    nombreLocal,
+    servicio: cita.servicioNombre || 'tu servicio',
+    fecha:    fmtFecha(cita.fecha),
+    hora:     `${cita.hora || ''} hrs`,
+  };
+  const orden = Array.isArray(cfg.templateRecordatorioParams) && cfg.templateRecordatorioParams.length
+    ? cfg.templateRecordatorioParams
+    : ORDEN_RECORDATORIO;
+  // Una clave desconocida se manda vacía en vez de "undefined": un typo en la
+  // config no puede terminar impreso en el WhatsApp de un cliente.
+  return orden.map(k => valores[k] ?? '');
+}
+exports._paramsRecordatorio = paramsRecordatorio;
+
 async function getGlobalConfig() {
   try {
     const snap = await db.collection('_system').doc('whatsapp_notif').get();
@@ -687,13 +716,8 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
     }
 
     try {
-      await enviarTemplate(fono, cfg.templateRecordatorio, cfg.templateLang, [
-        cita.clienteNombre || 'Hola',
-        nombreLocal,
-        cita.servicioNombre || 'tu servicio',
-        fmtFecha(cita.fecha),
-        `${cita.hora || ''} hrs`,
-      ]);
+      await enviarTemplate(fono, cfg.templateRecordatorio, cfg.templateLang,
+        paramsRecordatorio(cfg, { cita, nombreLocal }));
     } catch (e) {
       logger.warn(`[wa:record] ${tid}/${doc.id} falló: ${e.message}`);
       continue;

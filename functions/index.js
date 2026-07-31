@@ -1663,6 +1663,11 @@ exports.alertaSesionChip   = evolutionAlertaSesion.alertaSesionChip;
 // (lib/ai-presupuesto.js) y este trigger avisa por correo al 70% y al 100%.
 exports.alertaGastoIa = require('./alerta-gasto-ia').alertaGastoIa;
 
+// Aviso por correo cuando Meta aprueba/rechaza/pausa una plantilla. Cron cada
+// 30 min contra la WABA: Meta no manda webhook salvo que se suscriba el campo,
+// y una plantilla puede quedarse PENDING días. Ver alerta-plantillas-meta.js.
+exports.alertaPlantillasMeta = require('./alerta-plantillas-meta').alertaPlantillasMeta;
+
 // Dashboard ops.synaptechspa.cl: métricas unificadas barbería + conexion.
 const opsMetricsModule = require('./ops-metrics');
 exports.opsMetrics = opsMetricsModule.opsMetrics;
