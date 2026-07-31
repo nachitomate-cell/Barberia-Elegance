@@ -729,7 +729,9 @@ function waPhone(tel) {
 }
 
 /* ── Modal shell ─────────────────────────────────────────────── */
-function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
+// Exportado para que Caja pueda reutilizarlo en el drawer "Vender" sin
+// duplicar el shell. Sin `export`, importar Modal desde Caja rompe el bundle.
+export function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
       <div className={`w-full ${maxW} bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-confirm-pop`}>
@@ -745,7 +747,9 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 }
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
-function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, sobrecupo = false, dateStr, onClose, onComplete }) {
+// Exportado para que Caja lo reutilice en el drawer "Vender". `AgendaCtx`
+// tiene default (buildSlotCfg(30)) → funciona sin envolver en el Provider.
+export function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, sobrecupo = false, dateStr, onClose, onComplete }) {
   const { pickerLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
@@ -827,6 +831,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     packSesionIndex:      cita?.packSesionIndex ?? null,
     packSesionTotal:      cita?.packSesionTotal ?? null,
     packFechaVencimiento: cita?.packFechaVencimiento || null,
+    // ── Caja: vuelto + pagos divididos ─────────────────────────────
+    // `montoPagado` = con cuánto pagó el cliente en efectivo (para calcular
+    // vuelto en vivo). Solo tiene sentido cuando hay Efectivo involucrado.
+    // `pagos` = array `[{tipo, monto}]` cuando el cliente divide (ej: mitad
+    // efectivo, mitad débito). NULL cuando es un único método — así las
+    // vistas legacy siguen leyendo `metodoPago` (string) sin romper.
+    montoPagado:     cita?.montoPagado != null ? Number(cita.montoPagado) : '',
+    pagos:           Array.isArray(cita?.pagos) && cita.pagos.length ? cita.pagos : null,
   });
   const [sobrecupoActivo, setSobrecupoActivo] = useState(!!sobrecupo || cita?.sobrecupo === true);
   const [recargoSobrecupo, setRecargoSobrecupo] = useState(initialRecargo);
@@ -1094,6 +1106,35 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const totalProductosNuevos = ticketNuevos.reduce((s, p) => s + p.totalLinea, 0);
   const totalTicket          = (Number(form.precio) || 0) + totalProductosPrev + totalProductosNuevos;
 
+  // ── Split de pago + vuelto ─────────────────────────────────────
+  // `isSplit` es true cuando el cliente divide el pago en varios métodos.
+  // `efectivoDelSplit` es cuánto se cobra en efectivo (para calcular vuelto):
+  // en modo single = el total si método=Efectivo, sino 0; en modo split = la
+  // suma de las filas Efectivo del array. `sumaSplit` es la suma de todas las
+  // filas del split — debe calzar con totalTicket para poder completar la cita.
+  const isSplit = Array.isArray(form.pagos) && form.pagos.length >= 1;
+  const efectivoDelSplit = isSplit
+    ? form.pagos.filter(p => p.tipo === 'Efectivo').reduce((s, p) => s + (Number(p.monto) || 0), 0)
+    : (form.metodoPago === 'Efectivo' ? totalTicket : 0);
+  const sumaSplit = isSplit
+    ? form.pagos.reduce((s, p) => s + (Number(p.monto) || 0), 0)
+    : totalTicket;
+  const splitOk = !isSplit || Math.abs(sumaSplit - totalTicket) < 1;
+  const vuelto = (form.montoPagado !== '' && efectivoDelSplit > 0)
+    ? (Number(form.montoPagado) - efectivoDelSplit)
+    : null;
+
+  // Helpers de manipulación del array pagos[] — el spread manual evita mutar
+  // el estado (React re-render friendly).
+  const setPagos = (arr) => set('pagos', arr);
+  const setPagoTipo = (idx, tipo) => setPagos(form.pagos.map((p, i) => i === idx ? { ...p, tipo } : p));
+  const setPagoMonto = (idx, monto) => setPagos(form.pagos.map((p, i) => i === idx ? { ...p, monto } : p));
+  const addPago = () => setPagos([...(form.pagos || []), { tipo: 'Efectivo', monto: Math.max(0, totalTicket - sumaSplit) }]);
+  const removePago = (idx) => {
+    const next = form.pagos.filter((_, i) => i !== idx);
+    setPagos(next.length ? next : null); // 0 filas → volver a modo single
+  };
+
   // Fase 3.A: leer users/ vía el hook (post-cleanup+backfill Firestore está
   // limpio). Antes usábamos useCollection('clientes') mirror que traía docs
   // duplicados con distinto formato de docId (caso Esteban Luengo: 2 mirrors
@@ -1325,7 +1366,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     // necesita método. Las cortesías quedan exentas (precio 0, no mueven caja).
     // Sin este guard la cita se guardaba con el método preseleccionado y el
     // cierre de caja no cuadraba sin que nadie supiera por qué.
-    if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago) {
+    // Modo split: exige al menos una fila válida con monto > 0. Modo single:
+    // exige metodoPago no vacío. La cortesía queda exenta (precio 0).
+    if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago && !isSplit) {
       setErrorMetodoPago(true);
       await confirmDialog({
         title: 'Falta el método de pago',
@@ -1338,6 +1381,22 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       return;
     }
     setErrorMetodoPago(false);
+
+    // Split: la suma de los pagos debe calzar EXACTO con el total. Si no,
+    // el cierre de caja va a arrastrar el descuadre y va a ser imposible
+    // reconstruir qué se cobró.
+    if (form.estado === 'Completada' && !form.cortesia && isSplit && !splitOk) {
+      await confirmDialog({
+        title: 'La suma del pago dividido no calza con el total',
+        message: `Total del ticket: $${Math.round(totalTicket).toLocaleString('es-CL')}\n`
+          + `Suma de las filas: $${Math.round(sumaSplit).toLocaleString('es-CL')}\n\n`
+          + `Diferencia: $${Math.round(totalTicket - sumaSplit).toLocaleString('es-CL')}. `
+          + 'Ajusta los montos para que sumen exacto antes de completar la cita.',
+        confirmText: 'Entendido',
+        cancelText: '',
+      });
+      return;
+    }
 
     // ── Confirmación explícita si la cita involucra un pack ─────────
     // Se dispara SOLO al pasar de "pendiente" a "Completada" — es el momento
@@ -1451,6 +1510,30 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       const fechaCita = form.fecha || dateStr;
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+
+      // ── Pagos divididos ─────────────────────────────────────────
+      // Si el cliente dividió el pago, escribimos `pagos[]` normalizado y
+      // `metodoPago='Mixto'` para que las vistas legacy (Caja/Comisiones/
+      // Metricas) que aún leen el string vean un valor sensato — mientras
+      // que las vistas nuevas leen `pagos[]` para el desglose real. Sin
+      // split, `pagos` va a null explícito para limpiar valor viejo si el
+      // usuario deshabilitó la división al editar.
+      if (isSplit) {
+        payload.pagos = form.pagos.map(p => ({ tipo: p.tipo, monto: Math.round(Number(p.monto) || 0) }));
+        payload.metodoPago = 'Mixto';
+      } else {
+        payload.pagos = null;
+      }
+
+      // Vuelto: solo persistimos si hubo efectivo (para trazabilidad de caja).
+      // Si el barbero deshabilitó Efectivo después de anotarlo, limpiamos.
+      if (form.montoPagado !== '' && form.montoPagado !== null && efectivoDelSplit > 0) {
+        payload.montoPagado     = Math.round(Number(form.montoPagado) || 0);
+        payload.vueltoEntregado = Math.max(0, payload.montoPagado - Math.round(efectivoDelSplit));
+      } else {
+        payload.montoPagado     = null;
+        payload.vueltoEntregado = null;
+      }
 
       // Sede de la cita: la del barbero elegido. Si el barbero elegido es un
       // "espejo por authUid" (memoria project_roles_espejo_uid) puede no tener
@@ -2299,6 +2382,108 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   <p className="text-[10px] text-slate-500 mt-1.5 italic">
                     Método legacy &quot;Tarjeta&quot; — elige Débito o Crédito para reemplazarlo.
                   </p>
+                )}
+
+                {/* ── Toggle: dividir pago en varios métodos ────────────── */}
+                <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-3.5 h-3.5 accent-emerald-500"
+                    checked={isSplit}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        // Arranca con una sola fila igual al método actual (o Efectivo)
+                        // por el total del ticket — así el barbero solo ajusta y agrega.
+                        setPagos([{ tipo: form.metodoPago || 'Efectivo', monto: Math.round(totalTicket) }]);
+                      } else {
+                        setPagos(null);
+                      }
+                    }}
+                  />
+                  Dividir pago en varios métodos (efectivo + tarjeta, etc.)
+                </label>
+
+                {/* Filas del split — solo cuando isSplit */}
+                {isSplit && (
+                  <div className="mt-2 space-y-2 p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
+                    {form.pagos.map((p, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <select
+                          className={`${field} flex-1`}
+                          value={p.tipo}
+                          onChange={e => setPagoTipo(idx, e.target.value)}
+                        >
+                          <option value="Efectivo">Efectivo</option>
+                          <option value="Débito">Débito</option>
+                          <option value="Crédito">Crédito</option>
+                          <option value="Transferencia">Transferencia</option>
+                        </select>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          placeholder="0"
+                          className={`${field} w-28 text-right`}
+                          value={p.monto}
+                          onChange={e => setPagoMonto(idx, e.target.value !== '' ? Number(e.target.value) : 0)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePago(idx)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 shrink-0"
+                          title="Quitar esta fila"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={addPago}
+                        className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                      >
+                        + agregar método
+                      </button>
+                      <div className={`text-[11px] font-bold ${splitOk ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        ${Math.round(sumaSplit).toLocaleString('es-CL')} / ${Math.round(totalTicket).toLocaleString('es-CL')}
+                        {splitOk
+                          ? ' ✓'
+                          : ` · falta $${Math.round(totalTicket - sumaSplit).toLocaleString('es-CL')}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Vuelto (solo cuando hay efectivo, single o split) ── */}
+                {efectivoDelSplit > 0 && (
+                  <div className="mt-2 flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className={lbl}>Cliente paga con ($)</label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        placeholder={Math.round(efectivoDelSplit).toLocaleString('es-CL')}
+                        className={field}
+                        value={form.montoPagado}
+                        onChange={e => set('montoPagado', e.target.value !== '' ? Number(e.target.value) : '')}
+                      />
+                    </div>
+                    {vuelto !== null && (
+                      <div className={`text-right px-3 py-2 rounded-lg border ${
+                        vuelto >= 0
+                          ? 'bg-emerald-500/10 border-emerald-500/30'
+                          : 'bg-rose-500/10 border-rose-500/30'}`}>
+                        <p className={`text-[9px] uppercase tracking-wider font-bold ${vuelto >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {vuelto >= 0 ? 'Vuelto' : 'Falta'}
+                        </p>
+                        <p className={`text-base font-bold leading-tight ${vuelto >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                          ${Math.abs(vuelto).toLocaleString('es-CL')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               <div>

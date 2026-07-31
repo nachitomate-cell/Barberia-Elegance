@@ -4,8 +4,12 @@ import {
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
   FileText, Printer, ListChecks, Undo2, Scissors, Gift, ChevronDown, ChevronRight,
-  CalendarDays,
+  CalendarDays, ShoppingCart, UserPlus,
 } from 'lucide-react';
+// Reutilizamos el mismo modal de editar cita de la agenda para no duplicar la
+// lógica de guardar/completar. Al guardar como Completada, la CF sello-automatico
+// dispara igual que si viniera de /agenda — misma fuente de verdad, cero divergencia.
+import { CitaModal, Modal as AgendaModal } from './Agenda';
 import { Link } from 'react-router-dom';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
@@ -64,6 +68,44 @@ function todayYMD() {
 // 'Tarjeta' sigue existiendo como legacy para citas antiguas.
 const TARJETA_METODOS = new Set(['Tarjeta', 'Débito', 'Crédito']);
 const isTarjeta = (m) => TARJETA_METODOS.has(m);
+
+// ── Pagos divididos ────────────────────────────────────────────
+// Un item (cita o venta) puede tener `pagos: [{tipo, monto}]` cuando el
+// cliente pagó con varios métodos. Este helper devuelve cuánto entra a cada
+// bucket. Si no hay split, usa el string legacy `metodoPago` sobre el total.
+// Para split, la suma de `pagos[]` representa el ticket COMPLETO (servicio +
+// productos del ticket), por eso Caja excluye del sum de productos aquellas
+// ventas cuya `citaId` pertenezca a una cita con split — evita doble conteo.
+function montosPorMetodo(item) {
+  const out = { efectivo: 0, tarjeta: 0, transf: 0 };
+  if (Array.isArray(item?.pagos) && item.pagos.length) {
+    item.pagos.forEach(p => {
+      const m = Number(p.monto) || 0;
+      if (p.tipo === 'Efectivo')             out.efectivo += m;
+      else if (isTarjeta(p.tipo))            out.tarjeta  += m;
+      else if (p.tipo === 'Transferencia')   out.transf   += m;
+    });
+    return out;
+  }
+  const total = Number(item?.precio) || 0;
+  if (item?.metodoPago === 'Efectivo')            out.efectivo = total;
+  else if (isTarjeta(item?.metodoPago))           out.tarjeta  = total;
+  else if (item?.metodoPago === 'Transferencia')  out.transf   = total;
+  return out;
+}
+// Un item "tiene efectivo" (para propinas, contadores) si el string legacy es
+// Efectivo O si su split incluye una fila Efectivo con monto > 0.
+function tieneEfectivo(item) {
+  if (item?.metodoPago === 'Efectivo') return true;
+  if (Array.isArray(item?.pagos)) {
+    return item.pagos.some(p => p.tipo === 'Efectivo' && (Number(p.monto) || 0) > 0);
+  }
+  return false;
+}
+// Un item está "cobrado" si tiene metodoPago no vacío O si tiene pagos[].
+function estaCobrado(item) {
+  return !!item?.metodoPago || (Array.isArray(item?.pagos) && item.pagos.length > 0);
+}
 
 /* ── KPI Card ─────────────────────────────────────────────── */
 function KpiCard({ icon: Icon, label, value, color = 'emerald', sub }) {
@@ -2015,6 +2057,16 @@ export default function Caja() {
   // Help modal
   const [showHelp, setShowHelp] = useState(false);
 
+  // ── Vender: drawer con citas del día + reutilización del CitaModal ──
+  // El drawer lista las citas de hoy (todos los estados) y al click abre el
+  // MISMO modal de editar de la agenda. `citaEnEdicion` puede ser un doc de
+  // cita existente o `null` para crear una nueva (venta walk-in sin reserva
+  // previa). `nuevaWalkIn` marca cuando venimos por el CTA "+ Nueva venta".
+  const [showVender, setShowVender]           = useState(false);
+  const [citaEnEdicion, setCitaEnEdicion]     = useState(null);
+  const [nuevaWalkIn, setNuevaWalkIn]         = useState(false);
+  const [productos, setProductos]             = useState([]);
+
   /* ── Load active session (por sede) ─────────────────────── */
   // Cada sede tiene su propio cajón. Traemos todas las sesiones abiertas (a lo
   // más una por sede) y elegimos la de la sede activa. Sin límite server-side
@@ -2082,6 +2134,11 @@ export default function Caja() {
   useEffect(() => {
     withTimeout(getDocs(tenantCol('servicios')), 15000, 'caja/servicios')
       .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+    // Catálogo de productos — el CitaModal reutilizado permite agregar
+    // productos al ticket. Sin este fetch el select de productos queda vacío.
+    withTimeout(getDocs(tenantCol('productos')), 15000, 'caja/productos')
+      .then(snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, []);
 
@@ -2167,10 +2224,25 @@ export default function Caja() {
     const apertura = sesionActiva?.montoApertura || 0;
 
     // Servicios (citas completadas)
-    const serviciosEfectivo = citasHoy.filter(c => c.metodoPago === 'Efectivo').reduce((s, c) => s + (Number(c.precio) || 0), 0);
-    const serviciosTarjeta = citasHoy.filter(c => isTarjeta(c.metodoPago)).reduce((s, c) => s + (Number(c.precio) || 0), 0);
-    const serviciosTransf = citasHoy.filter(c => c.metodoPago === 'Transferencia').reduce((s, c) => s + (Number(c.precio) || 0), 0);
-    const serviciosNoEspecificado = citasHoy.filter(c => !c.metodoPago).reduce((s, c) => s + (Number(c.precio) || 0), 0);
+    // Distribución por método — respeta pagos[] cuando existe (ticket dividido).
+    // Para una cita con split, la suma de pagos[] es el ticket COMPLETO
+    // (servicio + productos incluidos); por eso más abajo excluimos del sum
+    // de productos las ventas linkeadas a estas citas (evita doble conteo).
+    const citasConSplit = new Set(
+      citasHoy.filter(c => Array.isArray(c.pagos) && c.pagos.length).map(c => c.id)
+    );
+    const citasSum = citasHoy.reduce((acc, c) => {
+      const m = montosPorMetodo(c);
+      acc.efectivo += m.efectivo; acc.tarjeta += m.tarjeta; acc.transf += m.transf;
+      return acc;
+    }, { efectivo: 0, tarjeta: 0, transf: 0 });
+    const serviciosEfectivo = citasSum.efectivo;
+    const serviciosTarjeta  = citasSum.tarjeta;
+    const serviciosTransf   = citasSum.transf;
+    // "Sin especificar" = citas sin metodoPago Y sin pagos[] (ni string ni split).
+    const serviciosNoEspecificado = citasHoy
+      .filter(c => !estaCobrado(c))
+      .reduce((s, c) => s + (Number(c.precio) || 0), 0);
 
     // Propinas
     // Total: incluye todas las citas (para métricas del día).
@@ -2178,8 +2250,10 @@ export default function Caja() {
     // y deben cuadrar contra el arqueo real. Las de tarjeta las cobra el POS.
     // Las citas sin método NO cuentan (consistente con serviciosNoEspecificado).
     const propinasTotal = citasHoy.reduce((s, c) => s + (Number(c.propina) || 0), 0);
+    // Propina "en efectivo" cuando el pago (o alguna fila del split) incluye
+    // Efectivo — está en el cajón y hay que separarla del arqueo.
     const propinasEfectivo = citasHoy
-      .filter(c => c.metodoPago === 'Efectivo')
+      .filter(tieneEfectivo)
       .reduce((s, c) => s + (Number(c.propina) || 0), 0);
 
     // Detalle de CADA propina: de qué servicio salió, quién atendió y con qué
@@ -2211,9 +2285,13 @@ export default function Caja() {
     // Productos vendidos. `precio` ya es el total de línea (× cantidad aplicado
     // por la venta rápida y el ticket) → sumar precio directo, sin re-multiplicar
     // (antes duplicaba y el arqueo mostraba faltantes falsos).
-    const productosEfectivo = ventasHoy.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0), 0);
-    const productosTarjeta = ventasHoy.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0), 0);
-    const productosTransf = ventasHoy.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    // Excluimos ventas linkeadas a citas con split: en esos casos la cita ya
+    // sumó el ticket COMPLETO (servicio + productos) vía pagos[], y contar la
+    // venta acá haría doble conteo.
+    const ventasIndep = ventasHoy.filter(v => !v.citaId || !citasConSplit.has(v.citaId));
+    const productosEfectivo = ventasIndep.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    const productosTarjeta  = ventasIndep.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    const productosTransf   = ventasIndep.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0), 0);
 
     // Gastos
     const gastosEfectivo = gastosHoy.filter(g => g.metodoPago === 'Efectivo').reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -2236,7 +2314,8 @@ export default function Caja() {
     // Las propinas efectivo SÍ se suman: están físicamente en el cajón hasta
     // que el dueño las separe para el equipo (ver aviso en el modal de cierre).
     const saldoEsperado = apertura + totalIngresosEfectivo + propinasEfectivo - totalEgresosEfectivo;
-    const citasSinMetodo = citasHoy.filter(c => !c.metodoPago).length;
+    // Sin método = ni string ni split. Una cita con pagos[] SÍ está cobrada.
+    const citasSinMetodo = citasHoy.filter(c => !estaCobrado(c)).length;
 
     const totalIngresosTarjeta = serviciosTarjeta + productosTarjeta;
     const totalIngresosTransf = serviciosTransf + productosTransf;
@@ -2250,8 +2329,10 @@ export default function Caja() {
       if (s.nombre) precioPorNombre[String(s.nombre).toLowerCase().trim()] = Number(s.precio) || 0;
     });
     // Nº de transacciones EN EFECTIVO (el sub del card mostraba el total del día).
-    const transEfectivo = citasHoy.filter(c => c.metodoPago === 'Efectivo').length
-                        + ventasHoy.filter(v => v.metodoPago === 'Efectivo').length;
+    // Cuenta split que incluye efectivo como una transacción efectivo (aunque
+    // solo parte del monto haya sido en cash).
+    const transEfectivo = citasHoy.filter(tieneEfectivo).length
+                        + ventasIndep.filter(tieneEfectivo).length;
     // Cortesías: atenciones a $0 (flag cortesia o método "Cortesía"). No mueven
     // plata, pero es "lo que regalaste": valor = precio de catálogo del servicio.
     const cortesias = citasHoy.filter(c => c.cortesia === true || /cortes/i.test(c.metodoPago || ''));
@@ -2261,12 +2342,14 @@ export default function Caja() {
     }, 0);
     // Ticket promedio de servicios COBRADOS (excluye cortesías $0 y sin método).
     const ventasServicios = serviciosEfectivo + serviciosTarjeta + serviciosTransf;
+    // "Cobrado" = con method string en {Efectivo, Débito, Crédito, Transferencia}
+    // o con split (pagos[]). Excluye cortesías y sin-método.
     const nServiciosCobrados = citasHoy.filter(c =>
-      (c.metodoPago === 'Efectivo' || isTarjeta(c.metodoPago) || c.metodoPago === 'Transferencia') && (Number(c.precio) || 0) > 0
+      estaCobrado(c) && !c.cortesia && (Number(c.precio) || 0) > 0
     ).length;
     const ticketPromedio = nServiciosCobrados > 0 ? Math.round(ventasServicios / nServiciosCobrados) : 0;
-    // Lista de citas sin método (para la alerta accionable).
-    const citasSinMetodoList = citasHoy.filter(c => !c.metodoPago);
+    // Lista de citas sin método (para la alerta accionable). Split cuenta como cobrada.
+    const citasSinMetodoList = citasHoy.filter(c => !estaCobrado(c));
 
     return {
       apertura,
@@ -2744,6 +2827,13 @@ export default function Caja() {
           </button>
           <button onClick={() => setShowConciliacion(true)} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-xl text-xs font-bold transition-colors">
             <ListChecks size={14} /> Conciliar
+          </button>
+          {/* Vender: CTA principal — filled emerald para destacar sobre los ghost buttons */}
+          <button
+            onClick={() => setShowVender(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black tracking-wide shadow-lg shadow-emerald-500/30 transition-colors"
+          >
+            <ShoppingCart size={14} /> Vender
           </button>
           <button onClick={() => setShowIngreso(true)} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500/20 transition-colors">
             <ArrowDownCircle size={14} /> Ingreso
@@ -3346,6 +3436,163 @@ export default function Caja() {
       {showConciliacion && (
         <ConciliacionModal onClose={() => setShowConciliacion(false)} />
       )}
+
+      {/* ── Drawer "Vender": lista citas de hoy + acceso a nueva venta ── */}
+      {showVender && (
+        <VenderDrawer
+          citas={citasHoy}
+          onClose={() => setShowVender(false)}
+          onCitaClick={(cita) => { setCitaEnEdicion(cita); setNuevaWalkIn(false); }}
+          onWalkIn={() => { setCitaEnEdicion(null); setNuevaWalkIn(true); }}
+        />
+      )}
+
+      {/* ── CitaModal reutilizado (mismo componente que /agenda) ── */}
+      {/* Se muestra sobre el drawer (z superior). Al guardar como Completada, */}
+      {/* la CF sello-automatico dispara igual que desde la agenda. */}
+      {(citaEnEdicion || nuevaWalkIn) && (
+        <CitaModal
+          cita={citaEnEdicion}
+          barberos={barberosRaw}
+          servicios={servicios}
+          productos={productos}
+          dateStr={todayYMD()}
+          defaultHora={nuevaWalkIn ? new Date().toTimeString().slice(0, 5) : undefined}
+          defaultEstado={nuevaWalkIn ? 'Completada' : undefined}
+          onClose={() => { setCitaEnEdicion(null); setNuevaWalkIn(false); }}
+          onComplete={() => { setCitaEnEdicion(null); setNuevaWalkIn(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+ * VenderDrawer — panel lateral con las citas de hoy.
+ *
+ * Click en cualquier fila → abre el CitaModal reutilizado (mismo form de
+ * editar cita de la agenda). El botón "Nueva venta walk-in" arriba abre
+ * el CitaModal en modo creación (defaultEstado='Completada', hora=ahora)
+ * para cobros sin reserva previa (cliente entró sin cita).
+ *
+ * Las citas se agrupan por estado para escanear rápido: pendientes de
+ * cobrar arriba, completadas del día abajo (referencia visual).
+ * ──────────────────────────────────────────────────────────── */
+function VenderDrawer({ citas, onClose, onCitaClick, onWalkIn }) {
+  // ESC cierra — patrón consistente con SesionDetalleDrawer.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Orden: pendientes/confirmadas primero (más urgente cobrarlas), luego
+  // completadas del día (referencia). Dentro de cada grupo, por hora ascendente.
+  const [pendientes, completadas, otras] = useMemo(() => {
+    const pend = [], comp = [], otr = [];
+    (citas || []).forEach(c => {
+      const est = String(c.estado || '').toLowerCase();
+      if (est === 'completada')                              comp.push(c);
+      else if (est.startsWith('cancelad') || est === 'noasistio') otr.push(c);
+      else                                                    pend.push(c);
+    });
+    const byHora = (a, b) => String(a.hora || '').localeCompare(String(b.hora || ''));
+    return [pend.sort(byHora), comp.sort(byHora), otr.sort(byHora)];
+  }, [citas]);
+
+  const rowFor = (c) => (
+    <button
+      key={c.id}
+      onClick={() => onCitaClick(c)}
+      className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-colors flex items-center gap-3"
+    >
+      <div className="text-xs font-mono font-bold text-slate-400 shrink-0 w-12 tabular-nums">
+        {c.hora || '--:--'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-primary truncate">{c.clienteNombre || 'Cliente'}</p>
+        <p className="text-[11px] text-slate-500 truncate">
+          {c.servicioNombre || 'Servicio'}
+          {c.barbero ? <> · <span className="text-slate-400">{c.barbero}</span></> : null}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-sm font-bold text-emerald-400 tabular-nums">{fmtCurrency(c.precio)}</p>
+        <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500">{c.estado || 'Pendiente'}</p>
+      </div>
+    </button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-slate-950 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
+          <div>
+            <h3 className="text-base font-black text-primary flex items-center gap-2">
+              <ShoppingCart size={18} className="text-emerald-400" /> Vender
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">Citas de hoy · cobra o registra una venta walk-in</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-800">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* CTA walk-in — arriba, visible sin scroll */}
+        <div className="px-5 py-3 border-b border-slate-800 shrink-0">
+          <button
+            onClick={onWalkIn}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-sm font-black tracking-wide shadow-lg shadow-emerald-500/30 transition-colors"
+          >
+            <UserPlus size={16} /> Nueva venta walk-in
+          </button>
+          <p className="text-[10px] text-slate-500 mt-1.5 text-center">
+            Cliente sin reserva previa — crea la cita y ciérrala como completada en un paso.
+          </p>
+        </div>
+
+        {/* Lista scrollable */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {pendientes.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-amber-400 mb-2 flex items-center gap-1.5">
+                <Clock size={11} /> Por cobrar ({pendientes.length})
+              </p>
+              <div className="space-y-1.5">{pendientes.map(rowFor)}</div>
+            </div>
+          )}
+
+          {completadas.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 mb-2 flex items-center gap-1.5">
+                <CheckCircle2 size={11} /> Ya cobradas ({completadas.length})
+              </p>
+              <div className="space-y-1.5">{completadas.map(rowFor)}</div>
+            </div>
+          )}
+
+          {otras.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-2">
+                Otras ({otras.length})
+              </p>
+              <div className="space-y-1.5 opacity-60">{otras.map(rowFor)}</div>
+            </div>
+          )}
+
+          {!pendientes.length && !completadas.length && !otras.length && (
+            <div className="text-center py-12">
+              <ShoppingCart size={40} className="text-slate-700 mx-auto mb-3" />
+              <p className="text-sm font-bold text-slate-500">Sin citas hoy</p>
+              <p className="text-xs text-slate-600 mt-1">Usa "Nueva venta walk-in" para registrar una atención sin reserva previa.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

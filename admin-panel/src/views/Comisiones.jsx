@@ -228,16 +228,41 @@ function ConciliarTuuModal({ citas, precioServicio, fechaInicio, fechaFin, onClo
   };
 
   // Match cada transacción de TUU contra citas del rango con método tarjeta.
+  //
+  // Split de pago (pagos[]): una misma cita puede tener parte débito, parte
+  // crédito, parte efectivo. TUU exporta una fila por swipe, así que cada fila
+  // Débito/Crédito del split se explota como pseudo-cita separada — así el
+  // matcheo por monto exacto ($3000 débito ≠ $8000 total) sigue funcionando.
   const conciliacion = useMemo(() => {
     if (!rows.length) return { transacciones: [], huerfanasEnAgenda: [] };
-    const citasTarjeta = citas
-      .filter(c => c.metodoPago === 'Débito' || c.metodoPago === 'Crédito')
-      .map(c => ({
-        id: c.id, fecha: c.fecha, hora: c.hora, metodo: c.metodoPago,
-        monto: precioServicio(c),
+    const citasTarjeta = [];
+    citas.forEach(c => {
+      const meta = {
+        id: c.id, fecha: c.fecha, hora: c.hora,
         cliente: c.clienteNombre || c.nombre || '',
-        matched: false,
-      }));
+      };
+      if (Array.isArray(c.pagos) && c.pagos.length) {
+        c.pagos.forEach((p, idx) => {
+          if (p.tipo === 'Débito' || p.tipo === 'Crédito') {
+            citasTarjeta.push({
+              ...meta,
+              // ID compuesto para no confundir 2 swipes de la misma cita.
+              id:     `${c.id}#${idx}`,
+              metodo: p.tipo,
+              monto:  Math.round(Number(p.monto) || 0),
+              matched: false,
+            });
+          }
+        });
+      } else if (c.metodoPago === 'Débito' || c.metodoPago === 'Crédito') {
+        citasTarjeta.push({
+          ...meta,
+          metodo:  c.metodoPago,
+          monto:   precioServicio(c),
+          matched: false,
+        });
+      }
+    });
     const transacciones = rows.map(r => {
       // Match: mismo día + monto exacto (± $1 para redondeos). Si hora en TUU,
       // preferir la cita con hora más cercana dentro de toleranciaMin.
