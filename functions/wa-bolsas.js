@@ -102,6 +102,30 @@ async function syncCheckboxPublico(tid) {
 }
 exports._syncCheckboxPublico = syncCheckboxPublico;
 
+/** Preferencias auto-gestionables del canal oficial (estilo AgendaPro): el
+ *  local prende/apaga la confirmación al reservar y el recordatorio 24h por
+ *  separado. Encender sin saldo no envía nada (el candado de bolsa manda);
+ *  apagar detiene ese tipo de envío aunque haya saldo. */
+exports.waNotifPreferencias = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
+  const claims = req.auth.token || {};
+  const boot = esBootstrap(claims.email);
+  let tid = claims.tenantId || null;
+  if (boot && req.data?.tenantId) tid = String(req.data.tenantId);
+  if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
+  if (!boot && !['admin', 'jefe'].includes(claims.role || '')) {
+    throw new HttpsError('permission-denied', 'Solo administradores del local.');
+  }
+  const patch = {};
+  if (typeof req.data?.confirmaciones === 'boolean') patch.planCliente      = req.data.confirmaciones;
+  if (typeof req.data?.recordatorios  === 'boolean') patch.planRecordatorio = req.data.recordatorios;
+  if (!Object.keys(patch).length) throw new HttpsError('invalid-argument', 'Nada que cambiar.');
+  await db.doc(`wa_notif/${tid}`).set(patch, { merge: true });
+  await syncCheckboxPublico(tid);
+  logger.info(`[wa-bolsa] ${tid}: preferencias ${JSON.stringify(patch)}`);
+  return { ok: true, ...patch };
+});
+
 /** Cambia el reparto y REBALANCEA el saldo actual (total se conserva). */
 exports.waBolsaReparto = onCall({ region: 'us-central1', cors: true }, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');

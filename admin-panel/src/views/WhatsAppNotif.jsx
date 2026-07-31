@@ -105,6 +105,33 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const [comprando, setComprando]   = useState(false);
   const [errCompra, setErrCompra]   = useState('');
   const [repartiendo, setRepartiendo] = useState(false);
+  const [prefiriendo, setPrefiriendo] = useState(false);
+  const planRecordatorio = !!estado?.planRecordatorio;
+  const moduloActivo = planCliente || planRecordatorio;
+  // Toggles auto-gestionables (estilo AgendaPro): cada tipo de aviso se
+  // prende/apaga por separado; sin saldo en la bolsa igual no sale nada.
+  const togglePref = async (campo, valor) => {
+    if (prefiriendo) return;
+    setPrefiriendo(true);
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifPreferencias');
+      await fn({ [campo]: valor });
+      await cargar();
+    } catch (e) { setErrCompra(e.message || 'No se pudo guardar.'); }
+    finally { setPrefiriendo(false); }
+  };
+  const Toggle = ({ on, onChange, titulo, detalle }) => (
+    <button type="button" disabled={prefiriendo} onClick={() => onChange(!on)}
+      className="w-full flex items-start justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-left hover:border-white/[0.15] transition-colors">
+      <span className="min-w-0">
+        <span className="block text-[13px] font-semibold text-slate-200">{titulo}</span>
+        <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">{detalle}</span>
+      </span>
+      <span className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 mt-0.5 ${on ? 'bg-violet-500' : 'bg-slate-700'}`}>
+        <span className={`absolute top-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-all ${on ? 'left-[20px]' : 'left-0.5'}`} />
+      </span>
+    </button>
+  );
   const cambiarReparto = async (pct) => {
     if (repartiendo) return;
     setRepartiendo(true);
@@ -182,11 +209,27 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                 Usa plantillas oficiales verificadas por WhatsApp (mensajería con costo, por eso es parte del plan pagado). Los envíos quedan registrados y no dependen de que respondas a mano.
               </p>
 
-              {planCliente && (
+              {/* Preferencias auto-gestionables (como AgendaPro) */}
+              <div className="space-y-2">
+                <Toggle
+                  on={planCliente}
+                  onChange={(v) => togglePref('confirmaciones', v)}
+                  titulo="Notificación de creación de cita"
+                  detalle="Tu cliente recibe un WhatsApp oficial apenas reserva. Descuenta del cupo de confirmaciones."
+                />
+                <Toggle
+                  on={planRecordatorio}
+                  onChange={(v) => togglePref('recordatorios', v)}
+                  titulo="Recordatorio 24 horas antes"
+                  detalle="Le recordamos la cita y puede confirmar con un toque. Descuenta del cupo de recordatorios."
+                />
+              </div>
+
+              {moduloActivo && (
                 <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-4 text-sm text-slate-200 space-y-2.5">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
-                    <span>Activo — tus clientes reciben confirmación y recordatorio automáticamente.</span>
+                    <span>Activo — {planCliente && planRecordatorio ? 'confirmación y recordatorio funcionando' : planCliente ? 'confirmación al reservar funcionando' : 'recordatorio 24h funcionando'}.</span>
                   </div>
                   <div className={`rounded-xl px-3 py-2 border space-y-1.5 ${saldoBajo ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.03]'}`}>
                     <div className="flex items-baseline justify-between">

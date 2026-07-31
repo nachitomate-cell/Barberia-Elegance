@@ -1611,6 +1611,7 @@ exports.waBolsaCrearLink      = waBolsas.waBolsaCrearLink;
 exports.waBolsaWebhook        = waBolsas.waBolsaWebhook;
 exports.waBolsaReponerMensual = waBolsas.waBolsaReponerMensual;
 exports.waBolsaReparto        = waBolsas.waBolsaReparto;
+exports.waNotifPreferencias   = waBolsas.waNotifPreferencias;
 
 // ─────────────────────────────────────────────────────────────────
 //  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del

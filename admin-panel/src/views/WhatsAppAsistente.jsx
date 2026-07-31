@@ -243,12 +243,40 @@ function MiConsumo({ tid }) {
 
   const { hoy, mes } = d;
   const bajasAltas = mes.bajas >= 3;
+  // CRM del asistente (estilo AgendaPro): lo que el bot HA HECHO en total,
+  // no solo este mes — el valor acumulado es el argumento de retención.
+  const h = d.historico || {};
+  const kpis = [
+    { n: h.agendadas  ?? 0, k: 'reservas agendadas' },
+    { n: h.reubicadas ?? 0, k: 'reservas reubicadas\nen vez de perder' },
+    { n: h.confSi     ?? 0, k: 'asistencias\nconfirmadas' },
+    { n: (h.canceladas ?? 0) + (h.confNo ?? 0), k: 'cancelaciones\ngestionadas' },
+  ];
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
       <p className="text-[13px] font-semibold text-slate-200 flex items-center gap-2">
         <ShieldCheck size={15} className="text-emerald-400" /> Tu número, protegido
       </p>
+
+      {/* ── CRM del asistente: lo que ha hecho HASTA AHORA ── */}
+      {(kpis[0].n > 0 || kpis[1].n > 0 || kpis[2].n > 0) && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {kpis.map((x, i) => (
+              <div key={i} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-3 text-center">
+                <p className="text-2xl font-bold text-slate-100 tabular-nums leading-none">{x.n}</p>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-tight whitespace-pre-line">{x.k}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl px-3.5 py-2.5 border border-emerald-500/20 bg-emerald-500/[0.05]">
+            <p className="text-[11.5px] leading-relaxed text-emerald-200/90">
+              📅 Desde que trabaja contigo, el asistente agendó <b>{kpis[0].n} reserva{kpis[0].n === 1 ? '' : 's'}</b>{kpis[1].n > 0 && <> y reubicó <b>{kpis[1].n}</b> que se {kpis[1].n === 1 ? 'iba' : 'iban'} a perder</>}. 🌿
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Uso del día.
           SIN el tope, sin la barra de progreso y sin la antigüedad del número.
