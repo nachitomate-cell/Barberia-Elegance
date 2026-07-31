@@ -2054,6 +2054,11 @@ export default function Caja() {
 
   // Transactions from today (crudas; se filtran por sede activa)
   const [citasHoyRaw, setCitasHoyRaw] = useState([]);
+  // Reservas del día NO cerradas (Pendiente / Confirmada) — data source del
+  // drawer "Vender". Va aparte del citasHoyRaw porque ese filtra a Completada
+  // en el listener y todas las agregaciones del cierre asumen ese filtro.
+  // Mezclar los dos rompería kpis.citasSinMetodo y el arqueo.
+  const [citasPendientesRaw, setCitasPendientesRaw] = useState([]);
   const [ventasHoyRaw, setVentasHoyRaw] = useState([]);
   const [gastosHoyRaw, setGastosHoyRaw] = useState([]);
   const [servicios, setServicios] = useState([]);   // catálogo, para valorizar cortesías
@@ -2072,10 +2077,11 @@ export default function Caja() {
   // sobre la sede activa; el dueño en "Todas" debe elegir una para operar.
   const { multiSucursal, activeId, activeSucursal, matchSucursal } = useSucursal();
   const sedeElegida = !multiSucursal || activeId !== 'all';
-  const citasHoy  = useMemo(() => citasHoyRaw.filter(matchSucursal),  [citasHoyRaw, matchSucursal]);
-  const ventasHoy = useMemo(() => ventasHoyRaw.filter(matchSucursal), [ventasHoyRaw, matchSucursal]);
-  const gastosHoy = useMemo(() => gastosHoyRaw.filter(matchSucursal), [gastosHoyRaw, matchSucursal]);
-  const historial = useMemo(() => historialRaw.filter(matchSucursal), [historialRaw, matchSucursal]);
+  const citasHoy         = useMemo(() => citasHoyRaw.filter(matchSucursal),         [citasHoyRaw, matchSucursal]);
+  const citasPendientes  = useMemo(() => citasPendientesRaw.filter(matchSucursal),  [citasPendientesRaw, matchSucursal]);
+  const ventasHoy        = useMemo(() => ventasHoyRaw.filter(matchSucursal),        [ventasHoyRaw, matchSucursal]);
+  const gastosHoy        = useMemo(() => gastosHoyRaw.filter(matchSucursal),        [gastosHoyRaw, matchSucursal]);
+  const historial        = useMemo(() => historialRaw.filter(matchSucursal),        [historialRaw, matchSucursal]);
 
   // Help modal
   const [showHelp, setShowHelp] = useState(false);
@@ -2115,13 +2121,25 @@ export default function Caja() {
     const { start, end } = todayRange();
     const hoy = todayYMD();
 
-    // Citas completadas hoy (fecha es string YYYY-MM-DD, comparación exacta)
+    // Citas de hoy: UNA sola lectura Firestore, dos filtros distintos en cliente.
+    //  - citasHoyRaw     → solo Completadas (data source de KPIs, arqueo, comisiones)
+    //  - citasPendientes → NO Completadas ni Canceladas ni NoAsistio
+    //                      (data source del drawer "Vender" — reservas por cobrar)
+    // Ambos excluyen citas de QA fantasma (origenQA), que nunca deben aparecer
+    // en caja ni en ningún reporte de plata.
     const qCitas = query(
       tenantCol('citas'),
       where('fecha', '==', hoy),
     );
     const unsub1 = onSnapshot(qCitas, snap => {
-      setCitasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada' && !c.origenQA));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => !c.origenQA);
+      setCitasHoyRaw(all.filter(c => c.estado === 'Completada'));
+      setCitasPendientesRaw(all.filter(c => {
+        const est = String(c.estado || '').toLowerCase();
+        return est !== 'completada'
+          && !est.startsWith('cancelad')
+          && est !== 'noasistio';
+      }));
     }, () => {});
 
     // Productos vendidos hoy
@@ -3488,9 +3506,11 @@ export default function Caja() {
       )}
 
       {/* ── Drawer "Vender": reservas por cobrar del día ── */}
+      {/* Usa `citasPendientes` (no `citasHoy`): citasHoy solo trae Completadas
+          — perfecto para agregaciones de arqueo, inútil para el flujo de cobro. */}
       {showVender && (
         <VenderDrawer
-          citas={citasHoy}
+          citas={citasPendientes}
           onClose={() => setShowVender(false)}
           onCitaClick={(cita) => setCitaEnEdicion(cita)}
         />
