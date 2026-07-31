@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 import { SheetModal, sheetBtn, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import { atiendeSillon } from '../lib/roles';
 import SlideOver from '../components/ui/SlideOver';
+import Select from '../components/ui/Select';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
@@ -1878,14 +1879,18 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
         <div>
           <label className={lbl}>Servicio</label>
-          <select className={field} value={form.servicioId} onChange={e => onServicioChange(e.target.value)}>
-            {servicios.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}{s.soloStaff ? ' · 🔒 interno' : ''}
-              </option>
-            ))}
-            {servicios.length === 0 && <option value="">Sin servicios</option>}
-          </select>
+          <Select
+            className={field}
+            ariaLabel="Servicio"
+            value={form.servicioId}
+            onChange={onServicioChange}
+            placeholder={servicios.length ? '— elegir —' : 'Sin servicios'}
+            options={servicios.map(s => ({
+              value: s.id,
+              label: s.nombre,
+              hint:  s.soloStaff ? '🔒 interno' : undefined,
+            }))}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -1907,10 +1912,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 onChange={e => set('hora', e.target.value)}
               />
             ) : (
-              <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-                {(horasDelBarbero.includes(form.hora) ? horasDelBarbero : [form.hora, ...horasDelBarbero].filter(Boolean))
-                  .map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <Select
+                className={field}
+                ariaLabel="Hora"
+                value={form.hora}
+                onChange={v => set('hora', v)}
+                options={(horasDelBarbero.includes(form.hora) ? horasDelBarbero : [form.hora, ...horasDelBarbero].filter(Boolean))
+                  .map(t => ({ value: t, label: t }))}
+              />
             )}
           </div>
         </div>
@@ -1922,9 +1931,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
         <div>
           <label className={lbl}>Barbero</label>
-          <select className={field} value={form.barberoId} onChange={e => onBarberoChange(e.target.value)}>
-            {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-          </select>
+          <Select
+            className={field}
+            ariaLabel="Barbero"
+            value={form.barberoId}
+            onChange={onBarberoChange}
+            options={barberos.map(b => ({ value: b.id, label: b.nombre }))}
+          />
         </div>
 
         {/* Estado: antes era un <select> genérico metido al lado de "Barbero".
@@ -2364,24 +2377,23 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 {/* Producto: fila completa */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Producto</label>
-                  <select
+                  <Select
                     className={field}
+                    ariaLabel="Producto"
                     value={newProductId}
-                    onChange={e => setNewProductId(e.target.value)}
-                  >
-                    <option value="">— elegir —</option>
-                    {productosDisponibles.map(p => {
+                    onChange={setNewProductId}
+                    options={productosDisponibles.map(p => {
                       const usados = ticketNuevos.filter(n => n.productId === p.id).reduce((s, n) => s + n.cantidad, 0);
                       const stockShown = !isNaN(Number(p.stock)) ? Number(p.stock) - usados : null;
                       const sinStock   = stockShown !== null && stockShown <= 0;
-                      return (
-                        <option key={p.id} value={p.id} disabled={sinStock}>
-                          {p.nombre} — ${Math.round(Number(p.precio) || 0).toLocaleString('es-CL')}
-                          {stockShown !== null ? (sinStock ? ' · sin stock' : ` · stock ${stockShown}`) : ''}
-                        </option>
-                      );
+                      return {
+                        value: p.id,
+                        disabled: sinStock,
+                        label: `${p.nombre} — $${Math.round(Number(p.precio) || 0).toLocaleString('es-CL')}`,
+                        hint: stockShown !== null ? (sinStock ? 'sin stock' : `stock ${stockShown}`) : undefined,
+                      };
                     })}
-                  </select>
+                  />
                 </div>
                 {/* Cantidad y descuento: dos columnas */}
                 <div className="grid grid-cols-2 gap-2.5">
@@ -2837,10 +2849,15 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
       {/* Barbero */}
       <div>
         <label className={lbl}>Barbero (vacío = todos)</label>
-        <select className={field} value={barberoId} onChange={e => setBId(e.target.value)}>
-          <option value="">— Todos los barberos —</option>
-          {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-        </select>
+        <Select
+          className={field}
+          ariaLabel="Barbero"
+          value={barberoId}
+          onChange={setBId}
+          placeholder="— Todos los barberos —"
+          options={[{ value: '', label: '— Todos los barberos —' },
+                    ...barberos.map(b => ({ value: b.id, label: b.nombre }))]}
+        />
       </div>
 
       {/* Horario parcial */}
@@ -2849,15 +2866,23 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={lbl}>Desde</label>
-              <select className={field} value={horaIni} onChange={e => { setHIni(e.target.value); setHoraError(''); }}>
-                {pickerLabels.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <Select
+                className={field}
+                ariaLabel="Desde"
+                value={horaIni}
+                onChange={v => { setHIni(v); setHoraError(''); }}
+                options={pickerLabels.map(t => ({ value: t, label: t }))}
+              />
             </div>
             <div>
               <label className={lbl}>Hasta</label>
-              <select className={field} value={horaFin} onChange={e => { setHFin(e.target.value); setHoraError(''); }}>
-                {pickerLabels.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <Select
+                className={field}
+                ariaLabel="Hasta"
+                value={horaFin}
+                onChange={v => { setHFin(v); setHoraError(''); }}
+                options={pickerLabels.map(t => ({ value: t, label: t }))}
+              />
             </div>
           </div>
           {horaError && <p className="text-xs text-red-400 font-semibold mt-1.5">{horaError}</p>}
@@ -3325,9 +3350,12 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
     }
   };
 
-  // Tooltip nativo on hover — muestra estado + cliente + servicio + hora de fin
-  // sin ocupar espacio en la card. Útil en columnas angostas donde el texto se
-  // trunca. El browser lo renderiza tras ~500ms de hover.
+  // Tooltip on hover — estado + cliente + servicio + hora de fin sin ocupar
+  // espacio en la card. Útil en columnas angostas donde el texto se trunca.
+  //
+  // `data-tooltip` y no `title`: el nativo lo dibuja el sistema operativo
+  // (caja blanca, tipografía de Windows) y encima de un panel oscuro parece
+  // otra aplicación asomándose. Lo pinta TooltipHost, montado en App.jsx.
   const _horaFin = (() => {
     const [hh, mm] = String(cita.hora || '0:0').split(':').map(Number);
     const minsFin = (hh * 60 + mm) + (Number(cita.duracion || cita.duracionServicio) || 30);
@@ -3349,7 +3377,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
 
   return (
     <div
-      title={_tooltip}
+      data-tooltip={_tooltip}
       // El color del barbero va en la barra izquierda de 4px (el border-l-4 que
       // la card ya tenía); el fondo lo sigue decidiendo el estado de la cita.
       //
@@ -4437,14 +4465,14 @@ function HistorialModal({ onClose }) {
           </div>
           <div className="relative">
             <ListFilter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <select
+            <Select
+              ariaLabel="Filtrar por estado"
               value={estado}
-              onChange={e => setEstado(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-primary focus:outline-none focus:border-slate-500 transition-colors appearance-none"
-            >
-              <option value="">Todos</option>
-              {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{STATUS_LABEL[e] || e}</option>)}
-            </select>
+              onChange={setEstado}
+              className="min-w-[7.5rem] bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-primary focus:outline-none focus:border-slate-500 transition-colors"
+              options={[{ value: '', label: 'Todos' },
+                        ...ESTADOS_FILTRO.map(e => ({ value: e, label: STATUS_LABEL[e] || e }))]}
+            />
           </div>
         </div>
 

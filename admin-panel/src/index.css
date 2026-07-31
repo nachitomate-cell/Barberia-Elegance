@@ -1586,3 +1586,90 @@ html.light [data-view="agenda"] .agenda-blocked-pill {
 }
 html.light [data-view="agenda"] .agenda-blocked-slot > p { color: #475569 !important; }
 html.light [data-view="agenda"] .agenda-blocked-slot > p.agenda-blocked-hora { color: #0f172a !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tooltip y desplegable de la app (TooltipHost.jsx / Select.jsx)
+   ═══════════════════════════════════════════════════════════════════
+
+   Los dos se renderizan en un PORTAL a <body>, o sea FUERA de
+   [data-view="..."]. Casi todos los overrides de modo claro de este archivo
+   están anclados a ese atributo, así que las clases de Tailwind que use el
+   componente no se traducen a claro: quedarían oscuros sobre fondo blanco.
+
+   Por eso llevan estilos propios y explícitos en los DOS temas, en vez de
+   apoyarse en `bg-slate-800` y esperar que exista un mapeo. Es la misma
+   trampa que ya mordió con las clases sin mapear: no falla ruidosamente,
+   simplemente se ve mal y nadie lo reporta hasta semanas después. */
+
+.app-tooltip {
+  position: fixed;
+  z-index: 100;                    /* sobre modales (z-50) y menú contextual */
+  pointer-events: none;            /* no debe robar el hover del elemento */
+  max-width: 320px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-line;
+  background-color: #0b1220;
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.75);
+  transition: opacity 120ms ease;
+}
+.app-tooltip-titulo { color: #f8fafc; font-weight: 600; }
+
+html.light .app-tooltip {
+  background-color: #ffffff;
+  color: #334155;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 32px -14px rgba(15, 23, 42, 0.35);
+}
+html.light .app-tooltip-titulo { color: #0f172a; }
+
+/* El botón hereda las clases del input de cada vista (`field`); acá solo se
+   arregla que es un <button> y no un <input>: contenido en fila y con el
+   chevron pegado a la derecha. */
+.app-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-select-lista {
+  position: fixed;
+  z-index: 100;                    /* misma capa que el tooltip: van sobre el modal */
+  overflow-y: auto;
+  overscroll-behavior: contain;    /* la rueda no arrastra el modal de atrás */
+  padding: 4px;
+  border-radius: 12px;
+  background-color: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 18px 44px -16px rgba(0, 0, 0, 0.8);
+}
+.app-select-op {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.app-select-op.is-marcada { background-color: rgba(148, 163, 184, 0.14); color: #f8fafc; }
+.app-select-op.is-activa  { color: #818cf8; font-weight: 600; }
+.app-select-op.is-off     { opacity: 0.4; cursor: not-allowed; }
+.app-select-op.is-off.is-marcada { background-color: transparent; }
+
+html.light .app-select-lista {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 18px 44px -18px rgba(15, 23, 42, 0.4);
+}
+html.light .app-select-op          { color: #334155; }
+html.light .app-select-op.is-marcada { background-color: #f1f5f9; color: #0f172a; }
+html.light .app-select-op.is-activa  { color: #4f46e5; }

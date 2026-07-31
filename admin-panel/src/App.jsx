@@ -72,6 +72,7 @@ const SaldoGiftCard = lazy(() => import('./views/SaldoGiftCard'));
 const VIPDashboard = lazy(() => import('./views/VIPDashboard'));
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
+import TooltipHost         from './components/ui/TooltipHost';
 import TuuSandboxHost      from './components/ui/TuuSandboxHost';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
 import HubTenantGate        from './components/HubTenantGate';
@@ -350,6 +351,8 @@ export default function App() {
                 </Routes>
               </BrowserRouter>
               <ConfirmHost />
+              {/* Un solo host para todos los `data-tooltip=""` de la app. */}
+              <TooltipHost />
               <TuuSandboxHost />
             </SucursalProvider>
           </AuthProvider>
