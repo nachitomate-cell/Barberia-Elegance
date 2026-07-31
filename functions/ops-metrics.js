@@ -154,6 +154,8 @@ function alertasEmail(em) {
 // viejos. Un panel de control que miente sobre el límite anti-ban es peor
 // que no tener panel.
 const { capDiario, capConfirmaciones, resumenHoy } = require('./evolution/cuota');
+// Tope del chip compartido: se importa por el mismo motivo que los de arriba.
+const { _capDiario: capDiarioChip } = require('./evolution/plataforma');
 
 // Umbrales de vigilancia. Son los que disparan alerta en el dashboard y en el
 // correo de `opsVigilancia`.
@@ -394,7 +396,36 @@ async function saludChip(dias) {
 
   const desde = cfg.vinculadoDesde?.toMillis ? cfg.vinculadoDesde.toMillis() : 0;
   const diasChip = desde ? (Date.now() - desde) / 86400000 : 0;
-  const cap = diasChip >= 30 ? 300 : diasChip >= 7 ? 120 : 40;
+  // El tope se IMPORTA, no se recalcula: incluye el override manual y el
+  // escalonado por antigüedad. Ya nos pasó con los topes del canal propio —
+  // cambiaron en el módulo y el dashboard siguió mostrando los viejos.
+  const cap = capDiarioChip(cfg);
+
+  // ── Quién tiene el chip activo y cuánto consumió HOY ──
+  // El tope es del CHIP, no de cada local: comparten el mismo cupo. Por eso
+  // se muestra el consumo de cada uno contra el restante GLOBAL — si un local
+  // se come el día, los demás quedan mudos aunque no hayan enviado nada.
+  const hoyCL = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+  const cuotaHoy = (await db.doc(`wa_plataforma_cuota/${hoyCL}`).get()).data() || {};
+  const usadosHoy = Number(cuotaHoy.n) || 0;
+
+  const sysRefs = await db.collection('_system').listDocuments();
+  const activos = [];
+  for (const r of sysRefs) {
+    const s = (await r.get()).data() || {};
+    if (s.waPlataforma !== true) continue;
+    const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
+    const waCfg = (await db.doc(`tenants/${r.id}/configuracion/whatsapp`).get()).data() || {};
+    activos.push({
+      id: r.id,
+      nombre: td.nombre || td.nombreCorto || r.id,
+      hoy: Number(cuotaHoy[`t_${r.id}`]) || 0,
+      // Si el local ya manda por su número propio, el cron lo salta: el
+      // módulo figura activo pero no envía nada. Hay que decirlo.
+      silenciadoPorCanalPropio: waCfg.confirmacionesEnabled === true && waCfg.estadoConexion === 'connected',
+    });
+  }
+  activos.sort((a, b) => b.hoy - a.hoy);
 
   const suficiente = enviados >= CHIP_UMBRAL.volMin;
   const tasaResp   = enviados ? respuestas / enviados : null;
@@ -449,6 +480,10 @@ async function saludChip(dias) {
     estado: cfg.estadoConexion || 'desconocido',
     diasVinculado: Number(diasChip.toFixed(1)),
     cap,
+    topeManual: Number.isFinite(Number(cfg.topeDiario)) ? Number(cfg.topeDiario) : null,
+    usadosHoy,
+    restanteHoy: Math.max(0, cap - usadosHoy),
+    activos,
     dias: dias.length,
     enviados, fallos, respuestas, optouts, caidas, confSi, confNo,
     tasaRespuesta: tasaResp, tasaOptout, tasaFallo,

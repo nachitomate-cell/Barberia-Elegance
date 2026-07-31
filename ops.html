@@ -287,11 +287,34 @@
         </div>
 
         <div class="kpis" style="margin-bottom:12px">
+          <div class="kpi">
+            <div class="n tnum" style="color:${c.restanteHoy === 0 ? 'var(--red)' : c.restanteHoy <= 2 ? '#fbbf24' : 'inherit'}">
+              ${c.restanteHoy}<span style="font-size:15px;color:var(--soft)">/${c.cap}</span>
+            </div>
+            <div class="k">Mensajes que quedan hoy${c.topeManual != null ? ' · tope manual' : ''}</div>
+          </div>
           <div class="kpi"><div class="n tnum">${pct(c.tasaRespuesta)}</div><div class="k">Responden${c.volumenSuficiente?'':' (poco volumen)'}</div></div>
           <div class="kpi"><div class="n tnum">${pct(c.tasaOptout)}</div><div class="k">Piden baja</div></div>
           <div class="kpi"><div class="n tnum">${pct(c.tasaFallo)}</div><div class="k">Envíos fallidos</div></div>
-          <div class="kpi"><div class="n tnum">${c.caidas}</div><div class="k">Caídas de sesión</div></div>
         </div>
+
+        ${c.restanteHoy === 0 ? `<div class="alerta rojo" style="margin-bottom:12px">
+          <span>🔴</span><span>El chip agotó su cupo de hoy (${c.usadosHoy}/${c.cap}). No sale ninguna confirmación más hasta mañana.</span>
+        </div>` : ''}
+
+        <!-- Quién tiene el chip activo. El cupo es del CHIP, no de cada
+             local: comparten el mismo. Si uno se lo come, los demás quedan
+             mudos aunque no hayan enviado nada. -->
+        <p class="muted" style="margin:0 0 6px;font-size:12px;font-weight:600">
+          Locales con el chip activo (${(c.activos||[]).length}) · consumo de hoy sobre el cupo compartido
+        </p>
+        ${(c.activos||[]).length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+          ${c.activos.map(a => `<tr style="border-bottom:1px solid rgba(148,163,184,.08)">
+            <td style="padding:5px 0">${a.nombre}${a.silenciadoPorCanalPropio
+              ? ' <span style="color:#fbbf24">⚠ silenciado — usa su número propio</span>' : ''}</td>
+            <td style="padding:5px 0;text-align:right" class="tnum"><b>${a.hoy}</b> <span class="muted">enviados hoy</span></td>
+          </tr>`).join('')}
+        </table>` : '<p class="muted" style="margin:0 0 12px;font-size:12px">Ninguno todavía.</p>'}
 
         <div style="display:flex;gap:2px;align-items:flex-end;margin-bottom:6px">${barras}</div>
         <p class="muted" style="margin:0 0 12px;font-size:11px">Envíos por día (${c.dias}d) · la barra roja es el tope diario alcanzado</p>

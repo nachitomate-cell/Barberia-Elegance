@@ -112,6 +112,11 @@ function capDiario(cfg) {
   return Number.isFinite(manual) && manual >= 0 ? Math.min(porEdad, manual) : porEdad;
 }
 
+// Exportado para ops-metrics: el dashboard NO debe recalcular el tope por
+// su cuenta. Ya pasó con los topes del canal propio — cambiaron acá y el
+// panel siguió mostrando los viejos, mintiendo sobre el límite anti-bloqueo.
+exports._capDiario = capDiario;
+
 const fechaHoy = () => ahoraChile().fecha;
 
 function dentroDeVentanaHoraria(now = ahoraChile()) {
