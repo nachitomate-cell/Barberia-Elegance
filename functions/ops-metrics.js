@@ -29,6 +29,12 @@ const { enviarEmail, MAIL_SECRETS, CANALES, COL_USO, diaMail } = require('./lib/
 const db = admin.firestore();
 const OPS_TOKEN      = defineSecret('OPS_TOKEN');
 
+// Gate de acceso: la lista CENTRAL de lib/operadores (bootstrap + socio
+// developer). Acá vivía una copia local con solo el bootstrap — la clásica
+// lista espejo: el socio existía en operadores.js pero ops le decía "Sin
+// acceso" (mordió el 31-jul con Gonzalo). BOOTSTRAP se conserva únicamente
+// como destinatario del correo de vigilancia, que sí es solo de Ignacio.
+const { esOperadorReq } = require('./lib/operadores');
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 
@@ -213,15 +219,33 @@ async function analizarLocales(hoy, mesActual) {
   // listDocuments: los docs padre tenants/{id} pueden no existir (solo
   // subcolecciones) y collection().get() los omite.
   const tenantRefs = await db.collection('tenants').listDocuments();
-  const tids = new Set(tenantRefs.map((r) => r.id)); tids.add('elegance');
+  const tids = [...new Set([...tenantRefs.map((r) => r.id), 'elegance'])];
+
+  // Los locales se analizan EN PARALELO: sus lecturas son independientes y en
+  // secuencia el dashboard tardaba ~20 s (el 31-jul eso, sumado al arranque en
+  // frío, lo dejaba al borde del timeout y el panel veía 500). Promise.all
+  // conserva el orden del array, así que la salida no baila entre lecturas.
+  const porTenant = await Promise.all(tids.map((tid) => analizarLocal(tid, hoy, mesActual)));
 
   const locales = [];
   const trials = [];
   const alertas = [];
   const negocioTotal = { agendadas: 0, canceladas: 0, confSi: 0, confNo: 0, optout: 0 };
+  for (const r of porTenant) {
+    alertas.push(...r.alertas);
+    if (r.trial) trials.push(r.trial);
+    if (!r.local) continue;
+    locales.push(r.local);
+    for (const k of Object.keys(negocioTotal)) negocioTotal[k] += r.local.negocio[k] || 0;
+  }
+  return { locales, trials, alertas, negocioTotal };
+}
 
-  for (const tid of tids) {
-    const [waSnap, sysSnap] = await Promise.all([
+/** Todo lo de UN local (semáforo, cuota, IA, negocio, alertas). `local` sale
+ *  null si el tenant no tiene canal de WhatsApp vinculado. */
+async function analizarLocal(tid, hoy, mesActual) {
+  const alertas = [];
+  const [waSnap, sysSnap] = await Promise.all([
       db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
       db.doc(`_system/${tid}`).get(),
     ]);
@@ -232,7 +256,6 @@ async function analizarLocales(hoy, mesActual) {
     if (trial && trial.fin) {
       const diasRestantes = Math.ceil((Date.parse(trial.fin) - Date.now()) / 86400000);
       trialInfo = { fin: trial.fin, inicio: trial.inicio || null, tipo: trial.tipo || '', diasRestantes };
-      trials.push({ tid, ...trialInfo });
       if (diasRestantes < 0) {
         alertas.push({ nivel: 'rojo', texto: `Trial VENCIDO: ${tid} venció el ${trial.fin} — apagar waAsistente o convertir a pago.` });
       } else if (diasRestantes <= 15) {
@@ -240,11 +263,12 @@ async function analizarLocales(hoy, mesActual) {
       }
     }
 
+    const trialOut = trialInfo ? { tid, ...trialInfo } : null;
     const wa = waSnap.data();
-    if (!wa) continue;
+    if (!wa) return { alertas, trial: trialOut, local: null };
     const tieneCanal = wa.estadoConexion === 'connected' || wa.botEnabled === true
       || wa.confirmacionesEnabled === true || !!wa.numeroVinculado;
-    if (!tieneCanal) continue;
+    if (!tieneCanal) return { alertas, trial: trialOut, local: null };
 
     const conectado = wa.estadoConexion === 'connected';
     const usaModulo = wa.botEnabled === true || wa.confirmacionesEnabled === true;
@@ -262,7 +286,16 @@ async function analizarLocales(hoy, mesActual) {
     // confirmaciones; el bot conversacional sumaba salientes que nadie veía.
     const capTotal   = capDiario(wa);
     const capConfirm = capConfirmaciones(wa);
-    const cuota      = await resumenHoy(tid);
+    // Las cinco lecturas que quedan no dependen entre sí: en paralelo.
+    const [cuota, silSnap, aiV, aiD, botV] = await Promise.all([
+      resumenHoy(tid),
+      db.collection(`tenants/${tid}/wa_conversaciones`)
+        .where('botSilencedUntil', '>', Timestamp.now()).get()
+        .catch((e) => { logger.warn(`[opsMetrics] silenciados ${tid}:`, e.message); return null; }),
+      db.doc(`_metrics/ai_vendor_${tid}_${mesActual}`).get(),
+      db.doc(`_metrics/ai_dia_${tid}_${hoy}`).get(),
+      db.doc(`_metrics/bot_${tid}_${mesActual}`).get(),
+    ]);
     const cd         = wa.confirmDia || {};
     const confHoy    = cd.fecha === hoy ? (Number(cd.enviadas) || 0) : 0;
 
@@ -286,22 +319,12 @@ async function analizarLocales(hoy, mesActual) {
     }
 
     // Chats con el bot silenciado AHORA (intervención humana o derivación).
-    let silenciados = 0;
-    try {
-      const sq = await db.collection(`tenants/${tid}/wa_conversaciones`)
-        .where('botSilencedUntil', '>', Timestamp.now()).get();
-      silenciados = sq.size;
-    } catch (e) { logger.warn(`[opsMetrics] silenciados ${tid}:`, e.message); }
+    const silenciados = silSnap ? silSnap.size : 0;
     if (silenciados > 0) {
       alertas.push({ nivel: 'info', texto: `${tid}: bot en pausa en ${silenciados} chat(s) (humano al mando o derivación).` });
     }
 
     // Costo IA (mes + HOY) y negocio del bot, por tenant.
-    const [aiV, aiD, botV] = await Promise.all([
-      db.doc(`_metrics/ai_vendor_${tid}_${mesActual}`).get(),
-      db.doc(`_metrics/ai_dia_${tid}_${hoy}`).get(),
-      db.doc(`_metrics/bot_${tid}_${mesActual}`).get(),
-    ]);
     const ai   = aiV.data() || {};
     const aiHoy = aiD.data() || {};
     const neg  = botV.data() || {};
@@ -336,13 +359,7 @@ async function analizarLocales(hoy, mesActual) {
     if (negocio.optout > 0 && optoutPct >= UMBRAL.optoutPct) {
       alertas.push({ nivel: 'rojo', texto: `${tid}: ${negocio.optout} baja(s) este mes (${Math.round(optoutPct * 100)}% de los contactos). Riesgo de ban — baja el volumen o revisa el copy.` });
     }
-    negocioTotal.agendadas  += negocio.agendadas;
-    negocioTotal.canceladas += negocio.canceladas;
-    negocioTotal.confSi     += negocio.confSi;
-    negocioTotal.confNo     += negocio.confNo;
-    negocioTotal.optout     += negocio.optout;
-
-    locales.push({
+    const local = {
       id: tid,
       estado: wa.estadoConexion || 'disconnected',
       salud, minCaida,
@@ -366,10 +383,8 @@ async function analizarLocales(hoy, mesActual) {
       },
       negocio,
       trial: trialInfo,
-    });
-  }
-
-  return { locales, trials, alertas, negocioTotal };
+  };
+  return { alertas, trial: trialOut, local };
 }
 
 /* ─────────────── SALUD DEL CHIP DE PLATAFORMA (canal SynapTech) ───────────────
@@ -441,25 +456,30 @@ async function saludChip(dias, chipId = CHIP_DEFAULT) {
   const usadosHoy = Number(cuotaHoy.n) || 0;
 
   const sysRefs = await db.collection('_system').listDocuments();
-  const activos = [];
-  for (const r of sysRefs) {
+  // En paralelo: eran 3 lecturas secuenciales POR doc de _system y este loop
+  // era de los que más sumaba a los ~20 s del dashboard.
+  const activos = (await Promise.all(sysRefs.map(async (r) => {
     // Los docs de los propios chips viven en /_system: sin este filtro
     // aparecerían como si fueran locales.
-    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) continue;
+    if (r.id === 'wa_plataforma' || r.id.startsWith('wa_plataforma_')) return null;
     const s = (await r.get()).data() || {};
-    if (s.waPlataforma !== true) continue;
-    if (chipDeTenant(s) !== chipId) continue;   // cada chip lista SUS locales
-    const td = (await db.doc(`tenants/${r.id}`).get()).data() || {};
-    const waCfg = (await db.doc(`tenants/${r.id}/configuracion/whatsapp`).get()).data() || {};
-    activos.push({
+    if (s.waPlataforma !== true) return null;
+    if (chipDeTenant(s) !== chipId) return null;   // cada chip lista SUS locales
+    const [tdSnap, waSnap] = await Promise.all([
+      db.doc(`tenants/${r.id}`).get(),
+      db.doc(`tenants/${r.id}/configuracion/whatsapp`).get(),
+    ]);
+    const td = tdSnap.data() || {};
+    const waCfg = waSnap.data() || {};
+    return {
       id: r.id,
       nombre: td.nombre || td.nombreCorto || r.id,
       hoy: Number(cuotaHoy[`t_${r.id}`]) || 0,
       // Si el local ya manda por su número propio, el cron lo salta: el
       // módulo figura activo pero no envía nada. Hay que decirlo.
       silenciadoPorCanalPropio: waCfg.confirmacionesEnabled === true && waCfg.estadoConexion === 'connected',
-    });
-  }
+    };
+  }))).filter(Boolean);
   activos.sort((a, b) => b.hoy - a.hoy);
 
   const suficiente = enviados >= CHIP_UMBRAL.volMin;
@@ -536,9 +556,13 @@ async function saludChip(dias, chipId = CHIP_DEFAULT) {
 
 exports._saludChip = saludChip;   // para el test de umbrales
 
-exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN] }, async (req) => {
-  const email = String(req.auth?.token?.email || '').toLowerCase();
-  if (!req.auth || !BOOTSTRAP.includes(email)) {
+// 512 MiB y 120 s a propósito: con 256 MiB el contenedor cargaba todo el grafo
+// de funciones (~130 MB) y el handler lo dejaba a ~180 MB — un cold start o dos
+// llamadas concurrentes lo tiraban por OOM y el panel veía 500 "internal"
+// intermitentes (31-jul). El handler además tarda ~20 s hoy; 60 s de timeout
+// quedaba sin margen en frío.
+exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN], memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
   }
 
@@ -546,10 +570,20 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
   const hoy = ds[0];
   const mesActual = hoy.slice(0, 7);
 
-  // ── Métricas globales de barbería (30 días) ──
-  const [waSnaps, aiSnaps] = await Promise.all([
+  // ── Todo lo independiente sale EN PARALELO ──
+  // Antes: métricas globales → locales → correo → chips, en serie (~20 s).
+  // Nada de eso depende entre sí; junto con analizarLocales paralelo el
+  // dashboard queda en unos pocos segundos.
+  const [waSnaps, aiSnaps, resLocales, usoEmail, chips] = await Promise.all([
     Promise.all(ds.map((d) => db.doc(`_metrics/wa_${d}`).get())),
     Promise.all(ds.map((d) => db.doc(`_metrics/ai_${d}`).get())),
+    analizarLocales(hoy, mesActual),
+    resumenEmail(),
+    // Salud de CADA chip de SynapTech: 7 días, la ventana donde una
+    // degradación se nota sin que la diluya el histórico.
+    listarChips()
+      .then((ids) => Promise.all(ids.map((id) => saludChip(ultimosDias(7), id))))
+      .then((cs) => cs.filter(Boolean)),
   ]);
   let mensajes = 0, mensajesOk = 0;
   const porDia = {};
@@ -568,28 +602,15 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     llamadas += Number(d.llamadas) || 0;
   });
 
-  // ── Por local: canal WhatsApp + trial + costo + negocio + alertas ──
-  // listDocuments: los docs padre tenants/{id} pueden no existir (solo
-  // subcolecciones) y collection().get() los omite.
-  const tenantRefs = await db.collection('tenants').listDocuments();
-  const tids = new Set(tenantRefs.map((r) => r.id)); tids.add('elegance');
-
-  const { locales, trials, alertas, negocioTotal } = await analizarLocales(hoy, mesActual);
+  const { locales, trials, alertas, negocioTotal } = resLocales;
 
   // ── Correo transaccional (Resend + Brevo) ──
-  const usoEmail = await resumenEmail();
   alertas.push(...alertasEmail(usoEmail));
 
-  // Salud de CADA chip de SynapTech: 7 días, que es la ventana donde una
-  // degradación se nota sin que la diluya el histórico.
-  // Va ANTES del sort: si un chip está rojo tiene que salir arriba, no al
-  // final de la lista por haberse agregado tarde.
-  //
-  // La alerta lleva el nombre del chip: con dos o más, "el chip está
-  // desconectado" no dice cuál hay que ir a reconectar.
-  const idsChips = await listarChips();
-  const chips = (await Promise.all(idsChips.map((id) => saludChip(ultimosDias(7), id))))
-    .filter(Boolean);
+  // Señales de los chips ANTES del sort: si un chip está rojo tiene que salir
+  // arriba, no al final de la lista por haberse agregado tarde. La alerta
+  // lleva el nombre del chip: con dos o más, "el chip está desconectado" no
+  // dice cuál hay que ir a reconectar.
   for (const c of chips) {
     c.señales.forEach((s) => alertas.push({
       nivel: s.nivel,
@@ -670,7 +691,7 @@ async function recolectarAlertasRojas() {
 
 exports.opsKillSwitch = onCall({ region: 'us-central1', cors: true }, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
-  if (!BOOTSTRAP.includes(String(req.auth.token.email || '').toLowerCase())) {
+  if (!esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo el operador.');
   }
   const alcance = String(req.data?.alcance || '');   // 'tenant' | 'global'
@@ -721,7 +742,7 @@ exports.opsKillSwitch = onCall({ region: 'us-central1', cors: true }, async (req
    ═══════════════════════════════════════════════════════════════════════════ */
 exports.opsConversaciones = onCall({ region: 'us-central1', cors: true }, async (req) => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
-  if (!BOOTSTRAP.includes(String(req.auth.token.email || '').toLowerCase())) {
+  if (!esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo el operador.');
   }
   const tid   = String(req.data?.tenantId || '');
