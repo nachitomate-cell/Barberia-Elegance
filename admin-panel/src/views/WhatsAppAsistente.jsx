@@ -241,10 +241,7 @@ function MiConsumo({ tid }) {
 
   if (err || !d?.ok) return null;   // sin datos, mejor no mostrar nada que mostrar ceros confusos
 
-  const { hoy, mes, numero } = d;
-  const pct  = Math.min(100, hoy.pct || 0);
-  const tono = pct >= 85 ? 'text-red-300' : pct >= 60 ? 'text-amber-300' : 'text-emerald-300';
-  const barra = pct >= 85 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-500' : 'bg-emerald-500';
+  const { hoy, mes } = d;
   const bajasAltas = mes.bajas >= 3;
 
   return (
@@ -253,28 +250,27 @@ function MiConsumo({ tid }) {
         <ShieldCheck size={15} className="text-emerald-400" /> Tu número, protegido
       </p>
 
-      {/* Uso del día — el tope como escudo, no como cuota */}
+      {/* Uso del día.
+          SIN el tope, sin la barra de progreso y sin la antigüedad del número.
+          Antes se mostraba "12 de 120" con barra y un aviso de que en X días
+          el límite sube a 300. Decisión de producto: el dueño no tiene por qué
+          conocer esos números. Un techo visible se lee como cuota del plan
+          —"¿por qué me limitan?"— e invita a pedir que se lo suban, y la
+          antigüedad del número no le sirve para nada que pueda accionar.
+          El ritmo lo administra el sistema; acá solo se le dice que existe.
+
+          Los números siguen viajando en la respuesta de evolutionMiConsumo
+          (`hoy.tope`, `numero.edadDias`): si algún día hay que esconderlos de
+          verdad, hay que sacarlos de la CF, no solo de esta vista. */}
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between text-[12.5px]">
           <span className="text-slate-400">Mensajes enviados hoy</span>
-          <span className={`font-bold tabular-nums ${tono}`}>{hoy.enviados} <span className="text-slate-500 font-normal">de {hoy.tope}</span></span>
-        </div>
-        <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${barra}`} style={{ width: `${pct}%` }} />
+          <span className="font-bold tabular-nums text-slate-200">{hoy.enviados}</span>
         </div>
         <p className="text-[11.5px] text-slate-500 leading-relaxed">
-          WhatsApp bloquea los números que envían demasiado. Repartimos los mensajes durante el día y frenamos antes de ese punto para que tu número no corra riesgo.
+          WhatsApp bloquea los números que envían demasiado. Repartimos los mensajes durante el día y cuidamos el ritmo para que tu número no corra riesgo.
         </p>
       </div>
-
-      {/* Madurez: el límite sube solo — un techo que mejora se resiente menos */}
-      {numero.edadDias !== null && numero.siguienteNivel && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] px-3.5 py-2.5">
-          <p className="text-[11.5px] text-emerald-200/90 leading-relaxed">
-            Tu número lleva <b>{numero.edadDias} día(s)</b> conectado. WhatsApp confía más en los números con historial, así que en <b>{numero.siguienteNivel.enDias} día(s)</b> el límite sube solo a <b>{numero.siguienteNivel.nuevoTope} mensajes diarios</b>.
-          </p>
-        </div>
-      )}
 
       {/* Valor del mes — lo que el módulo le devuelve, no lo que consume */}
       <div className="grid grid-cols-3 gap-2 pt-1">
