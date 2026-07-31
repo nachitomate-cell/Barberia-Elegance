@@ -54,6 +54,51 @@ function normTel(raw) {
   return '';
 }
 
+// Normaliza un correo para comparar (minúsculas, sin espacios).
+function normEmail(raw) {
+  return String(raw || '').toLowerCase().trim();
+}
+
+/* ¿El doc `candidato` se puede absorber dentro del doc nuevo?
+   ══════════════════════════════════════════════════════════════════════
+   Espejo de la regla híbrida de upsert-cliente.js (resolveMatch): dos
+   correos distintos son dos personas distintas, aunque compartan teléfono.
+
+   Sin esta regla, este trigger deshacía 30 segundos después lo que
+   upsertCliente había decidido bien. Caso real (oren, 31-jul-2026):
+   Sophia Perez y Emilio valverde comparten el +56962446486 pero tienen
+   correos distintos. upsertCliente les dio un doc a cada uno; al crearse
+   el segundo, este CF buscó por teléfono, encontró a Sophia y la absorbió:
+   fusionadoCon → desaparece del buscador y de Clientes (el panel esconde
+   los docs fusionados), y su cita quedó apuntando al userId de Emilio, o
+   sea que sus sellos se los iba a llevar él.
+
+   La contracara: si una persona reserva con un correo y después se
+   registra al club con otro, ya no se fusiona sola. Es el intercambio
+   que ya eligió upsertCliente — un cliente con sellos separados se
+   arregla a mano; un cliente comido por otro desaparece en silencio. */
+function decidirFusion({ uid, email }, candidato) {
+  const cData = candidato.data || {};
+
+  if (cData.fusionadoCon === uid)  return { fusionable: false, motivo: 'ya-fusionado' };
+  if (cData.fusionadoCon)          return { fusionable: false, motivo: `fusionado-con-otro:${cData.fusionadoCon}` };
+
+  // Un doc es fusionable si:
+  //  · esLegacy:true (marca explícita del CF viejo pack-automatico)
+  //  · docId puramente numérico (legacy tel-as-uid, walk-in antiguo)
+  //  · docId con prefijo 'ac_' (creado por upsertCliente pre-Auth: walk-in
+  //    o reserva pública que no llegó a registrarse al club aún)
+  const esLegacy = cData.esLegacy === true || /^\d+$/.test(candidato.uid) || /^ac_/.test(candidato.uid);
+  if (!esLegacy) return { fusionable: false, motivo: 'no-legacy' };
+
+  const emailCand = normEmail(cData.email || cData.emailLower);
+  if (email && emailCand && email !== emailCand) {
+    return { fusionable: false, motivo: `tel-diff-email (${email} ≠ ${emailCand})` };
+  }
+
+  return { fusionable: true, motivo: 'ok' };
+}
+
 function colecciones(tenantId) {
   const isEle = tenantId === 'elegance';
   return {
@@ -74,6 +119,17 @@ async function fusionar({ tenantId, authUid, authData }) {
   // el legacy, no un usuario recién registrado al club.
   if (/^\d+$/.test(authUid)) {
     logger.info(`[link-legacy] ${tenantId}/${authUid}: doc ID es solo dígitos, skip (parece legacy).`);
+    return;
+  }
+
+  // Los docs 'ac_' NO son un registro al club: los crea upsertCliente cuando
+  // el barbero agenda a mano o alguien reserva sin cuenta. Dejarlos entrar acá
+  // convertía el trigger en "el segundo que llega se come al primero": dos
+  // clientes con el mismo teléfono (pareja, hermanos, mamá e hijo) y el más
+  // nuevo absorbía al anterior. Este CF solo debe correr cuando alguien se
+  // registra de verdad, o sea cuando el docId es el uid de Firebase Auth.
+  if (/^ac_/.test(authUid)) {
+    logger.info(`[link-legacy] ${tenantId}/${authUid}: doc creado por upsertCliente (ac_), no es un registro al club, skip.`);
     return;
   }
 
@@ -117,24 +173,20 @@ async function fusionar({ tenantId, authUid, authData }) {
     for (const d of q2.docs) if (d.id !== authUid) candidatos.set(d.id, d.data());
   }
 
-  // Filtrar: solo mergeamos docs que sean claramente "legacy" (esLegacy:true
-  // o docId numérico) y NO estén ya fusionados. Esto evita mergear un
-  // segundo cliente del club que casualmente comparte email/tel (raro pero
-  // posible con teléfonos reciclados).
+  // Filtrar con la regla híbrida (ver decidirFusion): solo docs legacy, no
+  // fusionados ya, y que no sean OTRA persona que casualmente comparte el
+  // teléfono.
   const legacyDocs = [];
   for (const [uid, data] of candidatos) {
-    if (data.fusionadoCon === authUid) continue; // ya fusionado en un run anterior
-    if (data.fusionadoCon && data.fusionadoCon !== authUid) {
-      logger.warn(`[link-legacy] ${tenantId}/${uid} ya está fusionado con ${data.fusionadoCon}, no toco.`);
+    const { fusionable, motivo } = decidirFusion({ uid: authUid, email }, { uid, data });
+    if (!fusionable) {
+      // Los casos interesantes al log: quedarse callado acá fue justamente lo
+      // que hizo invisible la fusión de dos personas distintas.
+      if (motivo.startsWith('tel-diff-email') || motivo.startsWith('fusionado-con-otro')) {
+        logger.warn(`[link-legacy] ${tenantId}/${authUid}: NO fusiono ${uid} — ${motivo}.`);
+      }
       continue;
     }
-    // Un doc es fusionable si:
-    //  · esLegacy:true (marca explícita del CF viejo pack-automatico)
-    //  · docId puramente numérico (legacy tel-as-uid, walk-in antiguo)
-    //  · docId con prefijo 'ac_' (creado por upsertCliente pre-Auth: walk-in
-    //    o reserva pública que no llegó a registrarse al club aún)
-    const esLegacy = data.esLegacy === true || /^\d+$/.test(uid) || /^ac_/.test(uid);
-    if (!esLegacy) continue;
     legacyDocs.push({ uid, data });
   }
 
@@ -255,6 +307,10 @@ async function safeRun({ tenantId, authUid, authData }) {
     logger.error(`[link-legacy] ${tenantId}/${authUid}: error inesperado:`, err);
   }
 }
+
+// Export para tests locales (scripts/test-link-legacy.js): la decisión de
+// fusionar es lógica pura y se prueba sin Firestore.
+exports._decidirFusion = decidirFusion;
 
 exports.linkLegacyElegance = onDocumentCreated('users/{authUid}', async (event) => {
   const authUid  = event.params.authUid;

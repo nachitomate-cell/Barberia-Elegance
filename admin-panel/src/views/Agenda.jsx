@@ -27,11 +27,12 @@ import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { tuuSandboxDialog } from '../lib/tuuSandbox';
 import { withTimeout } from '../lib/firestore-helpers';
-import { buscarClientes } from '../lib/clienteSearch';
+import { buscarClientes, normalizarTexto } from '../lib/clienteSearch';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { incluyeRecordatorios } from '../lib/waPlan';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
+import { useClientesSinFicha } from '../hooks/useClientesSinFicha';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -788,7 +789,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     clienteNombre:   cita?.clienteNombre   || '',
     clienteEmail:    cita?.clienteEmail    || '',
     clienteTelefono: cita?.clienteTelefono || '',
-    clienteId:       cita?.clienteId       || null,
+    // El vínculo con la ficha del cliente vive en `clienteUid`/`userId` en casi
+    // toda la data (las reservas online y el upsert al guardar escriben ahí);
+    // `clienteId` solo lo tienen algunas. Mirar únicamente `clienteId` dejaba
+    // el modal "desvinculado" al editar: sin chip Vinculado, sin membresía
+    // Corte al Lápiz detectada, y el historial dependiendo de que el teléfono
+    // estuviera escrito idéntico.
+    clienteId:       cita?.clienteId || cita?.clienteUid || cita?.userId || null,
     servicioId:      initialSvcId,
     servicioNombre:  initialSvcNombre,
     precio:          initialBasePrecio,
@@ -1120,12 +1127,37 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   // Misma lógica que el buscador de la vista Clientes: vive en
   // lib/clienteSearch.js para que no puedan volver a divergir (antes cada
   // uno tenía la suya y la misma consulta daba resultados distintos).
-  const suggestions = useMemo(() => {
+  const suggFicha = useMemo(() => {
     if (!form.clienteNombre.trim()) return [];
     return buscarClientes(clientes, form.clienteNombre, { limite: 8 });
   }, [clientes, form.clienteNombre]);
 
+  // Rescate de los clientes que solo viven dentro de una cita (agendados a
+  // mano sin teléfono ni correo → nunca tuvieron ficha en users/). Se pide
+  // recién cuando la búsqueda por ficha se queda corta, así la lectura extra
+  // no se paga en el caso normal.
+  const clientesSinFicha = useClientesSinFicha(
+    form.clienteNombre.trim().length >= 3 && suggFicha.length < 3
+  );
+
+  const suggestions = useMemo(() => {
+    if (!form.clienteNombre.trim()) return [];
+    if (!clientesSinFicha.length)   return suggFicha;
+    const yaEstan = new Set(suggFicha.map(c => normalizarTexto(c.nombre)));
+    const extra   = buscarClientes(clientesSinFicha, form.clienteNombre, { limite: 8 })
+      .filter(c => !yaEstan.has(normalizarTexto(c.nombre)));
+    return [...suggFicha, ...extra].slice(0, 8);
+  }, [suggFicha, clientesSinFicha, form.clienteNombre]);
+
   const selectCliente = async c => {
+    // Sin ficha: el "cliente" es solo el nombre rescatado de una cita vieja.
+    // No hay doc que linkear — si le pusiéramos su id inventado, se guardaría
+    // en la cita y apuntaría a la nada.
+    if (c?._sinFicha) {
+      setForm(f => ({ ...f, clienteNombre: c.nombre || '', clienteId: null }));
+      setShowSugg(false);
+      return;
+    }
     // Cliente legacy = migrado de AgendaPro, sin cuenta real en el Club.
     // Solo `uid === id` lo identifica unívocamente (uid generado por la migración
     // == telefono == id del doc). NO usar importedFrom: la dedup lo agrega al doc
@@ -1789,6 +1821,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
                   </div>
                   {(() => {
+                    // Sin ficha: existe solo dentro de una cita anterior. Se
+                    // avisa para que se entienda por qué no trae ni teléfono
+                    // ni historial.
+                    if (c._sinFicha) return <span className="text-[10px] text-slate-500 font-semibold shrink-0">Sin ficha</span>;
                     const esLegacy = !!c.uid && c.uid === c.id;
                     if (esLegacy) return <span className="text-[10px] text-amber-400/80 font-semibold shrink-0">Migrado</span>;
                     if (c.uid)    return <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>;
