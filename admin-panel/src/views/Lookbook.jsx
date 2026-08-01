@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Images, Trash2, Plus, GripVertical, AlertTriangle,
   Crosshair, Heart, Sparkles, ImagePlus, Loader2, Check, X,
@@ -467,6 +468,7 @@ function StatCell({ Icon, label, value }) {
    Preserva la lógica original (stub — abre alert por ahora).
    ════════════════════════════════════════════════════════════════ */
 function InstagramConnectRow() {
+  const navigate = useNavigate();
   return (
     <SettingsGroup
       label="Fuentes extra"
@@ -506,7 +508,10 @@ function InstagramConnectRow() {
 
         <button
           type="button"
-          onClick={() => alert('Próximamente — conexión OAuth con Instagram.')}
+          /* La conexión existe y vive en /gestion-interna/instagram. Acá había
+             un alert de "Próximamente" que quedó del stub inicial: el dueño
+             leía que la función no existía teniéndola a un clic. */
+          onClick={() => navigate('/instagram')}
           className="group shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-medium text-white/95 transition-all duration-200 ease-in-out active:scale-[0.98]"
           style={{
             background: 'linear-gradient(135deg, rgba(214,41,118,0.6) 0%, rgba(150,47,191,0.6) 100%)',

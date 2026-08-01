@@ -45,7 +45,7 @@ const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 const {
   detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
 } = require('../lib/wa-consent');
-const { registrarSaliente } = require('./cuota');
+const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion } = require('./cuota');
 
 const db = admin.firestore();
 
@@ -1085,6 +1085,9 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       remoteJid,
       updatedAt:     FieldValue.serverTimestamp(),
     }, { merge: true }).catch(() => {});
+    // Primera respuesta del día a este chat = una conversación nueva del local
+    // (unidad del tope comercial, ver limiteConversaciones en cuota.js).
+    if (respHoy === 0) registrarConversacion(tid).catch(() => {});
   };
 
   // ── BAJA / REACTIVACIÓN (va PRIMERO que todo lo demás) ──
@@ -1160,6 +1163,21 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     }
     logger.warn(`[cerebro] ${tid} chat=${chatId}: tope diario de respuestas (${MAX_RESP_CHAT_DIA}) alcanzado`);
     return;
+  }
+
+  // ── Tope de CONVERSACIONES del día para TODO el local ──
+  // El tope de arriba es por chat (anti-troll); este es del local completo y
+  // es comercial: acota el gasto de IA y es lo que se le vende ("hasta N
+  // conversaciones al día"). Cuenta chats, no mensajes: una conversación que
+  // ya empezó hoy sigue atendiéndose hasta el final aunque se toque el tope —
+  // cortar a mitad de un agendamiento sería peor que no haber contestado.
+  const convNueva = respHoy === 0;
+  if (convNueva) {
+    const limiteConv = limiteConversaciones(sys, waCfg);
+    if (limiteConv > 0 && (await conversacionesHoy(tid)) >= limiteConv) {
+      logger.warn(`[cerebro] ${tid}: tope de ${limiteConv} conversaciones del día alcanzado; chat=${chatId} sin atender`);
+      return;
+    }
   }
 
   // ── Medios SIN texto (audio/foto/documento): respuesta amable sin pasar por

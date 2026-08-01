@@ -214,7 +214,15 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
     match /_system/{docId} {
       allow read:  if true;
-      allow write: if esOperador();
+      // Excepción acotada: `instagram_{tid}` es la conexión de Instagram de UN
+      // local y la administra su propio admin (conectar, sincronizar,
+      // desconectar). Vivía acá dentro y por eso el "Desconectar" del panel
+      // fallaba en silencio: la escritura se rechazaba. Se compara el docId
+      // completo contra el tenant del claim — un admin no puede tocar el doc
+      // de otro local, ni ningún otro doc de _system.
+      allow write: if esOperador()
+                   || (docId == 'instagram_' + request.auth.token.tenantId
+                       && esAdmin(request.auth.token.tenantId));
     }
 
     // ═══════════════════════════════════════════════════════════════

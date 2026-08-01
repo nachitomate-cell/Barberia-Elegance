@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import {
-  RefreshCw, Link2Off, CheckCircle2, AlertCircle, Camera,
+  RefreshCw, Link2Off, CheckCircle2, AlertCircle, Camera, Images, ArrowRight,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -26,6 +27,7 @@ function IgIcon({ size = 20, className = '' }) {
 
 export default function InstagramPage() {
   const { id: tenantId } = useTenant();
+  const navigate = useNavigate();
   const [showHelp, setShowHelp] = useState(false);
 
   const [igConfig, setIgConfig] = useState(null);
@@ -33,6 +35,7 @@ export default function InstagramPage() {
   const [loading,  setLoading]  = useState(true);
   const [syncing,  setSyncing]  = useState(false);
   const [msg,      setMsg]      = useState(null);
+  const [sincronizado, setSincronizado] = useState(null);   // {added} tras sincronizar
 
   useEffect(() => {
     const unsubCfg = onSnapshot(
@@ -75,6 +78,9 @@ export default function InstagramPage() {
       const res = await fn({ tenantId });
       const added = res.data?.added ?? 0;
       setMsg({ ok: true, text: added > 0 ? `+${added} foto${added !== 1 ? 's' : ''} importada${added !== 1 ? 's' : ''}` : 'Todo al día, sin fotos nuevas.' });
+      // Sincronizar sin ver el resultado deja al dueño sin saber si quedó bien.
+      // El modal lo lleva al Lookbook, que es donde el cliente las verá.
+      setSincronizado({ added });
     } catch (err) {
       setMsg({ ok: false, text: err.message });
     } finally {
@@ -84,8 +90,14 @@ export default function InstagramPage() {
 
   async function handleDisconnect() {
     if (!(await confirmDialog({ title: 'Desconectar Instagram', message: 'Los posts ya importados permanecen en el Lookbook.', confirmText: 'Desconectar' }))) return;
-    await updateDoc(doc(db, '_system', `instagram_${tenantId}`), { enabled: false });
-    setMsg({ ok: true, text: 'Instagram desconectado.' });
+    // Con try/catch: sin él, un rechazo de las reglas dejaba la promesa
+    // colgada y el usuario veía cerrarse el modal SIN que pasara nada.
+    try {
+      await updateDoc(doc(db, '_system', `instagram_${tenantId}`), { enabled: false });
+      setMsg({ ok: true, text: 'Instagram desconectado.' });
+    } catch (e) {
+      setMsg({ ok: false, text: `No se pudo desconectar: ${e?.message || 'error desconocido'}` });
+    }
   }
 
   if (loading) {
@@ -278,6 +290,53 @@ export default function InstagramPage() {
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo los administradores pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si sigues activo. Si caduca, vas a tener que reconectar.</p>
         </HelpModal>
+      )}
+
+      {/* ── Tras sincronizar: llevar a ver el resultado ──
+          Sincronizar y quedarse en la misma pantalla deja al dueño sin saber
+          si sus fotos se ven bien. El Lookbook es donde las verá su cliente. */}
+      {sincronizado && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          role="dialog" aria-modal="true"
+          onClick={() => setSincronizado(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
+              <Images size={22} className="text-emerald-400" />
+            </div>
+            <h3 className="mt-3 text-[17px] font-semibold text-primary">
+              {sincronizado.added > 0
+                ? `¡Listo! ${sincronizado.added} foto${sincronizado.added !== 1 ? 's' : ''} importada${sincronizado.added !== 1 ? 's' : ''}`
+                : 'Todo al día'}
+            </h3>
+            <p className="mt-1.5 text-[13px] text-slate-400 leading-relaxed">
+              {sincronizado.added > 0
+                ? 'Ya están en tu Lookbook, que es la galería que ven tus clientes en la app.'
+                : 'No había posts nuevos que importar. Igual puedes revisar cómo se ve tu galería.'}
+            </p>
+            <div className="mt-5 space-y-2">
+              <button
+                type="button"
+                onClick={() => { setSincronizado(null); navigate('/lookbook'); }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-sm font-bold text-white transition-colors active:scale-[0.98]"
+              >
+                Ve cómo se muestran tus fotos
+                <ArrowRight size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSincronizado(null)}
+                className="w-full rounded-full border border-white/10 hover:border-white/25 px-5 py-2.5 text-[13px] font-semibold text-slate-400 hover:text-white transition-colors"
+              >
+                Seguir aquí
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

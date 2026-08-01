@@ -4009,6 +4009,8 @@
       // esto TODOS los locales se verían como huérfanos — una alarma inventada
       // por un problema de red.
       const platHuerfano = chips.length > 0 && !chips.some(c => c.chipId === chipTid);
+      const maxConv     = Number(sys.botMaxConversaciones) || 0;   // techo de SynapTech
+      const limiteLocal = Number(cfg.botLimiteConversaciones) || 0; // lo que eligió el dueño
       const platConect  = plat.estadoConexion === 'connected';
       const platCap     = Number(plat.cap) || 0;
       const platHoy     = Number(plat.usadosHoy) || 0;
@@ -4081,6 +4083,32 @@
             Sin plan (bloqueado)
           </button>
           <p style="font-size:0.65rem;color:#64748b;margin:0.5rem 0 0;">Estado: ${estadoEvo}</p>
+
+          <!-- Techo de conversaciones/día del bot. Es el límite COMERCIAL del
+               local: acota el gasto de IA y es lo que se vende ("hasta N
+               conversaciones al día"). El dueño puede bajarlo desde su panel,
+               nunca subirlo por encima de este techo. Cuenta CHATS, no
+               mensajes: una conversación larga sigue siendo una. -->
+          <p style="font-size:0.68rem;font-weight:700;color:#c4b5fd;margin:0.6rem 0 0.25rem;">
+            Tope de conversaciones del bot · día
+          </p>
+          <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+            ${[0, 20, 50, 100, 200].map(n => {
+              const on = maxConv === n;
+              return `<button onclick="setWaMaxConv(${n})" style="
+                flex:1;min-width:44px;cursor:pointer;border-radius:0.45rem;padding:0.35rem 0.2rem;
+                border:1px solid ${on ? 'rgba(139,92,246,0.55)' : 'rgba(148,163,184,0.22)'};
+                background:${on ? 'rgba(139,92,246,0.16)' : 'rgba(148,163,184,0.06)'};
+                color:${on ? '#c4b5fd' : '#94a3b8'};font-size:0.66rem;font-weight:700;">
+                ${n === 0 ? 'Sin tope' : n}
+              </button>`;
+            }).join('')}
+          </div>
+          <p style="font-size:0.63rem;color:#64748b;margin:0.3rem 0 0;line-height:1.35;">
+            ${maxConv > 0
+              ? `Máx. <b>${maxConv}</b> conversaciones nuevas al día. El local puede elegir un número menor desde su panel${limiteLocal > 0 ? ` (hoy eligió ${limiteLocal})` : ''}.`
+              : 'Sin tope: el bot atiende todas las conversaciones que lleguen.'}
+          </p>
         </div>
 
         <!-- ── Canal oficial: número de plataforma (Cloud API Meta) ── -->
@@ -4359,6 +4387,28 @@
         loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }
+
+    /* Techo de conversaciones/día del bot para ESTE local. 0 = sin tope.
+       Si el dueño ya había elegido un número mayor que el techo nuevo, su
+       elección queda por encima y el servidor toma el mínimo — igual se le
+       baja acá para que el panel del local no muestre una cifra que no puede
+       cumplir. */
+    async function setWaMaxConv(n) {
+      if (!_activeTenant) return;
+      const tid = _activeTenant;
+      try {
+        await db.collection('_system').doc(tid).set({ botMaxConversaciones: n }, { merge: true });
+        if (n > 0) {
+          const cfg = (await waCfgRef(tid).get()).data() || {};
+          const elegido = Number(cfg.botLimiteConversaciones) || 0;
+          if (elegido > n) await waCfgRef(tid).set({ botLimiteConversaciones: n }, { merge: true });
+        }
+        loadWaModules();
+      } catch (e) {
+        alert('No se pudo guardar el tope: ' + e.message);
+      }
+    }
+    window.setWaMaxConv = setWaMaxConv;
 
     async function setWaPlan(plan) {
       if (!_activeTenant) return;

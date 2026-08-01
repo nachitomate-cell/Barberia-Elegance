@@ -10,7 +10,7 @@ import { WaChatPreview, ClaudeBadge, LivePreviewHeader } from '../components/WaC
 import { Section, SettingsGroup, SettingRow, IosToggle } from '../components/ui/SettingsPrimitives';
 import {
   QrCode, ShieldAlert, Loader2, CheckCircle2, Clock,
-  Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, ExternalLink, Bot,
+  Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, MessagesSquare, ExternalLink, Bot,
   ShieldCheck, FileText, ChevronRight, Zap,
 } from 'lucide-react';
 
@@ -730,6 +730,31 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
                   >
                     <option value="neutro">Neutro</option>
                     <option value="chileno">Chileno</option>
+                  </select>
+                </SettingRow>
+              )}
+
+              {/* Tope de conversaciones del día. El techo lo fija SynapTech en
+                  _system/{tid}.botMaxConversaciones; acá el dueño puede elegir
+                  MENOS (nunca más). Cuenta conversaciones, no mensajes: un
+                  chat largo sigue siendo uno. */}
+              {botOn && Number(sys?.botMaxConversaciones) > 0 && (
+                <SettingRow
+                  Icon={MessagesSquare}
+                  title="Conversaciones por día"
+                  description={`Tu plan permite hasta ${sys.botMaxConversaciones} conversaciones nuevas al día. Puedes bajarlo si quieres controlar el ritmo.`}
+                >
+                  <select
+                    value={Number(cfg?.botLimiteConversaciones) || sys.botMaxConversaciones}
+                    onChange={(e) => patchCfg({ botLimiteConversaciones: Number(e.target.value) })}
+                    className="bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 text-[13px] text-primary focus:outline-none focus:border-emerald-500 shrink-0"
+                  >
+                    {[5, 10, 20, 30, 50, 100, 200]
+                      .filter(n => n < Number(sys.botMaxConversaciones))
+                      .map(n => <option key={n} value={n}>{n} al día</option>)}
+                    <option value={Number(sys.botMaxConversaciones)}>
+                      {sys.botMaxConversaciones} al día (máximo)
+                    </option>
                   </select>
                 </SettingRow>
               )}

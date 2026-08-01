@@ -1775,8 +1775,13 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
       filtroAntig === 'inactivos90'  ? ahora - 90  * 864e5 :
       filtroAntig === 'inactivos180' ? ahora - 180 * 864e5 : null;
 
+    const tieneCorreo = (c) => String(c.email || c.correo || '').includes('@');
+    const tieneFono   = (c) => String(c.telefono || c.clienteTelefono || '').replace(/\D/g, '').length >= 8;
+
     return sinRegistro.filter(c => {
       if (!matchCliente(c, q)) return false;
+      if (filtroAntig === 'sinCorreo' && tieneCorreo(c)) return false;
+      if (filtroAntig === 'sinNumero' && tieneFono(c))   return false;
       if (cutoff !== null && isMigrados) {
         const fecha = parseFechaAgendapro(c.fechaRegistroOriginal);
         // Si no hay fecha, asumir antiguo (mostrar en inactivos para no descartarlo)
@@ -1919,6 +1924,11 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     { id: 'todos',        label: 'Todos' },
     { id: 'inactivos90',  label: '+90d sin ver' },
     { id: 'inactivos180', label: '+180d sin ver' },
+    // Fichas incompletas: sin correo no llega el recordatorio por email, y sin
+    // teléfono no llega ningún WhatsApp. Son los dos huecos que dejan las
+    // migraciones y la carga a mano, y hay que poder ir a buscarlos.
+    { id: 'sinCorreo',    label: 'Sin correo' },
+    { id: 'sinNumero',    label: 'Sin número' },
   ];
 
   return (

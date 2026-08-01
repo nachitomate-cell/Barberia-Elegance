@@ -113,6 +113,48 @@ async function salientesHoy(tid) {
   } catch (_) { return 0; }
 }
 
+/* ── CONVERSACIONES del bot por día ──────────────────────────────────────────
+   Distinto del contador de salientes: acá se cuentan CHATS, no mensajes. Una
+   conversación de 8 respuestas sigue siendo UNA — es la unidad en la que se
+   piensa el costo de IA y la que se le vende al local ("hasta N conversaciones
+   al día"). Vive en el mismo doc del día para no sumar otra lectura.
+
+   El límite efectivo = min(elección del local, techo de SynapTech):
+     · techo   → _system/{tid}.botMaxConversaciones     (solo SynapTech)
+     · elegido → configuracion/whatsapp.botLimiteConversaciones (el dueño)
+   0 / ausente en ambos = sin límite (comportamiento histórico). */
+function limiteConversaciones(sys, waCfg) {
+  const techo   = Number(sys?.botMaxConversaciones);
+  const elegido = Number(waCfg?.botLimiteConversaciones);
+  const hayTecho   = Number.isFinite(techo)   && techo   > 0;
+  const hayElegido = Number.isFinite(elegido) && elegido > 0;
+  if (hayTecho && hayElegido) return Math.min(techo, elegido);
+  if (hayTecho)   return techo;
+  if (hayElegido) return elegido;
+  return 0;   // sin límite
+}
+
+/** Conversaciones distintas que el bot ya abrió hoy. Falla-abierto (0). */
+async function conversacionesHoy(tid) {
+  if (!tid) return 0;
+  try {
+    const s = await cuotaRef(tid, ahoraChile().fecha).get();
+    return s.exists ? (Number(s.data().convs) || 0) : 0;
+  } catch (_) { return 0; }
+}
+
+/** Suma 1 al contador de conversaciones del día (solo en la PRIMERA respuesta
+ *  del bot a ese chat en el día). Nunca lanza. */
+async function registrarConversacion(tid) {
+  if (!tid) return;
+  const fecha = ahoraChile().fecha;
+  await cuotaRef(tid, fecha).set({
+    fecha,
+    convs: FieldValue.increment(1),
+    actualizado: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
+}
+
 module.exports = {
   capDiario,
   capConfirmaciones,
@@ -123,4 +165,7 @@ module.exports = {
   registrarSaliente,
   salientesHoy,
   resumenHoy,
+  limiteConversaciones,
+  conversacionesHoy,
+  registrarConversacion,
 };

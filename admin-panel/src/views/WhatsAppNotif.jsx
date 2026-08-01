@@ -33,6 +33,31 @@ const CONFIRM_TIMELINE = [
 
 const WA_SYNAPTECH = '56983568212';
 
+// Caché a nivel de módulo (vive mientras el panel esté abierto). La vista de
+// WhatsApp son pestañas: sin esto, ir a Facturación y volver a Mensajería
+// desmonta y remonta este componente, y cada vuelta pagaba otra llamada a
+// waNotifEstado con su spinner. 60s es suficiente para que navegar entre
+// pestañas sea instantáneo sin mostrar datos rancios.
+let cacheEstado = null;
+const CACHE_MS = 60_000;
+
+// Fuera del componente A PROPÓSITO: definido adentro, React lo trata como un
+// tipo nuevo en cada render y remonta los toggles (parpadeo y pérdida de foco).
+function Toggle({ on, onChange, titulo, detalle, disabled }) {
+  return (
+    <button type="button" disabled={disabled} onClick={() => onChange(!on)}
+      className="w-full flex items-start justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-left hover:border-white/[0.15] transition-colors disabled:opacity-60">
+      <span className="min-w-0">
+        <span className="block text-[13px] font-semibold text-slate-200">{titulo}</span>
+        <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">{detalle}</span>
+      </span>
+      <span className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 mt-0.5 ${on ? 'bg-violet-500' : 'bg-slate-700'}`}>
+        <span className={`absolute top-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-all ${on ? 'left-[20px]' : 'left-0.5'}`} />
+      </span>
+    </button>
+  );
+}
+
 // Badge pequeño estilo iOS ("Plan pagado", "Activo").
 function Badge({ tone = 'slate', children }) {
   const tones = {
@@ -62,25 +87,33 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   const tenant   = useTenant();
   const tenantId = resolveTenantId();
 
-  const [estado,   setEstado]   = useState(null);   // respuesta de waNotifEstado
-  const [loading,  setLoading]  = useState(true);
+  // Arranca con lo último conocido: cambiar de pestaña no debe mostrar spinner.
+  const fresco = cacheEstado && (Date.now() - cacheEstado.at) < CACHE_MS;
+  const [estado,   setEstado]   = useState(fresco ? cacheEstado.data : null);
+  const [loading,  setLoading]  = useState(!fresco);
   const [error,    setError]    = useState(null);
 
-  const cargar = useCallback(async () => {
-    setLoading(true);
+  // `silencioso`: refresca los datos SIN volver al spinner. Sin esto, cada vez
+  // que el dueño tocaba un toggle la vista entera se desmontaba y volvía a
+  // montarse — se veía como si la pantalla se reiniciara sola.
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     setError(null);
     try {
       const fn  = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifEstado');
       const res = await fn({});
       setEstado(res.data || null);
+      if (res.data) cacheEstado = { data: res.data, at: Date.now() };
     } catch (e) {
-      setError(e.message || 'No se pudo cargar el estado.');
+      if (!silencioso) setError(e.message || 'No se pudo cargar el estado.');
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  // Con caché fresca se revalida en segundo plano (sin spinner): datos al
+  // instante y aun así al día.
+  useEffect(() => { cargar(fresco); }, [cargar]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // De todo lo que devuelve waNotifEstado solo se usa planCliente: el módulo
   // de avisos al dueño se retiró de esta vista, pero la callable sigue siendo
@@ -105,7 +138,9 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   const verFact   = seccion === 'todo' || seccion === 'facturacion';
   const bolsas     = Array.isArray(estado?.bolsas) ? estado.bolsas : [];
   const bolsaSaldo = Number(estado?.bolsaSaldo) || 0;
-  const saldoBajo  = planCliente && bolsaSaldo <= 10;
+  // Ojo: cuelga del módulo, no de planCliente — un local con SOLO recordatorios
+  // (Kronnos) también tiene que ver el aviso de saldo bajo.
+  const saldoBajo  = (!!estado?.planCliente || !!estado?.planRecordatorio) && bolsaSaldo <= 10;
 
   const [bolsaSel, setBolsaSel]     = useState('');
   const [comprando, setComprando]   = useState(false);
@@ -116,35 +151,38 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   const moduloActivo = planCliente || planRecordatorio;
   // Toggles auto-gestionables (estilo AgendaPro): cada tipo de aviso se
   // prende/apaga por separado; sin saldo en la bolsa igual no sale nada.
+  // El switch se mueve AL TIRO en pantalla y después se confirma contra el
+  // servidor (y se revierte si falla). Antes esperaba el round-trip completo y
+  // recargaba con spinner: el dueño tocaba, no pasaba nada por un segundo, la
+  // pantalla parpadeaba… y volvía a tocar, apagando lo que acababa de encender.
   const togglePref = async (campo, valor) => {
     if (prefiriendo) return;
+    const key = campo === 'confirmaciones' ? 'planCliente' : 'planRecordatorio';
     setPrefiriendo(true);
+    setErrCompra('');
+    setEstado(e => (e ? { ...e, [key]: valor } : e));
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifPreferencias');
       await fn({ [campo]: valor });
-      await cargar();
-    } catch (e) { setErrCompra(e.message || 'No se pudo guardar.'); }
+      await cargar(true);                                   // silencioso: sin spinner
+    } catch (e) {
+      setEstado(prev => (prev ? { ...prev, [key]: !valor } : prev));   // revertir
+      setErrCompra(e.message || 'No se pudo guardar.');
+    }
     finally { setPrefiriendo(false); }
   };
-  const Toggle = ({ on, onChange, titulo, detalle }) => (
-    <button type="button" disabled={prefiriendo} onClick={() => onChange(!on)}
-      className="w-full flex items-start justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-left hover:border-white/[0.15] transition-colors">
-      <span className="min-w-0">
-        <span className="block text-[13px] font-semibold text-slate-200">{titulo}</span>
-        <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">{detalle}</span>
-      </span>
-      <span className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 mt-0.5 ${on ? 'bg-violet-500' : 'bg-slate-700'}`}>
-        <span className={`absolute top-0.5 w-[18px] h-[18px] bg-white rounded-full shadow transition-all ${on ? 'left-[20px]' : 'left-0.5'}`} />
-      </span>
-    </button>
-  );
   const cambiarReparto = async (pct) => {
     if (repartiendo) return;
     setRepartiendo(true);
+    setErrCompra('');
+    // Optimista: el reparto se ve aplicado de inmediato sobre el saldo actual.
+    const total = (Number(estado?.bolsaSaldoConf) || 0) + (Number(estado?.bolsaSaldoRec) || 0);
+    const confOpt = Math.round(total * pct / 100);
+    setEstado(e => (e ? { ...e, repartoConfPct: pct, bolsaSaldoConf: confOpt, bolsaSaldoRec: total - confOpt } : e));
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaReparto');
       await fn({ pct });
-      await cargar();   // refresca saldos por cupo
+      await cargar(true);   // refresca saldos por cupo, sin spinner
     } catch (e) {
       setErrCompra(e.message || 'No se pudo cambiar el reparto.');
     } finally {
@@ -223,15 +261,17 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
                   <div className="space-y-2">
                     <Toggle
                       on={planCliente}
+                      disabled={prefiriendo}
                       onChange={(v) => togglePref('confirmaciones', v)}
                       titulo="Notificación de creación de cita"
-                      detalle="Tu cliente recibe un WhatsApp oficial apenas reserva. Descuenta del cupo de confirmaciones."
+                      detalle={`Tu cliente recibe un WhatsApp oficial apenas reserva. Te quedan ${Number(estado?.bolsaSaldoConf) || 0} mensajes de confirmación.`}
                     />
                     <Toggle
                       on={planRecordatorio}
+                      disabled={prefiriendo}
                       onChange={(v) => togglePref('recordatorios', v)}
                       titulo="Recordatorio 24 horas antes"
-                      detalle="Le recordamos la cita y puede confirmar con un toque. Descuenta del cupo de recordatorios."
+                      detalle={`Le recordamos la cita y puede confirmar con un toque. Te quedan ${Number(estado?.bolsaSaldoRec) || 0} mensajes de recordatorio.`}
                     />
                   </div>
                   {moduloActivo && (Number(estado?.bolsaSaldo) || 0) <= 10 && (
@@ -242,11 +282,19 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
                 </>
               )}
 
-              {verFact && moduloActivo && (
+              {/* El saldo se muestra SIEMPRE que haya bolsa, aunque los dos
+                  avisos estén apagados: si no, el dueño que los pausa deja de
+                  ver cuántos mensajes tiene —y no puede repartirlos ni saber
+                  si le alcanzan para volver a encenderlos. */}
+              {verFact && (moduloActivo || bolsaSaldo > 0 || Number(estado?.bolsaMensual) > 0) && (
                 <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-4 text-sm text-slate-200 space-y-2.5">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
-                    <span>Activo — {planCliente && planRecordatorio ? 'confirmación y recordatorio funcionando' : planCliente ? 'confirmación al reservar funcionando' : 'recordatorio 24h funcionando'}.</span>
+                    <CheckCircle2 size={16} className={`shrink-0 ${moduloActivo ? 'text-violet-400' : 'text-slate-500'}`} />
+                    <span>
+                      {moduloActivo
+                        ? <>Activo — {planCliente && planRecordatorio ? 'confirmación y recordatorio funcionando' : planCliente ? 'confirmación al reservar funcionando' : 'recordatorio 24h funcionando'}.</>
+                        : <>En pausa — tienes mensajes disponibles, pero no saldrá ninguno hasta que enciendas un aviso en <b>Mensajería</b>.</>}
+                    </span>
                   </div>
                   <div className={`rounded-xl px-3 py-2 border space-y-1.5 ${saldoBajo ? 'border-amber-500/30 bg-amber-500/[0.07]' : 'border-white/[0.06] bg-white/[0.03]'}`}>
                     <div className="flex items-baseline justify-between">
