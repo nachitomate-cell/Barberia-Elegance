@@ -1359,6 +1359,20 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     return dentro.length ? dentro : pickerLabels;
   }, [barberos, form.barberoId, form.fecha, pickerLabels]);
 
+  // Turno del profesional del día, para DECIRLO cuando el desplegable queda
+  // acotado. Sin esto, el recorte es invisible: el local ve la agenda vacía a
+  // las 10:30, no encuentra esa hora en la lista y concluye que el sistema
+  // está fallando — cuando en realidad ese profesional entra a las 11 (caso
+  // real: Claudio en Kronnos Limache, sábado 11:00-19:00 con el local abierto
+  // desde las 10:30). Solo se muestra si de verdad recorta algo.
+  const turnoBarbero = useMemo(() => {
+    if (!form.barberoId || horasDelBarbero.length === pickerLabels.length) return null;
+    const b = barberos.find(x => x.id === form.barberoId);
+    const dia = b?.horario?.[String(new Date(form.fecha + 'T12:00:00').getDay())];
+    if (!dia || !dia.inicio || !dia.fin) return null;
+    return { nombre: b?.nombre || 'Este profesional', inicio: dia.inicio, fin: dia.fin };
+  }, [barberos, form.barberoId, form.fecha, horasDelBarbero, pickerLabels]);
+
   // Detección de "horario especial": la hora de la cita cae fuera del rango
   // laboral del día (el que arma el select `pickerLabels`). Se persiste como
   // flag adicional para reportes y filtros; no cambia el layout del bloque.
@@ -2188,6 +2202,18 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
             )}
           </div>
         </div>
+
+        {/* Por qué faltan horas en el desplegable. Sin este aviso el recorte
+            es invisible y se lee como una falla del sistema. */}
+        {turnoBarbero && !sobrecupoActivo && (
+          <p className="text-[11px] text-slate-500 leading-relaxed -mt-1 flex items-start gap-1.5">
+            <Clock size={11} className="shrink-0 mt-0.5 text-slate-600" />
+            <span>
+              Solo se ofrecen horas del turno de <b className="text-slate-400">{turnoBarbero.nombre}</b> hoy
+              ({turnoBarbero.inicio}–{turnoBarbero.fin}). Para agendarle fuera de su turno, activa <b className="text-amber-400/90">Sobrecupo</b>.
+            </span>
+          </p>
+        )}
         {form.fecha && form.fecha !== dateStr && (
           <p className="text-[11px] text-amber-400 font-medium flex items-center gap-1 -mt-1">
             <CalendarDays size={11} /> La cita se moverá al {new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}.
