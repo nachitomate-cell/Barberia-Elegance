@@ -688,13 +688,15 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     // Split por tenant desde el ledger propio del mes.
     const cfgWa = (await db.doc('_system/whatsapp_notif').get()).data() || {};
     const SANDBOX = new Set(Array.isArray(cfgWa.tenantsSandbox) ? cfgWa.tenantsSandbox : ['delnero', 'elegance']);
+    // Solo el rango de fecha en la query (campo único, sin índice compuesto:
+    // channel+sentAt lo exigía y el error silencioso dejaba el panel vacío);
+    // el canal se filtra en memoria — un mes de logs son cientos, no miles.
     const logs = await db.collection('notification_logs')
-      .where('channel', '==', 'whatsapp_template')
       .where('sentAt', '>=', Timestamp.fromMillis(ini * 1000)).get();
     const porTenant = {};
     logs.forEach((d) => {
       const x = d.data();
-      if (x.status !== 'sent') return;
+      if (x.channel !== 'whatsapp_template' || x.status !== 'sent') return;
       const t = x.tenantId || '?';
       porTenant[t] = porTenant[t] || { mes: 0, hoy: 0 };
       porTenant[t].mes++;

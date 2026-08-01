@@ -2005,7 +2005,7 @@ const FDB = (() => {
   //  exigiendo esBootstrap); acá solo se decide quién ENTRA a /admin y qué
   //  se le muestra. Espejo en servidor: functions/lib/operadores.js
   const BOOTSTRAP_ADMINS   = ['ignaciiio.mate@gmail.com'];
-  const SOCIOS_DEVELOPER   = ['simpson7gonzalo@gmail.com'];
+  const SOCIOS_DEVELOPER   = [];   // 2026-07-31: acceso de G. Simpson revocado (espejo de operadores.js)
   const _mail = (e) => String(e || '').toLowerCase().trim();
 
   function esSocioDeveloper(email) { return SOCIOS_DEVELOPER.includes(_mail(email)); }

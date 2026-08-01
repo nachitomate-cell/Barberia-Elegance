@@ -25,7 +25,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
-const SOCIOS    = ['simpson7gonzalo@gmail.com'];
+// 2026-07-31: acceso de Gonzalo Simpson revocado por Ignacio (cuenta Auth
+// eliminada también). La lista queda vacía, no se borra: es el slot donde
+// entra el próximo socio, y el guard del espejo en firebaseUtils.js la exige.
+const SOCIOS    = [];
 
 const norm = (email) => String(email || '').toLowerCase().trim();
 

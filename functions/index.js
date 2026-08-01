@@ -1164,6 +1164,10 @@ exports.recordatorioCerrarCitasSemanal = recordatorioCerrarCitas.recordatorioCer
 const confirmacionCita = require('./confirmacion-cita');
 // Confirmación de ASISTENCIA por correo (botón del recordatorio → /confirmacion.html)
 exports.confirmarCitaCorreo = require('./confirmar-correo').confirmarCitaCorreo;
+// Push al barbero cuando Comisiones registra su liquidación (queda "por confirmar")
+const pushLiq = require('./push-liquidacion');
+exports.pushLiquidacionTenant   = pushLiq.pushLiquidacionTenant;
+exports.pushLiquidacionElegance = pushLiq.pushLiquidacionElegance;
 exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 
