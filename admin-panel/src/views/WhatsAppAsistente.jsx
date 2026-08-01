@@ -227,7 +227,10 @@ function callFn(name, payload) {
    Las bajas van visibles arriba porque son el mejor autorregulador que existe:
    ver que hubo clientes que pidieron no recibir más mensajes modera el
    entusiasmo mucho mejor que cualquier candado que pongamos nosotros. */
-function MiConsumo({ tid }) {
+// `standalone`: se renderiza como pestaña propia (Métricas y salud) en vez de
+// ir al final del módulo del asistente. Cambia solo el caso "sin datos": ahí
+// una pestaña vacía se lee como error, así que dice por qué está vacía.
+export function MiConsumo({ tid, standalone = false }) {
   const [d, setD]   = useState(null);
   const [err, setErr] = useState(false);
 
@@ -239,7 +242,19 @@ function MiConsumo({ tid }) {
     return () => { vivo = false; };
   }, [tid]);
 
-  if (err || !d?.ok) return null;   // sin datos, mejor no mostrar nada que mostrar ceros confusos
+  // Sin datos: incrustado no muestra nada (mejor que ceros confusos); como
+  // pestaña propia explica el vacío en vez de dejar la pantalla en blanco.
+  if (err || !d?.ok) {
+    if (!standalone) return null;
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
+        <p className="text-[13px] text-slate-400">Aún no hay actividad que mostrar.</p>
+        <p className="text-[11.5px] text-slate-500 mt-1.5 leading-relaxed">
+          Las métricas aparecen cuando el asistente empieza a conversar con tus clientes por WhatsApp.
+        </p>
+      </div>
+    );
+  }
 
   const { hoy, mes } = d;
   const bajasAltas = mes.bajas >= 3;
@@ -355,7 +370,9 @@ function MiConsumo({ tid }) {
   );
 }
 
-export default function WhatsAppAsistente({ embedded = false, onEstado }) {
+// `seccion`: 'core' deja fuera el bloque de métricas (vive en su propia
+// pestaña, ver WhatsApp.jsx). 'todo' = vista completa (ruta directa).
+export default function WhatsAppAsistente({ embedded = false, onEstado, seccion = 'todo' }) {
   const tid    = resolveTenantId();
   const tenant = useTenant();
 
@@ -769,7 +786,7 @@ export default function WhatsAppAsistente({ embedded = false, onEstado }) {
             </SettingsGroup>
             )}
 
-            <MiConsumo tid={tid} />
+            {seccion === 'todo' && <MiConsumo tid={tid} />}
 
             {/* Callout: convivencia bot + humanos.
                 Caso Kronnos 2026-07-21: los mensajes de bienvenida/ausencia

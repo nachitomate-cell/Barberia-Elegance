@@ -1,24 +1,26 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
+import { Bot, MessageSquare, Activity, Wallet } from 'lucide-react';
 import WhatsAppNotif from './WhatsAppNotif';
 import WhatsAppPlataforma from './WhatsAppPlataforma';
-import WhatsAppAsistente from './WhatsAppAsistente';
+import WhatsAppAsistente, { MiConsumo } from './WhatsAppAsistente';
+import { resolveTenantId } from '../lib/tenantUtils';
 
-// Vista unificada "WhatsApp" — los tres módulos del canal, uno debajo del otro.
+// Vista unificada "WhatsApp" — TRES módulos del canal repartidos en CUATRO
+// pestañas temáticas.
 //
-//   · Confirmación al cliente (plantilla oficial de Meta)  → WhatsAppNotif
-//   · Confirmaciones por el número de SynapTech            → WhatsAppPlataforma
-//   · Asistente IA 24/7 (bot en el número del local)       → WhatsAppAsistente
+// Antes iban apilados en una sola columna ordenada por estado: la página medía
+// varias pantallas y lo que el dueño venía a buscar (¿cuántos mensajes me
+// quedan? ¿cómo apago el recordatorio?) estaba siempre a tres scrolls. Las
+// pestañas agrupan por PREGUNTA, no por archivo:
 //
-// ORDENADOS POR ESTADO, no por código. Antes se renderizaban en orden fijo y el
-// dueño abría la página encontrándose primero un módulo que NO tiene, con su
-// botón de "Solicitar activación", mientras el que sí está funcionando quedaba
-// más abajo. Peor: dos de los tres se llaman "confirmaciones", así que sin
-// jerarquía no había forma de saber cuál le aplica.
+//   Asistente IA        → conexión del número, encendido y estilo del bot, ayuda
+//   Mensajería y reglas → qué avisos salen (plataforma + confirmaciones) + preview
+//   Métricas y salud    → qué ha hecho el bot y cómo se cuida el número
+//   Facturación         → saldo de la bolsa, reparto y recarga
 //
-// Ahora cada módulo reporta si está contratado y la página lo ubica: lo activo
-// arriba, lo disponible al final bajo un separador. Se hace con CSS `order` en
-// vez de reordenar el árbol, así cada módulo sigue siendo dueño de su estado y
-// no hay que levantarlo acá — que obligaría a duplicar sus lecturas.
+// Solo se monta el contenido de la pestaña ACTIVA: cada módulo hace sus propias
+// lecturas a Firestore/callables, así que renderizar los cuatro a la vez
+// multiplicaría por cuatro las consultas de cada visita.
 //
 // Los módulos NO se auto-activan: la llave vive en _system/{tid}, que solo
 // SynapTech escribe. El cliente únicamente puede solicitarlos.
@@ -32,32 +34,22 @@ function WhatsAppLogo({ size = 22 }) {
   );
 }
 
-// order 0 = contratado · 5 = separador · 10 = disponible.
-// Mientras un módulo no reporta (aún leyendo Firestore) se lo trata como
-// activo: si se asumiera lo contrario, los bloques saltarían de abajo hacia
-// arriba al terminar de cargar, que se ve peor que esperar un instante.
-const ORDEN = { activo: 0, disponible: 10 };
+const TABS = [
+  { id: 'asistente',   label: 'Asistente IA', corto: 'Asistente', Icon: Bot },
+  { id: 'mensajeria',  label: 'Mensajería',   corto: 'Mensajes',  Icon: MessageSquare },
+  { id: 'metricas',    label: 'Métricas',     corto: 'Métricas',  Icon: Activity },
+  { id: 'facturacion', label: 'Facturación',  corto: 'Bolsa',     Icon: Wallet },
+];
 
 export default function WhatsApp() {
-  const [estado, setEstado] = useState({});
-
-  // useCallback por módulo: sin esto, cada render crea una función nueva, el
-  // useEffect del hijo la ve cambiada y vuelve a reportar — bucle infinito.
-  const reportar = {
-    notif:      useCallback((e) => setEstado(p => (p.notif      === e ? p : { ...p, notif:      e })), []),
-    plataforma: useCallback((e) => setEstado(p => (p.plataforma === e ? p : { ...p, plataforma: e })), []),
-    bot:        useCallback((e) => setEstado(p => (p.bot        === e ? p : { ...p, bot:        e })), []),
-  };
-
-  const orden = (k) => ORDEN[estado[k]] ?? ORDEN.activo;
-  const hayDisponibles = Object.values(estado).some(e => e === 'disponible');
-  const hayActivos     = Object.values(estado).some(e => e === 'activo');
+  const [tab, setTab] = useState('asistente');
+  const tid = resolveTenantId();
 
   return (
     <div data-view="whatsapp" className="max-w-3xl mx-auto pb-12">
 
-      {/* ── Header sticky · estilo Apple ── */}
-      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 mb-6 bg-slate-950/85 backdrop-blur-md border-b border-white/[0.06] sm:border-none">
+      {/* ── Header sticky · estilo Apple, con la barra de pestañas ── */}
+      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 pt-3 pb-2.5 mb-6 bg-slate-950/85 backdrop-blur-md border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 flex items-center justify-center shrink-0 shadow-[0_6px_18px_-8px_rgba(37,211,102,0.5)]">
             <WhatsAppLogo size={22} />
@@ -69,36 +61,51 @@ export default function WhatsApp() {
             </p>
           </div>
         </div>
+
+        {/* Pestañas. Scroll horizontal en vez de wrap: en móvil dos filas de
+            chips empujan el contenido media pantalla hacia abajo. */}
+        <div role="tablist" aria-label="Secciones de WhatsApp"
+             className="flex gap-1.5 mt-3 overflow-x-auto -mx-1 px-1 pb-0.5">
+          {TABS.map(({ id, label, corto, Icon }) => {
+            const activa = tab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={activa}
+                aria-controls={`panel-${id}`}
+                onClick={() => setTab(id)}
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors border ${
+                  activa
+                    ? 'bg-[#25D366]/[0.12] border-[#25D366]/40 text-[#4ade80]'
+                    : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/25'
+                }`}
+              >
+                <Icon size={14} className="shrink-0" />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{corto}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── Módulos apilados y ordenados por estado ──
-          `gap`, no `space-y`: space-y pone el margen según el orden del DOM
-          (`* + *`), que acá ya no es el orden visual — quedarían huecos
-          disparejos y un margen colgando arriba del primer bloque. */}
-      <div className="flex flex-col gap-10">
+      {/* ── Panel de la pestaña activa ── */}
+      <div id={`panel-${tab}`} role="tabpanel" className="flex flex-col gap-10">
 
-        <div style={{ order: orden('plataforma') }}>
-          <WhatsAppPlataforma onEstado={reportar.plataforma} />
-        </div>
+        {tab === 'asistente' && <WhatsAppAsistente embedded seccion="core" />}
 
-        <div style={{ order: orden('bot') }}>
-          <WhatsAppAsistente embedded onEstado={reportar.bot} />
-        </div>
-
-        <div style={{ order: orden('notif') }}>
-          <WhatsAppNotif embedded onEstado={reportar.notif} />
-        </div>
-
-        {/* Separador: solo tiene sentido si hay algo a cada lado. */}
-        {hayActivos && hayDisponibles && (
-          <div style={{ order: 5 }} className="flex items-center gap-3 -my-2">
-            <div className="h-px flex-1 bg-white/[0.07]" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 shrink-0">
-              Otros módulos disponibles
-            </span>
-            <div className="h-px flex-1 bg-white/[0.07]" />
-          </div>
+        {tab === 'mensajeria' && (
+          <>
+            <WhatsAppPlataforma />
+            <WhatsAppNotif embedded seccion="reglas" />
+          </>
         )}
+
+        {tab === 'metricas' && <MiConsumo tid={tid} standalone />}
+
+        {tab === 'facturacion' && <WhatsAppNotif embedded seccion="facturacion" />}
 
       </div>
     </div>

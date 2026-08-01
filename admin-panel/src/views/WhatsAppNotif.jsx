@@ -54,7 +54,11 @@ function Badge({ tone = 'slate', children }) {
 //
 // `onEstado`: le dice a WhatsApp.jsx si el módulo está contratado, para que lo
 // ubique arriba o al final. Opcional — accediendo directo, nadie escucha.
-export default function WhatsAppNotif({ embedded = false, onEstado }) {
+// `seccion` parte esta vista entre pestañas de WhatsApp.jsx sin tocar el
+// diseño de los bloques: 'reglas' = qué avisos salen (toggles + vista previa),
+// 'facturacion' = saldo, reparto y compra de bolsas. 'todo' (default) es la
+// vista completa, para cuando se entra por la ruta directa /whatsapp-notif.
+export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 'todo' }) {
   const tenant   = useTenant();
   const tenantId = resolveTenantId();
 
@@ -97,6 +101,8 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
   const upgradeMsg = `Hola SynapTech, soy de *${tenant?.name || tenantId}* y tengo una duda sobre las confirmaciones automáticas por WhatsApp (bolsas de mensajes).`;
   // Bolsas de mensajes: catálogo (neto + IVA) y saldo vienen de waNotifEstado;
   // el catálogo lo fija SynapTech en _system/whatsapp_notif.bolsas sin deploy.
+  const verReglas = seccion === 'todo' || seccion === 'reglas';
+  const verFact   = seccion === 'todo' || seccion === 'facturacion';
   const bolsas     = Array.isArray(estado?.bolsas) ? estado.bolsas : [];
   const bolsaSaldo = Number(estado?.bolsaSaldo) || 0;
   const saldoBajo  = planCliente && bolsaSaldo <= 10;
@@ -194,38 +200,49 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
         Icon={Sparkles}
         title={
           <span className="flex items-center gap-2">
-            Confirmación automática a tus clientes
+            {verReglas ? 'Confirmación automática a tus clientes' : 'Tu bolsa de mensajes'}
             {planCliente ? <Badge tone="violet">Activo</Badge> : <Badge tone="slate">Plan pagado</Badge>}
           </span>
         }
-        description="Al reservar, tu cliente recibe un WhatsApp oficial a nombre de tu local con el detalle de su cita — menos inasistencias, imagen más profesional."
+        description={verReglas
+          ? 'Al reservar, tu cliente recibe un WhatsApp oficial a nombre de tu local con el detalle de su cita — menos inasistencias, imagen más profesional.'
+          : 'Compras solo los mensajes que usas: cada confirmación o recordatorio descuenta uno. Sin mensualidad y sin vencimiento.'}
       >
         <SettingsGroup>
-          <div className="grid lg:grid-cols-[1fr_260px] gap-6 items-start p-5 sm:p-6">
+          <div className={`grid gap-6 items-start p-5 sm:p-6 ${verReglas ? 'lg:grid-cols-[1fr_260px]' : ''}`}>
 
             {/* Izquierda: descripción + estado o CTA */}
             <div className="order-2 lg:order-1 space-y-4">
-              <p className="text-[13px] text-slate-400 leading-relaxed">
-                Usa plantillas oficiales verificadas por WhatsApp (mensajería con costo, por eso es parte del plan pagado). Los envíos quedan registrados y no dependen de que respondas a mano.
-              </p>
+              {verReglas && (
+                <>
+                  <p className="text-[13px] text-slate-400 leading-relaxed">
+                    Usa plantillas oficiales verificadas por WhatsApp (mensajería con costo, por eso es parte del plan pagado). Los envíos quedan registrados y no dependen de que respondas a mano.
+                  </p>
 
-              {/* Preferencias auto-gestionables (como AgendaPro) */}
-              <div className="space-y-2">
-                <Toggle
-                  on={planCliente}
-                  onChange={(v) => togglePref('confirmaciones', v)}
-                  titulo="Notificación de creación de cita"
-                  detalle="Tu cliente recibe un WhatsApp oficial apenas reserva. Descuenta del cupo de confirmaciones."
-                />
-                <Toggle
-                  on={planRecordatorio}
-                  onChange={(v) => togglePref('recordatorios', v)}
-                  titulo="Recordatorio 24 horas antes"
-                  detalle="Le recordamos la cita y puede confirmar con un toque. Descuenta del cupo de recordatorios."
-                />
-              </div>
+                  {/* Preferencias auto-gestionables (como AgendaPro) */}
+                  <div className="space-y-2">
+                    <Toggle
+                      on={planCliente}
+                      onChange={(v) => togglePref('confirmaciones', v)}
+                      titulo="Notificación de creación de cita"
+                      detalle="Tu cliente recibe un WhatsApp oficial apenas reserva. Descuenta del cupo de confirmaciones."
+                    />
+                    <Toggle
+                      on={planRecordatorio}
+                      onChange={(v) => togglePref('recordatorios', v)}
+                      titulo="Recordatorio 24 horas antes"
+                      detalle="Le recordamos la cita y puede confirmar con un toque. Descuenta del cupo de recordatorios."
+                    />
+                  </div>
+                  {moduloActivo && (Number(estado?.bolsaSaldo) || 0) <= 10 && (
+                    <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                      Te quedan pocos mensajes: recarga tu bolsa en la pestaña <b>Facturación</b> para que los avisos no se detengan.
+                    </p>
+                  )}
+                </>
+              )}
 
-              {moduloActivo && (
+              {verFact && moduloActivo && (
                 <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.06] p-4 text-sm text-slate-200 space-y-2.5">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 size={16} className="text-violet-400 shrink-0" />
@@ -282,7 +299,7 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
               )}
 
               {/* ── Bolsas de mensajes: compras solo lo que usas ── */}
-              {bolsas.length > 0 && (
+              {verFact && bolsas.length > 0 && (
                 <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.05] p-4 space-y-3">
                   <p className="text-sm font-semibold text-slate-100">
                     {planCliente ? 'Recargar bolsa de mensajes' : 'Elige tu bolsa de mensajes'}
@@ -334,6 +351,7 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
             </div>
 
             {/* Derecha: vista previa EN VIVO de la confirmación */}
+            {verReglas && (
             <div className="order-1 lg:order-2">
               <LivePreviewHeader />
               <WaChatPreview
@@ -347,6 +365,7 @@ export default function WhatsAppNotif({ embedded = false, onEstado }) {
                 El cliente confirma su cita con un toque, sin llamadas.
               </p>
             </div>
+            )}
 
           </div>
         </SettingsGroup>
