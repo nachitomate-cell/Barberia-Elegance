@@ -1673,3 +1673,96 @@ html.light .app-select-lista {
 html.light .app-select-op          { color: #334155; }
 html.light .app-select-op.is-marcada { background-color: #f1f5f9; color: #0f172a; }
 html.light .app-select-op.is-activa  { color: #4f46e5; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODO CLARO — módulos nuevos de WhatsApp
+   (bandeja de conversaciones, simulador, línea de estado, onboarding)
+
+   Estos componentes se escribieron dark-first con superficies de blanco
+   translúcido (bg-white/[0.02]…) y bordes white/10. Sobre el fondo claro del
+   panel eso es blanco sobre blanco: las tarjetas desaparecían y solo quedaba
+   el texto flotando. Es el gotcha conocido del modo claro — una clase sin
+   mapear no rompe nada visible en oscuro y se pierde en silencio en claro.
+
+   Se mapean por SUPERFICIE dentro de [data-view="whatsapp"], no por
+   componente: cualquier bloque nuevo de esta vista que use las mismas clases
+   queda cubierto sin tener que volver acá.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Superficies: tarjetas, filas de chat, campos ── */
+html.light [data-view="whatsapp"] .bg-white\/\[0\.01\],
+html.light [data-view="whatsapp"] .bg-white\/\[0\.02\],
+html.light [data-view="whatsapp"] .bg-white\/\[0\.03\] { background-color: #ffffff !important; }
+html.light [data-view="whatsapp"] .bg-white\/\[0\.04\],
+html.light [data-view="whatsapp"] .bg-white\/\[0\.05\],
+html.light [data-view="whatsapp"] .bg-white\/\[0\.06\],
+html.light [data-view="whatsapp"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04) !important; }
+
+/* ── Bordes: el blanco translúcido es invisible sobre claro ── */
+html.light [data-view="whatsapp"] .border-white\/10,
+html.light [data-view="whatsapp"] .border-white\/\[0\.06\],
+html.light [data-view="whatsapp"] .border-white\/\[0\.07\],
+html.light [data-view="whatsapp"] .border-white\/\[0\.08\] { border-color: rgba(15, 23, 42, 0.12) !important; }
+html.light [data-view="whatsapp"] .hover\:border-white\/25:hover,
+html.light [data-view="whatsapp"] .hover\:border-white\/\[0\.15\]:hover { border-color: rgba(15, 23, 42, 0.28) !important; }
+html.light [data-view="whatsapp"] .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.05) !important; }
+
+/* ── Texto ── */
+html.light [data-view="whatsapp"] .text-slate-100,
+html.light [data-view="whatsapp"] .text-slate-200 { color: #0f172a !important; }
+html.light [data-view="whatsapp"] .text-slate-300,
+html.light [data-view="whatsapp"] .text-slate-400 { color: #475569 !important; }
+html.light [data-view="whatsapp"] .text-slate-500,
+html.light [data-view="whatsapp"] .text-slate-600 { color: #64748b !important; }
+html.light [data-view="whatsapp"] .placeholder\:text-slate-600::placeholder { color: #94a3b8 !important; }
+
+/* ── Burbujas del chat (bandeja y simulador) ──
+   La del bot conserva el verde de marca; la del cliente pasa a gris claro
+   para que se sigan distinguiendo de un vistazo, que es todo su propósito. */
+html.light [data-view="whatsapp"] .bg-emerald-500\/\[0\.12\],
+html.light [data-view="whatsapp"] .bg-emerald-500\/\[0\.08\] { background-color: #dcfce7 !important; }
+html.light [data-view="whatsapp"] .bg-emerald-500\/\[0\.07\],
+html.light [data-view="whatsapp"] .bg-emerald-500\/\[0\.05\] { background-color: #f0fdf4 !important; }
+html.light [data-view="whatsapp"] .border-emerald-500\/15,
+html.light [data-view="whatsapp"] .border-emerald-500\/20,
+html.light [data-view="whatsapp"] .border-emerald-500\/25 { border-color: rgba(5, 150, 105, 0.30) !important; }
+html.light [data-view="whatsapp"] .border-emerald-500\/35 { border-color: rgba(5, 150, 105, 0.50) !important; }
+html.light [data-view="whatsapp"] .text-emerald-200,
+html.light [data-view="whatsapp"] .text-emerald-300 { color: #047857 !important; }
+html.light [data-view="whatsapp"] .text-emerald-200\/90,
+html.light [data-view="whatsapp"] .text-emerald-400\/70,
+html.light [data-view="whatsapp"] .text-emerald-400\/80 { color: #047857 !important; }
+html.light [data-view="whatsapp"] .bg-emerald-500\/20 { background-color: #bbf7d0 !important; }
+
+/* ── Estados: aviso (ámbar) y problema (rojo) de la línea de estado ── */
+html.light [data-view="whatsapp"] .bg-amber-500\/\[0\.07\],
+html.light [data-view="whatsapp"] .bg-amber-500\/10 { background-color: #fffbeb !important; }
+html.light [data-view="whatsapp"] .bg-amber-500\/15,
+html.light [data-view="whatsapp"] .hover\:bg-amber-500\/25:hover { background-color: #fef3c7 !important; }
+html.light [data-view="whatsapp"] .border-amber-500\/30,
+html.light [data-view="whatsapp"] .border-amber-500\/40 { border-color: rgba(180, 83, 9, 0.35) !important; }
+html.light [data-view="whatsapp"] .bg-red-500\/\[0\.07\] { background-color: #fef2f2 !important; }
+html.light [data-view="whatsapp"] .border-red-500\/30 { border-color: rgba(185, 28, 28, 0.35) !important; }
+html.light [data-view="whatsapp"] .text-red-300 { color: #b91c1c !important; }
+
+/* ── Violeta del módulo de plantillas oficiales ── */
+html.light [data-view="whatsapp"] .bg-violet-500\/\[0\.05\],
+html.light [data-view="whatsapp"] .bg-violet-500\/\[0\.06\] { background-color: #faf5ff !important; }
+html.light [data-view="whatsapp"] .bg-violet-500\/15 { background-color: #ede9fe !important; }
+html.light [data-view="whatsapp"] .border-violet-500\/25 { border-color: rgba(109, 40, 217, 0.28) !important; }
+html.light [data-view="whatsapp"] .text-violet-200,
+html.light [data-view="whatsapp"] .text-violet-300 { color: #6d28d9 !important; }
+
+/* ── Pestañas: la activa mantiene el verde de WhatsApp, legible en claro ── */
+html.light [data-view="whatsapp"] [role="tab"][aria-selected="true"] {
+  background-color: #dcfce7 !important;
+  border-color: rgba(5, 150, 105, 0.45) !important;
+  color: #047857 !important;
+}
+html.light [data-view="whatsapp"] [role="tab"][aria-selected="false"] { color: #475569 !important; }
+
+/* La cabecera sticky tapa el contenido si conserva el fondo oscuro. */
+html.light [data-view="whatsapp"] .bg-slate-950\/85 { background-color: rgba(255, 255, 255, 0.92) !important; }
+
+/* Esqueletos y separadores. */
+html.light [data-view="whatsapp"] .bg-slate-700 { background-color: #cbd5e1 !important; }
