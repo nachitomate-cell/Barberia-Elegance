@@ -239,6 +239,26 @@
       </div>`;
     }
 
+    // ── Cobro REAL de Meta (WhatsApp oficial) ──
+    // pricing_analytics de la WABA: lo que Meta factura de verdad, en CLP.
+    // El split sandbox/producción sale del ledger propio (notification_logs).
+    function metaWaPanel(m){
+      if(!m) return '';
+      const fila = (t) => `<div class="row">
+        <span>${t.sandbox ? '🧪' : '🏪'} ${t.tid} <span class="muted">(hoy ${t.hoy})</span></span>
+        <span class="v tnum">${num(t.mes)} msj · $${num(t.costoClp)}</span></div>`;
+      return `<div class="panel" style="margin-top:14px">
+        <h3>💸 Cobro Meta · WhatsApp oficial</h3>
+        <div class="row"><span>Hoy</span><span class="v tnum">${num(m.hoy.mensajes)} msj · $${num(m.hoy.costoClp)}</span></div>
+        <div class="row"><span>Mes</span><span class="v tnum">${num(m.mes.mensajes)} msj · $${num(m.mes.costoClp)}</span></div>
+        <div class="row"><span>Costo por mensaje (real)</span><span class="v tnum">$${m.costoPorMensaje}</span></div>
+        <div class="row"><span>🧪 Sandbox (mes)</span><span class="v tnum">${num(m.sandbox.mensajes)} msj · $${num(m.sandbox.costoClp)}</span></div>
+        <div class="row"><span>🏪 Producción real (mes)</span><span class="v tnum" style="color:var(--green)">${num(m.produccion.mensajes)} msj · $${num(m.produccion.costoClp)}</span></div>
+        ${(m.porTenant||[]).map(fila).join('')}
+        <div class="muted" style="margin-top:8px">Fuente: pricing_analytics de la WABA (factura real de Meta, CLP). El detalle por local usa el ledger propio × costo real del mes.</div>
+      </div>`;
+    }
+
     function trialsPanel(trials){
       if(!trials || !trials.length) return '';
       // Alerta visual anticipada: ámbar solo cuando faltan ≤7 días (renovación
@@ -563,6 +583,7 @@
           ${((data.barberia && data.barberia.chips) ||
              [data.barberia && data.barberia.chip].filter(Boolean)).map(chipPanel).join('')}
           ${emailPanel(data.email)}
+          ${metaWaPanel(data.metaWhatsApp)}
           ${trialsPanel(data.trials)}
           ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
         </div>`;

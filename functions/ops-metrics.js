@@ -28,6 +28,7 @@ const { enviarEmail, MAIL_SECRETS, CANALES, COL_USO, diaMail } = require('./lib/
 
 const db = admin.firestore();
 const OPS_TOKEN      = defineSecret('OPS_TOKEN');
+const WHATSAPP_TOKEN = defineSecret('WHATSAPP_TOKEN');   // pricing_analytics de la WABA (cobro real Meta)
 
 // Gate de acceso: la lista CENTRAL de lib/operadores (bootstrap + socio
 // developer). Acá vivía una copia local con solo el bootstrap — la clásica
@@ -588,7 +589,7 @@ exports._saludChip = saludChip;   // para el test de umbrales
 // llamadas concurrentes lo tiraban por OOM y el panel veía 500 "internal"
 // intermitentes (31-jul). El handler además tarda ~20 s hoy; 60 s de timeout
 // quedaba sin margen en frío.
-exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN], memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
+exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN, WHATSAPP_TOKEN], memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
   if (!req.auth || !esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
   }
@@ -665,6 +666,57 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     dias: 30,
   };
 
+  // ── Cobro REAL de Meta (WhatsApp oficial) ──
+  // pricing_analytics de la WABA: lo que Meta efectivamente factura (CLP),
+  // no nuestra estimación. El split sandbox/producción sale de NUESTRO
+  // ledger (notification_logs): Meta no sabe de tenants.
+  let metaWhatsApp = null;
+  try {
+    const WABA = '1585275879793911';
+    const ini = Math.floor(new Date(`${mesActual}-01T00:00:00-04:00`).getTime() / 1000);
+    const fin = Math.floor(Date.now() / 1000);
+    const rr = await fetch(`https://graph.facebook.com/v21.0/${WABA}?fields=pricing_analytics.start(${ini}).end(${fin}).granularity(DAILY)&access_token=${WHATSAPP_TOKEN.value()}`);
+    const jj = await rr.json();
+    const pts = jj?.pricing_analytics?.data?.[0]?.data_points || [];
+    const hoyIni = Math.floor(new Date(`${hoy}T00:00:00-04:00`).getTime() / 1000);
+    let mesMsgs = 0, mesClp = 0, hoyMsgs = 0, hoyClp = 0;
+    for (const p of pts) {
+      mesMsgs += Number(p.volume) || 0;
+      mesClp  += Number(p.cost)   || 0;
+      if (p.start >= hoyIni) { hoyMsgs += Number(p.volume) || 0; hoyClp += Number(p.cost) || 0; }
+    }
+    // Split por tenant desde el ledger propio del mes.
+    const cfgWa = (await db.doc('_system/whatsapp_notif').get()).data() || {};
+    const SANDBOX = new Set(Array.isArray(cfgWa.tenantsSandbox) ? cfgWa.tenantsSandbox : ['delnero', 'elegance']);
+    const logs = await db.collection('notification_logs')
+      .where('channel', '==', 'whatsapp_template')
+      .where('sentAt', '>=', Timestamp.fromMillis(ini * 1000)).get();
+    const porTenant = {};
+    logs.forEach((d) => {
+      const x = d.data();
+      if (x.status !== 'sent') return;
+      const t = x.tenantId || '?';
+      porTenant[t] = porTenant[t] || { mes: 0, hoy: 0 };
+      porTenant[t].mes++;
+      if ((x.sentAt?.toMillis?.() || 0) >= hoyIni * 1000) porTenant[t].hoy++;
+    });
+    const cpm = mesMsgs ? mesClp / mesMsgs : 17.7;   // costo por mensaje real del mes
+    const grupos = { sandbox: { mensajes: 0, costoClp: 0 }, produccion: { mensajes: 0, costoClp: 0 } };
+    const detalle = Object.entries(porTenant).map(([t, v]) => {
+      const esSandbox = SANDBOX.has(t);
+      const g = grupos[esSandbox ? 'sandbox' : 'produccion'];
+      g.mensajes += v.mes; g.costoClp += Math.round(v.mes * cpm);
+      return { tid: t, hoy: v.hoy, mes: v.mes, costoClp: Math.round(v.mes * cpm), sandbox: esSandbox };
+    }).sort((a, b) => b.mes - a.mes);
+    metaWhatsApp = {
+      hoy: { mensajes: hoyMsgs, costoClp: Math.round(hoyClp) },
+      mes: { mensajes: mesMsgs, costoClp: Math.round(mesClp) },
+      costoPorMensaje: Math.round(cpm * 100) / 100,
+      sandbox: grupos.sandbox, produccion: grupos.produccion,
+      porTenant: detalle,
+    };
+  } catch (e) { logger.warn('[opsMetrics] pricing_analytics:', e.message); }
+
   // ── Resumen de conexion/SushiPro (server-to-server) ──
   let sushipro = null, sushiError = null;
   try {
@@ -683,7 +735,7 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
     llamadasIA:     barberia.claude.llamadas + (sushipro?.claude?.llamadas || 0),
   };
 
-  return { total, barberia, sushipro, sushiError, alertas, trials, email: usoEmail, mesActual, generadoEn: Date.now() };
+  return { total, barberia, sushipro, sushiError, alertas, trials, email: usoEmail, metaWhatsApp, mesActual, generadoEn: Date.now() };
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
