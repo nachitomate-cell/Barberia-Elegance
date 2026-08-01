@@ -5,6 +5,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CheckCircle2, AlertTriangle, PauseCircle, Loader2 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { tienePlan } from '../lib/waPlan';
 
 // Línea de estado del canal — una sola frase que responde "¿está todo bien?".
 //
@@ -20,18 +21,21 @@ import { resolveTenantId } from '../lib/tenantUtils';
 export default function WaEstadoLinea({ onIr }) {
   const [cfg, setCfg]     = useState(null);   // configuracion/whatsapp
   const [notif, setNotif] = useState(null);   // waNotifEstado
+  const [sys, setSys]     = useState(null);   // _system/{tid} → plan contratado
   const tid = resolveTenantId();
 
   useEffect(() => {
-    const un = onSnapshot(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'),
+    const un  = onSnapshot(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'),
       s => setCfg(s.data() || {}), () => setCfg({}));
+    const un2 = onSnapshot(doc(db, '_system', tid),
+      s => setSys(s.data() || {}), () => setSys({}));
     httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifEstado')({})
       .then(r => setNotif(r.data || {}))
       .catch(() => setNotif({}));
-    return () => un();
+    return () => { un(); un2(); };
   }, [tid]);
 
-  if (cfg === null || notif === null) {
+  if (cfg === null || notif === null || sys === null) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 flex items-center gap-2.5">
         <Loader2 size={15} className="animate-spin text-slate-500" />
@@ -45,6 +49,12 @@ export default function WaEstadoLinea({ onIr }) {
   const saldo     = Number(notif.bolsaSaldo) || 0;
   const usados    = Number(notif.bolsaUsados) || 0;
   const oficialOn = !!notif.planCliente || !!notif.planRecordatorio;
+
+  // Sin NADA contratado no se muestra esta línea. Ofrecerle "Activar" a un
+  // local que no compró el módulo es prometerle un botón que el servidor va a
+  // rechazar: el plan lo escribe solo SynapTech en _system/{tid}. La tarjeta
+  // del módulo ya le ofrece "Solicitar activación", que es el camino real.
+  if (!tienePlan(sys) && !oficialOn && !conectado) return null;
 
   // Peor problema primero: lo que está roto manda sobre lo que está bien.
   let tono, Icon, titulo, detalle, accion = null;

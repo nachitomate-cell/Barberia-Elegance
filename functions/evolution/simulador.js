@@ -76,6 +76,15 @@ exports.waSimularBot = onCall(
     const texto = String(req.data?.texto || '').trim().slice(0, 500);
     if (!texto) throw new HttpsError('invalid-argument', 'Escribe un mensaje.');
 
+    // Gate de plan: el simulador NO envía WhatsApp, pero sí gasta tokens de
+    // Claude. Sin este candado, un local que no contrató el asistente podía
+    // consumir IA desde el panel. El plan lo escribe solo SynapTech.
+    const { incluyeBot } = require('../lib/wa-plan');
+    const sys = (await db.doc(`_system/${tid}`).get()).data() || {};
+    if (!incluyeBot(sys)) {
+      throw new HttpsError('permission-denied', 'El Asistente IA no está activo para tu local.');
+    }
+
     // Historial que manda el cliente (la sesión vive en el navegador: es una
     // prueba, no una conversación que haya que persistir).
     const previos = Array.isArray(req.data?.historial) ? req.data.historial.slice(-MAX_TURNOS) : [];

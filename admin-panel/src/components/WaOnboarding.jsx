@@ -3,6 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { Check, Link2, FlaskConical, Power } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { incluyeBot } from '../lib/waPlan';
 
 // Onboarding de 3 pasos — para el local que acaba de contratar el asistente.
 //
@@ -21,20 +22,30 @@ const LS_KEY = 'wa_onboarding_probado';
 export default function WaOnboarding({ onIr }) {
   const tid = resolveTenantId();
   const [cfg, setCfg] = useState(null);
+  const [sys, setSys] = useState(null);   // _system/{tid} → plan contratado
   const [probado, setProbado] = useState(() => {
     try { return localStorage.getItem(`${LS_KEY}_${tid}`) === '1'; } catch { return false; }
   });
 
   useEffect(() => {
-    const un = onSnapshot(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'),
+    const un  = onSnapshot(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'),
       s => setCfg(s.data() || {}), () => setCfg({}));
-    return () => un();
+    const un2 = onSnapshot(doc(db, '_system', tid),
+      s => setSys(s.data() || {}), () => setSys({}));
+    return () => { un(); un2(); };
   }, [tid]);
 
-  if (cfg === null) return null;
+  if (cfg === null || sys === null) return null;
 
   const conectado = cfg.estadoConexion === 'connected';
   const botOn     = cfg.botEnabled === true;
+
+  // Este checklist es para poner en marcha un módulo YA CONTRATADO. A quien no
+  // lo tiene no se le muestra: sus botones (vincular, encender) los rechaza el
+  // servidor, y ofrecer pasos que no puede completar se lee como una promesa
+  // rota. Ese local ve la tarjeta con "Solicitar activación", que es su camino.
+  if (!incluyeBot(sys) && !conectado) return null;
+
   if (conectado && probado && botOn) return null;   // terminó: fuera del camino
 
   const marcarProbado = () => {

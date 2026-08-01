@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, MessageSquare, Activity, Wallet, Inbox, FlaskConical } from 'lucide-react';
 import WhatsAppNotif from './WhatsAppNotif';
 import WhatsAppPlataforma from './WhatsAppPlataforma';
@@ -7,6 +7,9 @@ import WhatsAppBandeja from './WhatsAppBandeja';
 import WhatsAppSimulador from './WhatsAppSimulador';
 import WaEstadoLinea from '../components/WaEstadoLinea';
 import WaOnboarding from '../components/WaOnboarding';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { incluyeBot } from '../lib/waPlan';
 import { resolveTenantId } from '../lib/tenantUtils';
 
 // Vista unificada "WhatsApp" — TRES módulos del canal repartidos en CUATRO
@@ -51,6 +54,24 @@ export default function WhatsApp() {
   const [tab, setTab] = useState('asistente');
   const tid = resolveTenantId();
 
+  // Plan contratado. La bandeja y el simulador son del Asistente IA: a un
+  // local que no lo tiene no se le muestran esas pestañas — estarían vacías
+  // y el simulador lo rechaza el servidor (gasta IA). El módulo igual se le
+  // ofrece dentro de "Asistente IA", con su "Solicitar activación".
+  const [sys, setSys] = useState(null);
+  useEffect(() => {
+    const un = onSnapshot(doc(db, '_system', tid), s => setSys(s.data() || {}), () => setSys({}));
+    return () => un();
+  }, [tid]);
+  const conBot = incluyeBot(sys);
+  const tabs = TABS.filter(t => conBot || !['bandeja', 'simulador'].includes(t.id));
+
+  // Si la pestaña activa deja de existir (bajaron el plan mientras miraba),
+  // volver a una que sí exista en vez de quedar con el panel en blanco.
+  useEffect(() => {
+    if (sys !== null && !tabs.some(t => t.id === tab)) setTab('asistente');
+  }, [sys, tabs, tab]);
+
   return (
     <div data-view="whatsapp" className="max-w-3xl mx-auto pb-12">
 
@@ -72,7 +93,7 @@ export default function WhatsApp() {
             chips empujan el contenido media pantalla hacia abajo. */}
         <div role="tablist" aria-label="Secciones de WhatsApp"
              className="flex gap-1.5 mt-3 overflow-x-auto -mx-1 px-1 pb-0.5">
-          {TABS.map(({ id, label, corto, Icon }) => {
+          {tabs.map(({ id, label, corto, Icon }) => {
             const activa = tab === id;
             return (
               <button
