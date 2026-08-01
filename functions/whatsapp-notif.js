@@ -85,6 +85,7 @@ const db = admin.firestore();
 const WHATSAPP_TOKEN        = defineSecret('WHATSAPP_TOKEN');
 const WHATSAPP_PHONE_ID     = defineSecret('WHATSAPP_PHONE_ID');
 const WHATSAPP_VERIFY_TOKEN = defineSecret('WHATSAPP_VERIFY_TOKEN');
+const ANTHROPIC_API_KEY     = defineSecret('ANTHROPIC_API_KEY');   // bot oficial (bot-oficial.js)
 
 const GRAPH_VERSION = 'v23.0';
 
@@ -224,7 +225,7 @@ async function enviarTemplate(to, templateName, lang, parametros) {
 /* ───────────────────── Webhook (entrantes de Meta) ───────────────────── */
 
 exports.whatsappWebhook = onRequest(
-  { secrets: [WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, WHATSAPP_VERIFY_TOKEN], cors: false },
+  { secrets: [WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, WHATSAPP_VERIFY_TOKEN, ANTHROPIC_API_KEY], cors: false, timeoutSeconds: 120 },
   async (req, res) => {
     // ── Verificación del webhook (la hace Meta al configurarlo) ──
     if (req.method === 'GET') {
@@ -418,12 +419,23 @@ async function procesarEntrante(msg) {
     if (/^(cancel|no)/.test(raw)) {
       // Ambiguo sin cita pendiente: puede ser "cancela mi hora" o "cancela los
       // mensajes". Se pregunta en vez de asumir la baja.
+      // ── BOT OFICIAL (Claude) — piloto Renacer, kill-switch botOficial ──
+      // Cliente sin cita pendiente que quiere conversar: territorio del bot.
+      try {
+        const { botOficialProcesar } = require('./bot-oficial');
+        if (await botOficialProcesar({ fono: from, texto, anthropicKey: ANTHROPIC_API_KEY.value(), enviarTexto })) return;
+      } catch (e) { logger.error('[bot-oficial]', e.message); }
       await enviarTexto(from,
         'No tengo ninguna cita pendiente de confirmar a tu nombre 🤔\n\n' +
         'Si quieres *cancelar una cita*, contacta directamente a tu local.\n' +
         'Si quieres *dejar de recibir estos mensajes*, responde *STOP*.');
       return;
     }
+    // ── BOT OFICIAL (Claude) — número nuevo que llega a conversar ──
+    try {
+      const { botOficialProcesar } = require('./bot-oficial');
+      if (await botOficialProcesar({ fono: from, texto, anthropicKey: ANTHROPIC_API_KEY.value(), enviarTexto })) return;
+    } catch (e) { logger.error('[bot-oficial]', e.message); }
     // Número desconocido, sin comando: instrucciones (gratis: acaba de
     // escribir → ventana abierta). Se mantiene el mensaje original para
     // dueños que llegaron sin el flujo Activar-por-WhatsApp.
@@ -616,6 +628,11 @@ async function notificarCita(citaId, cita, tenantId) {
           tenantId, type: 'wa_cita_cliente', channel: 'whatsapp_template', status: 'sent',
           to: { telefono: fonoCliente }, meta: { citaId, template: cfg.templateCita },
         }).catch(() => {});
+        // Índice fono → último tenant que le escribió: el enrutador del bot
+        // oficial lo usa para no hablar a nombre del local equivocado.
+        await db.doc(`wa_ultimo_tenant/${fonoCliente}`).set({
+          tenantId, en: Timestamp.now(),
+        }, { merge: true }).catch(() => {});
         // Descuento del cupo de CONFIRMACIONES: 1 envío = 1 mensaje.
         await db.collection('wa_notif').doc(tenantId).set({
           bolsaSaldoConf: FieldValue.increment(-1),
@@ -757,6 +774,8 @@ async function recordatoriosDeTenant({ tid, wa, cfg, cupoCiclo }) {
       continue;
     }
 
+    // Índice fono → último tenant (enrutador del bot oficial).
+    await db.doc(`wa_ultimo_tenant/${fono}`).set({ tenantId: tid, en: Timestamp.now() }, { merge: true }).catch(() => {});
     // Descuento del cupo de RECORDATORIOS: 1 envío = 1 mensaje.
     bolsaSaldo--;
     await db.collection('wa_notif').doc(tid).set({
