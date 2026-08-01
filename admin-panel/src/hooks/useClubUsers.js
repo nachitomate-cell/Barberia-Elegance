@@ -20,7 +20,34 @@ import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 //
 //  Cache module-level: 1 listener por sesión, docs residen en memoria y
 //  Firestore solo cobra deltas.
+//
+//  ⚠️ CICLO DE VIDA (1-ago-2026). Antes el listener quedaba abierto TODA la
+//  sesión aunque nadie lo estuviera mirando: en Infinity son 1.436 usuarios
+//  (~2 MB ya como objetos JS) recibiendo deltas y re-renderizando a sus
+//  suscriptores durante horas, y Chrome terminó marcando la pestaña por
+//  consumo de recursos. Ahora hay dos tiempos, que preservan lo que hacía
+//  bueno al diseño original y sueltan lo que sobraba:
+//
+//    · Sin suscriptores 3 min  → se CIERRA el listener. Deja de recibir
+//      deltas y de re-renderizar, pero los datos quedan en memoria: volver a
+//      Clientes o a la Agenda sigue siendo instantáneo.
+//    · Sin suscriptores 15 min → se VACÍA la caché. Ahí sí se devuelve la
+//      memoria; la próxima visita paga una lectura completa, que a esa altura
+//      es lo correcto (probablemente el panel quedó abierto sin uso).
+//
+//  Los dos plazos se cancelan apenas alguien vuelve a suscribirse, así que
+//  navegar entre vistas no cierra ni reabre nada.
+//
+//  Por qué 3 min y no 30 s: re-suscribirse cuesta una lectura COMPLETA de la
+//  colección (1.436 documentos en Infinity). Con un plazo corto, un dueño que
+//  entra y sale de Clientes durante el día pagaría esa lectura decenas de
+//  veces — se habría cambiado un problema de memoria por uno de facturación.
+//  Tres minutos cubren el ir y venir normal entre vistas; quince, la pestaña
+//  que quedó abierta y olvidada, que es el caso que motivó todo esto.
 // ─────────────────────────────────────────────────────────────────────────
+
+const CIERRE_MS = 3 * 60_000;    // cerrar listener tras quedarse sin suscriptores
+const PURGA_MS  = 15 * 60_000;   // liberar los datos si sigue sin usarse
 
 const _cache = {
   tid:       null,
@@ -29,6 +56,26 @@ const _cache = {
   unsub:     null,
   listeners: new Set(),
 };
+let _tCierre = null;
+let _tPurga  = null;
+
+function _cancelarTimers() {
+  if (_tCierre) { clearTimeout(_tCierre); _tCierre = null; }
+  if (_tPurga)  { clearTimeout(_tPurga);  _tPurga  = null; }
+}
+
+function _programarLiberacion() {
+  _cancelarTimers();
+  _tCierre = setTimeout(() => {
+    if (_cache.listeners.size) return;           // volvió alguien: no tocar
+    if (_cache.unsub) { _cache.unsub(); _cache.unsub = null; }
+  }, CIERRE_MS);
+  _tPurga = setTimeout(() => {
+    if (_cache.listeners.size) return;
+    _cache.data   = [];
+    _cache.loaded = false;
+  }, PURGA_MS);
+}
 
 function _emit() {
   _cache.listeners.forEach(cb => cb(_cache.data, _cache.loaded));
@@ -36,12 +83,17 @@ function _emit() {
 
 function _ensureSubscription() {
   const tid = resolveTenantId();
+  _cancelarTimers();                       // alguien volvió: nada que liberar
   if (_cache.tid === tid && _cache.unsub) return;
 
   if (_cache.unsub) { _cache.unsub(); _cache.unsub = null; }
-  _cache.tid    = tid;
-  _cache.data   = [];
-  _cache.loaded = false;
+  // Al RE-suscribir en el mismo tenant se conservan los datos: si se
+  // vaciaran, volver a Clientes mostraría la lista en blanco hasta que
+  // llegue el primer snapshot. Solo se limpia al cambiar de tenant, donde
+  // los datos anteriores son de otro local.
+  const mismoTenant = _cache.tid === tid;
+  _cache.tid = tid;
+  if (!mismoTenant) { _cache.data = []; _cache.loaded = false; }
 
   _cache.unsub = onSnapshot(
     tenantCol('users'),
@@ -71,9 +123,12 @@ export function useClubUsers() {
     _cache.listeners.add(cb);
     _ensureSubscription();
     cb(_cache.data, _cache.loaded); // servir de inmediato lo que haya en caché
-    return () => { _cache.listeners.delete(cb); };
-    // El listener de Firestore NO se cierra al desmontar: se mantiene vivo
-    // durante la sesión a propósito, para que reabrir vistas no relea todo.
+    return () => {
+      _cache.listeners.delete(cb);
+      // Último en salir apaga la luz: sin nadie mirando, el listener se
+      // cierra a los 3 min y los datos se liberan a los 15 (ver arriba).
+      if (_cache.listeners.size === 0) _programarLiberacion();
+    };
   }, []);
 
   return { data, loading };
