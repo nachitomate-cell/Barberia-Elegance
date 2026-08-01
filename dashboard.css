@@ -5146,99 +5146,137 @@
     .tenant-sion.tenant-aura #rangosExplainerAura,
     .tenant-sion.tenant-aura #planesAnualesAura { display: none !important; }
 
+
     /* ═══════════════════════════════════════════════════════════════════════
        MODO CLARO — dashboard del cliente (html.theme-light)
 
-       config.js ya marcaba <html class="theme-light"> para los tenants de
-       _lightTenants (renacer, aura, latincaribe, infinity, oren, omega, sion),
-       pero esta hoja es dark-first y no tenía UN solo override: el dueño veía
+       config.js marca <html class="theme-light"> para los tenants de
+       _lightTenants, pero esta hoja es dark-first: sin overrides el dueño veía
        su agenda pública clara y su app de cliente negra.
 
-       Se ataca por SUPERFICIE, no por componente: los fondos oscuros que usa
-       el HTML (bg-[#1a1a1f], bg-[#111115], bg-[#0a0a0e], bg-zinc-900) pasan a
-       blanco, los bordes de blanco translúcido a gris, y el texto claro a
-       oscuro. Los selectores de atributo cubren las clases arbitrarias de
-       Tailwind sin tener que tocar el HTML.
+       Se mapea el INVENTARIO COMPLETO de clases del HTML (38 fondos, 21
+       textos, 13 bordes), no una muestra: un primer intento parcial dejó
+       fondos oscuros con texto ya volteado a oscuro — ilegible. La regla es
+       simple y hay que sostenerla: si un fondo oscuro se mapea, TODOS se
+       mapean, porque los textos claros se voltean en bloque.
 
-       ⚠️ El HERO y los overlays quedan FUERA: son texto blanco sobre foto, y
-       ahí el blanco es correcto. Se re-fuerzan al final de este bloque, después
-       de las reglas generales, para que ganen por orden.
+       Paleta = la de la agenda pública (barbero.html / registro.html):
+         superficie #FFFFFF · página #F4F5F7 · texto #111827
+         secundario #6B7280 · terciario #9CA3AF · borde rgba(17,24,39,.10)
+
+       Excepciones al final: hero con foto, lightbox de imágenes y botones
+       sólidos de acento — ahí el texto claro es correcto.
        ═══════════════════════════════════════════════════════════════════════ */
 
-    html.theme-light body {
-      background-color: #f4f5f7;
-      color: #0f172a;
-    }
+    /* ── Página ── */
+    html.theme-light body { background-color: #F4F5F7 !important; color: #111827 !important; }
 
-    /* ── Superficies: tarjetas, paneles, listas ── */
-    html.theme-light [class*="bg-[#1a1a1f]"],
-    html.theme-light [class*="bg-[#111115]"],
+    /* ── Superficies sólidas oscuras → tarjeta blanca ── */
+    html.theme-light [class*="bg-[#050505]"],
+    html.theme-light [class*="bg-[#0a0a0a]"],
+    html.theme-light [class*="bg-[#0a0a0d]"],
     html.theme-light [class*="bg-[#0a0a0e]"],
-    html.theme-light [class*="bg-[#141417]"],
-    html.theme-light [class*="bg-[#0f0f13]"],
+    html.theme-light [class*="bg-[#0f172a]"],
+    html.theme-light [class*="bg-[#111113]"],
+    html.theme-light [class*="bg-[#111115]"],
+    html.theme-light [class*="bg-[#1a1a1a]"],
+    html.theme-light [class*="bg-[#1a1a1f]"],
     html.theme-light .bg-zinc-900,
-    html.theme-light .bg-zinc-950,
-    html.theme-light .bg-neutral-900 {
-      background-color: #ffffff !important;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px -8px rgba(15, 23, 42, 0.10);
+    html.theme-light .bg-zinc-900\/60,
+    html.theme-light .bg-zinc-900\/80,
+    html.theme-light .bg-zinc-950\/60,
+    html.theme-light .bg-gray-800,
+    html.theme-light .bg-gray-900 {
+      background-color: #FFFFFF !important;
+      box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 6px 20px -12px rgba(17, 24, 39, 0.12);
     }
 
-    /* ── Bordes: el blanco translúcido desaparece sobre fondo claro ── */
-    html.theme-light [class*="border-white/"],
-    html.theme-light .border-zinc-800,
-    html.theme-light [class*="border-zinc-800/"] {
-      border-color: rgba(15, 23, 42, 0.10) !important;
-    }
+    /* ── Veladuras claras (bg-white/N) → gris sutil, si no desaparecen ── */
+    html.theme-light .bg-white\/3,
+    html.theme-light .bg-white\/5,
+    html.theme-light .bg-white\/6 { background-color: rgba(17, 24, 39, 0.04) !important; }
+    html.theme-light .bg-white\/15,
+    html.theme-light .bg-white\/20 { background-color: rgba(17, 24, 39, 0.07) !important; }
 
     /* ── Texto ── */
-    html.theme-light .text-white,
-    html.theme-light .text-slate-50,
-    html.theme-light .text-slate-100,
-    html.theme-light .text-slate-200,
-    html.theme-light .text-zinc-100,
-    html.theme-light .text-zinc-200 { color: #0f172a !important; }
-
-    html.theme-light .text-slate-300,
-    html.theme-light .text-slate-400,
+    html.theme-light .text-white     { color: #111827 !important; }
+    html.theme-light .text-white\/80,
+    html.theme-light .text-white\/70 { color: #374151 !important; }
+    html.theme-light .text-white\/60,
+    html.theme-light .text-white\/55,
+    html.theme-light .text-white\/50 { color: #6B7280 !important; }
+    html.theme-light .text-white\/45,
+    html.theme-light .text-white\/40,
+    html.theme-light .text-white\/30,
+    html.theme-light .text-white\/25,
+    html.theme-light .text-white\/10 { color: #9CA3AF !important; }
+    html.theme-light .text-gray-300,
+    html.theme-light .text-gray-400,
     html.theme-light .text-zinc-300,
-    html.theme-light .text-zinc-400 { color: #475569 !important; }
+    html.theme-light .text-zinc-400 { color: #6B7280 !important; }
+    html.theme-light .text-gray-500,
+    html.theme-light .text-zinc-500,
+    html.theme-light .text-zinc-600 { color: #9CA3AF !important; }
 
-    html.theme-light .text-slate-500,
-    html.theme-light .text-slate-600,
-    html.theme-light .text-zinc-500 { color: #64748b !important; }
+    /* ── Bordes ── */
+    html.theme-light [class*="border-white/"],
+    html.theme-light .border-gray-600,
+    html.theme-light .border-gray-700,
+    html.theme-light .border-gray-800,
+    html.theme-light .border-zinc-800,
+    html.theme-light [class*="border-zinc-800/"] { border-color: rgba(17, 24, 39, 0.10) !important; }
+    html.theme-light .border-white { border-color: rgba(17, 24, 39, 0.22) !important; }
 
     /* ── Barra inferior de navegación ── */
     html.theme-light nav.fixed.bottom-0 {
       background-color: rgba(255, 255, 255, 0.97) !important;
-      border-top-color: rgba(15, 23, 42, 0.08) !important;
+      border-top-color: rgba(17, 24, 39, 0.08) !important;
     }
 
-    /* ── Esqueletos de carga: el gris oscuro se ve como un hueco negro ── */
-    html.theme-light .animate-pulse { background-color: #e6e8ec !important; }
+    /* ── Cabecera superior (logo del local) ── */
+    html.theme-light header,
+    html.theme-light .app-header { background-color: #FFFFFF !important; }
 
-    /* ── Separadores ── */
-    html.theme-light [class*="divide-white/"] > * + * { border-color: rgba(15, 23, 42, 0.08) !important; }
+    /* ── Skeletons: el gris oscuro se lee como un hueco negro ── */
+    html.theme-light .animate-pulse { background-color: #E5E7EB !important; }
 
-    /* ═══ EXCEPCIONES — lo que DEBE seguir claro sobre fondo oscuro ═══
-       Van al final a propósito: sobre-escriben las reglas de arriba por orden
-       de cascada, sin subir la especificidad de cada una. */
+    /* ── Rojos de aviso ── */
+    html.theme-light .bg-red-950\/30 { background-color: #FEF2F2 !important; }
+    html.theme-light .bg-red-950\/50 { background-color: #FEE2E2 !important; }
 
-    /* Hero con foto de fondo: su texto es blanco por diseño. */
+    /* ═══ EXCEPCIONES — acá el texto claro SÍ es correcto ═══
+       Van al final para ganar por cascada sin inflar especificidad. */
+
+    /* Hero con foto de fondo. */
     html.theme-light #heroBanner,
-    html.theme-light #heroBanner * {
-      color: #ffffff !important;
+    html.theme-light #heroBanner *,
+    html.theme-light #heroProximaCitaCard .hero-foto,
+    html.theme-light #heroProximaCitaCard .hero-foto * {
+      color: #FFFFFF !important;
       background-color: transparent !important;
       box-shadow: none !important;
     }
 
-    /* Overlays a pantalla completa (visor de fotos, splash, modales oscuros). */
-    html.theme-light [class*="bg-black/"],
-    html.theme-light [class*="bg-[#050505]"] {
-      background-color: rgba(5, 5, 5, 0.92) !important;
-    }
-    html.theme-light [class*="bg-black/"] *,
-    html.theme-light [class*="bg-[#050505]"] * { color: #ffffff !important; }
+    /* Lightbox / visor de fotos a pantalla completa: sigue oscuro a propósito. */
+    html.theme-light [class*="bg-black/"] { background-color: rgba(0, 0, 0, 0.85) !important; box-shadow: none !important; }
+    html.theme-light [class*="bg-black/"] .text-white,
+    html.theme-light [class*="bg-black/"] [class*="text-white/"] { color: #FFFFFF !important; }
 
-    /* Botones de acento (dorado/marca): su texto va sobre color, no sobre blanco. */
-    html.theme-light .bg-gold,
-    html.theme-light [class*="bg-[var(--gold)]"] { color: #0f172a !important; }
+    /* Botones sólidos de acento: el color de marca se conserva y su texto
+       vuelve a ser el que contrasta con ese color, no el del tema. */
+    html.theme-light .bg-\[\#D4AF37\],
+    html.theme-light .bg-emerald-500,
+    html.theme-light .bg-green-400,
+    html.theme-light .bg-red-500,
+    html.theme-light .bg-red-600 { box-shadow: none !important; }
+    html.theme-light .bg-emerald-500 .text-white,
+    html.theme-light .bg-red-500 .text-white,
+    html.theme-light .bg-red-600 .text-white,
+    html.theme-light .bg-emerald-500.text-white,
+    html.theme-light .bg-red-500.text-white,
+    html.theme-light .bg-red-600.text-white { color: #FFFFFF !important; }
+
+    /* Botón blanco sólido (CTA "Activar"): su texto debe seguir siendo oscuro. */
+    html.theme-light .bg-white { background-color: #FFFFFF !important; }
+    html.theme-light .bg-white.text-black,
+    html.theme-light .bg-white .text-black { color: #111827 !important; }

@@ -701,6 +701,13 @@
     .tenant-renacer .svc-card.renacer-compact .svc-radio { border-color:#CBD5E1 !important; background:transparent !important; }
     .tenant-renacer .svc-card.renacer-compact.selected .svc-radio { background:#7C3AED !important; border-color:#7C3AED !important; }
 
+  
+    /* Fondos oscuros que quedaban negros en tenants claros (guard
+       check:tema-claro): el cuadrito del checkbox de avisos y el placeholder
+       de las miniaturas de servicio. */
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-[#0a0a0d] { background-color:#FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-neutral-800 { background-color:#F3F4F6 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) [class*="border-neutral-700"] { border-color:rgba(17,24,39,.12) !important; }
   </style>
 </head>
 <body>

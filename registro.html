@@ -1555,6 +1555,12 @@
     .btn-cta-reserva:active {
       transform: scale(0.98);
     }
+  
+    /* Fondos oscuros que quedaban negros en tenants claros (guard
+       check:tema-claro): la caja de aviso del formulario y el velo del modal. */
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-neutral-900/80 { background-color:#F3F4F6 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) [class*="border-neutral-700"] { border-color:rgba(17,24,39,.12) !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-[#050505]/85 { background-color:rgba(17,24,39,.45) !important; }
   </style>
 </head>
 
