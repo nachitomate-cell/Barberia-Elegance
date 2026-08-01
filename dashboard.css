@@ -5145,3 +5145,100 @@
        la sección quedaba con el spinner girando para siempre. */
     .tenant-sion.tenant-aura #rangosExplainerAura,
     .tenant-sion.tenant-aura #planesAnualesAura { display: none !important; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       MODO CLARO — dashboard del cliente (html.theme-light)
+
+       config.js ya marcaba <html class="theme-light"> para los tenants de
+       _lightTenants (renacer, aura, latincaribe, infinity, oren, omega, sion),
+       pero esta hoja es dark-first y no tenía UN solo override: el dueño veía
+       su agenda pública clara y su app de cliente negra.
+
+       Se ataca por SUPERFICIE, no por componente: los fondos oscuros que usa
+       el HTML (bg-[#1a1a1f], bg-[#111115], bg-[#0a0a0e], bg-zinc-900) pasan a
+       blanco, los bordes de blanco translúcido a gris, y el texto claro a
+       oscuro. Los selectores de atributo cubren las clases arbitrarias de
+       Tailwind sin tener que tocar el HTML.
+
+       ⚠️ El HERO y los overlays quedan FUERA: son texto blanco sobre foto, y
+       ahí el blanco es correcto. Se re-fuerzan al final de este bloque, después
+       de las reglas generales, para que ganen por orden.
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    html.theme-light body {
+      background-color: #f4f5f7;
+      color: #0f172a;
+    }
+
+    /* ── Superficies: tarjetas, paneles, listas ── */
+    html.theme-light [class*="bg-[#1a1a1f]"],
+    html.theme-light [class*="bg-[#111115]"],
+    html.theme-light [class*="bg-[#0a0a0e]"],
+    html.theme-light [class*="bg-[#141417]"],
+    html.theme-light [class*="bg-[#0f0f13]"],
+    html.theme-light .bg-zinc-900,
+    html.theme-light .bg-zinc-950,
+    html.theme-light .bg-neutral-900 {
+      background-color: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px -8px rgba(15, 23, 42, 0.10);
+    }
+
+    /* ── Bordes: el blanco translúcido desaparece sobre fondo claro ── */
+    html.theme-light [class*="border-white/"],
+    html.theme-light .border-zinc-800,
+    html.theme-light [class*="border-zinc-800/"] {
+      border-color: rgba(15, 23, 42, 0.10) !important;
+    }
+
+    /* ── Texto ── */
+    html.theme-light .text-white,
+    html.theme-light .text-slate-50,
+    html.theme-light .text-slate-100,
+    html.theme-light .text-slate-200,
+    html.theme-light .text-zinc-100,
+    html.theme-light .text-zinc-200 { color: #0f172a !important; }
+
+    html.theme-light .text-slate-300,
+    html.theme-light .text-slate-400,
+    html.theme-light .text-zinc-300,
+    html.theme-light .text-zinc-400 { color: #475569 !important; }
+
+    html.theme-light .text-slate-500,
+    html.theme-light .text-slate-600,
+    html.theme-light .text-zinc-500 { color: #64748b !important; }
+
+    /* ── Barra inferior de navegación ── */
+    html.theme-light nav.fixed.bottom-0 {
+      background-color: rgba(255, 255, 255, 0.97) !important;
+      border-top-color: rgba(15, 23, 42, 0.08) !important;
+    }
+
+    /* ── Esqueletos de carga: el gris oscuro se ve como un hueco negro ── */
+    html.theme-light .animate-pulse { background-color: #e6e8ec !important; }
+
+    /* ── Separadores ── */
+    html.theme-light [class*="divide-white/"] > * + * { border-color: rgba(15, 23, 42, 0.08) !important; }
+
+    /* ═══ EXCEPCIONES — lo que DEBE seguir claro sobre fondo oscuro ═══
+       Van al final a propósito: sobre-escriben las reglas de arriba por orden
+       de cascada, sin subir la especificidad de cada una. */
+
+    /* Hero con foto de fondo: su texto es blanco por diseño. */
+    html.theme-light #heroBanner,
+    html.theme-light #heroBanner * {
+      color: #ffffff !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* Overlays a pantalla completa (visor de fotos, splash, modales oscuros). */
+    html.theme-light [class*="bg-black/"],
+    html.theme-light [class*="bg-[#050505]"] {
+      background-color: rgba(5, 5, 5, 0.92) !important;
+    }
+    html.theme-light [class*="bg-black/"] *,
+    html.theme-light [class*="bg-[#050505]"] * { color: #ffffff !important; }
+
+    /* Botones de acento (dorado/marca): su texto va sobre color, no sobre blanco. */
+    html.theme-light .bg-gold,
+    html.theme-light [class*="bg-[var(--gold)]"] { color: #0f172a !important; }
