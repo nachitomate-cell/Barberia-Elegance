@@ -218,6 +218,80 @@ exports.evolutionDesvincular = onCall({ region: 'us-central1', cors: true, secre
    las bajas van visibles a propósito — ver que hubo clientes que pidieron no
    recibir más mensajes modera el entusiasmo mejor que cualquier candado.
    ──────────────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   BANDEJA DEL LOCAL — leer lo que su bot está conversando
+
+   Un dueño que no puede LEER a su bot no confía en él: apaga el módulo a la
+   primera queja de un cliente en vez de revisar qué pasó. Esto le da la
+   transcripción y, sobre todo, el control: "tomar" un chat pausa al bot ahí
+   mismo (lo mismo que ya ocurre solo cuando el dueño escribe desde su
+   teléfono) y "devolverlo" lo reactiva.
+
+   El teléfono va ENMASCARADO por defecto, igual que en ops: la vista se abre
+   en cualquier parte y el número completo del cliente no tiene por qué quedar
+   a la vista. El nombre sí, que es lo que el dueño necesita para reconocerlo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const HORAS_PAUSA = 2;
+
+exports.waMisConversaciones = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const tid = tenantDelCaller(req);
+  const limit = Math.min(Number(req.data?.limit) || 15, 40);
+
+  const snap = await db.collection(`tenants/${tid}/wa_conversaciones`)
+    .orderBy('updatedAt', 'desc').limit(limit).get();
+
+  const ahora = Date.now();
+  const conversaciones = snap.docs.map((d) => {
+    const c = d.data() || {};
+    const msgs = Array.isArray(c.messages) ? c.messages : [];
+    const pausadoHasta = c.botSilencedUntil?.toMillis?.() || 0;
+    const ultimo = msgs[msgs.length - 1];
+    return {
+      chatId:  d.id,
+      // ••••1234 — suficiente para reconocer el chat sin exponer la línea.
+      telefono: `••••${String(d.id).slice(-4)}`,
+      nombre:   c.clienteNombre || '',
+      mensajes: msgs.length,
+      respHoy:  c.respDia?.n || 0,
+      pausado:  pausadoHasta > ahora,
+      pausadoHasta: pausadoHasta > ahora ? new Date(pausadoHasta).toISOString() : null,
+      actualizado:  c.updatedAt?.toMillis?.() || null,
+      ultimoTexto:  ultimo ? String(ultimo.content || '').slice(0, 120) : '',
+      ultimoDe:     ultimo?.role === 'assistant' ? 'bot' : 'cliente',
+      // Solo los últimos turnos: la transcripción completa no aporta y pesa.
+      turnos: msgs.slice(-12).map(m => ({
+        de: m.role === 'assistant' ? 'bot' : 'cliente',
+        texto: typeof m.content === 'string' ? m.content : '[contenido no textual]',
+      })),
+    };
+  });
+
+  return { ok: true, conversaciones };
+});
+
+/** Pausar o devolver el bot en UN chat. Es el mismo interruptor que usa la
+ *  anti-colisión (botSilencedUntil), así que el bot ya sabe respetarlo. */
+exports.waChatControl = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const tid    = tenantDelCaller(req);
+  const chatId = String(req.data?.chatId || '').trim();
+  const pausar = req.data?.pausar === true;
+  if (!/^[0-9A-Za-z_@.-]{5,40}$/.test(chatId)) {
+    throw new HttpsError('invalid-argument', 'Chat inválido.');
+  }
+
+  const ref = db.doc(`tenants/${tid}/wa_conversaciones/${chatId}`);
+  await ref.set({
+    botSilencedUntil: pausar
+      ? admin.firestore.Timestamp.fromMillis(Date.now() + HORAS_PAUSA * 3600e3)
+      : FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  logger.info(`[wa:bandeja] ${tid} chat=${chatId}: ${pausar ? 'pausado ' + HORAS_PAUSA + 'h' : 'devuelto al bot'}`);
+  return { ok: true, pausado: pausar, horas: HORAS_PAUSA };
+});
+
 exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const tid = tenantDelCaller(req);
   const { capDiario, capConfirmaciones, resumenHoy } = require('./cuota');
