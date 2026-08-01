@@ -6,6 +6,12 @@ import {
   Instagram, Infinity as InfinityIcon, ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor,
+  useSensor, useSensors, DragOverlay,
+} from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { Section, SettingsGroup, SettingRow, IosToggle } from '../components/ui/SettingsPrimitives';
 import {
@@ -55,7 +61,7 @@ export default function Lookbook() {
   const [showHelp,      setShowHelp]      = useState(false);
   const [progress,      setProgress]      = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
-  const [dragOver,      setDragOver]      = useState(null);
+  const [dragId,        setDragId]        = useState(null);  // foto que viaja en el overlay
   const [activo,        setActivo]        = useState(false);
   const [activoLoad,    setActivoLoad]    = useState(true);
   const [confirmOn,     setConfirmOn]     = useState(false);
@@ -195,43 +201,30 @@ export default function Lookbook() {
     }
   };
 
-  /* ── Drag & drop para reordenar ────────────────────────────────── */
-  const onDragStart = (e, idx) => {
-    dragFrom.current = idx;
-    e.dataTransfer.effectAllowed = 'move';
-    setTimeout(() => e.target.closest('[data-foto]')?.classList.add('opacity-40'), 0);
-  };
+  /* ── Reordenar (dnd-kit) ──────────────────────────────────────────
+     Sensores: el puntero arranca a los 8 px de movimiento (así un clic simple
+     sigue abriendo los controles de la foto), y el táctil pide 250 ms de
+     presión — sin esa espera, deslizar para hacer scroll levantaría la foto.
+     El auto-scroll al borde lo aporta dnd-kit; era justo lo que faltaba. */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 6 } }),
+  );
 
-  const onDragOver = (e, idx) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (idx !== dragFrom.current) setDragOver(idx);
-  };
-
-  const onDragLeave = () => setDragOver(null);
-
-  const onDrop = async (e, dropIdx) => {
-    e.preventDefault();
-    setDragOver(null);
-    const fromIdx = dragFrom.current;
-    dragFrom.current = null;
-    if (fromIdx === null || fromIdx === dropIdx) return;
+  const handleDragEnd = async ({ active, over }) => {
+    setDragId(null);
+    if (!over || active.id === over.id) return;
+    const from = fotos.findIndex(f => f.id === active.id);
+    const to   = fotos.findIndex(f => f.id === over.id);
+    if (from < 0 || to < 0) return;
 
     const reordered = [...fotos];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(dropIdx, 0, moved);
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
 
     const batch = writeBatch(db);
-    reordered.forEach((f, i) => {
-      batch.update(doc(tenantCol('lookbook'), f.id), { order: i });
-    });
+    reordered.forEach((f, i) => batch.update(doc(tenantCol('lookbook'), f.id), { order: i }));
     await batch.commit();
-  };
-
-  const onDragEnd = e => {
-    dragFrom.current = null;
-    setDragOver(null);
-    e.target.closest('[data-foto]')?.classList.remove('opacity-40');
   };
 
   /* ── Stats ─────────────────────────────────────────────────────── */
@@ -339,23 +332,37 @@ export default function Lookbook() {
         ) : fotos.length === 0 ? (
           <EmptyState onClick={() => fileRef.current?.click()} />
         ) : (
-          <div className="columns-2 sm:columns-3 gap-3 space-y-3">
-            {fotos.map((foto, idx) => (
-              <PhotoCard
-                key={foto.id}
-                foto={foto}
-                idx={idx}
-                isDraggingOver={dragOver === idx}
-                onDragStart={onDragStart}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-                onDragEnd={onDragEnd}
-                onFocal={handleOpenFocalModal}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={({ active }) => setDragId(active.id)}
+            onDragCancel={() => setDragId(null)}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={fotos.map(f => f.id)} strategy={rectSortingStrategy}>
+              <div className="columns-2 sm:columns-3 gap-3 space-y-3">
+                {fotos.map((foto, idx) => (
+                  <PhotoCard
+                    key={foto.id}
+                    foto={foto}
+                    idx={idx}
+                    onFocal={handleOpenFocalModal}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+
+            {/* La foto que viaja con el dedo/cursor. Sin overlay, en móvil no
+                se ve qué estás moviendo hasta soltarla. */}
+            <DragOverlay dropAnimation={{ duration: 180 }}>
+              {dragId ? (() => {
+                const f = fotos.find(x => x.id === dragId);
+                const i = fotos.findIndex(x => x.id === dragId);
+                return f ? <PhotoCard foto={f} idx={i} onFocal={() => {}} onDelete={() => {}} overlay /> : null;
+              })() : null}
+            </DragOverlay>
+          </DndContext>
         )}
 
         {!loading && fotos.length > 0 && slotsLibres > 0 && (
@@ -589,28 +596,34 @@ function ConfirmActivationModal({ onCancel, onConfirm }) {
 
 /* ════════════════════════════════════════════════════════════════
    PhotoCard — tarjeta del grid masonry con drag-drop y overlays.
-   Se preserva la lógica de drag (dragFrom/dragOver + isDraggingOver).
+   `overlay`: la copia que viaja con el dedo/cursor (sin sortable ni acciones).
    ════════════════════════════════════════════════════════════════ */
-function PhotoCard({
-  foto, idx, isDraggingOver,
-  onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
-  onFocal, onDelete,
-}) {
+function PhotoCard({ foto, idx, onFocal, onDelete, overlay = false }) {
+  // dnd-kit en vez del drag HTML5 que tenía antes: aquel no dispara NINGÚN
+  // evento en pantallas táctiles (arrastrar fotos simplemente no existía en el
+  // teléfono) y tampoco desplaza la vista. Con esto la foto sigue al dedo o al
+  // cursor y la página acompaña sola al acercarse a un borde.
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: foto.id, disabled: overlay });
+
   return (
     <div
+      ref={overlay ? undefined : setNodeRef}
       data-foto
-      draggable
-      onDragStart={e => onDragStart(e, idx)}
-      onDragOver={e  => onDragOver(e, idx)}
-      onDragLeave={onDragLeave}
-      onDrop={e      => onDrop(e, idx)}
-      onDragEnd={onDragEnd}
-      className={`group relative mb-3 break-inside-avoid cursor-grab overflow-hidden rounded-2xl transition-all duration-200 ease-in-out active:cursor-grabbing ${
-        isDraggingOver
-          ? 'ring-1 ring-emerald-300/60 ring-offset-2 ring-offset-slate-950 shadow-[0_0_30px_-4px_rgba(52,199,89,0.35)] scale-[1.01]'
-          : ''
+      {...(overlay ? {} : attributes)}
+      {...(overlay ? {} : listeners)}
+      style={{
+        border: '1px solid rgba(255,255,255,0.05)',
+        transform: overlay ? undefined : CSS.Transform.toString(transform),
+        transition: overlay ? undefined : transition,
+        // La original queda tenue en su hueco mientras el overlay viaja con el
+        // dedo: sin eso se ve la foto duplicada.
+        opacity: isDragging && !overlay ? 0.35 : 1,
+        touchAction: overlay ? undefined : 'manipulation',
+      }}
+      className={`group relative mb-3 break-inside-avoid cursor-grab overflow-hidden rounded-2xl transition-shadow duration-200 ease-in-out active:cursor-grabbing ${
+        overlay ? 'shadow-[0_18px_50px_-12px_rgba(0,0,0,0.75)] ring-2 ring-emerald-400/70 scale-[1.03]' : ''
       }`}
-      style={{ border: '1px solid rgba(255,255,255,0.05)' }}
     >
       <img
         src={foto.url}

@@ -10,7 +10,7 @@ import {
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import {
   SortableContext, arrayMove, rectSortingStrategy, useSortable,
@@ -1093,7 +1093,13 @@ export default function Equipo() {
     batch.commit().catch(err => console.error('[Equipo] migración orden:', err));
   }, [barberos]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // TouchSensor además del de puntero: sin él, en varios navegadores móviles
+  // el arrastre no se activa nunca y las tarjetas no se pueden reordenar desde
+  // el teléfono. El delay evita que un scroll normal levante una tarjeta.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 6 } }),
+  );
 
   async function handleDragEnd({ active, over }) {
     isDraggingRef.current = false;
