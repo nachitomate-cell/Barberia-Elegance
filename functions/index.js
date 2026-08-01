@@ -1634,6 +1634,8 @@ exports.evolutionMiConsumo   = evolutionGateway.evolutionMiConsumo;
 // Bandeja del local: leer los chats del bot y tomar/devolver el control.
 exports.waMisConversaciones  = evolutionGateway.waMisConversaciones;
 exports.waChatControl        = evolutionGateway.waChatControl;
+// Simulador: probar el bot sin gastar cuota ni crear citas reales.
+exports.waSimularBot         = require('./evolution/simulador').waSimularBot;
 
 // Cron de confirmaciones anti-no-show (Sprint 3): pide CONFIRMAR/CANCELAR por
 // el número propio del local. La respuesta la maneja el cerebro (webhook).

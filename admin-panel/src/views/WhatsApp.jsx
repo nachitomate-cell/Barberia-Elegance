@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Bot, MessageSquare, Activity, Wallet, Inbox } from 'lucide-react';
+import { Bot, MessageSquare, Activity, Wallet, Inbox, FlaskConical } from 'lucide-react';
 import WhatsAppNotif from './WhatsAppNotif';
 import WhatsAppPlataforma from './WhatsAppPlataforma';
 import WhatsAppAsistente, { MiConsumo } from './WhatsAppAsistente';
 import WhatsAppBandeja from './WhatsAppBandeja';
+import WhatsAppSimulador from './WhatsAppSimulador';
 import { resolveTenantId } from '../lib/tenantUtils';
 
 // Vista unificada "WhatsApp" — TRES módulos del canal repartidos en CUATRO
@@ -38,6 +39,7 @@ function WhatsAppLogo({ size = 22 }) {
 const TABS = [
   { id: 'asistente',   label: 'Asistente IA', corto: 'Asistente', Icon: Bot },
   { id: 'bandeja',     label: 'Conversaciones', corto: 'Chats',   Icon: Inbox },
+  { id: 'simulador',   label: 'Probar bot',   corto: 'Probar',    Icon: FlaskConical },
   { id: 'mensajeria',  label: 'Mensajería',   corto: 'Mensajes',  Icon: MessageSquare },
   { id: 'metricas',    label: 'Métricas',     corto: 'Métricas',  Icon: Activity },
   { id: 'facturacion', label: 'Facturación',  corto: 'Bolsa',     Icon: Wallet },
@@ -99,6 +101,8 @@ export default function WhatsApp() {
         {tab === 'asistente' && <WhatsAppAsistente embedded seccion="core" />}
 
         {tab === 'bandeja' && <WhatsAppBandeja />}
+
+        {tab === 'simulador' && <WhatsAppSimulador />}
 
         {tab === 'mensajeria' && (
           <>
