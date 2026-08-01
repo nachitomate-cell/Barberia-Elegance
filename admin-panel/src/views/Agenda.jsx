@@ -3627,6 +3627,22 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
   const suppressTap  = useRef(false); // evita que el touchend dispare el click "abrir cita"
   const startPos     = useRef({ x: 0, y: 0 });
   const lastTarget   = useRef(null);  // { el, barberoId, hora, ciId }
+  // Auto-scroll al arrastrar con el dedo (móvil): la agenda mide varias
+  // pantallas y sin esto solo se puede mover una cita a una hora que ya esté
+  // visible — para bajarla dos horas había que soltarla, scrollear y volver a
+  // tomarla. Ahora, al acercar el dedo a un borde, la agenda acompaña.
+  const autoScrollRAF = useRef(null);
+  const autoScrollVel = useRef(0);
+  const lastTouchPos  = useRef({ x: 0, y: 0 });
+  const scrollerEl    = useRef(null);
+
+  // Si la card se desmonta a mitad de arrastre (cambio de día, refresh de
+  // datos), el bucle seguiría vivo moviendo la vista solo. Va acá arriba con
+  // el resto de los hooks: debajo del early return rompe el orden de hooks.
+  useEffect(() => () => {
+    autoScrollVel.current = 0;
+    if (autoScrollRAF.current) cancelAnimationFrame(autoScrollRAF.current);
+  }, []);
 
   // Defense-in-depth: computeOverlapLayout ya filtra las citas sin hora
   // válida, pero si esta card llega por otra vía (ej. drag) prefiero no
@@ -3695,6 +3711,69 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
     return null;
   };
 
+  /* ── Auto-scroll durante el arrastre táctil ───────────────────────
+     Busca el ancestro que realmente scrollea (la grilla o, si no hay, la
+     página) y lo desplaza mientras el dedo esté en las bandas superior o
+     inferior. La velocidad crece al acercarse al borde: cerca del límite
+     avanza rápido, apenas entrando en la banda apenas se mueve.
+
+     El destino se recalcula DENTRO del bucle y no solo en touchmove: con el
+     dedo quieto sobre la banda no llegan más eventos de movimiento, y sin
+     esto el resaltado se quedaría marcando la franja de antes de scrollear
+     mientras el contenido pasa por debajo. */
+  const BANDA_PX  = 90;   // zona sensible en cada borde
+  const VEL_MAX   = 16;   // px por frame (~950 px/s a 60fps)
+
+  const buscarScroller = (el) => {
+    let n = el?.parentElement;
+    while (n && n !== document.body) {
+      const st = window.getComputedStyle(n);
+      if (/(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4) return n;
+      n = n.parentElement;
+    }
+    return null;   // null = scrollea la página
+  };
+
+  const pintarDestino = (x, y) => {
+    const target = findDropTarget(x, y);
+    if (target?.el !== lastTarget.current?.el) {
+      clearTouchHover();
+      if (target?.el) {
+        target.el.classList.add(...TOUCH_HOVER);
+        lastTarget.current = target;
+      }
+    } else if (target) {
+      lastTarget.current = target;
+    }
+  };
+
+  const tickAutoScroll = () => {
+    const v = autoScrollVel.current;
+    if (!v || !isTouchDrag.current) { autoScrollRAF.current = null; return; }
+    const sc = scrollerEl.current;
+    if (sc) sc.scrollTop += v;
+    else window.scrollBy(0, v);
+    const { x, y } = lastTouchPos.current;
+    pintarDestino(x, y);
+    autoScrollRAF.current = requestAnimationFrame(tickAutoScroll);
+  };
+
+  const evaluarAutoScroll = (y) => {
+    const sc  = scrollerEl.current;
+    const top = sc ? sc.getBoundingClientRect().top : 0;
+    const bot = sc ? sc.getBoundingClientRect().bottom : window.innerHeight;
+    let v = 0;
+    if (y < top + BANDA_PX)      v = -Math.ceil(VEL_MAX * Math.min(1, (top + BANDA_PX - y) / BANDA_PX));
+    else if (y > bot - BANDA_PX) v =  Math.ceil(VEL_MAX * Math.min(1, (y - (bot - BANDA_PX)) / BANDA_PX));
+    autoScrollVel.current = v;
+    if (v && !autoScrollRAF.current) autoScrollRAF.current = requestAnimationFrame(tickAutoScroll);
+  };
+
+  const pararAutoScroll = () => {
+    autoScrollVel.current = 0;
+    if (autoScrollRAF.current) { cancelAnimationFrame(autoScrollRAF.current); autoScrollRAF.current = null; }
+  };
+
   const handleTouchStart = (e) => {
     if (!arrastrable) return;
     const t = e.touches[0]; if (!t) return;
@@ -3702,6 +3781,8 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
     isTouchDrag.current = false;
     suppressTap.current = false;
     cancelHold();
+    lastTouchPos.current = { x: t.clientX, y: t.clientY };
+    scrollerEl.current   = buscarScroller(cardRef.current);
     holdTimer.current = setTimeout(() => {
       isTouchDrag.current = true;
       if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -3724,20 +3805,14 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
 
     // Drag activo: resalta la franja debajo del dedo (touch-action: none en el
     // bloque impide que el navegador scrollee, así que no necesitamos preventDefault).
-    const target = findDropTarget(t.clientX, t.clientY);
-    if (target?.el !== lastTarget.current?.el) {
-      clearTouchHover();
-      if (target?.el) {
-        target.el.classList.add(...TOUCH_HOVER);
-        lastTarget.current = target;
-      }
-    } else if (target) {
-      lastTarget.current = target;
-    }
+    lastTouchPos.current = { x: t.clientX, y: t.clientY };
+    pintarDestino(t.clientX, t.clientY);
+    evaluarAutoScroll(t.clientY);
   };
 
   const handleTouchEnd = (e) => {
     cancelHold();
+    pararAutoScroll();
     if (!isTouchDrag.current) return;
     isTouchDrag.current = false;
     suppressTap.current = true;
@@ -3748,7 +3823,13 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
     if (target?.barberoId && target?.hora) {
       onTouchDrop && onTouchDrop(target.barberoId, target.hora);
     } else {
+      // Mantuvo presionado y soltó sin llevarla a ninguna franja. Antes esto
+      // no hacía NADA —ni movía ni abría—, así que el gesto se sentía roto:
+      // "la aprieto y no me deja cambiarla". Se trata como intención de
+      // editarla y se abre la cita, que es donde puede cambiar hora,
+      // profesional y todo lo demás.
       onDragEnd && onDragEnd();
+      onClick && onClick(cita);
     }
     // Reset suppressTap tras el ciclo de eventos para el próximo tap.
     setTimeout(() => { suppressTap.current = false; }, 400);
@@ -3756,12 +3837,14 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
 
   const handleTouchCancel = () => {
     cancelHold();
+    pararAutoScroll();
     if (isTouchDrag.current) {
       isTouchDrag.current = false;
       clearTouchHover();
       onDragEnd && onDragEnd();
     }
   };
+
 
   // Tooltip on hover — estado + cliente + servicio + hora de fin sin ocupar
   // espacio en la card. Útil en columnas angostas donde el texto se trunca.
