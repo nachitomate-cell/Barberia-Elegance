@@ -1815,12 +1815,16 @@ export default function Equipo() {
                     >
                       <Printer size={14} /> Imprimir
                     </button>
+                    {/* El PAGO vive en Comisiones (flujo único): allá hay
+                        idempotencia por período, reapertura con diff,
+                        aceptación del barbero y adelantos. Acá quedaba un
+                        gasto suelto sin período ni candado — se podía pagar
+                        dos veces la misma semana sin que nada avisara. */}
                     <button
-                      onClick={() => handleOpenPayoutModal(totalPagarCalculado, selectedBarber.nombre)}
-                      disabled={totalPagarCalculado <= 0}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-primary text-xs font-semibold rounded-lg transition-colors"
+                      onClick={() => navigate('/comisiones')}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-primary text-xs font-semibold rounded-lg transition-colors"
                     >
-                      <Wallet size={14} /> Pagar Sueldo
+                      <Wallet size={14} /> Pagar en Comisiones →
                     </button>
                   </div>
                 </div>

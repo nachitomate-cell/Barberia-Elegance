@@ -1044,6 +1044,9 @@ function DetalleBarberoDrawer({
 function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Método de pago del sueldo — rescatado del flujo de Equipo al unificar:
+  // el gasto en Sueldos debe decir CÓMO se pagó (caja cuadra contra efectivo).
+  const [metodo, setMetodo] = useState('Efectivo');
   // Antes: setLoading(true) + await onConfirm() + setLoading(false) + onClose().
   // Si onConfirm rechazaba (típico: rules de Firestore bloqueando escritura,
   // network flap), el catch no existía → setLoading(false) nunca corría y el
@@ -1052,7 +1055,7 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
     setError(null);
     setLoading(true);
     try {
-      await onConfirm();
+      await onConfirm(metodo);
       onClose();
     } catch (e) {
       console.error('[Comisiones/PagarModal] error registrando pago:', e);
@@ -1159,6 +1162,22 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
 
       <p className="px-1 text-[12.5px] leading-relaxed text-slate-500">
         Se registrará como gasto en <span className="font-medium text-slate-400">Sueldos</span> del período {periodo}.
+      </p>
+
+      <div className="mt-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Método de pago</p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {['Efectivo', 'Transferencia', 'Débito', 'Otro'].map(m => (
+            <button key={m} type="button" onClick={() => setMetodo(m)}
+              className={`rounded-lg border px-1 py-1.5 text-[10.5px] font-semibold transition-colors ${metodo === m
+                ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200'
+                : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/25'}`}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="hidden">
       </p>
 
       {error && (
@@ -1652,7 +1671,7 @@ export default function Comisiones() {
     ) || null;
   }, [pagosSemanales, fechaInicio, fechaFin]);
 
-  const handlePagar = async (barbero) => {
+  const handlePagar = async (barbero, metodoPago = 'Efectivo') => {
     const pagoExistente = pagoDelPeriodo(barbero.id);
     const enReapertura = pagoExistente?.estado === 'reabierto';
     // En reapertura: monto pagado = diff con lo ya pagado.
@@ -1672,7 +1691,7 @@ export default function Comisiones() {
         monto: gastoMonto,
         categoria: 'Sueldos',
         tipo: 'liquidacion',
-        metodoPago: 'Efectivo',
+        metodoPago,   // rescatado del flujo de Equipo: cómo se pagó el sueldo
         fecha: Timestamp.fromDate(new Date(today() + 'T12:00:00')),
         barberoId: barbero.id,
         barberoNombre: barbero.nombre,
@@ -2736,7 +2755,7 @@ export default function Comisiones() {
           barbero={pagarTarget}
           periodo={periodo}
           pagoExistente={pagoDelPeriodo(pagarTarget.id)}
-          onConfirm={() => handlePagar(pagarTarget)}
+          onConfirm={(metodo) => handlePagar(pagarTarget, metodo)}
           onClose={() => setPagarTarget(null)}
         />
       )}
