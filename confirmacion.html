@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Confirmar asistencia</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #0a0a0c; color: #e5e7eb; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 420px; background: #141417;
+      border: 1px solid #26262c; border-radius: 20px; padding: 36px 28px; text-align: center;
+    }
+    .icono { font-size: 52px; line-height: 1; }
+    h1 { font-size: 21px; font-weight: 800; margin: 18px 0 8px; letter-spacing: -0.3px; }
+    p  { font-size: 14px; color: #9ca3af; line-height: 1.6; }
+    .detalle {
+      margin-top: 20px; background: #0f0f12; border: 1px solid #1f1f26;
+      border-radius: 12px; padding: 14px 16px; font-size: 13.5px; color: #d1d5db; line-height: 1.9;
+      text-align: left;
+    }
+    .detalle b { color: #fff; }
+    .spinner {
+      width: 34px; height: 34px; margin: 0 auto; border-radius: 50%;
+      border: 3px solid #26262c; border-top-color: #22c55e; animation: g 0.8s linear infinite;
+    }
+    @keyframes g { to { transform: rotate(360deg); } }
+    .pie { margin-top: 26px; font-size: 11px; color: #4b5563; }
+    .pie img { height: 14px; vertical-align: -3px; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner" id="sp"></div>
+    <h1>Confirmando tu asistencia…</h1>
+    <p>Un segundo, estamos avisándole al local.</p>
+  </div>
+  <script>
+    (async () => {
+      const card = document.getElementById('card');
+      const q = new URLSearchParams(location.search);
+      const t = q.get('t') || '', c = q.get('c') || '';
+      const pie = '<p class="pie"><img src="/synaptech/ig.png" alt="">Powered by SynapTech</p>';
+      const render = (icono, titulo, texto, detalle = '') => {
+        card.innerHTML = '<div class="icono">' + icono + '</div><h1>' + titulo + '</h1><p>' + texto + '</p>' + detalle + pie;
+      };
+      if (!t || !c) { render('🤔', 'Link incompleto', 'Abre este enlace desde el botón de tu correo de recordatorio.'); return; }
+      try {
+        const r = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/confirmarCitaCorreo?t=' + encodeURIComponent(t) + '&c=' + encodeURIComponent(c));
+        const j = await r.json();
+        if (j.ok) {
+          const det = (j.servicio || j.fecha) ?
+            '<div class="detalle">' +
+            (j.servicio ? '✂️ <b>' + j.servicio + '</b><br>' : '') +
+            (j.fecha ? '📅 ' + j.fecha + (j.hora ? ' · <b>' + j.hora + ' hrs</b>' : '') : '') +
+            '</div>' : '';
+          render('✅', j.yaEstaba ? '¡Ya estabas confirmado!' : '¡Asistencia confirmada!',
+            (j.nombre ? j.nombre + ', g' : 'G') + 'racias por avisar — el local ya sabe que vienes. ¡Te esperamos!', det);
+        } else if (j.motivo === 'cancelada') {
+          render('❌', 'Esta cita fue cancelada', 'Si quieres una nueva hora, agenda directamente con el local.');
+        } else {
+          render('🤔', 'No encontramos esa cita', 'Puede que el enlace esté vencido. Ante cualquier duda, escríbele directo al local.');
+        }
+      } catch (e) {
+        render('⚠️', 'No pudimos confirmar', 'Inténtalo de nuevo en un momento, o responde el correo del recordatorio.');
+      }
+    })();
+  </script>
+</body>
+</html>

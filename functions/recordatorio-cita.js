@@ -115,7 +115,14 @@ function buildWAMessage(nombre, hora, barbero, servicio, tenantNombre) {
   );
 }
 
-function build1hEmailHtml({ cfg, cita }) {
+function build1hEmailHtml({ cfg, cita, tenantId, citaId }) {
+  // Botón primario de confirmación: lleva a /confirmacion, que marca
+  // confirmadaPorCorreo en la cita (NUNCA cambia el estado — el verde es
+  // territorio exclusivo de la confirmación por WhatsApp; esto solo agrega
+  // el badge de correo en la agenda).
+  const confirmarUrl = (tenantId && citaId)
+    ? `https://app.synaptechspa.cl/confirmacion.html?t=${encodeURIComponent(tenantId)}&c=${encodeURIComponent(citaId)}`
+    : null;
   const btnColor   = cfg.color;
   const isDark     = !!cfg.darkHeader;
   const btnTextClr = isDark ? '#f1f5f9' : '#000000';
@@ -186,6 +193,20 @@ function build1hEmailHtml({ cfg, cita }) {
             </table>
           </td>
         </tr>
+
+        ${confirmarUrl ? `
+        <!-- CTA primario: confirmar asistencia con UN toque -->
+        <tr>
+          <td style="padding:4px 36px 26px;" align="center">
+            <a href="${confirmarUrl}" target="_blank" rel="noopener"
+               style="display:block;background:${btnColor};color:${btnTextClr};text-decoration:none;
+                      font-size:18px;font-weight:900;letter-spacing:0.3px;text-align:center;
+                      padding:18px 24px;border-radius:14px;">
+              ✅ CONFIRMAR MI ASISTENCIA
+            </a>
+            <p style="margin:10px 0 0;font-size:11px;color:#777;">Un toque y listo — el local sabrá que vienes.</p>
+          </td>
+        </tr>` : ''}
 
         <!-- Info del local. La dirección es clickeable a Google Maps para que
              el cliente arranque el GPS directo desde el mail (útil sobre todo
@@ -511,7 +532,7 @@ exports.recordatorioCita1h = onSchedule(
       await ref.update({ recordatorio1hEnviado: true });
 
       const cfg = await getTenantConfig(tenantId, logger);
-      const html = build1hEmailHtml({ cfg, cita });
+      const html = build1hEmailHtml({ cfg, cita, tenantId, citaId });
 
       try {
         await enviarEmail({

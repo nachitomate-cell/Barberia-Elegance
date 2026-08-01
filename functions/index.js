@@ -1162,6 +1162,8 @@ exports.recordatorioCerrarCitasSemanal = recordatorioCerrarCitas.recordatorioCer
 //  CONFIRMACIÓN DE CITA POR EMAIL — ver confirmacion-cita.js
 // ─────────────────────────────────────────────────────────────────
 const confirmacionCita = require('./confirmacion-cita');
+// Confirmación de ASISTENCIA por correo (botón del recordatorio → /confirmacion.html)
+exports.confirmarCitaCorreo = require('./confirmar-correo').confirmarCitaCorreo;
 exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 
