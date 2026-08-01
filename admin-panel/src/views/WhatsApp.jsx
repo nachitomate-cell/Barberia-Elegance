@@ -5,6 +5,8 @@ import WhatsAppPlataforma from './WhatsAppPlataforma';
 import WhatsAppAsistente, { MiConsumo } from './WhatsAppAsistente';
 import WhatsAppBandeja from './WhatsAppBandeja';
 import WhatsAppSimulador from './WhatsAppSimulador';
+import WaEstadoLinea from '../components/WaEstadoLinea';
+import WaOnboarding from '../components/WaOnboarding';
 import { resolveTenantId } from '../lib/tenantUtils';
 
 // Vista unificada "WhatsApp" — TRES módulos del canal repartidos en CUATRO
@@ -93,6 +95,14 @@ export default function WhatsApp() {
             );
           })}
         </div>
+      </div>
+
+      {/* Estado del canal en una línea, siempre visible: la respuesta a
+          "¿está funcionando?" no puede depender de qué pestaña elijas. */}
+      <div className="mb-6 space-y-3">
+        <WaEstadoLinea onIr={setTab} />
+        {/* Checklist de puesta en marcha. Se retira solo al completarse. */}
+        <WaOnboarding onIr={setTab} />
       </div>
 
       {/* ── Panel de la pestaña activa ── */}
