@@ -176,18 +176,19 @@ const TOOLS = [
   },
   {
     name: 'consultar_disponibilidad',
-    description: 'Devuelve las horas libres del local. Si pasas `fecha`, busca desde ese día; si no, desde hoy. Devuelve el primer día con cupos dentro de los próximos días. Úsalo siempre antes de ofrecer horas: nunca inventes disponibilidad.',
+    description: 'Devuelve las horas libres del local. Si pasas `fecha`, busca desde ese día; si no, desde hoy. Pasa SIEMPRE `servicio_nombre` cuando ya sepas qué servicio quiere: sin él las horas se calculan con 30 minutos genéricos y un servicio más largo puede no caber. Úsalo siempre antes de ofrecer horas: nunca inventes disponibilidad.',
     input_schema: {
       type: 'object',
       properties: {
         fecha: { type: 'string', description: 'Fecha inicial de búsqueda en formato YYYY-MM-DD (opcional).' },
+        servicio_nombre: { type: 'string', description: 'Servicio que quiere el cliente, tal como aparece en el catálogo (recomendado: ajusta las horas a su duración real y a sus días válidos).' },
       },
       required: [],
     },
   },
   {
     name: 'agendar_cita',
-    description: 'Reserva una cita real. Llama esto SOLO cuando ya confirmaste con el cliente: servicio, fecha (YYYY-MM-DD), hora (HH:MM) y su nombre. La hora debe haber salido de consultar_disponibilidad. Devuelve el código de la reserva si tuvo éxito.',
+    description: 'Reserva una cita real. Llama esto SOLO cuando ya confirmaste con el cliente: servicio, fecha (YYYY-MM-DD), hora (HH:MM) y su nombre. La hora debe haber salido de consultar_disponibilidad. Para GRUPOS (2+ personas), llama esta herramienta UNA VEZ POR PERSONA, cada una con su nombre — pueden ir a la misma hora si hay varios profesionales. Devuelve el código de la reserva si tuvo éxito.',
     input_schema: {
       type: 'object',
       properties: {
@@ -505,9 +506,26 @@ async function ejecutarTool(name, input, ctx) {
   }
 
   if (name === 'consultar_disponibilidad') {
-    const r = await buscarDisponibilidad(tid, input?.fecha);
-    if (!r.slots.length) return { hay_cupos: false, mensaje: 'Sin horas libres en los próximos días.' };
-    return { hay_cupos: true, fecha: r.fecha, es_hoy: r.esHoy, horas: r.slots };
+    // Con servicio: las horas se calculan con su DURACIÓN real (un masaje de
+    // 60 min ya no "cabe" en un hueco de 30) y saltando los días en que el
+    // servicio no existe. Sin servicio (aún no lo elige), 30 min genéricos.
+    let svc = null;
+    if (input?.servicio_nombre) {
+      svc = matchServicio(await cargarServicios(tid).catch(() => []), input.servicio_nombre);
+    }
+    const r = await buscarDisponibilidad(tid, input?.fecha, {
+      durMin:        svc?.duracion || null,
+      diasServicio:  svc?.dias || null,
+    });
+    if (!r.slots.length) {
+      return { hay_cupos: false, mensaje: svc?.dias
+        ? `Sin horas libres para "${svc.nombre}" en sus días válidos (${nombresDias(svc.dias)}) dentro de los próximos días.`
+        : 'Sin horas libres en los próximos días.' };
+    }
+    return {
+      hay_cupos: true, fecha: r.fecha, es_hoy: r.esHoy, horas: r.slots,
+      ...(svc ? { servicio: svc.nombre, duracion_min: svc.duracion } : { nota: 'Horas calculadas con 30 min genéricos: cuando sepas el servicio, vuelve a consultar pasando servicio_nombre.' }),
+    };
   }
 
   if (name === 'agendar_cita') {
@@ -691,6 +709,13 @@ CÓMO CONFIRMAR ANTES DE AGENDAR:
 - Cuando el cliente ya confirmó el resumen, llama a agendar_cita DE INMEDIATO. PROHIBIDO volver a consultar disponibilidad o re-preguntar la hora después de un "sí": eso se percibe como un loop y quema la paciencia del cliente (pasó el 31-jul: 4 vueltas para una hora ya confirmada).
 - Si una hora aparece ocupada y el cliente insiste justo con esa hora, revisa consultar_mis_citas ANTES de ofrecer alternativas: muchas veces la hora está ocupada por SU PROPIA cita ya agendada. En ese caso díselo ("¡esa hora ya es tuya!") con su código, en vez de tratar de venderle otra.
 - Para servicios largos (60 min o más), las horas de consultar_disponibilidad son referenciales: si agendar_cita rechaza dos horas seguidas, no sigas ofreciendo de la misma lista — deriva con pasar_con_humano.
+
+RESERVAS PARA VARIAS PERSONAS (grupos):
+- Pide UNA VEZ los datos: cuántas personas, el nombre de cada una y el servicio.
+- Agenda con agendar_cita UNA LLAMADA POR PERSONA, cada una con su nombre. Pueden quedar a la MISMA hora (los atienden profesionales distintos si los hay).
+- NUNCA asumas que la hora siguiente está libre: toda hora que ofrezcas o agendes debe haber salido de consultar_disponibilidad EN ESTA conversación.
+- Cuando el cliente confirme el resumen del grupo, ejecuta TODAS las llamadas a agendar_cita de inmediato, una tras otra, SIN volver a consultar disponibilidad ni repreguntar. Después entrega el código de CADA persona en un solo mensaje.
+- Si una de las citas del grupo falla (hora tomada), agenda las que sí resultaron, avisa cuál quedó fuera y ofrece la alternativa solo para esa persona.
 
 CASOS QUE VAS A VER SEGUIDO:
 - Pide un servicio que no existe en el catálogo: no lo inventes ni lo agendes. Di que no lo tienes y ofrece lo más parecido que sí esté en el catálogo.

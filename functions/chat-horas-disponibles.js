@@ -134,7 +134,7 @@ async function aplicarJornadasPersonales(c, barberos, dow, addBusy) {
 }
 
 /** Slots libres de UN día. Exportada para tests locales con Admin SDK. */
-async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
+async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null) {
   const c = cols(tenantId);
 
   const confSnap = await c.conf.get();
@@ -217,11 +217,17 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0) {
   };
 
   // ── Barrido de slots ──
+  // La ventana que se valida es la DURACIÓN REAL del servicio, no el paso de
+  // la grilla. Con `step` fijo (30) un masaje de 60 min se ofrecía si los
+  // primeros 30 estaban libres: hora ofrecida → agendar_cita la rechazaba →
+  // "el bot ofrece horas ocupadas" (Nancy/Romy, 31-jul). Lo mismo con la
+  // colación: un servicio largo que ARRANCA antes de colación ya no pasa.
+  const dur = Number(durMin) > 0 ? Math.round(Number(durMin)) : step;
   const slots = [];
-  for (let t = iniMins; t + step <= finMins; t += step) {
+  for (let t = iniMins; t + dur <= finMins; t += step) {
     if (t < minMinuto) continue;
-    if (colacion && solapan(t, t + step, colacion[0], colacion[1])) continue;
-    if (barberos.some(b => libreBarbero(b.id, t, t + step))) slots.push(toHHMM(t));
+    if (colacion && solapan(t, t + dur, colacion[0], colacion[1])) continue;
+    if (barberos.some(b => libreBarbero(b.id, t, t + dur))) slots.push(toHHMM(t));
     if (slots.length >= MAX_SLOTS) break;
   }
   return slots;
@@ -257,13 +263,18 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
  * Misma semántica que el callable, extraída para reuso por el bot de WhatsApp.
  * @returns {{ fecha:string|null, esHoy:boolean, slots:string[] }}
  */
-async function buscarDisponibilidad(tenantId, desdeFecha) {
+async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
+  const { durMin = null, diasServicio = null } = opts || {};
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
-  for (let i = 0; i < MAX_DIAS_BUSQUEDA; i++) {
+  // Con servicio restringido por días se amplía la búsqueda: 4 días podían no
+  // contener NINGÚN día válido (ej. promo Lu-Ju consultada un viernes).
+  const maxDias = Array.isArray(diasServicio) && diasServicio.length ? 10 : MAX_DIAS_BUSQUEDA;
+  for (let i = 0; i < maxDias; i++) {
     const fecha = sumarDias(desde, i);
+    if (Array.isArray(diasServicio) && diasServicio.length && !diasServicio.includes(dowDe(fecha))) continue;
     const esHoy = fecha === ahora.fecha;
-    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0);
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, durMin);
     if (slots.length) return { fecha, esHoy, slots };
   }
   return { fecha: null, esHoy: false, slots: [] };
@@ -288,6 +299,27 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
   const c = cols(tenantId);
   const startMin = toMins(hora);
   const endMin   = startMin + (Number(dur) || 30);
+
+  // ── Puertas del LOCAL — las MISMAS de horasParaFecha ──
+  // Este validador solo miraba la ocupación (citas/locks/bloqueos/jornadas):
+  // aceptaba agendar en plena colación del local, fuera del horario del día o
+  // en fecha bloqueada, horas que la oferta jamás mostraría. Mordió el 31-jul
+  // ("no respetó horarios de colación"). El sobrecupo del panel NO pasa por
+  // aquí, así que el local sigue pudiendo forzar horas a mano.
+  const confSnap = await c.conf.get();
+  const conf = confSnap.exists ? (confSnap.data() || {}) : {};
+  const dowLocal = dowDe(fechaStr);
+  const diasLab = Array.isArray(conf.diasLaborales) ? conf.diasLaborales : [1, 2, 3, 4, 5, 6];
+  if (!diasLab.map(Number).includes(dowLocal)) return null;
+  if (Array.isArray(conf.diasBloqueados) && conf.diasBloqueados.includes(fechaStr)) return null;
+  const dcCfg = conf.diasConfig || {};
+  const diaCfg = dcCfg[dowLocal] ?? dcCfg[String(dowLocal)] ?? null;
+  if (diaCfg && diaCfg.activo === false) return null;
+  const abre   = toMins((diaCfg && diaCfg.inicio) || conf.horarioInicio || '09:00');
+  const cierra = toMins((diaCfg && diaCfg.fin)    || conf.horarioFin    || '20:00');
+  if (startMin < abre || endMin > cierra) return null;
+  if (conf.colacion && conf.colacion.inicio && conf.colacion.fin
+      && solapan(startMin, endMin, toMins(conf.colacion.inicio), toMins(conf.colacion.fin))) return null;
 
   const barbSnap = await c.barberos.get();
   const barberos = [];
