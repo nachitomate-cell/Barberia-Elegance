@@ -147,11 +147,22 @@
     function locRow(l){
       const partes = [];
       const ia = l.ia||{};
-      if(ia.costoHoy || ia.llamadasHoy) partes.push(`IA hoy ${usd(ia.costoHoy)} · ${num(ia.llamadasHoy)} llam.`);
-      if(ia.costoUsd) partes.push(`mes ${usd(ia.costoUsd)}`);
+      // El gasto de IA se muestra SIEMPRE que el local tenga el bot encendido,
+      // aunque vaya en cero. Escondiéndolo cuando no hay consumo, un local que
+      // dejó de gastar (bot mudo, sesión caída) se ve idéntico a uno que nunca
+      // gastó — y esa es justamente la diferencia que hay que notar.
+      if(l.bot || ia.costoHoy || ia.llamadasHoy) partes.push(`IA hoy ${usd(ia.costoHoy)} · ${num(ia.llamadasHoy)} llam.`);
+      if(l.bot || ia.costoUsd) partes.push(`mes ${usd(ia.costoUsd)}`);
       if(ia.cacheHit!=null){
         const hp = Math.round(ia.cacheHit*100);
         partes.push(`<span style="color:${hp<60?'var(--red)':'var(--green)'}">caché ${hp}%</span>`);
+      }
+      // Saldo de la bolsa del canal oficial. Solo para quien tiene ese canal
+      // contratado: en los demás sería un cero que no significa nada.
+      const of = l.oficial || {};
+      if(of.planCliente || of.planRecordatorio){
+        const s = Number(of.saldo)||0;
+        partes.push(`<span style="color:${s===0?'var(--red)':s<=10?'var(--amber)':'var(--soft)'}">📩 ${num(s)} msj en bolsa</span>`);
       }
       if(l.negocio && (l.negocio.agendadas || l.negocio.canceladas)) partes.push(`✂️ ${num(l.negocio.agendadas)} agendada(s) · ${num(l.negocio.canceladas)} cancelada(s)`);
       if(l.negocio && (l.negocio.confSi || l.negocio.confNo)) partes.push(`confirm ✓${num(l.negocio.confSi)} ✗${num(l.negocio.confNo)}`);
@@ -186,6 +197,61 @@
         <div class="row"><span>Llamadas IA</span><span class="v tnum">${num(d.claude?.llamadas)}</span></div>
         ${negRows}
         <div style="margin-top:12px">${locs}</div>
+      </div>`;
+    }
+
+    /* ── Gasto de Claude por local ──────────────────────────────────────
+       El costo de IA es el único insumo del bot que escala con el uso y NO
+       se le cobra al local por mensaje: si un local se dispara, el margen se
+       lo come SynapTech. Este panel existe para verlo por local antes de que
+       eso pase, no después en la factura de Anthropic.
+
+       Ordenado por gasto del MES descendente: el que hay que mirar siempre
+       está arriba. La proyección de cierre es lineal sobre los días
+       transcurridos — grosera, pero suficiente para decidir si hay que bajar
+       el tope de conversaciones de alguien. */
+    function iaPanel(d){
+      const locs = (d && d.locales || []).filter(l => l.bot || (l.ia && (l.ia.costoUsd || l.ia.llamadas)));
+      if(!locs.length) return '';
+      const ordenados = locs.slice().sort((a,b) => (b.ia?.costoUsd||0) - (a.ia?.costoUsd||0));
+      const totalMes = ordenados.reduce((t,l) => t + (l.ia?.costoUsd||0), 0);
+      const totalHoy = ordenados.reduce((t,l) => t + (l.ia?.costoHoy||0), 0);
+      const hoyDia   = new Date().getDate();
+      const diasMes  = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+      const proy     = totalMes / Math.max(1, hoyDia) * diasMes;
+
+      const fila = (l) => {
+        const ia = l.ia || {};
+        const mes = Number(ia.costoUsd)||0, hoy = Number(ia.costoHoy)||0;
+        const llam = Number(ia.llamadas)||0;
+        const porLlamada = llam ? mes/llam : 0;
+        // Barra relativa al local que más gasta: muestra el reparto de un
+        // vistazo, que es lo que dice a quién apretarle el tope.
+        const pct = totalMes > 0 ? Math.round(mes / (ordenados[0].ia?.costoUsd || mes || 1) * 100) : 0;
+        const hp = ia.cacheHit == null ? null : Math.round(ia.cacheHit*100);
+        return `<div class="loc">
+          <span class="dot ${dotClass(l)}"></span>
+          <span style="flex:1">${l.id}${l.bot?'':' <span class="muted">(bot apagado)</span>'}</span>
+          <span class="tnum" style="flex:0 0 auto;color:#fff;font-weight:600">${usd(mes)}</span>
+          <span class="sub2" style="display:flex;align-items:center;gap:10px">
+            <span class="bar" style="max-width:120px"><i style="width:${pct}%;background:#a78bfa"></i></span>
+            <span style="color:var(--soft)">hoy ${usd(hoy)} · ${num(llam)} llam. mes${
+              llam ? ` · ${usd(porLlamada)}/llam.` : ''}${
+              hp==null ? '' : ` · <span style="color:${hp<60?'var(--red)':'var(--green)'}">caché ${hp}%</span>`}</span>
+          </span>
+        </div>`;
+      };
+
+      return `<div class="panel" style="margin-top:14px">
+        <h3>🧠 Gasto de Claude por local · bot IA</h3>
+        <div class="row"><span>Hoy, sumando locales</span><span class="v tnum">${usd(totalHoy)}</span></div>
+        <div class="row"><span>Mes en curso</span><span class="v tnum">${usd(totalMes)}</span></div>
+        <div class="row"><span>Proyección de cierre</span><span class="v tnum" style="color:${proy>20?'var(--amber)':'inherit'}">${usd(proy)}</span></div>
+        <div style="margin-top:12px">${ordenados.map(fila).join('')}</div>
+        <div class="muted" style="margin-top:8px">
+          Es costo de tokens de Anthropic, no lo que paga el local. Para acotarlo se baja el
+          <b>tope de conversaciones/día</b> de ese local desde /admin. Un caché bajo 60% duplica el costo del mismo tráfico.
+        </div>
       </div>`;
     }
 
@@ -569,10 +635,13 @@
               <div class="kpi"><div class="n tnum">${num(em.mes.proyeccion)}</div><div class="k">Proyección de cierre</div></div>
             </div>`;
           })() : ''}
-          <div class="cols">
-            ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
-            ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
-          </div>
+          <!-- Barbería ocupa el ancho completo y SushiPro baja al final de la
+               página: hoy es el 100% del negocio vivo, y tenerlo en media
+               columna al lado de un panel en ceros hacía que la lista de
+               locales —lo que de verdad se mira todos los días— entrara
+               apretada y con scroll propio. -->
+          ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
+          ${iaPanel(data.barberia)}
           <!-- Una tarjeta por chip: cada uno tiene su propio cupo, su propia
                sesión y sus propios locales, así que promediarlos escondería
                justo lo que hay que ver (uno sano y otro degradándose).
@@ -585,6 +654,9 @@
           ${emailPanel(data.email)}
           ${metaWaPanel(data.metaWhatsApp)}
           ${trialsPanel(data.trials)}
+          <div style="margin-top:14px">
+            ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
+          </div>
           ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
         </div>`;
       document.getElementById('refresh').onclick = cargar;

@@ -4011,6 +4011,14 @@
       const platHuerfano = chips.length > 0 && !chips.some(c => c.chipId === chipTid);
       const maxConv     = Number(sys.botMaxConversaciones) || 0;   // techo de SynapTech
       const limiteLocal = Number(cfg.botLimiteConversaciones) || 0; // lo que eligió el dueño
+      // Bolsa del canal oficial. El saldo vive partido en dos cupos porque cada
+      // uno se agota por su lado: se puede quedar sin recordatorios y seguir
+      // confirmando. Lo que se mira primero es el TOTAL, el desglose va debajo.
+      const saldoConf  = Number(waNotif.bolsaSaldoConf) || 0;
+      const saldoRec   = Number(waNotif.bolsaSaldoRec)  || 0;
+      const saldoTotal = saldoConf + saldoRec;
+      const mensualInc = Number(waNotif.bolsaMensualIncluida) || 0;
+      const bolsaUsados = Number(waNotif.bolsaUsados) || 0;
       const platConect  = plat.estadoConexion === 'connected';
       const platCap     = Number(plat.cap) || 0;
       const platHoy     = Number(plat.usadosHoy) || 0;
@@ -4121,6 +4129,38 @@
           ${fila('Recordatorio 24h antes',
                  'Plantilla el día previo, con botones Sí / No podré.',
                  metaRecor, `setWaMeta('planRecordatorio', ${!metaRecor})`)}
+          <!-- ── Bolsa de mensajes ──
+               Es lo primero que hay que poder responder cuando el local
+               reclama que "no llegan los WhatsApp": casi siempre es saldo
+               cero, no una falla. Se muestra siempre, aunque el módulo esté
+               apagado, porque el saldo sobrevive al switch. -->
+          <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:0.5rem;padding-top:0.5rem;">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:0.5rem;">
+              <p style="font-size:0.66rem;color:#94a3b8;margin:0;"><b>Mensajes disponibles</b></p>
+              <p style="margin:0;font-size:0.95rem;font-weight:800;font-variant-numeric:tabular-nums;
+                        color:${saldoTotal === 0 ? '#f87171' : saldoTotal <= 10 ? '#fbbf24' : '#6ee7b7'};">
+                ${saldoTotal}
+              </p>
+            </div>
+            <p style="font-size:0.63rem;color:#64748b;margin:0.15rem 0 0.4rem;line-height:1.35;">
+              confirmaciones ${saldoConf} · recordatorios ${saldoRec}${bolsaUsados ? ` · ${bolsaUsados} usados en total` : ''}<br>
+              ${mensualInc > 0
+                ? `Incluidos en su mensualidad: <b style="color:#94a3b8;">${mensualInc}/mes</b> — el día 1 se repone hasta ahí (nunca pisa saldo mayor).`
+                : 'Sin mensajes incluidos en la mensualidad: solo carga lo que compra.'}
+            </p>
+            <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+              ${[50, 100, 300].map(n => `<button onclick="ajustarBolsa(${n})" style="
+                flex:1;min-width:44px;cursor:pointer;border-radius:0.45rem;padding:0.32rem 0.2rem;font-size:0.66rem;font-weight:700;
+                border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);color:#6ee7b7;">+${n}</button>`).join('')}
+              <button onclick="fijarBolsa()" style="
+                flex:1.2;min-width:52px;cursor:pointer;border-radius:0.45rem;padding:0.32rem 0.2rem;font-size:0.66rem;font-weight:700;
+                border:1px solid rgba(148,163,184,0.25);background:transparent;color:#94a3b8;">Fijar…</button>
+              <button onclick="fijarBolsaMensual()" style="
+                flex:1.6;min-width:70px;cursor:pointer;border-radius:0.45rem;padding:0.32rem 0.2rem;font-size:0.66rem;font-weight:700;
+                border:1px solid rgba(148,163,184,0.25);background:transparent;color:#94a3b8;">Incluidos/mes…</button>
+            </div>
+          </div>
+
           ${!templatesOn ? `
           <p style="font-size:0.66rem;color:#fbbf24;margin:0.4rem 0 0;line-height:1.35;">
             <i class="ph-bold ph-power"></i> La llave global de plantillas está <b>apagada</b>: nada sale aunque estos switches estén encendidos.
@@ -4375,6 +4415,49 @@
         loadWaModules();
       } catch (e) { alert('Error: ' + e.message); }
     }
+
+    /* ── Ajuste manual de la bolsa de mensajes ──
+       Va por callable y no escribiendo wa_notif directo (que las reglas sí
+       permitirían) porque el reparto conf/rec tiene que salir del MISMO
+       cálculo que usa la compra por Mercado Pago, y porque cada ajuste queda
+       firmado: es saldo que el local pagó. */
+    async function _bolsaCall(payload, exito) {
+      if (!_activeTenant) return;
+      try {
+        const r = await firebase.app().functions('us-central1')
+          .httpsCallable('waBolsaAjustar')({ tenantId: _activeTenant, ...payload });
+        loadWaModules();
+        if (exito) alert(exito(r.data || {}));
+      } catch (e) { alert('No se pudo ajustar la bolsa: ' + e.message); }
+    }
+
+    async function ajustarBolsa(delta) {
+      await _bolsaCall({ delta, motivo: 'ajuste rápido desde /admin' },
+        d => `Saldo actualizado: ${d.saldo} mensajes.`);
+    }
+
+    async function fijarBolsa() {
+      const v = prompt('Dejar el saldo EXACTO en cuántos mensajes?\n\n(Reemplaza el saldo actual, no suma.)');
+      if (v === null || v.trim() === '') return;
+      const n = Math.round(Number(v));
+      if (!Number.isFinite(n) || n < 0) { alert('Número inválido.'); return; }
+      await _bolsaCall({ total: n, motivo: 'saldo fijado a mano desde /admin' },
+        d => `Saldo fijado en ${d.saldo} mensajes.`);
+    }
+
+    async function fijarBolsaMensual() {
+      const v = prompt('Cuántos mensajes van INCLUIDOS en su mensualidad?\n\n' +
+        'El día 1 de cada mes el saldo se repone hasta ese número. 0 = sin mensajes incluidos.');
+      if (v === null || v.trim() === '') return;
+      const n = Math.round(Number(v));
+      if (!Number.isFinite(n) || n < 0) { alert('Número inválido.'); return; }
+      await _bolsaCall({ mensualIncluida: n, motivo: 'cupo mensual fijado desde /admin' },
+        () => `Quedan ${n} mensajes incluidos al mes. Se reponen el día 1.`);
+    }
+
+    window.ajustarBolsa = ajustarBolsa;
+    window.fijarBolsa = fijarBolsa;
+    window.fijarBolsaMensual = fijarBolsaMensual;
 
     // Llave global de plantillas: sin esto NINGÚN local envía por Meta.
     async function toggleWaTemplatesGlobal(val) {

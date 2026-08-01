@@ -1618,6 +1618,9 @@ exports.waBolsaWebhook        = waBolsas.waBolsaWebhook;
 exports.waBolsaReponerMensual = waBolsas.waBolsaReponerMensual;
 exports.waBolsaReparto        = waBolsas.waBolsaReparto;
 exports.waNotifPreferencias   = waBolsas.waNotifPreferencias;
+// Ajuste manual del saldo desde /admin (transferencias, tratos cerrados a
+// mano, devoluciones). Solo operador, y cada ajuste queda auditado.
+exports.waBolsaAjustar        = waBolsas.waBolsaAjustar;
 
 // ─────────────────────────────────────────────────────────────────
 //  ASISTENTE IA + CONFIRMACIONES (Evolution API, número propio del

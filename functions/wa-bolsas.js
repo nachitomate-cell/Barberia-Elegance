@@ -32,7 +32,7 @@ const { defineSecret }                  = require('firebase-functions/params');
 const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
 const { FieldValue }                    = require('firebase-admin/firestore');
-const { esBootstrap }                   = require('./lib/operadores');
+const { esBootstrap, esOperadorReq }    = require('./lib/operadores');
 const { enviarEmail, MAIL_SECRETS }     = require('./lib/mailer');
 
 const db = admin.firestore();
@@ -151,6 +151,71 @@ exports.waBolsaReparto = onCall({ region: 'us-central1', cors: true }, async (re
   logger.info(`[wa-bolsa] ${tid}: reparto ${pct}% conf → conf=${out.conf} rec=${out.rec}`);
   await syncCheckboxPublico(tid);
   return { ok: true, pct, ...out };
+});
+
+/* ─────────────── Ajuste manual del saldo (solo SynapTech) ───────────────
+   Hay recargas que no pasan por Checkout Pro: una transferencia, los mensajes
+   que van incluidos en un trato cerrado a mano (Renacer), o devolver los que
+   se comió un envío fallido. Antes eso era abrir la consola de Firestore y
+   escribir dos campos a ojo — con el riesgo de dejar el reparto conf/rec
+   torcido o de pisar saldo comprado.
+
+   Se hace acá y no desde /admin escribiendo el doc directo por tres razones:
+   el reparto se calcula con el MISMO `partir()` que usa la compra (una sola
+   fuente de verdad), la transacción no puede pisar una compra que entró en el
+   mismo instante, y cada ajuste queda firmado en `wa_bolsa_ajustes` — es plata
+   del cliente, tiene que poder auditarse quién y cuándo. */
+exports.waBolsaAjustar = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!esOperadorReq(req)) throw new HttpsError('permission-denied', 'Solo SynapTech.');
+  const tid = String(req.data?.tenantId || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
+
+  const tieneTotal = req.data?.total !== undefined && req.data?.total !== null;
+  const tieneDelta = req.data?.delta !== undefined && req.data?.delta !== null;
+  const tieneMens  = req.data?.mensualIncluida !== undefined && req.data?.mensualIncluida !== null;
+  if (!tieneTotal && !tieneDelta && !tieneMens) {
+    throw new HttpsError('invalid-argument', 'Nada que ajustar.');
+  }
+  // Tope de cordura: un cero de más en un prompt son ~$200.000 de costo Meta.
+  const TECHO = 5000;
+  const total = tieneTotal ? Math.max(0, Math.min(TECHO, Math.round(Number(req.data.total) || 0))) : null;
+  const delta = tieneDelta ? Math.max(-TECHO, Math.min(TECHO, Math.round(Number(req.data.delta) || 0))) : null;
+  const mens  = tieneMens  ? Math.max(0, Math.min(TECHO, Math.round(Number(req.data.mensualIncluida) || 0))) : null;
+  const quien = String(req.auth?.token?.email || 'desconocido');
+
+  const ref = db.doc(`wa_notif/${tid}`);
+  const out = await db.runTransaction(async (tx) => {
+    const wa    = (await tx.get(ref)).data() || {};
+    const antes = (Number(wa.bolsaSaldoConf) || 0) + (Number(wa.bolsaSaldoRec) || 0);
+    const patch = {};
+    let despues = antes;
+
+    if (total !== null || delta !== null) {
+      despues = Math.max(0, total !== null ? total : antes + delta);
+      const { conf, rec } = partir(despues, repartoDe(wa));
+      patch.bolsaSaldoConf = conf;
+      patch.bolsaSaldoRec  = rec;
+    }
+    if (mens !== null) patch.bolsaMensualIncluida = mens;
+
+    tx.set(ref, patch, { merge: true });
+    return { antes, despues, mens };
+  });
+
+  await db.collection('wa_bolsa_ajustes').add({
+    tid, quien,
+    saldoAntes: out.antes, saldoDespues: out.despues,
+    mensualIncluida: out.mens,
+    motivo: String(req.data?.motivo || '').slice(0, 200),
+    creadoEn: FieldValue.serverTimestamp(),
+  }).catch(e => logger.warn('[wa-bolsa] auditoría ajuste:', e.message));
+
+  // El checkbox de la reserva pública depende del saldo: dejarlo desincronizado
+  // es prometerle al cliente un aviso que nunca sale (o esconder uno que sí).
+  await syncCheckboxPublico(tid);
+  logger.info(`[wa-bolsa] ${tid}: ajuste manual de ${quien} — saldo ${out.antes} → ${out.despues}` +
+              (out.mens !== null ? ` · incluidos/mes = ${out.mens}` : ''));
+  return { ok: true, saldo: out.despues, mensualIncluida: out.mens };
 });
 
 /* ─────────────── 1) Crear link de pago (Checkout Pro) ─────────────── */
