@@ -274,6 +274,24 @@ export function MiConsumo({ tid, standalone = false }) {
         <ShieldCheck size={15} className="text-emerald-400" /> Tu número, protegido
       </p>
 
+      {/* ── Lo que el bot le puso en caja ESTE MES, en pesos ──
+          Va primero y en grande: es la única cifra que responde "¿me conviene
+          seguir pagando esto?". Los conteos quedan debajo como respaldo. */}
+      {(Number(mes.dineroAgendado) > 0 || Number(mes.dineroSalvado) > 0) && (
+        <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400/80">Este mes, el asistente te agendó</p>
+          <p className="text-3xl font-bold text-emerald-300 tabular-nums leading-none mt-1.5">
+            ${Number(mes.dineroAgendado).toLocaleString('es-CL')}
+          </p>
+          <p className="text-[12px] text-slate-400 mt-1.5 leading-relaxed">
+            en {mes.citasAgendadas} cita{mes.citasAgendadas === 1 ? '' : 's'}, mientras tú trabajabas o dormías.
+            {Number(mes.dineroSalvado) > 0 && (
+              <> Además rescató <b className="text-emerald-300">${Number(mes.dineroSalvado).toLocaleString('es-CL')}</b> moviendo horas que se iban a perder.</>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* ── CRM del asistente: lo que ha hecho HASTA AHORA ── */}
       {(kpis[0].n > 0 || kpis[1].n > 0 || kpis[2].n > 0) && (
         <div className="space-y-2">

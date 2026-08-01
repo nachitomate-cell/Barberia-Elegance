@@ -338,6 +338,27 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
     });
   } catch (_) { /* sin índice o sin docs: el histórico sale en cero, no rompe */ }
 
+  /* ── Lo que el bot le PUSO EN CAJA al local, en pesos ──
+     "12 reservas agendadas" no le dice nada a un dueño que está decidiendo si
+     renovar; "$156.000 agendados mientras trabajabas" sí. Se suma el precio
+     real de las citas que creó el bot (origen wa_bot) y el de las que MOVIÓ en
+     vez de dejar caer (reagendadaVia wa_bot) — esas últimas son horas que se
+     iban a perder. Se descuentan canceladas y cortesías: cobrar en el discurso
+     lo que no entró a la caja destruye la confianza en el número. */
+  const dineroMes = { agendado: 0, salvado: 0 };
+  try {
+    const citasCol = tid === 'elegance' ? db.collection('citas') : db.collection(`tenants/${tid}/citas`);
+    const desde = `${mes}-01`;
+    const snapCitas = await citasCol.where('fecha', '>=', desde).get();
+    snapCitas.forEach((d) => {
+      const c = d.data() || {};
+      if (c.estado === 'Cancelada' || c.estado === 'NoAsistio' || c.cortesia === true) return;
+      const monto = Number(c.precio) || 0;
+      if (c.origen === 'wa_bot')        dineroMes.agendado += monto;
+      if (c.reagendadaVia === 'wa_bot') dineroMes.salvado  += monto;
+    });
+  } catch (e) { logger.warn(`[miConsumo] dinero ${tid}:`, e.message); }
+
   const agendadas  = Number(neg.agendada)   || 0;
   const confSi     = Number(neg.conf_si)    || 0;
   const confNo     = Number(neg.conf_no)    || 0;
@@ -365,6 +386,9 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
       reubicadas,
       canceladas: Number(neg.cancelada) || 0,
       bajas,
+      // En pesos: lo que entró por el bot y lo que rescató al mover una cita.
+      dineroAgendado: Math.round(dineroMes.agendado),
+      dineroSalvado:  Math.round(dineroMes.salvado),
     },
     historico: hist,   // acumulado de TODOS los meses, para el CRM del panel
     numero: { edadDias, siguienteNivel, conectado: wa.estadoConexion === 'connected' },
