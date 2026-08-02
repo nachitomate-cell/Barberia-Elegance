@@ -24,9 +24,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { logger }                = require('firebase-functions');
+const { onCall, HttpsError }    = require('firebase-functions/v2/https');
 const admin                     = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const Anthropic                 = require('@anthropic-ai/sdk');
+const { esOperador }            = require('../lib/operadores');
 
 const { _ahoraChile: ahoraChile }        = require('../chat-horas-disponibles');
 const { logAiUsage }                     = require('../lib/metrics');
@@ -40,6 +42,7 @@ const db = admin.firestore();
 // ~US$0,01) es ruido al lado de perder un lead por una respuesta torpe.
 const MODEL        = 'claude-sonnet-5';
 const MAX_TOKENS   = 500;                  // WhatsApp: respuestas cortas
+const MAX_ROUNDS   = 3;                    // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 16;                   // 8 pares — una conversación de ventas cabe entera
 const SILENCIO_MS  = 4 * 60 * 60 * 1000;  // Ignacio tomó el chat → bot mudo 4 h ahí
 
@@ -73,7 +76,8 @@ Web: empieza.synaptechspa.cl · Instagram: @synaptechspa
 TU OBJETIVO (en este orden)
 1. Responder claro y corto las dudas sobre el producto.
 2. Conseguir los datos conversando de forma natural: su nombre, el nombre del negocio, el rubro y la comuna/ciudad. No los pidas todos de golpe.
-3. CERRAR UNA REUNIÓN: propón una videollamada corta de 15 minutos por Google Meet para mostrarle la agenda funcionando y armarle un plan. Pregunta qué día y horario le acomodan, y di que le confirmas la hora exacta y le mandas el link de Meet por este mismo chat. Nunca comprometas una hora exacta al tiro: la confirmas después, mirando el calendario.
+3. CERRAR UNA REUNIÓN: propón una videollamada corta de 15 minutos por Google Meet para mostrarle la agenda funcionando y armarle un plan. Pregunta qué día y horario le acomodan. Nunca comprometas una hora exacta al tiro: la confirmas después, mirando el calendario.
+4. En cuanto el lead ACEPTE reunirse (aunque falten datos), llama a la herramienta registrar_reunion con todo lo que tengas. Sigue las instrucciones que te devuelva: si trae un link de Meet, compártelo diciendo que ese será el link y que confirmas la hora exacta por este chat; si no trae, di que mandas el link al confirmar la hora.
 
 REGLAS DURAS
 · PRECIOS: nunca des cifras ni rangos. Di que depende del tamaño del local y los módulos, que hay una versión base gratuita para partir, y que el detalle se lo muestras en la reunión.
@@ -87,6 +91,75 @@ ESTILO
 · WhatsApp humano: 1 a 4 líneas por mensaje, a veces una sola. Máximo un emoji de vez en cuando.
 · Español neutro y cercano, trato de "tú". Cero jerga técnica, cero lenguaje de plantilla; nunca firmes los mensajes.
 · Una sola pregunta por mensaje, nunca un interrogatorio.`;
+
+/* ─────────────────── Herramienta: registrar la captura ───────────────────
+   El módulo "Leads" no adivina con regex cuándo se cerró la reunión: el
+   propio modelo lo declara llamando esta tool con los datos ya estructurados.
+   El executor escribe wa_ventas_leads/{tel} (lo que lee la card de ops.html)
+   y le avisa a Ignacio a su propio WhatsApp (chat "Mensajes a ti mismo"). */
+const TOOLS = [{
+  name: 'registrar_reunion',
+  description: 'Registra que el lead aceptó tener una reunión por Google Meet. Llámala EN CUANTO el lead acepte reunirse, con todos los datos que tengas hasta ese momento (aunque falten algunos). Vuelve a llamarla si el lead corrige o agrega datos importantes (otro día, otro nombre, etc.).',
+  input_schema: {
+    type: 'object',
+    properties: {
+      nombre:        { type: 'string', description: 'Nombre de la persona' },
+      negocio:       { type: 'string', description: 'Nombre del negocio/local' },
+      rubro:         { type: 'string', description: 'Rubro (barbería, salón, estética, etc.)' },
+      comuna:        { type: 'string', description: 'Comuna o ciudad' },
+      dia_preferido: { type: 'string', description: 'Día que le acomoda (ej: "lunes 4 de agosto", "esta semana")' },
+      franja:        { type: 'string', description: 'Franja horaria preferida (ej: "en la tarde", "después de las 19")' },
+      notas:         { type: 'string', description: 'Cualquier dato útil extra (tamaño del local, qué le interesó, urgencia)' },
+    },
+    required: [],
+  },
+}];
+
+async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoClient, instancia }) {
+  const lead = {
+    telefono,
+    nombre:       String(input?.nombre || pushName || '').slice(0, 80),
+    negocio:      String(input?.negocio || '').slice(0, 120),
+    rubro:        String(input?.rubro || '').slice(0, 60),
+    comuna:       String(input?.comuna || '').slice(0, 60),
+    diaPreferido: String(input?.dia_preferido || '').slice(0, 80),
+    franja:       String(input?.franja || '').slice(0, 80),
+    notas:        String(input?.notas || '').slice(0, 300),
+    estado:       'reunion_solicitada',
+    chipId,
+    updatedAt:    FieldValue.serverTimestamp(),
+  };
+  const ref = db.doc(`wa_ventas_leads/${telefono}`);
+  const ya = await ref.get();
+  await ref.set({ ...lead, ...(ya.exists ? {} : { creadoEn: FieldValue.serverTimestamp() }) }, { merge: true });
+
+  // Aviso instantáneo a Ignacio: mensaje a sí mismo desde su propia línea →
+  // cae en el chat "Tú" de WhatsApp. Fire-and-forget: si falla, el lead igual
+  // queda en la card de ops.html.
+  const aviso = [
+    '🎯 *Lead listo para reunión*',
+    '',
+    `👤 ${lead.nombre || '(sin nombre)'}${lead.negocio ? ' · ' + lead.negocio : ''}`,
+    [lead.rubro, lead.comuna].filter(Boolean).join(' · '),
+    `📅 Prefiere: ${[lead.diaPreferido, lead.franja].filter(Boolean).join(' · ') || 'sin preferencia clara'}`,
+    lead.notas ? `📝 ${lead.notas}` : '',
+    '',
+    `💬 wa.me/${telefono}`,
+    'Confirma hora + link de Meet por ese chat. Card completa en ops.',
+  ].filter(Boolean).join('\n');
+  evoClient.enviarTexto(instancia, '56983568212', aviso).catch(e =>
+    logger.warn(`[ventas:${chipId}] aviso self falló: ${e.message}`));
+
+  logger.info(`[ventas:${chipId}] 🎯 reunión registrada ***${telefono.slice(-4)} (${lead.negocio || 's/negocio'})`);
+  const meetLink = String(cfg?.meetLink || '').trim() || null;
+  return {
+    ok: true,
+    meetLink,
+    instruccion: meetLink
+      ? 'Registrado. Comparte el link de Meet: dile que ese será el link de la reunión y que le confirmas la hora exacta por este mismo chat.'
+      : 'Registrado. NO tienes link aún: dile que le confirmas la hora exacta y le mandas el link de Meet por este mismo chat.',
+  };
+}
 
 function systemVariable({ fecha, pushName, telefono }) {
   return [
@@ -234,24 +307,45 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
     return;
   }
 
-  // ── Claude ──
+  // ── Claude (loop con tool use: registrar_reunion) ──
   const historia = (Array.isArray(convData.messages) ? convData.messages : []).slice(-MAX_HISTORIA);
   const client = new Anthropic({ apiKey: anthropicKey });
   let respuesta = '';
   try {
-    const resp = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      // Mismo esquema de caché que el cerebro: prefijo fijo a 1 h — acá el
-      // pitch es corto, pero el TTL largo cubre el ritmo lento de WhatsApp.
-      system: [
-        { type: 'text', text: SYSTEM_FIJO, cache_control: { type: 'ephemeral', ttl: '1h' } },
-        { type: 'text', text: systemVariable({ fecha: hoy, pushName, telefono }) },
-      ],
-      messages: [...historia, { role: 'user', content: textoClaude }],
-    });
-    logAiUsage(MODEL, resp.usage || {}, 'ventas').catch(() => {});
-    respuesta = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+    const messages = [...historia, { role: 'user', content: textoClaude }];
+    // Mismo esquema de caché que el cerebro: prefijo fijo a 1 h — acá el
+    // pitch es corto, pero el TTL largo cubre el ritmo lento de WhatsApp.
+    const system = [
+      { type: 'text', text: SYSTEM_FIJO, cache_control: { type: 'ephemeral', ttl: '1h' } },
+      { type: 'text', text: systemVariable({ fecha: hoy, pushName, telefono }) },
+    ];
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const resp = await client.messages.create({
+        model: MODEL, max_tokens: MAX_TOKENS, system, tools: TOOLS, messages,
+      });
+      logAiUsage(MODEL, resp.usage || {}, 'ventas').catch(() => {});
+      messages.push({ role: 'assistant', content: resp.content });
+
+      if (resp.stop_reason === 'tool_use') {
+        const results = [];
+        for (const block of resp.content) {
+          if (block.type !== 'tool_use') continue;
+          let out;
+          try {
+            out = await registrarReunion(block.input, { chipId, cfg, telefono, pushName, evoClient, instancia });
+          } catch (e) {
+            logger.error(`[ventas:${chipId}] tool registrar_reunion:`, e.message);
+            out = { error: 'Fallo interno al registrar. Sigue la conversación con normalidad.' };
+          }
+          results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(out) });
+        }
+        messages.push({ role: 'user', content: results });
+        continue;
+      }
+
+      respuesta = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      break;
+    }
   } catch (e) {
     logger.error(`[ventas:${chipId}] Claude:`, e.message);
     return;   // mejor callar que responder basura: el lead le llega igual a Ignacio
@@ -296,4 +390,62 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   logger.info(`[ventas:${chipId}] respondido a ***${telefono.slice(-4)} (${respHoy + 1}/${MAX_RESP_CHAT_DIA} hoy)`);
 }
 
-module.exports = { procesarMensajeVentas };
+/* ─────────────────── Callables del módulo Leads (ops.html) ───────────────────
+   Mismo patrón que plataforma.js: ops no carga el SDK de Firestore, todo pasa
+   por callables gateadas a operadores. */
+
+function exigirOperador(req) {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
+  const email = String(req.auth.token?.email || '').toLowerCase();
+  if (!esOperador(email)) {
+    throw new HttpsError('permission-denied', 'Solo SynapTech administra los leads de ventas.');
+  }
+}
+
+const ventasLeads = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  exigirOperador(req);
+  const [leadsSnap, chipSnap, convsSnap] = await Promise.all([
+    db.collection('wa_ventas_leads').orderBy('updatedAt', 'desc').limit(60).get(),
+    db.doc('_system/wa_plataforma_ventas').get(),
+    db.collection('wa_ventas_conversaciones').where('activado', '==', true).get(),
+  ]);
+  const chip = chipSnap.data() || {};
+  const leads = leadsSnap.docs.map((d) => {
+    const l = d.data() || {};
+    return {
+      telefono:     d.id,
+      nombre:       l.nombre || '',
+      negocio:      l.negocio || '',
+      rubro:        l.rubro || '',
+      comuna:       l.comuna || '',
+      diaPreferido: l.diaPreferido || '',
+      franja:       l.franja || '',
+      notas:        l.notas || '',
+      estado:       l.estado || 'reunion_solicitada',
+      actualizado:  l.updatedAt?.toMillis?.() || null,
+    };
+  });
+  return {
+    ok: true,
+    leads,
+    meetLink:      String(chip.meetLink || '').trim() || null,
+    chipConectado: chip.estadoConexion === 'connected',
+    convs:         convsSnap.size,
+  };
+});
+
+const ESTADOS_LEAD = ['reunion_solicitada', 'confirmada', 'realizada', 'descartado'];
+
+const ventasLeadEstado = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  exigirOperador(req);
+  const tel    = String(req.data?.telefono || '').replace(/\D/g, '');
+  const estado = String(req.data?.estado || '');
+  if (!/^\d{8,15}$/.test(tel) || !ESTADOS_LEAD.includes(estado)) {
+    throw new HttpsError('invalid-argument', 'Teléfono o estado inválido.');
+  }
+  await db.doc(`wa_ventas_leads/${tel}`).set({ estado, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  logger.info(`[ventas:leads] ***${tel.slice(-4)} → ${estado} (${req.auth.token.email})`);
+  return { ok: true, telefono: tel, estado };
+});
+
+module.exports = { procesarMensajeVentas, ventasLeads, ventasLeadEstado };

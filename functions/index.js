@@ -1653,6 +1653,12 @@ exports.plataformaChips          = evolutionPlataforma.plataformaChips;
 exports.plataformaAsignar        = evolutionPlataforma.plataformaAsignar;
 exports.plataformaConfirmaciones = evolutionPlataforma.plataformaConfirmaciones;
 
+// Módulo Leads del bot de ventas (chip 'ventas' en el número de Ignacio):
+// captura de reuniones vía tool registrar_reunion + card en ops.html.
+const evolutionVentas = require('./evolution/ventas');
+exports.ventasLeads      = evolutionVentas.ventasLeads;
+exports.ventasLeadEstado = evolutionVentas.ventasLeadEstado;
+
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
 // puede enumerarlos). Ver functions/admin-listar-tenants.js.
 exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;

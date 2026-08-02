@@ -511,6 +511,48 @@
 
     const _fn = (n) => firebase.app().functions('us-central1').httpsCallable(n);
 
+    /* ── Leads del bot de ventas (chip del número de Ignacio) ─────────────
+       La captura la declara el propio bot (tool registrar_reunion): acá solo
+       se muestra el embudo y se mueve el estado a mano al confirmar/realizar
+       la reunión. El chat completo vive en el WhatsApp de Ignacio. */
+    const LEAD_ESTADOS = {
+      reunion_solicitada: { t:'⏳ Reunión solicitada', c:'var(--amber)'  },
+      confirmada:         { t:'📅 Hora confirmada',    c:'var(--accent)' },
+      realizada:          { t:'✅ Reunión hecha',       c:'var(--green)'  },
+      descartado:         { t:'✖ Descartado',          c:'var(--soft)'   },
+    };
+    function leadsPanel(v){
+      const leads = v.leads || [];
+      const hace = ms => { if(!ms) return '—'; const m = Math.round((Date.now()-ms)/60000);
+        return m < 60 ? m + ' min' : m < 1440 ? Math.round(m/60) + ' h' : Math.round(m/1440) + ' d'; };
+      return `<div class="panel" style="margin-top:14px">
+        <h3>🎯 Leads · bot de ventas
+          ${v.chipConectado ? '<span class="tag g">chip conectado</span>' : '<span class="tag" style="color:var(--red)">chip desconectado</span>'}
+          ${v.meetLink ? '<span class="tag g">Meet fijo listo</span>' : '<span class="tag" style="color:var(--amber)">sin link de Meet</span>'}
+          <span class="tag">${v.convs||0} chat(s) activados</span>
+        </h3>
+        ${leads.length ? leads.map(l => {
+          const e = LEAD_ESTADOS[l.estado] || { t: l.estado || '—', c: 'var(--soft)' };
+          return `<div class="loc">
+            <span class="dot ${l.estado==='confirmada'||l.estado==='realizada' ? 'on' : 'off'}"></span>
+            <strong>${l.nombre || '(sin nombre)'}</strong>
+            <span class="muted">${[l.negocio, l.rubro, l.comuna].filter(Boolean).join(' · ') || 'sin datos aún'}</span>
+            <span style="margin-left:auto;font-size:11px;font-weight:600;color:${e.c}">${e.t}</span>
+            <span class="sub2">📅 ${[l.diaPreferido, l.franja].filter(Boolean).join(' · ') || 'sin preferencia'}${l.notas ? ' · 📝 ' + l.notas : ''} · hace ${hace(l.actualizado)} ·
+              <a href="https://wa.me/${l.telefono}" target="_blank" style="color:var(--accent);text-decoration:none">abrir chat ↗</a>
+              ${l.estado==='reunion_solicitada' ? `· <button class="mini" onclick="opsLeadEstado('${l.telefono}','confirmada')">confirmé hora</button>` : ''}
+              ${l.estado==='confirmada' ? `· <button class="mini" onclick="opsLeadEstado('${l.telefono}','realizada')">reunión hecha</button>` : ''}
+              ${l.estado!=='descartado' && l.estado!=='realizada' ? `· <button class="mini danger" onclick="opsLeadEstado('${l.telefono}','descartado')">descartar</button>` : ''}
+            </span>
+          </div>`; }).join('')
+        : '<p class="muted">Aún no hay capturas. Cuando un lead acepte la reunión, el bot lo registra aquí y te llega un WhatsApp (chat contigo mismo).</p>'}
+      </div>`;
+    }
+    async function opsLeadEstado(tel, estado){
+      try { await _fn('ventasLeadEstado')({ telefono: tel, estado }); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+
     async function opsAsignar(tenantId, chipId, activo){
       const payload = { tenantId };
       if (chipId != null)  payload.chipId = chipId;
@@ -600,7 +642,7 @@
       }
     }
 
-    function render(data, chipsData){
+    function render(data, chipsData, ventasData){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
@@ -640,6 +682,7 @@
                columna al lado de un panel en ceros hacía que la lista de
                locales —lo que de verdad se mira todos los días— entrara
                apretada y con scroll propio. -->
+          ${ventasData ? leadsPanel(ventasData) : ''}
           ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
           ${iaPanel(data.barberia)}
           <!-- Una tarjeta por chip: cada uno tiene su propio cupo, su propia
@@ -729,11 +772,13 @@
         // Si la de chips falla, el panel de administración simplemente no se
         // dibuja: las métricas son lo importante y no se pierden por no poder
         // listar los chips.
-        const [rm, rc] = await Promise.all([
+        const [rm, rc, rv] = await Promise.all([
           _fn('opsMetrics')({}),
           _fn('plataformaChips')({}).catch(() => null),
+          // Leads del bot de ventas: si falla, el resto del panel vive igual.
+          _fn('ventasLeads')({}).catch(() => null),
         ]);
-        render(rm.data, rc && rc.data);
+        render(rm.data, rc && rc.data, rv && rv.data);
       } catch(e){
         app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
         const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();
