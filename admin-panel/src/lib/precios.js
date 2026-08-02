@@ -105,6 +105,22 @@ export const ADDONS = [
   },
 ];
 
+// ── Asistente IA · modelo HÍBRIDO (decisión de Ignacio, 2026-08-02) ──
+// Base baja + comisión por cita que el bot agenda SOLO. El local paga poco
+// fijo y el resto únicamente cuando el bot le trajo reservas de verdad; para
+// un local activo (≈30 citas/mes) termina sobre el add-on plano, y para uno
+// chico es más barato que la tarifa fija. Las citas se cuentan de
+// `_metrics/bot_{tid}_{YYYY-MM}.agendada` (ya se registraba, no hubo que
+// instrumentar nada). Sustituye al `ia-asistente` plano en las cotizaciones
+// nuevas; los tenants con tarifa pactada mantienen la suya.
+export const ASISTENTE_HIBRIDO = {
+  id: 'ia-asistente-hibrido',
+  nombre: 'Asistente 24/7 · pago por uso',
+  base: 4900,        // neto al mes
+  porCita: 500,      // neto por cita agendada por el bot
+  iva: 'mas',
+};
+
 // Bundle de los dos módulos de IA (20% off sobre la suma).
 export const BUNDLE_IA = {
   id: 'ia-bundle',

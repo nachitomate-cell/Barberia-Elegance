@@ -16,6 +16,7 @@ import {
   ExternalLink, CreditCard, Sparkles, Copy, Check, Send,
   Calendar, Building2, User, Hash, Mail, Wallet, Clock,
   Headphones, ChevronRight, Repeat, Zap, Layers, Users, FileText, Printer,
+  MessageCircle, X,
 } from 'lucide-react';
 
 /* ── Configuración por estado ───────────────────────────────────── */
@@ -215,6 +216,25 @@ export default function Mensualidad() {
     return unsub;
   }, [tenantId]);
 
+  // Detalle EXACTO de lo contratado (add-ons, plan de WhatsApp, uso del bot).
+  // Va por callable porque cruza _system — que el local no puede leer — y
+  // porque así el desglose se DERIVA en el server en vez de duplicarse acá.
+  // Si falla, la vista sigue funcionando sin el detalle (no bloquea el pago).
+  const [detalle, setDetalle] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'miPlanDetalle');
+        const r  = await fn({});
+        if (vivo) setDetalle(r.data || null);
+      } catch (e) {
+        console.warn('[Mensualidad] miPlanDetalle:', e?.message);
+      }
+    })();
+    return () => { vivo = false; };
+  }, [tenantId]);
+
   // ── Qué incluye el plan y con qué datos se factura ──
   // Los datos tributarios NO se piden acá: ya viven en Facturación
   // (configuracion/facturacion.emisorLocal). Se leen de ahí para no tener dos
@@ -388,8 +408,12 @@ export default function Mensualidad() {
               neto={Number(billing?.montoPendiente) || 0}
               locales={conteos.locales}
               profesionales={conteos.profesionales}
+              det={detalle}
             />
           )}
+
+          {/* ─────── WhatsApp: qué está contratado y qué hizo el bot ─────── */}
+          <WhatsAppDetalleCard wa={detalle?.whatsapp} hibrido={detalle?.hibrido} />
 
           {/* ─────── Pago automático (Suscripciones MP) ─────── */}
           {billing && Number(billing?.montoPendiente) > 0 && (
@@ -1071,7 +1095,7 @@ function buildComprobanteHTML({ tenantName, cuota, emisor, ivaPct }) {
 // cargado. Una lista escrita a mano se desactualiza en cuanto suman un
 // profesional, y ahí el detalle deja de explicar la boleta.
 const IVA_PCT = 19;
-function PlanDetalleCard({ planNombre, neto, locales, profesionales }) {
+function PlanDetalleCard({ planNombre, neto, locales, profesionales, det }) {
   const iva   = Math.round(neto * IVA_PCT / 100);
   const total = neto + iva;
   const fila = (l, v, fuerte) => (
@@ -1109,13 +1133,126 @@ function PlanDetalleCard({ planNombre, neto, locales, profesionales }) {
       </div>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-2.5">
-        {fila('Valor del plan (neto)', neto)}
+        {det && det.baseNeto > 0 && det.baseNeto !== neto
+          ? fila(det.locales > 1
+              ? `Plan base · ${det.locales} locales${det.precioPorLocal ? ` ($${det.precioPorLocal.toLocaleString('es-CL')} c/u)` : ''}`
+              : 'Plan base', det.baseNeto)
+          : null}
+        {(det?.addons || []).map(a => (
+          <div key={a.id}>{fila(`+ ${a.nombre}`, a.neto)}</div>
+        ))}
+        {fila(det && det.addons?.length ? 'Subtotal (neto)' : 'Valor del plan (neto)', neto)}
         {fila(`IVA ${IVA_PCT}%`, iva)}
         {fila('Total mensual', total, true)}
       </div>
+
+      {/* Add-ons de cortesía: activos y visibles, pero NO se cobran. Decirlo
+          explícito evita la conversación incómoda del día que se empiecen a
+          cobrar — el cliente ya sabía que era una muestra con fecha. */}
+      {(det?.cortesias || []).length > 0 && (
+        <div className="mt-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3">
+          {det.cortesias.map(c => (
+            <div key={c.id} className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-semibold text-emerald-300">🎁 {c.nombre} · de cortesía</p>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  {c.desc}
+                  {c.hasta && <> · gratis hasta el <b className="text-slate-300">{c.hasta.split('-').reverse().join('/')}</b></>}
+                </p>
+              </div>
+              <span className="shrink-0 text-[13px] font-semibold text-emerald-300">$0</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
         Agregar profesionales no sube la mensualidad. Si abres otro local, se cobra aparte.
       </p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   WHATSAPP — qué está contratado y qué hizo el bot este mes
+   ════════════════════════════════════════════════════════════════
+   El dueño preguntaba "¿los mensajes están incluidos?" y la vista no lo
+   decía en ninguna parte. Acá va la verdad derivada de su plan real
+   (_system.waPlan) más el USO del mes: cuántas citas agendó el bot solo.
+   Ese número es, además, la base del modelo de cobro por uso. */
+function WhatsAppDetalleCard({ wa, hibrido }) {
+  if (!wa || !wa.contratado) return null;
+  const ETIQUETA = {
+    full:           'Asistente IA + Confirmaciones',
+    bot:            'Asistente IA 24/7',
+    recordatorios:  'Confirmaciones automáticas',
+  };
+  const linea = (ok, txt, sub) => (
+    <div className="flex items-start gap-2.5 py-1.5">
+      <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${ok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700/50 text-slate-500'}`}>
+        {ok ? <Check size={10} /> : <X size={10} />}
+      </span>
+      <div>
+        <p className={`text-[13px] ${ok ? 'font-semibold text-slate-200' : 'text-slate-500'}`}>{txt}</p>
+        {sub && <p className="text-[11px] leading-relaxed text-slate-500">{sub}</p>}
+      </div>
+    </div>
+  );
+  const u = wa.usoMes || {};
+  return (
+    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25">
+          <MessageCircle size={14} />
+        </span>
+        <div className="flex-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-300">WhatsApp</p>
+          <p className="text-[11px] text-slate-500">{ETIQUETA[wa.plan] || 'Contratado'}</p>
+        </div>
+        <span className={`rounded-lg px-2 py-1 text-[10px] font-bold ring-1 ${
+          wa.conectado ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/25'
+                       : 'bg-amber-500/10 text-amber-300 ring-amber-400/25'}`}>
+          {wa.conectado ? 'CONECTADO' : 'SIN VINCULAR'}
+        </span>
+      </div>
+
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-2">
+        {linea(wa.incluyeBot, 'Asistente IA 24/7',
+          wa.incluyeBot
+            ? (wa.botEncendido ? 'Responde y agenda solo por tu WhatsApp' : 'Contratado, pero lo tienes apagado')
+            : 'No incluido en tu plan')}
+        {linea(wa.incluyeRecordatorios, 'Confirmaciones de cita',
+          wa.incluyeRecordatorios
+            ? (wa.confirmacionesEncendidas ? 'Le preguntamos a cada cliente si viene' : 'Contratado, pero lo tienes apagado')
+            : 'No incluido en tu plan')}
+        {wa.limiteConversacionesDia > 0 && linea(true, `Hasta ${wa.limiteConversacionesDia} conversaciones por día`,
+          'Tope de tu plan; protege tu número de bloqueos')}
+      </div>
+
+      {/* Uso del mes: lo que el bot HIZO. Es el número que justifica el add-on
+          y la base del cobro por uso. */}
+      {wa.incluyeBot && (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {[
+            ['Citas agendadas', u.citasAgendadas || 0, 'text-emerald-300'],
+            ['Reubicadas',      u.citasReubicadas || 0, 'text-sky-300'],
+            ['Confirmadas',     u.confirmadas || 0, 'text-slate-200'],
+          ].map(([l, v, c]) => (
+            <div key={l} className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 text-center">
+              <p className={`text-lg font-black tabular-nums ${c}`}>{v}</p>
+              <p className="text-[10px] leading-tight text-slate-500">{l}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {wa.incluyeBot && (
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          Lo que el asistente hizo por ti este mes, sin que tuvieras que responder.
+          {hibrido?.citas > 0 && (
+            <> Esas <b className="text-slate-300">{hibrido.citas}</b> {hibrido.citas === 1 ? 'cita entró' : 'citas entraron'} solas.</>
+          )}
+        </p>
+      )}
     </div>
   );
 }

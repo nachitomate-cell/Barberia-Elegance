@@ -1673,6 +1673,10 @@ const cobranzaConfig = require('./cobranza-config');
 exports.cobranzaConfig    = cobranzaConfig.cobranzaConfig;
 exports.cobranzaConfigSet = cobranzaConfig.cobranzaConfigSet;
 
+// "Qué tengo contratado" para /gestion-interna/mensualidad: add-ons, plan de
+// WhatsApp y uso real del bot, derivado de las fuentes. Ver mi-plan-detalle.js.
+exports.miPlanDetalle = require('./mi-plan-detalle').miPlanDetalle;
+
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
 // puede enumerarlos). Ver functions/admin-listar-tenants.js.
 exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;
