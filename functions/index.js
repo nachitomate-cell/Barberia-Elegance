@@ -1661,6 +1661,12 @@ exports.ventasLeadEstado    = evolutionVentas.ventasLeadEstado;
 exports.ventasBotConfig     = evolutionVentas.ventasBotConfig;
 exports.ventasBotConfigSet  = evolutionVentas.ventasBotConfigSet;
 
+// Agente analista de Meta Ads: reporte diario por WhatsApp cruzando la
+// Marketing API con el funnel real del bot de ventas. Ver meta-ads-analista.js.
+const metaAds = require('./meta-ads-analista');
+exports.metaAdsAnalisis       = metaAds.metaAdsAnalisis;
+exports.metaAdsAnalisisManual = metaAds.metaAdsAnalisisManual;
+
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
 // puede enumerarlos). Ver functions/admin-listar-tenants.js.
 exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;
