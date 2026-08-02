@@ -145,7 +145,7 @@ function build1hEmailHtml({ cfg, cita, tenantId, citaId }) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Tu cita comienza en 1 hora — ${cfg.nombre}</title>
+  <title>Tu cita de hoy es a las ${cita.hora} hrs — ${cfg.nombre}</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
 
@@ -157,7 +157,7 @@ function build1hEmailHtml({ cfg, cita, tenantId, citaId }) {
         <tr>
           <td style="background:${isDark ? '#030f1a' : btnColor};padding:32px 36px 28px;${isDark ? `border-bottom:2px solid ${btnColor};` : ''}">
             <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${isDark ? btnColor : 'rgba(0,0,0,0.55)'};">${cfg.nombre}</p>
-            <h1 style="margin:0;font-size:26px;font-weight:900;color:${isDark ? '#f1f5f9' : '#000'};letter-spacing:-0.5px;">⏰ ¡Cita en 1 hora!</h1>
+            <h1 style="margin:0;font-size:26px;font-weight:900;color:${isDark ? '#f1f5f9' : '#000'};letter-spacing:-0.5px;">⏰ ¡Hoy a las ${cita.hora} hrs!</h1>
             ${cfg.slogan ? `<p style="margin:8px 0 0;font-size:12px;letter-spacing:2px;font-style:italic;color:${isDark ? btnColor + 'bb' : 'rgba(0,0,0,0.4)'};">${cfg.slogan}</p>` : ''}
           </td>
         </tr>
@@ -538,7 +538,12 @@ exports.recordatorioCita1h = onSchedule(
         await enviarEmail({
           from:    cfg.from,
           to:      [email.toLowerCase().trim()],
-          subject: `⏰ Tu cita comienza en 1 hora — ${cfg.nombre}`,
+          // Hora ABSOLUTA en el asunto, jamás relativa: la ventana de envío es
+          // de 30 a 90 min antes, así que "comienza en 1 hora" leído en el
+          // borde de los 90 min hacía calcular la hora equivocada (caso real:
+          // cita 13:30, correo 12:00, el cliente entendió 13:00 — 02-08-2026,
+          // kronnos_penablanca, lo pilló el propio bot).
+          subject: `⏰ Tu cita de hoy es a las ${cita.hora} hrs — ${cfg.nombre}`,
           html,
         }, { grupo: 'citas', etiqueta: 'recordatorio-1h' });
         logger.info(`[Email 1H] ✓ Enviado exitosamente a ${email} para cita ${citaId} (${tenantId})`);
@@ -714,7 +719,7 @@ exports.recordatorioCita30min = onSchedule(
           await messaging.send({
             token: t.token,
             notification: {
-              title: '⏰ Tu cita es en ~30 minutos',
+              title: `⏰ Tu cita de hoy es a las ${hora} hrs`,
               body:  cuerpo,
             },
             data: {
