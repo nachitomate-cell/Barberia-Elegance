@@ -43,7 +43,58 @@ const { defineSecret }  = require('firebase-functions/params');
 const { crearCliente }  = require('./evolution/client');
 const EVOLUTION_API_URL = defineSecret('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY = defineSecret('EVOLUTION_API_KEY');
-const INSTANCIA_WA      = 'instance_plat_ventas';
+// Instancia por defecto; se puede redirigir sin deploy con
+// _system/cobranza.instanciaWa (p.ej. 'instance_synaptech' = chip principal,
+// para que la cobranza no salga del número personal de Ignacio).
+const INSTANCIA_WA_DEFAULT = 'instance_plat_ventas';
+
+/* Copy CÁLIDO del aviso por WhatsApp — deliberadamente distinto del email:
+   el correo es formal; por WhatsApp escribe "Ignacio" a un cliente que
+   conoce, y una cobranza tibia cobra mejor que una amenaza. El tono sube
+   con los días, pero siempre con puerta abierta a conversar. */
+function mensajeWaCobro({ dias, monto, nombreLocal, sinCorte, transf, linkAuto, urlPlan }) {
+  const m = '$' + (Number(monto) || 0).toLocaleString('es-CL');
+  const saludo = nombreLocal ? `¡Hola ${nombreLocal}! 👋` : '¡Hola! 👋';
+  let cuerpo;
+  if (dias < 0) {
+    const n = Math.abs(dias);
+    cuerpo = `Espero que la semana vaya bien por el local 🙌 Te escribo cortito: la mensualidad de tu agenda (${m}) vence ${n === 1 ? '*mañana*' : `en *${n} días*`}. Sin apuro — solo para que no se te pase entre tanta pega.`;
+  } else if (dias === 0) {
+    cuerpo = `¿Cómo va ese día? 💈 Te recuerdo que *hoy* vence la mensualidad de tu agenda (${m}). Son dos minutos y quedas listo para todo el mes 💪`;
+  } else if (dias < 8) {
+    cuerpo = `Sé que los días en el local no dan tregua 😅 — se nos pasó la fecha de la mensualidad (${m}, venció hace ${dias} día${dias === 1 ? '' : 's'}). ¿La regularizamos cuando tengas un momento?`;
+  } else if (sinCorte) {
+    cuerpo = `Te escribo por la mensualidad que quedó pendiente (${m}, ya van ${dias} días). Si este mes viene complicado, respóndeme no más y lo conversamos — siempre hay forma de ordenarlo 🤝`;
+  } else if (dias < 15) {
+    cuerpo = `Llevamos ${dias} días con la mensualidad pendiente (${m}) y el sistema ya dejó bloqueadas algunas secciones del panel (Métricas, Comisiones y Caja) 😔 La regularizas y se reactivan al tiro. Y si andas complicado, escríbeme y lo vemos juntos.`;
+  } else {
+    cuerpo = `Ya van ${dias} días con la mensualidad pendiente (${m}) y de verdad no quiero llegar a suspender tu agenda 🙏 Si estás pasando un mes difícil, respóndeme y armamos un plan juntos. Si fue puro olvido, abajo van los datos.`;
+  }
+  return [
+    saludo,
+    '',
+    cuerpo,
+    ...(transf ? [
+      '',
+      '💳 *Datos para la transferencia:*',
+      transf.titular,
+      `RUT ${transf.rut}`,
+      `${transf.banco} · ${transf.tipoCuenta}`,
+      `N° cuenta: ${transf.numero}`,
+      transf.email,
+      '',
+      '📎 Me mandas el comprobante por aquí y te confirmo al tiro ✅',
+    ] : [
+      '',
+      `🔗 Puedes revisar y pagar aquí: ${urlPlan}`,
+    ]),
+    ...(linkAuto ? ['', `⚡ Y si prefieres olvidarte del tema: deja el cargo automático mensual aquí → ${linkAuto}`] : []),
+    '',
+    `🔎 El detalle de tu plan: ${urlPlan}`,
+    '',
+    '_Un abrazo — Ignacio, SynapTech_',
+  ].filter(l => l !== null && l !== undefined).join('\n');
+}
 
 // Días respecto al vencimiento en los que se envía recordatorio.
 // Negativo = antes de vencer; 0 = vence hoy; positivo = atrasado.
@@ -163,9 +214,12 @@ exports.recordatorioCobro = onSchedule(
     const evoCli = () => (_evo || (_evo = crearCliente({
       baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value(),
     })));
-    // Método de pago PRINCIPAL: transferencia (decisión de Ignacio 02-08-2026).
-    // Los datos viven en _system/cobranza.transferencia — editables sin deploy.
-    const transf = (((await db.doc('_system/cobranza').get().catch(() => null))?.data() || {}).transferencia) || null;
+    // Config de cobranza (_system/cobranza, editable sin deploy): datos de
+    // transferencia (método PRINCIPAL, decisión de Ignacio 02-08) y por qué
+    // instancia sale el WhatsApp (chip principal para no usar su número).
+    const cobCfg = ((await db.doc('_system/cobranza').get().catch(() => null))?.data() || {});
+    const transf = cobCfg.transferencia || null;
+    const INSTANCIA_WA = String(cobCfg.instanciaWa || '').trim() || INSTANCIA_WA_DEFAULT;
     const sinCanal = [];   // locales inalcanzables → alerta al superadmin
 
     for (const doc of snap.docs) {
@@ -191,37 +245,18 @@ exports.recordatorioCobro = onSchedule(
       // escribe a mano por local, mismo criterio que emailCobro.
       let waOk = false;
       const waNum = String(d.whatsappCobro || '').replace(/\D/g, '');
+      // Nombre del local + correos: una sola resolución que sirve para el
+      // WhatsApp (saludo con nombre) y para el fallback por email.
+      const { emails: destinatarios, nombreLocal } = await emailsCobro(tid, d);
       if (waNum.length >= 9) {
         try {
           const susMp = d.suscripcionMp || {};
           const linkAuto = susMp.status === 'link_creado' && susMp.initPoint ? susMp.initPoint : null;
           const urlPlan = `https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`;
-          // OJO: el filtro conserva los '' (separadores) — filter(Boolean) se
-          // los comía y el mensaje llegaba como un ladrillo sin aire.
-          const texto = [
-            `*${title}*`,
-            '',
-            body,
-            ...(transf ? [
-              '',
-              '💳 *Paga por transferencia:*',
-              transf.titular,
-              `RUT ${transf.rut}`,
-              `${transf.banco} · ${transf.tipoCuenta}`,
-              `N° cuenta: ${transf.numero}`,
-              transf.email,
-              '',
-              '📎 Mándame el comprobante por aquí mismo y te dejo al día.',
-            ] : [
-              '',
-              `🔗 Revisa y paga aquí: ${urlPlan}`,
-            ]),
-            ...(linkAuto ? ['', `⚡ ¿Prefieres cargo automático mensual con tarjeta? Actívalo aquí: ${linkAuto}`] : []),
-            '',
-            `🔎 El detalle de tu plan: ${urlPlan}`,
-            '',
-            '_Cualquier duda me respondes por aquí mismo — Ignacio, SynapTech_',
-          ].filter(l => l !== null && l !== undefined).join('\n');
+          const texto = mensajeWaCobro({
+            dias, monto: montoConIva, nombreLocal,
+            sinCorte: d.sinCorte === true, transf, linkAuto, urlPlan,
+          });
           await evoCli().enviarTexto(INSTANCIA_WA, waNum, texto);
           waOk = true;
           totalWa++;
@@ -287,7 +322,6 @@ exports.recordatorioCobro = onSchedule(
       const desde = d.sinTokensDesde || todayStr;
       const diasSinCanal = Math.round((hoyUTC - (parseFechaUTC(desde) ?? hoyUTC)) / 86400000);
 
-      const { emails: destinatarios, nombreLocal } = await emailsCobro(tid, d);
       let mailOk = false;
 
       // Si el WhatsApp ya salió, el correo sobra (era el fallback del fallback).
