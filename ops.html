@@ -635,6 +635,47 @@
     function opsBotChat(tel, pausar){
       _botSet({ chat: { telefono: tel, pausar } });
     }
+    /* ── 💰 Cobranza: la libreta de números de cobro ─────────────────────
+       La escalera manda WhatsApp SOLO al número explícito de esta libreta
+       (_billing.whatsappCobro). Local sin número = sigue por push/email. */
+    function cobranzaPanel(v){
+      const rows = (v && v.rows) || [];
+      const conWa = rows.filter(r => r.whatsappCobro).length;
+      const fmtTel = t => t ? ('+' + String(t).replace(/^(56)(9)(\d{4})(\d{4})$/, '$1 $2 $3 $4')) : null;
+      return `<div class="panel" style="margin-top:14px">
+        <h3>💰 Cobranza · números de cobro
+          <span class="tag ${conWa ? 'g' : ''}">${conWa}/${rows.length} con WhatsApp</span>
+          <span class="muted" style="margin-left:auto;font-size:11px;text-transform:none;letter-spacing:0">el aviso sale de TU número · sin número = push/email</span>
+        </h3>
+        ${rows.length ? rows.map(r => `
+          <div class="loc">
+            <span class="dot ${r.diasAtraso > 0 ? 'warn' : (r.whatsappCobro ? 'on' : 'off')}"></span>
+            <strong>${r.nombre}</strong>
+            <span class="muted">${clp(r.montoConIva)} c/IVA · ${r.diasAtraso > 0
+              ? '<span style="color:var(--red)">venció hace ' + r.diasAtraso + ' d</span>'
+              : 'vence ' + (r.vence || '—')}${r.autopay ? ' · autopay: ' + r.autopay : ''}</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              ${r.whatsappCobro
+                ? `<span style="font-size:12px;color:var(--green)">📱 ${fmtTel(r.whatsappCobro)}</span>`
+                : '<span class="muted" style="font-size:11px">sin número</span>'}
+              <button class="mini" onclick="opsCobroNum('${r.tid}','${r.whatsappCobro || ''}')">${r.whatsappCobro ? 'editar' : '+ número'}</button>
+              ${r.whatsappCobro ? `<button class="mini danger" onclick="opsCobroQuitar('${r.tid}')">quitar</button>` : ''}
+            </span>
+          </div>`).join('') : '<p class="muted">Sin locales en _billing.</p>'}
+      </div>`;
+    }
+    async function opsCobroNum(tid, actual){
+      const raw = prompt('WhatsApp de cobro de "' + tid + '" (a este número le llegan los avisos de mensualidad DESDE TU NÚMERO):', actual ? '+' + actual : '+569');
+      if (raw === null || !raw.trim()) return;
+      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: raw }); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+    async function opsCobroQuitar(tid){
+      if (!confirm('Quitar el número de cobro de "' + tid + '"? Vuelve a avisos por push/email.')) return;
+      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: '' }); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+
     function verChatVentas(tel){
       const c = ((_botCfg && _botCfg.convs) || []).find(x => x.telefono === tel);
       if (!c) return;
@@ -742,7 +783,7 @@
       }
     }
 
-    function render(data, chipsData, ventasData, botCfgData){
+    function render(data, chipsData, ventasData, botCfgData, cobranzaData){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
@@ -762,6 +803,7 @@
         <nav class="tabs">
           <button data-tab="resumen">📊 Resumen</button>
           <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
+          <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
           <button data-tab="locales">💈 Locales</button>
           <button data-tab="whatsapp">📱 WhatsApp</button>
           <button data-tab="email">✉️ Email</button>
@@ -796,6 +838,10 @@
           <section class="sec" data-sec="ventas">
             ${ventasData ? leadsPanel(ventasData) : '<p class="muted">No se pudo cargar el módulo de leads.</p>'}
             ${botCfgData ? botVentasPanel(botCfgData) : ''}
+          </section>
+
+          <section class="sec" data-sec="cobranza">
+            ${cobranzaData ? cobranzaPanel(cobranzaData) : '<p class="muted">No se pudo cargar la cobranza.</p>'}
           </section>
 
           <section class="sec" data-sec="locales">
@@ -919,14 +965,15 @@
         // Si la de chips falla, el panel de administración simplemente no se
         // dibuja: las métricas son lo importante y no se pierden por no poder
         // listar los chips.
-        const [rm, rc, rv, rb] = await Promise.all([
+        const [rm, rc, rv, rb, rk] = await Promise.all([
           _fn('opsMetrics')({}),
           _fn('plataformaChips')({}).catch(() => null),
-          // Leads y config del bot de ventas: si fallan, el resto vive igual.
+          // Leads, config del bot y cobranza: si fallan, el resto vive igual.
           _fn('ventasLeads')({}).catch(() => null),
           _fn('ventasBotConfig')({}).catch(() => null),
+          _fn('cobranzaConfig')({}).catch(() => null),
         ]);
-        render(rm.data, rc && rc.data, rv && rv.data, rb && rb.data);
+        render(rm.data, rc && rc.data, rv && rv.data, rb && rb.data, rk && rk.data);
       } catch(e){
         app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
         const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();

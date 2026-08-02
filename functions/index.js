@@ -1667,6 +1667,12 @@ const metaAds = require('./meta-ads-analista');
 exports.metaAdsAnalisis       = metaAds.metaAdsAnalisis;
 exports.metaAdsAnalisisManual = metaAds.metaAdsAnalisisManual;
 
+// Libreta de cobranza para ops: ver y editar _billing.whatsappCobro (el
+// número al que la escalera manda el aviso por WhatsApp). Ver cobranza-config.js.
+const cobranzaConfig = require('./cobranza-config');
+exports.cobranzaConfig    = cobranzaConfig.cobranzaConfig;
+exports.cobranzaConfigSet = cobranzaConfig.cobranzaConfigSet;
+
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
 // puede enumerarlos). Ver functions/admin-listar-tenants.js.
 exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;
