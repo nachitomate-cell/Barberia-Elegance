@@ -76,8 +76,10 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
 
   const cerebro = require('./evolution/cerebro');
   const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, { estiloChileno: false });
-  const dow = new Date(`${hoy}T12:00:00Z`).getUTCDay();
-  const systemVar = `HOY es ${DIAS_SEM[dow]} ${hoy} y son las ${hhmm} en Chile. El cliente escribe desde el +${fono}. Este chat corre por el número oficial de la plataforma.`;
+  // Calendario masticado (lib/calendario): hoy + próximos 7 días con su día de
+  // semana — el modelo no calcula fechas (regla de la casa, 02-08-2026).
+  const { lineasCalendario } = require('./lib/calendario');
+  const systemVar = `${lineasCalendario(hoy).join('\n')}\nSon las ${hhmm} en Chile. El cliente escribe desde el +${fono}. Este chat corre por el número oficial de la plataforma.`;
 
   const historia = Array.isArray(conv.messages) ? conv.messages.slice(-MAX_HISTORIA) : [];
   const messages = [...historia, { role: 'user', content: texto }];

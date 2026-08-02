@@ -161,9 +161,12 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
   };
 }
 
+const { lineasCalendario } = require('../lib/calendario');
 function systemVariable({ fecha, pushName, telefono }) {
   return [
-    `Hoy es ${fecha} (hora de Chile).`,
+    // Calendario masticado: el agente propone días de reunión y JAMÁS debe
+    // calcular él qué día de la semana cae una fecha (regla de la casa 02-08).
+    ...lineasCalendario(fecha),
     `El lead escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
     'Si es el primer mensaje de la conversación, saluda breve como Ignacio ("¡Hola! Soy Ignacio, de SynapTech 👋" o similar).',
     'SOLO si el mensaje de la persona menciona ExpoVino, agradécele la visita al stand. Si no lo menciona (por ejemplo llega con "me gustaría conseguir más información sobre esto", que viene de un anuncio en redes), NO des por hecho de dónde viene ni menciones la feria.',

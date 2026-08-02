@@ -877,23 +877,10 @@ async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
 // le aplicó el horario dominical y le negó al cliente una hora de las 10:30
 // que SÍ existía (el lunes abren justo a las 10:30). Con la tabla explícita
 // el modelo no tiene que calcular nada — y se le prohíbe intentarlo.
-const _DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-function _conDiaSemana(fechaStr, plusDias = 0) {
-  const [y, m, d] = String(fechaStr).split('-').map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + plusDias));
-  const f = t.toISOString().slice(0, 10);
-  return { fecha: f, dia: _DIAS_SEMANA[t.getUTCDay()] };
-}
+const { lineasCalendario } = require('../lib/calendario');
 function construirSystemVariable({ fechaHoy, pushName, telefono }) {
-  const hoy = _conDiaSemana(fechaHoy);
-  const calendario = [];
-  for (let i = 1; i <= 7; i++) {
-    const x = _conDiaSemana(fechaHoy, i);
-    calendario.push(`${x.dia} ${x.fecha}`);
-  }
   return [
-    `Hoy es ${hoy.dia} ${hoy.fecha} (hora de Chile).`,
-    `Calendario de los próximos días — usa SIEMPRE esta tabla y JAMÁS calcules tú qué día de la semana cae una fecha: mañana ${calendario[0]} · ${calendario.slice(1).join(' · ')}.`,
+    ...lineasCalendario(fechaHoy),
     `El cliente escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
   ].join('\n');
 }
