@@ -32,7 +32,7 @@ const { esOperador }            = require('../lib/operadores');
 
 const { _ahoraChile: ahoraChile }        = require('../chat-horas-disponibles');
 const { logAiUsage }                     = require('../lib/metrics');
-const { puedeGastar }                    = require('../lib/ai-presupuesto');
+const { puedeGastar, topesDe, _diaCL, _mesCL } = require('../lib/ai-presupuesto');
 const { detectarStop, registrarOptOut, estaBloqueado } = require('../lib/wa-consent');
 
 const db = admin.firestore();
@@ -448,4 +448,108 @@ const ventasLeadEstado = onCall({ region: 'us-central1', cors: true }, async (re
   return { ok: true, telefono: tel, estado };
 });
 
-module.exports = { procesarMensajeVentas, ventasLeads, ventasLeadEstado };
+/* ── Gestión del agente: card "⚙️ Bot de ventas" en ops.html ──
+   Lo operable vive en Firestore y se administra desde acá; lo único que
+   sigue en código es el prompt (la personalidad), a propósito: cambiarlo
+   merece revisión, no un textarea a las 2 AM. */
+
+const CHIP_VENTAS_REF = () => db.doc('_system/wa_plataforma_ventas');
+
+const ventasBotConfig = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  exigirOperador(req);
+  const hoy = ahoraChile().fecha;
+  const [chipSnap, sysSnap, gastoDiaSnap, gastoMesSnap, cuotaSnap, convsSnap] = await Promise.all([
+    CHIP_VENTAS_REF().get(),
+    db.doc('_system/ventas').get(),
+    db.doc(`_metrics/ai_dia_ventas_${_diaCL()}`).get(),
+    db.doc(`_metrics/ai_vendor_ventas_${_mesCL()}`).get(),
+    cuotaRef('ventas', hoy).get(),
+    db.collection('wa_ventas_conversaciones').orderBy('updatedAt', 'desc').limit(15).get(),
+  ]);
+  const chip  = chipSnap.data() || {};
+  const topes = topesDe(sysSnap.data() || {});
+  const ahora = Date.now();
+  const convs = convsSnap.docs.map((d) => {
+    const c = d.data() || {};
+    const sil = c.botSilencedUntil?.toMillis?.() || 0;
+    const msgs = Array.isArray(c.messages) ? c.messages : [];
+    return {
+      telefono:    d.id,
+      nombre:      c.clienteNombre || '',
+      activado:    c.activado === true,
+      silenciado:  sil > ahora,
+      silenciadoHasta: sil > ahora ? sil : null,
+      respHoy:     (c.respDia && c.respDia.fecha === hoy) ? (Number(c.respDia.n) || 0) : 0,
+      actualizado: c.updatedAt?.toMillis?.() || null,
+      turnos: msgs.slice(-12).map(m => ({
+        de: m.role === 'assistant' ? 'bot' : 'lead',
+        texto: typeof m.content === 'string' ? m.content : '[no textual]',
+      })),
+    };
+  });
+  return {
+    ok: true,
+    ventasBot:       chip.ventasBot === true,
+    estadoConexion:  chip.estadoConexion || 'disconnected',
+    numeroVinculado: chip.numeroVinculado || null,
+    meetLink:        String(chip.meetLink || '').trim() || null,
+    activadores:     Array.isArray(chip.activadores) ? chip.activadores : [],
+    topeChat:        MAX_RESP_CHAT_DIA,
+    topeChip:        MAX_RESP_CHIP_DIA,
+    respHoy:         Number((cuotaSnap.data() || {}).ventas_resp) || 0,
+    gasto: {
+      hoyUsd:     Number((gastoDiaSnap.data() || {}).costUsd) || 0,
+      mesUsd:     Number((gastoMesSnap.data() || {}).costUsd) || 0,
+      topeDiaUsd: topes.dia,
+      topeMesUsd: topes.mes,
+    },
+    convs,
+  };
+});
+
+const RE_MEET = /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i;
+
+const ventasBotConfigSet = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  exigirOperador(req);
+  const data = req.data || {};
+
+  // ── Pausar/soltar un chat puntual (mismo interruptor que la anti-colisión) ──
+  if (data.chat) {
+    const tel = String(data.chat.telefono || '').replace(/\D/g, '');
+    if (!/^\d{8,15}$/.test(tel)) throw new HttpsError('invalid-argument', 'Teléfono inválido.');
+    await db.doc(`wa_ventas_conversaciones/${tel}`).set({
+      botSilencedUntil: data.chat.pausar === true
+        ? Timestamp.fromMillis(Date.now() + SILENCIO_MS)
+        : FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    logger.info(`[ventas:config] chat ***${tel.slice(-4)} ${data.chat.pausar ? 'pausado 4h' : 'devuelto al bot'} (${req.auth.token.email})`);
+    return { ok: true };
+  }
+
+  // ── Config del chip ──
+  const patch = {};
+  if (data.ventasBot !== undefined) patch.ventasBot = data.ventasBot === true;
+  if (data.meetLink !== undefined) {
+    const link = String(data.meetLink || '').trim();
+    if (link && !RE_MEET.test(link)) {
+      throw new HttpsError('invalid-argument', 'El link debe ser https://meet.google.com/xxx-xxxx-xxx (o vacío para quitarlo).');
+    }
+    patch.meetLink = link || FieldValue.delete();
+  }
+  if (data.activadores !== undefined) {
+    if (!Array.isArray(data.activadores)) throw new HttpsError('invalid-argument', 'activadores debe ser una lista.');
+    // Normalizados igual que compara el gate: minúsculas y sin tildes.
+    const limpio = [...new Set(data.activadores
+      .map(a => String(a || '').trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, ''))
+      .filter(a => a.length >= 3 && a.length <= 60))].slice(0, 20);
+    patch.activadores = limpio;
+  }
+  if (!Object.keys(patch).length) throw new HttpsError('invalid-argument', 'Nada que cambiar.');
+
+  await CHIP_VENTAS_REF().set(patch, { merge: true });
+  logger.info(`[ventas:config] ${JSON.stringify(Object.keys(patch))} por ${req.auth.token.email}`);
+  return { ok: true };
+});
+
+module.exports = { procesarMensajeVentas, ventasLeads, ventasLeadEstado, ventasBotConfig, ventasBotConfigSet };

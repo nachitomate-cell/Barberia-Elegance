@@ -553,6 +553,100 @@
       catch(e){ alert('Error: ' + e.message); }
     }
 
+    /* ── ⚙️ Gestión del agente de ventas ──────────────────────────────────
+       Todo lo operable del bot en un solo lugar: interruptor, gatillos,
+       link de Meet, gasto IA y los chats (ver / pausar / soltar). El prompt
+       (la personalidad) queda en código a propósito: cambiarlo merece
+       revisión, no un textarea de madrugada. */
+    let _botCfg = null;
+    function botVentasPanel(v){
+      _botCfg = v;
+      const on = v.ventasBot === true;
+      const conectado = v.estadoConexion === 'connected';
+      const hace = ms => { if(!ms) return '—'; const m = Math.round((Date.now()-ms)/60000);
+        return m < 60 ? m + ' min' : m < 1440 ? Math.round(m/60) + ' h' : Math.round(m/1440) + ' d'; };
+      return `<div class="panel" style="margin-top:14px">
+        <h3>⚙️ Bot de ventas · agente IA
+          <span class="tag ${on?'g':''}" ${on?'':'style="color:var(--red)"'}>${on ? 'ENCENDIDO' : 'APAGADO'}</span>
+          <span class="tag ${conectado?'g':''}" ${conectado?'':'style="color:var(--red)"'}>${conectado ? 'sesión abierta' : 'sesión caída'}</span>
+          <span style="margin-left:auto"></span>
+          <button class="mini ${on?'danger':''}" onclick="opsBotToggle()">${on ? 'Apagar bot' : 'Encender bot'}</button>
+        </h3>
+        <div class="row"><span>Número</span><span class="v">${v.numeroVinculado ? '+' + v.numeroVinculado : '—'}</span></div>
+        <div class="row"><span>Gasto IA hoy / mes</span>
+          <span class="v tnum">${usd(v.gasto.hoyUsd)} <span class="muted">/ ${usd(v.gasto.topeDiaUsd)}</span> · ${usd(v.gasto.mesUsd)} <span class="muted">/ ${usd(v.gasto.topeMesUsd)}</span></span></div>
+        <div class="row"><span>Respuestas hoy</span><span class="v tnum">${v.respHoy} <span class="muted">/ ${v.topeChip} del número · ${v.topeChat} por chat</span></span></div>
+        <div class="row"><span>Sala de Meet</span>
+          <span class="v" style="font-size:12px">${v.meetLink ? v.meetLink.replace('https://','') : '<span style="color:var(--amber)">sin link</span>'}
+            <button class="mini" onclick="opsBotMeet()">cambiar</button></span></div>
+        <div class="row" style="align-items:flex-start"><span>Gatillos</span>
+          <span style="text-align:right;max-width:70%">
+            <span class="tag">expovino (fijo)</span> <span class="tag">agenda online (fijo)</span>
+            ${(v.activadores||[]).map((a,i) => `<span class="tag" style="margin:2px">${a} <a href="#" onclick="opsBotActDel(${i});return false" style="color:var(--red);text-decoration:none">✕</a></span>`).join(' ')}
+            <button class="mini" onclick="opsBotActAdd()">+ agregar</button>
+          </span></div>
+        <div style="border-top:1px solid var(--hairline);margin-top:6px;padding-top:8px">
+          <p class="muted" style="margin:0 0 4px">Chats del agente (últimos 15)</p>
+          ${(v.convs||[]).length ? v.convs.map(c => `
+            <div class="loc">
+              <span class="dot ${c.silenciado ? 'warn' : (c.activado ? 'on' : 'off')}"></span>
+              <strong>${c.nombre || '····' + c.telefono.slice(-4)}</strong>
+              <span class="muted">${c.activado ? c.respHoy + ' resp. hoy' : 'sin activar'}${c.silenciado ? ' · 🔇 pausado' : ''} · ${hace(c.actualizado)}</span>
+              <span style="margin-left:auto">
+                ${c.turnos.length ? `<button class="mini" onclick="verChatVentas('${c.telefono}')">ver</button>` : ''}
+                <button class="mini ${c.silenciado?'':'danger'}" onclick="opsBotChat('${c.telefono}', ${c.silenciado ? 'false' : 'true'})">${c.silenciado ? 'soltar al bot' : 'pausar 4h'}</button>
+                <a href="https://wa.me/${c.telefono}" target="_blank" style="color:var(--accent);font-size:11px;text-decoration:none">chat ↗</a>
+              </span>
+            </div>`).join('') : '<p class="muted">Sin conversaciones todavía.</p>'}
+        </div>
+      </div>`;
+    }
+    async function _botSet(payload, confirmMsg){
+      if (confirmMsg && !confirm(confirmMsg)) return;
+      try { await _fn('ventasBotConfigSet')(payload); await cargar(); }
+      catch(e){ alert('Error: ' + e.message); }
+    }
+    function opsBotToggle(){
+      const on = _botCfg && _botCfg.ventasBot;
+      _botSet({ ventasBot: !on }, on
+        ? 'Apagar el agente: los mensajes con gatillo quedarán SIN respuesta automática. ¿Confirmas?'
+        : 'Encender el agente de ventas. ¿Confirmas?');
+    }
+    function opsBotMeet(){
+      const raw = prompt('Link de la sala fija de Google Meet (vacío = quitarlo):', (_botCfg && _botCfg.meetLink) || 'https://meet.google.com/');
+      if (raw === null) return;
+      _botSet({ meetLink: raw.trim() });
+    }
+    function opsBotActAdd(){
+      const raw = prompt('Nueva frase gatillo (el bot se activa si el PRIMER mensaje la contiene).\nSe guarda en minúsculas y sin tildes:');
+      if (!raw || !raw.trim()) return;
+      _botSet({ activadores: [ ...((_botCfg && _botCfg.activadores) || []), raw.trim() ] });
+    }
+    function opsBotActDel(i){
+      const act = ((_botCfg && _botCfg.activadores) || []).filter((_, x) => x !== i);
+      _botSet({ activadores: act }, '¿Quitar este gatillo?');
+    }
+    function opsBotChat(tel, pausar){
+      _botSet({ chat: { telefono: tel, pausar } });
+    }
+    function verChatVentas(tel){
+      const c = ((_botCfg && _botCfg.convs) || []).find(x => x.telefono === tel);
+      if (!c) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'modal';
+      wrap.onclick = e => { if (e.target === wrap) wrap.remove(); };
+      wrap.innerHTML = `<div class="box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-size:14px">Chat del agente · ${c.nombre || '····' + tel.slice(-4)}</h3>
+          <button class="mini" onclick="this.closest('.modal').remove()">Cerrar</button>
+        </div>
+        <div class="chat">
+          <div class="meta">${c.respHoy} resp. hoy${c.silenciado ? ' · 🔇 pausado' : ''}</div>
+          ${c.turnos.map(t => `<div class="msg ${t.de === 'bot' ? 'assistant' : 'user'}">${t.de === 'bot' ? '🤖' : '👤'} ${String(t.texto).replace(/</g, '&lt;')}</div>`).join('')}
+        </div>`;
+      document.body.appendChild(wrap);
+    }
+
     async function opsAsignar(tenantId, chipId, activo){
       const payload = { tenantId };
       if (chipId != null)  payload.chipId = chipId;
@@ -642,7 +736,7 @@
       }
     }
 
-    function render(data, chipsData, ventasData){
+    function render(data, chipsData, ventasData, botCfgData){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
@@ -683,6 +777,7 @@
                locales —lo que de verdad se mira todos los días— entrara
                apretada y con scroll propio. -->
           ${ventasData ? leadsPanel(ventasData) : ''}
+          ${botCfgData ? botVentasPanel(botCfgData) : ''}
           ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
           ${iaPanel(data.barberia)}
           <!-- Una tarjeta por chip: cada uno tiene su propio cupo, su propia
@@ -772,13 +867,14 @@
         // Si la de chips falla, el panel de administración simplemente no se
         // dibuja: las métricas son lo importante y no se pierden por no poder
         // listar los chips.
-        const [rm, rc, rv] = await Promise.all([
+        const [rm, rc, rv, rb] = await Promise.all([
           _fn('opsMetrics')({}),
           _fn('plataformaChips')({}).catch(() => null),
-          // Leads del bot de ventas: si falla, el resto del panel vive igual.
+          // Leads y config del bot de ventas: si fallan, el resto vive igual.
           _fn('ventasLeads')({}).catch(() => null),
+          _fn('ventasBotConfig')({}).catch(() => null),
         ]);
-        render(rm.data, rc && rc.data, rv && rv.data);
+        render(rm.data, rc && rc.data, rv && rv.data, rb && rb.data);
       } catch(e){
         app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
         const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();
