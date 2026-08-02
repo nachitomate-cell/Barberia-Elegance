@@ -92,7 +92,8 @@ function montosPorMetodo(item) {
     });
     return out;
   }
-  const total = Number(item?.precio) || 0;
+  // `precio` en citas y ventas, `monto` en gastos: el helper sirve para los tres.
+  const total = Number(item?.precio) || Number(item?.monto) || 0;
   if (item?.metodoPago === 'Efectivo')            out.efectivo = total;
   else if (isTarjeta(item?.metodoPago))           out.tarjeta  = total;
   else if (item?.metodoPago === 'Transferencia')  out.transf   = total;
@@ -110,6 +111,19 @@ function tieneEfectivo(item) {
 // Un item está "cobrado" si tiene metodoPago no vacío O si tiene pagos[].
 function estaCobrado(item) {
   return !!item?.metodoPago || (Array.isArray(item?.pagos) && item.pagos.length > 0);
+}
+// Etiqueta legible del medio de pago. En un ticket dividido `metodoPago` es solo
+// 'Mixto', que no le sirve a quien concilia contra el banco: devuelve el desglose.
+function etiquetaMetodo(item) {
+  const filas = Array.isArray(item?.pagos)
+    ? item.pagos.filter(p => (Number(p.monto) || 0) > 0)
+    : [];
+  if (filas.length) {
+    return filas
+      .map(p => `${p.tipo} $${Math.round(Number(p.monto) || 0).toLocaleString('es-CL')}`)
+      .join(' + ');
+  }
+  return item?.metodoPago || '—';
 }
 
 /* ── KPI Card ─────────────────────────────────────────────── */
@@ -1179,7 +1193,9 @@ async function fetchDatosMes(mesKey) {
   ]);
 
   // Excluye citas del fantasma QA (origenQA) — no cuentan como ingresos reales.
-  const citas = citasSnap.docs.map(d => d.data()).filter(c => c.estado === 'Completada' && !c.origenQA);
+  // El `id` hace falta para cruzar con `product_reservations.citaId` y no contar
+  // dos veces los productos que ya vienen dentro de un ticket dividido.
+  const citas = citasSnap.docs.map(d => ({ ...d.data(), id: d.id })).filter(c => c.estado === 'Completada' && !c.origenQA);
   const ventas = ventasSnap.docs.map(d => d.data()).filter(v => {
     if (!VENTA_OK.has(v.status)) return false;
     const ymd = fechaToYMD(v.fecha || v.creadoEn || v.createdAt);
@@ -1200,11 +1216,25 @@ function calcReporte({ citas, ventas, gastos }) {
   const ventasPorMetodo = Object.fromEntries(METODOS_REPORTE.map(m => [m, 0]));
   let ventasServicios = 0, ventasProductos = 0, propinasTotal = 0;
 
+  // Un ticket dividido guarda el desglose en `pagos[]` y deja `metodoPago:'Mixto'`,
+  // que normMet NO reconoce → el ticket entero caía en "No especificado" y ensuciaba
+  // el reporte. Ahora cada fila del split suma a su propio bucket.
+  // Mismo criterio que el arqueo: la suma de `pagos[]` es el ticket COMPLETO
+  // (servicio + productos incluidos), así que las ventas linkeadas a una cita con
+  // split no vuelven a sumar acá — ya vienen dentro del desglose.
+  const citasConSplit = new Set(
+    citas.filter(c => Array.isArray(c.pagos) && c.pagos.length).map(c => c.id)
+  );
+  const sumarSplit = (item) => {
+    item.pagos.forEach(p => { ventasPorMetodo[normMet(p.tipo)] += Number(p.monto) || 0; });
+  };
+
   citas.forEach(c => {
     const monto = Number(c.precio) || 0;
     ventasServicios += monto;
     propinasTotal   += Number(c.propina) || 0;
-    ventasPorMetodo[normMet(c.metodoPago)] += monto;
+    if (citasConSplit.has(c.id)) sumarSplit(c);
+    else ventasPorMetodo[normMet(c.metodoPago)] += monto;
   });
   ventas.forEach(v => {
     // `precio` ya es el TOTAL DE LÍNEA (precio_unitario × cantidad, con descuento)
@@ -1212,7 +1242,10 @@ function calcReporte({ citas, ventas, gastos }) {
     // Multiplicar otra vez por cantidad duplicaba el monto en el arqueo/reporte.
     const monto = Number(v.precio) || Number(v.total) || 0;
     ventasProductos += monto;
-    ventasPorMetodo[normMet(v.metodoPago)] += monto;
+    if (Array.isArray(v.pagos) && v.pagos.length) sumarSplit(v);
+    else if (!v.citaId || !citasConSplit.has(v.citaId)) {
+      ventasPorMetodo[normMet(v.metodoPago)] += monto;
+    }
   });
 
   const totalVentas = ventasServicios + ventasProductos;
@@ -1819,7 +1852,7 @@ async function cargarMovimientosMes(mesKey) {
     if (monto > 0) ventas.push({
       _id: 'c:' + d.id, _fecha: c.fecha, _monto: monto,
       label: `${c.servicioNombre || c.servicio || 'Servicio'} · ${c.clienteNombre || 'Cliente'}`,
-      metodo: c.metodoPago || '—',
+      metodo: etiquetaMetodo(c),
     });
   });
   ventasSnap.docs.forEach(d => {
@@ -1832,7 +1865,7 @@ async function cargarMovimientosMes(mesKey) {
     if (monto > 0) ventas.push({
       _id: 'p:' + d.id, _fecha: f, _monto: monto,
       label: `${v.productName || v.productoNombre || 'Producto'} ×${v.cantidad || 1}`,
-      metodo: v.metodoPago || '—',
+      metodo: etiquetaMetodo(v),
     });
   });
 
@@ -1841,7 +1874,7 @@ async function cargarMovimientosMes(mesKey) {
     return {
       _id: 'g:' + d.id, _fecha: fechaToYMD(g.fecha), _monto: Number(g.monto) || 0,
       label: g.descripcion || 'Gasto',
-      metodo: g.metodoPago || 'Efectivo',
+      metodo: (Array.isArray(g.pagos) && g.pagos.length) ? etiquetaMetodo(g) : (g.metodoPago || 'Efectivo'),
     };
   }).filter(g => g._monto > 0 && g._fecha);
 
@@ -2417,10 +2450,18 @@ export default function Caja() {
     const productosTarjeta  = ventasIndep.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0), 0);
     const productosTransf   = ventasIndep.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0), 0);
 
-    // Gastos
-    const gastosEfectivo = gastosHoy.filter(g => g.metodoPago === 'Efectivo').reduce((s, g) => s + (Number(g.monto) || 0), 0);
-    const gastosTarjeta = gastosHoy.filter(g => isTarjeta(g.metodoPago)).reduce((s, g) => s + (Number(g.monto) || 0), 0);
-    const gastosTransf = gastosHoy.filter(g => g.metodoPago === 'Transferencia').reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    // Gastos — split-aware: una liquidación pagada mitad efectivo / mitad
+    // transferencia (Comisiones → Registrar pago) escribe `pagos[]` y deja
+    // `metodoPago:'Mixto'`. Sin esto, la parte en efectivo desaparecía del
+    // saldo esperado y el arqueo nunca cuadraba.
+    const gastosSum = gastosHoy.reduce((acc, g) => {
+      const m = montosPorMetodo(g);
+      acc.efectivo += m.efectivo; acc.tarjeta += m.tarjeta; acc.transf += m.transf;
+      return acc;
+    }, { efectivo: 0, tarjeta: 0, transf: 0 });
+    const gastosEfectivo = gastosSum.efectivo;
+    const gastosTarjeta  = gastosSum.tarjeta;
+    const gastosTransf   = gastosSum.transf;
 
     // Manual adjustments — los revertidos quedan en el doc para audit trail
     // pero NO se suman ni al saldo esperado ni al desglose.
@@ -2558,7 +2599,7 @@ export default function Caja() {
           const d = ts.toDate ? ts.toDate() : new Date(ts);
           return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         })(),
-        metodo: g.metodoPago || 'Efectivo',
+        metodo: (Array.isArray(g.pagos) && g.pagos.length) ? etiquetaMetodo(g) : (g.metodoPago || 'Efectivo'),
       });
     });
     // Manual adjustments — incluimos los revertidos para que quede huella

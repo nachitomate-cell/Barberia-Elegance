@@ -1041,21 +1041,53 @@ function DetalleBarberoDrawer({
 }
 
 /* ── PagarModal ───────────────────────────────────────────────────── */
+// Métodos con los que se liquida un sueldo. Los comparte el selector simple y
+// las filas del pago dividido para que no se puedan desincronizar.
+const METODOS_PAGO_SUELDO = ['Efectivo', 'Transferencia', 'Débito', 'Otro'];
+
 function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   // Método de pago del sueldo — rescatado del flujo de Equipo al unificar:
   // el gasto en Sueldos debe decir CÓMO se pagó (caja cuadra contra efectivo).
   const [metodo, setMetodo] = useState('Efectivo');
+
+  const enReapertura = pagoExistente?.estado === 'reabierto';
+  const yaPagado     = Number(pagoExistente?.montoPagado) || 0;
+  const diff         = enReapertura ? barbero.total - yaPagado : 0;
+  // Lo que realmente sale de caja ahora. En una reapertura con sobrepago es 0:
+  // no se escribe gasto, así que tampoco tiene sentido dividirlo.
+  const montoAPagar  = enReapertura ? Math.max(0, diff) : barbero.total;
+
+  // ── Pago dividido ────────────────────────────────────────────────
+  // Mismo contrato que la agenda: `pagos: [{tipo, monto}]` + metodoPago 'Mixto'.
+  // Caja lee ese array para repartir el gasto entre efectivo/tarjeta/transf, así
+  // que la parte en efectivo sigue descontándose del saldo esperado.
+  const [pagos, setPagos] = useState(null);
+  const isSplit   = Array.isArray(pagos) && pagos.length >= 1;
+  const sumaSplit = isSplit ? pagos.reduce((s, p) => s + (Number(p.monto) || 0), 0) : 0;
+  const splitOk   = !isSplit || Math.abs(sumaSplit - montoAPagar) < 1;
+  const setPagoTipo  = (idx, tipo)  => setPagos(pagos.map((p, i) => i === idx ? { ...p, tipo } : p));
+  const setPagoMonto = (idx, monto) => setPagos(pagos.map((p, i) => i === idx ? { ...p, monto } : p));
+  const addPago = () => setPagos([...(pagos || []), { tipo: 'Efectivo', monto: Math.max(0, montoAPagar - sumaSplit) }]);
+  const removePago = (idx) => {
+    const next = pagos.filter((_, i) => i !== idx);
+    setPagos(next.length ? next : null); // 0 filas → vuelve a método único
+  };
+
   // Antes: setLoading(true) + await onConfirm() + setLoading(false) + onClose().
   // Si onConfirm rechazaba (típico: rules de Firestore bloqueando escritura,
   // network flap), el catch no existía → setLoading(false) nunca corría y el
   // botón quedaba en "Registrando…" para siempre. Reportado por Oren.
   const handle = async () => {
     setError(null);
+    if (isSplit && !splitOk) {
+      setError(`La suma de los métodos (${formatCLP(sumaSplit)}) no calza con el monto a pagar (${formatCLP(montoAPagar)}).`);
+      return;
+    }
     setLoading(true);
     try {
-      await onConfirm(metodo);
+      await onConfirm(metodo, isSplit ? pagos.map(p => ({ tipo: p.tipo, monto: Math.round(Number(p.monto) || 0) })) : null);
       onClose();
     } catch (e) {
       console.error('[Comisiones/PagarModal] error registrando pago:', e);
@@ -1064,9 +1096,6 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
       setLoading(false);
     }
   };
-  const enReapertura = pagoExistente?.estado === 'reabierto';
-  const yaPagado     = Number(pagoExistente?.montoPagado) || 0;
-  const diff         = enReapertura ? barbero.total - yaPagado : 0;
   return (
     <SheetModal
       icon={CheckCircle2}
@@ -1166,8 +1195,8 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
 
       <div className="mt-3">
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Método de pago</p>
-        <div className="grid grid-cols-4 gap-1.5">
-          {['Efectivo', 'Transferencia', 'Débito', 'Otro'].map(m => (
+        <div className={`grid grid-cols-4 gap-1.5 ${isSplit ? 'opacity-40 pointer-events-none' : ''}`}>
+          {METODOS_PAGO_SUELDO.map(m => (
             <button key={m} type="button" onClick={() => setMetodo(m)}
               className={`rounded-lg border px-1 py-1.5 text-[10.5px] font-semibold transition-colors ${metodo === m
                 ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200'
@@ -1176,9 +1205,57 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
             </button>
           ))}
         </div>
+
+        {/* Pago dividido — solo si de verdad sale plata (en reapertura con
+            sobrepago el monto es 0 y no se escribe gasto). */}
+        {montoAPagar > 0 && (
+          <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-3.5 h-3.5 accent-emerald-500"
+              checked={isSplit}
+              onChange={e => setPagos(e.target.checked
+                ? [{ tipo: metodo === 'Otro' ? 'Efectivo' : metodo, monto: Math.round(montoAPagar) }]
+                : null)}
+            />
+            Dividir pago en varios métodos (efectivo + transferencia, etc.)
+          </label>
+        )}
+
+        {isSplit && (
+          <div className="mt-2 space-y-2 p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
+            {pagos.map((p, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <select className={`${sheetInput} flex-1`} value={p.tipo}
+                        onChange={e => setPagoTipo(idx, e.target.value)}>
+                  {METODOS_PAGO_SUELDO.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <input
+                  type="number" inputMode="numeric" min="0" placeholder="0"
+                  className={`${sheetInput} w-28 text-right`}
+                  value={p.monto}
+                  onChange={e => setPagoMonto(idx, e.target.value !== '' ? Number(e.target.value) : 0)}
+                />
+                <button type="button" onClick={() => removePago(idx)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 shrink-0"
+                        title="Quitar esta fila">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-1">
+              <button type="button" onClick={addPago}
+                      className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300">
+                + agregar método
+              </button>
+              <div className={`text-[11px] font-bold ${splitOk ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatCLP(sumaSplit)} / {formatCLP(montoAPagar)}
+                {splitOk ? ' ✓' : ` · falta ${formatCLP(montoAPagar - sumaSplit)}`}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <p className="hidden">
-      </p>
 
       {error && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[12.5px] leading-snug text-rose-300">
@@ -1671,7 +1748,7 @@ export default function Comisiones() {
     ) || null;
   }, [pagosSemanales, fechaInicio, fechaFin]);
 
-  const handlePagar = async (barbero, metodoPago = 'Efectivo') => {
+  const handlePagar = async (barbero, metodoPago = 'Efectivo', pagos = null) => {
     const pagoExistente = pagoDelPeriodo(barbero.id);
     const enReapertura = pagoExistente?.estado === 'reabierto';
     // En reapertura: monto pagado = diff con lo ya pagado.
@@ -1691,7 +1768,12 @@ export default function Comisiones() {
         monto: gastoMonto,
         categoria: 'Sueldos',
         tipo: 'liquidacion',
-        metodoPago,   // rescatado del flujo de Equipo: cómo se pagó el sueldo
+        // Cómo se pagó el sueldo (rescatado del flujo de Equipo). Si se dividió,
+        // el string queda en 'Mixto' —para las vistas legacy— y el desglose real
+        // va en `pagos[]`, que es lo que Caja reparte entre efectivo/tarjeta/
+        // transferencia para que el saldo esperado siga cuadrando.
+        metodoPago: pagos ? 'Mixto' : metodoPago,
+        ...(pagos ? { pagos } : {}),
         fecha: Timestamp.fromDate(new Date(today() + 'T12:00:00')),
         barberoId: barbero.id,
         barberoNombre: barbero.nombre,
@@ -2755,7 +2837,7 @@ export default function Comisiones() {
           barbero={pagarTarget}
           periodo={periodo}
           pagoExistente={pagoDelPeriodo(pagarTarget.id)}
-          onConfirm={(metodo) => handlePagar(pagarTarget, metodo)}
+          onConfirm={(metodo, pagos) => handlePagar(pagarTarget, metodo, pagos)}
           onClose={() => setPagarTarget(null)}
         />
       )}
