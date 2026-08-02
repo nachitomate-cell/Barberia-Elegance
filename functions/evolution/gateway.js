@@ -465,11 +465,26 @@ exports.evolutionWebhook = onRequest({
         }
       } else if (event === 'messages.upsert') {
         try {
-          await plataforma.procesarEntrantePlataforma({
-            body,
-            evoClient: cliente(),
-            chipId,
-          });
+          // Chips de VENTAS (ventasBot en su doc): conversan con el cerebro
+          // comercial (evolution/ventas.js) en vez del flujo de confirmaciones.
+          // Nació con el chip 'ventas' (número de Ignacio, leads de ExpoVino).
+          const chipCfg = (await plataforma._chipRef(chipId).get()).data() || {};
+          if (chipCfg.ventasBot === true) {
+            await require('./ventas').procesarMensajeVentas({
+              chipId,
+              cfg:          chipCfg,
+              body,
+              evoClient:    cliente(),
+              anthropicKey: ANTHROPIC_API_KEY.value(),
+              instancia:    plataforma._instanciaDe(chipId),
+            });
+          } else {
+            await plataforma.procesarEntrantePlataforma({
+              body,
+              evoClient: cliente(),
+              chipId,
+            });
+          }
         } catch (e) {
           logger.error(`[plataforma:webhook:${chipId}]`, e.message);
         }
