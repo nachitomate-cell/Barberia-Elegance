@@ -5917,14 +5917,20 @@
     async function loadWalletAddon(tenantId) {
       const st = document.getElementById('wallet-addon-status');
       if (st) st.innerHTML = '<div class="skeleton" style="width:80px;height:16px;"></div>';
-      let activo = false;
+      let activo = false, cortesia = null;
       try {
         const snap = await db.collection('_billing').doc(tenantId).get();
-        activo = snap.exists && snap.data().walletActivo === true;
+        const b = snap.exists ? snap.data() : {};
+        activo = b.walletActivo === true;
+        // Cortesía: el add-on está activo A PROPÓSITO sin cobrarse. Sin este
+        // dato a la vista, ver "Activo" con la mensualidad en el precio del
+        // plan pelado parece un error de facturación y alguien lo "arregla"
+        // cobrándoselo. Ver _billing/{tid}.addonsCortesia.
+        cortesia = (b.addonsCortesia || {}).wallets || null;
       } catch (_) {}
-      renderWalletAddon(activo);
+      renderWalletAddon(activo, cortesia);
     }
-    function renderWalletAddon(activo) {
+    function renderWalletAddon(activo, cortesia) {
       const icon = document.getElementById('wallet-addon-icon');
       const st   = document.getElementById('wallet-addon-status');
       const btn  = document.getElementById('wallet-addon-btn');
@@ -5933,7 +5939,11 @@
       if (activo) {
         icon.style.background = 'rgba(251,191,36,0.12)'; icon.style.borderColor = 'rgba(251,191,36,0.3)';
         if (i) i.style.color = '#fbbf24';
-        st.innerHTML = '<span style="color:#fbbf24;font-weight:700;font-size:0.9rem;">Activo</span>';
+        st.innerHTML = cortesia
+          ? '<span style="color:#fbbf24;font-weight:700;font-size:0.9rem;">Activo</span>'
+            + '<span style="display:block;color:#4ade80;font-weight:700;font-size:0.72rem;margin-top:2px;">CORTESÍA · no se cobra</span>'
+            + `<span style="display:block;color:#64748b;font-size:0.68rem;">${cortesia.motivo || ''}${cortesia.desde ? ' · desde ' + String(cortesia.desde).slice(0, 10) : ''}</span>`
+          : '<span style="color:#fbbf24;font-weight:700;font-size:0.9rem;">Activo</span>';
         btn.textContent = 'Desactivar';
         btn.style.background = 'rgba(239,68,68,0.1)'; btn.style.borderColor = 'rgba(239,68,68,0.3)'; btn.style.color = '#f87171';
       } else {
@@ -5953,8 +5963,12 @@
       } catch (_) {}
       const activar = !activoActual;
       const nombre = (typeof TENANTS !== 'undefined' && TENANTS[_activeTenant] && TENANTS[_activeTenant].nombre) || _activeTenant;
+      // OJO: activar NO cobra nada. Este flag solo habilita la feature; la
+      // mensualidad se edita a mano en _billing. Decirlo acá evita el caso
+      // Oren (Wallet activo un mes sin facturarse porque se asumió que el
+      // toggle lo sumaba solo).
       const msg = activar
-        ? `¿ACTIVAR el add-on Wallet para "${nombre}"?\n\nSe suma a su mensualidad ($9.990/mes) y habilita la tarjeta de fidelidad + geo-push para sus clientes.`
+        ? `¿ACTIVAR el add-on Wallet para "${nombre}"?\n\nHabilita la tarjeta de fidelidad + geo-push para sus clientes.\n\n⚠ NO se cobra solo: si no es cortesía, hay que sumar $9.990 (IVA incl. → $8.395 netos) a su monto mensual acá mismo.`
         : `¿DESACTIVAR el add-on Wallet para "${nombre}"?\n\nSe apaga el botón "Añadir a Google Wallet" para sus clientes.`;
       if (!confirm(msg)) return;
       const btn = document.getElementById('wallet-addon-btn');
