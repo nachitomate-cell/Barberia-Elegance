@@ -184,7 +184,10 @@ async function generarAnalisis({ metaData, funnel, cfg, anthropicKey, esLunes })
   };
   const resp = await client.messages.create({
     model: MODEL,
-    max_tokens: 1200,
+    // 4000 y no 1200: Sonnet razona antes de escribir y con el JSON completo
+    // de la campaña, 1200 se agotaban EN el razonamiento → reporte vacío
+    // (mordió en el primer análisis, 02-08). El reporte real usa ~500.
+    max_tokens: 4000,
     system: SYSTEM_ANALISTA,
     messages: [{
       role: 'user',
