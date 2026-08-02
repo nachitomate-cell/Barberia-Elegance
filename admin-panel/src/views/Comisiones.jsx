@@ -797,6 +797,11 @@ function DetalleBarberoDrawer({
     push(['Ajustes −', barbero.ajustesResta]);
     push(['Adelantos', barbero.adelantos]);
     if (barbero.arriendoTotal > 0) push(['Arriendo debido al local', barbero.arriendoTotal]);
+    if (barbero.efectivoRetirado > 0) {
+      push(['Efectivo retirado por el barbero', barbero.efectivoRetirado]);
+      push(['— de eso, su comisión ya cobrada en mano', barbero.efectivoComisionParte]);
+      push(['— de eso, parte del local retenida por él', barbero.efectivoParteLocal]);
+    }
     push(['TOTAL A PAGAR', barbero.total]);
     const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
@@ -852,6 +857,15 @@ function DetalleBarberoDrawer({
             <div>
               <p className="text-slate-500">Arriendo local</p>
               <p className="font-semibold text-amber-400 tabular-nums">− {formatCLP(barbero.arriendoTotal)}</p>
+            </div>
+          )}
+          {barbero.efectivoRetirado > 0 && (
+            <div>
+              <p className="text-slate-500">Efectivo retirado por él</p>
+              <p className="font-semibold text-cyan-400 tabular-nums">− {formatCLP(barbero.efectivoRetirado)}</p>
+              <p className="text-[10.5px] text-slate-500 leading-snug mt-0.5">
+                {formatCLP(barbero.efectivoComisionParte)} su comisión · {formatCLP(barbero.efectivoParteLocal)} del local
+              </p>
             </div>
           )}
         </div>
@@ -1180,12 +1194,24 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
               <span className="font-medium text-orange-400">− {formatCLP(barbero.adelantos)}</span>
             </div>
           )}
+          {barbero.efectivoRetirado > 0 && (
+            <>
+              <div className="flex justify-between text-slate-400">
+                <span>Efectivo retirado por {barbero.nombre.split(' ')[0]} ({barbero.efectivoRetiradoCount})</span>
+                <span className="font-medium text-cyan-400">− {formatCLP(barbero.efectivoRetirado)}</span>
+              </div>
+              <p className="text-[11px] text-slate-500 pl-1 leading-snug">
+                De ese efectivo, {formatCLP(barbero.efectivoComisionParte)} era su comisión (ya cobrada en mano)
+                y {formatCLP(barbero.efectivoParteLocal)} corresponde al local (retenido por él).
+              </p>
+            </>
+          )}
         </div>
       </div>
 
       {barbero.saldoPendiente > 0 && (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-snug text-amber-300">
-          Los adelantos superan lo generado este período. Queda un saldo de {formatCLP(barbero.saldoPendiente)} a favor del local — arrástralo al próximo período.
+          Los descuentos del período (adelantos{barbero.efectivoRetirado > 0 ? ' y efectivo retirado' : ''}) superan lo generado. Queda un saldo de {formatCLP(barbero.saldoPendiente)} a favor del local — {barbero.efectivoRetirado > 0 ? 'el barbero lo rinde en caja o se arrastra' : 'arrástralo'} al próximo período.
         </div>
       )}
 
@@ -1298,6 +1324,13 @@ export default function Comisiones() {
   // barbero). Cuando está ON, la comisión de una cita cortesía se calcula sobre
   // el precio del catálogo (como si el servicio se hubiera cobrado).
   const [cortesiaPagaComision, setCortesiaPagaComision] = useState(false);
+  // Toggle "los barberos se llevan el efectivo" (pedido por Oren, ago-2026):
+  // el barbero se queda con lo pagado en efectivo, así que del pago del
+  // período se DESCUENTA ese efectivo completo — su parte de comisión ya la
+  // cobró en mano, y la parte del local la está reteniendo. El detalle va
+  // SIEMPRE visible (card, sheet de pago, liquidación y CSV): la condición
+  // explícita del cliente fue que no pareciera un descuento oculto.
+  const [efectivoAlBarbero, setEfectivoAlBarbero] = useState(false);
   useEffect(() => {
     (async () => {
       try {
@@ -1305,25 +1338,31 @@ export default function Comisiones() {
         if (snap.exists() && typeof snap.data()?.cortesiaPagaComision === 'boolean') {
           setCortesiaPagaComision(snap.data().cortesiaPagaComision);
         }
+        if (snap.exists() && typeof snap.data()?.efectivoAlBarbero === 'boolean') {
+          setEfectivoAlBarbero(snap.data().efectivoAlBarbero);
+        }
       } catch (e) {
         console.warn('[Comisiones] no se pudo leer configuracion/comisiones:', e?.message);
       }
     })();
   }, []);
-  const toggleCortesiaPagaComision = async () => {
-    const nuevo = !cortesiaPagaComision;
-    setCortesiaPagaComision(nuevo);   // optimista
+  const _guardarFlagComisiones = async (campo, nuevo, setter) => {
+    setter(nuevo);   // optimista
     try {
       await setDoc(tenantDoc('configuracion', 'comisiones'), {
-        cortesiaPagaComision: nuevo,
+        [campo]: nuevo,
         updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (e) {
       console.error('[Comisiones] error guardando configuracion/comisiones:', e);
-      setCortesiaPagaComision(!nuevo); // revertir
+      setter(!nuevo); // revertir
       alert('No se pudo guardar el ajuste. Intenta de nuevo.');
     }
   };
+  const toggleCortesiaPagaComision = () =>
+    _guardarFlagComisiones('cortesiaPagaComision', !cortesiaPagaComision, setCortesiaPagaComision);
+  const toggleEfectivoAlBarbero = () =>
+    _guardarFlagComisiones('efectivoAlBarbero', !efectivoAlBarbero, setEfectivoAlBarbero);
 
   const { data: rawBarberos = [] } = useCollection('barberos');
   // Catálogo de servicios: fuente del fallback de precio cuando la cita no
@@ -1551,6 +1590,12 @@ export default function Comisiones() {
       ajustesLineas: [],       // detalle de las líneas del período (para UI)
       propinas: 0,
       propinasCount: 0,
+      // Efectivo que el barbero se llevó en mano (toggle efectivoAlBarbero).
+      // Se separa cuánto de eso era SU comisión (ya cobrada) y cuánto es del
+      // local (retenido) para que el desglose nunca sea una caja negra.
+      efectivoRetirado: 0,
+      efectivoRetiradoCount: 0,
+      efectivoComisionParte: 0,
       total: 0,
     });
     barberos.forEach(b => { map[b.id] = nuevoBucket(b); });
@@ -1605,6 +1650,29 @@ export default function Comisiones() {
         map[key].propinas += propina;
         map[key].propinasCount++;
       }
+
+      // ── Efectivo retirado por el barbero (toggle del tenant) ──
+      // Cuenta la plata REAL que quedó en su mano: cortesías no mueven caja
+      // (aunque cortesiaPagaComision infle la comisión) y las citas de
+      // cartera propia (CP) tampoco — ahí el barbero ya cobró todo y lo que
+      // rige es el arriendo. En pago Mixto solo la porción en efectivo.
+      if (efectivoAlBarbero && !r.cp) {
+        const cashBase = c.cortesia ? 0
+          : (c.precio != null ? (Number(c.precio) || 0) : _catalogPrice(c));
+        let cash = 0;
+        if (c.metodoPago === 'Efectivo') cash = cashBase;
+        else if (c.metodoPago === 'Mixto' && Array.isArray(c.pagos)) {
+          cash = Math.min(cashBase, c.pagos
+            .filter(p => p?.tipo === 'Efectivo')
+            .reduce((s, p) => s + (Number(p.monto) || 0), 0));
+        }
+        if (cash > 0) {
+          map[key].efectivoRetirado += cash;
+          map[key].efectivoRetiradoCount++;
+          // Parte del efectivo que era comisión suya (proporcional si fue Mixto).
+          map[key].efectivoComisionParte += cashBase > 0 ? r.comision * (cash / cashBase) : 0;
+        }
+      }
     });
 
     // Productos: cada venta paga %comisión producto (override o global) + monto fijo por venta.
@@ -1615,6 +1683,13 @@ export default function Comisiones() {
       map[key].ventas++;
       map[key].ingresosProductos += r.ingresoLocal;
       map[key].comisionProductos += r.comision;
+      // Producto vendido y cobrado en efectivo → esa plata también quedó en
+      // la mano del barbero (mismo criterio que las citas).
+      if (efectivoAlBarbero && v.metodoPago === 'Efectivo' && monto > 0) {
+        map[key].efectivoRetirado += monto;
+        map[key].efectivoRetiradoCount++;
+        map[key].efectivoComisionParte += r.comision;
+      }
     });
 
     // Consolidados por barbero: ingresos y comisión totales para la fila.
@@ -1686,14 +1761,18 @@ export default function Comisiones() {
         const ajSum  = Math.round(b.ajustesSuma);
         const ajRes  = Math.round(b.ajustesResta);
         const rent   = Math.round(b.arriendoTotal);
+        const efec   = Math.round(b.efectivoRetirado);
+        const efecCom = Math.round(Math.min(b.efectivoComisionParte, b.efectivoRetirado));
         const bruto  = Math.round(b.sueldoBase + b.montoComision);
         // Ajustes manuales se aplican ANTES de restar adelantos: primero
         // "cuánto debería cobrar" (con bonos/descuentos), y de ahí sale la
         // resta de adelantos ya tomados. El arriendo (cliente propio) se
         // descuenta al final: el barbero ya lo cobró íntegro al cliente y le
-        // debe al local $X por cada corte CP.
+        // debe al local $X por cada corte CP. El efectivo retirado se resta
+        // COMPLETO: su comisión sobre esas ventas ya está adentro del bruto y
+        // la plata física ya está en su bolsillo.
         const brutoAjustado = bruto + ajSum - ajRes;
-        const neto   = brutoAjustado - adel - rent;
+        const neto   = brutoAjustado - adel - rent - efec;
         // Ordenar líneas del período por fecha ascendente para display estable.
         b.ajustesLineas.sort((x, y) => (x.fecha || '').localeCompare(y.fecha || ''));
         return {
@@ -1708,15 +1787,18 @@ export default function Comisiones() {
           ajustesSuma:  ajSum,
           ajustesResta: ajRes,
           propinas: Math.round(b.propinas),
+          efectivoRetirado: efec,
+          efectivoComisionParte: efecCom,
+          efectivoParteLocal: Math.max(0, efec - efecCom),
           bruto,
           brutoAjustado,
           total: Math.max(0, neto),
           saldoPendiente: neto < 0 ? -neto : 0,
         };
       })
-      .filter(b => b.citas > 0 || b.ventas > 0 || b.adelantos > 0 || b.propinas > 0 || b.ajustesSuma > 0 || b.ajustesResta > 0)
+      .filter(b => b.citas > 0 || b.ventas > 0 || b.adelantos > 0 || b.propinas > 0 || b.ajustesSuma > 0 || b.ajustesResta > 0 || b.efectivoRetirado > 0)
       .sort((a, b) => b.ingresos - a.ingresos);
-  }, [citas, ventas, adelantos, ajustesManuales, barberos, precioServicio, precioVenta, fechaInicio, fechaFin]);
+  }, [citas, ventas, adelantos, ajustesManuales, barberos, precioServicio, precioVenta, fechaInicio, fechaFin, efectivoAlBarbero, _catalogPrice]);
 
   const totals = useMemo(() => data.reduce((acc, b) => ({
     citas: acc.citas + b.citas,
@@ -1733,8 +1815,9 @@ export default function Comisiones() {
     ajustesResta: acc.ajustesResta + b.ajustesResta,
     propinas: acc.propinas + b.propinas,
     arriendoTotal: acc.arriendoTotal + (b.arriendoTotal || 0),
+    efectivoRetirado: acc.efectivoRetirado + (b.efectivoRetirado || 0),
     total: acc.total + b.total,
-  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, ajustesSuma: 0, ajustesResta: 0, propinas: 0, arriendoTotal: 0, total: 0 }), [data]);
+  }), { citas: 0, ventas: 0, ingresosServicios: 0, ingresosProductos: 0, ingresos: 0, comisionServicios: 0, comisionProductos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, ajustesSuma: 0, ajustesResta: 0, propinas: 0, arriendoTotal: 0, efectivoRetirado: 0, total: 0 }), [data]);
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
@@ -1938,16 +2021,16 @@ export default function Comisiones() {
 
     /* ── Sección 1: Comisiones por barbero ── */
     pushRow(['COMISIONES POR BARBERO']);
-    pushRow(['Barbero', 'Citas', 'Ingresos Servicios', '% Serv.', 'Comisión Serv.', 'Ventas', 'Ingresos Productos', '% Prod.', '$ fijo/venta', 'Comisión Prod.', 'Ingresos Totales', 'Sueldo Base', 'Ajustes +', 'Ajustes −', 'Adelantos', 'Total a Pagar']);
+    pushRow(['Barbero', 'Citas', 'Ingresos Servicios', '% Serv.', 'Comisión Serv.', 'Ventas', 'Ingresos Productos', '% Prod.', '$ fijo/venta', 'Comisión Prod.', 'Ingresos Totales', 'Sueldo Base', 'Ajustes +', 'Ajustes −', 'Adelantos', 'Efectivo Retirado', 'Total a Pagar']);
     data.forEach(b => pushRow([
       b.nombre, b.citas, b.ingresosServicios, b.comisionPct, b.comisionServicios,
       b.ventas, b.ingresosProductos, b.comisionProductosPct, b.comisionProductosMonto, b.comisionProductos,
-      b.ingresos, b.sueldoBase, b.ajustesSuma, b.ajustesResta, b.adelantos, b.total,
+      b.ingresos, b.sueldoBase, b.ajustesSuma, b.ajustesResta, b.adelantos, b.efectivoRetirado || 0, b.total,
     ]));
     pushRow([
       'TOTAL', totals.citas, totals.ingresosServicios, '', totals.comisionServicios,
       totals.ventas, totals.ingresosProductos, '', '', totals.comisionProductos,
-      totals.ingresos, totals.sueldoBase, totals.ajustesSuma, totals.ajustesResta, totals.adelantos, totals.total,
+      totals.ingresos, totals.sueldoBase, totals.ajustesSuma, totals.ajustesResta, totals.adelantos, totals.efectivoRetirado, totals.total,
     ]);
 
     /* ── Detalle de ajustes manuales ── */
@@ -2240,6 +2323,8 @@ export default function Comisiones() {
           <span>Sueldo base</span><b>${formatCLP(b.sueldoBase)}</b>
           ${b.adelantos > 0 ? `<span>Adelantos</span><b class="neg">− ${formatCLP(b.adelantos)}</b>` : ''}
           ${b.arriendoTotal > 0 ? `<span>Arriendo debido al local</span><b class="neg">− ${formatCLP(b.arriendoTotal)}</b>` : ''}
+          ${b.efectivoRetirado > 0 ? `<span>Efectivo retirado por él (${b.efectivoRetiradoCount})</span><b class="neg">− ${formatCLP(b.efectivoRetirado)}</b>
+          <span style="font-size:11px;opacity:.75">— incluye ${formatCLP(b.efectivoComisionParte)} de su comisión ya cobrada y ${formatCLP(b.efectivoParteLocal)} del local</span><b></b>` : ''}
           <span class="big">Total a pagar</span><b class="big pos">${formatCLP(b.total)}</b>
         </div>
         <h3>Medios de pago</h3>
@@ -2268,6 +2353,7 @@ export default function Comisiones() {
           <span>Total comisiones</span><b>${formatCLP(totals.montoComision)}</b>
           <span>Adelantos</span><b class="neg">− ${formatCLP(totals.adelantos)}</b>
           ${totals.arriendoTotal > 0 ? `<span>Arriendo cobrado (cliente propio)</span><b class="neg">− ${formatCLP(totals.arriendoTotal)}</b>` : ''}
+          ${totals.efectivoRetirado > 0 ? `<span>Efectivo retirado por los barberos</span><b class="neg">− ${formatCLP(totals.efectivoRetirado)}</b>` : ''}
           <span class="big">Total a pagar</span><b class="big pos">${formatCLP(totals.total)}</b>
         </div>
         <h3>Medios de pago (todo el local)</h3>
@@ -2454,6 +2540,31 @@ export default function Comisiones() {
             </p>
           </div>
         </label>
+        <label className="flex items-start gap-3 cursor-pointer select-none group mt-4 pt-4 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={toggleEfectivoAlBarbero}
+            role="switch"
+            aria-checked={efectivoAlBarbero}
+            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              efectivoAlBarbero ? 'bg-emerald-500' : 'bg-slate-700'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+              efectivoAlBarbero ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+          <div onClick={toggleEfectivoAlBarbero} className="flex-1">
+            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
+              Los barberos se llevan el efectivo
+            </p>
+            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
+              {efectivoAlBarbero
+                ? 'Lo cobrado en efectivo queda en la mano del barbero: del pago del período se descuenta ese efectivo completo, con el desglose visible (su comisión ya cobrada + la parte del local que retuvo). Si el efectivo supera lo generado, queda saldo a favor del local.'
+                : 'El efectivo entra a la caja del local (comportamiento por defecto). Activa el toggle si tus barberos se quedan con lo pagado en efectivo y quieres que el sistema lo descuente del pago con detalle visible.'}
+            </p>
+          </div>
+        </label>
       </div>
 
       {/* Cálculo del neto (IVA + comisión POS) — se usa al exportar */}
@@ -2492,6 +2603,7 @@ export default function Comisiones() {
             { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Ingresos totales',  value: formatCLP(totals.ingresos) },
             { icon: DollarSign, color: 'text-amber-400',   bg: 'bg-amber-500/10',   label: 'Total comisiones',  value: formatCLP(totals.montoComision) },
             { icon: Wallet,     color: 'text-orange-400',  bg: 'bg-orange-500/10',  label: 'Adelantos',         value: formatCLP(totals.adelantos) },
+            ...(totals.efectivoRetirado > 0 ? [{ icon: Banknote, color: 'text-cyan-400', bg: 'bg-cyan-500/10', label: 'Efectivo retirado', value: `− ${formatCLP(totals.efectivoRetirado)}` }] : []),
             { icon: Banknote,   color: 'text-pink-400',    bg: 'bg-pink-500/10',    label: 'Propinas',          value: formatCLP(totals.propinas) },
             { icon: Banknote,   color: 'text-rose-400',    bg: 'bg-rose-500/10',    label: 'Total a pagar',     value: formatCLP(totals.total) },
           ].map(({ icon: Icon, color, bg, label, value }) => (
@@ -2578,6 +2690,14 @@ export default function Comisiones() {
                   )}
                   {barbero.adelantos > 0 && (
                     <StatItem label="Adelantos" value={`− ${formatCLP(barbero.adelantos)}`} valueClass="text-orange-400" />
+                  )}
+                  {barbero.efectivoRetirado > 0 && (
+                    <StatItem
+                      label={`Efectivo retirado (${barbero.efectivoRetiradoCount})`}
+                      value={`− ${formatCLP(barbero.efectivoRetirado)}`}
+                      subValue={`${formatCLP(barbero.efectivoComisionParte)} su comisión ya cobrada · ${formatCLP(barbero.efectivoParteLocal)} del local`}
+                      valueClass="text-cyan-400"
+                    />
                   )}
                   {barbero.propinas > 0 && (
                     <StatItem label={`Propinas (${barbero.propinasCount})`} value={formatCLP(barbero.propinas)} valueClass="text-pink-400" />
