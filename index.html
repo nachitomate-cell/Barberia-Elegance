@@ -12781,6 +12781,20 @@
       document.body.appendChild(overlay);
     }
 
+    const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    // El carrusel avanza hasta 60 días, así que cruza de mes. El título sigue a la
+    // fecha SELECCIONADA, no a `hoy`: si el cliente toca el 2 y ese 2 ya es de
+    // septiembre, tiene que leer "Septiembre 2026" y no seguir diciendo "Agosto".
+    function updateMonthLabel(dateStr) {
+      const el = document.getElementById('currentMonthText');
+      if (!el || !dateStr) return;
+      // Parseo manual: `new Date('2026-09-02')` se interpreta como UTC y en Chile
+      // retrocede al día anterior, que en un día 1 devolvería el mes equivocado.
+      const [y, m] = dateStr.split('-').map(Number);
+      el.innerText = `${MONTH_NAMES[m - 1]} ${y}`;
+    }
+
     function renderCalendar(customConfig = null) {
       const carousel = document.querySelector('#calendarCarousel');
       carousel.innerHTML = '';
@@ -12788,9 +12802,6 @@
       const settings = customConfig || _fsConfig || DB.getSettings();
 
       const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-      document.getElementById('currentMonthText').innerText = `${months[today.getMonth()]} ${today.getFullYear()}`;
 
       let firstSelectableSet = false;
 
@@ -12870,6 +12881,11 @@
             </div>`;
         }
       }
+
+      // El barbero puede no tener días hábiles hasta el mes siguiente: el título
+      // arranca en el mes de la fecha preseleccionada, no necesariamente el de hoy.
+      updateMonthLabel(currentDateStr ||
+        `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`);
     }
 
     function _subscribeSlotLocks(fecha) {
@@ -12898,6 +12914,7 @@
 
     function handleDayClick(btn, dateStr) {
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
+      updateMonthLabel(dateStr);
       document.querySelectorAll('.day-btn:not(.pointer-events-none)').forEach(b => {
         b.classList.remove('active', 'bg-brand-neon/10', 'border-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.2)]');
         b.classList.add('bg-[#0a0a0d]', 'border-brand-accent/20');

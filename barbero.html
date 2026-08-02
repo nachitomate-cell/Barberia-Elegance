@@ -1644,6 +1644,20 @@
   }
 
   /* ── Calendar ───────────────────────────────────────────────────── */
+  const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // El carrusel avanza hasta 60 días, así que cruza de mes. El título sigue a la
+  // fecha SELECCIONADA, no a `hoy`: si el cliente toca el 2 y ese 2 ya es de
+  // septiembre, tiene que leer "Septiembre 2026" y no seguir diciendo "Agosto".
+  function updateMonthLabel(dateStr) {
+    const el = document.getElementById('currentMonthText');
+    if (!el || !dateStr) return;
+    // Parseo manual: `new Date('2026-09-02')` se interpreta como UTC y en Chile
+    // retrocede al día anterior, que en un día 1 devolvería el mes equivocado.
+    const [y, m] = dateStr.split('-').map(Number);
+    el.textContent = `${MONTH_NAMES[m - 1]} ${y}`;
+  }
   async function precargarBloqueos() {
     _bloqueosProximos = {};
     try {
@@ -1685,10 +1699,6 @@
     const diasBloq = cfg?.diasBloqueados ?? [];
 
     const DAYS_OF_WEEK = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    document.getElementById('currentMonthText').textContent =
-      `${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
 
     const todayStr = dateToStr(today);
     let firstSelectableStr = null;
@@ -1741,12 +1751,17 @@
     if (firstSelectableStr && (!_selectedDate || !carousel.querySelector(`.day-btn[data-date="${_selectedDate}"]`))) {
       _selectedDate = firstSelectableStr;
     }
+
+    // El barbero puede no tener días hábiles hasta el mes siguiente: el título
+    // arranca en el mes de la fecha preseleccionada, no necesariamente el de hoy.
+    updateMonthLabel(_selectedDate || todayStr);
   }
 
   function handleDayClick(btn, dateStr) {
     document.querySelectorAll('#calendarCarousel .day-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     _selectedDate = dateStr;
+    updateMonthLabel(dateStr);
     _selectedTime = null;
     _selectedSlotInfo = null;
     updateContinueBtn();
