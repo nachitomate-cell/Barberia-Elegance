@@ -43,6 +43,11 @@ const { defineSecret }  = require('firebase-functions/params');
 const { crearCliente }  = require('./evolution/client');
 const EVOLUTION_API_URL = defineSecret('EVOLUTION_API_URL');
 const EVOLUTION_API_KEY = defineSecret('EVOLUTION_API_KEY');
+// Canal oficial de Meta (Cloud API): plantilla `cobranza_mensualidad` —
+// entrega garantizada, inmune al shadowban de los chips. Se enciende con
+// _system/cobranza.canalOficial=true cuando Meta apruebe la plantilla.
+const WHATSAPP_TOKEN    = defineSecret('WHATSAPP_TOKEN');
+const WHATSAPP_PHONE_ID = defineSecret('WHATSAPP_PHONE_ID');
 // Instancia por defecto; se puede redirigir sin deploy con
 // _system/cobranza.instanciaWa (p.ej. 'instance_synaptech' = chip principal,
 // para que la cobranza no salga del número personal de Ignacio).
@@ -200,27 +205,69 @@ async function emailsCobro(tid, billingData) {
   return { emails: [], nombreLocal };
 }
 
+/* ─────────────────────── FLUJO INTELIGENTE DE COBRANZA ───────────────────────
+   UN solo aviso por día de escalera, con el CANAL elegido según la etapa:
+   los recordatorios suaves van por push (barato, no invasivo), los momentos
+   importantes por WhatsApp (el canal que de verdad se lee) y los formales por
+   email (respaldo escrito). Los demás canales del día son FALLBACK si el
+   elegido no está disponible — nunca refuerzo. Antes WhatsApp y push salían
+   juntos, y con el canal oficial habrían sido TRES avisos el mismo día
+   (pedido de Ignacio 02-08: "no podemos spamear en los tres canales").
+
+     -3  suave     (push → email)                  aviso temprano
+     -1  whatsapp  (oficial → evo → push → email)  víspera, el importante
+      0  suave     (push → email)                  día D, refuerzo liviano
+     +1  whatsapp                                  primer atraso
+     +3  email     (email → push)                  variar canal, respaldo escrito
+     +8  whatsapp                                  bloqueo de secciones
+    +15  email                                     pre-suspensión, formal
+    >15  semanal, alternando whatsapp / email      persistencia sin quemar canal
+
+   "whatsapp" intenta primero la PLANTILLA OFICIAL de Meta (entrega
+   garantizada, inmune a shadowban) si _system/cobranza.canalOficial está
+   encendido; después Evolution (instanciaWa) si está configurada. */
+
+const PLAN_CANAL = { '-3': 'suave', '-1': 'whatsapp', '0': 'suave', '1': 'whatsapp', '3': 'email', '8': 'whatsapp', '15': 'email' };
+
+function canalDelDia(dias) {
+  const p = PLAN_CANAL[String(dias)];
+  if (p) return p;
+  if (dias > 15 && (dias - 15) % RECORDATORIO_RECURRENTE === 0) {
+    return ((dias - 15) / RECORDATORIO_RECURRENTE) % 2 === 1 ? 'whatsapp' : 'email';
+  }
+  return null;
+}
+
+// Frase para la variable {{3}} de la plantilla oficial.
+function fraseVencimiento(dias) {
+  if (dias < 0) { const n = Math.abs(dias); return n === 1 ? 'vence mañana' : `vence en ${n} días`; }
+  if (dias === 0) return 'vence hoy';
+  return `venció hace ${dias} día${dias === 1 ? '' : 's'}`;
+}
+
 exports.recordatorioCobro = onSchedule(
-  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [...MAIL_SECRETS, EVOLUTION_API_URL, EVOLUTION_API_KEY] },
+  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [...MAIL_SECRETS, EVOLUTION_API_URL, EVOLUTION_API_KEY, WHATSAPP_TOKEN, WHATSAPP_PHONE_ID] },
   async () => {
     const hoyUTC   = santiagoHoyUTC();
     const todayStr = new Date(hoyUTC).toISOString().slice(0, 10);
     const snap     = await db.collection('_billing').get();
 
-    let totalPush = 0, totalMail = 0, totalWa = 0;
-    // Cliente Evolution perezoso: solo se construye si algún local tiene
-    // whatsappCobro configurado (si no, esta corrida ni toca el VPS).
+    // Cliente Evolution perezoso: solo se construye si algún envío lo necesita.
     let _evo = null;
     const evoCli = () => (_evo || (_evo = crearCliente({
       baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value(),
     })));
-    // Config de cobranza (_system/cobranza, editable sin deploy): datos de
-    // transferencia (método PRINCIPAL, decisión de Ignacio 02-08) y por qué
-    // instancia sale el WhatsApp (chip principal para no usar su número).
+    // Config de cobranza (_system/cobranza, editable sin deploy): transferencia
+    // (método principal), instancia Evolution y flag del canal oficial.
     const cobCfg = ((await db.doc('_system/cobranza').get().catch(() => null))?.data() || {});
-    const transf = cobCfg.transferencia || null;
-    const INSTANCIA_WA = String(cobCfg.instanciaWa || '').trim() || INSTANCIA_WA_DEFAULT;
-    const sinCanal = [];   // locales inalcanzables → alerta al superadmin
+    const transf          = cobCfg.transferencia || null;
+    const INSTANCIA_WA    = String(cobCfg.instanciaWa || '').trim() || INSTANCIA_WA_DEFAULT;
+    const canalOficialOn  = cobCfg.canalOficial === true;
+    const plantilla       = String(cobCfg.plantillaOficial || 'cobranza_mensualidad');
+    const plantillaLang   = String(cobCfg.plantillaLang || 'es');
+
+    const totales  = { oficial: 0, evolution: 0, push: 0, email: 0 };
+    const sinCanal = [];   // locales donde NINGÚN canal funcionó
 
     for (const doc of snap.docs) {
       const tid = doc.id;
@@ -230,146 +277,170 @@ exports.recordatorioCobro = onSchedule(
 
       const dias = Math.round((hoyUTC - dueUTC) / 86400000); // + = atrasado, - = falta
       if (!tocaRecordatorio(dias)) continue;
-      // Idempotencia diaria: da igual por qué canal haya salido hoy.
-      if (d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr
+      const canalPlan = canalDelDia(dias);
+      if (!canalPlan) continue;
+
+      // Idempotencia ÚNICA del día (más compat con las marcas antiguas).
+      if (d.ultimoAvisoCobro === todayStr
+        || d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr
         || d.ultimoRecordatorioWa === todayStr) continue;
+
+      // Cuota del ciclo ya pagada → nada que recordar (pagó por adelantado y
+      // el aviso de "vence en 3 días" sería puro ruido que erosiona confianza).
+      const cuotaMes = (Array.isArray(d.cuotas) ? d.cuotas : [])
+        .find(c => c && c.mes === todayStr.slice(0, 7));
+      if (cuotaMes && cuotaMes.pagada === true) continue;
 
       // sinCorte: se avisa igual, pero sin prometer bloqueos que no ocurren.
       // montoPendiente es NETO (criterio 2026-07-20): el aviso pide el total
       // con IVA 19%, igual que la vista Mensualidad y el cargo automático.
       const montoConIva = Math.round((Number(d.montoPendiente) || 0) * 1.19);
       const { title, body } = buildMensaje(dias, montoConIva, d.sinCorte === true);
-
-      // ── Canal 0: WhatsApp (número EXPLÍCITO en _billing.whatsappCobro) ──
-      // Nunca derivado de barberos/ ni de configuracion: el superadmin lo
-      // escribe a mano por local, mismo criterio que emailCobro.
-      let waOk = false;
-      const waNum = String(d.whatsappCobro || '').replace(/\D/g, '');
-      // Nombre del local + correos: una sola resolución que sirve para el
-      // WhatsApp (saludo con nombre) y para el fallback por email.
       const { emails: destinatarios, nombreLocal } = await emailsCobro(tid, d);
-      if (waNum.length >= 9) {
-        try {
-          const susMp = d.suscripcionMp || {};
-          const linkAuto = susMp.status === 'link_creado' && susMp.initPoint ? susMp.initPoint : null;
-          const urlPlan = `https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`;
-          const texto = mensajeWaCobro({
-            dias, monto: montoConIva, nombreLocal,
-            sinCorte: d.sinCorte === true, transf, linkAuto, urlPlan,
-          });
-          await evoCli().enviarTexto(INSTANCIA_WA, waNum, texto);
-          waOk = true;
-          totalWa++;
-          await doc.ref.update({ ultimoRecordatorioWa: todayStr }).catch(() => {});
-          logger.info(`[Cobro] 📱 ${tid} (dias=${dias}) → WhatsApp a ***${waNum.slice(-4)}`);
-        } catch (e) {
-          // Sesión caída o número inválido → la escalera sigue con push/email.
-          logger.warn(`[Cobro] ✗ WhatsApp ${tid}: ${e.message}`);
-        }
-      }
+      const waNum   = String(d.whatsappCobro || '').replace(/\D/g, '');
+      const susMp   = d.suscripcionMp || {};
+      const linkAuto = susMp.status === 'link_creado' && susMp.initPoint ? susMp.initPoint : null;
+      const urlPlan  = `https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`;
 
-      const tokens = await tokensAdmin(tid);
-
-      // ── Canal 1: push FCM ──────────────────────────────────────
-      if (tokens.length) {
-        const invalidos = [];
-        let enviados = 0;
-
-        await Promise.all(tokens.map(async t => {
+      // ── Senders: cada uno devuelve true si el aviso SALIÓ de verdad ──
+      const intentos = {
+        // Plantilla oficial de Meta: entrega garantizada. El número va SOLO
+        // del campo explícito _billing.whatsappCobro (jamás derivado).
+        oficial: async () => {
+          if (!canalOficialOn || waNum.length < 9) return false;
           try {
-            await messaging.send({
-              token: t.token,
-              notification: { title, body },
-              data: { tipo: 'cobro', tenantId: tid, url: '/gestion-interna/mensualidad' },
-              webpush: {
-                headers: { Urgency: 'high' },
-                notification: {
-                  title, body,
-                  icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
-                  tag: `cobro-${tid}`, renotify: true, vibrate: [200, 100, 200],
+            const res = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID.value()}/messages`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${WHATSAPP_TOKEN.value()}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp', to: waNum, type: 'template',
+                template: {
+                  name: plantilla, language: { code: plantillaLang },
+                  components: [{
+                    type: 'body',
+                    parameters: [
+                      { type: 'text', text: nombreLocal || tid },
+                      { type: 'text', text: '$' + montoConIva.toLocaleString('es-CL') },
+                      { type: 'text', text: fraseVencimiento(dias) },
+                    ],
+                  }],
                 },
-                fcmOptions: { link: `/gestion-interna/mensualidad?local=${tid}` },
-              },
+              }),
             });
-            enviados++;
-          } catch (err) {
-            const code = err.errorInfo?.code || err.code || '';
-            if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument'].includes(code)) invalidos.push(t.id);
-            logger.warn(`[Cobro] ✗ ${tid}: ${code || err.message}`);
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.error) throw new Error(out.error?.message || `HTTP ${res.status}`);
+            return true;
+          } catch (e) { logger.warn(`[Cobro] ✗ oficial ${tid}: ${e.message}`); return false; }
+        },
+
+        // Evolution (chip): copy cálido con nombre. Solo si hay instancia real
+        // configurada — el placeholder 'desactivada' la salta de inmediato.
+        evolution: async () => {
+          if (waNum.length < 9 || !INSTANCIA_WA || INSTANCIA_WA.includes('desactivada')) return false;
+          try {
+            const texto = mensajeWaCobro({
+              dias, monto: montoConIva, nombreLocal,
+              sinCorte: d.sinCorte === true, transf, linkAuto, urlPlan,
+            });
+            await evoCli().enviarTexto(INSTANCIA_WA, waNum, texto);
+            return true;
+          } catch (e) { logger.warn(`[Cobro] ✗ evolution ${tid}: ${e.message}`); return false; }
+        },
+
+        push: async () => {
+          const tokens = await tokensAdmin(tid);
+          if (!tokens.length) return false;
+          const invalidos = [];
+          let enviados = 0;
+          await Promise.all(tokens.map(async t => {
+            try {
+              await messaging.send({
+                token: t.token,
+                notification: { title, body },
+                data: { tipo: 'cobro', tenantId: tid, url: '/gestion-interna/mensualidad' },
+                webpush: {
+                  headers: { Urgency: 'high' },
+                  notification: {
+                    title, body,
+                    icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+                    tag: `cobro-${tid}`, renotify: true, vibrate: [200, 100, 200],
+                  },
+                  fcmOptions: { link: `/gestion-interna/mensualidad?local=${tid}` },
+                },
+              });
+              enviados++;
+            } catch (err) {
+              const code = err.errorInfo?.code || err.code || '';
+              if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument'].includes(code)) invalidos.push(t.id);
+              logger.warn(`[Cobro] ✗ push ${tid}: ${code || err.message}`);
+            }
+          }));
+          if (invalidos.length) {
+            const batch = db.batch();
+            invalidos.forEach(id => batch.update(db.collection(fcmTokensColPath(tid)).doc(id), { activo: false }));
+            await batch.commit().catch(() => {});
           }
-        }));
+          return enviados > 0;
+        },
 
-        if (invalidos.length) {
-          const batch = db.batch();
-          invalidos.forEach(id => batch.update(db.collection(fcmTokensColPath(tid)).doc(id), { activo: false }));
-          await batch.commit().catch(() => {});
-        }
+        email: async () => {
+          if (!destinatarios.length) return false;
+          try {
+            await enviarEmail({
+              from:    MAIL_FROM,
+              to:      destinatarios,
+              subject: title,
+              html:    buildEmailHtml({ title, body, tid, nombreLocal }),
+            }, { grupo: 'interno', etiqueta: 'recordatorio-cobro' });
+            return true;
+          } catch (e) { logger.error(`[Cobro] ✗ email ${tid}: ${e.message}`); return false; }
+        },
+      };
 
-        if (enviados > 0) {
-          await doc.ref.update({
-            ultimoRecordatorioPush: todayStr,
-            sinTokensDesde: admin.firestore.FieldValue.delete(),  // se recuperó el canal
-          }).catch(() => {});
-          totalPush += enviados;
-          logger.info(`[Cobro] ✓ ${tid} (dias=${dias}) → ${enviados} push`);
-          continue;
-        }
-        // Si ninguna push salió, seguimos al fallback por correo.
+      // Orden de intentos según el plan del día: el primero que sale, CIERRA.
+      const ORDEN = {
+        whatsapp: ['oficial', 'evolution', 'push', 'email'],
+        suave:    ['push', 'email'],
+        email:    ['email', 'push'],
+      }[canalPlan];
+
+      let canalUsado = null;
+      for (const c of ORDEN) {
+        // eslint-disable-next-line no-await-in-loop
+        if (await intentos[c]()) { canalUsado = c; break; }
       }
 
-      // ── Canal 2: fallback por email ────────────────────────────
-      // Marca desde cuándo este local no tiene push, para la alerta.
-      const desde = d.sinTokensDesde || todayStr;
-      const diasSinCanal = Math.round((hoyUTC - (parseFechaUTC(desde) ?? hoyUTC)) / 86400000);
-
-      let mailOk = false;
-
-      // Si el WhatsApp ya salió, el correo sobra (era el fallback del fallback).
-      if (!waOk && destinatarios.length) {
-        try {
-          await enviarEmail({
-            from:    MAIL_FROM,
-            to:      destinatarios,
-            subject: title,
-            html:    buildEmailHtml({ title, body, tid, nombreLocal }),
-          }, { grupo: 'interno', etiqueta: 'recordatorio-cobro' });
-          mailOk = true;
-          totalMail += destinatarios.length;
-          logger.info(`[Cobro] ✉ ${tid} (dias=${dias}) → email a ${destinatarios.length} destinatario(s)`);
-        } catch (e) {
-          logger.error(`[Cobro] ✗ email ${tid}: ${e.message}`);
+      if (canalUsado) {
+        totales[canalUsado]++;
+        await doc.ref.update({
+          ultimoAvisoCobro: todayStr,
+          ultimoAvisoCanal: canalUsado,
+          ultimoAvisoDias:  dias,
+          // Compat: ops y la idempotencia antigua leen estas marcas.
+          ...(canalUsado === 'push'
+            ? { ultimoRecordatorioPush: todayStr, sinTokensDesde: admin.firestore.FieldValue.delete() } : {}),
+          ...(canalUsado === 'email' ? { ultimoRecordatorioEmail: todayStr } : {}),
+          ...(canalUsado === 'oficial' || canalUsado === 'evolution'
+            ? { ultimoRecordatorioWa: todayStr } : {}),
+        }).catch(() => {});
+        logger.info(`[Cobro] ✓ ${tid} (dias=${dias}, plan=${canalPlan}) → ${canalUsado}`);
+      } else {
+        // Ningún canal disponible: rastro + alerta al superadmin (una por corrida).
+        await doc.ref.update({ sinTokensDesde: d.sinTokensDesde || todayStr }).catch(() => {});
+        if (d.ultimaAlertaSuperadmin !== todayStr) {
+          sinCanal.push({ tid, dias, ref: doc.ref });
         }
-      } else if (!waOk) {
-        logger.warn(`[Cobro] ${tid}: sin tokens y sin email de contacto`);
-      }
-
-      await doc.ref.update({
-        sinTokensDesde: desde,
-        ...(mailOk ? { ultimoRecordatorioEmail: todayStr } : {}),
-      }).catch(() => {});
-
-      // ── Canal 3: alerta al superadmin ──────────────────────────
-      // Solo si la falta de push ya es crónica, o si no hubo NINGÚN canal.
-      const yaAvisadoHoy = d.ultimaAlertaSuperadmin === todayStr;
-      // Con WhatsApp entregado el local NO está incomunicado: nada que alertar.
-      if (!yaAvisadoHoy && !waOk && (!mailOk || diasSinCanal >= ALERTA_DIAS_SIN_CANAL)) {
-        sinCanal.push({ tid, dias, diasSinCanal, mailOk, ref: doc.ref });
+        logger.warn(`[Cobro] ⛔ ${tid} (dias=${dias}, plan=${canalPlan}): ningún canal disponible`);
       }
     }
 
     // Una sola push al superadmin por corrida (no una por local).
     if (sinCanal.length) {
-      const criticos = sinCanal.filter(x => !x.mailOk);
-      const nombres  = sinCanal.map(x => x.tid).join(', ');
-      const title = criticos.length
-        ? `⛔ ${criticos.length} local(es) sin canal de cobro`
-        : `📵 ${sinCanal.length} local(es) sin push de cobro`;
-      const body = criticos.length
-        ? `Sin push NI email: ${criticos.map(x => x.tid).join(', ')}. No les está llegando el aviso de mensualidad.`
-        : `${nombres}: llevan ${ALERTA_DIAS_SIN_CANAL}+ días sin notificaciones activas. El aviso salió por correo.`;
+      const nombres = sinCanal.map(x => x.tid).join(', ');
       try {
         await dispatchAdminPush(db, messaging, {
-          title, body,
+          title: `⛔ ${sinCanal.length} local(es) sin canal de cobro`,
+          body:  `${nombres}: sin WhatsApp, push ni email disponibles. El aviso de mensualidad NO está llegando.`,
           url:  '/admin/',
           tag:  'admin-cobro-sin-canal',
           data: { tipo: 'cobro_sin_canal', tenants: nombres },
@@ -381,6 +452,6 @@ exports.recordatorioCobro = onSchedule(
       }
     }
 
-    logger.info(`[Cobro] Resumen: ${totalWa} WhatsApp, ${totalPush} push, ${totalMail} email, ${sinCanal.length} sin canal`);
+    logger.info(`[Cobro] Resumen: ${totales.oficial} oficial, ${totales.evolution} evolution, ${totales.push} push, ${totales.email} email, ${sinCanal.length} sin canal`);
   },
 );
