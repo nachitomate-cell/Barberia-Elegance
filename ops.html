@@ -29,6 +29,12 @@
   header h1{ font-size:16px; margin:0; font-weight:600; letter-spacing:-.01em; }
   header .sub{ font-size:11px; color:var(--soft); }
   header .acts{ display:flex; gap:8px; }
+  /* Pestañas: el muro único de paneles no dejaba pensar — una pantalla,
+     una pregunta. El estado de la pestaña sobrevive al refresh (localStorage). */
+  .tabs{ display:flex; gap:6px; padding:12px 22px 0; max-width:1040px; margin:0 auto; overflow-x:auto; }
+  .tabs button{ border-radius:10px; font-size:12.5px; padding:8px 14px; white-space:nowrap; color:var(--soft); border-color:transparent; background:transparent; }
+  .tabs button.on{ background:var(--glass-hover); color:#fff; font-weight:600; border-color:var(--glass-border); }
+  .sec{ display:none; } .sec.on{ display:block; }
   button{ font:inherit; cursor:pointer; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); border-radius:9999px; padding:7px 14px; font-size:13px; font-weight:500; transition:background .2s ease, color .2s ease, border-color .2s ease; }
   button:hover{ background:var(--glass-hover); }
   button.primary{ background:var(--accent); border-color:transparent; color:#04101f; }
@@ -741,62 +747,108 @@
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
         `<div class="alerta ${a.nivel}"><span>${ic[a.nivel]||'•'}</span><span>${a.texto}</span></div>`).join('');
+      // Estado del día para el Resumen (se calcula de lo ya cargado, sin viajes extra)
+      const botOn     = botCfgData && botCfgData.ventasBot === true;
+      const botSes    = botCfgData && botCfgData.estadoConexion === 'connected';
+      const leadsPend = ventasData ? (ventasData.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
+      const chipsOn   = chipsData ? (chipsData.chips||[]).filter(c => c.estadoConexion === 'connected').length : null;
+      const chipsTot  = chipsData ? (chipsData.chips||[]).length : null;
+
       app.innerHTML = `
         <header>
           <div><h1>Operaciones · SynapTech</h1><div class="sub">últimos 30 días · ${new Date(data.generadoEn).toLocaleString('es-CL')}</div></div>
           <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh">Actualizar</button><button id="out">Salir</button></div>
         </header>
+        <nav class="tabs">
+          <button data-tab="resumen">📊 Resumen</button>
+          <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
+          <button data-tab="locales">💈 Locales</button>
+          <button data-tab="whatsapp">📱 WhatsApp</button>
+          <button data-tab="email">✉️ Email</button>
+          <button data-tab="sushi">🍣 SushiPro</button>
+        </nav>
         <div class="wrap">
           ${alertasHtml ? `<div style="margin-bottom:16px">${alertasHtml}</div>` : ''}
-          <div class="kpis">
-            <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">Locales activos</div></div>
-            <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">Mensajes WhatsApp (30d)</div></div>
-            <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">Costo Claude (30d)</div></div>
-            <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">Llamadas a la IA</div></div>
-          </div>
-          ${data.email ? (() => {
-            // Los KPI agrupan por USO, no por cuenta: lo que se decide mirando
-            // esto es si alcanzan los correos de las citas, y esos van por las
-            // dos cuentas Brevo indistintamente. El desglose por cuenta está
-            // abajo, en el panel.
-            const em = data.email;
-            const suma = ids => ids.reduce((t,i) => t + (em.hoy[i]||0), 0);
-            const cap  = ids => ids.reduce((t,i) => t + (em.canales.find(c=>c.id===i)?.capDia||0), 0);
-            const CITAS = ['brevo_sy','brevo_bioo'], OTROS = ['resend_sy','resend_bioo'];
-            const kpi = (n,c,k) => `<div class="kpi"><div class="n tnum">${num(n)}<span style="font-size:15px;color:var(--soft)">/${num(c)}</span></div><div class="k">${k}</div></div>`;
-            return `<div class="kpis" style="margin-top:12px">
-              ${kpi(suma(CITAS), cap(CITAS), 'Citas · hoy (Brevo ×2)')}
-              ${kpi(suma(OTROS), cap(OTROS), 'Interno y bioo · hoy')}
-              <div class="kpi"><div class="n tnum">${num(em.mes.total)}</div><div class="k">Correos del mes</div></div>
-              <div class="kpi"><div class="n tnum">${num(em.mes.proyeccion)}</div><div class="k">Proyección de cierre</div></div>
-            </div>`;
-          })() : ''}
-          <!-- Barbería ocupa el ancho completo y SushiPro baja al final de la
-               página: hoy es el 100% del negocio vivo, y tenerlo en media
-               columna al lado de un panel en ceros hacía que la lista de
-               locales —lo que de verdad se mira todos los días— entrara
-               apretada y con scroll propio. -->
-          ${ventasData ? leadsPanel(ventasData) : ''}
-          ${botCfgData ? botVentasPanel(botCfgData) : ''}
-          ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
-          ${iaPanel(data.barberia)}
-          <!-- Una tarjeta por chip: cada uno tiene su propio cupo, su propia
-               sesión y sus propios locales, así que promediarlos escondería
-               justo lo que hay que ver (uno sano y otro degradándose).
-               Ojo: este comentario vive DENTRO de un template literal — nada de
-               backticks acá, cierran el literal y rompen el script entero.
-               Fallback al chip singular por si la CF todavía es la vieja. -->
-          ${chipsData ? chipsAdminPanel(chipsData.chips, chipsData.locales) : ''}
-          ${((data.barberia && data.barberia.chips) ||
-             [data.barberia && data.barberia.chip].filter(Boolean)).map(chipPanel).join('')}
-          ${emailPanel(data.email)}
-          ${metaWaPanel(data.metaWhatsApp)}
-          ${trialsPanel(data.trials)}
-          <div style="margin-top:14px">
+
+          <section class="sec" data-sec="resumen">
+            <div class="kpis">
+              <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">Locales activos</div></div>
+              <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">Mensajes WhatsApp (30d)</div></div>
+              <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">Costo Claude (30d)</div></div>
+              <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">Llamadas a la IA</div></div>
+            </div>
+            <div class="panel" style="margin-top:14px">
+              <h3>🧭 Hoy</h3>
+              ${botCfgData ? `<div class="loc">
+                <span class="dot ${botOn && botSes ? 'on' : 'warn'}"></span>
+                Agente de ventas ${botOn ? 'encendido' : 'APAGADO'} · sesión ${botSes ? 'abierta' : 'caída'}
+                ${leadsPend ? `· <strong>${leadsPend} lead(s) esperando tu confirmación</strong>` : ''}
+                <span style="margin-left:auto"><button class="mini" onclick="_setTab('ventas')">ir a Ventas</button></span>
+              </div>` : ''}
+              ${chipsTot != null ? `<div class="loc">
+                <span class="dot ${chipsOn ? 'on' : 'off'}"></span>
+                Chips WhatsApp: ${chipsOn}/${chipsTot} conectados
+                <span style="margin-left:auto"><button class="mini" onclick="_setTab('whatsapp')">ir a WhatsApp</button></span>
+              </div>` : ''}
+            </div>
+          </section>
+
+          <section class="sec" data-sec="ventas">
+            ${ventasData ? leadsPanel(ventasData) : '<p class="muted">No se pudo cargar el módulo de leads.</p>'}
+            ${botCfgData ? botVentasPanel(botCfgData) : ''}
+          </section>
+
+          <section class="sec" data-sec="locales">
+            ${proyectoPanel('💈 Barbería', data.barberia, data.mesActual)}
+            ${iaPanel(data.barberia)}
+            ${trialsPanel(data.trials)}
+          </section>
+
+          <section class="sec" data-sec="whatsapp">
+            ${chipsData ? chipsAdminPanel(chipsData.chips, chipsData.locales) : ''}
+            ${((data.barberia && data.barberia.chips) ||
+               [data.barberia && data.barberia.chip].filter(Boolean)).map(chipPanel).join('')}
+            ${metaWaPanel(data.metaWhatsApp)}
+          </section>
+
+          <section class="sec" data-sec="email">
+            ${data.email ? (() => {
+              // Los KPI agrupan por USO, no por cuenta: lo que se decide mirando
+              // esto es si alcanzan los correos de las citas, y esos van por las
+              // dos cuentas Brevo indistintamente. Desglose por cuenta abajo.
+              const em = data.email;
+              const suma = ids => ids.reduce((t,i) => t + (em.hoy[i]||0), 0);
+              const cap  = ids => ids.reduce((t,i) => t + (em.canales.find(c=>c.id===i)?.capDia||0), 0);
+              const CITAS = ['brevo_sy','brevo_bioo'], OTROS = ['resend_sy','resend_bioo'];
+              const kpi = (n,c,k) => `<div class="kpi"><div class="n tnum">${num(n)}<span style="font-size:15px;color:var(--soft)">/${num(c)}</span></div><div class="k">${k}</div></div>`;
+              return `<div class="kpis">
+                ${kpi(suma(CITAS), cap(CITAS), 'Citas · hoy (Brevo ×2)')}
+                ${kpi(suma(OTROS), cap(OTROS), 'Interno y bioo · hoy')}
+                <div class="kpi"><div class="n tnum">${num(em.mes.total)}</div><div class="k">Correos del mes</div></div>
+                <div class="kpi"><div class="n tnum">${num(em.mes.proyeccion)}</div><div class="k">Proyección de cierre</div></div>
+              </div>`;
+            })() : ''}
+            ${emailPanel(data.email)}
+          </section>
+
+          <section class="sec" data-sec="sushi">
             ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
-          </div>
-          ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
+            ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
+          </section>
         </div>`;
+      // ── Pestañas: recordar dónde estaba (sobrevive al Actualizar) ──
+      const setTab = (n) => {
+        try { localStorage.setItem('opsTab', n); } catch(_){}
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n));
+        document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.dataset.sec === n));
+      };
+      window._setTab = setTab;
+      document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+      let tabIni = 'resumen';
+      try { tabIni = localStorage.getItem('opsTab') || 'resumen'; } catch(_){}
+      if (!document.querySelector('.sec[data-sec="' + tabIni + '"]')) tabIni = 'resumen';
+      setTab(tabIni);
+
       document.getElementById('refresh').onclick = cargar;
       document.getElementById('out').onclick = () => firebase.auth().signOut();
 
