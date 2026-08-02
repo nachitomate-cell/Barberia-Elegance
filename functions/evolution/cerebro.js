@@ -508,7 +508,8 @@ async function ejecutarTool(name, input, ctx) {
   if (name === 'consultar_disponibilidad') {
     // Con servicio: las horas se calculan con su DURACIÓN real (un masaje de
     // 60 min ya no "cabe" en un hueco de 30) y saltando los días en que el
-    // servicio no existe. Sin servicio (aún no lo elige), 30 min genéricos.
+    // servicio no existe. Sin servicio (aún no lo elige), la duración típica
+    // del local (la más repetida de su catálogo), que la resuelve el motor.
     let svc = null;
     if (input?.servicio_nombre) {
       svc = matchServicio(await cargarServicios(tid).catch(() => []), input.servicio_nombre);
@@ -524,7 +525,7 @@ async function ejecutarTool(name, input, ctx) {
     }
     return {
       hay_cupos: true, fecha: r.fecha, es_hoy: r.esHoy, horas: r.slots,
-      ...(svc ? { servicio: svc.nombre, duracion_min: svc.duracion } : { nota: 'Horas calculadas con 30 min genéricos: cuando sepas el servicio, vuelve a consultar pasando servicio_nombre.' }),
+      ...(svc ? { servicio: svc.nombre, duracion_min: svc.duracion } : { nota: 'Horas calculadas con la duración típica del local: cuando sepas el servicio, vuelve a consultar pasando servicio_nombre (uno más largo puede no caber en estas horas).' }),
     };
   }
 
@@ -869,9 +870,30 @@ async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
 }
 
 // Bloque variable: cambia por día y por cliente — queda FUERA del caché.
+//
+// El calendario va MASTICADO (día de la semana de hoy y de los próximos 7):
+// los LLM son notoriamente malos convirtiendo fecha→día de la semana, y el
+// 02-08-2026 el bot de kronnos_penablanca bautizó al lunes 3 como "domingo",
+// le aplicó el horario dominical y le negó al cliente una hora de las 10:30
+// que SÍ existía (el lunes abren justo a las 10:30). Con la tabla explícita
+// el modelo no tiene que calcular nada — y se le prohíbe intentarlo.
+const _DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+function _conDiaSemana(fechaStr, plusDias = 0) {
+  const [y, m, d] = String(fechaStr).split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + plusDias));
+  const f = t.toISOString().slice(0, 10);
+  return { fecha: f, dia: _DIAS_SEMANA[t.getUTCDay()] };
+}
 function construirSystemVariable({ fechaHoy, pushName, telefono }) {
+  const hoy = _conDiaSemana(fechaHoy);
+  const calendario = [];
+  for (let i = 1; i <= 7; i++) {
+    const x = _conDiaSemana(fechaHoy, i);
+    calendario.push(`${x.dia} ${x.fecha}`);
+  }
   return [
-    `Hoy es ${fechaHoy} (hora de Chile). Usa esta fecha para interpretar "hoy", "mañana", "el viernes", etc.`,
+    `Hoy es ${hoy.dia} ${hoy.fecha} (hora de Chile).`,
+    `Calendario de los próximos días — usa SIEMPRE esta tabla y JAMÁS calcules tú qué día de la semana cae una fecha: mañana ${calendario[0]} · ${calendario.slice(1).join(' · ')}.`,
     `El cliente escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
   ].join('\n');
 }
