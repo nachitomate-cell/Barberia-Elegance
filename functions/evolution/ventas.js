@@ -162,12 +162,35 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
       ? '[la persona envió un audio que no puedes escuchar — pídele amablemente que te lo escriba]'
       : '[la persona envió una imagen o archivo que no puedes ver]'));
 
+  // ── PUERTA DE ACTIVACIÓN: este número es el personal/comercial de Ignacio ──
+  // El bot SOLO entra donde el lead se identifica solo: el mensaje precargado
+  // del QR del tótem y del NFC dice "ExpoVino" y "agenda online". Amigos,
+  // familia, dueños de locales y proveedores escriben cualquier otra cosa →
+  // silencio TOTAL (ni el doble check azul se marca): esas conversaciones son
+  // de Ignacio, no del bot. Una vez activado el chat (`activado: true`), la
+  // conversación sigue completa aunque los mensajes siguientes no repitan la
+  // palabra. Gatillos extra configurables en el doc del chip (`activadores`).
+  const preData = (await ref.get()).data() || {};
+  const yaActivo = preData.activado === true;
+  if (!yaActivo) {
+    const textoNorm = String(texto).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    const gatillo = /expo\s*vino|agenda\s+online/.test(textoNorm)
+      || (Array.isArray(cfg?.activadores) && cfg.activadores.some(k =>
+           k && textoNorm.includes(String(k).toLowerCase())));
+    if (!gatillo) {
+      logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)} sin gatillo (ExpoVino/agenda online); lo maneja Ignacio`);
+      return;
+    }
+  }
+
   // ── Dedup transaccional: reclamar el mensaje antes del trabajo lento ──
   const claimed = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const prev = snap.exists ? (snap.data() || {}) : {};
     if (prev.lastMsgId && prev.lastMsgId === msgId) return false;
-    tx.set(ref, { lastMsgId: msgId, remoteJid, chipId, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    // `activado` queda escrito en el claim: el chat ya cruzó la puerta y los
+    // mensajes siguientes entran directo aunque no repitan el gatillo.
+    tx.set(ref, { lastMsgId: msgId, activado: true, remoteJid, chipId, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     return true;
   });
   if (!claimed) return;
