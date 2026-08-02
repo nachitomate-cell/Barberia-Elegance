@@ -46,6 +46,7 @@ const {
   detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
 } = require('../lib/wa-consent');
 const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion } = require('./cuota');
+const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
 
 const db = admin.firestore();
 
@@ -1162,6 +1163,24 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   }
 
   if (!botActivo) return;   // bot apagado o silenciado (dueño al mando) → no respondemos
+
+  // ── Teclado en el bolsillo: se contesta 2 veces y después silencio ──
+  // Mismo criterio que el agente de ventas (lib/texto-ilegible): un cliente
+  // con el teléfono en el bolsillo se comía respuestas del cupo del local y
+  // salientes del número. El contador se resetea con el primer mensaje
+  // entendible, así que retomar la conversación no cuesta nada.
+  {
+    const ilegible = pareceIlegible(texto);
+    const previos  = Number(convData.ilegiblesSeguidos) || 0;
+    if (ilegible && previos >= MAX_ILEGIBLES) {
+      await ref.set({ ilegiblesSeguidos: previos + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+      logger.info(`[cerebro] ${tid} chat=${chatId}: ${previos + 1} ilegibles seguidos; no respondo`);
+      return;
+    }
+    await ref.set({
+      ilegiblesSeguidos: ilegible ? previos + 1 : 0,
+    }, { merge: true }).catch(() => {});
+  }
 
   // ── Tope diario por chat (anti-troll / anti-loop): tras avisar UNA vez, mudo ──
   if (respHoy >= MAX_RESP_CHAT_DIA) {

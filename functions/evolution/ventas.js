@@ -53,6 +53,10 @@ const MAX_RESP_CHIP_DIA = 150;  // por chip — un solo número no conversa más
 
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
 
+// Teclado en el bolsillo: se contesta 2 veces y después silencio (ver
+// lib/texto-ilegible — misma regla en el bot de los locales).
+const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
+
 const convRef  = (tel)          => db.doc(`wa_ventas_conversaciones/${tel}`);
 const cuotaRef = (chipId, f)    => db.doc(`wa_plataforma_cuota/${chipId}__${f}`);
 
@@ -297,6 +301,21 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
     logger.warn(`[ventas:${chipId}] chat=***${telefono.slice(-4)}: tope diario por chat (${MAX_RESP_CHAT_DIA})`);
     return;
   }
+
+  // ── Ilegibles seguidos: se contesta 2 veces y después silencio ──
+  // El contador se resetea con el primer mensaje entendible, así que el
+  // cliente que arregla el teclado retoma la conversación sin fricción.
+  const ilegible = pareceIlegible(texto);
+  const ilegiblesPrevios = Number(convData.ilegiblesSeguidos) || 0;
+  if (ilegible && ilegiblesPrevios >= MAX_ILEGIBLES) {
+    await ref.set({ ilegiblesSeguidos: ilegiblesPrevios + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)}: ${ilegiblesPrevios + 1} ilegibles seguidos; no respondo`);
+    return;
+  }
+  await ref.set({
+    ilegiblesSeguidos: ilegible ? ilegiblesPrevios + 1 : 0,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
   const cuotaHoy = (await cuotaRef(chipId, hoy).get()).data() || {};
   if ((Number(cuotaHoy.ventas_resp) || 0) >= MAX_RESP_CHIP_DIA) {
     logger.warn(`[ventas:${chipId}] tope diario del chip (${MAX_RESP_CHIP_DIA} respuestas); silencio`);
