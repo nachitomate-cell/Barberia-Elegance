@@ -26,6 +26,15 @@ const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { dispatchAdminPush } = require('./admin-push');
 
+// Resumen también por WhatsApp a Ignacio (chat consigo mismo, vía chip ventas):
+// el push FCM se pierde entre notificaciones; el WhatsApp se lee siempre.
+const { defineSecret }  = require('firebase-functions/params');
+const { crearCliente }  = require('./evolution/client');
+const EVOLUTION_API_URL = defineSecret('EVOLUTION_API_URL');
+const EVOLUTION_API_KEY = defineSecret('EVOLUTION_API_KEY');
+const WHATSAPP_IGNACIO  = '56983568212';
+const INSTANCIA_WA      = 'instance_plat_ventas';
+
 const db = admin.firestore();
 
 const TIMEZONE   = 'America/Santiago';
@@ -122,7 +131,7 @@ function componerMensaje(cuotas, hoyYmd, mananaYmd) {
 // ── Handler ─────────────────────────────────────────────────────────────────
 
 exports.cobranzaSaasDaily = onSchedule(
-  { schedule: '0 9 * * *', timeZone: TIMEZONE, region: 'us-central1' },
+  { schedule: '0 9 * * *', timeZone: TIMEZONE, region: 'us-central1', secrets: [EVOLUTION_API_URL, EVOLUTION_API_KEY] },
   async () => {
     const now       = new Date();
     const hoyYmd    = ymdSantiago(now);
@@ -137,6 +146,7 @@ exports.cobranzaSaasDaily = onSchedule(
     sysSnap.forEach(d => { sysMap[d.id] = d.data() || {}; });
 
     const candidatos = [];
+    const atrasados  = [];   // deuda vencida sin pagar — antes era invisible acá
     billSnap.forEach(d => {
       const tid  = d.id;
       const bill = d.data() || {};
@@ -146,10 +156,26 @@ exports.cobranzaSaasDaily = onSchedule(
 
       const cuotas = Array.isArray(bill.cuotas) ? bill.cuotas : [];
       const cuotaMes = cuotas.find(c => c && c.mes === period && Number(c.monto) > 0);
-      if (!cuotaMes || cuotaMes.pagada) return;
-
       // El vencimiento vive a nivel tenant (siguiente débito de MP).
       const dueYmd = timestampASantiagoYmd(bill.fechaProximoPago);
+      if (!dueYmd) return;
+
+      // ── Vencidos y sin pagar: la deuda vieja no puede ser invisible ──
+      // (ferraza llevaba 2+ meses atrasado y este cron jamás lo mencionó:
+      // solo miraba hoy/mañana). Criterio impago: cuota del mes sin pagar o
+      // estadoPago 'atrasado' (deuda de meses anteriores sin cuota vigente).
+      if (dueYmd < hoyYmd) {
+        const impago = (cuotaMes && !cuotaMes.pagada) || bill.estadoPago === 'atrasado';
+        const monto = cuotaMes ? Math.round(Number(cuotaMes.monto))
+                               : Math.round((Number(bill.montoPendiente) || 0) * 1.19);
+        if (impago && monto > 0) {
+          const diasAtraso = Math.round((Date.parse(hoyYmd) - Date.parse(dueYmd)) / 86400000);
+          atrasados.push({ tid, monto, dueYmd, diasAtraso });
+        }
+        return;
+      }
+
+      if (!cuotaMes || cuotaMes.pagada) return;
       if (dueYmd !== hoyYmd && dueYmd !== mananaYmd) return;
 
       candidatos.push({
@@ -159,22 +185,39 @@ exports.cobranzaSaasDaily = onSchedule(
       });
     });
 
-    if (!candidatos.length) {
+    // Los atrasados por sí solos avisan lunes y jueves (recordar la misma
+    // deuda TODOS los días entrena a ignorar el aviso); si además hay
+    // vencimientos de hoy/mañana, viajan juntos el día que sea.
+    const dow = new Date(hoyYmd + 'T12:00:00').getDay();
+    const avisaAtrasados = atrasados.length > 0 && (candidatos.length > 0 || dow === 1 || dow === 4);
+
+    if (!candidatos.length && !avisaAtrasados) {
       logger.info('[cobranzaSaasDaily] sin cobros para hoy/mañana — no se envía push', {
-        hoy: hoyYmd, manana: mananaYmd, period,
+        hoy: hoyYmd, manana: mananaYmd, period, atrasados: atrasados.length,
       });
       return null;
     }
 
-    // Resuelve nombres en paralelo (una lectura de settings por candidato).
+    // Resuelve nombres en paralelo (una lectura de settings por local).
     const nombres = await Promise.all(candidatos.map(c => nombreLocal(c.tid)));
     const cuotas = candidatos.map((c, i) => ({ ...c, nombre: nombres[i] }))
       .sort((a, b) => {
         if (a.dueYmd !== b.dueYmd) return a.dueYmd < b.dueYmd ? -1 : 1;
         return a.nombre.localeCompare(b.nombre, 'es');
       });
+    const nombresAtr = await Promise.all(atrasados.map(a => nombreLocal(a.tid)));
+    const atrasadosN = atrasados.map((a, i) => ({ ...a, nombre: nombresAtr[i] }))
+      .sort((a, b) => b.diasAtraso - a.diasAtraso);
 
-    const msg = componerMensaje(cuotas, hoyYmd, mananaYmd);
+    const msg = cuotas.length
+      ? componerMensaje(cuotas, hoyYmd, mananaYmd)
+      : {
+          title:   '🔴 Cobranza: deuda vencida sin pagar',
+          body:    `${atrasadosN.length} local(es) atrasado(s) · Total ${fmtCLP(atrasadosN.reduce((s, a) => s + a.monto, 0))}`,
+          detalle: '',
+          total:   0,
+          cuando:  'atrasados',
+        };
 
     try {
       const res = await dispatchAdminPush(db, admin.messaging(), {
@@ -202,6 +245,32 @@ exports.cobranzaSaasDaily = onSchedule(
         stack:   err && err.stack,
         cobros:  cuotas.length,
       });
+    }
+
+    // ── WhatsApp a Ignacio: detalle completo, sin el límite de 240 chars ──
+    try {
+      const bloqueVencen = cuotas.length
+        ? [`Vencen ${msg.cuando}:`, ...cuotas.map(c => `• ${c.nombre} — ${fmtCLP(c.monto)} (${fmtFechaCorta(c.dueYmd)})`)]
+        : [];
+      const bloqueAtrasados = (avisaAtrasados && atrasadosN.length)
+        ? ['', '🔴 *Atrasados sin pagar:*',
+           ...atrasadosN.map(a => `• ${a.nombre} — ${fmtCLP(a.monto)} · ${a.diasAtraso} días (venció ${fmtFechaCorta(a.dueYmd)})`)]
+        : [];
+      const totalTodo = cuotas.reduce((s, c) => s + c.monto, 0)
+                      + (avisaAtrasados ? atrasadosN.reduce((s, a) => s + a.monto, 0) : 0);
+      const texto = [
+        '💰 *Cobranza SynapTech*',
+        '',
+        ...bloqueVencen,
+        ...bloqueAtrasados,
+        '',
+        `Total en juego: ${fmtCLP(totalTodo)}`,
+      ].join('\n').replace(/\n{3,}/g, '\n\n');
+      const evo = crearCliente({ baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value() });
+      await evo.enviarTexto(INSTANCIA_WA, WHATSAPP_IGNACIO, texto);
+      logger.info('[cobranzaSaasDaily] resumen WhatsApp enviado');
+    } catch (err) {
+      logger.warn('[cobranzaSaasDaily] WhatsApp falló (el push ya salió):', err && err.message);
     }
     return null;
   }

@@ -36,6 +36,15 @@ const TIMEZONE  = 'America/Santiago';
 const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 const MAIL_FROM      = 'SynapTech <cobros@synaptechspa.cl>';
 
+// Canal WhatsApp (2026-08-02): el aviso sale del número comercial de SynapTech
+// (chip ventas, ya vinculado) hacia el número EXPLÍCITO _billing.whatsappCobro.
+// Es el canal que los dueños de verdad leen; push/email quedan de respaldo.
+const { defineSecret }  = require('firebase-functions/params');
+const { crearCliente }  = require('./evolution/client');
+const EVOLUTION_API_URL = defineSecret('EVOLUTION_API_URL');
+const EVOLUTION_API_KEY = defineSecret('EVOLUTION_API_KEY');
+const INSTANCIA_WA      = 'instance_plat_ventas';
+
 // Días respecto al vencimiento en los que se envía recordatorio.
 // Negativo = antes de vencer; 0 = vence hoy; positivo = atrasado.
 const DIAS_RECORDATORIO = new Set([-3, -1, 0, 1, 3, 8, 15]);
@@ -141,13 +150,19 @@ async function emailsCobro(tid, billingData) {
 }
 
 exports.recordatorioCobro = onSchedule(
-  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [...MAIL_SECRETS] },
+  { schedule: '0 10 * * *', timeZone: TIMEZONE, secrets: [...MAIL_SECRETS, EVOLUTION_API_URL, EVOLUTION_API_KEY] },
   async () => {
     const hoyUTC   = santiagoHoyUTC();
     const todayStr = new Date(hoyUTC).toISOString().slice(0, 10);
     const snap     = await db.collection('_billing').get();
 
-    let totalPush = 0, totalMail = 0;
+    let totalPush = 0, totalMail = 0, totalWa = 0;
+    // Cliente Evolution perezoso: solo se construye si algún local tiene
+    // whatsappCobro configurado (si no, esta corrida ni toca el VPS).
+    let _evo = null;
+    const evoCli = () => (_evo || (_evo = crearCliente({
+      baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value(),
+    })));
     const sinCanal = [];   // locales inalcanzables → alerta al superadmin
 
     for (const doc of snap.docs) {
@@ -159,13 +174,45 @@ exports.recordatorioCobro = onSchedule(
       const dias = Math.round((hoyUTC - dueUTC) / 86400000); // + = atrasado, - = falta
       if (!tocaRecordatorio(dias)) continue;
       // Idempotencia diaria: da igual por qué canal haya salido hoy.
-      if (d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr) continue;
+      if (d.ultimoRecordatorioPush === todayStr || d.ultimoRecordatorioEmail === todayStr
+        || d.ultimoRecordatorioWa === todayStr) continue;
 
       // sinCorte: se avisa igual, pero sin prometer bloqueos que no ocurren.
       // montoPendiente es NETO (criterio 2026-07-20): el aviso pide el total
       // con IVA 19%, igual que la vista Mensualidad y el cargo automático.
       const montoConIva = Math.round((Number(d.montoPendiente) || 0) * 1.19);
       const { title, body } = buildMensaje(dias, montoConIva, d.sinCorte === true);
+
+      // ── Canal 0: WhatsApp (número EXPLÍCITO en _billing.whatsappCobro) ──
+      // Nunca derivado de barberos/ ni de configuracion: el superadmin lo
+      // escribe a mano por local, mismo criterio que emailCobro.
+      let waOk = false;
+      const waNum = String(d.whatsappCobro || '').replace(/\D/g, '');
+      if (waNum.length >= 9) {
+        try {
+          const susMp = d.suscripcionMp || {};
+          const linkAuto = susMp.status === 'link_creado' && susMp.initPoint ? susMp.initPoint : null;
+          const texto = [
+            `*${title}*`,
+            '',
+            body,
+            '',
+            `🔗 Revisa y paga aquí: https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`,
+            linkAuto ? `⚡ O deja el pago automático configurado de una vez: ${linkAuto}` : '',
+            '',
+            '_Cualquier duda me respondes por aquí mismo — Ignacio, SynapTech_',
+          ].filter(Boolean).join('\n');
+          await evoCli().enviarTexto(INSTANCIA_WA, waNum, texto);
+          waOk = true;
+          totalWa++;
+          await doc.ref.update({ ultimoRecordatorioWa: todayStr }).catch(() => {});
+          logger.info(`[Cobro] 📱 ${tid} (dias=${dias}) → WhatsApp a ***${waNum.slice(-4)}`);
+        } catch (e) {
+          // Sesión caída o número inválido → la escalera sigue con push/email.
+          logger.warn(`[Cobro] ✗ WhatsApp ${tid}: ${e.message}`);
+        }
+      }
+
       const tokens = await tokensAdmin(tid);
 
       // ── Canal 1: push FCM ──────────────────────────────────────
@@ -223,7 +270,8 @@ exports.recordatorioCobro = onSchedule(
       const { emails: destinatarios, nombreLocal } = await emailsCobro(tid, d);
       let mailOk = false;
 
-      if (destinatarios.length) {
+      // Si el WhatsApp ya salió, el correo sobra (era el fallback del fallback).
+      if (!waOk && destinatarios.length) {
         try {
           await enviarEmail({
             from:    MAIL_FROM,
@@ -237,7 +285,7 @@ exports.recordatorioCobro = onSchedule(
         } catch (e) {
           logger.error(`[Cobro] ✗ email ${tid}: ${e.message}`);
         }
-      } else {
+      } else if (!waOk) {
         logger.warn(`[Cobro] ${tid}: sin tokens y sin email de contacto`);
       }
 
@@ -249,7 +297,8 @@ exports.recordatorioCobro = onSchedule(
       // ── Canal 3: alerta al superadmin ──────────────────────────
       // Solo si la falta de push ya es crónica, o si no hubo NINGÚN canal.
       const yaAvisadoHoy = d.ultimaAlertaSuperadmin === todayStr;
-      if (!yaAvisadoHoy && (!mailOk || diasSinCanal >= ALERTA_DIAS_SIN_CANAL)) {
+      // Con WhatsApp entregado el local NO está incomunicado: nada que alertar.
+      if (!yaAvisadoHoy && !waOk && (!mailOk || diasSinCanal >= ALERTA_DIAS_SIN_CANAL)) {
         sinCanal.push({ tid, dias, diasSinCanal, mailOk, ref: doc.ref });
       }
     }
@@ -278,6 +327,6 @@ exports.recordatorioCobro = onSchedule(
       }
     }
 
-    logger.info(`[Cobro] Resumen: ${totalPush} push, ${totalMail} email, ${sinCanal.length} sin canal`);
+    logger.info(`[Cobro] Resumen: ${totalWa} WhatsApp, ${totalPush} push, ${totalMail} email, ${sinCanal.length} sin canal`);
   },
 );
