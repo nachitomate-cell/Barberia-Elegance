@@ -882,7 +882,12 @@ service cloud.firestore {
     // Configuración UI (activa productos, etc.).
     match /config/{docId} {
       allow read: if true;
-      allow write: if esAdmin('elegance');
+      // Igual que en los tenants: recepción prende/apaga la vitrina de
+      // productos, que es parte de administrar el catálogo.
+      allow write: if esAdmin('elegance')
+                   || (esRecepcion('elegance') && docId == 'ui'
+                       && request.resource.data.diff(resource.data)
+                            .affectedKeys().hasOnly(['productosActivos']));
     }
 
     // ── /configuracion ─────────────────────────────────────────────
@@ -901,7 +906,7 @@ service cloud.firestore {
                    // del doc (horarios, toggles, planes) sigue siendo de admin.
                    || (esRecepcion('elegance') && docId == 'main'
                        && request.resource.data.diff(resource.data)
-                            .affectedKeys().hasOnly(['categoriasProducto']));
+                            .affectedKeys().hasOnly(['categoriasProducto', 'productosActivos']));
     }
 
     // ── /system_errors ─────────────────────────────────────────────
@@ -1485,9 +1490,16 @@ service cloud.firestore {
       }
 
       // ── config ────────────────────────────────────────────────────
+      // Recepción gestiona el catálogo, así que también puede prender/apagar
+      // la vitrina de productos (`config/ui.productosActivos`) — es parte de
+      // "administrar productos", no de la configuración del negocio. Solo ese
+      // campo: el resto del doc sigue siendo de admin.
       match /config/{docId} {
         allow read: if true;
-        allow write: if esAdmin(tid);
+        allow write: if esAdmin(tid)
+                     || (esRecepcion(tid) && docId == 'ui'
+                         && request.resource.data.diff(resource.data)
+                              .affectedKeys().hasOnly(['productosActivos']));
       }
 
       // ── configuracion ─────────────────────────────────────────────
@@ -1508,12 +1520,13 @@ service cloud.firestore {
         allow write: if esBootstrap()
                      || (esAdmin(tid)
                          && (docId != 'whatsapp' || waSwitchesDentroDelPlan(tid)))
-                     // Recepción gestiona el catálogo de productos, y las
-                     // categorías viven acá. Puede tocar SOLO ese campo: el
-                     // resto del doc (horarios, toggles, planes) es de admin.
+                     // Recepción gestiona el catálogo de productos: las categorías
+                     // y el toggle de la vitrina viven acá. Puede tocar SOLO
+                     // esos campos; el resto del doc (horarios, planes) es de
+                     // admin.
                      || (esRecepcion(tid) && docId == 'main'
                          && request.resource.data.diff(resource.data)
-                              .affectedKeys().hasOnly(['categoriasProducto']));
+                              .affectedKeys().hasOnly(['categoriasProducto', 'productosActivos']));
       }
 
       // ── anuncios (push publicitario al cliente) ──────────────────
