@@ -67,9 +67,13 @@ async function graphGet(path, params, token) {
 }
 
 // Extrae del array `actions` la métrica de conversaciones de mensajería.
+// La cuenta de Ignacio reporta `total_messaging_connection` (verificado con
+// data real 2026-08-02); `messaging_conversation_started_7d` queda primero
+// por si Meta cambia el objetivo de la campaña.
 function conversacionesDe(row) {
-  const a = (row.actions || []).find(x =>
-    String(x.action_type || '').includes('messaging_conversation_started'));
+  const acts = row.actions || [];
+  const find = (s) => acts.find(x => String(x.action_type || '').includes(s));
+  const a = find('messaging_conversation_started') || find('total_messaging_connection');
   return a ? Number(a.value) || 0 : 0;
 }
 
