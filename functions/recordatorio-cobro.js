@@ -163,6 +163,9 @@ exports.recordatorioCobro = onSchedule(
     const evoCli = () => (_evo || (_evo = crearCliente({
       baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value(),
     })));
+    // Método de pago PRINCIPAL: transferencia (decisión de Ignacio 02-08-2026).
+    // Los datos viven en _system/cobranza.transferencia — editables sin deploy.
+    const transf = (((await db.doc('_system/cobranza').get().catch(() => null))?.data() || {}).transferencia) || null;
     const sinCanal = [];   // locales inalcanzables → alerta al superadmin
 
     for (const doc of snap.docs) {
@@ -192,16 +195,33 @@ exports.recordatorioCobro = onSchedule(
         try {
           const susMp = d.suscripcionMp || {};
           const linkAuto = susMp.status === 'link_creado' && susMp.initPoint ? susMp.initPoint : null;
+          const urlPlan = `https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`;
+          // OJO: el filtro conserva los '' (separadores) — filter(Boolean) se
+          // los comía y el mensaje llegaba como un ladrillo sin aire.
           const texto = [
             `*${title}*`,
             '',
             body,
+            ...(transf ? [
+              '',
+              '💳 *Paga por transferencia:*',
+              transf.titular,
+              `RUT ${transf.rut}`,
+              `${transf.banco} · ${transf.tipoCuenta}`,
+              `N° cuenta: ${transf.numero}`,
+              transf.email,
+              '',
+              '📎 Mándame el comprobante por aquí mismo y te dejo al día.',
+            ] : [
+              '',
+              `🔗 Revisa y paga aquí: ${urlPlan}`,
+            ]),
+            ...(linkAuto ? ['', `⚡ ¿Prefieres cargo automático mensual con tarjeta? Actívalo aquí: ${linkAuto}`] : []),
             '',
-            `🔗 Revisa y paga aquí: https://${tid === 'elegance' ? 'www' : tid}.synaptechspa.cl/gestion-interna/mensualidad`,
-            linkAuto ? `⚡ O deja el pago automático configurado de una vez: ${linkAuto}` : '',
+            `🔎 El detalle de tu plan: ${urlPlan}`,
             '',
             '_Cualquier duda me respondes por aquí mismo — Ignacio, SynapTech_',
-          ].filter(Boolean).join('\n');
+          ].filter(l => l !== null && l !== undefined).join('\n');
           await evoCli().enviarTexto(INSTANCIA_WA, waNum, texto);
           waOk = true;
           totalWa++;
