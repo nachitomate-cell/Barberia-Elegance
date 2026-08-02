@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } =
   require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
+const { doc, getDoc, setDoc, updateDoc, deleteDoc } = require('firebase/firestore');
 
 const TID = 'delnero';
 const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'), 'utf8');
@@ -32,6 +32,9 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     await setDoc(doc(db, `tenants/${TID}/gastos/g1`),         { monto: 50000, concepto: 'Arriendo' });
     await setDoc(doc(db, `tenants/${TID}/caja_sesiones/s1`),  { abierta: true });
     await setDoc(doc(db, `tenants/${TID}/productos/p1`),      { nombre: 'Cera', precio: 8990, stock: 5 });
+    // La excepción de recepción sobre configuracion/main compara contra el doc
+    // existente (diff), así que tiene que existir antes de la prueba.
+    await setDoc(doc(db, `tenants/${TID}/configuracion/main`), { diasLaborales: [1, 2, 3, 4, 5], categoriasProducto: [] });
 
     // ── Planes del add-on de WhatsApp (ver lib/wa-plan.js) ──
     // Un tenant por plan, para probar que el local no se auto-contrata nada.
@@ -73,10 +76,25 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     ['recepción lee la caja',                  () => getDoc(doc(recepcion, `tenants/${TID}/caja_sesiones/s1`)),    true],
     ['recepción ajusta stock (inventario)',    () => updateDoc(doc(recepcion, `tenants/${TID}/productos/p1`), { stock: 4 }), true],
 
+    // ── recepcion: gestiona el catálogo de productos completo ──
+    // Decisión de producto 2026-08-01: recibe la mercadería y la carga, así que
+    // maneja alta/precio/baja igual que un admin. Ojo: el guardado real del
+    // panel manda `updatedAt` junto con el resto, por eso se prueba así y no
+    // con un campo suelto — con la regla vieja (`hasOnly(['stock'])`) esto
+    // fallaba incluso cuando lo único que cambiaba era la cantidad.
+    ['recepción edita precio + nombre',        () => updateDoc(doc(recepcion, `tenants/${TID}/productos/p1`), { precio: 7990, nombre: 'Cera fuerte', updatedAt: new Date() }), true],
+    ['recepción da de alta un producto',       () => setDoc(doc(recepcion, `tenants/${TID}/productos/p2`), { nombre: 'Shampoo', precio: 5990, stock: 3 }), true],
+    ['recepción elimina un producto',          () => deleteDoc(doc(recepcion, `tenants/${TID}/productos/p2`)), true],
+    ['recepción crea categoría de producto',   () => updateDoc(doc(recepcion, `tenants/${TID}/configuracion/main`), { categoriasProducto: ['Aceites'] }), true],
+
     // ── recepcion: NO ve/toca la plata del negocio ──
     ['recepción NO lee gastos',                () => getDoc(doc(recepcion, `tenants/${TID}/gastos/g1`)),           false],
     ['recepción NO crea gastos',               () => setDoc(doc(recepcion, `tenants/${TID}/gastos/g2`), { monto: 1 }), false],
-    ['recepción NO cambia precios',            () => updateDoc(doc(recepcion, `tenants/${TID}/productos/p1`), { precio: 1 }), false],
+    // El permiso de productos NO se le puede escapar al resto de configuracion.
+    ['recepción NO toca otra config',          () => updateDoc(doc(recepcion, `tenants/${TID}/configuracion/main`), { diasLaborales: [1] }), false],
+    ['recepción NO cuela config junto a la categoría',
+      () => updateDoc(doc(recepcion, `tenants/${TID}/configuracion/main`), { categoriasProducto: ['X'], diasLaborales: [1] }), false],
+    ['barbero NO cambia precios',              () => updateDoc(doc(barbero, `tenants/${TID}/productos/p1`), { precio: 1 }), false],
 
     // ── no rompimos los roles que ya existían ──
     ['admin sí lee gastos',                    () => getDoc(doc(admin, `tenants/${TID}/gastos/g1`)),               true],

@@ -109,7 +109,9 @@ service cloud.firestore {
     // `recepcion` entra como staff: necesita citas, clientes, caja y stock
     // para trabajar. Lo que NO puede ver son los números del negocio, y eso
     // lo cierra `esAdmin` (gastos, facturación) — no esta función. Ojo:
-    // `productos` deja que un staff modifique SOLO `stock`, nunca el precio.
+    // `productos` deja que un staff modifique SOLO `stock`, nunca el precio
+    // (excepción: `recepcion`, que gestiona el catálogo entero — ver
+    // esRecepcion más abajo).
     function esStaff(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero', 'recepcion'])
           || esOperador()
@@ -123,6 +125,17 @@ service cloud.firestore {
           || esOperador()
           || esKronnosBrandAdmin(tid)
           || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() in ['admin', 'jefe']);
+    }
+
+    // Recepción gestiona el catálogo de productos con el mismo poder que un
+    // admin —alta, precio, costo, stock y baja— porque es quien recibe la
+    // mercadería y la carga (decisión de producto, 2026-08-01). Esto NO le
+    // abre nada más: gastos, facturación, comisiones y el resto de
+    // `configuracion` siguen cerrados por `esAdmin`. Usar SOLO en /productos
+    // y en el campo `categoriasProducto` de configuracion/main.
+    function esRecepcion(tid) {
+      return (esDeTenant(tid) && rol() == 'recepcion')
+          || (tid == 'kronnos' && esKronnosSedeMiembro() && rol() == 'recepcion');
     }
 
     function esAdminEstricto(tid) {
@@ -467,10 +480,10 @@ service cloud.firestore {
     // ── /productos ─────────────────────────────────────────────────
     match /productos/{docId} {
       allow read: if true;
-      allow create, delete: if esAdmin('elegance');
-      // Staff (incl. barbero) solo puede modificar el stock al vender.
-      // Admin mantiene control de precio, nombre y demás campos.
-      allow update: if esAdmin('elegance')
+      allow create, delete: if esAdmin('elegance') || esRecepcion('elegance');
+      // Admin y recepción manejan el catálogo completo. El resto del staff
+      // (barbero) solo puede tocar el stock, y eso pasa al vender.
+      allow update: if esAdmin('elegance') || esRecepcion('elegance')
                     || (esStaff('elegance')
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
@@ -882,7 +895,13 @@ service cloud.firestore {
       // Mismo candado de planes que en los tenants (ver waSwitchesDentroDelPlan).
       allow write: if esBootstrap()
                    || (esAdmin('elegance')
-                       && (docId != 'whatsapp' || waSwitchesDentroDelPlan('elegance')));
+                       && (docId != 'whatsapp' || waSwitchesDentroDelPlan('elegance')))
+                   // Recepción gestiona el catálogo de productos, y las
+                   // categorías viven acá. Puede tocar SOLO ese campo: el resto
+                   // del doc (horarios, toggles, planes) sigue siendo de admin.
+                   || (esRecepcion('elegance') && docId == 'main'
+                       && request.resource.data.diff(resource.data)
+                            .affectedKeys().hasOnly(['categoriasProducto']));
     }
 
     // ── /system_errors ─────────────────────────────────────────────
@@ -1330,12 +1349,13 @@ service cloud.firestore {
       }
 
       // ── productos ─────────────────────────────────────────────────
-      // Admin controla precio/nombre/stock; staff puede decrementar stock
-      // al vender (solo modifica el campo `stock`).
+      // Admin y recepción controlan el catálogo completo (precio/nombre/stock,
+      // alta y baja); el resto del staff puede decrementar stock al vender
+      // (solo modifica el campo `stock`).
       match /productos/{docId} {
         allow read: if true;
-        allow create, delete: if esAdmin(tid);
-        allow update: if esAdmin(tid)
+        allow create, delete: if esAdmin(tid) || esRecepcion(tid);
+        allow update: if esAdmin(tid) || esRecepcion(tid)
                       || (esStaff(tid)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
       }
@@ -1487,7 +1507,13 @@ service cloud.firestore {
         // de configuracion no tiene esa restricción.
         allow write: if esBootstrap()
                      || (esAdmin(tid)
-                         && (docId != 'whatsapp' || waSwitchesDentroDelPlan(tid)));
+                         && (docId != 'whatsapp' || waSwitchesDentroDelPlan(tid)))
+                     // Recepción gestiona el catálogo de productos, y las
+                     // categorías viven acá. Puede tocar SOLO ese campo: el
+                     // resto del doc (horarios, toggles, planes) es de admin.
+                     || (esRecepcion(tid) && docId == 'main'
+                         && request.resource.data.diff(resource.data)
+                              .affectedKeys().hasOnly(['categoriasProducto']));
       }
 
       // ── anuncios (push publicitario al cliente) ──────────────────
