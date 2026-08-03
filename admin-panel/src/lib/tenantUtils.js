@@ -57,6 +57,9 @@ const DOMAIN_MAP = {
   'restodemo.synaptechspa.cl':         'restodemo',
   // Sion Barbería (2026-07-27) — NO confundir con 'sionbarberia' (Estudio Dieciséis).
   'sion.synaptechspa.cl':              'sion',
+  // Blood Habib · Viña del Mar (2026-08-03, recreado desde Weibook).
+  'bloodhabib.synaptechspa.cl':        'bloodhabib',
+  'blood-habib.synaptechspa.cl':       'bloodhabib',
 };
 
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────

@@ -57,6 +57,9 @@ const TENANTS = {
   // Sion Barbería (Viña) — logo scrapeado del mini-site AgendaPro. Fondo
   // matchea themeColor #2C3941 del middleware.
   sion:                 { src: 'sion.png',                        bg: '#2C3941' },
+  // Blood Habib: el logo es el letrero blackletter recortado de la fachada,
+  // ya montado sobre negro → 'cover' para que llene el ícono sin doble marco.
+  bloodhabib:           { src: 'bloodhabib/logo.png',             bg: '#080808', fit: 'cover' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.

@@ -324,6 +324,66 @@
     .tenant-memphis #clubBanner .club-icon-wrap { background: rgba(217,220,225,0.08) !important; border: 1px solid rgba(217,220,225,0.18) !important; border-radius: 0.375rem !important; }
     .tenant-memphis #clubBanner i.ph-fill { filter: none !important; }
 
+    /* ═══ Blood Habib — B&N monocromático (letrero blackletter blanco/negro) ═══
+       El local no tiene color de marca: su identidad es el letrero plata sobre
+       negro de Calle Quinta 323, y las fotos que entrega son B&N. Por eso el
+       acento es plata #E5E5E5 (mismo espíritu que Ferraza) y no el dorado
+       heredado de Elegance. Espejo obligatorio: accentMap de barbero.html. */
+    .tenant-bloodhabib {
+      --accent:    #e5e5e5;
+      --accent-r:  229; --accent-g: 229; --accent-b: 229;
+      --neon-clr:  #e5e5e5;
+      --neon-r:    229; --neon-g: 229; --neon-b: 229;
+      --body-bg:   #080808;
+    }
+    .tenant-bloodhabib body { background-color: #080808; }
+    .tenant-bloodhabib .booking-hero {
+      background-image: url('/bloodhabib/banner.webp') !important;
+      background-color: #080808 !important;
+      background-size: cover !important;
+      background-position: center 40% !important;
+    }
+    .tenant-bloodhabib .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(8,8,8,0.42) 0%, rgba(8,8,8,0.30) 40%, rgba(8,8,8,0.90) 100%) !important;
+    }
+    /* Info strip y progreso en gris plata (sin glow dorado) */
+    .tenant-bloodhabib .info-strip i { color: rgba(229,229,229,0.55) !important; }
+    .tenant-bloodhabib #progressBar { background-color: #e5e5e5 !important; box-shadow: none !important; }
+    .tenant-bloodhabib #btnContinue { background: #e5e5e5 !important; color: #080808 !important; }
+    .tenant-bloodhabib #btnContinue:disabled,
+    .tenant-bloodhabib #btnContinue[disabled] { background: rgba(229,229,229,0.14) !important; color: rgba(255,255,255,0.30) !important; }
+    /* ── "Portafolio" (bloque heredado de Aura) ──
+       Blood Habib lo reusa SOLO para publicar sus fotos reales. Dos ajustes:
+       (1) el bloque nace para Aura (tenant CLARO), así que hay que repintarlo
+           en oscuro o queda texto grafito sobre fondo negro;
+       (2) su botón "Quiénes Somos" se oculta porque el info-strip ya trae uno
+           (.qs-btn, común a todos los locales) y salían duplicados — el
+           Portafolio queda a ancho completo, igual que hace latincaribe al
+           revés. */
+    .tenant-bloodhabib #aura-sobre-wrap { display: block !important; }
+    .tenant-bloodhabib #aura-sobre-btn { display: none !important; }
+    .tenant-bloodhabib #aura-sobre-wrap .grid { grid-template-columns: 1fr !important; }
+    .tenant-bloodhabib .qs-btn i { color: rgba(229,229,229,0.75) !important; }
+    .tenant-bloodhabib #aura-sobre-btn,
+    .tenant-bloodhabib #aura-info-btn {
+      background: rgba(229,229,229,0.06) !important;
+      border-color: rgba(229,229,229,0.22) !important;
+      color: #e5e5e5 !important;
+    }
+    .tenant-bloodhabib #aura-info-sheet,
+    .tenant-bloodhabib #aura-sobre-sheet {
+      background: #101010 !important;
+      border-top-color: rgba(229,229,229,0.28) !important;
+    }
+    .tenant-bloodhabib #aura-info-title,
+    .tenant-bloodhabib #aura-sobre-title { color: #f5f5f5 !important; }
+    .tenant-bloodhabib #aura-sobre-body { color: rgba(229,229,229,0.78) !important; }
+    .tenant-bloodhabib #aura-info-handle,
+    .tenant-bloodhabib #aura-sobre-handle { background: rgba(229,229,229,0.30) !important; }
+    .tenant-bloodhabib #aura-info-close,
+    .tenant-bloodhabib #aura-sobre-close { background: #e5e5e5 !important; color: #080808 !important; }
+
     /* Gitana Nails Studio */
     .tenant-gitana {
       --accent:   #ec4899;
@@ -11634,7 +11694,7 @@
       // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
       // líneas. La rama default (abajo) los deja como hermanos sueltos del
       // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || window.CURRENT_TENANT_ID === 'bloodhabib';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -14919,6 +14979,7 @@
           yugen:        '/yugen/yugen2.png',
           barbersclub:  '/barbersclub/hero-bg.png',
           estudioluxury: '/luxury/banner.webp',
+          bloodhabib:   '/bloodhabib/banner.webp',
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
@@ -14929,6 +14990,7 @@
                         window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
                         window.CURRENT_TENANT_ID === 'barbersclub' ? 'Interior premium de Barbers Club · Ciudad de los Valles, Pudahuel' :
                         window.CURRENT_TENANT_ID === 'sion' ? 'Fachada de Sion Barbería · 1 Oriente 985, Viña del Mar' :
+                        window.CURRENT_TENANT_ID === 'bloodhabib' ? 'Fachada de Blood Habib · Calle Quinta 323, Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
@@ -15450,9 +15512,15 @@
       const cEl   = document.getElementById('heroBadgeCount');
       if (!badge || !rEl || !cEl) return;
       rEl.textContent = rating.toFixed(1).replace('.', ',');
-      // Umbral de fricción: con <10 reseñas mostramos solo "Google" (ocultamos el
-      // conteo). Un contador muy bajo genera desconfianza pese al 5,0 general.
-      cEl.textContent = total >= 10 ? `${total} opiniones · Google` : 'Google';
+      // Umbral de fricción: con <10 reseñas mostramos solo la fuente (ocultamos
+      // el conteo). Un contador muy bajo genera desconfianza pese al 5,0 general.
+      // `ratingFuente` permite corregir la etiqueta cuando el rating NO viene de
+      // Google (ej. locales migrados desde otra plataforma de reservas): con ''
+      // se muestra el conteo sin atribuir la fuente, en vez de mentir.
+      const fuente = SHOP.ratingFuente === undefined ? 'Google' : String(SHOP.ratingFuente || '').trim();
+      cEl.textContent = total >= 10
+        ? `${total} opiniones${fuente ? ' · ' + fuente : ''}`
+        : (fuente || 'Opiniones');
       if (SHOP.googleReviewUrl) badge.href = SHOP.googleReviewUrl;
       badge.style.display = 'flex';
     }
@@ -15943,7 +16011,7 @@
         if (titleEl) titleEl.textContent = 'Mapu Barber Shop';
         const bodyEl = document.getElementById('mapu-sobre-body');
         if (bodyEl) bodyEl.innerHTML = window.SHOP.sobreNosotros;
-      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion')) {
+      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'bloodhabib')) {
         const titleEl = document.getElementById('aura-sobre-title');
         if (titleEl) titleEl.textContent = 'Quiénes Somos';
         const bodyEl = document.getElementById('aura-sobre-body');

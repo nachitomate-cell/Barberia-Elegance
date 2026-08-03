@@ -56,6 +56,9 @@ const DOMAIN_MAP = {
   // Sion Barbería · Viña del Mar (nuevo 2026-07-27). NO confundir con
   // 'sionbarberia' que es Estudio Dieciséis (reusó el schema original).
   'sion.synaptechspa.cl':              'sion',
+  // Blood Habib · Viña del Mar (nuevo 2026-08-03, recreado desde Weibook).
+  'bloodhabib.synaptechspa.cl':        'bloodhabib',
+  'blood-habib.synaptechspa.cl':       'bloodhabib',
   // elegance vivía del fallback implícito "host desconocido → elegance"; con el
   // 404 de plataforma ese fallback ya no existe para *.synaptechspa.cl y su
   // subdominio necesita entrada explícita como todos los demás.
@@ -859,6 +862,64 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=sion',
       icons: [
         { src: '/sion.png',                    sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  bloodhabib: {
+    booking: {
+      title:       'Blood Habib | Agenda tu hora',
+      description: 'Reserva tu hora en Blood Habib. Cortes, perfilado de barba con paños calientes, color y limpieza facial. Calle Quinta 323, Viña del Mar.',
+      ogTitle:     'Agendar Hora | Blood Habib',
+      ogDesc:      'Reserva tu hora en Blood Habib, barbería en Viña del Mar. Corte, barba y color.',
+    },
+    dashboard: {
+      title:       'Mi Club | Blood Habib',
+      description: 'Tu panel personal en el Club Blood Habib. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Blood Habib',
+      ogDesc:      'Club de fidelidad de Blood Habib. Acumula sellos con cada cita y disfruta beneficios.',
+    },
+    registro: {
+      title:       'Únete al Club | Blood Habib',
+      description: 'Crea tu cuenta en el Club Blood Habib. Acumula sellos con cada cita.',
+      ogTitle:     'Únete al Club | Blood Habib',
+      ogDesc:      'Regístrate en Blood Habib y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Blood Habib',
+    ogImage:     '/bloodhabib/banner.webp',
+    themeColor:  '#080808',
+    appTitle:    'Blood Habib',
+    icon:        '/bloodhabib/logo.png',
+    iconPwa192:  '/icons/pwa/bloodhabib-192.png',
+    iconPwa512:  '/icons/pwa/bloodhabib-512.png',
+    local: {
+      telephone:       '+56945701749',
+      streetAddress:   'Calle Quinta 323',
+      addressLocality: 'Viña del Mar',
+      schemaType:      'HairSalon',
+      // Rating real del local (Weibook, 03-08-2026).
+      ratingGeneral:   4.9,
+      totalReviews:    370,
+      reviews: [
+        { author: 'Claudio L.', rating: 5, text: 'Excelente calidad y atención de Nicolás Vidal.' },
+      ],
+    },
+    manifest: {
+      name:             'Blood Habib',
+      short_name:       'Blood Habib',
+      theme_color:      '#080808',
+      background_color: '#080808',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Blood Habib',
+      short_name:       'Blood Habib',
+      description:      'Panel de administración — Blood Habib',
+      theme_color:      '#080808',
+      background_color: '#080808',
+      start_url:        '/gestion-interna/?local=bloodhabib',
+      icons: [
+        { src: '/bloodhabib/logo.png',         sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

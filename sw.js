@@ -40,7 +40,7 @@ function _reportPush(logId, evento) {
 // el server ya tuviera lo nuevo → al editar un tenant (nombre/logo/banner) los
 // usuarios con SW activo seguían viendo lo viejo hasta el próximo bump. Ese era
 // el motivo de fondo del logo "roto" de Studio Luxury: config viejo cacheado.
-const CACHE_VERSION = 'saas-v35';   // v35: index.html con temas self-service (aura/chameleon) + hero-banner
+const CACHE_VERSION = 'saas-v36';   // v36: index.html cambió (tenant bloodhabib: tema B&N + badge de rating con fuente configurable)
 
 // Archivos que DEBEN estar siempre frescos (marcados no-cache/no-store en
 // vercel.json). config.js es la fuente de verdad de la marca/datos por tenant;

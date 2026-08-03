@@ -208,6 +208,21 @@ const TENANT_CONFIG = {
     from:        'Sion Barbería <citas@synaptechspa.cl>',
     dashboardUrl:'https://sion.synaptechspa.cl/dashboard',
   },
+  // Blood Habib (Viña del Mar) — recreado 2026-08-03 desde Weibook.
+  // Marca B&N: el "color" del correo es la plata del letrero, no un dorado.
+  bloodhabib: {
+    nombre:      'Blood Habib',
+    slogan:      'Barbería en Viña del Mar · Corte, barba y color',
+    direccion:   'Calle Quinta 323, Viña del Mar',
+    horario:     'Lun–Vie: 10:00–20:00 hrs · Sáb: 10:00–18:00 hrs',
+    color:       '#E5E5E5',
+    darkHeader:  true,
+    headerBg:    '#080808',
+    instagram:   'https://www.instagram.com/bloodhabib.barbershop',
+    whatsapp:    '56945701749',
+    from:        'Blood Habib <citas@synaptechspa.cl>',
+    dashboardUrl:'https://bloodhabib.synaptechspa.cl/dashboard',
+  },
   kronnos_penablanca: {
     nombre:      'Kronnos Studio Peñablanca',
     slogan:      'Un espacio unisex donde ambos mundos convergen',

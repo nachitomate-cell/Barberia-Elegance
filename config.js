@@ -60,6 +60,11 @@
     // AgendaPro, location 477414). NO confundir con `sionbarberia` (Estudio
     // Dieciséis, tenant reusado del schema Sion original).
     'sion.synaptechspa.cl':               'sion',
+    // Blood Habib · Viña del Mar — recreado 2026-08-03 desde Weibook
+    // (book.weibook.co/blood-habib). Doble entrada: el slug de Weibook lleva
+    // guion y el cliente lo tiene repartido en su Instagram.
+    'bloodhabib.synaptechspa.cl':         'bloodhabib',
+    'blood-habib.synaptechspa.cl':        'bloodhabib',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -917,6 +922,58 @@
       barberos: [
         { nombre: 'Martín Ramírez',   foto: '/sion/equipo/martin-ramirez.webp',   disponible: true },
         { nombre: 'Jose Luis Romero', foto: '/sion/equipo/jose-luis-romero.webp', disponible: true },
+      ],
+    },
+    // ── BLOOD HABIB · Viña del Mar — recreado 2026-08-03 desde Weibook ──
+    // (book.weibook.co/blood-habib · key blood_habib). Tema propio B&N: la
+    // marca real es un letrero blackletter blanco sobre negro, así que el
+    // acento es plata (#E5E5E5), no dorado. Ver .tenant-bloodhabib en
+    // index.html + accentMap de barbero.html.
+    bloodhabib: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Extras'],
+      nombre:          'Blood Habib',
+      nombreCorto:     'Blood Habib',
+      pageTitle:       'Blood Habib | Agenda tu hora',
+      bodyBg:          '#080808',
+      slogan:          'Barbería en Viña del Mar · Corte, barba y color',
+      sobreNosotros:   'Ubicados en Viña del Mar, ven a conocer y vivir la experiencia Blood Habib.<br><br>Agradeceremos tu puntualidad a la llegada de la cita, para poder atenderte con la mejor disposición. Si tienes alguna consulta, no dudes en dejarnos un mensaje por Instagram. ¡Gracias por tu preferencia!',
+      logo:            '/bloodhabib/logo.webp',
+      heroBanner:      '/bloodhabib/banner.webp',
+      infoBtnLabel:    'Portafolio',
+      galeria:         ['/bloodhabib/galeria/1.webp', '/bloodhabib/galeria/2.webp'],
+      direccion:       '📍 Calle Quinta 323 | Viña del Mar',
+      horario:         '🕒 Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00 · Dom: cerrado',
+      telefono:        '56945701749',
+      club:            'Club Blood Habib',
+      headerSub:       'BARBERSHOP',
+      heroLine1:       'Blood',
+      heroLine2:       'Habib.',
+      watermark:       'BH',
+      instagram:       'https://www.instagram.com/bloodhabib.barbershop',
+      instagramHandle: '@bloodhabib.barbershop',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      // Rating real del local en Weibook al 03-08-2026 (4.9 · 370 atenciones
+      // calificadas). Solo una reseña trae texto público, las demás son
+      // estrellas sin comentario — no se inventan las que faltan.
+      // `ratingFuente: ''` = el badge muestra "370 opiniones" a secas: NO son
+      // de Google (default del badge) y tampoco corresponde publicitar a la
+      // plataforma anterior en la agenda del local.
+      ratingGeneral:   4.9,
+      totalReviews:    370,
+      ratingFuente:    '',
+      reviews: [
+        { author: 'Claudio L.', rating: 5, text: 'Excelente calidad y atención de Nicolás Vidal.' },
+      ],
+      darkHeader:      true,
+      headerBg:        '#080808',
+      // Fallback si Firestore no responde (la lista real vive en
+      // tenants/bloodhabib/barberos). Fotos servidas desde el repo: las del
+      // CDN de Weibook son de un tercero y pueden caducar.
+      barberos: [
+        { nombre: 'Maurice Hinojosa', foto: '/bloodhabib/equipo/maurice-hinojosa.webp', disponible: true },
+        { nombre: 'Nicolás Vidal',    foto: '/bloodhabib/equipo/nicolas-vidal.webp',    disponible: true },
+        { nombre: 'Benjamín Ordenes', foto: '/bloodhabib/equipo/benjamin-ordenes.webp', disponible: true },
       ],
     },
     alfamen: {
