@@ -69,13 +69,22 @@ try {
 } catch(e) {
   console.warn('[Firebase] Auth SDK no disponible en esta página');
 }
-const db      = firebase.firestore();
+// Guard igual que auth/storage: páginas que no cargan firestore-compat
+// (ej: crea.html solo usa auth+functions) no deben reventar acá — el throw
+// cortaba el resto de este archivo (storage quedaba sin inicializar).
+let db;
+try {
+  db = firebase.firestore();
+} catch(e) {
+  console.warn('[Firebase] Firestore SDK no disponible en esta página');
+}
 // Navegadores in-app (Instagram, Facebook, etc.) rompen el transporte
 // WebChannel/streaming de Firestore y la conexión queda colgada: los datos no
 // cargan y la página no se recupera (spinner eterno). La auto-detección NO es
 // fiable en el WebView de Instagram en iOS, así que ahí forzamos long-polling;
 // en el resto de navegadores dejamos auto-detect (streaming cuando se puede).
 (function () {
+  if (!db) return;
   var ua = (navigator.userAgent || '');
   var isInApp = /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|Twitter|TikTok|MicroMessenger|musical_ly/i.test(ua);
   try {
