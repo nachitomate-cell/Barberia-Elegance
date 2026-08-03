@@ -34,17 +34,60 @@ const db = admin.firestore();
 const MAX_DIAS_BUSQUEDA = 4;   // hoy + 3
 const MARGEN_HOY_MIN    = 20;  // no ofrecer slots que empiezan en <20 min
 const MAX_SLOTS         = 12;
+const DUR_FALLBACK      = 30;  // local sin catálogo cargado
 
 function cols(tid) {
   const root = tid === 'elegance';
   const base = root ? null : db.collection('tenants').doc(tid);
   return {
-    conf:     root ? db.collection('configuracion').doc('main') : base.collection('configuracion').doc('main'),
-    barberos: root ? db.collection('barberos') : base.collection('barberos'),
-    citas:    root ? db.collection('citas')    : base.collection('citas'),
-    locks:    root ? db.collection('slotLocks') : base.collection('slotLocks'),
-    bloqueos: root ? db.collection('bloqueos')  : base.collection('bloqueos'),
+    conf:      root ? db.collection('configuracion').doc('main') : base.collection('configuracion').doc('main'),
+    barberos:  root ? db.collection('barberos') : base.collection('barberos'),
+    citas:     root ? db.collection('citas')    : base.collection('citas'),
+    locks:     root ? db.collection('slotLocks') : base.collection('slotLocks'),
+    bloqueos:  root ? db.collection('bloqueos')  : base.collection('bloqueos'),
+    servicios: root ? db.collection('servicios') : base.collection('servicios'),
   };
+}
+
+/**
+ * Duración con la que se calculan las horas cuando el cliente TODAVÍA no dijo
+ * qué servicio quiere: la MEDIANA del catálogo activo, con piso en el paso de
+ * la grilla. Se autoajusta por tenant — 45 min en una barbería, 60 en un spa.
+ *
+ * Antes se caía al paso de la grilla (`intervaloMinutos`), que en varios
+ * locales es 15: se ofrecían huecos de 15 min donde no cabe ningún servicio
+ * real. Pasó el 1-ago en kronnos_penablanca — el chat ofreció las 12:00 con
+ * Araceli y Evelyn, que solo tenían el hueco 12:00–12:15 entre dos cortes,
+ * y el cliente no pudo reservar ("la página web tiene un error").
+ *
+ * Mediana y no la MODA: un catálogo con muchos tratamientos largos la dispara
+ * (latincaribe 240, omega 300, yugen 180) y el chat dejaría de ofrecer horas
+ * que sí existen. Contrastado contra lo que de verdad se reserva en cada
+ * local (moda de las últimas 150 citas), la mediana acierta o queda a un
+ * paso: penablanca 45/45, oren 45/45, aura 60/60, sion 35/40, yugen 70/60.
+ *
+ * El piso en `step` la vuelve monótona: nunca ofrece MÁS horas que antes, solo
+ * deja de ofrecer las que no eran reservables (renacer tenía mediana 15).
+ */
+async function duracionTipica(tenantId) {
+  try {
+    const c = cols(tenantId);
+    const [svcSnap, confSnap] = await Promise.all([c.servicios.get(), c.conf.get()]);
+    const step = Number((confSnap.exists ? confSnap.data() : {}).intervaloMinutos) || 30;
+    const durs = [];
+    svcSnap.forEach(d => {
+      const s = d.data() || {};
+      if (s.activo === false) return;
+      const dur = Number(s.duracion || s.duracionServicio) || 0;
+      if (dur > 0) durs.push(dur);
+    });
+    if (!durs.length) return Math.max(DUR_FALLBACK, step);
+    durs.sort((a, b) => a - b);
+    return Math.max(durs[Math.floor(durs.length / 2)], step);
+  } catch (e) {
+    logger.warn(`[chatHoras] duracionTipica ${tenantId}: ${e.message}`);
+    return DUR_FALLBACK;
+  }
 }
 
 const toMins = (t) => {
@@ -222,15 +265,34 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null) 
   // primeros 30 estaban libres: hora ofrecida → agendar_cita la rechazaba →
   // "el bot ofrece horas ocupadas" (Nancy/Romy, 31-jul). Lo mismo con la
   // colación: un servicio largo que ARRANCA antes de colación ya no pasa.
-  const dur = Number(durMin) > 0 ? Math.round(Number(durMin)) : step;
-  const slots = [];
+  //
+  // Sin servicio elegido NO se cae al paso de la grilla (era el mismo bug al
+  // revés: 15 min en varios locales). Los puntos de entrada resuelven la
+  // duración típica del local y la pasan; esto es la red para llamadas sueltas.
+  const dur = Number(durMin) > 0 ? Math.round(Number(durMin)) : await duracionTipica(tenantId);
+
+  // Se recorre el día COMPLETO y recién al final se recorta. Antes el loop
+  // hacía `break` al juntar MAX_SLOTS y devolvía los PRIMEROS libres: con la
+  // grilla de 15 min eso son apenas 3 horas, así que el bot veía la mañana y
+  // concluía que la tarde estaba llena. Mordió el 02-08 en kronnos_penablanca:
+  // el cliente pidió las 16:00 —libres con Martin— y el bot le respondió que
+  // ya estaban tomadas; terminó agendando a las 13:15 a regañadientes.
+  const libres = [];
   for (let t = iniMins; t + dur <= finMins; t += step) {
     if (t < minMinuto) continue;
     if (colacion && solapan(t, t + dur, colacion[0], colacion[1])) continue;
-    if (barberos.some(b => libreBarbero(b.id, t, t + dur))) slots.push(toHHMM(t));
-    if (slots.length >= MAX_SLOTS) break;
+    if (barberos.some(b => libreBarbero(b.id, t, t + dur))) libres.push(toHHMM(t));
   }
-  return slots;
+  if (libres.length <= MAX_SLOTS) return libres;
+
+  // Hay más cupos que los que caben en la respuesta: se toma una MUESTRA
+  // repartida por todo el día (conservando la primera y la última) en vez de
+  // un prefijo. Así el modelo nunca cree que después de cierta hora no queda
+  // nada, y el cliente que pide "en la tarde" ve horas de la tarde.
+  const muestra = [];
+  const paso = (libres.length - 1) / (MAX_SLOTS - 1);
+  for (let i = 0; i < MAX_SLOTS; i++) muestra.push(libres[Math.round(i * paso)]);
+  return [...new Set(muestra)];
 }
 
 exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
@@ -245,10 +307,13 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(req.data?.fecha || '')) ? req.data.fecha : ahora.fecha;
 
   try {
+    // El chat pregunta "¿tienes hora?" antes de saber el servicio: se asume la
+    // duración típica del local. Se resuelve UNA vez, fuera del loop de días.
+    const dur = await duracionTipica(tenantId);
     for (let i = 0; i < MAX_DIAS_BUSQUEDA; i++) {
       const fecha = sumarDias(desde, i);
       const esHoy = fecha === ahora.fecha;
-      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0);
+      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur);
       if (slots.length) return { ok: true, fecha, esHoy, slots };
     }
     return { ok: true, fecha: null, esHoy: false, slots: [] };
@@ -267,6 +332,9 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
   const { durMin = null, diasServicio = null } = opts || {};
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
+  // Sin servicio elegido, la duración típica del local (una sola lectura para
+  // toda la búsqueda, no una por día).
+  const dur = Number(durMin) > 0 ? durMin : await duracionTipica(tenantId);
   // Con servicio restringido por días se amplía la búsqueda: 4 días podían no
   // contener NINGÚN día válido (ej. promo Lu-Ju consultada un viernes).
   const maxDias = Array.isArray(diasServicio) && diasServicio.length ? 10 : MAX_DIAS_BUSQUEDA;
@@ -274,7 +342,7 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
     const fecha = sumarDias(desde, i);
     if (Array.isArray(diasServicio) && diasServicio.length && !diasServicio.includes(dowDe(fecha))) continue;
     const esHoy = fecha === ahora.fecha;
-    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, durMin);
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur);
     if (slots.length) return { fecha, esHoy, slots };
   }
   return { fecha: null, esHoy: false, slots: [] };
@@ -391,5 +459,6 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
 // (functions/evolution/cerebro.js): no son parte del API público.
 exports._horasParaFecha        = horasParaFecha;
 exports._buscarDisponibilidad  = buscarDisponibilidad;
+exports._duracionTipica        = duracionTipica;
 exports._barberoLibreParaSlot  = barberoLibreParaSlot;
 exports._ahoraChile            = ahoraChile;

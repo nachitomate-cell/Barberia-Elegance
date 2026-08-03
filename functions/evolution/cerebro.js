@@ -526,6 +526,10 @@ async function ejecutarTool(name, input, ctx) {
     }
     return {
       hay_cupos: true, fecha: r.fecha, es_hoy: r.esHoy, horas: r.slots,
+      // La lista es una MUESTRA repartida por el día, no el listado completo:
+      // sin decirlo, el modelo lee "10:30…13:15" como "después no hay nada" y
+      // le niega al cliente una hora que sí existe (kronnos_penablanca, 02-08).
+      aviso_muestra: 'Estas horas son una MUESTRA repartida por el día, NO el listado completo. Puede haber más cupos entre medio y después de la última. Si el cliente pide una hora que no está en la lista, NO le digas que está tomada: intenta agendarla igual — la herramienta te dirá si de verdad no está libre.',
       ...(svc ? { servicio: svc.nombre, duracion_min: svc.duracion } : { nota: 'Horas calculadas con la duración típica del local: cuando sepas el servicio, vuelve a consultar pasando servicio_nombre (uno más largo puede no caber en estas horas).' }),
     };
   }
