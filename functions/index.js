@@ -1168,6 +1168,17 @@ exports.confirmarCitaCorreo = require('./confirmar-correo').confirmarCitaCorreo;
 const pushLiq = require('./push-liquidacion');
 exports.pushLiquidacionTenant   = pushLiq.pushLiquidacionTenant;
 exports.pushLiquidacionElegance = pushLiq.pushLiquidacionElegance;
+// …y aviso al dueño cuando el barbero confirma el recibo (piloto delnero)
+exports.pushLiquidacionConfirmadaTenant = pushLiq.pushLiquidacionConfirmadaTenant;
+
+// Push extras del panel + agenda (piloto delnero): reseña nueva, caja sin
+// cerrar 22:00, resumen del día 8:30 y cierre diario dirigido 21:00.
+const pushPanelExtras  = require('./push-panel-extras');
+const pushAgendaDiaria = require('./push-agenda-diaria');
+exports.pushResenaNueva   = pushPanelExtras.pushResenaNueva;
+exports.pushCajaSinCerrar = pushPanelExtras.pushCajaSinCerrar;
+exports.pushResumenDia    = pushAgendaDiaria.pushResumenDia;
+exports.pushCierreDiario  = pushAgendaDiaria.pushCierreDiario;
 exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 

@@ -12,13 +12,24 @@
 //
 //  Falla-silencioso a propósito: un barbero sin tokens (nunca aceptó push)
 //  simplemente no recibe aviso; el banner de su Inicio sigue siendo la red.
+//
+//  Y EL CIERRE DEL CICLO (piloto delnero): cuando el barbero toca
+//  "Confirmar recibo" (aceptacionBarbero pendiente→aceptada), push a los
+//  admins/jefes del local — el dueño sabe al instante que el pago quedó
+//  aceptado, sin entrar a Comisiones a mirar. Se excluye al que aceptó
+//  (una dueña que atiende no se auto-notifica).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
+const { writeNotifLog }     = require('./lib/notif-log');
+const { tokensAdmins, enviarPushStaff } = require('./lib/push-staff');
 
 const db = admin.firestore();
+
+// Piloto del aviso de confirmación (el push al barbero corre en TODOS).
+const CONFIRMADA_PILOTO = new Set(['delnero']);
 
 async function avisarLiquidacion(tid, gasto) {
   if (gasto?.tipo !== 'liquidacion' || gasto?.aceptacionBarbero !== 'pendiente') return;
@@ -57,4 +68,42 @@ exports.pushLiquidacionTenant = onDocumentCreated('tenants/{tenantId}/gastos/{ga
 exports.pushLiquidacionElegance = onDocumentCreated('gastos/{gastoId}', async (event) => {
   try { await avisarLiquidacion('elegance', event.data?.data()); }
   catch (e) { logger.error('[push-liq]', e.message); }
+});
+
+// ═══ CONFIRMACIÓN DEL RECIBO → AVISO AL DUEÑO (piloto delnero) ═══════════════
+
+async function avisarLiquidacionConfirmada(tid, before, after) {
+  if (after?.tipo !== 'liquidacion') return;
+  if (before?.aceptacionBarbero !== 'pendiente' || after?.aceptacionBarbero !== 'aceptada') return;
+  if (!CONFIRMADA_PILOTO.has(tid)) return;
+
+  const tokens = await tokensAdmins(`tenants/${tid}/`, { excluirUid: after.aceptacionUid || null });
+  if (!tokens.length) { logger.info(`[push-liq-ok] ${tid}: sin tokens admin, sin aviso`); return; }
+
+  const monto  = Number(after.monto) || 0;
+  const nombre = after.barberoNombre || 'El profesional';
+  const r = await enviarPushStaff({
+    tokens,
+    title: '✅ Liquidación confirmada',
+    body:  `${nombre} confirmó el recibo de su liquidación de $${monto.toLocaleString('es-CL')}.`,
+    link:  '/gestion-interna/comisiones',
+    tag:   `liq-ok-${tid}-${after.barberoId || ''}`,
+  });
+  await writeNotifLog(db, {
+    tenantId: tid, type: 'push_liquidacion_confirmada', channel: 'push',
+    status: r.successCount ? 'sent' : 'failed',
+    to: { nombre },
+    meta: { monto: String(monto) },
+  });
+  logger.info(`[push-liq-ok] ${tid}/${nombre}: ${r.successCount}/${tokens.length} push a admins`);
+}
+
+exports.pushLiquidacionConfirmadaTenant = onDocumentUpdated('tenants/{tenantId}/gastos/{gastoId}', async (event) => {
+  try {
+    await avisarLiquidacionConfirmada(
+      event.params.tenantId,
+      event.data?.before?.data(),
+      event.data?.after?.data(),
+    );
+  } catch (e) { logger.error('[push-liq-ok]', e.message); }
 });
