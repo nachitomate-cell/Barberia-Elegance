@@ -1848,6 +1848,11 @@ exports.walletGenerarPase       = wallet.walletGenerarPase;
 exports.walletActivarTenant     = wallet.walletActivarTenant;
 exports.walletSyncSelloElegance = wallet.walletSyncSelloElegance;
 exports.walletSyncSelloTenant   = wallet.walletSyncSelloTenant;
+// Próxima cita en el pase: sin estos, la cita queda congelada en el valor
+// que tenía al ganar el último sello (agendar no la muestra, cancelar no la
+// borra) y el pase termina mintiéndole al cliente.
+exports.walletCitaElegance      = wallet.walletCitaElegance;
+exports.walletCitaTenant        = wallet.walletCitaTenant;
 
 // Staff app (wallets.bioo.cl/staff): sumar sellos escaneando el QR del
 // pase. Habilita el producto Wallet standalone (sin agenda).

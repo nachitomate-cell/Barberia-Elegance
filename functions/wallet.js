@@ -30,6 +30,7 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
 const core = require('./lib/wallet-core');
+const citaLib = require('./lib/wallet-cita');   // próxima cita en el pase
 const { renderStampStrip } = require('./lib/wallet-render');
 // Apple Wallet: el sync de sellos también avisa a los iPhones (APNs).
 const appleWallet = require('./wallet-apple');
@@ -227,9 +228,13 @@ exports.walletGenerarPase = onCall(
       // Asegurar la clase (idempotente) por si el admin solo activó sin provisionar.
       await core.upsertClass(key, core.buildClass(tenantId, cfg));
 
+      const cita = await citaLib.leerProximaCita(tenantId, uid);
       const obj = core.buildObject(tenantId, uid, {
         accountName, filled, target, hitos, premios, rango, accent, bg, icon,
         modo, cashbackDisponible, cashbackPct, saldoPrepago, prepagoBonusPct,
+        proximaCita: cita
+          ? { corta: citaLib.citaCorta(cita), larga: citaLib.citaLarga(cita) }
+          : null,
         qrStaff: cfg.qrStaff === true,
         eventoEstado: cfg.eventoEstado,
         eventoFecha: cfg.eventoFecha,
@@ -297,6 +302,14 @@ async function syncPase(tenantId, uid, before, after) {
 
       // Módulos: rango + explicación según modo (o recompensas en sellos).
       const textModules = [{ id: 'rango', header: 'Rango', body: rango }];
+      // La próxima cita se relee acá aunque este sync lo dispare un sello:
+      // textModulesData se manda COMPLETO y reemplaza el array entero, así
+      // que omitirla borraría el módulo de la cita en el próximo sello.
+      const citaSync = await citaLib.leerProximaCita(tenantId, uid);
+      if (citaSync) {
+        const larga = citaLib.citaLarga(citaSync);
+        if (larga) textModules.push({ id: 'proximaCita', header: 'Tu próxima cita', body: larga });
+      }
       if (modo === 'cashback') {
         textModules.push({ id: 'cashback', header: '¿Cómo funciona?',
           body: `Cada compra te devuelve ${cashbackPct}% en saldo Wallo. Úsalo cuando quieras — te lo descontamos al pagar.` });
@@ -321,6 +334,11 @@ async function syncPase(tenantId, uid, before, after) {
       const patch = {
         loyaltyPoints: { label, balance: { string: balance } },
         textModulesData: textModules,
+        // Frente del pase. El vacío explícito no es opcional: esto es un
+        // PATCH y omitir el campo dejaría pegada una cita ya pasada.
+        secondaryLoyaltyPoints: citaSync
+          ? { label: 'Próxima cita', balance: { string: citaLib.citaCorta(citaSync) } }
+          : { label: '', balance: { string: '' } },
         // QR de staff: solo donde el sello se suma escaneando (qrStaff:true).
         // Apagado NO basta con omitirlo — el pase ya emitido lo conserva —,
         // así que se pisa con BARCODE_TYPE_UNSPECIFIED, que es el valor de
@@ -387,6 +405,101 @@ exports.walletSyncSelloTenant = onDocumentWritten(
     if (!after) return null;
     try { await syncPase(event.params.tid, event.params.uid, event.data?.before?.data(), after); }
     catch (e) { logger.error(`[Wallet sync] ${event.params.tid}/${event.params.uid}:`, e.response?.data || e.message); }
+    return null;
+  },
+);
+
+/* ═══ Próxima cita en el pase ══════════════════════════════════════
+   syncPase solo se dispara cuando cambian los sellos, así que sin este
+   trigger la cita quedaría congelada al valor que tenía cuando el
+   cliente ganó su último sello: agendar no la mostraría y cancelar no
+   la borraría. Un pase que muestra una cita cancelada es peor que uno
+   sin cita, porque el cliente se guía por él.
+
+   Se dispara con CUALQUIER escritura de la cita (crear, reagendar,
+   cancelar, completar) y sale barato: si el cliente no tiene pase
+   guardado, es un solo get al user doc y corta.                      */
+async function syncCitaEnPase(tenantId, uid) {
+  if (!uid) return;
+  const uSnap = await userRef(tenantId, uid).get();
+  const u = uSnap.exists ? uSnap.data() : {};
+  const objectId = u.walletObjectId;
+  const appleSerial = u.appleWalletSerial;
+  if (!objectId && !appleSerial) return;   // sin tarjeta guardada, nada que hacer
+
+  const cita = await citaLib.leerProximaCita(tenantId, uid);
+
+  if (objectId) {
+    try {
+      // Se re-arma textModulesData completo (rango + recompensas + cita)
+      // porque el PATCH reemplaza el array entero: mandar solo la cita
+      // borraría el rango y las recompensas del pase.
+      const [premios, rangosCfg] = await Promise.all([
+        leerPremios(tenantId),
+        leerRangosCfg(tenantId),
+      ]);
+      const hist = Number(u.sellosHistoricos ?? u.sellosDisponibles ?? 0);
+      const rango = core.rangoNombre(hist, rangosCfg);
+
+      const textModules = [{ id: 'rango', header: 'Rango', body: rango }];
+      if (cita) {
+        const larga = citaLib.citaLarga(cita);
+        if (larga) textModules.push({ id: 'proximaCita', header: 'Tu próxima cita', body: larga });
+      }
+      const recompensasBody = core.recompensasListText(premios);
+      if (recompensasBody) textModules.push({ id: 'recompensas', header: 'Recompensas', body: recompensasBody });
+
+      await core.patchObject(saKey(), objectId, {
+        textModulesData: textModules,
+        secondaryLoyaltyPoints: cita
+          ? { label: 'Próxima cita', balance: { string: citaLib.citaCorta(cita) } }
+          : { label: '', balance: { string: '' } },
+      });
+      logger.info(`[Wallet cita] ${objectId}: ${cita ? citaLib.citaCorta(cita) : 'sin cita'}`);
+    } catch (e) {
+      logger.error(`[Wallet cita] Google (${objectId}):`, e.response?.data || e.message);
+    }
+  }
+
+  if (appleSerial) {
+    // Apple regenera el .pkpass entero al recibir el aviso, y ahí
+    // generarPkpass vuelve a leer la cita — no hay nada que mandarle.
+    try { await appleWallet.notificarCambioPase(appleSerial); }
+    catch (e) { logger.warn(`[Wallet cita] Apple (${appleSerial}): ${e.message}`); }
+  }
+}
+
+/** uid del cliente de una cita, mirando antes y después del cambio: al
+ *  cancelar hay que actualizar el pase del dueño de la cita BORRADA. */
+function uidsDeCita(before, after) {
+  const ids = new Set();
+  for (const c of [before, after]) {
+    const uid = c && (c.clienteUid || c.userId);
+    if (uid) ids.add(String(uid));
+  }
+  return [...ids];
+}
+
+exports.walletCitaElegance = onDocumentWritten(
+  { document: 'citas/{citaId}', region: 'us-central1', secrets: [WALLET_SA_KEY, ...appleWallet.APPLE_SECRETS] },
+  async (event) => {
+    const uids = uidsDeCita(event.data?.before?.data(), event.data?.after?.data());
+    for (const uid of uids) {
+      try { await syncCitaEnPase('elegance', uid); }
+      catch (e) { logger.error(`[Wallet cita] elegance/${uid}:`, e.response?.data || e.message); }
+    }
+    return null;
+  },
+);
+
+exports.walletCitaTenant = onDocumentWritten(
+  { document: 'tenants/{tid}/citas/{citaId}', region: 'us-central1', secrets: [WALLET_SA_KEY, ...appleWallet.APPLE_SECRETS] },
+  async (event) => {
+    const uids = uidsDeCita(event.data?.before?.data(), event.data?.after?.data());
+    for (const uid of uids) {
+      try { await syncCitaEnPase(event.params.tid, uid); }
+      catch (e) { logger.error(`[Wallet cita] ${event.params.tid}/${uid}:`, e.response?.data || e.message); }
+    }
     return null;
   },
 );

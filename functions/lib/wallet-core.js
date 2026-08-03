@@ -169,6 +169,8 @@ function buildObject(tenantId, uid, opts) {
     saldoPrepago, prepagoBonusPct,
     // QR de staff — opt-in por tenant (configuracion/wallet.qrStaff).
     qrStaff,
+    // Próxima cita del cliente (o null si no tiene ninguna agendada).
+    proximaCita,
   } = opts || {};
   const esCashback = modo === 'cashback';
   const esPrepago  = modo === 'prepago';
@@ -218,9 +220,28 @@ function buildObject(tenantId, uid, opts) {
     obj.heroImage = { sourceUri: { uri: stampImageUrl({ filled, target, accent, bg, icon, hitos }) } };
   }
 
+  // Próxima cita en el FRENTE del pase, junto al saldo de sellos. Es lo que
+  // convierte la tarjeta en algo que se mira entre visitas y no solo en la
+  // caja. Va en secondaryLoyaltyPoints porque es el único slot delantero que
+  // ofrece la API; la decisión previa de no usar ese campo era para no meter
+  // ahí el crédito de Corte al Lápiz (plata), no la agenda.
+  //
+  // El else NO es opcional: patchObject manda un PATCH real, así que omitir
+  // el campo deja pegada la cita anterior y el pase pasaría a mentirle al
+  // cliente cuando cancela o reagenda. Mismo gotcha que el barcode.
+  if (!esEvento) {
+    obj.secondaryLoyaltyPoints = proximaCita
+      ? { label: 'Próxima cita', balance: { string: proximaCita.corta } }
+      : { label: '', balance: { string: '' } };
+  }
+
   const modules = [];
   // El rango es del programa de fidelidad; en un pase de evento no significa nada.
   if (rango && !esEvento) modules.push({ id: 'rango', header: 'Rango', body: rango });
+  // Detalle de la cita (servicio y profesional) — no cabe en el frente.
+  if (proximaCita && proximaCita.larga && !esEvento) {
+    modules.push({ id: 'proximaCita', header: 'Tu próxima cita', body: proximaCita.larga });
+  }
   if (esEvento) {
     if (opts.eventoFecha) modules.push({ id: 'cuando', header: 'Cuándo', body: opts.eventoFecha });
     modules.push({

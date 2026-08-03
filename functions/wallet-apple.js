@@ -37,6 +37,7 @@ const path = require('path');
 
 const core = require('./lib/wallet-core'); // stampState / rangoNombre (compartidos)
 const apple = require('./lib/wallet-apple-core');
+const citaLib = require('./lib/wallet-cita');   // próxima cita en el pase
 
 const db = admin.firestore();
 const APPLE_PASS_CERT = defineSecret('APPLE_PASS_CERT');
@@ -101,7 +102,14 @@ function tokenDeHeader(req) {
 //  NO bumpea updatedAt (eso es exclusivo del sync de sellos): Apple
 //  usa updatedAt para saber qué seriales cambiaron.
 async function generarPkpass(tenantId, uid) {
-  const [uSnap, ctx] = await Promise.all([userRef(tenantId, uid).get(), leerContexto(tenantId)]);
+  // La próxima cita se relee en cada generación: el .pkpass se regenera
+  // entero cada vez que Apple pide el pase, así que acá siempre sale al día
+  // (y si el cliente canceló, sale sin el campo).
+  const [uSnap, ctx, proximaCita] = await Promise.all([
+    userRef(tenantId, uid).get(),
+    leerContexto(tenantId),
+    citaLib.leerProximaCita(tenantId, uid),
+  ]);
   const u = uSnap.exists ? uSnap.data() : {};
   const disp = Number(u.sellosDisponibles ?? u.stamps ?? 0);
   const hist = Number(u.sellosHistoricos ?? disp);
@@ -122,7 +130,12 @@ async function generarPkpass(tenantId, uid) {
     uid,
     serial,
     authToken,
-    datos: { accountName, filled, target, rango, cfg: ctx.cfg, premios: ctx.premios, hitos },
+    datos: {
+      accountName, filled, target, rango, cfg: ctx.cfg, premios: ctx.premios, hitos,
+      proximaCita: proximaCita
+        ? { corta: citaLib.citaCorta(proximaCita), larga: citaLib.citaLarga(proximaCita) }
+        : null,
+    },
   });
   const updatedAt = paseSnap.exists ? paseSnap.data().updatedAt : meta.updatedAt;
   return { buf, serial, updatedAt };

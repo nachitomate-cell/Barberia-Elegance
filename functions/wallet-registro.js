@@ -29,6 +29,7 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 const core = require('./lib/wallet-core');
 const apple = require('./lib/wallet-apple-core');
+const citaLib = require('./lib/wallet-cita');   // próxima cita en el pase
 
 const db = admin.firestore();
 const WALLET_SA_KEY = defineSecret('WALLET_SA_KEY');
@@ -42,6 +43,28 @@ const walletCfgRef = (tid) => db.doc(tid === 'elegance' ? 'configuracion/wallet'
 const usersCol     = (tid) => db.collection(tid === 'elegance' ? 'users' : `tenants/${tid}/users`);
 const billingRef   = (tid) => db.doc(`_billing/${tid}`);
 const tenantRef    = (tid) => db.doc(`tenants/${tid}`);
+const sysRef       = (tid) => db.doc(`_system/${tid}`);
+
+// Un tenant existe aunque `tenants/{tid}` sea un doc FANTASMA (sin campos):
+// varios locales solo tienen subcolecciones colgando y su doc padre nunca se
+// escribió — por eso el resto del repo los enumera con listDocuments(). Usar
+// `tSnap.exists` como gate dejaba fuera a aura y oren, los dos tenants más
+// grandes. `_system/{tid}` sí se escribe siempre al provisionar.
+function tenantExiste(tSnap, sSnap) {
+  return !!((tSnap && tSnap.exists) || (sSnap && sSnap.exists));
+}
+
+// El nombre visible no vive en un solo lugar: los tenants nuevos lo traen en
+// `tenants/{tid}.nombre`, los viejos solo en el branding del wallet.
+function nombreTenant(tid, tSnap, cfg) {
+  const t = (tSnap && tSnap.exists) ? tSnap.data() : {};
+  return t.nombre || (cfg && cfg.issuerName) || tid;
+}
+
+// De dónde salió el registro. Se guarda tal cual en el user doc, así que se
+// valida contra lista blanca en vez de confiar en el body.
+const ORIGENES = ['wallo-qr', 'reserva-web', 'club-registro', 'cita-confirmada'];
+const saneOrigen = (v) => (ORIGENES.includes(String(v || '')) ? String(v) : 'wallo-qr');
 
 const APPLE_LINK_TTL_MS = 15 * 60 * 1000;
 const applePasesCol = () => db.collection('apple_wallet_passes');
@@ -92,8 +115,24 @@ function rateHit(key, max = 5, windowMs = 60_000) {
 }
 
 // ── CORS mínimo (solo hosts propios + wildcard subdominio synaptechspa)
+//
+// Algunos locales sirven su agenda desde dominio propio, fuera del wildcard.
+// La fuente de verdad de esa lista es el mapa de hosts de middleware.js, que
+// no se puede importar desde acá (corre en el Edge de Vercel), así que va
+// espejada y la sostiene el guard `npm run check:wallet-cors`: si middleware
+// gana un dominio propio y no se agrega acá, el CORS lo bloquea en silencio
+// y ese local se queda sin tarjeta.
+const DOMINIOS_PROPIOS = [
+  'yugenstudio.cl',
+  'www.yugenstudio.cl',
+  'agenda.oren.cl',
+];
+
 function setCors(res, origin) {
-  const ok = origin && /^https:\/\/([a-z0-9-]+\.)?(bioo\.cl|synaptechspa\.cl|wallo\.cl)(:\d+)?$/i.test(origin);
+  const ok = !!origin && (
+    /^https:\/\/([a-z0-9-]+\.)?(bioo\.cl|synaptechspa\.cl|wallo\.cl)(:\d+)?$/i.test(origin) ||
+    DOMINIOS_PROPIOS.some((d) => origin.toLowerCase() === `https://${d}`)
+  );
   res.set('Access-Control-Allow-Origin', ok ? origin : 'https://wallets.bioo.cl');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -166,13 +205,13 @@ exports.walletTenantMeta = onRequest(
     if (!tid) return res.status(400).json({ ok: false, error: 'tid_requerido' });
 
     try {
-      const [tSnap, cfgSnap, bSnap] = await Promise.all([
+      const [tSnap, cfgSnap, bSnap, sSnap] = await Promise.all([
         tenantRef(tid).get(),
         walletCfgRef(tid).get(),
         billingRef(tid).get(),
+        sysRef(tid).get(),
       ]);
-      if (!tSnap.exists) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
-      const t = tSnap.data();
+      if (!tenantExiste(tSnap, sSnap)) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
       const cfg = cfgSnap.exists ? cfgSnap.data() : {};
       const b = bSnap.exists ? bSnap.data() : {};
       // Copy override que el dueño edita desde el estudio → sub-panel
@@ -207,8 +246,8 @@ exports.walletTenantMeta = onRequest(
         ok: true,
         tenant: {
           slug: tid,
-          nombre: t.nombre || tid,
-          logoUrl: cfg.logoUrl || t.logoUrl || null,
+          nombre: nombreTenant(tid, tSnap, cfg),
+          logoUrl: cfg.logoUrl || ((tSnap.exists && tSnap.data().logoUrl) || null),
           bannerUrl: cfg.bannerUrl || null,
           accent: cfg.accent || '#c9a84c',
           bg: cfg.bg || '#0d0d0d',
@@ -257,6 +296,7 @@ exports.walletRegistrarCliente = onRequest(
       const fechaNac  = saneFechaNac(body.fechaNacimiento);
       const instagram = saneInstagram(body.instagram);
       const acepto    = !!body.acepto;
+      const origen    = saneOrigen(body.origen);
 
       if (!tenantId) return res.status(400).json({ ok: false, error: 'tenantId_requerido' });
       if (!nombre)   return res.status(400).json({ ok: false, error: 'nombre_invalido' });
@@ -272,12 +312,13 @@ exports.walletRegistrarCliente = onRequest(
 
       // Gate: tenant existe + walletActivo. Además cargamos cfg para
       // aplicar reglas de campos (fechaNacObligatoria, etc).
-      const [tSnap, bSnap, cfgEarly] = await Promise.all([
+      const [tSnap, bSnap, cfgEarly, sSnap] = await Promise.all([
         tenantRef(tenantId).get(),
         billingRef(tenantId).get(),
         walletCfgRef(tenantId).get(),
+        sysRef(tenantId).get(),
       ]);
-      if (!tSnap.exists) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
+      if (!tenantExiste(tSnap, sSnap)) return res.status(404).json({ ok: false, error: 'tenant_no_existe' });
       const walletActivo = bSnap.exists && bSnap.data().walletActivo === true;
       if (!walletActivo) return res.status(403).json({ ok: false, error: 'wallet_no_activo' });
       const cfgReg = (cfgEarly.exists && cfgEarly.data().registroCampos) || {};
@@ -300,7 +341,6 @@ exports.walletRegistrarCliente = onRequest(
         telefonoSuf9: suf9,
         ...(fechaNac  ? { fechaNacimiento: fechaNac } : {}),
         ...(instagram ? { instagram } : {}),
-        origenRegistro: 'wallo-qr',
         actualizadoEn: FieldValue.serverTimestamp(),
       };
       if (!uPrev.exists) {
@@ -308,6 +348,9 @@ exports.walletRegistrarCliente = onRequest(
         patch.sellosHistoricos = 0;
         patch.stamps = 0;
         patch.creadoEn = FieldValue.serverTimestamp();
+        // Solo al crear: si el cliente ya existía, su origen real es el de
+        // entonces (pack-automatico, import, QR…) y pisarlo perdería el dato.
+        patch.origenRegistro = origen;
       }
       await uRef.set(patch, { merge: true });
 
@@ -337,8 +380,14 @@ exports.walletRegistrarCliente = onRequest(
         const saKey = JSON.parse(WALLET_SA_KEY.value());
         // Class idempotente (por si el tenant nunca provisionó y sale registrando cliente 0).
         await core.upsertClass(saKey, core.buildClass(tenantId, cfg));
+        // El caso típico de `reserva-web`: el cliente acaba de agendar, así
+        // que su tarjeta nace mostrando la cita que recién creó.
+        const cita = await citaLib.leerProximaCita(tenantId, uid);
         const obj = core.buildObject(tenantId, uid, {
           accountName: nombre,
+          proximaCita: cita
+            ? { corta: citaLib.citaCorta(cita), larga: citaLib.citaLarga(cita) }
+            : null,
           filled, target, hitos, premios, rango,
           accent: cfg.accent, bg: cfg.bg, icon: cfg.stampIcon,
           qrStaff: cfg.qrStaff === true,
@@ -358,6 +407,10 @@ exports.walletRegistrarCliente = onRequest(
         await uRef.set({
           walletObjectId: obj.id,
           walletSavedAt: Timestamp.now(),
+          // Qué superficie logró el guardado. Es la única forma de saber
+          // después si conviene invertir en la pantalla de reserva, el
+          // registro o el correo.
+          walletOrigen: origen,
         }, { merge: true });
       } catch (e) {
         const detail = e.response?.data ? JSON.stringify(e.response.data) : e.message;
@@ -367,7 +420,7 @@ exports.walletRegistrarCliente = onRequest(
       // 5. Apple: mint del link (Safari abre "Añadir a Apple Wallet"). Silencioso si no hay certs.
       const urlApple = await generarLinkApple(tenantId, uid, {}, true);
 
-      logger.info(`[Registro] ${tenantId}/${uid} · ${nombre} <${email}> · google=${!!saveUrlGoogle} apple=${!!urlApple} · ${creado ? 'nuevo' : 'existente'}`);
+      logger.info(`[Registro] ${tenantId}/${uid} · ${nombre} <${email}> · origen=${origen} · google=${!!saveUrlGoogle} apple=${!!urlApple} · ${creado ? 'nuevo' : 'existente'}`);
 
       return res.status(200).json({
         ok: true,
@@ -377,7 +430,7 @@ exports.walletRegistrarCliente = onRequest(
         saveUrlGoogle,
         urlApple,
         tenant: {
-          nombre: tSnap.data().nombre || tenantId,
+          nombre: nombreTenant(tenantId, tSnap, cfg),
           logoUrl: cfg.logoUrl || null,
           accent: cfg.accent || '#c9a84c',
           bg: cfg.bg || '#0d0d0d',

@@ -883,6 +883,34 @@ function renderMisPacks(packs) {
     } catch (_) { /* config no disponible → botones ocultos */ }
     if (gBtn) gBtn.classList.toggle('hidden', !enabled);
     if (aBtn) aBtn.classList.toggle('hidden', !(enabled && IS_IOS));
+    if (enabled) resaltarSiVienePorPush();
+  }
+
+  /* El push de "+1 sello" manda a /dashboard.html#wallet cuando el cliente
+     todavía no guardó su tarjeta (ver notifSelloGanado en push-cliente.js).
+     El texto del push no cabe para invitarlo, así que la invitación es
+     esta: se le muestra el botón, se le explica en una línea y se le hace
+     un guiño visual. Sin el hash, la vista queda exactamente como estaba. */
+  function resaltarSiVienePorPush() {
+    if (window.location.hash !== '#wallet') return;
+    const destino = document.getElementById(IS_IOS ? 'walletAppleBtn' : 'walletSaveBtn')
+      || document.getElementById('walletSaveBtn');
+    if (!destino || destino.classList.contains('hidden')) return;
+
+    if (!document.getElementById('walletPushHint')) {
+      const hint = document.createElement('p');
+      hint.id = 'walletPushHint';
+      hint.className = 'text-[11px] text-center mt-3 leading-snug';
+      hint.style.color = 'var(--gold, #c9a84c)';
+      hint.textContent = 'Lleva tus sellos en el teléfono: se actualizan solos en cada visita.';
+      destino.parentElement.insertBefore(hint, destino);
+    }
+
+    destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    destino.classList.add('animate-pulse');
+    setTimeout(() => destino.classList.remove('animate-pulse'), 4000);
+    // Limpiar el hash para que un refresh no repita el guiño.
+    history.replaceState(null, '', window.location.pathname + window.location.search);
   }
 
   window.guardarEnGoogleWallet = async function () {

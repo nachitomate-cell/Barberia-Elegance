@@ -175,6 +175,28 @@ async function leerProxPremio(tenantId, sellosDisp) {
   } catch (_) { return { proximo: null, ganado: null, primero: null }; }
 }
 
+/**
+ * ¿Este local puede ofrecer la tarjeta en la Wallet del cliente?
+ * Requiere el add-on pagado (_billing.walletActivo) Y que esté publicada
+ * (configuracion/wallet.enabled). Cachea por instancia: el resultado casi
+ * no cambia y esto corre en cada sello de cada cliente.
+ */
+const _walletOfrecibleCache = new Map();
+async function walletOfrecible(tenantId) {
+  if (_walletOfrecibleCache.has(tenantId)) return _walletOfrecibleCache.get(tenantId);
+  let ok = false;
+  try {
+    const [b, cfg] = await Promise.all([
+      db.doc(`_billing/${tenantId}`).get(),
+      db.doc(tenantId === 'elegance' ? 'configuracion/wallet' : `tenants/${tenantId}/configuracion/wallet`).get(),
+    ]);
+    ok = (b.exists && b.data().walletActivo === true)
+      && (cfg.exists && cfg.data().enabled !== false);
+  } catch (_) { ok = false; }
+  _walletOfrecibleCache.set(tenantId, ok);
+  return ok;
+}
+
 async function notifSelloGanado(tenantId, uid, before, after) {
   const dispAntes  = Number(before?.sellosDisponibles ?? before?.stamps ?? 0);
   const dispDesp   = Number(after?.sellosDisponibles  ?? after?.stamps  ?? 0);
@@ -202,11 +224,21 @@ async function notifSelloGanado(tenantId, uid, before, after) {
     body  = `Total acumulado: ${dispDesp} sellos. ¡Gracias por tu visita!`;
   }
 
+  // Si el cliente todavía no tiene la tarjeta en su teléfono, el push lo
+  // deja en el Club con el botón de Wallet resaltado en vez de la vista
+  // normal. El texto del push no se toca: en Android/iOS el body se corta y
+  // meterle una frase más se comería el dato importante (cuántos sellos le
+  // faltan). La invitación va en la página, donde sí hay espacio.
+  const sinTarjeta = !after.walletObjectId && !after.appleWalletSerial;
+  const url = (sinTarjeta && await walletOfrecible(tenantId))
+    ? '/dashboard.html#wallet'
+    : '/dashboard.html';
+
   const selloSent = await enviarPush(tenantId, uid, {
     title, body,
     // url → panel del CLIENTE. El service worker de agenda por default abría
     // '/agenda' (destinado al barbero) cuando data.url no venía.
-    data: { type: 'sello_ganado', sellos: dispDesp, url: '/dashboard.html' },
+    data: { type: 'sello_ganado', sellos: dispDesp, url },
   });
   if (selloSent > 0) {
     await writeNotifLog(db, {

@@ -10193,6 +10193,36 @@
             class="ph-bold ph-whatsapp-logo text-2xl drop-shadow-[0_0_5px_rgba(37,211,102,0.8)]"></i>
         </a>
 
+        <!-- ── Tarjeta de fidelidad en la Wallet del teléfono ──────────────
+             Acá está el ~80% de los clientes que reserva SIN login y por lo
+             tanto nunca ve el botón del Club en dashboard.html. Es la
+             superficie con más alcance del módulo Wallet, por eso vive alto
+             en la confirmación. Se dibuja sola solo si el local tiene el
+             add-on activo y publicado (lo resuelve walletTenantMeta). -->
+        <div id="successWalletCard" class="hidden w-full rounded-2xl px-4 py-4 mb-6 text-left"
+             style="background:#0a0a0d;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.30);">
+          <div class="flex items-start gap-3 mb-3.5">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                 style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);">
+              <i class="ph-fill ph-wallet text-lg text-neon"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-bold text-brand-text leading-snug">Lleva tu tarjeta de sellos en el teléfono</p>
+              <p class="text-xs text-brand-neon/80 mt-0.5 leading-snug">Se actualiza sola en cada visita y te avisa en la pantalla bloqueada cuando pasas cerca del local.</p>
+            </div>
+          </div>
+          <div id="successWalletActions">
+            <button id="successWalletBtn" type="button" onclick="guardarTarjetaTrasReserva()"
+              class="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-sm text-black transition-transform active:scale-[0.98]"
+              style="background:#ffffff;">
+              <i class="ph-fill ph-wallet text-base"></i>
+              <span id="successWalletBtnTxt">Añadir a mi Wallet</span>
+            </button>
+          </div>
+          <p id="successWalletMsg" class="hidden text-[11px] mt-2.5 text-center leading-snug"></p>
+          <p class="text-[10px] text-white/30 mt-2.5 leading-snug">Al añadirla aceptas los términos del club y recibir los avisos de tu tarjeta.</p>
+        </div>
+
         <!-- CTA: Activar recordatorios push en el Club -->
         <a id="successNotifCta" href="dashboard.html"
           class="w-full flex items-center gap-3 bg-[#0a0a0d] border border-neon/30 rounded-2xl px-4 py-3.5 mb-6 active:scale-[0.98] transition-all text-left">
@@ -14877,8 +14907,133 @@
           // Sin número configurado: ocultar botón de WhatsApp
           waBtnLink.style.display = 'none';
         }
+
+        // Ofrecer la tarjeta de fidelidad en la Wallet del teléfono. No se
+        // await-ea: consulta la red y la reserva ya está confirmada, así que
+        // nada de esto puede retrasar ni romper la pantalla de éxito.
+        if (typeof window._ofrecerTarjetaTrasReserva === 'function') {
+          window._ofrecerTarjetaTrasReserva({ nombre, email, telefono: telDigitos });
+        }
       }
     }
+
+    /* ═══ Tarjeta de fidelidad tras la reserva ════════════════════════
+       El botón "Añadir a Google/Apple Wallet" de dashboard.html solo lo ve
+       quien entra al Club, y ~80% de las citas se reservan sin login. Acá
+       el cliente acaba de entregar nombre, teléfono y correo: alcanza para
+       emitir el pase sin pedirle cuenta ni contraseña.
+
+       walletRegistrarCliente (HTTP público) crea o reusa al cliente por
+       correo y devuelve las dos URLs de guardado. Se renderizan como
+       anchors reales — no navegación por JS — porque tras el `await` ya no
+       hay gesto de usuario y el navegador bloquearía el window.open.  */
+    (function initWalletTrasReserva() {
+      const CF = 'https://us-central1-barberia-elegance.cloudfunctions.net';
+      // iPadOS 13+ se declara MacIntel; sin el maxTouchPoints se le ofrece
+      // Google Wallet a un iPad, que no lo soporta.
+      const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      let _meta = null;          // null = sin consultar, false = no disponible
+      let _datos = null;         // datos del cliente de la reserva recién creada
+
+      const $ = (id) => document.getElementById(id);
+
+      async function tenantMeta(tid) {
+        if (_meta !== null) return _meta;
+        try {
+          const r = await fetch(`${CF}/walletTenantMeta?tid=${encodeURIComponent(tid)}`);
+          const j = await r.json();
+          _meta = (j && j.ok && j.walletActivo === true && j.enabled !== false) ? j : false;
+        } catch (_) {
+          _meta = false;         // sin red la reserva ya está hecha: no molestar
+        }
+        return _meta;
+      }
+
+      /* La llama la pantalla de confirmación. Silenciosa: si el local no
+         tiene Wallet, o falta el correo (es opcional según
+         configuracion/main.correoObligatorio), la tarjeta no aparece. */
+      window._ofrecerTarjetaTrasReserva = async function (datos) {
+        try {
+          if (!datos || !datos.nombre || !datos.email || !datos.telefono) return;
+          const tid = window.CURRENT_TENANT_ID || 'elegance';
+          if (!(await tenantMeta(tid))) return;
+          _datos = { ...datos, tenantId: tid };
+          $('successWalletCard').classList.remove('hidden');
+        } catch (e) {
+          console.warn('[wallet] no se pudo ofrecer la tarjeta:', e.message);
+        }
+      };
+
+      function anchorWallet(url, tipo) {
+        const esApple = tipo === 'apple';
+        const icono = esApple
+          ? '<svg width="15" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.19-1.23 3.02-.86.9-2.02 1.42-3.05 1.34-.13-1.1.42-2.24 1.19-3.02.85-.87 2.11-1.44 3.09-1.44.01.03.01.07.01.1zM20.5 17.2c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.52-4.12 3.53-1.54.01-1.93-1-4.02-.99-2.09.01-2.52.99-4.06.98-1.73-.01-3.05-1.77-4.04-3.34-2.77-4.4-3.06-9.56-1.35-12.31 1.21-1.95 3.13-3.09 4.93-3.09 1.83 0 2.98 1.01 4.5 1.01 1.47 0 2.36-1.01 4.48-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.83.17 8.91z"/></svg>'
+          : '<i class="ph-fill ph-google-logo text-base"></i>';
+        const estilo = esApple
+          ? 'background:#000000;color:#ffffff;'
+          : 'background:#ffffff;color:#000000;';
+        return `<a href="${url}" target="_blank" rel="noopener"
+          class="w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-sm mb-2 transition-transform active:scale-[0.98]"
+          style="${estilo}">${icono}Añadir a ${esApple ? 'Apple' : 'Google'} Wallet</a>`;
+      }
+
+      window.guardarTarjetaTrasReserva = async function () {
+        const btn = $('successWalletBtn');
+        const txt = $('successWalletBtnTxt');
+        const msg = $('successWalletMsg');
+        if (!_datos || !btn) return;
+
+        btn.disabled = true;
+        txt.textContent = 'Creando tu tarjeta…';
+        msg.classList.add('hidden');
+
+        try {
+          const r = await fetch(`${CF}/walletRegistrarCliente`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenantId: _datos.tenantId,
+              nombre:   _datos.nombre,
+              email:    _datos.email,
+              telefono: _datos.telefono,
+              // El tap ES el consentimiento: el texto bajo el botón lo dice.
+              acepto:   true,
+              origen:   'reserva-web',
+            }),
+          });
+          const j = await r.json();
+          if (!j || !j.ok) throw new Error((j && j.error) || 'error');
+          if (!j.saveUrlGoogle && !j.urlApple) throw new Error('sin_pase');
+
+          // Primero el de su sistema operativo; el otro queda de respaldo
+          // (mismo criterio que la landing de registro de Wallo).
+          let html = '';
+          if (IS_IOS) {
+            if (j.urlApple)      html += anchorWallet(j.urlApple, 'apple');
+            if (j.saveUrlGoogle) html += anchorWallet(j.saveUrlGoogle, 'google');
+          } else {
+            if (j.saveUrlGoogle) html += anchorWallet(j.saveUrlGoogle, 'google');
+            if (j.urlApple)      html += anchorWallet(j.urlApple, 'apple');
+          }
+          $('successWalletActions').innerHTML = html;
+          msg.textContent = 'Tu tarjeta está lista. Tócala para guardarla.';
+          msg.className = 'text-[11px] mt-2.5 text-center leading-snug text-neon';
+        } catch (e) {
+          const cod = (e && e.message) || '';
+          let texto = 'No pudimos crear tu tarjeta. Puedes añadirla después desde tu Club.';
+          if (cod === 'email_invalido')        texto = 'El correo de la reserva no es válido.';
+          if (cod === 'demasiadas_solicitudes') texto = 'Demasiados intentos. Espera un momento.';
+          if (cod === 'wallet_no_activo' || cod === 'wallet_no_publicada') texto = 'Este club aún no publica su tarjeta.';
+          msg.textContent = texto;
+          msg.className = 'text-[11px] mt-2.5 text-center leading-snug text-white/45';
+          btn.disabled = false;
+          txt.textContent = 'Reintentar';
+          console.warn('[wallet] registrar:', cod);
+        }
+      };
+    })();
 
     // Modal de elección para miembros Corte al Lápiz (Yūgen).
     // Devuelve 'corte' (agendar y pagar a fin de mes), 'pagar' (ir a la

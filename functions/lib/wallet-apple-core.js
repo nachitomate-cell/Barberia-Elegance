@@ -139,7 +139,7 @@ function recompensasListText(premios) {
 //
 // Cualquier otro modo mantiene la tarjeta de sellos de siempre, así que
 // los tenants existentes no cambian en nada.
-function camposPorModo({ modo, accountName, filled, target, rango, cfg }) {
+function camposPorModo({ modo, accountName, filled, target, rango, cfg, proximaCita }) {
   if (modo === 'evento') {
     return {
       headerFields: [
@@ -161,14 +161,26 @@ function camposPorModo({ modo, accountName, filled, target, rango, cfg }) {
       { key: 'cliente', label: 'CLIENTE', value: accountName || 'Cliente' },
       { key: 'rango', label: 'RANGO', value: rango || 'Silver', changeMessage: 'Nuevo rango: %@' },
     ],
+    // Fila propia bajo los secundarios. Sin cita agendada el array va vacío
+    // y iOS simplemente no dibuja la fila — el .pkpass se regenera entero en
+    // cada actualización, así que acá no existe el riesgo de dato pegado que
+    // sí tiene el PATCH de Google.
+    auxiliaryFields: proximaCita
+      ? [{
+          key: 'proximaCita',
+          label: 'PRÓXIMA CITA',
+          value: proximaCita.corta,
+          changeMessage: 'Tu próxima cita: %@',
+        }]
+      : [],
   };
 }
 
 // ── pass.json (storeCard = el "LoyaltyObject" de Apple) ───────────
-function buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg = {}, premios = [] }) {
+function buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg = {}, premios = [], proximaCita = null }) {
   const organizationName = cfg.issuerName || 'SynapTech';
   const esEvento = cfg.modo === 'evento';
-  const campos = camposPorModo({ modo: cfg.modo, accountName, filled, target, rango, cfg });
+  const campos = camposPorModo({ modo: cfg.modo, accountName, filled, target, rango, cfg, proximaCita });
   const p = {
     formatVersion: 1,
     passTypeIdentifier: PASS_TYPE_ID,
@@ -191,6 +203,7 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
       // changeMessage → iOS notifica solo al actualizar el pase.
       headerFields: campos.headerFields,
       secondaryFields: campos.secondaryFields,
+      auxiliaryFields: campos.auxiliaryFields || [],
       backFields: (function () {
         const arr = [
           esEvento
@@ -206,6 +219,11 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
                 value: 'Junta sellos con cada visita y canjéalos por premios en el local. Tu tarjeta se actualiza sola.',
               },
         ];
+        // Detalle de la cita (servicio y profesional): en el frente solo cabe
+        // "15 ago · 15:00", así que el resto va al reverso.
+        if (proximaCita && proximaCita.larga) {
+          arr.push({ key: 'proximaCitaDetalle', label: 'Tu próxima cita', value: proximaCita.larga });
+        }
         // Lista de recompensas por hito (si el local cargó premios). El
         // cliente ve qué gana en cada sello sin tener que preguntar.
         // En modo evento no hay premios por hito que listar: el premio es
@@ -248,11 +266,11 @@ function buildPassJson({ uid, serial, authToken, accountName, filled, target, ra
 // ── Construye y FIRMA el .pkpass → Buffer listo para servir ───────
 //  certs = { wwdr, signerCert, signerKey } (PEM strings).
 async function crearPkpass({ certs, uid, serial, authToken, datos }) {
-  const { accountName, filled, target, rango, cfg = {}, premios = [], hitos = [] } = datos || {};
+  const { accountName, filled, target, rango, cfg = {}, premios = [], hitos = [], proximaCita = null } = datos || {};
   const accent = cfg.accent || '#c9a84c';
   const bg = cfg.bg || '#0a0a0a';
 
-  const passJson = buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg, premios });
+  const passJson = buildPassJson({ uid, serial, authToken, accountName, filled, target, rango, cfg, premios, proximaCita });
 
   // Strip de estampas (storeCard: 375×123 pts) — mismo dibujo que Google,
   // con hitos ⭐ para consistencia visual entre los dos wallets.

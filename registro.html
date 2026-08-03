@@ -1600,6 +1600,31 @@
       </button>
     </div>
 
+    <!-- ── Bienvenida: la tarjeta del club en la Wallet del teléfono ──
+         Se interpone entre el registro y el dashboard SOLO si el local
+         tiene el add-on activo y publicado. Es el mismo patrón de la
+         landing de Wallo (una pantalla, una acción), que es lo que hace
+         que ahí prácticamente todos los socios terminen con la tarjeta
+         guardada. Si el local no tiene Wallet, nunca se dibuja y el
+         registro redirige al Club como siempre. -->
+    <div id="wallet-welcome" class="hidden text-center">
+      <div class="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center"
+           style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);">
+        <i class="ph-fill ph-wallet text-2xl" style="color:var(--gold)"></i>
+      </div>
+      <p id="ww-titulo" class="text-white font-semibold text-xl mb-2">¡Bienvenido al club!</p>
+      <p class="text-[13px] text-gray-400 leading-relaxed mb-6">
+        Lleva tu tarjeta de sellos en el teléfono. Se actualiza sola en cada visita
+        y te avisa en la pantalla bloqueada cuando pasas cerca del local.
+      </p>
+      <div id="ww-actions"></div>
+      <p id="ww-msg" class="hidden text-[11px] mt-3 leading-snug"></p>
+      <button type="button" id="ww-skip"
+        class="mt-5 text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
+        Continuar al Club
+      </button>
+    </div>
+
     <!-- Formularios de auth -->
     <div id="auth-forms">
 
@@ -2034,6 +2059,118 @@
       // así que el dedup se hace server-side cuando el admin lo ejecuta.
     } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
       await ref.update({ photoURL: user.photoURL });
+    }
+  }
+
+  /* ═══ Tarjeta del club en la Wallet — pantalla de bienvenida ═══════
+     Mismo endpoint público que usa la agenda tras confirmar una reserva
+     (walletRegistrarCliente): crea o reusa al cliente por correo y
+     devuelve las dos URLs de guardado. Acá el socio ya está autenticado,
+     pero se usa igual el endpoint HTTP para tener UN solo camino y para
+     que quede registrado de qué superficie salió el pase (walletOrigen).
+
+     Se renderizan anchors reales en vez de navegar por JS: tras el await
+     ya no hay gesto de usuario y el navegador bloquearía el window.open. */
+  const _WALLET_CF = 'https://us-central1-barberia-elegance.cloudfunctions.net';
+  const _WALLET_IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  async function _walletTenantMeta(tid) {
+    try {
+      const r = await fetch(`${_WALLET_CF}/walletTenantMeta?tid=${encodeURIComponent(tid)}`);
+      const j = await r.json();
+      return (j && j.ok && j.walletActivo === true && j.enabled !== false) ? j : null;
+    } catch (_) { return null; }
+  }
+
+  function _walletAnchor(url, tipo) {
+    const esApple = tipo === 'apple';
+    const estilo = esApple
+      ? 'background:#000;color:#fff;border:1px solid rgba(255,255,255,0.15);'
+      : 'background:#fff;color:#000;';
+    return `<a href="${url}" target="_blank" rel="noopener"
+      style="${estilo}display:flex;align-items:center;justify-content:center;gap:8px;
+             width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;
+             text-decoration:none;margin-bottom:8px;">
+      Añadir a ${esApple ? 'Apple' : 'Google'} Wallet</a>`;
+  }
+
+  /* Devuelve true si tomó el control de la pantalla (y por lo tanto el
+     llamador NO debe redirigir todavía). */
+  async function _ofrecerTarjetaTrasRegistro(datos) {
+    try {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      if (!datos || !datos.nombre || !datos.email || !datos.telefono) return false;
+      if (!(await _walletTenantMeta(tid))) return false;
+
+      const panel = document.getElementById('wallet-welcome');
+      const forms = document.getElementById('auth-forms');
+      if (!panel || !forms) return false;
+
+      document.getElementById('ww-titulo').textContent =
+        '¡Bienvenid' + (/a$/i.test(String(datos.nombre).trim().split(/\s+/)[0]) ? 'a' : 'o') + ' al club!';
+      document.getElementById('ww-actions').innerHTML =
+        `<button type="button" id="ww-btn"
+           style="background:#fff;color:#000;display:flex;align-items:center;justify-content:center;
+                  gap:8px;width:100%;padding:13px;border-radius:12px;font-weight:700;font-size:14px;">
+           <i class="ph-fill ph-wallet"></i><span>Añadir a mi Wallet</span></button>`;
+
+      forms.style.display = 'none';
+      panel.classList.remove('hidden');
+
+      document.getElementById('ww-skip').onclick = () => {
+        window.location.href = 'dashboard.html' + window.location.search;
+      };
+      document.getElementById('ww-btn').onclick = async () => {
+        const btn = document.getElementById('ww-btn');
+        const msg = document.getElementById('ww-msg');
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'Creando tu tarjeta…';
+        try {
+          const r = await fetch(`${_WALLET_CF}/walletRegistrarCliente`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenantId: tid,
+              nombre:   datos.nombre,
+              email:    datos.email,
+              telefono: datos.telefono,
+              // Ya aceptó los términos del club en el formulario de registro.
+              acepto:   true,
+              origen:   'club-registro',
+            }),
+          });
+          const j = await r.json();
+          if (!j || !j.ok) throw new Error((j && j.error) || 'error');
+          if (!j.saveUrlGoogle && !j.urlApple) throw new Error('sin_pase');
+
+          let html = '';
+          if (_WALLET_IS_IOS) {
+            if (j.urlApple)      html += _walletAnchor(j.urlApple, 'apple');
+            if (j.saveUrlGoogle) html += _walletAnchor(j.saveUrlGoogle, 'google');
+          } else {
+            if (j.saveUrlGoogle) html += _walletAnchor(j.saveUrlGoogle, 'google');
+            if (j.urlApple)      html += _walletAnchor(j.urlApple, 'apple');
+          }
+          document.getElementById('ww-actions').innerHTML = html;
+          msg.textContent = 'Tu tarjeta está lista. Tócala para guardarla.';
+          msg.className = 'text-[11px] mt-3 leading-snug';
+          msg.style.color = 'var(--gold)';
+          document.getElementById('ww-skip').textContent = 'Listo, ir al Club';
+        } catch (e) {
+          msg.textContent = 'No pudimos crear tu tarjeta ahora. Puedes añadirla desde tu Club.';
+          msg.className = 'text-[11px] mt-3 leading-snug text-gray-500';
+          msg.classList.remove('hidden');
+          btn.disabled = false;
+          btn.querySelector('span').textContent = 'Reintentar';
+          console.warn('[wallet] registrar:', (e && e.message) || e);
+        }
+        msg.classList.remove('hidden');
+      };
+      return true;
+    } catch (e) {
+      console.warn('[wallet] bienvenida:', e.message);
+      return false;
     }
   }
 
@@ -2554,7 +2691,26 @@
       console.warn('[registro] escritura post-registro falló:', e && (e.code || e.message));
     }
 
-    // 3) Entrar (si el fail-safe no lo hizo ya).
+    // 3) Ofrecer la tarjeta del club antes de entrar. Es el momento de más
+    //    intención (el socio acaba de darnos nombre, correo y teléfono) y la
+    //    única forma de que la vea quien nunca vuelve a abrir el dashboard.
+    //    Si el local no tiene el add-on, o el fail-safe de 6s ya redirigió,
+    //    esto no hace nada y el flujo sigue igual que siempre.
+    if (!_redirected) {
+      const tomoLaPantalla = await _ofrecerTarjetaTrasRegistro({ nombre, email, telefono });
+      if (tomoLaPantalla) {
+        _redirected = true;
+        clearTimeout(safetyTimeout);
+        hideLoading();
+        // OJO: _registering queda en true a propósito. El observador de
+        // onAuthStateChanged redirige al dashboard apenas lo ve en false
+        // (línea ~2287), y eso se llevaría puesta esta pantalla. Los dos
+        // botones de la bienvenida navegan a mano.
+        return;
+      }
+    }
+
+    // 4) Entrar (si el fail-safe no lo hizo ya).
     redirectOnce();
   }
 

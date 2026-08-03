@@ -38,7 +38,7 @@ function fmtPrecio(precio) {
 
 // ── Template HTML ─────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl }) {
+function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl, walletUrl }) {
   const fecha    = fmtFecha(cita.fecha);
   const precio   = fmtPrecio(cita.precio);
   const duracion = cita.duracion ? `${cita.duracion} min` : null;
@@ -212,6 +212,32 @@ ${productosHtml}
           </td>
         </tr>` : ''}
 
+        <!-- Tarjeta de fidelidad en la Wallet del teléfono.
+             Este correo llega incluso al cliente que nunca entra al Club
+             (~80% de las reservas son sin login), así que es la única vía
+             que lo alcanza sin que tenga que abrir nada. Solo se dibuja si
+             el local tiene el add-on y el cliente todavía no tiene pase. -->
+        ${walletUrl ? `
+        <tr>
+          <td style="padding:0 36px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border-radius:12px;border:1px solid ${cfg.color}33;padding:20px 24px;">
+              <tr><td>
+                <p style="margin:0 0 8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${cfg.color};">💳 Tu tarjeta del club</p>
+                <p style="margin:0 0 14px;font-size:13px;color:#bbb;line-height:1.55;">
+                  Llévala en tu teléfono, en Apple Wallet o Google Wallet. Tus sellos
+                  se actualizan solos en cada visita y verás tu próxima cita sin
+                  entrar a ningún lado.
+                </p>
+                <a href="${walletUrl}"
+                  style="display:inline-block;padding:11px 24px;background:${cfg.color};color:#000;font-size:13px;font-weight:700;border-radius:8px;text-decoration:none;">
+                  Añadir mi tarjeta →
+                </a>
+              </td></tr>
+            </table>
+          </td>
+        </tr>` : ''}
+
         <!-- Reagendar / Cancelar -->
         <tr>
           <td style="padding:0 36px 28px;">
@@ -263,6 +289,40 @@ function _genCodigoCita() {
 }
 
 // Resuelve la ruta del doc de cita según el tenant (elegance vive en raíz).
+/**
+ * Link para añadir la tarjeta del club, o null si no corresponde ofrecerla.
+ *
+ * Corresponde solo si (a) el local tiene el add-on pagado y publicado y
+ * (b) el cliente todavía no tiene un pase guardado — ofrecerle la tarjeta
+ * a quien ya la tiene es ruido en un correo que se lee de una pasada.
+ *
+ * El destino es la landing pública de Wallo: no exige sesión (el correo
+ * llega a clientes que jamás entran al Club) y es idempotente por correo,
+ * así que registrarse de nuevo no borra sellos.
+ */
+async function urlTarjetaSiCorresponde(tenantId, cita) {
+  try {
+    const [b, cfgW] = await Promise.all([
+      db.doc(`_billing/${tenantId}`).get(),
+      db.doc(tenantId === 'elegance' ? 'configuracion/wallet' : `tenants/${tenantId}/configuracion/wallet`).get(),
+    ]);
+    if (!(b.exists && b.data().walletActivo === true)) return null;
+    if (!(cfgW.exists && cfgW.data().enabled !== false)) return null;
+
+    const uid = cita.clienteUid || cita.userId;
+    if (uid) {
+      const uSnap = await db.doc(tenantId === 'elegance' ? `users/${uid}` : `tenants/${tenantId}/users/${uid}`).get();
+      const u = uSnap.exists ? uSnap.data() : {};
+      if (u.walletObjectId || u.appleWalletSerial) return null;   // ya la tiene
+    }
+    return `https://wallets.bioo.cl/r/${encodeURIComponent(tenantId)}`;
+  } catch (e) {
+    // El correo de confirmación es lo importante: si esto falla, va sin el bloque.
+    logger.warn(`[Confirmacion] wallet link (${tenantId}): ${e.message}`);
+    return null;
+  }
+}
+
 function _citaDocRef(citaId, tenantId) {
   if (!citaId) return null;
   return tenantId === 'elegance'
@@ -305,7 +365,9 @@ async function enviarConfirmacion(citaId, data, tenantId) {
   const chatUrl      = String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/chat')
     + (data.codigoCita ? `?codigo=${encodeURIComponent(data.codigoCita)}` : '');
 
-  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl });
+  const walletUrl = await urlTarjetaSiCorresponde(tenantId, data);
+
+  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl, walletUrl });
 
   await enviarEmail({
     from:    cfg.from,
