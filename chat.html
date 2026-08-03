@@ -1688,6 +1688,17 @@
       await chatMsgsCol(chatId).add(doc);
     }
 
+    // Toma `n` horas repartidas a lo ancho de la lista (primera, del medio,
+    // última) en vez de las primeras seguidas: da una idea real del día.
+    function espaciar(slots, n) {
+      if (!Array.isArray(slots) || slots.length <= n) return slots || [];
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        out.push(slots[Math.round(i * (slots.length - 1) / (n - 1))]);
+      }
+      return [...new Set(out)];
+    }
+
     // ── Horas disponibles (callable chatHorasDisponibles) ─────
     // Muestra los slots libres de hoy (o del primer día con cupos en
     // los próximos 4). Modelo v1: "al menos un profesional libre" —
@@ -1717,7 +1728,12 @@
         return;
       }
       const dia   = res.esHoy ? '*hoy*' : `el *${plainText(fmtFechaCorta(res.fecha))}*`;
-      const lista = res.slots.slice(0, 8).join('  ·  ');
+      // 3 opciones bien espaciadas (temprano / medio / tarde), no el volcado
+      // completo: mientras más horas exactas se prometen, más ventana hay para
+      // que alguna se tome antes de que el cliente alcance a clickear. Pasó el
+      // 1-ago en Peñablanca: se listaron 8 horas seguidas y 5 minutos después
+      // una reserva de 75 min se llevó medio bloque.
+      const lista = espaciar(res.slots, 3).join('  ·  ');
       await sendBotMessage(
         `Tenemos estas horas libres ${dia}:\n\n🕒 ${lista}\n\n(sujetas a confirmación al reservar)`,
         { cta: { label: 'Reservar ahora', url }, typingMs: 0 },
