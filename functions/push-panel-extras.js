@@ -2,7 +2,7 @@
 
 // functions/push-panel-extras.js
 // ─────────────────────────────────────────────────────────────────
-//  PUSH EXTRAS DEL PANEL (gestion-interna) — PILOTO delnero
+//  PUSH EXTRAS DEL PANEL (gestion-interna) — todos los locales
 //
 //  1) RESEÑA NUEVA EN GOOGLE → push a admins/jefes.
 //     Trigger sobre settings/googleReviews: cuando el sync diario (o el
@@ -16,11 +16,11 @@
 //     caja_sesiones con estado='abierta', push a admins/jefes para
 //     hacer el arqueo antes de terminar el día.
 //
-//  PILOTO: gateado a TENANTS_PILOTO (delnero, sandbox oficial). Para
-//  abrirlo a todos: quitar el gate y agregar la variante elegance raíz.
+//  Piloto delnero 2026-08-02 → rollout general 2026-08-03 (todos los
+//  tenants vía listaTenants; elegance raíz con su trigger gemelo).
 //
 //  DEPLOY:
-//    firebase deploy --only functions:pushResenaNueva,functions:pushCajaSinCerrar
+//    firebase deploy --only functions:pushResenaNueva,functions:pushResenaNuevaElegance,functions:pushCajaSinCerrar
 // ─────────────────────────────────────────────────────────────────
 
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
@@ -28,12 +28,9 @@ const { onSchedule }        = require('firebase-functions/v2/scheduler');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
-const { TIMEZONE, tokensAdmins, enviarPushStaff } = require('./lib/push-staff');
+const { TIMEZONE, listaTenants, rootDe, tokensAdmins, enviarPushStaff } = require('./lib/push-staff');
 
 const db = admin.firestore();
-
-const TENANTS_PILOTO = [{ id: 'delnero', root: 'tenants/delnero/' }];
-const ES_PILOTO = new Set(TENANTS_PILOTO.map(t => t.id));
 
 const fmtCLP = v => '$' + Math.round(Number(v) || 0).toLocaleString('es-CL');
 
@@ -57,7 +54,7 @@ async function avisarResenaNueva(tid, before, after) {
     ? `${nueva.author || 'Un cliente'}${texto ? `: “${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}”` : ' dejó una reseña.'}`
     : `Tu local llegó a ${after.totalReviews} opiniones (promedio ${after.rating ?? '—'}).`;
 
-  const tokens = await tokensAdmins(`tenants/${tid}/`);
+  const tokens = await tokensAdmins(rootDe(tid));
   if (!tokens.length) { logger.info(`[push-resena] ${tid}: sin tokens admin, sin aviso`); return; }
 
   const link = '/gestion-interna/resenas';
@@ -72,9 +69,17 @@ async function avisarResenaNueva(tid, before, after) {
 
 exports.pushResenaNueva = onDocumentUpdated('tenants/{tenantId}/settings/{docId}', async (event) => {
   const { tenantId, docId } = event.params;
-  if (docId !== 'googleReviews' || !ES_PILOTO.has(tenantId)) return;
+  if (docId !== 'googleReviews') return;
   try {
     await avisarResenaNueva(tenantId, event.data?.before?.data(), event.data?.after?.data());
+  } catch (e) { logger.error('[push-resena]', e.message); }
+});
+
+// Gemelo para elegance (legacy): su settings/googleReviews vive en la raíz.
+exports.pushResenaNuevaElegance = onDocumentUpdated('settings/{docId}', async (event) => {
+  if (event.params.docId !== 'googleReviews') return;
+  try {
+    await avisarResenaNueva('elegance', event.data?.before?.data(), event.data?.after?.data());
   } catch (e) { logger.error('[push-resena]', e.message); }
 });
 
@@ -90,37 +95,43 @@ function horaSantiago(ts) {
 
 async function avisarCajasAbiertas({ dryRun = false } = {}) {
   const resumen = [];
-  for (const { id: tid, root } of TENANTS_PILOTO) {
-    const snap = await db.collection(`${root}caja_sesiones`)
-      .where('estado', '==', 'abierta').limit(5).get();
-    if (snap.empty) { resumen.push({ tid, abiertas: 0 }); continue; }
+  for (const { id: tid, root } of await listaTenants()) {
+    // Un tenant con datos raros no puede frenar al resto.
+    try {
+      const snap = await db.collection(`${root}caja_sesiones`)
+        .where('estado', '==', 'abierta').limit(5).get();
+      if (snap.empty) continue;
 
-    const s = snap.docs[0].data();
-    const quien = s.nombreApertura || s.usuarioApertura || 'el equipo';
-    const hora  = horaSantiago(s.fechaApertura);
-    const title = '💰 La caja sigue abierta';
-    const body  = snap.size === 1
-      ? `La abrió ${quien}${hora ? ` a las ${hora}` : ''} con ${fmtCLP(s.montoApertura)}. Haz el arqueo y ciérrala antes de terminar el día.`
-      : `Hay ${snap.size} sesiones de caja abiertas. Haz el arqueo y ciérralas antes de terminar el día.`;
+      const s = snap.docs[0].data();
+      const quien = s.nombreApertura || s.usuarioApertura || 'el equipo';
+      const hora  = horaSantiago(s.fechaApertura);
+      const title = '💰 La caja sigue abierta';
+      const body  = snap.size === 1
+        ? `La abrió ${quien}${hora ? ` a las ${hora}` : ''} con ${fmtCLP(s.montoApertura)}. Haz el arqueo y ciérrala antes de terminar el día.`
+        : `Hay ${snap.size} sesiones de caja abiertas. Haz el arqueo y ciérralas antes de terminar el día.`;
 
-    const tokens = dryRun ? [] : await tokensAdmins(root);
-    if (dryRun) { resumen.push({ tid, abiertas: snap.size, dryRun: true, title, body }); continue; }
-    if (!tokens.length) { logger.info(`[push-caja] ${tid}: caja abierta pero sin tokens admin`); resumen.push({ tid, abiertas: snap.size, enviados: 0 }); continue; }
+      if (dryRun) { resumen.push({ tid, abiertas: snap.size, dryRun: true, title, body }); continue; }
+      const tokens = await tokensAdmins(root);
+      if (!tokens.length) { logger.info(`[push-caja] ${tid}: caja abierta pero sin tokens admin`); resumen.push({ tid, abiertas: snap.size, enviados: 0 }); continue; }
 
-    const r = await enviarPushStaff({ tokens, title, body, link: '/gestion-interna/caja', tag: `caja-abierta-${tid}` });
-    await writeNotifLog(db, {
-      tenantId: tid, type: 'push_caja_abierta', channel: 'push',
-      status: r.successCount ? 'sent' : 'failed',
-      meta: { abiertas: String(snap.size) },
-    });
-    logger.info(`[push-caja] ${tid}: ${snap.size} abierta(s) → ${r.successCount}/${tokens.length} push`);
-    resumen.push({ tid, abiertas: snap.size, enviados: r.successCount });
+      const r = await enviarPushStaff({ tokens, title, body, link: '/gestion-interna/caja', tag: `caja-abierta-${tid}` });
+      await writeNotifLog(db, {
+        tenantId: tid, type: 'push_caja_abierta', channel: 'push',
+        status: r.successCount ? 'sent' : 'failed',
+        meta: { abiertas: String(snap.size) },
+      });
+      logger.info(`[push-caja] ${tid}: ${snap.size} abierta(s) → ${r.successCount}/${tokens.length} push`);
+      resumen.push({ tid, abiertas: snap.size, enviados: r.successCount });
+    } catch (e) {
+      logger.error(`[push-caja] ${tid}:`, e.message);
+      resumen.push({ tid, error: e.message });
+    }
   }
   return resumen;
 }
 
 exports.pushCajaSinCerrar = onSchedule(
-  { schedule: '0 22 * * *', timeZone: TIMEZONE, region: 'us-central1' },
+  { schedule: '0 22 * * *', timeZone: TIMEZONE, region: 'us-central1', timeoutSeconds: 300 },
   async () => {
     try { await avisarCajasAbiertas(); }
     catch (e) { logger.error('[push-caja]', e.message); throw e; }

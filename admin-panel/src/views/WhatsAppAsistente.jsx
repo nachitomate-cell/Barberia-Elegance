@@ -266,7 +266,13 @@ export function MiConsumo({ tid, standalone = false }) {
   // CF siempre devuelve ok:true con ceros cuando no hay datos, así que "aún no
   // hay actividad" SOLO era alcanzable cuando algo fallaba — un módulo caído
   // se leía como "todavía no lo usas" y nadie reportaba nada.
-  if (err) {
+  //
+  // La llamada puede responder ok:true y aun así NO haber podido contar: los
+  // números se derivan de la agenda y esa lectura puede fallar sola. Ahí viene
+  // `mes.ok === false`, y pintar ceros sería decirle al dueño "tu asistente no
+  // hizo nada" cuando lo cierto es que no lo pudimos contar.
+  const noSePudoContar = d?.ok === true && (d.mes?.ok === false || d.historico?.ok === false);
+  if (err || noSePudoContar) {
     if (!standalone) return null;
     return (
       <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-center">

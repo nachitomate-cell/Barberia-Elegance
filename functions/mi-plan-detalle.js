@@ -50,16 +50,22 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
   const tid = tenantDelCaller(req);
   const mes = mesActual();
 
-  const [billSnap, sysSnap, waSnap, botSnap] = await Promise.all([
+  // Lo que el bot hizo este mes se DERIVA de las citas, no del contador
+  // _metrics/bot_*: acá se calcula la comisión por cita del modelo híbrido, y
+  // ese contador se desviaba en las dos direcciones (02-08-2026: kronnos_limache
+  // marcaba 3 con 2 citas reales; delnero 0 con 2). Facturar con un número que
+  // no cuadra con la agenda que el cliente ve es la peor forma de perderlo.
+  const { negocioDelMes } = require('./lib/bot-negocio');
+
+  const [billSnap, sysSnap, waSnap, negMes] = await Promise.all([
     db.doc(`_billing/${tid}`).get(),
     db.doc(`_system/${tid}`).get(),
     db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
-    db.doc(`_metrics/bot_${tid}_${mes}`).get(),
+    negocioDelMes(tid, mes),
   ]);
   const bill = billSnap.data() || {};
   const sys  = sysSnap.data()  || {};
   const wa   = waSnap.data()   || {};
-  const bot  = botSnap.data()  || {};
 
   const desglose = bill.desglose || null;
   const baseNeto = Number(desglose?.baseNeto) || Number(bill.montoPendiente) || 0;
@@ -97,9 +103,13 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
   const limiteConv = (techoConv && elegidoConv) ? Math.min(techoConv, elegidoConv)
     : (techoConv || elegidoConv || 0);
 
-  const citasBot   = Number(bot.agendada) || 0;
-  const reubicadas = Number(bot.reagendada) || 0;
-  const confirmadas = Number(bot.conf_si) || 0;
+  // `agendadasVivas` = sin las canceladas ni las que no llegaron. Cobrar
+  // comisión por una reserva que el propio bot canceló después es indefendible
+  // frente al cliente, y la primera factura que no cuadra con su agenda es la
+  // que hace desconfiar de todas las demás.
+  const citasBot    = negMes.agendadasVivas;
+  const reubicadas  = negMes.reubicadas;
+  const confirmadas = negMes.confSi;
 
   const whatsapp = {
     contratado: !!plan,

@@ -36,6 +36,7 @@ const WHATSAPP_TOKEN = defineSecret('WHATSAPP_TOKEN');   // pricing_analytics de
 // acceso" (mordió el 31-jul con Gonzalo). BOOTSTRAP se conserva únicamente
 // como destinatario del correo de vigilancia, que sí es solo de Ignacio.
 const { esOperadorReq } = require('./lib/operadores');
+const { negocioDelMes } = require('./lib/bot-negocio');
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 
@@ -309,7 +310,7 @@ async function analizarLocal(tid, hoy, mesActual) {
     const capTotal   = capDiario(wa);
     const capConfirm = capConfirmaciones(wa);
     // Las cinco lecturas que quedan no dependen entre sí: en paralelo.
-    const [cuota, silSnap, aiV, aiD, botV] = await Promise.all([
+    const [cuota, silSnap, aiV, aiD, botV, negMes] = await Promise.all([
       resumenHoy(tid),
       db.collection(`tenants/${tid}/wa_conversaciones`)
         .where('botSilencedUntil', '>', Timestamp.now()).get()
@@ -317,6 +318,7 @@ async function analizarLocal(tid, hoy, mesActual) {
       db.doc(`_metrics/ai_vendor_${tid}_${mesActual}`).get(),
       db.doc(`_metrics/ai_dia_${tid}_${hoy}`).get(),
       db.doc(`_metrics/bot_${tid}_${mesActual}`).get(),
+      negocioDelMes(tid, mesActual),
     ]);
     const cd         = wa.confirmDia || {};
     const confHoy    = cd.fecha === hoy ? (Number(cd.enviadas) || 0) : 0;
@@ -350,13 +352,17 @@ async function analizarLocal(tid, hoy, mesActual) {
     const ai   = aiV.data() || {};
     const aiHoy = aiD.data() || {};
     const neg  = botV.data() || {};
+    // Derivado de las citas (lib/bot-negocio.js), no del contador _metrics: ese
+    // se desviaba en las dos direcciones —perdía eventos con su catch mudo y
+    // contaba doble en los reintentos— y ops tomaba decisiones con él.
+    // `optout` es la excepción: vive en wa_optout, global y sin tenant.
     const negocio = {
-      agendadas:  Number(neg.agendada)   || 0,
-      canceladas: Number(neg.cancelada)  || 0,
-      reubicadas: Number(neg.reagendada) || 0,   // citas movidas por el bot en vez de perderse
-      confSi:     Number(neg.conf_si)    || 0,
-      confNo:     Number(neg.conf_no)    || 0,
-      optout:     Number(neg.optout)     || 0,
+      agendadas:  negMes.agendadasVivas,
+      canceladas: negMes.canceladas,
+      reubicadas: negMes.reubicadas,   // citas movidas por el bot en vez de perderse
+      confSi:     negMes.confSi,
+      confNo:     negMes.confNo,
+      optout:     Number(neg.optout) || 0,
     };
 
     // ── Salud del caché del prompt ──

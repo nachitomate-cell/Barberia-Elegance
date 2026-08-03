@@ -2,7 +2,7 @@
 
 // functions/push-agenda-diaria.js
 // ─────────────────────────────────────────────────────────────────
-//  PUSH DIARIOS AL PROFESIONAL (agenda.html) — PILOTO delnero
+//  PUSH DIARIOS AL PROFESIONAL (agenda.html) — todos los locales
 //
 //  1) RESUMEN DE MI DÍA — cron 08:30 Santiago. A cada barbero CON citas
 //     hoy: cuántas son, primera y última hora. Quien no tiene citas no
@@ -18,8 +18,8 @@
 //  calculan "hoy" en America/Santiago (a las 21:00 Chile ya es mañana
 //  en UTC — usar new Date() acá rompería la fecha).
 //
-//  PILOTO: gateado a TENANTS_PILOTO (delnero). Para abrir a todos:
-//  reemplazar la lista por la enumeración estándar de tenants.
+//  Piloto delnero 2026-08-02 → rollout general 2026-08-03 (todos los
+//  tenants vía listaTenants, elegance raíz incluido).
 //
 //  DEPLOY:
 //    firebase deploy --only functions:pushResumenDia,functions:pushCierreDiario
@@ -30,13 +30,11 @@ const { logger }     = require('firebase-functions');
 const admin          = require('firebase-admin');
 const { writeNotifLog } = require('./lib/notif-log');
 const {
-  TIMEZONE, hoySantiago, minutosAhoraSantiago,
+  TIMEZONE, hoySantiago, minutosAhoraSantiago, listaTenants,
   mapaBarberos, tokensActivos, tokensDeBarbero, enviarPushStaff,
 } = require('./lib/push-staff');
 
 const db = admin.firestore();
-
-const TENANTS_PILOTO = [{ id: 'delnero', root: 'tenants/delnero/' }];
 
 // Mismo criterio que el banner por-cerrar de agenda.html.
 const EN_PIE = ['Confirmada', 'Pendiente'];
@@ -93,8 +91,10 @@ async function enviarPorBarbero({ root, tid, porBarbero, arma, tipo, dryRun }) {
 
 async function resumenDia({ dryRun = false } = {}) {
   const out = [];
-  for (const { id: tid, root } of TENANTS_PILOTO) {
+  for (const { id: tid, root } of await listaTenants()) {
+    try {
     const citas = (await citasDeHoy(root)).filter(c => EN_PIE.includes(c.estado));
+    if (!citas.length) continue;
     const porBarbero = agruparPorBarbero(citas);
     porBarbero.forEach(l => l.sort((a, b) => String(a.hora || '').localeCompare(String(b.hora || ''))));
 
@@ -114,12 +114,14 @@ async function resumenDia({ dryRun = false } = {}) {
     });
     logger.info(`[resumen-dia] ${tid}: ${JSON.stringify(r)}`);
     out.push({ tid, barberos: r });
+    // Un tenant con datos raros no puede frenar al resto.
+    } catch (e) { logger.error(`[resumen-dia] ${tid}:`, e.message); out.push({ tid, error: e.message }); }
   }
   return out;
 }
 
 exports.pushResumenDia = onSchedule(
-  { schedule: '30 8 * * *', timeZone: TIMEZONE, region: 'us-central1' },
+  { schedule: '30 8 * * *', timeZone: TIMEZONE, region: 'us-central1', timeoutSeconds: 300 },
   async () => {
     try { await resumenDia(); }
     catch (e) { logger.error('[resumen-dia]', e.message); throw e; }
@@ -131,9 +133,11 @@ exports.pushResumenDia = onSchedule(
 async function cierreDiario({ dryRun = false } = {}) {
   const ahora = minutosAhoraSantiago();
   const out = [];
-  for (const { id: tid, root } of TENANTS_PILOTO) {
+  for (const { id: tid, root } of await listaTenants()) {
+    try {
     const sinCerrar = (await citasDeHoy(root))
       .filter(c => EN_PIE.includes(c.estado) && citaYaTermino(c, ahora));
+    if (!sinCerrar.length) continue;
     const porBarbero = agruparPorBarbero(sinCerrar);
 
     const r = await enviarPorBarbero({
@@ -148,12 +152,14 @@ async function cierreDiario({ dryRun = false } = {}) {
     });
     logger.info(`[cierre-dia] ${tid}: ${JSON.stringify(r)}`);
     out.push({ tid, barberos: r });
+    // Un tenant con datos raros no puede frenar al resto.
+    } catch (e) { logger.error(`[cierre-dia] ${tid}:`, e.message); out.push({ tid, error: e.message }); }
   }
   return out;
 }
 
 exports.pushCierreDiario = onSchedule(
-  { schedule: '0 21 * * *', timeZone: TIMEZONE, region: 'us-central1' },
+  { schedule: '0 21 * * *', timeZone: TIMEZONE, region: 'us-central1', timeoutSeconds: 300 },
   async () => {
     try { await cierreDiario(); }
     catch (e) { logger.error('[cierre-dia]', e.message); throw e; }

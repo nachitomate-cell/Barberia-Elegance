@@ -335,10 +335,16 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
   const hoyCl = ahoraChile().fecha;
   const mes   = hoyCl.slice(0, 7);
 
-  const [waSnap, botSnap, cuota] = await Promise.all([
+  // El negocio del bot se DERIVA de las citas (lib/bot-negocio.js). El contador
+  // _metrics/bot_* solo se sigue leyendo para `optout`, que no vive en la cita.
+  const { negocioDelMes, negocioHistorico } = require('../lib/bot-negocio');
+
+  const [waSnap, botSnap, cuota, negMes, hist] = await Promise.all([
     waCfgRef(tid).get(),
     db.doc(`_metrics/bot_${tid}_${mes}`).get(),
     resumenHoy(tid),
+    negocioDelMes(tid, mes),
+    negocioHistorico(tid),
   ]);
   const wa  = waSnap.data() || {};
   const neg = botSnap.data() || {};
@@ -356,66 +362,27 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
     else if (edadDias < 30) siguienteNivel = { enDias: 30 - edadDias, nuevoTope: 300 };
   }
 
-  // ── Histórico acumulado ("lo que el bot ha hecho hasta ahora") ──
-  // Suma TODOS los meses: los docs bot_{tid}_{YYYY-MM} llevan vendorId, así
-  // que un where basta; se filtra por prefijo para no sumar los ai_* (costo).
-  const hist = { agendadas: 0, reubicadas: 0, canceladas: 0, confSi: 0, confNo: 0 };
-  try {
-    const hq = await db.collection('_metrics').where('vendorId', '==', tid).get();
-    hq.forEach((d) => {
-      if (!d.id.startsWith('bot_')) return;
-      const x = d.data() || {};
-      hist.agendadas  += Number(x.agendada)   || 0;
-      hist.reubicadas += Number(x.reagendada) || 0;
-      hist.canceladas += Number(x.cancelada)  || 0;
-      hist.confSi     += Number(x.conf_si)    || 0;
-      hist.confNo     += Number(x.conf_no)    || 0;
-    });
-  } catch (_) { /* sin índice o sin docs: el histórico sale en cero, no rompe */ }
+  /* ── Los números del bot salen de las CITAS, no de un contador ──
+     `negocioDelMes` y `negocioHistorico` (lib/bot-negocio.js) los derivan de
+     las huellas que el propio bot deja en cada cita: origen · reagendadaVia ·
+     canceladaVia · waClienteConfirmoEn · waClienteCanceloEn. Antes esto salía
+     de `_metrics/bot_{tid}_{mes}`, un contador incrementado a mano y con el
+     error tragado: el 02-08-2026 delnero tenía 2 citas del bot y el contador
+     en 0, y kronnos_limache 2 citas con el contador en 3. Derivado no puede
+     desviarse, es retroactivo y cuadra con la agenda que el dueño ve.
 
-  /* ── Lo que el bot le PUSO EN CAJA al local, en pesos ──
-     "12 reservas agendadas" no le dice nada a un dueño que está decidiendo si
-     renovar; "$156.000 agendados mientras trabajabas" sí. Se suma el precio
-     real de las citas que creó el bot (origen wa_bot) y el de las que MOVIÓ en
-     vez de dejar caer (reagendadaVia wa_bot) — esas últimas son horas que se
-     iban a perder. Se descuentan canceladas y cortesías: cobrar en el discurso
-     lo que no entró a la caja destruye la confianza en el número. */
-  // ⚠️ Ventana ACOTADA al mes. Antes era `where('fecha','>=', mes-01)` sin cota
-  // superior, así que sumaba también las citas de meses FUTUROS: una reserva
-  // creada en julio para el 5 de agosto entraba en el dinero de agosto y en el
-  // conteo de julio. La tarjeta podía decir "$180.000 en 0 citas" — y es la
-  // única cifra con la que el dueño decide si renueva (auditoría 03-08-2026).
-  const dineroMes = { agendado: 0, salvado: 0 };
-  try {
-    const citasCol = tid === 'elegance' ? db.collection('citas') : db.collection(`tenants/${tid}/citas`);
-    const [y, m] = mes.split('-').map(Number);
-    const finMes = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);   // último día real
-    const snapCitas = await citasCol
-      .where('fecha', '>=', `${mes}-01`)
-      .where('fecha', '<=', finMes)
-      .get();
-    snapCitas.forEach((d) => {
-      const c = d.data() || {};
-      if (c.estado === 'Cancelada' || c.estado === 'NoAsistio' || c.cortesia === true) return;
-      const monto = Number(c.precio) || 0;
-      if (c.origen === 'wa_bot')        dineroMes.agendado += monto;
-      if (c.reagendadaVia === 'wa_bot') dineroMes.salvado  += monto;
-    });
-    // Citas del mes agendadas por el bot: se cuentan de las MISMAS citas que
-    // suman el dinero, no del contador `_metrics.agendada` (que se incrementa
-    // al momento de agendar, o sea en el mes de la RESERVA, no el de la cita).
-    // Con dos denominadores distintos el titular no cuadraba nunca.
-    dineroMes.citas = snapCitas.docs.filter((d) => {
-      const c = d.data() || {};
-      return c.origen === 'wa_bot' && c.estado !== 'Cancelada' && c.estado !== 'NoAsistio' && c.cortesia !== true;
-    }).length;
-  } catch (e) { logger.warn(`[miConsumo] dinero ${tid}:`, e.message); }
-
-  const agendadas  = Number(neg.agendada)   || 0;
-  const confSi     = Number(neg.conf_si)    || 0;
-  const confNo     = Number(neg.conf_no)    || 0;
-  const bajas      = Number(neg.optout)     || 0;
-  const reubicadas = Number(neg.reagendada) || 0;
+     El dinero sale del MISMO recorrido que el conteo, así que el titular
+     ("$X en N citas") siempre cuadra. Ventana por `fecha` y acotada al mes:
+     sin cota superior, una reserva de julio para el 5 de agosto entraba en el
+     dinero de agosto y en el conteo de julio. */
+  const agendadas  = negMes.agendadasVivas;
+  const confSi     = negMes.confSi;
+  const confNo     = negMes.confNo;
+  const reubicadas = negMes.reubicadas;
+  // Única cifra que sigue viniendo del contador: las bajas viven en la
+  // colección global wa_optout (por teléfono, sin tenant ni mes), así que no
+  // hay de dónde derivarlas. No factura ni encabeza ninguna tarjeta.
+  const bajas      = Number(neg.optout) || 0;
 
   return {
     ok: true,
@@ -436,16 +403,20 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
       // Citas que el bot MOVIÓ en vez de dejar caer (tool reagendar_cita):
       // narrativa de valor — es una hora salvada, no un trámite.
       reubicadas,
-      canceladas: Number(neg.cancelada) || 0,
+      canceladas: negMes.canceladas,
       bajas,
       // En pesos: lo que entró por el bot y lo que rescató al mover una cita.
-      dineroAgendado: Math.round(dineroMes.agendado),
-      dineroSalvado:  Math.round(dineroMes.salvado),
-      // Citas del MISMO conjunto que suma el dinero: es el número que va al
-      // lado de la cifra en el titular, y tiene que cuadrar con ella.
-      citasDelDinero: Number(dineroMes.citas) || 0,
+      dineroAgendado: Math.round(negMes.dineroAgendado),
+      dineroSalvado:  Math.round(negMes.dineroSalvado),
+      // Sale del MISMO recorrido que el dinero, así que el titular cuadra
+      // siempre. Se conserva el nombre: la vista ya lo lee.
+      citasDelDinero: negMes.agendadasVivas,
+      // false = la lectura falló. La vista puede decir "no pudimos cargar" en
+      // vez de pintar ceros: un módulo caído que se ve normal no lo reporta
+      // nadie (invariante 7 del módulo).
+      ok: negMes.ok,
     },
-    historico: hist,   // acumulado de TODOS los meses, para el CRM del panel
+    historico: hist,   // acumulado de SIEMPRE, derivado — el CRM del panel
     numero: { edadDias, siguienteNivel, conectado: wa.estadoConexion === 'connected' },
   };
 });

@@ -27,6 +27,25 @@ const DIA_CL = new Intl.DateTimeFormat('en-CA', {
 /** Fecha de HOY en Santiago como 'YYYY-MM-DD' (formato de citas.fecha). */
 const hoySantiago = () => DIA_CL.format(new Date());
 
+/**
+ * Todos los locales: elegance (raíz, legacy) + tenants/{id}. Enumerados con
+ * listDocuments() — los docs padre tenants/{id} pueden no existir y
+ * collection().get() los omitiría (regla del repo).
+ */
+async function listaTenants() {
+  const refs = await db.collection('tenants').listDocuments();
+  return [
+    { id: 'elegance', root: '' },
+    // Existe un doc tenants/elegance espurio: sin este filtro, elegance
+    // se procesaría dos veces (raíz + tenants/) y duplicaría avisos.
+    ...refs.filter(r => r.id !== 'elegance')
+           .map(r => ({ id: r.id, root: `tenants/${r.id}/` })),
+  ];
+}
+
+/** Root de colecciones de un tenant ('' para elegance legacy). */
+const rootDe = tid => (tid === 'elegance' ? '' : `tenants/${tid}/`);
+
 /** Minutos transcurridos desde medianoche, hora Santiago. */
 function minutosAhoraSantiago() {
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -119,6 +138,8 @@ async function enviarPushStaff({ tokens, title, body, link, tag }) {
 module.exports = {
   TIMEZONE,
   hoySantiago,
+  listaTenants,
+  rootDe,
   minutosAhoraSantiago,
   mapaBarberos,
   tokensActivos,

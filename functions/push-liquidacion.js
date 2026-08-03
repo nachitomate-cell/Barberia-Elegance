@@ -13,23 +13,20 @@
 //  Falla-silencioso a propósito: un barbero sin tokens (nunca aceptó push)
 //  simplemente no recibe aviso; el banner de su Inicio sigue siendo la red.
 //
-//  Y EL CIERRE DEL CICLO (piloto delnero): cuando el barbero toca
-//  "Confirmar recibo" (aceptacionBarbero pendiente→aceptada), push a los
-//  admins/jefes del local — el dueño sabe al instante que el pago quedó
-//  aceptado, sin entrar a Comisiones a mirar. Se excluye al que aceptó
-//  (una dueña que atiende no se auto-notifica).
+//  Y EL CIERRE DEL CICLO: cuando el barbero toca "Confirmar recibo"
+//  (aceptacionBarbero pendiente→aceptada), push a los admins/jefes del
+//  local — el dueño sabe al instante que el pago quedó aceptado, sin
+//  entrar a Comisiones a mirar. Se excluye al que aceptó (una dueña que
+//  atiende no se auto-notifica). Piloto delnero 2026-08-02 → todos 2026-08-03.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
-const { tokensAdmins, enviarPushStaff } = require('./lib/push-staff');
+const { rootDe, tokensAdmins, enviarPushStaff } = require('./lib/push-staff');
 
 const db = admin.firestore();
-
-// Piloto del aviso de confirmación (el push al barbero corre en TODOS).
-const CONFIRMADA_PILOTO = new Set(['delnero']);
 
 async function avisarLiquidacion(tid, gasto) {
   if (gasto?.tipo !== 'liquidacion' || gasto?.aceptacionBarbero !== 'pendiente') return;
@@ -70,14 +67,13 @@ exports.pushLiquidacionElegance = onDocumentCreated('gastos/{gastoId}', async (e
   catch (e) { logger.error('[push-liq]', e.message); }
 });
 
-// ═══ CONFIRMACIÓN DEL RECIBO → AVISO AL DUEÑO (piloto delnero) ═══════════════
+// ═══ CONFIRMACIÓN DEL RECIBO → AVISO AL DUEÑO ════════════════════════════════
 
 async function avisarLiquidacionConfirmada(tid, before, after) {
   if (after?.tipo !== 'liquidacion') return;
   if (before?.aceptacionBarbero !== 'pendiente' || after?.aceptacionBarbero !== 'aceptada') return;
-  if (!CONFIRMADA_PILOTO.has(tid)) return;
 
-  const tokens = await tokensAdmins(`tenants/${tid}/`, { excluirUid: after.aceptacionUid || null });
+  const tokens = await tokensAdmins(rootDe(tid), { excluirUid: after.aceptacionUid || null });
   if (!tokens.length) { logger.info(`[push-liq-ok] ${tid}: sin tokens admin, sin aviso`); return; }
 
   const monto  = Number(after.monto) || 0;
@@ -102,6 +98,17 @@ exports.pushLiquidacionConfirmadaTenant = onDocumentUpdated('tenants/{tenantId}/
   try {
     await avisarLiquidacionConfirmada(
       event.params.tenantId,
+      event.data?.before?.data(),
+      event.data?.after?.data(),
+    );
+  } catch (e) { logger.error('[push-liq-ok]', e.message); }
+});
+
+// Gemelo para elegance (legacy): sus gastos viven en la raíz.
+exports.pushLiquidacionConfirmadaElegance = onDocumentUpdated('gastos/{gastoId}', async (event) => {
+  try {
+    await avisarLiquidacionConfirmada(
+      'elegance',
       event.data?.before?.data(),
       event.data?.after?.data(),
     );
