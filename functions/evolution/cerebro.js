@@ -1112,6 +1112,72 @@ function construirSystemVariable({ fechaHoy, horaHoy, pushName, telefono }) {
   ].join('\n');
 }
 
+/* ────────────── Cinturón: revisión determinista antes de enviar ──────────────
+   El prompt YA prohíbe inventar horas y usar voseo, y aun así el modelo se
+   escapa en ~3% y ~1,5% de las conversaciones (medido con scripts/probar-bot.js,
+   72 conversaciones × 3 locales). Contra eso no sirve más texto en el prompt:
+   sirve código que revise la respuesta antes de que salga a WhatsApp. Misma
+   idea que los cinturones de agendar_cita (fecha pasada, días del servicio).  */
+
+// Voseo → tuteo y modismos de otros países → neutro. Se arregla en seco, sin
+// pedirle nada al modelo: es un reemplazo 1-a-1 que no puede fallar ni cuesta
+// otra llamada. Van los que el prompt prohíbe en LOS DOS estilos (neutro y
+// chileno): voseo, mexicanismos y rioplatenses. Los chilenismos NO se tocan
+// acá porque son válidos cuando el local tiene estiloChileno activado.
+const VOSEO_FIX = [
+  [/\bquer[ée]s\b/gi, 'quieres'], [/\bten[ée]s\b/gi, 'tienes'],   [/\bpod[ée]s\b/gi, 'puedes'],
+  [/\beleg[íi]s\b/gi, 'eliges'],  [/\bsab[ée]s\b/gi, 'sabes'],    [/\bven[íi]s\b/gi, 'vienes'],
+  [/\bdec[íi]s\b/gi, 'dices'],    [/\bhac[ée]s\b/gi, 'haces'],    [/\bprefer[íi]s\b/gi, 'prefieres'],
+  [/\bquer[íi]s\b/gi, 'quieres'], [/\bpod[íi]s\b/gi, 'puedes'],   [/\bnecesit[áa]s\b/gi, 'necesitas'],
+  // Mexicanismos y rioplatenses (prohibidos siempre).
+  [/\bte late\b/gi, 'te acomoda'], [/\bah[oó]rita\b/gi, 'ahora'],  [/\b[óo]rale\b/gi, 'listo'],
+  [/\bqu[ée] onda\b/gi, 'qué tal'], [/\bchido\b/gi, 'genial'],     [/\bpadr[íi]simo\b/gi, 'excelente'],
+];
+function corregirVoseo(texto) {
+  let out = String(texto || ''), hubo = false;
+  for (const [re, tu] of VOSEO_FIX) {
+    out = out.replace(re, (m) => {
+      hubo = true;
+      // Conserva la mayúscula inicial ("Querés" → "Quieres").
+      return m[0] === m[0].toUpperCase() ? tu[0].toUpperCase() + tu.slice(1) : tu;
+    });
+  }
+  return { texto: out, hubo };
+}
+
+const RE_HORA = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g;
+const normHora = (h) => { const [a, b] = h.split(':'); return `${a.padStart(2, '0')}:${b}`; };
+
+/** Horas que el bot PUEDE nombrar: las que salieron de una herramienta, las que
+ *  escribió el cliente y las que ya venían en el prompt (horario de atención y
+ *  la hora actual). Cualquier otra se la inventó. */
+function horasPermitidas(messages, system) {
+  const permitidas = new Set();
+  const cosechar = (t) => { for (const m of String(t).matchAll(RE_HORA)) permitidas.add(normHora(m[0])); };
+  for (const bloque of system) cosechar(bloque.text || '');
+  for (const msg of messages) {
+    if (typeof msg.content === 'string') { if (msg.role === 'user') cosechar(msg.content); continue; }
+    if (!Array.isArray(msg.content)) continue;
+    for (const b of msg.content) {
+      // Resultados de herramientas (JSON crudo) y texto del cliente. NO se
+      // cosecha el texto del asistente: si no, una hora inventada en un turno
+      // anterior se legitimaría a sí misma para siempre.
+      if (b.type === 'tool_result') cosechar(typeof b.content === 'string' ? b.content : JSON.stringify(b.content));
+      else if (b.type === 'text' && msg.role === 'user') cosechar(b.text);
+    }
+  }
+  return permitidas;
+}
+
+function horasInventadas(texto, permitidas) {
+  const out = [];
+  for (const m of String(texto || '').matchAll(RE_HORA)) {
+    const h = normHora(m[0]);
+    if (!permitidas.has(h) && !out.includes(h)) out.push(h);
+  }
+  return out;
+}
+
 /* ─────────────────────────── Loop agéntico ─────────────────────────── */
 
 async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, historia, texto, ctx, tools }) {
@@ -1134,6 +1200,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   ];
 
   let finalText = '';
+  let yaCorregido = false;   // el cinturón de horas solo reintenta UNA vez
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
@@ -1148,6 +1215,10 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
         let out;
         try { out = await ejecutarTool(block.name, block.input, ctx); }
         catch (e) { logger.error(`[cerebro] tool ${block.name}:`, e.message); out = { error: 'Fallo interno al ejecutar la acción.' }; }
+        // Traza opcional: si el llamador pasa un array, queda el detalle de cada
+        // herramienta. La usa scripts/probar-bot.js para auditar qué consultó el
+        // bot; en producción `ctx.traza` no existe y esto no cuesta nada.
+        if (Array.isArray(ctx?.traza)) ctx.traza.push({ name: block.name, input: block.input, out });
         results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(out) });
       }
       messages.push({ role: 'user', content: results });
@@ -1155,6 +1226,30 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     }
 
     finalText = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+
+    // ── Cinturón 1: voseo (se arregla en seco, no cuesta otra llamada) ──
+    const vos = corregirVoseo(finalText);
+    if (vos.hubo) {
+      logger.warn(`[cerebro] ${ctx?.tid}: voseo corregido en la respuesta`);
+      finalText = vos.texto;
+    }
+
+    // ── Cinturón 2: horas que no salieron de ninguna herramienta ──
+    const inventadas = horasInventadas(finalText, horasPermitidas(messages, system));
+    if (inventadas.length) {
+      if (!yaCorregido) {
+        yaCorregido = true;
+        logger.warn(`[cerebro] ${ctx?.tid}: horas inventadas (${inventadas.join(', ')}) — se fuerza consulta`);
+        messages.push({ role: 'user', content:
+          `ALTO. Ofreciste ${inventadas.join(', ')} y esas horas NO salieron de ninguna herramienta: te las inventaste. ` +
+          'Llama AHORA a consultar_disponibilidad (con servicio_nombre, y con profesional si el cliente nombró a alguien) ' +
+          'y vuelve a responder usando SOLO las horas que devuelva. Este aviso es interno: no lo menciones ni te disculpes por él.' });
+        continue;
+      }
+      // Reincidió: no se le manda al cliente una hora que no existe.
+      logger.error(`[cerebro] ${ctx?.tid}: horas inventadas tras corregir (${inventadas.join(', ')}) — respuesta descartada`);
+      return '¿Para qué día lo necesitas? Así reviso la disponibilidad exacta y te confirmo. 🙏';
+    }
     break;
   }
   return finalText || 'Perdona, ¿me repites eso? 🙏';
@@ -1557,6 +1652,12 @@ module.exports = { procesarMensajeEntrante };
 // Para tests locales y para el guard scripts/check-bot-prompt.js (Admin SDK):
 // no es parte del API público.
 module.exports._ejecutarTool        = ejecutarTool;
+// El loop COMPLETO (tools + cinturones). scripts/probar-bot.js lo usa para
+// probar exactamente el camino de producción, no una réplica que se desfase.
+module.exports._pensarYResponder    = pensarYResponder;
+module.exports._corregirVoseo       = corregirVoseo;
+module.exports._horasInventadas     = horasInventadas;
+module.exports._horasPermitidas     = horasPermitidas;
 module.exports._cargarServicios     = cargarServicios;
 module.exports._cargarEquipo        = cargarEquipo;
 module.exports._armarContextoLocal  = armarContextoLocal;

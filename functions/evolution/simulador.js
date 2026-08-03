@@ -9,14 +9,15 @@
 //  gasta cuota, ensucia la bandeja y —lo peor— si el bot agenda de verdad, deja
 //  una cita fantasma en la agenda.
 //
-//  Acá el cerebro corre COMPLETO (mismo prompt, mismo catálogo, mismas horas
-//  reales) pero con las herramientas que ESCRIBEN neutralizadas:
-//    · agendar_cita / reagendar_cita / cancelar_cita → responden ok:true
-//      simulado, sin tocar Firestore.
-//    · pasar_con_humano → responde sin silenciar ningún chat real.
-//  Las de LECTURA (disponibilidad, servicios, mis citas) sí corren de verdad:
-//  es justo lo que el dueño quiere comprobar — que ofrezca sus horas y sus
-//  precios, no los de un ejemplo.
+//  Acá corre el MISMO loop del cerebro (cerebro._pensarYResponder): mismo
+//  prompt, mismo catálogo, mismas horas reales y los mismos cinturones. Lo
+//  único distinto es `ctx.simulado`, que hace que agendar/reagendar/cancelar
+//  validen TODO —servicio, días, fecha pasada, jornada, candado de profesional—
+//  y se salten únicamente el write en Firestore.
+//
+//  Antes esas tres se respondían con un ok:true de mentira, así que el dueño
+//  veía "cita confirmada" en horas que su bot real habría rechazado: la prueba
+//  mentía justo donde importaba. Las de LECTURA siempre corrieron de verdad.
 //
 //  No consume bolsa ni cuota anti-ban: no sale ningún mensaje de WhatsApp.
 //  Sí consume tokens de Claude, así que va con el mismo tope de gasto por
@@ -27,42 +28,21 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret }       = require('firebase-functions/params');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
-const Anthropic              = require('@anthropic-ai/sdk');
 
 const db = admin.firestore();
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 
-const { logAiUsage } = require('../lib/metrics');
+const { lineasCalendario } = require('../lib/calendario');
+const { _ahoraChile: ahoraChile } = require('../chat-horas-disponibles');
 
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 const MAX_TURNOS = 12;   // historial que acepta por sesión
-const MAX_LOOPS  = 5;    // vueltas de tools por respuesta
 // Cada turno del historial se recorta a este largo: el navegador controla el
 // contenido y se reenvía en cada vuelta de tools.
 const MAX_CHARS_TURNO = 600;
 // Pruebas por local y por día. El simulador no manda WhatsApp, pero sí gasta
 // Claude: sin techo es un botón de quemar presupuesto.
 const MAX_PRUEBAS_DIA = 40;
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
-// Herramientas que ESCRIBEN: en el simulador se responden en seco.
-const TOOLS_SIMULADAS = {
-  agendar_cita: (input) => ({
-    ok: true,
-    codigo: 'DEMO-01',
-    fecha: input?.fecha || '', hora: input?.hora || '',
-    servicio: input?.servicio_nombre || '',
-    profesional: 'Profesional disponible',
-    nota: 'SIMULACIÓN: no se creó ninguna cita real.',
-  }),
-  reagendar_cita: (input) => ({
-    ok: true, codigo: 'DEMO-01',
-    fecha: input?.fecha || '', hora: input?.hora || '',
-    nota: 'SIMULACIÓN: no se movió ninguna cita real.',
-  }),
-  cancelar_cita: () => ({ ok: true, nota: 'SIMULACIÓN: no se canceló ninguna cita real.' }),
-  pasar_con_humano: () => ({ ok: true, nota: 'SIMULACIÓN: en producción acá el bot se calla 2h y avisa al equipo.' }),
-};
 
 function tenantDelCaller(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
@@ -132,60 +112,31 @@ exports.waSimularBot = onCall(
       estiloChileno: cfgWa.estiloChileno === true,
     });
 
-    const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
-    const hhmm = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-    const dow = new Date(`${hoy}T12:00:00Z`).getUTCDay();
-    const systemVar = `HOY es ${DIAS[dow]} ${hoy} y son las ${hhmm} en Chile. El cliente se llama "Cliente de prueba".`;
+    // Calendario masticado + hora actual, EXACTAMENTE como producción. Antes
+    // este archivo armaba su propia línea de fecha sin la tabla de días, así
+    // que el simulador podía equivocarse de día donde el bot real no (y al
+    // revés): dejaba de ser una prueba fiel. Ver lib/calendario.
+    const { fecha: hoy, hhmm } = ahoraChile();
+    const systemVar = [
+      ...lineasCalendario(hoy, hhmm),
+      'El cliente se llama "Cliente de prueba".',
+    ].join('\n');
 
-    const messages = [...previos, { role: 'user', content: texto }];
-
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
-    const ctx = { tid, telefono: '+56900000000', chatId: 'simulador', confirmacionesEnabled: false };
-    const usadas = [];
-    let respuesta = '';
-
-    for (let i = 0; i < MAX_LOOPS; i++) {
-      const r = await anthropic.messages.create({
-        model: cerebro._MODEL,
-        // Mismos parámetros que producción: el simulador promete que "esto es
-        // exactamente lo que respondería". Con 700 tokens una respuesta larga
-        // se cortaba en la prueba y no en la realidad, y el caché de 5 min por
-        // defecto no compartía prefijo con el bot real (se pagaba la escritura
-        // dos veces). Ver cerebro.js MAX_TOKENS y el breakpoint de 1 h.
-        max_tokens: 900,
-        system: [
-          { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral', ttl: '1h' } },
-          { type: 'text', text: systemVar },
-        ],
-        tools: toolsBase,
-        messages,
-      });
-      // El gasto del simulador NO se registraba: `puedeGastar` leía un
-      // contador que este archivo nunca incrementaba, así que su propio tope
-      // era inalcanzable y el consumo era invisible en ops y para la alerta de
-      // gasto. Es la MISMA llamada que hace el bot real (cerebro.js).
-      logAiUsage(cerebro._MODEL, r.usage || {}, tid).catch(() => {});
-
-      const toolUses = r.content.filter(b => b.type === 'tool_use');
-      const textos = r.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
-      if (!toolUses.length) { respuesta = textos; break; }
-
-      messages.push({ role: 'assistant', content: r.content });
-      const results = [];
-      for (const tu of toolUses) {
-        usadas.push(tu.name);
-        let out;
-        if (TOOLS_SIMULADAS[tu.name]) {
-          out = TOOLS_SIMULADAS[tu.name](tu.input);     // no toca la base
-        } else {
-          try { out = await cerebro._ejecutarTool(tu.name, tu.input, ctx); }   // lecturas reales
-          catch (e) { out = { error: e.message }; }
-        }
-        results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(out ?? {}) });
-      }
-      messages.push({ role: 'user', content: results });
-      if (i === MAX_LOOPS - 1) respuesta = textos || 'Dame un segundo…';
-    }
+    // El loop COMPLETO del cerebro: mismas herramientas, mismos reintentos y
+    // los mismos cinturones (voseo, horas inventadas). `simulado: true` hace
+    // que agendar/reagendar/cancelar corran TODAS sus validaciones y se salten
+    // solo el write — antes se respondía ok:true a ciegas, así que el dueño
+    // veía "cita confirmada" en horas que su bot real habría rechazado.
+    const ctx = {
+      tid, telefono: '+56900000000', chatId: 'simulador',
+      confirmacionesEnabled: false, simulado: true, traza: [],
+    };
+    const respuesta = await cerebro._pensarYResponder({
+      anthropicKey: ANTHROPIC_API_KEY.value(),
+      systemFijo, systemVariable: systemVar,
+      historia: previos, texto, ctx, tools: toolsBase,
+    });
+    const usadas = ctx.traza.map(t => t.name);
 
     // Contador de pruebas del día (mismo doc-por-día que el resto de la cuota).
     await usoRef.set({

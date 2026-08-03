@@ -810,6 +810,7 @@
           <button data-tab="whatsapp">📱 WhatsApp</button>
           <button data-tab="email">✉️ Email</button>
           <button data-tab="sushi">🍣 SushiPro</button>
+          <button data-tab="probar">🧪 Probar IA</button>
         </nav>
         <div class="wrap">
           ${alertasHtml ? `<div style="margin-bottom:16px">${alertasHtml}</div>` : ''}
@@ -883,6 +884,33 @@
             ${proyectoPanel('🍣 SushiPro / conexion', data.sushipro, data.mesActual)}
             ${data.sushiError ? `<div class="warn">SushiPro no respondió (${data.sushiError}). Se muestra solo barbería. Verifica OPS_TOKEN + dominio del endpoint.</div>` : ''}
           </section>
+
+          <section class="sec" data-sec="probar">
+            <div class="panel">
+              <h3>🧪 Probar el asistente</h3>
+              <p class="muted" style="margin:0 0 12px;font-size:12px">
+                Conversa con el bot como si fueras un cliente. Corre el cerebro real —mismo prompt, catálogo y
+                horas del local— pero <strong>no manda WhatsApp ni crea citas</strong>: agendar valida todo y se
+                salta solo la escritura. Abajo de cada respuesta se ve qué herramientas consultó.
+              </p>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+                <label class="muted" style="font-size:12px">Local:</label>
+                <select id="sim-tid" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12.5px">
+                  <option value="delnero">delnero (sandbox)</option>
+                  ${(((data.barberia || {}).locales) || []).map(l => l.id).filter(Boolean).filter(t => t !== 'delnero')
+                    .map(t => `<option value="${t}">${t}${'' }</option>`).join('')}
+                </select>
+                <button class="mini" id="sim-reset">Empezar de nuevo</button>
+                <span class="muted" id="sim-cuota" style="font-size:11px;margin-left:auto"></span>
+              </div>
+              <div id="sim-chat" style="max-height:46vh;overflow-y:auto;margin-bottom:10px"></div>
+              <form id="sim-form" style="display:flex;gap:8px">
+                <input id="sim-txt" autocomplete="off" placeholder="Hola, ¿tienen hora para hoy?" maxlength="500"
+                  style="flex:1;background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:10px;padding:9px 12px;font-size:13px">
+                <button type="submit" class="mini" id="sim-send">Enviar</button>
+              </form>
+            </div>
+          </section>
         </div>`;
       // ── Pestañas: recordar dónde estaba (sobrevive al Actualizar) ──
       const setTab = (n) => {
@@ -892,6 +920,7 @@
       };
       window._setTab = setTab;
       document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+      montarSimulador();
       let tabIni = 'resumen';
       try { tabIni = localStorage.getItem('opsTab') || 'resumen'; } catch(_){}
       if (!document.querySelector('.sec[data-sec="' + tabIni + '"]')) tabIni = 'resumen';
@@ -927,6 +956,76 @@
         alert(`Listo: ${r.data.apagados} local(es) apagado(s).`);
         cargar();
       }catch(e){ alert('No se pudo apagar: ' + (e.message||e)); }
+    }
+
+    // ── Sandbox de chat con la IA (pestaña "Probar IA") ────────────────
+    // Reusa el callable `waSimularBot` que ya usa el panel del local. Desde
+    // ops se le puede pasar `tenantId` porque el caller es bootstrap admin,
+    // así que sirve para probar CUALQUIER local — por defecto `delnero`, que
+    // es el sandbox oficial de la plataforma.
+    //
+    // El historial vive solo en esta pestaña: es una prueba, no una
+    // conversación que haya que persistir.
+    function montarSimulador(){
+      const form = document.getElementById('sim-form');
+      if (!form) return;
+      const caja = document.getElementById('sim-chat');
+      const txt  = document.getElementById('sim-txt');
+      const send = document.getElementById('sim-send');
+      const sel  = document.getElementById('sim-tid');
+      const cuota= document.getElementById('sim-cuota');
+      let historial = [];
+
+      const esc = (s) => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+      const pinta = (rol, texto, tools) => {
+        const d = document.createElement('div');
+        d.className = 'msg ' + (rol === 'user' ? 'user' : 'assistant');
+        d.innerHTML = (rol === 'user' ? '👤 ' : '🤖 ') + esc(texto)
+          + (tools && tools.length ? `<div class="muted" style="font-size:10.5px;margin-top:5px">🔧 ${esc(tools.join(' · '))}</div>` : '');
+        caja.appendChild(d);
+        caja.scrollTop = caja.scrollHeight;
+        return d;
+      };
+
+      const reiniciar = () => { historial = []; caja.innerHTML = ''; cuota.textContent = ''; };
+      document.getElementById('sim-reset').onclick = reiniciar;
+      sel.onchange = reiniciar;   // otro local = otra conversación
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const mensaje = txt.value.trim();
+        if (!mensaje) return;
+        txt.value = '';
+        pinta('user', mensaje);
+        historial.push({ role: 'user', content: mensaje });
+        const esperando = pinta('assistant', 'escribiendo…');
+        send.disabled = true;
+        try {
+          const r = await _fn('waSimularBot')({
+            tenantId: sel.value, texto: mensaje,
+            historial: historial.slice(0, -1),   // el turno actual va en `texto`
+          });
+          const d = r.data || {};
+          esperando.remove();
+          if (d.ok === false) {
+            pinta('assistant', '⚠️ ' + (d.motivo || 'No se pudo simular.'));
+            historial.pop();
+          } else {
+            pinta('assistant', d.respuesta, d.herramientas);
+            historial.push({ role: 'assistant', content: d.respuesta });
+            if (typeof d.pruebasRestantes === 'number') {
+              cuota.textContent = `${d.pruebasRestantes} pruebas restantes hoy en este local`;
+            }
+          }
+        } catch (err) {
+          esperando.remove();
+          pinta('assistant', '⚠️ ' + (err.message || err));
+          historial.pop();
+        } finally {
+          send.disabled = false;
+          txt.focus();
+        }
+      };
     }
 
     // Visor de conversaciones: el primer fin de semana la pregunta no es

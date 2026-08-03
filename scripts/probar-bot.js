@@ -46,6 +46,7 @@ const REPS    = Math.max(1, Number((args.find(a => a.startsWith('--reps=')) || '
 // Minuto del día en que arrancó la corrida: las horas entre ese instante y
 // "ahora" son el reloj que el bot cita legítimamente, no horas inventadas.
 let INICIO_MINS = null;
+let KEY = null;   // se resuelve al arrancar; la usa el loop real del cerebro
 
 // ── Credenciales ────────────────────────────────────────────────────────────
 const SA = path.join(RAIZ, 'service-account.json');
@@ -190,7 +191,7 @@ function analizar({ textos, horasOfrecidas, catalogo, escribiOk, pidioProfesiona
 }
 
 // ── Una conversación ────────────────────────────────────────────────────────
-async function correr(client, tid, ctxLocal, escenario) {
+async function correr(tid, ctxLocal, escenario) {
   const { systemFijo, toolsBase, servicios, equipo } = ctxLocal;
   const now = ahoraChile();
   const systemVariable = [
@@ -198,10 +199,9 @@ async function correr(client, tid, ctxLocal, escenario) {
     'El cliente escribe desde el número 56900000000 y en WhatsApp aparece como "Diego".',
   ].join('\n');
 
-  const ctx = { tid, telefono: '56900000000', chatId: `PRUEBA-${Date.now()}`, simulado: true };
-  const messages = [];
   const textos = [], textoCliente = [], llamadas = [];
   const horasOfrecidas = new Set();
+  const historia = [];
   let escribiOk = false, filtroProfesional = false;
 
   // Sustituciones para que la batería sirva en cualquier local.
@@ -215,46 +215,38 @@ async function correr(client, tid, ctxLocal, escenario) {
   for (const crudo of escenario.turnos) {
     const turno = sustituir(crudo);
     textoCliente.push(turno);
-    messages.push({ role: 'user', content: turno });
 
-    for (let ronda = 0; ronda < 5; ronda++) {
-      let r;
-      try {
-        r = await client.messages.create({
-          model: cerebro._MODEL, max_tokens: 900,
-          system: [
-            { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: systemVariable },
-          ],
-          tools: toolsBase, messages,
-        });
-      } catch (e) {
-        return { escenario, error: `API: ${e.message}`, banderas: [], llamadas, textos };
-      }
-      messages.push({ role: 'assistant', content: r.content });
-
-      const usos = r.content.filter(c => c.type === 'tool_use');
-      const txt  = r.content.filter(c => c.type === 'text').map(c => c.text).join(' ').trim();
-      if (txt) textos.push(txt);
-      if (!usos.length) break;
-
-      const results = [];
-      for (const u of usos) {
-        llamadas.push(`${u.name}(${JSON.stringify(u.input)})`);
-        if (u.name === 'consultar_disponibilidad' && u.input?.profesional) filtroProfesional = true;
-        let out;
-        try {
-          out = await cerebro._ejecutarTool(u.name, u.input, ctx);
-        } catch (e) {
-          out = { ok: false, motivo: `ERROR INTERNO: ${e.message}` };
-          llamadas.push(`  ⚠️ ${u.name} lanzó: ${e.message}`);
-        }
-        if (Array.isArray(out?.horas)) out.horas.forEach(h => horasOfrecidas.add(h));
-        if (out?.ok === true && ['agendar_cita', 'reagendar_cita', 'cancelar_cita'].includes(u.name)) escribiOk = true;
-        results.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(out) });
-      }
-      messages.push({ role: 'user', content: results });
+    // El MISMO loop que corre en producción: tools, reintentos y los dos
+    // cinturones (voseo y horas inventadas). Probar una réplica propia sería
+    // probar otro bot: los errores que el cinturón ataja no se verían acá.
+    const ctx = {
+      tid, telefono: '56900000000', chatId: `PRUEBA-${Date.now()}`,
+      simulado: true, traza: [],
+    };
+    let respuesta;
+    try {
+      respuesta = await cerebro._pensarYResponder({
+        anthropicKey: KEY, systemFijo, systemVariable,
+        historia: [...historia], texto: turno, ctx, tools: toolsBase,
+      });
+    } catch (e) {
+      return { escenario, error: `API: ${e.message}`, banderas: [], llamadas, textos, textoCliente };
     }
+
+    for (const t of ctx.traza) {
+      llamadas.push(`${t.name}(${JSON.stringify(t.input)})`);
+      if (t.name === 'consultar_disponibilidad' && t.input?.profesional) filtroProfesional = true;
+      // MISMO criterio que el cinturón de cerebro.js: cuenta como legítima
+      // cualquier hora presente en la salida de la herramienta, no solo las del
+      // array `horas` (una cita existente trae su hora en otro campo). Si el
+      // detector fuera más estricto que el cinturón, marcaría como inventadas
+      // horas que el bot sacó de datos reales.
+      for (const h of horasDeTexto(JSON.stringify(t.out || {}))) horasOfrecidas.add(h);
+      if (t.out?.ok === true && ['agendar_cita', 'reagendar_cita', 'cancelar_cita'].includes(t.name)) escribiOk = true;
+      if (t.out?.error) llamadas.push(`  ⚠️ ${t.name}: ${t.out.error}`);
+    }
+    textos.push(respuesta);
+    historia.push({ role: 'user', content: turno }, { role: 'assistant', content: respuesta });
   }
 
   const banderas = analizar({
@@ -279,7 +271,7 @@ async function tenantsConBot() {
 }
 
 (async () => {
-  const client = new Anthropic({ apiKey: anthropicKey() });
+  KEY = anthropicKey();
   const tids = await tenantsConBot();
   if (!tids.length) { console.log('Ningún local con botActivo=true. Pasa un tenant como argumento.'); process.exit(0); }
 
@@ -328,7 +320,7 @@ async function tenantsConBot() {
     for (const escBase of ESCENARIOS) {
     for (let rep = 1; rep <= REPS; rep++) {
       const esc = escBase;
-      const r = await correr(client, tid, ctxLocal, esc);
+      const r = await correr(tid, ctxLocal, esc);
       const marca = r.error ? '❌' : (r.banderas.length ? '🚩' : '✅');
       console.log(`${marca} ${esc.nombre}${REPS > 1 ? ` (${rep}/${REPS})` : ''}`);
       if (r.error) console.log(`     ${r.error}`);
