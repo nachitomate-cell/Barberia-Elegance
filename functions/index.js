@@ -1229,6 +1229,15 @@ exports.pushResenaNuevaElegance = pushPanelExtras.pushResenaNuevaElegance;
 exports.pushCajaSinCerrar       = pushPanelExtras.pushCajaSinCerrar;
 exports.pushResumenDia          = pushAgendaDiaria.pushResumenDia;
 exports.pushCierreDiario        = pushAgendaDiaria.pushCierreDiario;
+
+// Eventos que le importan al CLIENTE (piloto delnero): cancelación por el
+// local, reagendo/cambio de profesional, cupo liberado (a admins), reseña
+// post-atención, subida de rango y referido convertido.
+const pushClienteEventos = require('./push-cliente-eventos');
+exports.pushCitaCambiadaTenant       = pushClienteEventos.pushCitaCambiadaTenant;
+exports.pushResenaPostAtencion       = pushClienteEventos.pushResenaPostAtencion;
+exports.pushRangoTenant              = pushClienteEventos.pushRangoTenant;
+exports.pushReferidoConvertidoTenant = pushClienteEventos.pushReferidoConvertidoTenant;
 exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 

@@ -114,6 +114,47 @@ async function tokensAdmins(root, { excluirUid = null } = {}) {
   return [...out];
 }
 
+/**
+ * Tokens FCM del CLIENTE (dashboard PWA): fcm_tokens donde userId == uid.
+ * Mismo esquema que push-cliente.js — los tokens de clientes se registran
+ * con `userId`, los de staff con `uid`.
+ */
+async function tokensDeCliente(root, uid) {
+  if (!uid) return [];
+  try {
+    const snap = await db.collection(`${root}fcm_tokens`)
+      .where('userId', '==', uid).where('activo', '==', true).get();
+    return snap.docs.map(d => ({ id: d.id, token: d.data().token })).filter(t => t.token);
+  } catch (_) { return []; }
+}
+
+/** Push a un cliente con desactivación de tokens muertos. Devuelve enviados. */
+async function enviarPushCliente(root, uid, { title, body, data = {} }) {
+  const tokens = await tokensDeCliente(root, uid);
+  if (!tokens.length) return 0;
+  const message = {
+    notification: { title, body },
+    data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+  };
+  const responses = await Promise.allSettled(
+    tokens.map(t => admin.messaging().send({ ...message, token: t.token })),
+  );
+  const muertos = [];
+  responses.forEach((r, i) => {
+    if (r.status !== 'rejected') return;
+    const code = r.reason?.errorInfo?.code || '';
+    if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+      muertos.push(tokens[i].id);
+    }
+  });
+  if (muertos.length) {
+    const batch = db.batch();
+    muertos.forEach(id => batch.update(db.collection(`${root}fcm_tokens`).doc(id), { activo: false }));
+    await batch.commit().catch(() => {});
+  }
+  return responses.filter(r => r.status === 'fulfilled').length;
+}
+
 /** Envío multicast con el shape webpush estándar del proyecto. */
 async function enviarPushStaff({ tokens, title, body, link, tag }) {
   if (!tokens.length) return { successCount: 0, failureCount: 0 };
@@ -146,4 +187,6 @@ module.exports = {
   tokensDeBarbero,
   tokensAdmins,
   enviarPushStaff,
+  tokensDeCliente,
+  enviarPushCliente,
 };
