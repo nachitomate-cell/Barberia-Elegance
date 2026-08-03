@@ -71,6 +71,7 @@ const Referidos = lazy(() => import('./views/Referidos'));
 const SaldoGiftCard = lazy(() => import('./views/SaldoGiftCard'));
 const VIPDashboard = lazy(() => import('./views/VIPDashboard'));
 import BillingGate         from './components/BillingGate';
+import TrialGate           from './components/TrialGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import TooltipHost         from './components/ui/TooltipHost';
 import TuuSandboxHost      from './components/ui/TuuSandboxHost';
@@ -245,8 +246,10 @@ function ProtectedApp() {
       {/* Vista TV: pantalla completa, sin sidebar ni navbar */}
       <Route path="tv" element={<BarberTV />} />
 
-      {/* Resto del panel con AdminLayout */}
+      {/* Resto del panel con AdminLayout. TrialGate por fuera: si el trial
+          self-service venció, reemplaza TODO el panel por la selección de plan. */}
       <Route path="/*" element={
+        <TrialGate>
         <AdminLayout>
           <GuardRutaAdmin role={role} fallback={defaultRoute} />
           <DailyWelcomePanel />
@@ -313,6 +316,7 @@ function ProtectedApp() {
             <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
           </Routes>
         </AdminLayout>
+        </TrialGate>
       } />
     </Routes>
     </Suspense>

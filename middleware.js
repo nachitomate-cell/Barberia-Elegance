@@ -1778,6 +1778,62 @@ function tenant404(hostname) {
   });
 }
 
+// ── Agenda en pausa (trial vencido) ──────────────────────────────────────────
+// Pantalla suave para la vista pública de un tenant self-service cuyo trial
+// terminó: nada de 404 ni de borrar — la agenda "está pausada" y el admin
+// tiene salida directa a su panel /gestion-interna para activar un plan.
+function agendaPausada(t) {
+  const nombreSeguro = String(t.nombre || t.slug).replace(/[<>&"]/g, '');
+  const urlPanel = `/gestion-interna/?local=${encodeURIComponent(t.slug)}`;
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Agenda en pausa · ${nombreSeguro}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0a;color:#e5e7eb;text-align:center;padding:1.5rem;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:440px}
+  .badge{width:64px;height:64px;border-radius:20px;margin:0 auto 1.4rem;display:flex;
+    align-items:center;justify-content:center;background:rgba(156,204,60,.08);
+    border:1px solid rgba(156,204,60,.25);font-size:1.6rem}
+  .brand{font-size:1.05rem;font-weight:800;letter-spacing:-.02em;color:#f5f5f5;margin-bottom:1.6rem}
+  .brand span{color:#9CCC3C}
+  h1{font-size:1.35rem;font-weight:700;margin-bottom:.8rem;color:#f5f5f5}
+  .sub{font-size:.95rem;line-height:1.65;color:#9ca3af;margin-bottom:2rem}
+  .sub b{color:#e5e7eb}
+  .btn{display:inline-block;background:#f5f5f5;color:#0a0a0a;font-weight:700;font-size:.9rem;
+    padding:.7rem 1.4rem;border-radius:999px;text-decoration:none;transition:filter .15s}
+  .btn:hover{filter:brightness(.9)}
+  footer{margin-top:3rem;font-size:.72rem;color:#4b5563}
+</style>
+</head>
+<body>
+<main>
+  <div class="badge">⏸️</div>
+  <p class="brand">${nombreSeguro}</p>
+  <h1>Esta agenda está temporalmente pausada.</h1>
+  <p class="sub">Muy pronto volverá a recibir reservas.<br>
+  <b>Si eres el administrador</b>, ingresa a tu panel para activar tu plan y reanudar tu agenda al instante.</p>
+  <a class="btn" href="${urlPanel}">Ingresar a mi panel</a>
+  <footer>Powered by SynapTech SpA · synaptechspa.cl</footer>
+</main>
+</body>
+</html>`;
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      // Sin caché: al activar el plan la agenda debe volver al tiro.
+      'Cache-Control': 'no-cache, must-revalidate',
+    },
+  });
+}
+
 async function fetchSelfTenant(slug) {
   try {
     const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
@@ -1792,6 +1848,16 @@ async function fetchSelfTenant(slug) {
     const origen = s('origen');
     if (origen !== 'self-service' && origen !== 'admin-express') return null;
     if (s('estado') === 'suspendido') return null;   // kill switch a nivel edge
+
+    // Trial vencido → pausa suave de la agenda pública (el panel sigue
+    // accesible para activar plan). Se computa también por timestamp para
+    // que la pausa rija aunque el cron trialExpiryCron aún no haya volteado
+    // el status a 'trial_expired'.
+    const status  = s('status');
+    const trialTs = (f.trialFinaliza && f.trialFinaliza.timestampValue) || null;
+    const trialVencido = status === 'trial_expired' ||
+      (status === 'trial' && trialTs && Date.parse(trialTs) < Date.now());
+
     return {
       slug,
       nombre:      s('nombre') || slug,
@@ -1803,6 +1869,7 @@ async function fetchSelfTenant(slug) {
       slogan:      s('slogan'),
       direccion:   s('direccion'),
       logoUrl:     s('logoUrl'),
+      trialVencido,
     };
   } catch (_) {
     return null;
@@ -2272,6 +2339,17 @@ export default async function middleware(request) {
       selfTenant = await fetchSelfTenant(sub);
       if (selfTenant) tenantId = sub;
     }
+  }
+
+  // ── Trial vencido: pausa suave de las vistas públicas ──────────────────────
+  // Se pausan las páginas (/, /agenda, /registro, dashboard, etc.) pero NO el
+  // panel /gestion-interna (el admin entra a activar su plan) ni los assets
+  // (css/js/imágenes, que el propio panel y esta pantalla necesitan).
+  if (selfTenant && selfTenant.trialVencido) {
+    const p = url.pathname;
+    const esPanel = p.startsWith('/gestion-interna') || p.startsWith('/__/');
+    const esAsset = /\.[a-z0-9]{1,8}$/i.test(p) && !/\.html?$/i.test(p);
+    if (!esPanel && !esAsset) return agendaPausada(selfTenant);
   }
 
   if (!tenantId) {
