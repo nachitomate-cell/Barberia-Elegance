@@ -2,7 +2,7 @@
 
 // functions/push-cliente-eventos.js
 // ─────────────────────────────────────────────────────────────────
-//  EVENTOS QUE LE IMPORTAN AL CLIENTE (dashboard PWA) — PILOTO delnero
+//  EVENTOS QUE LE IMPORTAN AL CLIENTE (dashboard PWA) — todos los locales
 //
 //  Hasta ahora el cliente se enteraba de lo que ÉL hacía (reservar,
 //  ganar sellos) pero no de lo que el local le hacía a él. Este módulo
@@ -28,11 +28,11 @@
 //
 //  "Premio disponible" NO va aquí: ya existe en push-cliente.js.
 //
-//  PILOTO: gateado a delnero. Rollout: quitar el gate y sumar las
-//  variantes elegance raíz de los triggers.
+//  Piloto delnero 2026-08-03 → rollout general el mismo día (todos los
+//  tenants vía listaTenants; elegance raíz con sus triggers gemelos).
 //
 //  DEPLOY:
-//    firebase deploy --only functions:pushCitaCambiadaTenant,functions:pushResenaPostAtencion,functions:pushRangoTenant,functions:pushReferidoConvertidoTenant
+//    firebase deploy --only functions:pushCitaCambiadaTenant,functions:pushCitaCambiadaElegance,functions:pushResenaPostAtencion,functions:pushRangoTenant,functions:pushRangoElegance,functions:pushReferidoConvertidoTenant,functions:pushReferidoConvertidoElegance
 // ─────────────────────────────────────────────────────────────────
 
 const { onDocumentUpdated, onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
@@ -43,13 +43,12 @@ const { writeNotifLog } = require('./lib/notif-log');
 const { enviarEmail, MAIL_SECRETS } = require('./lib/mailer');
 const { getTenantConfig } = require('./lib/tenant-mail-config');
 const {
-  TIMEZONE, hoySantiago, minutosAhoraSantiago, rootDe,
+  TIMEZONE, hoySantiago, minutosAhoraSantiago, rootDe, listaTenants,
   tokensAdmins, enviarPushStaff, enviarPushCliente,
 } = require('./lib/push-staff');
 
 const db = admin.firestore();
 
-const PILOTO = new Set(['delnero']);
 const LOGO_URL = 'https://elegance.synaptechspa.cl/synaptech/ig.png';
 
 // Igual que push-cliente.js: la cita puede traer el uid en varios campos.
@@ -128,7 +127,7 @@ async function avisarCupoLiberado(tid, root, cita) {
 }
 
 async function cambioCita(tid, citaId, before, after) {
-  if (!PILOTO.has(tid) || citaGuard(after) || !before) return;
+  if (citaGuard(after) || !before) return;
   const root = rootDe(tid);
 
   const seCancelo = before.estado !== 'Cancelada' && after.estado === 'Cancelada';
@@ -208,6 +207,17 @@ exports.pushCitaCambiadaTenant = onDocumentUpdated(
   },
 );
 
+// Gemelo para elegance (legacy): sus citas viven en la raíz.
+exports.pushCitaCambiadaElegance = onDocumentUpdated(
+  { document: 'citas/{citaId}', secrets: [...MAIL_SECRETS] },
+  async (event) => {
+    try {
+      await cambioCita('elegance', event.params.citaId,
+        event.data?.before?.data(), event.data?.after?.data());
+    } catch (e) { logger.error('[cita-cambiada]', e.message); }
+  },
+);
+
 // ═══ 4) RESEÑA POST-ATENCIÓN (cron horario) ═════════════════════════
 
 const RESENA_ESPERA_MIN = 120;       // 2h después del fin de la atención
@@ -222,8 +232,7 @@ async function resenaPostAtencion({ dryRun = false } = {}) {
   const ayer = new Date(Date.now() - 86_400_000)
     .toLocaleDateString('en-CA', { timeZone: TIMEZONE });
   const out = [];
-  for (const tid of PILOTO) {
-    const root = rootDe(tid);
+  for (const { id: tid, root } of await listaTenants()) {
     try {
       const snap = await db.collection(`${root}citas`)
         .where('fecha', 'in', [hoy, ayer])
@@ -288,7 +297,7 @@ const RANGO_NOMBRE = { silver: 'Silver', gold: 'Gold', platinum: 'Platinum' };
 const RANGO_ORDEN  = { silver: 0, gold: 1, platinum: 2 };
 
 async function cambioRango(tid, uid, before, after) {
-  if (!PILOTO.has(tid) || !after) return;
+  if (!after) return;
   const rAntes = calcRango(before?.sellosHistoricos ?? before?.stamps);
   const rDesp  = calcRango(after.sellosHistoricos ?? after.stamps);
   if (RANGO_ORDEN[rDesp] <= RANGO_ORDEN[rAntes]) return;      // solo subidas
@@ -326,10 +335,17 @@ exports.pushRangoTenant = onDocumentWritten('tenants/{tid}/users/{uid}', async (
   } catch (e) { logger.error('[rango]', e.message); }
 });
 
+exports.pushRangoElegance = onDocumentWritten('users/{uid}', async (event) => {
+  try {
+    await cambioRango('elegance', event.params.uid,
+      event.data?.before?.data(), event.data?.after?.data());
+  } catch (e) { logger.error('[rango]', e.message); }
+});
+
 // ═══ 6) TU INVITADO YA VINO (referral_awards onCreate) ══════════════
 
 async function referidoConvertido(tid, award) {
-  if (!PILOTO.has(tid) || !award?.referidorUid) return;
+  if (!award?.referidorUid) return;
   const root = rootDe(tid);
   const nombre = award.referidoNombre || 'Tu invitado';
   const conRecompensa = !!award.resRefdor && !award.resRefdor.skip;
@@ -352,6 +368,11 @@ async function referidoConvertido(tid, award) {
 
 exports.pushReferidoConvertidoTenant = onDocumentCreated('tenants/{tid}/referral_awards/{awardId}', async (event) => {
   try { await referidoConvertido(event.params.tid, event.data?.data()); }
+  catch (e) { logger.error('[referido]', e.message); }
+});
+
+exports.pushReferidoConvertidoElegance = onDocumentCreated('referral_awards/{awardId}', async (event) => {
+  try { await referidoConvertido('elegance', event.data?.data()); }
   catch (e) { logger.error('[referido]', e.message); }
 });
 
