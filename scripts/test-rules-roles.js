@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const { initializeTestEnvironment, assertSucceeds, assertFails } =
   require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc, deleteDoc } = require('firebase/firestore');
+const { doc, getDoc, setDoc, updateDoc, deleteDoc,
+        collection, query, where, getDocs } = require('firebase/firestore');
 
 const TID = 'delnero';
 const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'), 'utf8');
@@ -35,6 +36,17 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
     // La excepción de recepción sobre configuracion/main compara contra el doc
     // existente (diff), así que tiene que existir antes de la prueba.
     await setDoc(doc(db, `tenants/${TID}/configuracion/main`), { diasLaborales: [1, 2, 3, 4, 5], categoriasProducto: [] });
+
+    // ── Liquidaciones (banner "Confirmar recibo") ──
+    // liq1: barberoId = UID directo (docs unificados).
+    // liq2: barberoId = doc principal; el barbero autentica con su UID y su
+    //       doc-espejo apunta vía _mainDocId (caso Araceli/kronnos_penablanca).
+    await setDoc(doc(db, `tenants/${TID}/gastos/liq1`),
+                 { tipo: 'liquidacion', barberoId: `u_barbero_${TID}`, monto: 100000, aceptacionBarbero: 'pendiente' });
+    await setDoc(doc(db, `tenants/${TID}/barberos/u_espejo_${TID}`),
+                 { _mainDocId: 'ara-main', uid: `u_espejo_${TID}`, rol: 'barbero', activo: true });
+    await setDoc(doc(db, `tenants/${TID}/gastos/liq2`),
+                 { tipo: 'liquidacion', barberoId: 'ara-main', monto: 50000, aceptacionBarbero: 'pendiente' });
 
     // ── Planes del add-on de WhatsApp (ver lib/wa-plan.js) ──
     // Un tenant por plan, para probar que el local no se auto-contrata nada.
@@ -60,6 +72,10 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
   const recepcion = como('recepcion');
   const admin     = como('admin');
   const barbero   = como('barbero');
+  // Barbero que autentica con UID pero cuya liquidación apunta al doc
+  // principal (espejo _mainDocId). `como()` metería 'espejo' como role,
+  // así que se construye a mano con claims reales de barbero.
+  const espejoDb  = env.authenticatedContext(`u_espejo_${TID}`, { role: 'barbero', tenantId: TID }).firestore();
 
   const wa = (cliente, tid) => doc(cliente, `tenants/${tid}/configuracion/whatsapp`);
   const adminDe = (tid) => como('admin', tid);
@@ -138,6 +154,43 @@ const REGLAS = fs.readFileSync(path.resolve(__dirname, '..', 'firestore.rules'),
       () => getDoc(doc(socio, `tenants/${TID}/citas/c1`)), true],
     ['bootstrap SÍ lee _billing',
       () => getDoc(doc(boot, '_billing/delnero')), true],
+
+    // ── Liquidaciones: el barbero confirma el recibo de SU pago ──
+    // El banner de agenda.html quedaba en permission-denied para rol barbero
+    // (caso Araceli/kronnos_penablanca, 2026-08-02). Ojo con el orden: los
+    // casos que ACEPTAN mutan el doc, van al final de su grupo.
+    ['barbero lee SU liquidación pendiente',
+      () => getDoc(doc(barbero, `tenants/${TID}/gastos/liq1`)), true],
+    ['banner: query liquidaciones pendientes (uid directo)',
+      () => getDocs(query(collection(barbero, `tenants/${TID}/gastos`),
+        where('tipo', '==', 'liquidacion'),
+        where('barberoId', '==', `u_barbero_${TID}`),
+        where('aceptacionBarbero', '==', 'pendiente'))), true],
+    ['banner: query liquidaciones pendientes (vía espejo _mainDocId)',
+      () => getDocs(query(collection(espejoDb, `tenants/${TID}/gastos`),
+        where('tipo', '==', 'liquidacion'),
+        where('barberoId', '==', 'ara-main'),
+        where('aceptacionBarbero', '==', 'pendiente'))), true],
+    ['barbero NO cambia el monto de su liquidación',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq1`), { monto: 1 }), false],
+    ['barbero NO cuela el monto junto a la aceptación',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq1`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: `u_barbero_${TID}`, monto: 1 }), false],
+    ['barbero NO firma la aceptación con otro uid',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq1`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: 'otro' }), false],
+    ['barbero NO lee ni acepta liquidación AJENA',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq2`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: `u_barbero_${TID}` }), false],
+    ['barbero acepta SU liquidación (solo 3 campos + su uid)',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq1`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: `u_barbero_${TID}` }), true],
+    ['espejo acepta la suya (barberoId = doc principal)',
+      () => updateDoc(doc(espejoDb, `tenants/${TID}/gastos/liq2`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: `u_espejo_${TID}` }), true],
+    ['aceptada NO se vuelve a tocar (ni re-aceptar)',
+      () => updateDoc(doc(barbero, `tenants/${TID}/gastos/liq1`),
+        { aceptacionBarbero: 'aceptada', aceptacionFecha: new Date(), aceptacionUid: `u_barbero_${TID}` }), false],
   ];
 
   let fallos = 0;

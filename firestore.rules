@@ -157,6 +157,32 @@ service cloud.firestore {
       return scopeSucursal() == 'all' || sid == null || sid == '' || scopeSucursal() == sid;
     }
 
+    // ── Liquidaciones: el barbero confirma el recibo de SU pago ──────
+    // Comisiones escribe el gasto tipo='liquidacion' con barberoId = id del
+    // doc PRINCIPAL del barbero, pero quien mira el banner autentica con su
+    // UID. Se acepta el UID directo (docs unificados) o el _mainDocId de su
+    // doc-espejo. Sin esta excepción el banner "Confirmar recibo" muere en
+    // permission-denied y las liquidaciones quedan 'pendiente' para siempre.
+    function miMainDocId(tid) {
+      return tid == 'elegance'
+        ? get(/databases/$(database)/documents/barberos/$(uid())).data.get('_mainDocId', '')
+        : get(/databases/$(database)/documents/tenants/$(tid)/barberos/$(uid())).data.get('_mainDocId', '');
+    }
+    function esLiquidacionMia(tid, g) {
+      return esStaff(tid)
+          && g.get('tipo', '') == 'liquidacion'
+          && (g.get('barberoId', '') == uid() || g.get('barberoId', '') == miMainDocId(tid));
+    }
+    // La aceptación SOLO toca los 3 campos de auditoría, en una dirección
+    // (pendiente → aceptada) y sellada con el uid del que acepta.
+    function soloAceptaLiquidacion() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['aceptacionBarbero', 'aceptacionFecha', 'aceptacionUid'])
+          && resource.data.get('aceptacionBarbero', '') == 'pendiente'
+          && request.resource.data.get('aceptacionBarbero', '') == 'aceptada'
+          && request.resource.data.get('aceptacionUid', '') == uid();
+    }
+
     // ── Verificar si el usuario es el cliente de un documento de cita ──
     function esCliente(data) {
       return autenticado()
@@ -883,9 +909,14 @@ service cloud.firestore {
     }
 
     // ── /gastos ────────────────────────────────────────────────────
-    // Datos financieros: acceso exclusivo a admin/jefe.
+    // Datos financieros: acceso exclusivo a admin/jefe. Excepción
+    // quirúrgica: el barbero LEE su liquidación y sella su aceptación
+    // (banner "Confirmar recibo" de agenda.html / Inicio).
     match /gastos/{docId} {
-      allow read, write: if esAdmin('elegance');
+      allow read:   if esAdmin('elegance') || esLiquidacionMia('elegance', resource.data);
+      allow create, delete: if esAdmin('elegance');
+      allow update: if esAdmin('elegance')
+                    || (esLiquidacionMia('elegance', resource.data) && soloAceptaLiquidacion());
     }
 
     // ── /listaEspera (lista de espera del panel) ───────────────────
@@ -1479,10 +1510,13 @@ service cloud.firestore {
       }
 
       // ── gastos ────────────────────────────────────────────────────
+      // Admin/jefe gestiona. Excepción quirúrgica: el barbero LEE su
+      // liquidación y sella su aceptación (banner "Confirmar recibo").
       match /gastos/{docId} {
-        allow read:   if esAdmin(tid);
+        allow read:   if esAdmin(tid) || esLiquidacionMia(tid, resource.data);
         allow create: if esAdmin(tid) && scopeSucursalOk(request.resource.data.get('sucursalId', ''));
-        allow update: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
+        allow update: if (esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', '')))
+                      || (esLiquidacionMia(tid, resource.data) && soloAceptaLiquidacion());
         allow delete: if esAdmin(tid) && scopeSucursalOk(resource.data.get('sucursalId', ''));
       }
 
