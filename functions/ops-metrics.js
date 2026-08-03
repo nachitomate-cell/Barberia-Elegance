@@ -37,6 +37,7 @@ const WHATSAPP_TOKEN = defineSecret('WHATSAPP_TOKEN');   // pricing_analytics de
 // como destinatario del correo de vigilancia, que sí es solo de Ignacio.
 const { esOperadorReq } = require('./lib/operadores');
 const { negocioDelMes } = require('./lib/bot-negocio');
+const { usoDelMes }     = require('./lib/wa-uso');
 const BOOTSTRAP = ['ignaciiio.mate@gmail.com'];
 const CONEXION_URL = 'https://sushipro.synaptechspa.cl/api/metrics/summary';
 
@@ -310,7 +311,7 @@ async function analizarLocal(tid, hoy, mesActual) {
     const capTotal   = capDiario(wa);
     const capConfirm = capConfirmaciones(wa);
     // Las cinco lecturas que quedan no dependen entre sí: en paralelo.
-    const [cuota, silSnap, aiV, aiD, botV, negMes] = await Promise.all([
+    const [cuota, silSnap, aiV, aiD, botV, negMes, uso] = await Promise.all([
       resumenHoy(tid),
       db.collection(`tenants/${tid}/wa_conversaciones`)
         .where('botSilencedUntil', '>', Timestamp.now()).get()
@@ -319,6 +320,7 @@ async function analizarLocal(tid, hoy, mesActual) {
       db.doc(`_metrics/ai_dia_${tid}_${hoy}`).get(),
       db.doc(`_metrics/bot_${tid}_${mesActual}`).get(),
       negocioDelMes(tid, mesActual),
+      usoDelMes(tid, mesActual),
     ]);
     const cd         = wa.confirmDia || {};
     const confHoy    = cd.fecha === hoy ? (Number(cd.enviadas) || 0) : 0;
@@ -411,6 +413,27 @@ async function analizarLocal(tid, hoy, mesActual) {
         pct: capTotal ? Math.round(cuota.n / capTotal * 100) : 0,
       },
       negocio,
+      // ── Uso del MES: la base sobre la que se cobran los planes del agente ──
+      // Conversación = ventana de 24 h por chat (lib/wa-uso.js), abierta en una
+      // transacción, no un increment a ciegas. `costoPorConv` es lo que dice si
+      // el precio de un plan tiene margen; `rechazadas` es la señal comercial:
+      // un local que topa el cupo es un local listo para subir de plan.
+      uso: {
+        conversaciones: uso.conversaciones,
+        mensajesIn:     uso.mensajesIn,
+        mensajesOut:    uso.mensajesOut,
+        rechazadas:     uso.rechazadasTotal,
+        rechazadasPorMotivo: uso.rechazadas,
+        costoPorConvUsd: uso.conversaciones > 0
+          ? Number(((Number(ai.costUsd) || 0) / uso.conversaciones).toFixed(4))
+          : null,
+        // Qué porcentaje de las conversaciones terminó en cita: la tasa de
+        // cierre del agente, y el argumento de la comisión por reserva.
+        cierrePct: uso.conversaciones > 0
+          ? Math.round((negocio.agendadas / uso.conversaciones) * 100)
+          : null,
+        ok: uso.ok,
+      },
       oficial,          // canal oficial: plan + saldo/consumo de la bolsa
       trial: trialInfo,
   };

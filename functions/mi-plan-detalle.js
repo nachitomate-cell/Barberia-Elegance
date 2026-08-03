@@ -56,12 +56,14 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
   // marcaba 3 con 2 citas reales; delnero 0 con 2). Facturar con un número que
   // no cuadra con la agenda que el cliente ve es la peor forma de perderlo.
   const { negocioDelMes } = require('./lib/bot-negocio');
+  const { usoDelMes }     = require('./lib/wa-uso');
 
-  const [billSnap, sysSnap, waSnap, negMes] = await Promise.all([
+  const [billSnap, sysSnap, waSnap, negMes, uso] = await Promise.all([
     db.doc(`_billing/${tid}`).get(),
     db.doc(`_system/${tid}`).get(),
     db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
     negocioDelMes(tid, mes),
+    usoDelMes(tid, mes),
   ]);
   const bill = billSnap.data() || {};
   const sys  = sysSnap.data()  || {};
@@ -121,7 +123,14 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
     botEncendido: wa.botEnabled === true && bots,
     confirmacionesEncendidas: wa.confirmacionesEnabled === true && recs,
     limiteConversacionesDia: limiteConv,   // 0 = sin límite
-    usoMes: { citasAgendadas: citasBot, citasReubicadas: reubicadas, confirmadas },
+    usoMes: {
+      citasAgendadas: citasBot, citasReubicadas: reubicadas, confirmadas,
+      // Conversaciones del mes: la unidad del plan. Una conversación = una
+      // ventana de 24 h con un cliente, responda el bot 2 veces o 20.
+      conversaciones: uso.conversaciones,
+      mensajesRecibidos: uso.mensajesIn,
+      mensajesEnviados:  uso.mensajesOut,
+    },
   };
 
   /* ── Modelo híbrido del asistente: base + comisión por cita agendada ──

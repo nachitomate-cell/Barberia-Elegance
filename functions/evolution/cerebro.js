@@ -47,6 +47,8 @@ const {
 } = require('../lib/wa-consent');
 const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion,
         capDiario, salientesHoy } = require('./cuota');
+const { abrirConversacion, ventanaAbierta, registrarMensajes,
+        registrarRechazo } = require('../lib/wa-uso');
 const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
 
 const db = admin.firestore();
@@ -1168,9 +1170,26 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       remoteJid,
       updatedAt:     FieldValue.serverTimestamp(),
     }, { merge: true }).catch(() => {});
-    // Primera respuesta del día a este chat = una conversación nueva del local
-    // (unidad del tope comercial, ver limiteConversaciones en cuota.js).
-    if (respHoy === 0) registrarConversacion(tid).catch(() => {});
+
+    /* Unidad de cobro del plan. Abre la ventana de 24 h de ESTE chat si estaba
+       vencida y suma la conversación al mes, todo en UNA transacción sobre el
+       doc del chat.
+
+       Antes era `if (respHoy === 0) registrarConversacion(tid)`: un increment
+       suelto que dependía de un snapshot leído mucho antes de responder. Dos
+       mensajes seguidos del mismo cliente —"hola" + "quiero hora", lo normal en
+       WhatsApp— llegan como dos webhooks concurrentes, los dos veían
+       `respDia.n = 0` y los dos sumaban: una conversación cobrada dos veces.
+       La transacción usa el propio doc del chat como candado, así que ahora es
+       exactamente-una-vez por construcción.
+
+       Se sigue llamando a registrarConversacion() para no romper el tope diario
+       de cuota.js, que aún cuenta por día calendario. */
+    const { nueva } = await abrirConversacion(tid, ref, chatId);
+    if (nueva) registrarConversacion(tid).catch(() => {});
+    // Volumen del mes: lo entrante mide demanda real (nunca se había medido) y
+    // lo saliente, qué tan cerca está el número del techo anti-ban.
+    registrarMensajes(tid, { entrantes: 1, salientes: 1 }).catch(() => {});
   };
 
   // ── BAJA / REACTIVACIÓN (va PRIMERO que todo lo demás) ──
@@ -1270,13 +1289,20 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   // El tope de arriba es por chat (anti-troll); este es del local completo y
   // es comercial: acota el gasto de IA y es lo que se le vende ("hasta N
   // conversaciones al día"). Cuenta chats, no mensajes: una conversación que
-  // ya empezó hoy sigue atendiéndose hasta el final aunque se toque el tope —
+  // ya empezó sigue atendiéndose hasta el final aunque se toque el tope —
   // cortar a mitad de un agendamiento sería peor que no haber contestado.
-  const convNueva = respHoy === 0;
+  //
+  // "Ya empezó" se define por la VENTANA DE 24 H del chat (lib/wa-uso.js), no
+  // por el día calendario: si no, un cliente que escribe a las 23:50 y cierra
+  // su hora a las 00:10 cuenta —y se le cobra al local— como dos.
+  const convNueva = !ventanaAbierta(convData);
   if (convNueva) {
     const limiteConv = limiteConversaciones(sys, waCfg);
     if (limiteConv > 0 && (await conversacionesHoy(tid)) >= limiteConv) {
       logger.warn(`[cerebro] ${tid}: tope de ${limiteConv} conversaciones del día alcanzado; chat=${chatId} sin atender`);
+      // Se anota QUÉ no se atendió y por qué: un local con rechazos es un local
+      // que necesita un plan más grande, y eso vivía solo en este log.
+      registrarRechazo(tid, 'tope_conversaciones', chatId).catch(() => {});
       return;
     }
   }
@@ -1305,6 +1331,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       await persistir(aviso);
     }
     logger.warn(`[cerebro] ${tid}: tope ANTI-BAN de salientes alcanzado (${salientes}/${capSalientes}); chat=${chatId} sin atender`);
+    registrarRechazo(tid, 'tope_antiban', chatId).catch(() => {});
     return;
   }
 
