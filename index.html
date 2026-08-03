@@ -345,9 +345,21 @@
     ::-webkit-scrollbar-track { background: #000000; }
     ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #444444; }
+    /* Tenants claros (config.js pone .theme-light en <html>): el track negro
+       se veía como una franja oscura pegada al borde en desktop. */
+    html.theme-light ::-webkit-scrollbar-track { background: #F1F5F9; }
+    html.theme-light ::-webkit-scrollbar-thumb { background: #CBD5E1; }
+    html.theme-light ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    /* Toast de validación: su fondo casi negro va INLINE en el HTML. */
+    html.theme-light #toastValidation {
+      background: #FEF2F2 !important;
+      border-color: rgba(220, 38, 38, 0.35) !important;
+      color: #B91C1C !important;
+    }
 
     /* Selección de texto */
     ::selection { background: #3f3f46; color: #ffffff; }
+    html.theme-light ::selection { background: var(--accent, #334155); color: #ffffff; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -6074,34 +6086,44 @@
     .upsell-check { display: none; font-size: 8px; font-weight: 900; color: #000000; line-height: 1; }
     .upsell-item.sel .upsell-check { display: block; }
 
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #upsell-sheet {
       background: #ffffff !important;
       border-color: rgba(24,24,27,0.12) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-glow {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #upsell-sheet .upsell-glow {
       background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(24,24,27,0.05) 0%, transparent 80%) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .upsell-item {
       background: #fafafa;
       border-color: rgba(24,24,27,0.14);
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item.sel {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .upsell-item.sel {
       background: rgba(24,24,27,0.05);
       border-color: #18181B;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-radio { border-color: rgba(24,24,27,0.3); }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-item.sel .upsell-radio {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .upsell-radio { border-color: rgba(24,24,27,0.3); }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .upsell-item.sel .upsell-radio {
       background: #18181B; border-color: #18181B;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .upsell-check { color: #ffffff; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-cta {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .upsell-check { color: #ffffff; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #upsell-sheet .upsell-cta {
       background: #18181B !important;
       color: #ffffff !important;
       box-shadow: 0 0 20px rgba(24,24,27,0.15) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #upsell-sheet .upsell-cta-ghost {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #upsell-sheet .upsell-cta-ghost {
       border-color: rgba(24,24,27,0.15) !important;
       color: rgba(24,24,27,0.55) !important;
+    }
+    /* Renacer: los acentos zinc del modal pasan a su azul marino de marca. */
+    .tenant-renacer .upsell-item.sel {
+      background: rgba(30,44,85,0.05);
+      border-color: #1E2C55;
+    }
+    .tenant-renacer .upsell-item.sel .upsell-radio { background: #1E2C55; border-color: #1E2C55; }
+    .tenant-renacer #upsell-sheet .upsell-cta {
+      background: #1E2C55 !important;
+      box-shadow: 0 0 20px rgba(30,44,85,0.18) !important;
     }
 
     /* ── Preserve white text inside navy/dark areas ── */
@@ -6286,7 +6308,7 @@
       font-weight: 700 !important;
       box-shadow: 0 2px 8px rgba(156,163,175,0.30) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) .slot-pill-busy {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .slot-pill-busy {
       background: rgba(220,38,38,0.06) !important;
       border-color: rgba(220,38,38,0.18) !important;
       color: rgba(220,38,38,0.40) !important;
@@ -6627,7 +6649,7 @@
     }
 
     /* ── Skeleton loader ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity) #servicesSkeleton > div {
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #servicesSkeleton > div {
       background: rgba(156,163,175,0.08) !important;
     }
 
@@ -7455,6 +7477,9 @@
       font-weight: 700 !important;
       letter-spacing: 0.05em !important;
     }
+    /* El % del paso lleva text-brand-neon/60 (blanco 60% literal del build
+       de Tailwind) → invisible sobre blanco. */
+    .tenant-infinity #progressPercentage { color: #8A8A8A !important; }
     /* ── Category Pills (Monochrome) ── */
     .tenant-infinity .category-pill {
       background: #FFFFFF !important;
@@ -8786,6 +8811,19 @@
       border-color: #C9D2E8 !important;   /* azul claro */
     }
     .tenant-renacer #success-state .border-neon\/30 { border-color: #C9D2E8 !important; }
+    /* text-brand-text / text-brand-neon son colores LITERALES del build de
+       Tailwind (casi blancos, pensados para el tema oscuro de Elegance), NO
+       leen las variables --brand-*: sobre las tarjetas claras de arriba el
+       nombre del servicio, el párrafo de confirmación y el CTA de
+       recordatorios quedaban invisibles. */
+    .tenant-renacer #success-state .text-brand-text { color: #0F172A !important; }
+    .tenant-renacer #success-state [class*="text-brand-neon"] { color: #475569 !important; }
+    .tenant-renacer #success-state .bg-brand-neon\/10 { background: rgba(30,44,85,0.08) !important; }
+    .tenant-renacer #success-state .text-white\/50,
+    .tenant-renacer #success-state .text-white\/60 { color: #64748B !important; }
+    .tenant-renacer #success-state button[style*="border:1px solid rgba(255,255,255"] {
+      border-color: rgba(15,23,42,0.14) !important;
+    }
 
     /* ══════════════════════════════════════════════════════════
        OMEGA STUDIO — tenant-omegastudio
@@ -9332,6 +9370,30 @@
     .tenant-latincaribe #heroInfoAddrText {
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
       overflow: hidden;
+    }
+
+    /* ══ Self-service con tema alias (wizard /crea, Paso 3) ══════════════
+       Los tenants dinámicos reutilizan el CSS de Aura (claro) o Chameleon
+       (oscuro) vía _themeAlias, pero NO deben heredar la MARCA de esos
+       locales: ni sus fotos de hero ni sus secciones propias. Mismo patrón
+       que .tenant-oren.tenant-aura, con la clase genérica tenant-selfservice
+       que config.js agrega a todo tenant dinámico. */
+    html.tenant-selfservice.tenant-aura .booking-hero {
+      background-image: none !important;
+      background-color: #23232a !important;
+    }
+    html.tenant-selfservice.tenant-chameleon .booking-hero {
+      background-image: none !important;
+      background-color: #0a0a0d !important;
+    }
+    html.tenant-selfservice #aura-info-wa,
+    html.tenant-selfservice #aura-sobre-wrap { display: none !important; }
+    /* Banner propio subido en el wizard: le gana a las reglas de arriba por
+       orden (misma especificidad, declarado después). */
+    html.tenant-selfservice .booking-hero.hero-custom {
+      background-image: var(--hero-banner) !important;
+      background-size: cover !important;
+      background-position: center !important;
     }
   </style>
 </head>
@@ -16127,7 +16189,21 @@
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <script src="/aura-origen-pregunta.js?v=2"></script>
 
-  <script src="/js/legal-widgets.js?v=1" defer></script>
+  <script src="/js/legal-widgets.js?v=2" defer></script>
+
+  <!-- Banner propio de tenants self-service (subido en el wizard /crea). -->
+  <script>
+  (function () {
+    try {
+      var s = window.SHOP || {};
+      if (!s.bannerUrl) return;
+      var hero = document.querySelector('.booking-hero');
+      if (!hero) return;
+      hero.style.setProperty('--hero-banner', 'url("' + String(s.bannerUrl).replace(/"/g, '') + '")');
+      hero.classList.add('hero-custom');
+    } catch (e) { /* sin banner: fondo del tema */ }
+  })();
+  </script>
 
 </body>
 

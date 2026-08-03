@@ -1248,8 +1248,24 @@
         totalReviews:    0,
         reviews:         [],
         accentColor:     _selfCfg.color || null,
+        bannerUrl:       _selfCfg.bannerUrl || null,
         barberos:        [],
       };
+      // Marca genérica de tenant dinámico: index.html la usa para neutralizar
+      // la marca del tema alias (fotos/secciones de Aura o Chameleon) y para
+      // aplicar el banner propio subido en el wizard.
+      document.documentElement.classList.add('tenant-selfservice');
+      // Tema visual elegido en el Paso 3 del wizard (/crea):
+      //   'aura'      → reutiliza el tema CLARO de Aura (mismo mecanismo que
+      //                 oren/omega/sion: alias + _lightTenants).
+      //   'chameleon' → reutiliza el tema OSCURO premium de Chameleon.
+      //   null        → plantilla neutra oscura de siempre.
+      if (_selfCfg.tema === 'aura') {
+        _themeAlias[_selfCfg.id] = 'aura';
+        _lightTenants.push(_selfCfg.id);
+      } else if (_selfCfg.tema === 'chameleon') {
+        _themeAlias[_selfCfg.id] = 'chameleon';
+      }
     }
   } catch (_) {}
 

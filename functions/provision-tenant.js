@@ -36,6 +36,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const crypto                 = require('crypto');
 
 const db = admin.firestore();
 
@@ -50,6 +51,40 @@ const TRIAL_DIAS  = 14;
 async function tokenHandoff(uid) {
   try { return await admin.auth().createCustomToken(uid); }
   catch (e) { logger.warn('[self-service] createCustomToken falló:', e.message); return null; }
+}
+
+/* ── Branding: logo/banner subidos en el Paso 3 del wizard ──────────────
+   El cliente manda data URLs (ya reducidas por canvas) y el servidor las
+   escribe en Storage con token de descarga estilo Firebase — todo server-side,
+   sin tocar storage.rules ni depender de claims que aún no existen. Si el
+   dueño no sube nada, los campos quedan null y cada superficie usa sus
+   placeholders del sistema (iniciales en login, /syn-192.png como ícono,
+   fondo neutro del hero). */
+const IMG_DATAURL_RE = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/;
+const IMG_MAX_BYTES  = 3 * 1024 * 1024;
+
+async function subirImagenBranding(slug, tipo, dataUrl) {
+  if (!dataUrl) return null;
+  const m = String(dataUrl).match(IMG_DATAURL_RE);
+  if (!m) throw new HttpsError('invalid-argument', `La imagen de ${tipo} no es válida. Usa PNG, JPG o WebP.`);
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length) return null;
+  if (buf.length > IMG_MAX_BYTES) {
+    throw new HttpsError('invalid-argument', `La imagen de ${tipo} pesa demasiado (máx 3 MB).`);
+  }
+  const ext   = (m[1] === 'jpeg' || m[1] === 'jpg') ? 'jpg' : m[1];
+  const mime  = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+  const token = crypto.randomUUID();
+  const path  = `tenants/${slug}/branding/${tipo}.${ext}`;
+  const bucket = admin.storage().bucket();
+  await bucket.file(path).save(buf, {
+    metadata: {
+      contentType:  mime,
+      cacheControl: 'public, max-age=31536000',
+      metadata:     { firebaseStorageDownloadTokens: token },
+    },
+  });
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
 }
 
 /* ─────────────────────────── Slugs reservados ───────────────────────────
@@ -605,6 +640,10 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const colorRaw = String(raw.color || '').trim();
   const instagram = String(raw.instagram || '').trim().replace(/^@+/, '').slice(0, 40);
   const nombreDueno = String(raw.nombreDueno || '').trim().slice(0, 60);
+  // Tema visual del Paso 3: 'aura' (claro) o 'chameleon' (oscuro premium).
+  // Cualquier otra cosa → null = plantilla neutra oscura de siempre.
+  const temaRaw = String(raw.tema || '').trim().toLowerCase();
+  const tema    = (temaRaw === 'aura' || temaRaw === 'chameleon') ? temaRaw : null;
 
   // Evidencia de aceptación B2B (contrato SaaS + DPA + privacidad). El
   // frontend (crea.html) obliga el checkbox y lo envía en raw.acepto. Si
@@ -657,6 +696,12 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const check = await chequearSlug(slug);
   if (!check.libre) throw new HttpsError('already-exists', check.motivo);
 
+  // Branding subido en el wizard (después del check de slug para no subir
+  // basura de slugs tomados; si la reserva atómica de abajo pierde la
+  // carrera, se limpian los archivos).
+  const logoUrl   = await subirImagenBranding(slug, 'logo',   raw.logoBase64);
+  const bannerUrl = await subirImagenBranding(slug, 'banner', raw.bannerBase64);
+
   const tenantRef = db.collection('tenants').doc(slug);
   const nombreCorto = nombre.split(/\s+/)[0];
   const duenoNombre = nombreDueno || nombreCorto;
@@ -670,6 +715,7 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   // 1. Doc raíz — reserva atómica del slug (create falla si ya existe).
   //    Público y no sensible: branding + plan. Lo consumen el edge middleware
   //    (resolución de subdominio + SEO) y config.js (window.SHOP).
+  try {
   await db.runTransaction(async (tx) => {
     const cur = await tx.get(tenantRef);
     if (cur.exists) throw new HttpsError('already-exists', 'Esa dirección ya está tomada.');
@@ -683,7 +729,9 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       instagram: instagram || null,
       slogan:    null,
       direccion: null,
-      logoUrl:   null,
+      logoUrl,
+      bannerUrl,
+      tema,
       dominio:   `${slug}.${BASE_DOMAIN}`,
       origen:    'self-service',
       plan:      'free',
@@ -707,6 +755,14 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
+  } catch (e) {
+    // Perdió la carrera del slug después de subir imágenes: no dejar huérfanos.
+    if (logoUrl || bannerUrl) {
+      try { await admin.storage().bucket().deleteFiles({ prefix: `tenants/${slug}/branding/` }); }
+      catch (_) { /* limpieza best-effort */ }
+    }
+    throw e;
+  }
 
   // 2. Subcolecciones + _system en batch (post-reserva; si algo falla a
   //    mitad, re-ejecutar cae en la rama idempotente de "previo").

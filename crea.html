@@ -370,6 +370,99 @@
     .phone,.chip-float,.blob,.kicker .dot{animation:none;}
     html{scroll-behavior:auto;}
   }
+  /* ══ Wizard de 3 pasos ══════════════════════════════════════════ */
+  .wprog{display:flex;align-items:center;gap:8px;margin-bottom:24px;}
+  .wprog .wdot{
+    display:flex;align-items:center;gap:8px;font-family:var(--disp);
+    font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--dim);white-space:nowrap;
+  }
+  .wprog .wdot .b{
+    width:26px;height:26px;border-radius:9px;display:grid;place-items:center;flex:none;
+    background:rgba(255,255,255,.07);color:var(--dim);font-size:12px;font-weight:800;transition:all .25s;
+  }
+  .wprog .wdot.on{color:var(--txt);}
+  .wprog .wdot.on .b{background:linear-gradient(135deg,#c5bbfb,#8b7cf6);color:var(--ink);}
+  .wprog .wdot.done .b{background:rgba(110,231,168,.2);color:var(--mint);}
+  .wprog .wline{flex:1;height:2px;background:rgba(255,255,255,.08);border-radius:99px;min-width:14px;}
+  .wprog .wline.done{background:rgba(110,231,168,.45);}
+  @media(max-width:560px){ .wprog .wdot .t{display:none;} }
+
+  .wstep{display:none;}
+  .wstep.act{display:block;animation:wfade .28s ease;}
+  @keyframes wfade{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+
+  .wnav{display:flex;gap:10px;margin-top:22px;}
+  .btn-back{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:14px 18px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);background:transparent;color:var(--muted);
+    font-family:var(--disp);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;
+  }
+  .btn-back:hover{border-color:rgba(255,255,255,.3);color:var(--txt);}
+  .btn-next{
+    flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:14px 18px;border-radius:14px;border:0;cursor:pointer;
+    background:linear-gradient(135deg,#a99bf8,#8b7cf6);color:var(--ink);
+    font-family:var(--disp);font-size:15px;font-weight:800;transition:all .2s;
+    box-shadow:0 10px 26px -10px rgba(139,124,246,.55);
+  }
+  .btn-next:hover{filter:brightness(1.08);}
+
+  /* Subida de logo / banner */
+  .uplrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){ .uplrow{grid-template-columns:1fr;} }
+  .upl{
+    position:relative;border:1.5px dashed rgba(255,255,255,.16);border-radius:14px;
+    background:rgba(255,255,255,.03);padding:14px;text-align:center;cursor:pointer;
+    transition:all .2s;overflow:hidden;
+  }
+  .upl:hover{border-color:var(--acc);background:rgba(139,124,246,.06);}
+  .upl input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .upl .ic{font-size:20px;line-height:1;margin-bottom:6px;}
+  .upl .tt{font-size:13px;font-weight:700;color:var(--txt);}
+  .upl .hint{font-size:11px;color:var(--dim);margin-top:3px;}
+  .upl.has{border-style:solid;border-color:rgba(110,231,168,.5);background:rgba(110,231,168,.05);}
+  .upl .prev{display:none;margin:0 auto 8px;}
+  .upl.has .prev{display:block;}
+  .upl .prev.logo{width:56px;height:56px;border-radius:14px;object-fit:cover;}
+  .upl .prev.banner{width:100%;height:64px;border-radius:10px;object-fit:cover;}
+  .upl .quitar{
+    display:none;position:absolute;top:8px;right:8px;z-index:2;width:22px;height:22px;border-radius:8px;
+    border:0;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:1;cursor:pointer;
+  }
+  .upl.has .quitar{display:grid;place-items:center;}
+
+  /* Selector de tema visual */
+  .temas{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){ .temas{grid-template-columns:1fr;} }
+  .tema-card{
+    position:relative;border:2px solid rgba(255,255,255,.11);border-radius:16px;padding:12px;
+    cursor:pointer;transition:all .2s;background:rgba(255,255,255,.03);text-align:left;
+    font-family:inherit;
+  }
+  .tema-card:hover{border-color:rgba(139,124,246,.5);}
+  .tema-card.act{border-color:var(--acc);box-shadow:0 8px 24px -12px rgba(139,124,246,.5);}
+  .tema-card .check{
+    position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:99px;
+    display:none;place-items:center;background:var(--acc);color:var(--ink);font-size:11px;font-weight:800;
+  }
+  .tema-card.act .check{display:grid;}
+  .tema-card .mock{
+    border-radius:10px;height:74px;margin-bottom:10px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;gap:5px;padding:9px;
+  }
+  .tema-card .mock .bar{height:7px;border-radius:99px;width:60%;}
+  .tema-card .mock .bar.s{width:38%;height:5px;}
+  .tema-card .mock .chip{position:absolute;right:9px;bottom:9px;width:34px;height:14px;border-radius:99px;}
+  .tema-card.aura .mock{background:linear-gradient(160deg,#ffffff,#eeeaf9);}
+  .tema-card.aura .mock .bar{background:#2b2b33;}
+  .tema-card.aura .mock .bar.s{background:#b9b9c4;}
+  .tema-card.aura .mock .chip{background:#8b7cf6;}
+  .tema-card.chameleon .mock{background:linear-gradient(160deg,#101014,#1e1e26);border:1px solid rgba(255,255,255,.09);}
+  .tema-card.chameleon .mock .bar{background:#f2f2f6;}
+  .tema-card.chameleon .mock .bar.s{background:#4a4a55;}
+  .tema-card.chameleon .mock .chip{background:#39d98a;}
+  .tema-card .tname{font-size:14px;font-weight:800;color:var(--txt);}
+  .tema-card .tdesc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.45;}
 </style>
 </head>
 <body>
@@ -557,94 +650,160 @@
         <!-- Formulario -->
         <form class="card rv" id="f" autocomplete="on">
 
-          <div class="fsec"><span class="n">1</span> Tu local</div>
-
-          <div class="field">
-            <label for="nombre">Nombre del local</label>
-            <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" required />
+          <!-- Progreso del wizard -->
+          <div class="wprog" id="wprog" aria-label="Progreso">
+            <span class="wdot on" data-dot="1"><span class="b">1</span><span class="t">Tu local</span></span>
+            <span class="wline" data-line="1"></span>
+            <span class="wdot" data-dot="2"><span class="b">2</span><span class="t">Tu cuenta</span></span>
+            <span class="wline" data-line="2"></span>
+            <span class="wdot" data-dot="3"><span class="b">3</span><span class="t">Tu estilo</span></span>
           </div>
 
-          <div class="frow">
+          <!-- ── PASO 1 · Tu local ─────────────────────────────────── -->
+          <div class="wstep act" data-wstep="1">
             <div class="field">
-              <label for="tipo">Tipo de negocio</label>
-              <select id="tipo">
-                <option value="barberia">Barbería</option>
-                <option value="peluqueria">Peluquería / Salón</option>
-                <option value="mixto">Mixto (hombre + mujer)</option>
-                <option value="nails">Estudio de uñas</option>
-                <option value="spa">Spa / Estética</option>
-                <option value="otro">Otro</option>
-              </select>
+              <label for="nombre">Nombre del local</label>
+              <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" required />
             </div>
+
+            <div class="frow">
+              <div class="field">
+                <label for="tipo">Tipo de negocio</label>
+                <select id="tipo">
+                  <option value="barberia">Barbería</option>
+                  <option value="peluqueria">Peluquería / Salón</option>
+                  <option value="mixto">Mixto (hombre + mujer)</option>
+                  <option value="nails">Estudio de uñas</option>
+                  <option value="spa">Spa / Estética</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="telefono">WhatsApp del local</label>
+                <input id="telefono" type="tel" inputmode="tel" maxlength="16" placeholder="+56 9 1234 5678" required />
+              </div>
+            </div>
+
             <div class="field">
-              <label for="telefono">WhatsApp del local</label>
-              <input id="telefono" type="tel" inputmode="tel" maxlength="16" placeholder="+56 9 1234 5678" required />
+              <label for="instagram">Instagram <span class="opt">(opcional)</span></label>
+              <input id="instagram" type="text" maxlength="40" placeholder="@tulocal" autocomplete="off" />
             </div>
-          </div>
 
-          <div class="field">
-            <label for="instagram">Instagram <span class="opt">(opcional)</span></label>
-            <input id="instagram" type="text" maxlength="40" placeholder="@tulocal" autocomplete="off" />
-          </div>
-
-          <div class="field">
-            <label>Color de tu marca</label>
-            <div class="swatches" id="swatches">
-              <button type="button" class="sw active" data-c="#d4af37" style="background:#d4af37" aria-label="Dorado"></button>
-              <button type="button" class="sw" data-c="#8b7cf6" style="background:#8b7cf6" aria-label="Violeta"></button>
-              <button type="button" class="sw" data-c="#39d98a" style="background:#39d98a" aria-label="Verde"></button>
-              <button type="button" class="sw" data-c="#4cc3ff" style="background:#4cc3ff" aria-label="Celeste"></button>
-              <button type="button" class="sw" data-c="#f35ba6" style="background:#f35ba6" aria-label="Rosa"></button>
-              <button type="button" class="sw" data-c="#f97316" style="background:#f97316" aria-label="Naranjo"></button>
-              <button type="button" class="sw" data-c="#e5e5e5" style="background:#e5e5e5" aria-label="Plata"></button>
-              <span class="sw-custom" title="Color personalizado">🎨<input type="color" id="colorCustom" value="#d4af37" /></span>
-            </div>
-            <input type="hidden" id="color" value="#d4af37" />
-          </div>
-
-          <div class="fsec"><span class="n">2</span> Tu dirección web</div>
-
-          <div class="field">
-            <label for="slug">Elige tu dirección</label>
-            <div class="slugbox">
-              <input id="slug" type="text" maxlength="30" placeholder="donpedro" autocomplete="off" autocapitalize="off" spellcheck="false" />
-              <span class="dom">.synaptechspa.cl</span>
-            </div>
-            <p class="slughint" id="slugHint"></p>
-          </div>
-
-          <div class="fsec"><span class="n">3</span> Tu cuenta</div>
-
-          <div class="field">
-            <label for="dueno">Tu nombre</label>
-            <input id="dueno" type="text" maxlength="60" placeholder="Ej: Pedro Soto" required />
-          </div>
-
-          <div class="frow">
             <div class="field">
-              <label for="email">Correo</label>
-              <input id="email" type="email" maxlength="120" placeholder="tucorreo@gmail.com" autocomplete="email" required />
+              <label for="slug">Tu dirección web</label>
+              <div class="slugbox">
+                <input id="slug" type="text" maxlength="30" placeholder="donpedro" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                <span class="dom">.synaptechspa.cl</span>
+              </div>
+              <p class="slughint" id="slugHint"></p>
             </div>
-            <div class="field">
-              <label for="password">Contraseña</label>
-              <input id="password" type="password" minlength="6" maxlength="60" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required />
+
+            <div class="wnav">
+              <button type="button" class="btn-next" data-next="2">Siguiente: tu cuenta →</button>
             </div>
           </div>
 
-          <!-- Consentimiento pasivo B2B (clickwrap): "Empezar mi prueba gratis"
-               ES la acción afirmativa. La evidencia (version + documentos:
-               contrato-saas/dpa/privacidad) se registra en provisionarTenantSelf. -->
-          <p style="margin:18px 0 8px;font-size:12px;color:#4a4a54;line-height:1.55;user-select:none;">
-            Al crear tu agenda aceptas el
-            <a href="terminos-saas.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Contrato SaaS</a>,
-            su <a href="terminos-saas.html#dpa" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Anexo DPA</a>
-            y la <a href="privacidad.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Política de Privacidad</a>
-            de SynapTech. Actúas como Responsable de los datos de tus clientes; SynapTech actúa como Encargado (Ley 19.628 / 21.719).
-          </p>
-          <button class="submit" id="sb" type="submit">
-            Empezar mi prueba gratis
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
+          <!-- ── PASO 2 · Tu cuenta ────────────────────────────────── -->
+          <div class="wstep" data-wstep="2">
+            <div class="field">
+              <label for="dueno">Tu nombre</label>
+              <input id="dueno" type="text" maxlength="60" placeholder="Ej: Pedro Soto" required />
+            </div>
+
+            <div class="frow">
+              <div class="field">
+                <label for="email">Correo</label>
+                <input id="email" type="email" maxlength="120" placeholder="tucorreo@gmail.com" autocomplete="email" required />
+              </div>
+              <div class="field">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" minlength="6" maxlength="60" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required />
+              </div>
+            </div>
+
+            <div class="wnav">
+              <button type="button" class="btn-back" data-back="1">← Atrás</button>
+              <button type="button" class="btn-next" data-next="3">Siguiente: tu estilo →</button>
+            </div>
+          </div>
+
+          <!-- ── PASO 3 · Tu estilo ────────────────────────────────── -->
+          <div class="wstep" data-wstep="3">
+            <div class="field">
+              <label>Color de tu marca</label>
+              <div class="swatches" id="swatches">
+                <button type="button" class="sw active" data-c="#d4af37" style="background:#d4af37" aria-label="Dorado"></button>
+                <button type="button" class="sw" data-c="#8b7cf6" style="background:#8b7cf6" aria-label="Violeta"></button>
+                <button type="button" class="sw" data-c="#39d98a" style="background:#39d98a" aria-label="Verde"></button>
+                <button type="button" class="sw" data-c="#4cc3ff" style="background:#4cc3ff" aria-label="Celeste"></button>
+                <button type="button" class="sw" data-c="#f35ba6" style="background:#f35ba6" aria-label="Rosa"></button>
+                <button type="button" class="sw" data-c="#f97316" style="background:#f97316" aria-label="Naranjo"></button>
+                <button type="button" class="sw" data-c="#e5e5e5" style="background:#e5e5e5" aria-label="Plata"></button>
+                <span class="sw-custom" title="Color personalizado">🎨<input type="color" id="colorCustom" value="#d4af37" /></span>
+              </div>
+              <input type="hidden" id="color" value="#d4af37" />
+            </div>
+
+            <div class="field">
+              <label>Tu marca <span class="opt">(opcional — puedes subirlas después desde el panel)</span></label>
+              <div class="uplrow">
+                <div class="upl" id="uplLogo">
+                  <button type="button" class="quitar" data-quitar="logo" aria-label="Quitar logo">✕</button>
+                  <img class="prev logo" id="prevLogo" alt="" />
+                  <div class="ic">🎯</div>
+                  <p class="tt">Logo / isotipo</p>
+                  <p class="hint">Imagen cuadrada · PNG o JPG</p>
+                  <input type="file" id="fileLogo" accept="image/png,image/jpeg,image/webp" />
+                </div>
+                <div class="upl" id="uplBanner">
+                  <button type="button" class="quitar" data-quitar="banner" aria-label="Quitar banner">✕</button>
+                  <img class="prev banner" id="prevBanner" alt="" />
+                  <div class="ic">🖼️</div>
+                  <p class="tt">Banner de cabecera</p>
+                  <p class="hint">Foto horizontal de tu local o trabajo</p>
+                  <input type="file" id="fileBanner" accept="image/png,image/jpeg,image/webp" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Plantilla de diseño</label>
+              <div class="temas" id="temas">
+                <button type="button" class="tema-card aura" data-tema="aura">
+                  <span class="check">✓</span>
+                  <span class="mock"><span class="bar"></span><span class="bar s"></span><span class="chip"></span></span>
+                  <span class="tname">Aura — Modo Claro</span>
+                  <span class="tdesc">Limpio, luminoso y minimalista. Ideal para salones, uñas y estética.</span>
+                </button>
+                <button type="button" class="tema-card chameleon act" data-tema="chameleon">
+                  <span class="check">✓</span>
+                  <span class="mock"><span class="bar"></span><span class="bar s"></span><span class="chip"></span></span>
+                  <span class="tname">Chameleon — Modo Oscuro</span>
+                  <span class="tdesc">Oscuro premium. Ideal para barberías y grooming masculino.</span>
+                </button>
+              </div>
+              <input type="hidden" id="tema" value="chameleon" />
+            </div>
+
+            <!-- Consentimiento pasivo B2B (clickwrap): "Empezar mi prueba gratis"
+                 ES la acción afirmativa. La evidencia (version + documentos:
+                 contrato-saas/dpa/privacidad) se registra en provisionarTenantSelf. -->
+            <p style="margin:18px 0 8px;font-size:12px;color:#4a4a54;line-height:1.55;user-select:none;">
+              Al crear tu agenda aceptas el
+              <a href="terminos-saas.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Contrato SaaS</a>,
+              su <a href="terminos-saas.html#dpa" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Anexo DPA</a>
+              y la <a href="privacidad.html" target="_blank" rel="noopener" style="color:#8b7cf6;text-decoration:underline;">Política de Privacidad</a>
+              de SynapTech. Actúas como Responsable de los datos de tus clientes; SynapTech actúa como Encargado (Ley 19.628 / 21.719).
+            </p>
+            <div class="wnav" style="margin-top:0;">
+              <button type="button" class="btn-back" data-back="2">← Atrás</button>
+              <button class="submit" id="sb" type="submit" style="margin-top:0;flex:1;">
+                Empezar mi prueba gratis
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+
           <p class="msg" id="msg"></p>
           <p class="legal">
             Con tu cuenta administras la agenda, tus servicios y tu equipo.
@@ -752,6 +911,7 @@
       dueno:    document.getElementById('dueno'),
       email:    document.getElementById('email'),
       password: document.getElementById('password'),
+      tema:     document.getElementById('tema'),
     };
     // Versión del contrato aceptado. Al cambiar los términos, bumpear
     // esta constante y provocar renovación de aceptación (Sprint 2.1).
@@ -782,6 +942,124 @@
     } else {
       document.querySelectorAll('.rv').forEach(function(el){ el.classList.add('in'); });
     }
+
+    // ── Wizard de 3 pasos ────────────────────────────────────────
+    var pasoActual = 1;
+
+    function validarPaso(n) {
+      if (n === 1) {
+        if (!ui.nombre.value.trim())            return 'Escribe el nombre de tu local.';
+        if (ui.telefono.value.replace(/\D/g, '').length < 8) return 'Ingresa un WhatsApp válido.';
+        var s = slugify(ui.slug.value);
+        if (!s || s.length < 3)                 return 'Elige tu dirección web (mínimo 3 caracteres).';
+      }
+      if (n === 2) {
+        if (!ui.dueno.value.trim())             return 'Escribe tu nombre.';
+        if (!ui.email.value.trim())             return 'Ingresa tu correo.';
+        if (ui.password.value.length < 6)       return 'La contraseña debe tener al menos 6 caracteres.';
+      }
+      return null;
+    }
+
+    function setPaso(n) {
+      pasoActual = n;
+      document.querySelectorAll('.wstep').forEach(function (el) {
+        el.classList.toggle('act', Number(el.getAttribute('data-wstep')) === n);
+      });
+      document.querySelectorAll('#wprog .wdot').forEach(function (d) {
+        var dn = Number(d.getAttribute('data-dot'));
+        d.classList.toggle('on', dn === n);
+        d.classList.toggle('done', dn < n);
+        if (dn < n) d.querySelector('.b').textContent = '✓';
+        else d.querySelector('.b').textContent = String(dn);
+      });
+      document.querySelectorAll('#wprog .wline').forEach(function (l) {
+        l.classList.toggle('done', Number(l.getAttribute('data-line')) < n);
+      });
+      clearMsg();
+      ui.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.querySelectorAll('[data-next]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var e1 = validarPaso(pasoActual);
+        if (e1) return err(e1);
+        setPaso(Number(btn.getAttribute('data-next')));
+      });
+    });
+    document.querySelectorAll('[data-back]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setPaso(Number(btn.getAttribute('data-back')));
+      });
+    });
+
+    // ── Paso 3: logo y banner (canvas downscale → data URL) ─────
+    // El servidor acepta máx 3 MB por imagen; reducimos en el cliente para
+    // que hasta una foto de 12 MP viaje liviana (logo 512px, banner 1600px).
+    var logoB64 = null, bannerB64 = null;
+
+    function procesarImagen(file, maxDim, esLogo, cb) {
+      if (!file) return;
+      if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
+        return err('Usa una imagen PNG, JPG o WebP.');
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var esc = Math.min(1, maxDim / Math.max(img.width, img.height));
+          var c = document.createElement('canvas');
+          c.width  = Math.max(1, Math.round(img.width  * esc));
+          c.height = Math.max(1, Math.round(img.height * esc));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          // Logos PNG conservan transparencia; el resto va a JPEG liviano.
+          var esPng = esLogo && file.type === 'image/png';
+          var dataUrl = esPng ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85);
+          if (dataUrl.length > 2.6 * 1024 * 1024) {
+            return err('La imagen quedó muy pesada incluso comprimida. Prueba con otra.');
+          }
+          clearMsg();
+          cb(dataUrl);
+        };
+        img.onerror = function () { err('No pudimos leer esa imagen. Prueba con otra.'); };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setUpl(tipo, dataUrl) {
+      var tile = document.getElementById(tipo === 'logo' ? 'uplLogo' : 'uplBanner');
+      var prev = document.getElementById(tipo === 'logo' ? 'prevLogo' : 'prevBanner');
+      if (dataUrl) { prev.src = dataUrl; tile.classList.add('has'); }
+      else {
+        prev.removeAttribute('src'); tile.classList.remove('has');
+        document.getElementById(tipo === 'logo' ? 'fileLogo' : 'fileBanner').value = '';
+      }
+    }
+
+    document.getElementById('fileLogo').addEventListener('change', function (e) {
+      procesarImagen(e.target.files[0], 512, true, function (d) { logoB64 = d; setUpl('logo', d); });
+    });
+    document.getElementById('fileBanner').addEventListener('change', function (e) {
+      procesarImagen(e.target.files[0], 1600, false, function (d) { bannerB64 = d; setUpl('banner', d); });
+    });
+    document.querySelectorAll('[data-quitar]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var t = btn.getAttribute('data-quitar');
+        if (t === 'logo') logoB64 = null; else bannerB64 = null;
+        setUpl(t, null);
+      });
+    });
+
+    // ── Paso 3: plantilla de diseño (tema visual) ────────────────
+    document.querySelectorAll('.tema-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        document.querySelectorAll('.tema-card').forEach(function (c) { c.classList.remove('act'); });
+        card.classList.add('act');
+        ui.tema.value = card.getAttribute('data-tema');
+      });
+    });
 
     // ── Color picker ─────────────────────────────────────────────
     var swatches = document.querySelectorAll('.sw');
@@ -859,11 +1137,9 @@
       var email    = ui.email.value.trim().toLowerCase();
       var pass     = ui.password.value;
 
-      if (!nombre)              return err('Escribe el nombre de tu local.');
-      if (!slug || slug.length < 3) return err('Elige tu dirección web (mínimo 3 caracteres).');
-      if (telefono.length < 8)  return err('Ingresa un WhatsApp válido.');
-      if (!email)               return err('Ingresa tu correo.');
-      if (pass.length < 6)      return err('La contraseña debe tener al menos 6 caracteres.');
+      // Validación por paso: si algo falta, el wizard salta al paso correcto.
+      var e1 = validarPaso(1); if (e1) { setPaso(1); return err(e1); }
+      var e2 = validarPaso(2); if (e2) { setPaso(2); return err(e2); }
       // Consentimiento pasivo: pulsar "Empezar mi prueba gratis" ES la aceptación
       // del Contrato SaaS + DPA + Privacidad (clickwrap). Evidencia: acepto.documentos.
 
@@ -892,6 +1168,9 @@
             color:       ui.color.value,
             instagram:   ui.instagram.value.trim().replace(/^@+/, ''),
             nombreDueno: ui.dueno.value.trim(),
+            tema:        ui.tema.value,
+            logoBase64:  logoB64,
+            bannerBase64: bannerB64,
             acepto: {
               version:    TERMINOS_VERSION,
               ua:         navigator.userAgent || '',

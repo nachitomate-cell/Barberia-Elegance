@@ -1869,6 +1869,8 @@ async function fetchSelfTenant(slug) {
       slogan:      s('slogan'),
       direccion:   s('direccion'),
       logoUrl:     s('logoUrl'),
+      bannerUrl:   s('bannerUrl'),
+      tema:        s('tema'),
       trialVencido,
     };
   } catch (_) {
