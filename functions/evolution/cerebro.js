@@ -445,6 +445,10 @@ async function ejecutarTool(name, input, ctx) {
         return { ok: false, motivo: `La cita está muy próxima (el local pide al menos ${Math.round(limMin / 60)}h de anticipación). Indícale que se comunique directo con el local.` };
       }
     }
+    if (ctx.simulado) {
+      return { ok: true, cancelada: { fecha: x.fecha, hora: x.hora, servicio: x.servicioNombre || '' },
+               nota: 'SIMULACIÓN: no se canceló ninguna cita real.' };
+    }
     // Cancelada → el trigger liberarSlot suelta el cupo solo.
     await citasCol(tid).doc(id).update({
       estado: 'Cancelada',
@@ -531,6 +535,14 @@ async function ejecutarTool(name, input, ctx) {
     });
     if (!barb) return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
 
+    if (ctx.simulado) {
+      return {
+        ok: true, codigo: x.codigoCita || 'PRUEBA-00', fecha, hora,
+        profesional: barb.nombre, cuando: fechaHablada(fecha, hoyC.fecha),
+        nota: 'SIMULACIÓN: no se movió ninguna cita real.',
+      };
+    }
+
     const oldLockId  = x.slotLockId
       || (x.barberoId && x.fecha && x.hora ? lockIdFor(x.barberoId, x.fecha, x.hora) : null);
     const nextLockId = lockIdFor(barb.id, fecha, hora);
@@ -601,6 +613,9 @@ async function ejecutarTool(name, input, ctx) {
   }
 
   if (name === 'pasar_con_humano') {
+    if (ctx.simulado) {
+      return { ok: true, nota: 'SIMULACIÓN: en producción acá el bot se calla 2h y avisa al equipo.' };
+    }
     await convRef(tid, ctx.chatId).set({
       botSilencedUntil: Timestamp.fromMillis(Date.now() + SILENCIO_MS),
       updatedAt: FieldValue.serverTimestamp(),
@@ -747,6 +762,21 @@ async function ejecutarTool(name, input, ctx) {
           : `${exigir.nombre} no está libre ${fechaHablada(fecha, hoyC.fecha)} a las ${hora}. Consulta su disponibilidad (consultar_disponibilidad con profesional="${exigir.nombre}") y ofrécele una hora suya, o pregúntale si acepta a otro profesional.` };
       }
       return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
+    }
+
+    // Modo simulado (scripts/probar-bot.js): TODAS las puertas de arriba ya
+    // corrieron de verdad — servicio, días del servicio, fecha pasada, jornada
+    // y candado de profesional. Lo único que se salta es el write. Un stub que
+    // responde ok:true a ciegas, en cambio, esconde justo los errores que uno
+    // sale a buscar. Producción nunca setea este flag.
+    if (ctx.simulado) {
+      return {
+        ok: true, codigo: 'PRUEBA-00',
+        fecha, hora, servicio: svc.nombre, precio: svc.precio,
+        profesional: barb.nombre,
+        cuando: fechaHablada(fecha, hoyC.fecha),
+        nota: 'SIMULACIÓN: no se creó ninguna cita real.',
+      };
     }
 
     const codigo  = genCodigoCita();

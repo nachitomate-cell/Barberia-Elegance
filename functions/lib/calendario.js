@@ -23,12 +23,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-/** { fecha:'YYYY-MM-DD', dia:'lunes' } para fechaStr + plusDias (aritmética en UTC, sin líos de TZ). */
+/** { fecha:'YYYY-MM-DD', dia:'lunes', hablada:'lunes 3 de agosto' } para
+ *  fechaStr + plusDias (aritmética en UTC, sin líos de TZ). */
 function conDiaSemana(fechaStr, plusDias = 0) {
   const [y, m, d] = String(fechaStr).split('-').map(Number);
   const t = new Date(Date.UTC(y, m - 1, d + plusDias));
-  return { fecha: t.toISOString().slice(0, 10), dia: DIAS_SEMANA[t.getUTCDay()] };
+  const dia = DIAS_SEMANA[t.getUTCDay()];
+  return {
+    fecha:   t.toISOString().slice(0, 10),
+    dia,
+    hablada: `${dia} ${t.getUTCDate()} de ${MESES[t.getUTCMonth()]}`,
+  };
 }
 
 /** Líneas estándar del bloque variable: hoy + tabla de los próximos 7 días, y
@@ -41,11 +49,15 @@ function lineasCalendario(fechaHoy, horaHHMM) {
   const tabla = [];
   for (let i = 1; i <= 7; i++) {
     const x = conDiaSemana(fechaHoy, i);
-    tabla.push(`${x.dia} ${x.fecha}`);
+    // Cada fila trae la fecha ISO Y la forma hablada ya armada. Con solo la ISO
+    // el modelo componía él mismo el "4 de agosto" y se equivocaba de día
+    // ("miércoles 4 de agosto" cuando el 4 era martes, 03-08): copiar no falla,
+    // calcular sí.
+    tabla.push(`${x.fecha} = ${x.hablada}`);
   }
   const lineas = [
-    `Hoy es ${hoy.dia} ${hoy.fecha} (hora de Chile).`,
-    `Calendario de los próximos días — usa SIEMPRE esta tabla y JAMÁS calcules tú qué día de la semana cae una fecha: mañana ${tabla[0]} · ${tabla.slice(1).join(' · ')}.`,
+    `Hoy es ${hoy.hablada} (${hoy.fecha}), hora de Chile.`,
+    `Calendario de los próximos días — usa SIEMPRE esta tabla y JAMÁS calcules tú el día de la semana ni la escribas de memoria; COPIA la forma hablada tal cual: mañana ${tabla[0]} · ${tabla.slice(1).join(' · ')}.`,
   ];
   if (/^\d{2}:\d{2}$/.test(String(horaHHMM || ''))) {
     lineas.push(

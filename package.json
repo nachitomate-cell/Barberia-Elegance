@@ -28,7 +28,8 @@
     "test:link-legacy": "node scripts/test-link-legacy.js",
     "test:reagendar": "node scripts/test-reagendar-bot.js",
     "test:duracion": "node scripts/test-duracion-tipica.js",
-    "check:tema-claro": "node scripts/check-tema-claro.js"
+    "check:tema-claro": "node scripts/check-tema-claro.js",
+    "test:bot": "node scripts/probar-bot.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
