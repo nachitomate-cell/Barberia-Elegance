@@ -1684,10 +1684,12 @@ exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenant
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;
 // Espejan → configuracion/main.waConfirmActivo, el flag público con el que la
-// agenda decide si muestra la casilla de consentimiento. Es un OR de los dos
-// canales que le escriben al cliente y por eso son DOS triggers sobre el mismo
-// cálculo: el número propio del local (configuracion/whatsapp) y el chip de
-// SynapTech (_system/{tid}.waPlataforma).
+// agenda decide si muestra la casilla de consentimiento. Es un OR de los TRES
+// canales que le escriben al cliente —número propio del local, chip de
+// SynapTech y canal oficial de Meta con saldo— calculado en UNA sola función
+// (recomputarEspejoConfirmaciones). Estos dos triggers y wa-bolsas.js la
+// llaman; ninguno recalcula por su cuenta, porque cuando había dos fórmulas el
+// último en escribir apagaba el canal del otro en silencio.
 exports.espejoFlagConfirmaciones = evolutionConfirmaciones.espejoFlagConfirmaciones;
 exports.espejoFlagConfirmacionesPlataforma = evolutionConfirmaciones.espejoFlagConfirmacionesPlataforma;
 
