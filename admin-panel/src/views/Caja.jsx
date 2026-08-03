@@ -2123,6 +2123,20 @@ export default function Caja() {
   /* ── State ──────────────────────────────────────────────── */
   const [sesionActiva, setSesionActiva] = useState(null);   // doc data + id
   const [loadingSesion, setLoadingSesion] = useState(true);
+
+  /* Qué fuentes de datos de la caja fallaron.
+     Antes los tres listeners terminaban en `() => {}`: si una lectura fallaba
+     —permiso, red, índice— el estado se quedaba vacío y la caja mostraba $0 en
+     servicios, o en productos, o en gastos, con la misma cara que un día sin
+     ventas. El local cerraba el turno contra un total falso y nadie se
+     enteraba. Ya pasó una vez este mes: el permission-denied de recepción en
+     inventario se veía como "no hay productos".
+     Un error tiene que verse como error, sobre todo donde se cuenta plata. */
+  const [fallos, setFallos] = useState({});
+  const marcarFallo = (fuente) => (e) => {
+    console.error(`[caja] no se pudo leer ${fuente}:`, e?.message || e);
+    setFallos(f => (f[fuente] ? f : { ...f, [fuente]: true }));
+  };
   const [montoApertura, setMontoApertura] = useState('');
   const [nombreApertura, setNombreApertura] = useState(() => {
     try { return localStorage.getItem('caja_nombre_default') || ''; } catch { return ''; }
@@ -2228,7 +2242,14 @@ export default function Caja() {
       } // multi-sede en "Todas": no se opera un cajón concreto → null
       setSesionActiva(ses);
       setLoadingSesion(false);
-    }, () => setLoadingSesion(false));
+      setFallos(f => (f.sesion ? { ...f, sesion: false } : f));
+    }, (e) => {
+      // Si esta lectura falla, la vista cae en la pantalla de APERTURA aunque
+      // el cajón esté abierto — y el local abre una segunda caja del mismo día.
+      // Peor que un número mal: rompe el arqueo.
+      setLoadingSesion(false);
+      marcarFallo('sesion')(e);
+    });
     return unsub;
   }, [multiSucursal, activeId]);
 
@@ -2257,7 +2278,8 @@ export default function Caja() {
           && !est.startsWith('cancelad')
           && est !== 'noasistio';
       }));
-    }, () => {});
+      setFallos(f => (f.servicios ? { ...f, servicios: false } : f));
+    }, marcarFallo('servicios'));
 
     // Productos vendidos hoy
     // Filtramos por updatedAt en el server: cubre ventas directas (creadas hoy
@@ -2272,7 +2294,8 @@ export default function Caja() {
     );
     const unsub2 = onSnapshot(qVentas, snap => {
       setVentasHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
+      setFallos(f => (f.productos ? { ...f, productos: false } : f));
+    }, marcarFallo('productos'));
 
     // Gastos de hoy
     const qGastos = query(
@@ -2282,7 +2305,8 @@ export default function Caja() {
     );
     const unsub3 = onSnapshot(qGastos, snap => {
       setGastosHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
+      setFallos(f => (f.gastos ? { ...f, gastos: false } : f));
+    }, marcarFallo('gastos'));
 
     return () => { unsub1(); unsub2(); unsub3(); };
   }, [sesionActiva]);
@@ -2851,6 +2875,30 @@ export default function Caja() {
     );
   }
 
+  /* Aviso de datos incompletos. Va ARRIBA de todas las pantallas de caja —
+     apertura, operación y cierre— porque el riesgo no es estético: es cerrar
+     el turno contra un total que le falta una parte. Se nombra qué falta, no
+     "hubo un error": el cajero necesita saber si puede confiar en el número
+     de servicios, en el de productos o en ninguno. */
+  const FUENTES = {
+    sesion:    'el estado del cajón',
+    servicios: 'los servicios cobrados hoy',
+    productos: 'los productos vendidos hoy',
+    gastos:    'los gastos de hoy',
+  };
+  const faltantes = Object.keys(FUENTES).filter(k => fallos[k]);
+  const AvisoDatos = () => (faltantes.length ? (
+    <div className="mb-4 rounded-2xl border border-red-500/40 bg-red-500/[0.08] px-4 py-3">
+      <p className="text-[13px] font-bold text-red-300">
+        ⚠️ No pudimos cargar {faltantes.map(k => FUENTES[k]).join(' · ')}
+      </p>
+      <p className="text-[12px] text-slate-300 mt-1 leading-relaxed">
+        Los totales de abajo están <b>incompletos</b>: no cierres la caja con estos números.
+        Recarga la página y, si sigue igual, avísanos antes de hacer el arqueo.
+      </p>
+    </div>
+  ) : null);
+
   /* ═══════════════════════════════════════════════════════════ */
   /*  MULTI-SEDE — elegir sede para operar la caja              */
   /* ═══════════════════════════════════════════════════════════ */
@@ -2875,6 +2923,9 @@ export default function Caja() {
   if (!sesionActiva) {
     return (
       <div className="max-w-xl mx-auto pt-12 px-4">
+        {/* Si el cajón no se pudo leer, esta pantalla MIENTE: dice que no hay
+            caja abierta cuando quizá sí la hay. El aviso va primero. */}
+        <AvisoDatos />
         {/* Banner */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 mb-4">
@@ -2970,6 +3021,9 @@ export default function Caja() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+      {/* Antes de cualquier cifra: si falta una fuente, que se vea. */}
+      <AvisoDatos />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

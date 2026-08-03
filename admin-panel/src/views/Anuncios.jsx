@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { tenantCol, tenantDoc, resolveTenantId, isMultiSedeTenant, KRONNOS_SEDES } from '../lib/tenantUtils';
 import { db } from '../lib/firebase';
+import { errorListener } from '../lib/listenerError';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -536,7 +537,11 @@ function TabAjustes({ tenantId }) {
 
   useEffect(() => {
     const ref = tenantCol('anuncios_optout');
-    const unsub = onSnapshot(ref, snap => setOptOutCount(snap.size), () => {});
+    // Si falla, el contador de bajas queda en 0 y se lee como "nadie pidió
+    // dejar de recibir" — justo antes de mandar un broadcast. El filtro real
+    // lo hace el servidor, pero la cifra no puede mentir en esa pantalla.
+    const unsub = onSnapshot(ref, snap => setOptOutCount(snap.size),
+      errorListener('las bajas de anuncios'));
     return unsub;
   }, [tenantId]);
 

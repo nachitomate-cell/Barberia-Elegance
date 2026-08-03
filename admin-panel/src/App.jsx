@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { RUTAS_SOLO_ADMIN } from './components/layout/Sidebar';
+import { esRutaSoloAdmin } from './lib/rutasAdmin';
 import Spinner from './components/ui/Spinner';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -333,8 +334,9 @@ function ProtectedApp() {
 function GuardRutaAdmin({ role, fallback }) {
   const { pathname } = useLocation();
   if (role === 'admin') return null;
-  const ruta = pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
-  if (!RUTAS_SOLO_ADMIN.has(ruta)) return null;
+  // La regla vive en lib/rutasAdmin.js para poder probarla sola
+  // (npm run check:rutas-admin). Ver ahí por qué se compara la ruta completa.
+  if (!esRutaSoloAdmin(pathname, RUTAS_SOLO_ADMIN)) return null;
   return <Navigate to={`/${fallback}`} replace />;
 }
 

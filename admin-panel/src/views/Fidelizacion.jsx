@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { tenantCol } from '../lib/tenantUtils';
+import { errorListener } from '../lib/listenerError';
 import { useTenant } from '../contexts/TenantContext';
 
 import Premios       from './Premios';
@@ -162,7 +163,7 @@ function ResumenFidelizacion() {
     const q = query(tenantCol('redemptions'), where('createdAt', '>=', Timestamp.fromDate(desde)));
     const unsubR = onSnapshot(q, snap => {
       setRedemptions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
+    }, errorListener('los canjes del período'));
     return () => unsubR();
   }, [periodo]);
 

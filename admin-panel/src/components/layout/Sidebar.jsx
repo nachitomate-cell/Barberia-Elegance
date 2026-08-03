@@ -10,6 +10,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
+import { errorListener } from '../../lib/listenerError';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth, getBrandTenants } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -411,7 +412,7 @@ function useAcademiaEnabled() {
         const d = snap.data();
         setEnabled(!!d.features?.hasAcademiaInternal);
       }
-    }, () => {});
+    }, errorListener('el flag de Academia'));
     return unsub;
   }, [tenantId]);
   return enabled;

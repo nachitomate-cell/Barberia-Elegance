@@ -12,7 +12,9 @@
     "check:mojibake": "node scripts/check-mojibake.js",
     "check:tenants": "node scripts/check-tema-tenants.js",
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
-    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run check:tema-claro",
+    "check:rutas-admin": "node scripts/check-rutas-admin.js",
+    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run check:rutas-admin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run test:duracion && npm run check:tema-claro && npm run check:espejos-claros",
+    "check:espejos-claros": "node scripts/check-espejos-claros.js",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
     "check:agenda": "node scripts/check-agenda-visibles.js",
     "test:cancelar": "firebase emulators:exec --only firestore \"node scripts/test-rules-cancelar-cliente.js\"",
@@ -25,6 +27,7 @@
     "test:gasto-ia": "node scripts/test-gasto-ia.js",
     "test:link-legacy": "node scripts/test-link-legacy.js",
     "test:reagendar": "node scripts/test-reagendar-bot.js",
+    "test:duracion": "node scripts/test-duracion-tipica.js",
     "check:tema-claro": "node scripts/check-tema-claro.js"
   },
   "devDependencies": {

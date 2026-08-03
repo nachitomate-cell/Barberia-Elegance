@@ -4,6 +4,7 @@ import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onS
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { errorListener } from '../lib/listenerError';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
@@ -548,11 +549,16 @@ export default function Productos() {
   const [entregaSaving, setEntregaSaving] = useState(false);
 
   // Load barbers for commissions
+  // Si esta lectura falla, el selector de barbero queda vacío y NO se puede
+  // asignar la comisión de una venta: el usuario lee "no hay barberos" cuando
+  // lo que pasó fue un error. Por eso el fallo se guarda y se muestra.
+  const [errorBarberos, setErrorBarberos] = useState(false);
   useEffect(() => {
     const q = query(tenantCol('barberos'), where('activo', '==', true));
     const unsub = onSnapshot(q, snap => {
       setBarberos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
+      setErrorBarberos(false);
+    }, errorListener('los barberos (comisión de venta)', () => setErrorBarberos(true)));
     return unsub;
   }, []);
 
@@ -1690,6 +1696,14 @@ export default function Productos() {
                     <option key={b.id} value={b.id}>{b.nombre}</option>
                   ))}
                 </select>
+                {/* Una lista vacía por error se lee como "este local no tiene
+                    barberos" y el usuario no sabe qué hacer. Se dice cuál es. */}
+                {errorBarberos && (
+                  <p className="mt-1.5 text-[11.5px] text-red-400 leading-relaxed">
+                    No pudimos cargar el equipo. Recarga la página antes de registrar la venta:
+                    si guardas ahora, la comisión queda sin asignar.
+                  </p>
+                )}
               </div>
 
               {/* Método de Pago */}

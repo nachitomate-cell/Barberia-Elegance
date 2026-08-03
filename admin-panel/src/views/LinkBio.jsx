@@ -10,6 +10,7 @@ import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'fir
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../lib/firebase';
 import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { errorListener } from '../lib/listenerError';
 import { withTimeout } from '../lib/firestore-helpers';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
@@ -149,7 +150,7 @@ export default function LinkBio() {
     const unsub = onSnapshot(ref, s => {
       const d = s.exists() ? s.data() : {};
       setStats({ views: d.views || 0, clicks: d.clicks || {} });
-    }, () => {});
+    }, errorListener('las visitas del link in bio'));
     return unsub;
   }, [ref]);
 
