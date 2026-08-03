@@ -144,6 +144,13 @@ export function useAppointmentNotifications(onNewNotification) {
             targetPath: 'agenda'
           });
         });
+      }, err => {
+        // Sin manejador, Firestore escupía "Uncaught Error in snapshot
+        // listener" sin decir QUÉ falló, y parecía que se rompía la vista que
+        // el usuario tenía abierta. Estos listeners son globales y solo los
+        // puede leer el staff del local: una cuenta de cliente del club (o un
+        // token sin los claims todavía) cae acá de forma esperable.
+        console.warn('[notif-citas] sin acceso a las citas del local:', err?.code || err?.message);
       });
 
       // ── Listener de reservas de productos ─────────────────────────
@@ -170,6 +177,8 @@ export function useAppointmentNotifications(onNewNotification) {
             targetPath: 'productos'
           });
         });
+      }, err => {
+        console.warn('[notif-reservas] sin acceso a las reservas del local:', err?.code || err?.message);
       });
     });
 

@@ -87,6 +87,12 @@ export function useChatNotifications() {
         });
 
         setUnreadCount(snap.size);
+      }, err => {
+        // Ver useAppointmentNotifications: sin este manejador el error salía
+        // como "Uncaught Error in snapshot listener" y confundía el
+        // diagnóstico. Solo el staff del local lee los chats.
+        console.warn('[notif-chats] sin acceso a los chats del local:', err?.code || err?.message);
+        setUnreadCount(0);
       });
     });
 
