@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getDoc } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
-import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { tenantDoc, resolveTenantId, fijarTenantDelUsuario } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 
 const AuthContext = createContext(null);
@@ -55,7 +55,16 @@ export function getBrandTenants(email) {
 async function roleFromClaims(firebaseUser) {
   try {
     const tok = await firebaseUser.getIdTokenResult();
-    const { role } = tok.claims || {};
+    const { role, tenantId } = tok.claims || {};
+    // De paso, el candado anti-tenant-cruzado: si esta pestaña quedó apuntando
+    // a otro local (sessionStorage de un `?local=` previo), el usuario de un
+    // solo local queda consultando colecciones ajenas y Firestore le niega
+    // TODO. Se corrige acá, apenas se conoce su claim, antes de que las
+    // vistas monten sus listeners. Los operadores navegan libres.
+    if (typeof tenantId === 'string' && tenantId) {
+      const email = String(firebaseUser.email || '').toLowerCase();
+      fijarTenantDelUsuario(tenantId, { esOperador: email === SUPERADMIN_EMAIL });
+    }
     return (typeof role === 'string' && role) ? role : null;
   } catch {
     return null;

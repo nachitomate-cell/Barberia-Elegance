@@ -132,6 +132,30 @@ export function resolveTenantId() {
   return 'elegance';
 }
 
+/* ── Candado: la elección de pestaña no puede sacarte de TU local ─────────
+   `saas_current_tenant` vive en sessionStorage y pisa al subdominio (arriba
+   está el porqué). El agujero: si esa pestaña visitó otro tenant con
+   `?local=`, el valor queda pegado y un usuario de UN solo local termina
+   consultando las colecciones de OTRO — Firestore le niega TODO (citas,
+   reservas, chats, productos) y parece un problema de permisos del rol.
+   Pasó con la recepción de Kronnos Limache (02-08-2026).
+
+   Solución: quien NO es operador de SynapTech solo puede quedarse en el
+   tenant de su claim. Si la sesión apunta a otro, se limpia y manda al suyo.
+   Los operadores (que sí navegan entre locales) no se tocan. */
+export function fijarTenantDelUsuario(claimTenantId, { esOperador = false } = {}) {
+  if (esOperador || !claimTenantId) return null;
+  try {
+    const actual = sessionStorage.getItem('saas_current_tenant');
+    if (actual && actual !== claimTenantId) {
+      sessionStorage.setItem('saas_current_tenant', claimTenantId);
+      console.warn(`[tenant] la pestaña apuntaba a "${actual}" y tu cuenta es de "${claimTenantId}": corregido.`);
+      return { corregido: true, antes: actual, ahora: claimTenantId };
+    }
+  } catch (_) {}
+  return null;
+}
+
 // ── Resolución de sede para tenants multi-sede (Kronnos) ─────────
 // Prioridad: ?sede= (URL) > subdomain > tenant legacy translation > sessionStorage.
 // Devuelve null si el tenant actual no es multi-sede.
