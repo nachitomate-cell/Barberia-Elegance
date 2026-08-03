@@ -40,11 +40,22 @@ export default function WhatsAppBandeja() {
       setChats(r.data?.conversaciones || []);
     } catch (e) {
       setError(e.message || 'No se pudieron cargar las conversaciones.');
-      setChats([]);
+      // En una recarga silenciosa NO se vacía la lista: el usuario perdía el
+      // chat que tenía abierto y caía en "todavía no hay conversaciones", con
+      // un error que hablaba de otra cosa. Solo se vacía en la carga inicial.
+      if (!silencioso) setChats([]);
     }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // Refresco periódico: la pausa dura 2 h y se calcula en el servidor, así que
+  // sin esto el chip "Tú tienes el control" seguía mostrándose mucho después de
+  // que el bot ya había reanudado. Silencioso para no parpadear la vista.
+  useEffect(() => {
+    const iv = setInterval(() => { cargar(true); }, 60_000);
+    return () => clearInterval(iv);
+  }, [cargar]);
 
   const control = async (chatId, pausar) => {
     setOperando(chatId);

@@ -873,7 +873,12 @@ exports.waNotifEstado = onCall(async (req) => {
   let tid = claims.tenantId || null;
   if (esBootstrap && req.data && req.data.tenantId) tid = String(req.data.tenantId);
   if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
-  if (!esBootstrap && (claims.role || '') !== 'admin') {
+  // admin O jefe: el resto del módulo (waNotifPreferencias, waBolsaReparto,
+  // waBolsaCrearLink, gateway, simulador) acepta ambos. Con solo 'admin' acá,
+  // a un jefe le fallaba esta callable y WaEstadoLinea —que traga el error—
+  // le mostraba "Tu canal está en pausa · Activar" en un local con los avisos
+  // andando y con saldo: una afirmación falsa con botón. Auditoría 03-08-2026.
+  if (!esBootstrap && !['admin', 'jefe'].includes(claims.role || '')) {
     throw new HttpsError('permission-denied', 'Solo administradores.');
   }
 
@@ -911,5 +916,10 @@ exports.waNotifEstado = onCall(async (req) => {
     // hasta N el día 1 (cron waBolsaReponerMensual), no se acumula.
     bolsaMensual: Number(wa.bolsaMensualIncluida) || 0,
     activadoEn: wa.activadoEn ? wa.activadoEn.toDate().toISOString() : null,
+    // Candado GLOBAL del canal oficial. Sin exponerlo, el panel dejaba comprar
+    // una bolsa aunque el canal estuviera apagado: MP cobraba, el saldo se
+    // acreditaba y no salía ni un mensaje — cobro sin servicio (auditoría
+    // 03-08-2026). La vista lo usa para bloquear la compra y explicar por qué.
+    canalOficialListo: cfg.templatesEnabled === true,
   };
 });

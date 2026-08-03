@@ -40,11 +40,16 @@ export default function WaOnboarding({ onIr }) {
   const conectado = cfg.estadoConexion === 'connected';
   const botOn     = cfg.botEnabled === true;
 
-  // Este checklist es para poner en marcha un módulo YA CONTRATADO. A quien no
-  // lo tiene no se le muestra: sus botones (vincular, encender) los rechaza el
-  // servidor, y ofrecer pasos que no puede completar se lee como una promesa
-  // rota. Ese local ve la tarjeta con "Solicitar activación", que es su camino.
-  if (!incluyeBot(sys) && !conectado) return null;
+  // Este checklist es para poner en marcha el ASISTENTE ya contratado. A quien
+  // no lo tiene no se le muestra: sus botones (encender el bot, probarlo) los
+  // rechaza el servidor, y ofrecer pasos que no puede completar se lee como una
+  // promesa rota. Ese local ve la tarjeta con "Solicitar activación".
+  //
+  // El `&& !conectado` de antes abría justo el agujero que este comentario dice
+  // evitar: un tenant con plan `recordatorios` Y el número conectado —que es su
+  // caso normal, las confirmaciones necesitan esa conexión— pasaba el guard y
+  // veía los dos botones imposibles. Auditoría 03-08-2026.
+  if (!incluyeBot(sys)) return null;
 
   if (conectado && probado && botOn) return null;   // terminó: fuera del camino
 

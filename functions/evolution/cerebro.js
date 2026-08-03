@@ -45,7 +45,8 @@ const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 const {
   detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
 } = require('../lib/wa-consent');
-const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion } = require('./cuota');
+const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion,
+        capDiario, salientesHoy } = require('./cuota');
 const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
 
 const db = admin.firestore();
@@ -1216,6 +1217,33 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       logger.warn(`[cerebro] ${tid}: tope de ${limiteConv} conversaciones del día alcanzado; chat=${chatId} sin atender`);
       return;
     }
+  }
+
+  /* ── Tope ANTI-BAN de salientes del número (el que mira Meta) ─────────────
+     cuota.js dice que "el contador es UNO para bot + confirmaciones", pero el
+     bot solo lo INCREMENTABA: nunca lo consultaba. Un número recién vinculado
+     (tope 40/día) podía emitir cientos de respuestas y quemarse, y de paso
+     dejaba sin cupo a las confirmaciones —que sí respetan el tope— sin que
+     nadie entendiera por qué. Auditoría del 03-08-2026.
+
+     Va DESPUÉS del tope de conversaciones y ANTES de gastar Claude: si no se
+     puede enviar, tampoco tiene sentido pagar la respuesta. Se avisa UNA vez
+     al llegar (para que el cliente no quede hablando solo) y ese aviso también
+     cuenta como saliente, así que no hay bucle.
+
+     Falla-abierto igual que el resto de la cuota: si Firestore no responde,
+     salientesHoy devuelve 0 y se atiende — mejor responder que quedar mudo por
+     un hipo de red. */
+  const capSalientes = capDiario(waCfg);
+  const salientes    = await salientesHoy(tid);
+  if (capSalientes > 0 && salientes >= capSalientes) {
+    if (salientes === capSalientes) {
+      const aviso = 'Por hoy ya no puedo seguir respondiendo por acá 🙏 El equipo del local te contesta apenas pueda.';
+      await responder(aviso);
+      await persistir(aviso);
+    }
+    logger.warn(`[cerebro] ${tid}: tope ANTI-BAN de salientes alcanzado (${salientes}/${capSalientes}); chat=${chatId} sin atender`);
+    return;
   }
 
   // ── Medios SIN texto (audio/foto/documento): respuesta amable sin pasar por

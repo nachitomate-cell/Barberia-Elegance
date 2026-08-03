@@ -1831,6 +1831,16 @@ exports.adminAlertaErroresSpike        = adminAlerts.adminAlertaErroresSpike;
 exports.adminAlertaOnboardingEstancado = adminAlerts.adminAlertaOnboardingEstancado;
 
 // ─────────────────────────────────────────────────────────────────
+//  ALERTA DE STOCK CRÍTICO — ver alerta-stock.js. Cuando un producto
+//  cruza a stock <= stockMinimo: push a los paneles instalados
+//  (fcm_tokens de admin/recepcion) + email opt-in
+//  (_system/{tid}.emailAlertaStock, fallback emailStaffCitas).
+// ─────────────────────────────────────────────────────────────────
+const alertaStock = require('./alerta-stock');
+exports.alertaStockTenant   = alertaStock.alertaStockTenant;
+exports.alertaStockElegance = alertaStock.alertaStockElegance;
+
+// ─────────────────────────────────────────────────────────────────
 //  SUPERADMIN — crear accesos de staff (admin de local / admin que
 //  atiende / barbero) para cualquier local. Auth + claims + doc en
 //  una llamada. Solo ignaciiio.mate@gmail.com. Ver superadmin-staff.js

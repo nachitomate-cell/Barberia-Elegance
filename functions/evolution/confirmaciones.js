@@ -362,22 +362,42 @@ exports.evolutionConfirmaciones = onSchedule(
    El OR se calcula UNA vez y los dos triggers la llaman: si cada uno espejara
    su propio flag, el último en escribir apagaría el canal del otro. */
 async function recomputarEspejoConfirmaciones(tid) {
-  // elegance vive en la raíz de Firestore, no bajo tenants/.
-  const raiz    = tid === 'elegance';
-  const waRef   = raiz ? db.doc('configuracion/whatsapp') : db.doc(`tenants/${tid}/configuracion/whatsapp`);
-  const destino = raiz ? db.doc('configuracion/main')     : db.doc(`tenants/${tid}/configuracion/main`);
+  // ── Rutas ────────────────────────────────────────────────────────────────
+  // La CONFIG de WhatsApp es siempre `tenants/{tid}/…`, incluso para elegance:
+  // ahí escriben el panel (WhatsAppAsistente) y el gateway al vincular. El
+  // espejo leía la RAÍZ para elegance, así que su `propio` era siempre false
+  // y su casilla de consentimiento no se encendía nunca (auditoría 03-08-2026).
+  // El DESTINO sí conserva la raíz para elegance: es el doc que lee su agenda
+  // pública (firebaseUtils.leerConfigPublica).
+  const waRef   = db.doc(`tenants/${tid}/configuracion/whatsapp`);
+  const destino = tid === 'elegance'
+    ? db.doc('configuracion/main')
+    : db.doc(`tenants/${tid}/configuracion/main`);
 
-  const [waSnap, sysSnap] = await Promise.all([
+  const [waSnap, sysSnap, notifSnap] = await Promise.all([
     waRef.get().catch(() => null),
     db.doc(`_system/${tid}`).get().catch(() => null),
+    db.doc(`wa_notif/${tid}`).get().catch(() => null),
   ]);
 
-  const propio     = (waSnap?.data()  || {}).confirmacionesEnabled === true;
-  const plataforma = (sysSnap?.data() || {}).waPlataforma          === true;
-  const activo     = propio || plataforma;
+  const wa  = waSnap?.data()    || {};
+  const sys = sysSnap?.data()   || {};
+  const n   = notifSnap?.data() || {};
+
+  // LOS TRES CANALES. Antes wa-bolsas.js calculaba su propia versión de este
+  // mismo flag mirando solo el oficial y el propio: al tocar un toggle de
+  // Mensajería, un local del chip de SynapTech (delnero, sion) se quedaba sin
+  // casilla y sus confirmaciones morían en silencio, sin auto-repararse.
+  // Ahora esa función delega acá y esta es la ÚNICA fórmula.
+  const propio     = wa.confirmacionesEnabled === true;
+  const plataforma = sys.waPlataforma === true;
+  const oficial    = (n.planRecordatorio === true && (Number(n.bolsaSaldoRec)  || 0) > 0)
+                  || (n.planCliente      === true && (Number(n.bolsaSaldoConf) || 0) > 0);
+  const activo     = propio || plataforma || oficial;
 
   await destino.set({ waConfirmActivo: activo }, { merge: true });
-  logger.info(`[confirm:espejo] ${tid}: waConfirmActivo=${activo} (propio=${propio} plataforma=${plataforma})`);
+  logger.info(`[confirm:espejo] ${tid}: waConfirmActivo=${activo} (propio=${propio} plataforma=${plataforma} oficial=${oficial})`);
+  return activo;
 }
 
 exports.espejoFlagConfirmaciones = onDocumentWritten(

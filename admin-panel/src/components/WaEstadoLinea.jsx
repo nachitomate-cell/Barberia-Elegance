@@ -86,12 +86,13 @@ export default function WaEstadoLinea({ onIr }) {
     if (botOn && conectado) partes.push('tu asistente está respondiendo');
     if (oficialOn) partes.push(`${saldo} mensaje${saldo === 1 ? '' : 's'} disponibles`);
     detalle = partes.join(' · ') || 'Tu canal está funcionando.';
-    // Proyección solo con consumo real detrás.
-    if (oficialOn && usados >= 5 && saldo > 0) {
-      const porDia = usados / Math.max(1, new Date().getDate());
-      const dias = Math.floor(saldo / Math.max(porDia, 0.1));
-      if (dias <= 14) detalle += ` · al ritmo actual te alcanzan ~${dias} día${dias === 1 ? '' : 's'}`;
-    }
+    // La proyección de días se QUITÓ: se calculaba como
+    // `bolsaUsados / día del mes`, pero `bolsaUsados` es un contador DE POR
+    // VIDA (solo se incrementa, nada lo resetea). Cuanto más antiguo el local,
+    // más corta y más falsa la estimación — el día 1 con 800 usados históricos
+    // decía "te alcanzan ~0 días" dentro de la tarjeta verde "Todo en orden".
+    // Volverá cuando exista un consumo mensual real que dividir.
+    // Auditoría 03-08-2026.
   }
 
   const estilos = {

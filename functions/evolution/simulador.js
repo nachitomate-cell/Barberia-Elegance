@@ -32,9 +32,17 @@ const Anthropic              = require('@anthropic-ai/sdk');
 const db = admin.firestore();
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 
+const { logAiUsage } = require('../lib/metrics');
+
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
 const MAX_TURNOS = 12;   // historial que acepta por sesión
 const MAX_LOOPS  = 5;    // vueltas de tools por respuesta
+// Cada turno del historial se recorta a este largo: el navegador controla el
+// contenido y se reenvía en cada vuelta de tools.
+const MAX_CHARS_TURNO = 600;
+// Pruebas por local y por día. El simulador no manda WhatsApp, pero sí gasta
+// Claude: sin techo es un botón de quemar presupuesto.
+const MAX_PRUEBAS_DIA = 40;
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // Herramientas que ESCRIBEN: en el simulador se responden en seco.
@@ -87,10 +95,33 @@ exports.waSimularBot = onCall(
 
     // Historial que manda el cliente (la sesión vive en el navegador: es una
     // prueba, no una conversación que haya que persistir).
-    const previos = Array.isArray(req.data?.historial) ? req.data.historial.slice(-MAX_TURNOS) : [];
+    //
+    // El contenido se RECORTA por mensaje: `slice(-MAX_TURNOS)` acotaba la
+    // cantidad de turnos pero no su tamaño, y el historial lo controla el
+    // navegador — 12 mensajes de largo arbitrario reenviados hasta 5 vueltas
+    // es amplificación de costo servida en bandeja (auditoría 03-08-2026).
+    const previos = (Array.isArray(req.data?.historial) ? req.data.historial.slice(-MAX_TURNOS) : [])
+      .map(m => ({
+        role:    m && m.role === 'assistant' ? 'assistant' : 'user',
+        content: String((m && m.content) || '').slice(0, MAX_CHARS_TURNO),
+      }))
+      .filter(m => m.content);
+
+    // Tope de pruebas por local y por día. Sin esto, el simulador es un botón
+    // de "gastar IA" sin techo: no manda WhatsApp, pero cada envío son hasta
+    // 5 llamadas a Claude con el catálogo completo.
+    const hoyCl = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+    const usoRef = db.doc(`tenants/${tid}/wa_cuota/sim_${hoyCl}`);
+    const usadasHoy = Number((await usoRef.get().catch(() => null))?.data()?.n) || 0;
+    if (usadasHoy >= MAX_PRUEBAS_DIA) {
+      return { ok: false, motivo: `Llegaste a las ${MAX_PRUEBAS_DIA} pruebas de hoy. Mañana se renuevan — así el simulador no consume el presupuesto que necesita tu bot real.` };
+    }
 
     const { puedeGastar } = require('../lib/ai-presupuesto');
-    const permiso = await puedeGastar(tid).catch(() => ({ ok: true }));
+    // Sin `.catch(() => ok:true)`: puedeGastar YA falla-abierto por diseño
+    // (devuelve ok:true si no puede leer). El catch extra solo escondía
+    // errores reales de la lectura del presupuesto.
+    const permiso = await puedeGastar(tid);
     if (permiso && permiso.ok === false) {
       return { ok: false, motivo: 'El tope de gasto de IA de este mes está alcanzado. El simulador vuelve a estar disponible el mes que viene.' };
     }
@@ -106,10 +137,7 @@ exports.waSimularBot = onCall(
     const dow = new Date(`${hoy}T12:00:00Z`).getUTCDay();
     const systemVar = `HOY es ${DIAS[dow]} ${hoy} y son las ${hhmm} en Chile. El cliente se llama "Cliente de prueba".`;
 
-    const messages = [
-      ...previos.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content || '') })),
-      { role: 'user', content: texto },
-    ];
+    const messages = [...previos, { role: 'user', content: texto }];
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
     const ctx = { tid, telefono: '+56900000000', chatId: 'simulador', confirmacionesEnabled: false };
@@ -119,14 +147,24 @@ exports.waSimularBot = onCall(
     for (let i = 0; i < MAX_LOOPS; i++) {
       const r = await anthropic.messages.create({
         model: cerebro._MODEL,
-        max_tokens: 700,
+        // Mismos parámetros que producción: el simulador promete que "esto es
+        // exactamente lo que respondería". Con 700 tokens una respuesta larga
+        // se cortaba en la prueba y no en la realidad, y el caché de 5 min por
+        // defecto no compartía prefijo con el bot real (se pagaba la escritura
+        // dos veces). Ver cerebro.js MAX_TOKENS y el breakpoint de 1 h.
+        max_tokens: 900,
         system: [
-          { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: systemFijo, cache_control: { type: 'ephemeral', ttl: '1h' } },
           { type: 'text', text: systemVar },
         ],
         tools: toolsBase,
         messages,
       });
+      // El gasto del simulador NO se registraba: `puedeGastar` leía un
+      // contador que este archivo nunca incrementaba, así que su propio tope
+      // era inalcanzable y el consumo era invisible en ops y para la alerta de
+      // gasto. Es la MISMA llamada que hace el bot real (cerebro.js).
+      logAiUsage(cerebro._MODEL, r.usage || {}, tid).catch(() => {});
 
       const toolUses = r.content.filter(b => b.type === 'tool_use');
       const textos = r.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
@@ -149,11 +187,19 @@ exports.waSimularBot = onCall(
       if (i === MAX_LOOPS - 1) respuesta = textos || 'Dame un segundo…';
     }
 
-    logger.info(`[simulador] ${tid}: turno simulado (tools: ${usadas.join(',') || 'ninguna'})`);
+    // Contador de pruebas del día (mismo doc-por-día que el resto de la cuota).
+    await usoRef.set({
+      fecha: hoyCl,
+      n: admin.firestore.FieldValue.increment(1),
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true }).catch(() => {});
+
+    logger.info(`[simulador] ${tid}: turno simulado ${usadasHoy + 1}/${MAX_PRUEBAS_DIA} (tools: ${usadas.join(',') || 'ninguna'})`);
     return {
       ok: true,
       respuesta: respuesta || 'Perdona, ¿me repites eso? 🙏',
       herramientas: usadas,
+      pruebasRestantes: Math.max(0, MAX_PRUEBAS_DIA - (usadasHoy + 1)),
     };
   },
 );

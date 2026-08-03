@@ -234,6 +234,26 @@ exports.evolutionDesvincular = onCall({ region: 'us-central1', cors: true, secre
 
 const HORAS_PAUSA = 2;
 
+/* Llave opaca del chat para el panel. El id del doc es el teléfono del
+   cliente y la bandeja no tiene por qué recibirlo: se manda este hash y el
+   servidor lo revierte buscando en la colección del propio tenant. Es corto a
+   propósito (la colisión solo afectaría a dos chats del MISMO local, y el peor
+   caso es pausar el chat equivocado — reversible con un click). */
+const crypto = require('crypto');
+const hashChat = (tel) => crypto.createHash('sha256').update(`wa:${tel}`).digest('hex').slice(0, 16);
+
+/** Deshace hashChat buscando entre los chats del tenant. Acepta también el
+ *  teléfono plano para no romper pestañas abiertas con el formato anterior. */
+async function resolverChatId(tid, clave) {
+  const c = String(clave || '');
+  if (/^\d{8,15}$/.test(c)) return c;                       // formato viejo
+  if (!/^[a-f0-9]{16}$/.test(c)) return null;
+  const snap = await db.collection(`tenants/${tid}/wa_conversaciones`)
+    .orderBy('updatedAt', 'desc').limit(200).get();
+  const hit = snap.docs.find(d => hashChat(d.id) === c);
+  return hit ? hit.id : null;
+}
+
 exports.waMisConversaciones = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const tid = tenantDelCaller(req);
   const limit = Math.min(Number(req.data?.limit) || 15, 40);
@@ -248,7 +268,14 @@ exports.waMisConversaciones = onCall({ region: 'us-central1', cors: true }, asyn
     const pausadoHasta = c.botSilencedUntil?.toMillis?.() || 0;
     const ultimo = msgs[msgs.length - 1];
     return {
-      chatId:  d.id,
+      // ⚠️ NO se manda `d.id`: el id del doc ES el teléfono del cliente, así
+      // que enviarlo junto al campo enmascarado dejaba la máscara en puro
+      // adorno — el número completo viajaba igual, para las 20 conversaciones
+      // y visible en la pestaña Network (auditoría 03-08-2026).
+      //
+      // El panel solo necesita una LLAVE OPACA para pedir pausar/soltar ese
+      // chat: se manda un hash corto y `waChatControl` lo resuelve de vuelta.
+      chatId:  hashChat(d.id),
       // ••••1234 — suficiente para reconocer el chat sin exponer la línea.
       telefono: `••••${String(d.id).slice(-4)}`,
       nombre:   c.clienteNombre || '',
@@ -276,11 +303,17 @@ exports.waMisConversaciones = onCall({ region: 'us-central1', cors: true }, asyn
  *  anti-colisión (botSilencedUntil), así que el bot ya sabe respetarlo. */
 exports.waChatControl = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const tid    = tenantDelCaller(req);
-  const chatId = String(req.data?.chatId || '').trim();
+  const clave  = String(req.data?.chatId || '').trim();
   const pausar = req.data?.pausar === true;
-  if (!/^[0-9A-Za-z_@.-]{5,40}$/.test(chatId)) {
+  if (!/^[0-9A-Za-z_@.-]{5,40}$/.test(clave)) {
     throw new HttpsError('invalid-argument', 'Chat inválido.');
   }
+  // El panel manda la llave opaca (hashChat); acá se resuelve al chat real.
+  // Exigir que EXISTA cierra de paso el agujero anterior: el `set(merge)`
+  // creaba un doc nuevo con cualquier id que pasara el regex, y esos docs
+  // encabezaban la bandeja desplazando conversaciones reales.
+  const chatId = await resolverChatId(tid, clave);
+  if (!chatId) throw new HttpsError('not-found', 'Ese chat ya no está en la bandeja.');
 
   const ref = db.doc(`tenants/${tid}/wa_conversaciones/${chatId}`);
   await ref.set({
@@ -290,7 +323,7 @@ exports.waChatControl = onCall({ region: 'us-central1', cors: true }, async (req
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 
-  logger.info(`[wa:bandeja] ${tid} chat=${chatId}: ${pausar ? 'pausado ' + HORAS_PAUSA + 'h' : 'devuelto al bot'}`);
+  logger.info(`[wa:bandeja] ${tid} chat=***${chatId.slice(-4)}: ${pausar ? 'pausado ' + HORAS_PAUSA + 'h' : 'devuelto al bot'}`);
   return { ok: true, pausado: pausar, horas: HORAS_PAUSA };
 });
 
@@ -347,11 +380,20 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
      vez de dejar caer (reagendadaVia wa_bot) — esas últimas son horas que se
      iban a perder. Se descuentan canceladas y cortesías: cobrar en el discurso
      lo que no entró a la caja destruye la confianza en el número. */
+  // ⚠️ Ventana ACOTADA al mes. Antes era `where('fecha','>=', mes-01)` sin cota
+  // superior, así que sumaba también las citas de meses FUTUROS: una reserva
+  // creada en julio para el 5 de agosto entraba en el dinero de agosto y en el
+  // conteo de julio. La tarjeta podía decir "$180.000 en 0 citas" — y es la
+  // única cifra con la que el dueño decide si renueva (auditoría 03-08-2026).
   const dineroMes = { agendado: 0, salvado: 0 };
   try {
     const citasCol = tid === 'elegance' ? db.collection('citas') : db.collection(`tenants/${tid}/citas`);
-    const desde = `${mes}-01`;
-    const snapCitas = await citasCol.where('fecha', '>=', desde).get();
+    const [y, m] = mes.split('-').map(Number);
+    const finMes = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);   // último día real
+    const snapCitas = await citasCol
+      .where('fecha', '>=', `${mes}-01`)
+      .where('fecha', '<=', finMes)
+      .get();
     snapCitas.forEach((d) => {
       const c = d.data() || {};
       if (c.estado === 'Cancelada' || c.estado === 'NoAsistio' || c.cortesia === true) return;
@@ -359,6 +401,14 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
       if (c.origen === 'wa_bot')        dineroMes.agendado += monto;
       if (c.reagendadaVia === 'wa_bot') dineroMes.salvado  += monto;
     });
+    // Citas del mes agendadas por el bot: se cuentan de las MISMAS citas que
+    // suman el dinero, no del contador `_metrics.agendada` (que se incrementa
+    // al momento de agendar, o sea en el mes de la RESERVA, no el de la cita).
+    // Con dos denominadores distintos el titular no cuadraba nunca.
+    dineroMes.citas = snapCitas.docs.filter((d) => {
+      const c = d.data() || {};
+      return c.origen === 'wa_bot' && c.estado !== 'Cancelada' && c.estado !== 'NoAsistio' && c.cortesia !== true;
+    }).length;
   } catch (e) { logger.warn(`[miConsumo] dinero ${tid}:`, e.message); }
 
   const agendadas  = Number(neg.agendada)   || 0;
@@ -391,6 +441,9 @@ exports.evolutionMiConsumo = onCall({ region: 'us-central1', cors: true }, async
       // En pesos: lo que entró por el bot y lo que rescató al mover una cita.
       dineroAgendado: Math.round(dineroMes.agendado),
       dineroSalvado:  Math.round(dineroMes.salvado),
+      // Citas del MISMO conjunto que suma el dinero: es el número que va al
+      // lado de la cifra en el titular, y tiene que cuadrar con ella.
+      citasDelDinero: Number(dineroMes.citas) || 0,
     },
     historico: hist,   // acumulado de TODOS los meses, para el CRM del panel
     numero: { edadDias, siguienteNivel, conectado: wa.estadoConexion === 'connected' },

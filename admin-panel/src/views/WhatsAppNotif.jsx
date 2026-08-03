@@ -140,11 +140,19 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   const bolsaSaldo = Number(estado?.bolsaSaldo) || 0;
   // Ojo: cuelga del módulo, no de planCliente — un local con SOLO recordatorios
   // (Kronnos) también tiene que ver el aviso de saldo bajo.
-  const saldoBajo  = (!!estado?.planCliente || !!estado?.planRecordatorio) && bolsaSaldo <= 10;
+  // Los DOS cupos son independientes en el backend (confirmar reservas y
+  // recordar citas), así que la alerta también: con 0 en confirmaciones y 100
+  // en recordatorios el total se veía sano mientras las confirmaciones estaban
+  // detenidas hace días, sin ninguna señal (auditoría 03-08-2026).
+  const saldoConfBajo = !!estado?.planCliente      && (Number(estado?.bolsaSaldoConf) || 0) <= 10;
+  const saldoRecBajo  = !!estado?.planRecordatorio && (Number(estado?.bolsaSaldoRec)  || 0) <= 10;
+  const saldoBajo  = saldoConfBajo || saldoRecBajo;
 
   const [bolsaSel, setBolsaSel]     = useState('');
   const [comprando, setComprando]   = useState(false);
   const [errCompra, setErrCompra]   = useState('');
+  // Link de pago de respaldo cuando el navegador bloquea la pestaña nueva.
+  const [linkPago, setLinkPago]     = useState('');
   const [repartiendo, setRepartiendo] = useState(false);
   const [prefiriendo, setPrefiriendo] = useState(false);
   const planRecordatorio = !!estado?.planRecordatorio;
@@ -176,6 +184,7 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
     setRepartiendo(true);
     setErrCompra('');
     // Optimista: el reparto se ve aplicado de inmediato sobre el saldo actual.
+    const antes = estado;   // para revertir si el servidor rechaza
     const total = (Number(estado?.bolsaSaldoConf) || 0) + (Number(estado?.bolsaSaldoRec) || 0);
     const confOpt = Math.round(total * pct / 100);
     setEstado(e => (e ? { ...e, repartoConfPct: pct, bolsaSaldoConf: confOpt, bolsaSaldoRec: total - confOpt } : e));
@@ -184,6 +193,10 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
       await fn({ pct });
       await cargar(true);   // refresca saldos por cupo, sin spinner
     } catch (e) {
+      // Sin esta reversión los saldos quedaban mostrando un reparto que el
+      // servidor rechazó, hasta recargar la página: plata en pantalla que no
+      // coincide con la real (auditoría 03-08-2026).
+      setEstado(antes);
       setErrCompra(e.message || 'No se pudo cambiar el reparto.');
     } finally {
       setRepartiendo(false);
@@ -194,10 +207,20 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
     setComprando(true);
     setErrCompra('');
     try {
+      // La pestaña se abre ANTES del await: Safari y Firefox pierden la
+      // "user activation" durante la llamada y bloqueaban el popup. Como
+      // `initPoint` existía, no se mostraba ningún error: el dueño apretaba
+      // "Comprar" y no pasaba nada — plata que no entra (auditoría 03-08-2026).
+      const tab = window.open('', '_blank', 'noopener');
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaCrearLink');
       const r  = await fn({ bolsaId: bolsaSel });
-      if (r.data?.initPoint) window.open(r.data.initPoint, '_blank', 'noopener');
-      else setErrCompra('No se pudo generar el link de pago. Intenta de nuevo.');
+      if (r.data?.initPoint) {
+        if (tab) tab.location = r.data.initPoint;
+        else { setLinkPago(r.data.initPoint); setErrCompra('Tu navegador bloqueó la ventana de pago. Usa el botón de abajo para abrirla.'); }
+      } else {
+        if (tab) tab.close();
+        setErrCompra('No se pudo generar el link de pago. Intenta de nuevo.');
+      }
     } catch (e) {
       setErrCompra(e.message || 'No se pudo generar el link de pago.');
     } finally {
@@ -221,7 +244,12 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
         <SettingsGroup>
           <div className="px-4 sm:px-5 py-4 text-sm text-red-400 flex items-center justify-between gap-3">
             <span>{error}</span>
-            <button onClick={cargar} className="shrink-0 text-slate-300 hover:text-primary p-2 rounded-lg hover:bg-white/5 transition-colors" aria-label="Reintentar">
+            {/* `onClick={cargar}` pasaba el SyntheticEvent como `silencioso`:
+                un evento es truthy, así que el reintento corría en modo
+                silencioso — se borraba el error, no se mostraba spinner y, si
+                volvía a fallar, la vista quedaba con estado null renderizando
+                "saldo 0" de forma permanente. Auditoría 03-08-2026. */}
+            <button onClick={() => cargar()} className="shrink-0 text-slate-300 hover:text-primary p-2 rounded-lg hover:bg-white/5 transition-colors" aria-label="Reintentar">
               <RefreshCw size={15} />
             </button>
           </div>
@@ -233,13 +261,32 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   return (
     <div className={`space-y-8 ${embedded ? '' : 'max-w-3xl'}`}>
 
+      {/* Errores de acciones (toggles, reparto, compra). Antes solo se
+          renderizaban DENTRO del bloque de bolsas —invisible en la pestaña
+          Mensajería—, así que un toggle rechazado por el servidor rebotaba
+          sin explicación y el dueño lo volvía a tocar. */}
+      {errCompra && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] px-4 py-3 flex items-start gap-2.5">
+          <p className="text-[12.5px] text-amber-200 leading-relaxed flex-1">{errCompra}</p>
+          {linkPago && (
+            <a href={linkPago} target="_blank" rel="noreferrer"
+               className="shrink-0 text-[12px] font-semibold text-amber-300 hover:text-amber-100 underline">Abrir pago</a>
+          )}
+          <button onClick={() => { setErrCompra(''); setLinkPago(''); }}
+                  className="text-[11px] text-amber-300/70 hover:text-amber-200 shrink-0">Cerrar</button>
+        </div>
+      )}
+
       {/* ══════════ NIVEL PAGADO — confirmación al cliente ══════════ */}
       <Section
         Icon={Sparkles}
         title={
           <span className="flex items-center gap-2">
             {verReglas ? 'Confirmación automática a tus clientes' : 'Tu bolsa de mensajes'}
-            {planCliente ? <Badge tone="violet">Activo</Badge> : <Badge tone="slate">Plan pagado</Badge>}
+            {/* `moduloActivo`, no `planCliente`: un local que paga y solo tiene
+                recordatorios encendidos veía el badge gris de "no contratado"
+                justo encima de una tarjeta que decía "Activo". */}
+            {moduloActivo ? <Badge tone="violet">Activo</Badge> : <Badge tone="slate">Plan pagado</Badge>}
           </span>
         }
         description={verReglas
@@ -346,14 +393,33 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
                 </div>
               )}
 
+              {/* ── Canal oficial aún no habilitado: NO se vende ──
+                  El envío real exige _system/whatsapp_notif.templatesEnabled.
+                  Sin este bloque el flujo de compra funcionaba completo (MP
+                  cobraba, el saldo se acreditaba) y no salía ni un mensaje. */}
+              {verFact && estado?.canalOficialListo === false && (
+                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
+                  <p className="text-sm font-semibold text-amber-200">Este canal todavía no está habilitado</p>
+                  <p className="text-[12px] text-slate-400 leading-relaxed mt-1">
+                    Estamos terminando la certificación con Meta para tu local. Cuando quede lista te avisamos y podrás
+                    comprar tu bolsa — no queremos cobrarte por mensajes que aún no pueden salir.
+                  </p>
+                  <a href={`https://wa.me/56983568212?text=${encodeURIComponent('Hola SynapTech, quiero saber cuándo queda listo el canal de confirmaciones por WhatsApp para mi local.')}`}
+                     target="_blank" rel="noreferrer"
+                     className="inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-semibold text-amber-300 hover:text-amber-200">
+                    Consultar por WhatsApp →
+                  </a>
+                </div>
+              )}
+
               {/* ── Bolsas de mensajes: compras solo lo que usas ── */}
-              {verFact && bolsas.length > 0 && (
+              {verFact && bolsas.length > 0 && estado?.canalOficialListo !== false && (
                 <div className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.05] p-4 space-y-3">
                   <p className="text-sm font-semibold text-slate-100">
-                    {planCliente ? 'Recargar bolsa de mensajes' : 'Elige tu bolsa de mensajes'}
+                    {moduloActivo ? 'Recargar bolsa de mensajes' : 'Elige tu bolsa de mensajes'}
                   </p>
                   <p className="text-[12px] text-slate-400 leading-relaxed">
-                    Cada confirmación o recordatorio descuenta 1 mensaje de tu bolsa. Sin mensualidad: compras solo lo que usas{planCliente ? '' : ', y con tu primera bolsa el módulo se activa solo'}.
+                    Cada confirmación o recordatorio descuenta 1 mensaje de tu bolsa. Sin mensualidad: compras solo lo que usas{moduloActivo ? '' : ', y con tu primera bolsa el módulo se activa solo'}.
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {bolsas.map(b => (

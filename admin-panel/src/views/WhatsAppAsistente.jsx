@@ -11,7 +11,7 @@ import { Section, SettingsGroup, SettingRow, IosToggle } from '../components/ui/
 import {
   QrCode, ShieldAlert, Loader2, CheckCircle2, Clock,
   Smartphone, Unlink, Sparkles, X, Lock, MessageCircle, MessagesSquare, ExternalLink, Bot,
-  ShieldCheck, FileText, ChevronRight, Zap,
+  ShieldCheck, FileText, ChevronRight, Zap, AlertTriangle,
 } from 'lucide-react';
 
 // Módulo premium "Asistente IA 24/7" — el bot responde y agenda solo sobre el
@@ -62,7 +62,7 @@ const CAPACIDADES_NO = [
   { t: 'No hace marketing ni mensajes masivos', c: 'Solo conversa con quien le escribe y envía las confirmaciones de cita. Cero spam: es parte del blindaje anti-bloqueo del número.' },
   { t: 'No responde grupos ni estados', c: 'Solo chats directos de clientes.' },
   { t: 'No pisa a tu equipo', c: 'Si alguien del local responde un chat a mano, el bot se calla 2 horas en esa conversación.' },
-  { t: 'No cae en abusos', c: 'Máximo 30 respuestas al día por chat: si alguien lo hace hablar de más, avisa que el equipo seguirá y se detiene.' },
+  { t: 'No cae en abusos', c: 'Máximo 15 respuestas al día por chat: si alguien lo hace hablar de más, avisa que el equipo seguirá y se detiene.' },
   { t: 'No agenda en el pasado ni inventa horas', c: 'Toda hora ofrecida sale del cálculo real de disponibilidad; fechas ya pasadas se rechazan siempre.' },
 ];
 
@@ -233,18 +233,50 @@ function callFn(name, payload) {
 export function MiConsumo({ tid, standalone = false }) {
   const [d, setD]   = useState(null);
   const [err, setErr] = useState(false);
+  // `cargando` es nuevo: sin él, el primer render (d=null, err=false) ya caía
+  // en el mensaje de vacío, así que en cada cold start de la CF el dueño leía
+  // "aún no hay actividad" y después aparecían los números.
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     let vivo = true;
+    setCargando(true); setErr(false);
     httpsCallable(getFunctions(getApp(), 'us-central1'), 'evolutionMiConsumo')({})
       .then(r => { if (vivo) setD(r.data); })
-      .catch(() => { if (vivo) setErr(true); });
+      .catch(() => { if (vivo) setErr(true); })
+      .finally(() => { if (vivo) setCargando(false); });
     return () => { vivo = false; };
   }, [tid]);
 
+  if (cargando) {
+    if (!standalone) return null;
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
+        <p className="text-[13px] text-slate-400">Cargando tus métricas…</p>
+      </div>
+    );
+  }
+
+  // ERROR ≠ VACÍO. Iban con el mismo texto y estaban etiquetados al revés: la
+  // CF siempre devuelve ok:true con ceros cuando no hay datos, así que "aún no
+  // hay actividad" SOLO era alcanzable cuando algo fallaba — un módulo caído
+  // se leía como "todavía no lo usas" y nadie reportaba nada.
+  if (err) {
+    if (!standalone) return null;
+    return (
+      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-center">
+        <p className="text-[13px] font-semibold text-amber-300">No pudimos cargar tus métricas</p>
+        <p className="text-[11.5px] text-slate-400 mt-1.5 leading-relaxed">
+          Tu asistente sigue funcionando con normalidad — esto es solo la pantalla de números.
+          Reintenta en un momento y, si sigue igual, escríbenos.
+        </p>
+      </div>
+    );
+  }
+
   // Sin datos: incrustado no muestra nada (mejor que ceros confusos); como
   // pestaña propia explica el vacío en vez de dejar la pantalla en blanco.
-  if (err || !d?.ok) {
+  if (!d?.ok) {
     if (!standalone) return null;
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
@@ -277,17 +309,35 @@ export function MiConsumo({ tid, standalone = false }) {
       {/* ── Lo que el bot le puso en caja ESTE MES, en pesos ──
           Va primero y en grande: es la única cifra que responde "¿me conviene
           seguir pagando esto?". Los conteos quedan debajo como respaldo. */}
-      {(Number(mes.dineroAgendado) > 0 || Number(mes.dineroSalvado) > 0) && (
+      {/* El titular solo aparece si HAY dinero agendado; el rescate se cuenta
+          aparte. Antes bastaba con que uno de los dos fuera > 0 y el titular
+          imprimía siempre `dineroAgendado`, así que salía "te agendó $0 en 0
+          citas… Además rescató $45.000". Y el conteo ahora es `citasDelDinero`,
+          calculado sobre las MISMAS citas que suman el monto. */}
+      {Number(mes.dineroAgendado) > 0 && (
         <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400/80">Este mes, el asistente te agendó</p>
           <p className="text-3xl font-bold text-emerald-300 tabular-nums leading-none mt-1.5">
             ${Number(mes.dineroAgendado).toLocaleString('es-CL')}
           </p>
           <p className="text-[12px] text-slate-400 mt-1.5 leading-relaxed">
-            en {mes.citasAgendadas} cita{mes.citasAgendadas === 1 ? '' : 's'}, mientras tú trabajabas o dormías.
+            en {mes.citasDelDinero ?? mes.citasAgendadas} cita{(mes.citasDelDinero ?? mes.citasAgendadas) === 1 ? '' : 's'}, mientras tú trabajabas o dormías.
             {Number(mes.dineroSalvado) > 0 && (
               <> Además rescató <b className="text-emerald-300">${Number(mes.dineroSalvado).toLocaleString('es-CL')}</b> moviendo horas que se iban a perder.</>
             )}
+          </p>
+        </div>
+      )}
+      {/* Rescate sin dinero agendado: igual merece su tarjeta, con su propio
+          titular en vez de colgarse de una frase que dice "$0". */}
+      {Number(mes.dineroAgendado) === 0 && Number(mes.dineroSalvado) > 0 && (
+        <div className="rounded-2xl border border-sky-500/25 bg-sky-500/[0.07] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-sky-400/80">Este mes, el asistente rescató</p>
+          <p className="text-3xl font-bold text-sky-300 tabular-nums leading-none mt-1.5">
+            ${Number(mes.dineroSalvado).toLocaleString('es-CL')}
+          </p>
+          <p className="text-[12px] text-slate-400 mt-1.5 leading-relaxed">
+            moviendo horas que se iban a perder, en vez de dejarlas caer.
           </p>
         </div>
       )}
@@ -380,7 +430,7 @@ export function MiConsumo({ tid, standalone = false }) {
         <ul className="mt-2 space-y-1.5 text-[11.5px] text-slate-500 leading-relaxed list-disc pl-4">
           <li>El asistente <b>responde</b> a quien te escribe. Eso es lo más seguro que existe para WhatsApp.</li>
           <li>Las confirmaciones salen solo a clientes con cita y que aceptaron recibirlas al reservar.</li>
-          <li>No se envía nada entre las 21:00 y las 09:00: un mensaje de madrugada es la forma más rápida de que te bloqueen.</li>
+          <li>Los avisos que salen por iniciativa nuestra (confirmaciones y recordatorios) nunca se envían entre las 21:00 y las 09:00: un mensaje de madrugada es la forma más rápida de que te bloqueen. Si un cliente escribe de noche, el asistente sí le responde — contestar a quien te habla no tiene ese riesgo.</li>
           <li><b>Este canal no sirve para promociones ni difusiones.</b> Mandar publicidad masiva desde el número del local es la causa número uno de bloqueo, y no hay forma de recuperarlo. Para campañas, hablemos: hay canales hechos para eso.</li>
         </ul>
       </details>
@@ -403,6 +453,9 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
   const [vinculando, setVinc]   = useState(false);
   const [conectado, setConectado] = useState(false);
   const [err, setErr]           = useState('');
+  // Rechazos de los switches (patchCfg). Va aparte de `err`, que es del flujo
+  // de vinculación: son dos conversaciones distintas con el usuario.
+  const [errSwitch, setErrSwitch] = useState('');
   const [showPoliticas, setShowPoliticas] = useState(false);
   const [showCapacidades, setShowCapacidades] = useState(false);
 
@@ -466,9 +519,22 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
   const nombreLocal = tenant?.name || tid || 'Tu Local';
   const avatar      = (nombreLocal.trim()[0] || 'B').toUpperCase();
 
-  /* ── Escritura de switches operativos (solo si está habilitado) ── */
+  /* ── Escritura de switches operativos (solo si está habilitado) ──
+     El `.catch(() => {})` de antes hacía invisible cualquier rechazo del
+     servidor: con la compensación de latencia de Firestore el switch se
+     prendía, la regla lo denegaba y volvía a apagarse SOLO — sin error, sin
+     log, sin nada. El caso típico (plan dado de baja con la pestaña abierta,
+     o un campo que ahora protege waCamposDelServidor) era un ticket de
+     soporte irreproducible. Auditoría 03-08-2026. */
   function patchCfg(patch) {
-    setDoc(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'), patch, { merge: true }).catch(() => {});
+    setDoc(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'), patch, { merge: true })
+      .then(() => setErrSwitch(''))
+      .catch((e) => {
+        const denegado = String(e?.code || '').includes('permission-denied');
+        setErrSwitch(denegado
+          ? 'Ese ajuste no está disponible en tu plan actual. Si crees que sí lo contrataste, escríbenos y lo revisamos.'
+          : 'No pudimos guardar el cambio. Revisa tu conexión y vuelve a intentarlo.');
+      });
   }
 
   async function vincular() {
@@ -486,20 +552,44 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
   useEffect(() => {
     if (!modal || conectado) return;
     let alive = true;
+    // Fallos SEGUIDOS del polling. Antes el catch se tragaba todo sin tope: si
+    // el VPS se caía a mitad del escaneo, el modal se quedaba en "Esperando el
+    // escaneo…" para siempre, golpeando la CF cada 5 s, y el usuario no tenía
+    // cómo saber que no era culpa suya.
+    let fallos = 0;
     const iv = setInterval(async () => {
       try {
         const r = await callFn('evolutionEstado', { tenantId: tid });
         if (!alive) return;
+        fallos = 0;
         if (r.estado === 'connected') {
           setConectado(true);
-          setTimeout(() => { if (alive) { setModal(false); setConectado(false); } }, 1900);
+          // El cierre diferido NO va acá: cambiar `conectado` es dependencia de
+          // este efecto, así que React corre el cleanup, `alive` pasa a false y
+          // el timeout nunca cerraba el modal — se quedaba pegado en
+          // "¡Vinculado! 🎉" hasta que el usuario apretara la X.
         } else if (r.qr) {
           setQr(r.qr); setPairing(r.pairingCode);
         }
-      } catch { /* transitorio */ }
+      } catch {
+        if (!alive) return;
+        if (++fallos >= 4) {   // ~20 s sin respuesta
+          setErr('Perdimos contacto con el servidor de WhatsApp mientras esperábamos el escaneo. Cierra y vuelve a intentar en un momento.');
+          clearInterval(iv);
+        }
+      }
     }, 5000);
     return () => { alive = false; clearInterval(iv); };
   }, [modal, conectado, tid]);
+
+  // Cierre del modal tras vincular. Vive en su PROPIO efecto justamente porque
+  // depende de `conectado`: acá el cleanup solo corre si el usuario cierra
+  // antes, que es lo que se quiere.
+  useEffect(() => {
+    if (!modal || !conectado) return;
+    const t = setTimeout(() => { setModal(false); setConectado(false); }, 1900);
+    return () => clearTimeout(t);
+  }, [modal, conectado]);
 
   async function desvincular() {
     if (!window.confirm('¿Desvincular WhatsApp? El bot dejará de responder y recuperas el control 100% manual de tu teléfono.')) return;
@@ -668,6 +758,17 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
         ) : (
           /* ── MODO VINCULADO — estado + switches operativos ── */
           <>
+            {/* Rechazo del servidor al guardar un switch. Antes el toggle se
+                revertía solo y en silencio; ahora dice por qué. */}
+            {errSwitch && (
+              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] px-4 py-3 flex items-start gap-2.5">
+                <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[12.5px] text-amber-200 leading-relaxed flex-1">{errSwitch}</p>
+                <button onClick={() => setErrSwitch('')}
+                        className="text-[11px] text-amber-300/70 hover:text-amber-200 shrink-0">Cerrar</button>
+              </div>
+            )}
+
             {/* Conexión */}
             <SettingsGroup label="Conexión">
               <SettingRow

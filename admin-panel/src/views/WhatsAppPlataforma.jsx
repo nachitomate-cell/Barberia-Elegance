@@ -39,11 +39,19 @@ export default function WhatsAppPlataforma({ onEstado }) {
     onEstado?.(activo ? 'activo' : 'disponible');
   }, [sys, activo, onEstado]);
 
+  // El chip del local NO es siempre el de por defecto: el backend resuelve
+  // `_system/{tid}.waPlataformaChip` → `_system/wa_plataforma_{chipId}`
+  // (plataforma.js). Leyendo siempre `wa_plataforma`, un local asignado a un
+  // chip secundario veía el NÚMERO EQUIVOCADO y un estado que no era el suyo.
+  // Ausente = el de por defecto, que es lo que hace que sumar chips no mueva
+  // a nadie de lugar. Auditoría 03-08-2026.
   useEffect(() => {
     if (!activo) return undefined;
-    return onSnapshot(doc(db, '_system', 'wa_plataforma'),
+    const chipId = String(sys?.waPlataformaChip || '').trim().toLowerCase();
+    const docId = (!chipId || chipId === 'synaptech') ? 'wa_plataforma' : `wa_plataforma_${chipId}`;
+    return onSnapshot(doc(db, '_system', docId),
       s => setChip(s.exists() ? s.data() : {}), () => setChip({}));
-  }, [activo]);
+  }, [activo, sys?.waPlataformaChip]);
 
   const patchCfg = (patch) =>
     setDoc(doc(db, 'tenants', tid, 'configuracion', 'whatsapp'), patch, { merge: true }).catch(() => {});
@@ -77,8 +85,14 @@ export default function WhatsAppPlataforma({ onEstado }) {
     );
   }
 
-  const conectado = chip?.estadoConexion === 'connected';
-  const ventana   = cfg?.recordatorio?.ventanaHoras ?? 24;
+  // `chip === null` es "todavía cargando", no "caído": mostrar el aviso de
+  // reconexión mientras llega el snapshot era una alarma falsa en cada visita.
+  const cargandoChip = chip === null;
+  const conectado    = chip?.estadoConexion === 'connected';
+  // Chip retirado a propósito por SynapTech (plataforma.js `apagado`): no es
+  // una caída, y decir "lo estamos reconectando" sería mentira.
+  const retirado     = chip?.apagado === true;
+  const ventana      = cfg?.recordatorio?.ventanaHoras ?? 24;
 
   // Si el local ya manda por SU número, el cron de plataforma lo salta para no
   // escribirle dos veces al mismo cliente. Se dice, en vez de mostrar un
@@ -95,16 +109,20 @@ export default function WhatsAppPlataforma({ onEstado }) {
         <SettingRow
           Icon={Smartphone}
           title={conectado && chip?.numeroVinculado ? `+${chip.numeroVinculado}` : 'Número de SynapTech'}
-          description={conectado
-            ? 'Activo. Tus clientes reciben el aviso desde este número, con el nombre de tu local en el mensaje.'
+          description={
+            cargandoChip ? 'Consultando el estado del número…'
+            : conectado  ? 'Activo. Tus clientes reciben el aviso desde este número, con el nombre de tu local en el mensaje.'
+            : retirado   ? 'Estamos cambiando el número que atiende tu local. Te avisamos apenas quede listo.'
             : 'Temporalmente fuera de línea. Lo estamos reconectando — no necesitas hacer nada.'}
         >
           <span className={`text-[12px] font-semibold rounded-full px-3 py-1 shrink-0 border ${
-            conectado
-              ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
-              : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+            cargandoChip
+              ? 'text-slate-400 bg-white/[0.04] border-white/10'
+              : conectado
+                ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                : 'text-amber-300 bg-amber-500/10 border-amber-500/20'
           }`}>
-            {conectado ? 'Activo' : 'Reconectando'}
+            {cargandoChip ? '…' : conectado ? 'Activo' : retirado ? 'En cambio' : 'Reconectando'}
           </span>
         </SettingRow>
 

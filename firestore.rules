@@ -218,6 +218,29 @@ service cloud.firestore {
               || waIncluyeRecordatorios(tid));
     }
 
+    /* Campos del canal que el LOCAL no puede tocar. Solo los escribe el
+       servidor (gateway.js al vincular, el webhook de Evolution) y son
+       exactamente los que sostienen la protección anti-bloqueo:
+
+         · vinculadoDesde  → de acá sale la madurez del número y con ella el
+           tope diario (cuota.js capDiario: 40 → 120 → 300). Escribiendo una
+           fecha vieja desde la consola del navegador, un admin saltaba su
+           tope el día uno y se arriesgaba el número él mismo.
+         · estadoConexion  → es el gate de cerebro.js y confirmaciones.js;
+           forzarlo a 'connected' hace que el sistema intente enviar por una
+           sesión que no existe.
+         · numeroVinculado / instanceName → identidad del canal.
+         · confirmDia      → el contador de confirmaciones ya enviadas hoy.
+
+       Auditoría del 03-08-2026: las reglas cuidaban los dos switches del plan
+       y dejaban el resto del doc abierto. */
+    function waCamposDelServidor() {
+      return request.resource.data.diff(resource == null ? request.resource.data : resource.data)
+        .affectedKeys()
+        .hasAny(['vinculadoDesde', 'estadoConexion', 'numeroVinculado', 'instanceName',
+                 'confirmDia', 'conectadoEn', 'desconectadoEn', 'tycAceptadoEn', 'tycAceptadoPor']);
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  _system — configuración global (versionamiento, kill switch)
     //  Lectura pública: solo contiene metadata no sensible (versión
@@ -1515,11 +1538,13 @@ service cloud.firestore {
         // porque la reserva los lee sin sesión.
         allow read: if docId != 'whatsapp' || esStaff(tid) || esBootstrap();
         // En `whatsapp`, el admin del local no puede encender un módulo que su
-        // plan no incluye (ver waSwitchesDentroDelPlan). El resto de los docs
-        // de configuracion no tiene esa restricción.
+        // plan no incluye (waSwitchesDentroDelPlan) NI tocar los campos que
+        // sostienen la protección anti-bloqueo (waCamposDelServidor). El resto
+        // de los docs de configuracion no tiene esas restricciones.
         allow write: if esBootstrap()
                      || (esAdmin(tid)
-                         && (docId != 'whatsapp' || waSwitchesDentroDelPlan(tid)))
+                         && (docId != 'whatsapp'
+                             || (waSwitchesDentroDelPlan(tid) && !waCamposDelServidor())))
                      // Recepción gestiona el catálogo de productos: las categorías
                      // y el toggle de la vitrina viven acá. Puede tocar SOLO
                      // esos campos; el resto del doc (horarios, planes) es de

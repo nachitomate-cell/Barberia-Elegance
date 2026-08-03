@@ -89,15 +89,15 @@ const partir = (total, pct) => {
  *  checkbox desaparece y todas las citas nacen verdes (regla de producto). */
 async function syncCheckboxPublico(tid) {
   try {
-    const [nS, eS] = await Promise.all([
-      db.doc(`wa_notif/${tid}`).get(),
-      db.doc(`tenants/${tid}/configuracion/whatsapp`).get(),
-    ]);
-    const n = nS.data() || {}, e = eS.data() || {};
-    const oficial = (n.planRecordatorio === true && (Number(n.bolsaSaldoRec) || 0) > 0)
-                 || (n.planCliente === true && (Number(n.bolsaSaldoConf) || 0) > 0);
-    const evolution = e.confirmacionesEnabled === true && e.estadoConexion === 'connected';
-    await db.doc(`tenants/${tid}/configuracion/main`).set({ waConfirmActivo: oficial || evolution }, { merge: true });
+    // DELEGA en la única fórmula que conoce los TRES canales (propio,
+    // plataforma y oficial). Antes calculaba la suya, que ignoraba el chip de
+    // SynapTech: tocar un toggle de Mensajería apagaba la casilla de un local
+    // de plataforma y sus confirmaciones morían en silencio, sin repararse
+    // solas (delnero y sion estaban expuestos — auditoría 03-08-2026).
+    // Además esa versión escribía `tenants/elegance/configuracion/main`, que
+    // la agenda de elegance no lee: el espejo resuelve también esa ruta.
+    const { _recomputarEspejo } = require('./evolution/confirmaciones');
+    await _recomputarEspejo(tid);
   } catch (err) { logger.warn(`[wa-bolsa] syncCheckbox ${tid}:`, err.message); }
 }
 exports._syncCheckboxPublico = syncCheckboxPublico;
