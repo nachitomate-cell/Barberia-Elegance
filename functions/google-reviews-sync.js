@@ -37,8 +37,12 @@ const db = admin.firestore();
 
 const GOOGLE_PLACES_API_KEY = defineSecret('GOOGLE_PLACES_API_KEY');
 
-// Mismos tenants que el resto de funciones multi-tenant (ver instagram-sync.js)
-const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes', 'lumen', 'delnero', 'marcelo_hairdressing', 'aura', 'latincaribe', 'machos', 'infinity', 'sionbarberia', 'omega', 'memphis'];
+// Los tenants se ENUMERAN en vivo (listaTenants: listDocuments + elegance
+// raíz) — la lista hardcodeada anterior se quedó vieja y dejaba fuera del
+// sync diario a todos los locales vinculados después (renacer, yugen, sion,
+// kronnos_*, …): sin sync no hay push de reseña nueva. syncTenant ya omite
+// solo a los que no tienen placeId, así que enumerar de más no cuesta nada.
+const { listaTenants } = require('./lib/push-staff');
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
 // Doc de reseñas por tenant (elegance vive en la raíz; el resto bajo tenants/)
@@ -238,9 +242,10 @@ exports.googleReviewsSyncScheduled = onSchedule(
   { schedule: '0 6 * * *', region: 'us-central1', secrets: [GOOGLE_PLACES_API_KEY] },
   async () => {
     const apiKey  = GOOGLE_PLACES_API_KEY.value();
-    const results = await Promise.allSettled(ALL_TENANTS.map(t => syncTenant(t, apiKey)));
+    const ids     = (await listaTenants()).map(t => t.id);
+    const results = await Promise.allSettled(ids.map(t => syncTenant(t, apiKey)));
     results.forEach((r, i) => {
-      if (r.status === 'rejected') logger.error(`[GoogleReviews] Error (${ALL_TENANTS[i]}):`, r.reason);
+      if (r.status === 'rejected') logger.error(`[GoogleReviews] Error (${ids[i]}):`, r.reason);
     });
   }
 );
@@ -258,13 +263,14 @@ exports.googleReviewsSyncManual = onCall(
       throw new HttpsError('permission-denied', 'Solo el superadmin puede sincronizar reseñas.');
     }
     const apiKey   = GOOGLE_PLACES_API_KEY.value();
+    const ids      = (await listaTenants()).map(t => t.id);
     const tenantId = request.data?.tenantId;
     if (tenantId) {
-      if (!ALL_TENANTS.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
+      if (!ids.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
       return syncTenant(tenantId, apiKey);
     }
     const out = [];
-    for (const t of ALL_TENANTS) {
+    for (const t of ids) {
       try { out.push(await syncTenant(t, apiKey)); }
       catch (e) { out.push({ tenantId: t, error: String(e) }); }
     }
