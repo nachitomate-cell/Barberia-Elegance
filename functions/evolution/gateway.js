@@ -259,8 +259,10 @@ exports.waMisConversaciones = onCall({ region: 'us-central1', cors: true }, asyn
       actualizado:  c.updatedAt?.toMillis?.() || null,
       ultimoTexto:  ultimo ? String(ultimo.content || '').slice(0, 120) : '',
       ultimoDe:     ultimo?.role === 'assistant' ? 'bot' : 'cliente',
-      // Solo los últimos turnos: la transcripción completa no aporta y pesa.
-      turnos: msgs.slice(-12).map(m => ({
+      // Transcripción para AUDITAR: cuando un local reclama ("el bot dijo que
+      // no había hora"), 12 turnos se quedaban cortos y había que pedirle
+      // capturas del teléfono. Se manda lo archivado (hasta 80).
+      turnos: msgs.slice(-80).map(m => ({
         de: m.role === 'assistant' ? 'bot' : 'cliente',
         texto: typeof m.content === 'string' ? m.content : '[contenido no textual]',
       })),

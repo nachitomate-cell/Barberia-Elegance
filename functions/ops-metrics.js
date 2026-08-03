@@ -843,7 +843,9 @@ exports.opsConversaciones = onCall({ region: 'us-central1', cors: true }, async 
       silenciado: millis(c.botSilencedUntil) > Date.now(),
       pendiente: c.citaPendiente ? `${c.citaPendiente.fecha} ${c.citaPendiente.hora}` : null,
       actualizado: millis(c.updatedAt) || null,
-      turnos: msgs.slice(-10).map(m => ({
+      // Transcripción COMPLETA de lo archivado (hasta 80 turnos): con 10 no
+      // se podía auditar un reclamo y había que pedirle capturas al local.
+      turnos: msgs.slice(-80).map(m => ({
         rol: m.role,
         texto: typeof m.content === 'string' ? m.content : '[bloques]',
       })),

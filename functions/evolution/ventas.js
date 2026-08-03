@@ -43,7 +43,8 @@ const db = admin.firestore();
 const MODEL        = 'claude-sonnet-5';
 const MAX_TOKENS   = 500;                  // WhatsApp: respuestas cortas
 const MAX_ROUNDS   = 3;                    // tope de rondas de tool-use por mensaje
-const MAX_HISTORIA = 16;                   // 8 pares — una conversación de ventas cabe entera
+const MAX_HISTORIA = 16;                   // turnos que se le MANDAN al modelo (8 pares)
+const MAX_ARCHIVO  = 80;                   // turnos archivados para auditar (ver cerebro.js)
 const SILENCIO_MS  = 4 * 60 * 60 * 1000;  // Ignacio tomó el chat → bot mudo 4 h ahí
 
 // Topes anti-troll / anti-bucle. El presupuesto en USD (ai-presupuesto, vendor
@@ -330,7 +331,11 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   }
 
   // ── Claude (loop con tool use: registrar_reunion) ──
-  const historia = (Array.isArray(convData.messages) ? convData.messages : []).slice(-MAX_HISTORIA);
+  // `historiaCompleta` es el archivo (se vuelve a guardar entero); al modelo
+  // solo van los últimos turnos. Antes se recortaba al leer y el recorte se
+  // arrastraba al guardar: la conversación vieja se borraba sola.
+  const historiaCompleta = Array.isArray(convData.messages) ? convData.messages : [];
+  const historia = historiaCompleta.slice(-MAX_HISTORIA);
   const client = new Anthropic({ apiKey: anthropicKey });
   let respuesta = '';
   try {
@@ -391,10 +396,10 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
 
   await ref.set({
     messages: [
-      ...historia,
+      ...historiaCompleta,
       { role: 'user', content: texto || textoClaude },
       { role: 'assistant', content: respuesta },
-    ].slice(-MAX_HISTORIA),
+    ].slice(-MAX_ARCHIVO),
     respDia:   { fecha: hoy, n: respHoy + 1 },
     clienteNombre: pushName || convData.clienteNombre || '',
     chipId,
@@ -503,7 +508,8 @@ const ventasBotConfig = onCall({ region: 'us-central1', cors: true }, async (req
       silenciadoHasta: sil > ahora ? sil : null,
       respHoy:     (c.respDia && c.respDia.fecha === hoy) ? (Number(c.respDia.n) || 0) : 0,
       actualizado: c.updatedAt?.toMillis?.() || null,
-      turnos: msgs.slice(-12).map(m => ({
+      // Transcripción completa de lo archivado, para auditar el chat entero.
+      turnos: msgs.slice(-80).map(m => ({
         de: m.role === 'assistant' ? 'bot' : 'lead',
         texto: typeof m.content === 'string' ? m.content : '[no textual]',
       })),

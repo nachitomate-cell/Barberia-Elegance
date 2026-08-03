@@ -53,7 +53,13 @@ const db = admin.firestore();
 const MODEL       = 'claude-haiku-4-5-20251001'; // el más barato + rápido, ideal para agendar (subir a 'claude-sonnet-5' si falta calidad)
 const MAX_TOKENS  = 900;                 // respuestas de WhatsApp: cortas
 const MAX_ROUNDS  = 5;                   // tope de rondas de tool-use por mensaje
-const MAX_HISTORIA = 20;                 // turnos de texto que recordamos (10 pares)
+const MAX_HISTORIA = 20;                 // turnos que se le MANDAN al modelo (10 pares)
+// Turnos que se ARCHIVAN en el doc. Va aparte de MAX_HISTORIA a propósito:
+// recortar el archivo al mismo largo que el contexto borraba la conversación
+// vieja para siempre, y cuando un local reclamaba ("el bot dijo que no había
+// hora") ya no quedaba con qué auditar — había que pedirle capturas del
+// teléfono. Archivar no cuesta tokens; solo lo que se envía al modelo.
+const MAX_ARCHIVO  = 80;
 const SILENCIO_MS  = 2 * 60 * 60 * 1000; // anti-colisión: silencio del bot tras toma-de-control (2h)
 
 // Mínimo de tokens que Anthropic exige para que un prefijo sea cacheable.
@@ -1089,7 +1095,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       ...historia,
       { role: 'user', content: textoHistoria },
       { role: 'assistant', content: respuesta },
-    ].slice(-MAX_HISTORIA);
+    ].slice(-MAX_ARCHIVO);
     const botMsgIds = [...(Array.isArray(convData.botMsgIds) ? convData.botMsgIds : []), ...sentIds].slice(-20);
     await ref.set({
       messages:      nuevaHistoria,
@@ -1262,7 +1268,10 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   let respuesta;
   try {
     respuesta = await pensarYResponder({
-      anthropicKey, systemFijo, systemVariable, historia, texto: textoClaude, tools,
+      anthropicKey, systemFijo, systemVariable,
+      // Al modelo solo los últimos turnos: el archivo es más largo (auditoría).
+      historia: historia.slice(-MAX_HISTORIA),
+      texto: textoClaude, tools,
       ctx: { tid, telefono, pushName, confirmacionesEnabled: confOn, chatId, citaPendiente },
     });
   } catch (e) {

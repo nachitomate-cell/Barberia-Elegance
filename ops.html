@@ -688,8 +688,10 @@
           <button class="mini" onclick="this.closest('.modal').remove()">Cerrar</button>
         </div>
         <div class="chat">
-          <div class="meta">${c.respHoy} resp. hoy${c.silenciado ? ' · 🔇 pausado' : ''}</div>
-          ${c.turnos.map(t => `<div class="msg ${t.de === 'bot' ? 'assistant' : 'user'}">${t.de === 'bot' ? '🤖' : '👤'} ${String(t.texto).replace(/</g, '&lt;')}</div>`).join('')}
+          <div class="meta">${c.respHoy} resp. hoy${c.silenciado ? ' · 🔇 pausado' : ''} · ${c.turnos.length} turnos</div>
+          <div style="max-height:55vh;overflow-y:auto">
+            ${c.turnos.map(t => `<div class="msg ${t.de === 'bot' ? 'assistant' : 'user'}">${t.de === 'bot' ? '🤖' : '👤'} ${String(t.texto).replace(/</g, '&lt;')}</div>`).join('')}
+          </div>
         </div>`;
       document.body.appendChild(wrap);
     }
@@ -946,8 +948,10 @@
           </div>
           ${cs.length ? cs.map(c => `
             <div class="chat">
-              <div class="meta">${c.chat}${c.nombre?` · ${c.nombre}`:''} · ${c.respHoy} resp. hoy${c.silenciado?' · 🔇 en pausa':''}${c.pendiente?` · ⏳ cita ${c.pendiente}`:''}</div>
-              ${(c.turnos||[]).map(t => `<div class="msg ${t.rol}">${t.rol==='user'?'👤':'🤖'} ${String(t.texto).replace(/</g,'&lt;')}</div>`).join('')}
+              <div class="meta">${c.chat}${c.nombre?` · ${c.nombre}`:''} · ${c.respHoy} resp. hoy${c.silenciado?' · 🔇 en pausa':''}${c.pendiente?` · ⏳ cita ${c.pendiente}`:''} · ${(c.turnos||[]).length} turnos</div>
+              <div style="max-height:50vh;overflow-y:auto">
+                ${(c.turnos||[]).map(t => `<div class="msg ${t.rol}">${t.rol==='user'?'👤':'🤖'} ${String(t.texto).replace(/</g,'&lt;')}</div>`).join('')}
+              </div>
             </div>`).join('') : '<p class="muted">Sin conversaciones todavía.</p>'}`;
         wrap.querySelector('#cerrar').onclick = () => wrap.remove();
       }catch(e){
