@@ -38,7 +38,9 @@ const WA_SYNAPTECH = '56983568212';
 // desmonta y remonta este componente, y cada vuelta pagaba otra llamada a
 // waNotifEstado con su spinner. 60s es suficiente para que navegar entre
 // pestañas sea instantáneo sin mostrar datos rancios.
-let cacheEstado = null;
+// Va CON el tenant adentro: es una variable de módulo, así que un operador que
+// salta de local en el hub se llevaba el estado del anterior por 60s.
+let cacheEstado = null;   // { tid, data, at }
 const CACHE_MS = 60_000;
 
 // Fuera del componente A PROPÓSITO: definido adentro, React lo trata como un
@@ -88,7 +90,8 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
   const tenantId = resolveTenantId();
 
   // Arranca con lo último conocido: cambiar de pestaña no debe mostrar spinner.
-  const fresco = cacheEstado && (Date.now() - cacheEstado.at) < CACHE_MS;
+  // Solo si la caché es de ESTE local (ver nota arriba).
+  const fresco = cacheEstado && cacheEstado.tid === tenantId && (Date.now() - cacheEstado.at) < CACHE_MS;
   const [estado,   setEstado]   = useState(fresco ? cacheEstado.data : null);
   const [loading,  setLoading]  = useState(!fresco);
   const [error,    setError]    = useState(null);
@@ -101,15 +104,20 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
     setError(null);
     try {
       const fn  = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifEstado');
-      const res = await fn({});
+      // `tenantId` explícito — el servidor solo lo honra para operadores de
+      // SynapTech, pero sin él caía al tenant del claim: Ignacio abriendo el
+      // panel de otro local veía los flags y el saldo de ELEGANCE. En renacer
+      // eso se leía como "confirmaciones ACTIVAS · te quedan 0 mensajes"
+      // mientras arriba WaEstadoLinea (que sí lo manda) decía 100 disponibles.
+      const res = await fn({ tenantId });
       setEstado(res.data || null);
-      if (res.data) cacheEstado = { data: res.data, at: Date.now() };
+      if (res.data) cacheEstado = { tid: tenantId, data: res.data, at: Date.now() };
     } catch (e) {
       if (!silencioso) setError(e.message || 'No se pudo cargar el estado.');
     } finally {
       if (!silencioso) setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   // Con caché fresca se revalida en segundo plano (sin spinner): datos al
   // instante y aun así al día.
@@ -171,7 +179,10 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
     setEstado(e => (e ? { ...e, [key]: valor } : e));
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifPreferencias');
-      await fn({ [campo]: valor });
+      // Sin `tenantId` esto ESCRIBÍA en el tenant del claim: un operador
+      // encendiendo las confirmaciones en el panel de un local se las prendía
+      // (y le gastaba la bolsa) a otro.
+      await fn({ tenantId, [campo]: valor });
       await cargar(true);                                   // silencioso: sin spinner
     } catch (e) {
       setEstado(prev => (prev ? { ...prev, [key]: !valor } : prev));   // revertir
@@ -190,7 +201,7 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
     setEstado(e => (e ? { ...e, repartoConfPct: pct, bolsaSaldoConf: confOpt, bolsaSaldoRec: total - confOpt } : e));
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaReparto');
-      await fn({ pct });
+      await fn({ tenantId, pct });
       await cargar(true);   // refresca saldos por cupo, sin spinner
     } catch (e) {
       // Sin esta reversión los saldos quedaban mostrando un reparto que el
@@ -213,7 +224,8 @@ export default function WhatsAppNotif({ embedded = false, onEstado, seccion = 't
       // "Comprar" y no pasaba nada — plata que no entra (auditoría 03-08-2026).
       const tab = window.open('', '_blank', 'noopener');
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waBolsaCrearLink');
-      const r  = await fn({ bolsaId: bolsaSel });
+      // Idem: sin `tenantId` la bolsa comprada se acreditaba al local del claim.
+      const r  = await fn({ tenantId, bolsaId: bolsaSel });
       if (r.data?.initPoint) {
         if (tab) tab.location = r.data.initPoint;
         else { setLinkPago(r.data.initPoint); setErrCompra('Tu navegador bloqueó la ventana de pago. Usa el botón de abajo para abrirla.'); }
