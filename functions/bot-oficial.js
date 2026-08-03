@@ -77,9 +77,11 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
   const cerebro = require('./evolution/cerebro');
   const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, { estiloChileno: false });
   // Calendario masticado (lib/calendario): hoy + próximos 7 días con su día de
-  // semana — el modelo no calcula fechas (regla de la casa, 02-08-2026).
+  // semana y la hora actual — el modelo no calcula fechas ni deduce la hora
+  // (regla de la casa, 02 y 03-08-2026). La línea de la hora la arma la lib:
+  // acá vivía una copia propia y el bot de los locales quedó sin ninguna.
   const { lineasCalendario } = require('./lib/calendario');
-  const systemVar = `${lineasCalendario(hoy).join('\n')}\nSon las ${hhmm} en Chile. El cliente escribe desde el +${fono}. Este chat corre por el número oficial de la plataforma.`;
+  const systemVar = `${lineasCalendario(hoy, hhmm).join('\n')}\nEl cliente escribe desde el +${fono}. Este chat corre por el número oficial de la plataforma.`;
 
   const historia = Array.isArray(conv.messages) ? conv.messages.slice(-MAX_HISTORIA) : [];
   const messages = [...historia, { role: 'user', content: texto }];

@@ -36,8 +36,12 @@ const Anthropic      = require('@anthropic-ai/sdk');
 const {
   _buscarDisponibilidad: buscarDisponibilidad,
   _barberoLibreParaSlot: barberoLibreParaSlot,
+  _atiendeEseDia:        atiendeEseDia,
   _ahoraChile:           ahoraChile,
 } = require('../chat-horas-disponibles');
+// Calendario masticado: ni el prompt ni los resultados de las tools dejan que
+// el modelo convierta una fecha en día de la semana (regla de la casa, 02-08).
+const { lineasCalendario, conDiaSemana } = require('../lib/calendario');
 const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
 const { puedeGastar } = require('../lib/ai-presupuesto');
 const { incluyeBot, incluyeRecordatorios } = require('../lib/wa-plan');
@@ -162,7 +166,7 @@ async function cargarEquipo(tid) {
     const nombre = String(b.nombre || '').trim();
     if (!nombre || vistos.has(norm(nombre))) return;
     vistos.add(norm(nombre));
-    out.push({ nombre, especialidad: String(b.especialidad || '').trim() });
+    out.push({ id: d.id, nombre, especialidad: String(b.especialidad || '').trim() });
   });
   return out.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
@@ -176,6 +180,42 @@ function matchServicio(servicios, nombre) {
       || null;
 }
 
+/** Fecha MASTICADA para el resultado de una tool: "hoy", "mañana" o el día de
+ *  la semana en palabras. Misma doctrina que lib/calendario — el modelo no
+ *  convierte fecha→día de semana ni acá. Devolver `fecha: "2026-08-05"` a secas
+ *  bastó para que el bot dijera "mañana martes" de un cupo del MIÉRCOLES
+ *  (kronnos_limache, 03-08): razonó "no es hoy, entonces es mañana" en vez de
+ *  mirar la tabla del calendario. El cliente habría llegado un día antes. */
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+               'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+function fechaHablada(fechaStr, hoyStr) {
+  const { dia } = conDiaSemana(fechaStr);
+  const [, mes, d] = String(fechaStr).split('-').map(Number);
+  // Tal como se le dice a un cliente por WhatsApp: la fecha ISO viaja aparte en
+  // el campo `fecha` para las llamadas a herramientas, no en el texto hablado.
+  const largo = `${dia} ${d} de ${MESES[mes - 1]}`;
+  if (fechaStr === hoyStr) return `hoy (${largo})`;
+  if (fechaStr === conDiaSemana(hoyStr, 1).fecha) return `mañana (${largo})`;
+  return `el ${largo}`;
+}
+
+/** Matchea el nombre que dijo el cliente contra un profesional del equipo.
+ *  Los clientes escriben "claudio", "con el Claudio", "Claudio S." — se prueba
+ *  exacto, luego por inclusión y por último por primer nombre. Ambiguo (dos
+ *  Cristian) devuelve null: preguntar cuál es mejor que rifar la cita. */
+function matchProfesional(equipo, nombre) {
+  const n = norm(nombre);
+  if (!n) return null;
+  const exacto = equipo.filter(b => norm(b.nombre) === n);
+  if (exacto.length === 1) return exacto[0];
+
+  const incluye = equipo.filter(b => norm(b.nombre).includes(n) || n.includes(norm(b.nombre)));
+  if (incluye.length === 1) return incluye[0];
+
+  const porPila = equipo.filter(b => norm(b.nombre).split(/\s+/)[0] === n.split(/\s+/)[0]);
+  return porPila.length === 1 ? porPila[0] : null;
+}
+
 /* ─────────────────────────── Herramientas (Claude) ─────────────────────────── */
 
 const TOOLS = [
@@ -186,19 +226,20 @@ const TOOLS = [
   },
   {
     name: 'consultar_disponibilidad',
-    description: 'Devuelve las horas libres del local. Si pasas `fecha`, busca desde ese día; si no, desde hoy. Pasa SIEMPRE `servicio_nombre` cuando ya sepas qué servicio quiere: sin él las horas se calculan con 30 minutos genéricos y un servicio más largo puede no caber. Úsalo siempre antes de ofrecer horas: nunca inventes disponibilidad.',
+    description: 'Devuelve las horas libres del local. Si pasas `fecha`, busca desde ese día; si no, desde hoy. Pasa SIEMPRE `servicio_nombre` cuando ya sepas qué servicio quiere: sin él las horas se calculan con 30 minutos genéricos y un servicio más largo puede no caber. Si el cliente nombró a un profesional, pasa SIEMPRE `profesional`: sin él las horas son las del local completo y le estarías dando las horas de OTRA persona. Úsalo siempre antes de ofrecer horas: nunca inventes disponibilidad.',
     input_schema: {
       type: 'object',
       properties: {
         fecha: { type: 'string', description: 'Fecha inicial de búsqueda en formato YYYY-MM-DD (opcional).' },
         servicio_nombre: { type: 'string', description: 'Servicio que quiere el cliente, tal como aparece en el catálogo (recomendado: ajusta las horas a su duración real y a sus días válidos).' },
+        profesional: { type: 'string', description: 'Nombre del profesional que pidió el cliente, tal como aparece en EQUIPO QUE ATIENDE. Devuelve SOLO las horas de esa persona. Obligatorio si el cliente lo nombró.' },
       },
       required: [],
     },
   },
   {
     name: 'agendar_cita',
-    description: 'Reserva una cita real. Llama esto SOLO cuando ya confirmaste con el cliente: servicio, fecha (YYYY-MM-DD), hora (HH:MM) y su nombre. La hora debe haber salido de consultar_disponibilidad. Para GRUPOS (2+ personas), llama esta herramienta UNA VEZ POR PERSONA, cada una con su nombre — pueden ir a la misma hora si hay varios profesionales. Devuelve el código de la reserva si tuvo éxito.',
+    description: 'Reserva una cita real. Llama esto SOLO cuando ya confirmaste con el cliente: servicio, fecha (YYYY-MM-DD), hora (HH:MM) y su nombre. La hora debe haber salido de consultar_disponibilidad. Si el cliente pidió a un profesional por su nombre, pasa `profesional`: la cita queda con ESA persona o no se agenda. Para GRUPOS (2+ personas), llama esta herramienta UNA VEZ POR PERSONA, cada una con su nombre — pueden ir a la misma hora si hay varios profesionales. Devuelve el código de la reserva si tuvo éxito.',
     input_schema: {
       type: 'object',
       properties: {
@@ -206,6 +247,7 @@ const TOOLS = [
         fecha:           { type: 'string', description: 'Fecha de la cita en formato YYYY-MM-DD.' },
         hora:            { type: 'string', description: 'Hora de la cita en formato HH:MM (24h).' },
         cliente_nombre:  { type: 'string', description: 'Nombre del cliente.' },
+        profesional:     { type: 'string', description: 'Profesional que pidió el cliente, tal como aparece en EQUIPO QUE ATIENDE. Si no lo pidió, no lo pases: el sistema asigna a quien esté libre.' },
       },
       required: ['servicio_nombre', 'fecha', 'hora', 'cliente_nombre'],
     },
@@ -585,21 +627,70 @@ async function ejecutarTool(name, input, ctx) {
     if (input?.servicio_nombre) {
       svc = matchServicio(await cargarServicios(tid).catch(() => []), input.servicio_nombre);
     }
+
+    // Profesional pedido por el cliente: las horas pasan a ser SUYAS. Sin esto
+    // el bot contestaba "¿Claudio tiene hora hoy?" con las horas de Orlando
+    // (kronnos_limache, 03-08) y el cliente llegaba al local con otro barbero.
+    let prof = null;
+    if (input?.profesional) {
+      const equipo = await cargarEquipo(tid).catch(() => []);
+      prof = matchProfesional(equipo, input.profesional);
+      if (!prof) {
+        return {
+          hay_cupos: false,
+          profesional_no_encontrado: String(input.profesional),
+          equipo: equipo.map(b => b.nombre),
+          mensaje: 'Ese nombre no corresponde a nadie del equipo (o hay más de uno que calza). NO inventes su disponibilidad: pregúntale al cliente cuál de los profesionales de la lista quiere, o consulta sin profesional si le da lo mismo.',
+        };
+      }
+    }
+
     const r = await buscarDisponibilidad(tid, input?.fecha, {
       durMin:        svc?.duracion || null,
       diasServicio:  svc?.dias || null,
+      barberoId:     prof?.id || null,
     });
+
     if (!r.slots.length) {
+      if (prof) {
+        return {
+          hay_cupos: false, profesional: prof.nombre,
+          mensaje: `${prof.nombre} no tiene horas libres en los próximos días. NO ofrezcas horas de otra persona como si fueran suyas: dile que ${prof.nombre} no tiene cupos y pregúntale si prefiere esperar, otro día, o que lo atienda otro profesional del equipo.`,
+        };
+      }
       return { hay_cupos: false, mensaje: svc?.dias
         ? `Sin horas libres para "${svc.nombre}" en sus días válidos (${nombresDias(svc.dias)}) dentro de los próximos días.`
         : 'Sin horas libres en los próximos días.' };
     }
+
+    // Con profesional, el día que devuelve el motor puede NO ser el que pidió el
+    // cliente (es el próximo suyo con cupos). Hay que decirle al modelo por qué,
+    // o rellena el hueco solo: "hoy no atiende" ≠ "hoy está lleno".
+    const hoyStr = ahoraChile().fecha;
+    let notaDia = null;
+    if (prof) {
+      const fechaPedida = /^\d{4}-\d{2}-\d{2}$/.test(String(input?.fecha || ''))
+        ? input.fecha : hoyStr;
+      if (r.fecha !== fechaPedida) {
+        const j = await atiendeEseDia(tid, fechaPedida, prof.id).catch(() => null);
+        notaDia = j && j.motivo === 'dia_libre'
+          ? `${prof.nombre} NO atiende ${fechaHablada(fechaPedida, hoyStr)} (es su día libre). Díselo explícitamente antes de ofrecer las horas de abajo, que son de otro día.`
+          : `${prof.nombre} no tiene cupos ${fechaHablada(fechaPedida, hoyStr)}. Las horas de abajo son de otro día: acláraselo antes de ofrecerlas.`;
+      }
+    }
+
     return {
       hay_cupos: true, fecha: r.fecha, es_hoy: r.esHoy, horas: r.slots,
+      // El día EN PALABRAS: el modelo no convierte fecha→día de semana (dijo
+      // "mañana martes" de un cupo del miércoles, 03-08). Que no tenga que
+      // calcularlo es más barato que pedirle que no se equivoque.
+      cuando: fechaHablada(r.fecha, hoyStr),
       // La lista es una MUESTRA repartida por el día, no el listado completo:
       // sin decirlo, el modelo lee "10:30…13:15" como "después no hay nada" y
       // le niega al cliente una hora que sí existe (kronnos_penablanca, 02-08).
       aviso_muestra: 'Estas horas son una MUESTRA repartida por el día, NO el listado completo. Puede haber más cupos entre medio y después de la última. Si el cliente pide una hora que no está en la lista, NO le digas que está tomada: intenta agendarla igual — la herramienta te dirá si de verdad no está libre.',
+      ...(prof ? { profesional: prof.nombre, nota_profesional: `Estas horas son de ${prof.nombre}. Al agendar pasa profesional="${prof.nombre}".` } : {}),
+      ...(notaDia ? { aviso_dia: notaDia } : {}),
       ...(svc ? { servicio: svc.nombre, duracion_min: svc.duracion } : { nota: 'Horas calculadas con la duración típica del local: cuando sepas el servicio, vuelve a consultar pasando servicio_nombre (uno más largo puede no caber en estas horas).' }),
     };
   }
@@ -630,9 +721,33 @@ async function ejecutarTool(name, input, ctx) {
       return { ok: false, motivo: `"${svc.nombre}" solo está disponible los días: ${nombresDias(svc.dias)}. El ${fecha} cae ${DIAS[dowDe(fecha)]}: ofrece uno de sus días válidos u otro servicio del catálogo.` };
     }
 
+    // Profesional pedido por el cliente: es un CANDADO, no una preferencia. Si
+    // no está libre a esa hora la cita NO se crea con otro — el cliente pidió a
+    // esa persona y enterarse en el local de que lo atiende otro es peor que
+    // recibir otra hora. Sin `profesional`, el sistema asigna a quien pueda.
+    let exigir = null;
+    if (input?.profesional) {
+      const equipo = await cargarEquipo(tid).catch(() => []);
+      const prof = matchProfesional(equipo, input.profesional);
+      if (!prof) {
+        return { ok: false, motivo: `No identifiqué a "${input.profesional}" en el equipo. Pregúntale al cliente cuál quiere.`, equipo: equipo.map(b => b.nombre) };
+      }
+      exigir = prof;
+    }
+
     // Elegir profesional libre en ese slot exacto (misma regla que la agenda pública).
-    const barb = await barberoLibreParaSlot(tid, fecha, hora, svc.duracion);
-    if (!barb) return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
+    const barb = await barberoLibreParaSlot(tid, fecha, hora, svc.duracion, {
+      exigirBarberoId: exigir?.id || null,
+    });
+    if (!barb) {
+      if (exigir) {
+        const j = await atiendeEseDia(tid, fecha, exigir.id).catch(() => null);
+        return { ok: false, motivo: j && j.motivo === 'dia_libre'
+          ? `${exigir.nombre} no atiende ${fechaHablada(fecha, hoyC.fecha)} (día libre). NO agendes con otra persona a nombre suyo: ofrécele otro día de ${exigir.nombre}, o pregúntale si acepta a otro profesional del equipo.`
+          : `${exigir.nombre} no está libre ${fechaHablada(fecha, hoyC.fecha)} a las ${hora}. Consulta su disponibilidad (consultar_disponibilidad con profesional="${exigir.nombre}") y ofrécele una hora suya, o pregúntale si acepta a otro profesional.` };
+      }
+      return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
+    }
 
     const codigo  = genCodigoCita();
     const lockId  = lockIdFor(barb.id, fecha, hora);
@@ -804,7 +919,8 @@ CASOS QUE VAS A VER SEGUIDO:
 - Escribe con errores de tipeo, todo en mayúsculas o sin tildes: entiéndelo igual y responde normal. Nunca lo corrijas.
 - Manda varios mensajes seguidos: responde a todo junto en un solo mensaje, no uno por cada uno.
 - Pide una hora fuera del horario de atención: dilo con amabilidad, menciona el horario real de ese día y ofrece la hora más cercana que sí exista.
-- Quiere cambiar de barbero o pide uno específico: no lo prometas. El sistema asigna al profesional disponible; dile que lo coordine al llegar al local.
+- Pide a un profesional por su nombre ("¿tiene hora Claudio?", "quiero con la Evelyn"): llama a consultar_disponibilidad CON el campo profesional, y a agendar_cita también CON el campo profesional. Las horas que devuelven sin ese campo son del local completo, o sea de OTRA persona: ofrecerlas como suyas es mentirle al cliente. Si esa persona no tiene cupos, dilo con su nombre y ofrece sus otros días — nunca rellenes con horas ajenas sin avisar.
+- Si el cliente NO nombró a nadie, no pases el campo profesional ni prometas uno: el sistema asigna a quien esté libre y eso se coordina en el local.
 - Está molesto, reclama o pide hablar con una persona: no intentes resolverlo tú. Llama a pasar_con_humano de inmediato y despídete en una línea.
 - Se despide o agradece: responde corto y cálido, sin volver a ofrecer nada.
 
@@ -879,6 +995,7 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     '- NUNCA inventes precios ni servicios: los del CATÁLOGO de arriba son los únicos que existen y ya los tienes completos, no necesitas ninguna herramienta para consultarlos.',
     '- Si un servicio del catálogo dice "SOLO <días>", existe ÚNICAMENTE esos días: no lo ofrezcas ni lo agendes para ningún otro día. Antes de listar opciones, descarta los que no correspondan al día que pide el cliente; si insiste en ese servicio otro día, explica la restricción y ofrece su día válido más próximo u otro servicio.',
     '- NUNCA inventes horas libres: sácalas SIEMPRE de consultar_disponibilidad. El HORARIO DE ATENCIÓN te dice cuándo abre el local, no qué horas quedan libres.',
+    '- TODA hora que devuelve consultar_disponibilidad es futura y reservable: la herramienta ya descartó lo que pasó. JAMÁS descartes una por creer que "ya pasó", y JAMÁS le digas al cliente que la mañana, el mediodía o la tarde "ya pasaron" — solo el bloque AHORA de arriba dice qué hora es. Si no quedan horas en el rango que pide, la razón es que están TOMADAS: díselo así.',
     '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
     '- Solo llama a agendar_cita con una hora que haya salido de consultar_disponibilidad.',
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
@@ -953,10 +1070,14 @@ async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
 // le aplicó el horario dominical y le negó al cliente una hora de las 10:30
 // que SÍ existía (el lunes abren justo a las 10:30). Con la tabla explícita
 // el modelo no tiene que calcular nada — y se le prohíbe intentarlo.
-const { lineasCalendario } = require('../lib/calendario');
-function construirSystemVariable({ fechaHoy, pushName, telefono }) {
+// La HORA va junto al calendario y por el mismo motivo: sin ella el modelo la
+// deduce de los slots que recibe. El 03-08 a las 10:07, con el local abriendo
+// 10:30, un cliente pidió hora "para ahora" y el bot le contestó que "la mañana
+// de hoy ya pasó" ofreciéndole solo de 16:45 en adelante — el motor sí le había
+// devuelto 10:30, 11:00 y 11:30.
+function construirSystemVariable({ fechaHoy, horaHoy, pushName, telefono }) {
   return [
-    ...lineasCalendario(fechaHoy),
+    ...lineasCalendario(fechaHoy, horaHoy),
     `El cliente escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
   ].join('\n');
 }
@@ -1130,7 +1251,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const citaPendiente = convData.citaPendiente || null;
   const silenciado = millis(convData.botSilencedUntil) > Date.now();
   const botActivo = botOn && !silenciado;               // ¿responde el bot conversacional?
-  const hoyChile = ahoraChile().fecha;
+  const { fecha: hoyChile, hhmm: horaChile } = ahoraChile();
   const respHoy = (convData.respDia && convData.respDia.fecha === hoyChile)
     ? (Number(convData.respDia.n) || 0) : 0;            // respuestas ya enviadas hoy en ESTE chat
 
@@ -1354,7 +1475,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   const { systemFijo, toolsBase } = await armarContextoLocal(tid, {
     estiloChileno: waCfg.estiloChileno === true,
   });
-  let systemVariable = construirSystemVariable({ fechaHoy: hoyChile, pushName, telefono });
+  let systemVariable = construirSystemVariable({ fechaHoy: hoyChile, horaHoy: horaChile, pushName, telefono });
   if (citaPendiente) {
     systemVariable += `\n\nIMPORTANTE: Este cliente tiene una cita PENDIENTE de confirmar: ${citaPendiente.servicio || 'servicio'} el ${citaPendiente.fecha} a las ${citaPendiente.hora}. Si su mensaje indica que asistirá, llama a gestionar_confirmacion con decision:"confirmar". Si indica que no podrá o quiere cancelar, llama con decision:"cancelar". Luego responde corto y cálido.`;
   }

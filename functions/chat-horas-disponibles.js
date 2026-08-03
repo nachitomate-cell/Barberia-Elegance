@@ -96,7 +96,8 @@ const toMins = (t) => {
 };
 const toHHMM = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
-/** Fecha (YYYY-MM-DD) y minutos del día actuales en Chile. */
+/** Fecha (YYYY-MM-DD), minutos del día y hora HH:MM actuales en Chile.
+ *  `hhmm` existe para los prompts: el bot debe RECIBIR la hora, nunca deducirla. */
 function ahoraChile() {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
@@ -107,7 +108,11 @@ function ahoraChile() {
   );
   // Intl puede devolver hour '24' a medianoche — normalizamos.
   const hh = Number(parts.hour) % 24;
-  return { fecha: `${parts.year}-${parts.month}-${parts.day}`, mins: hh * 60 + Number(parts.minute) };
+  return {
+    fecha: `${parts.year}-${parts.month}-${parts.day}`,
+    mins:  hh * 60 + Number(parts.minute),
+    hhmm:  `${String(hh).padStart(2, '0')}:${parts.minute}`,
+  };
 }
 
 function sumarDias(fechaStr, n) {
@@ -176,8 +181,28 @@ async function aplicarJornadasPersonales(c, barberos, dow, addBusy) {
   });
 }
 
-/** Slots libres de UN día. Exportada para tests locales con Admin SDK. */
-async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null) {
+/** Elegibilidad para atender: la MISMA regla que la reserva pública.
+ *  Vive suelta porque la usan las tres entradas (horasParaFecha,
+ *  barberoLibreParaSlot, atiendeEseDia) y una copia que se desincronice
+ *  significa ofrecer horas de alguien que no puede tomarlas. */
+function esElegible(b, tenantId) {
+  if (b._mainDocId) return false;
+  if (b.disponible === false || b.activo === false) return false;
+  if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return false;
+  return true;
+}
+
+/** Slots libres de UN día. Exportada para tests locales con Admin SDK.
+ *
+ *  @param {object} [opts]
+ *  @param {string} [opts.barberoId] Calcula las horas de ESE profesional y de
+ *    nadie más. Sin él un slot está libre si CUALQUIER barbero puede tomarlo,
+ *    que es lo correcto para "¿tienen hora?" pero una mentira para "¿tiene
+ *    hora Claudio?": el 03-08 el bot ofreció a un cliente las horas de Orlando
+ *    como si fueran de Claudio, que ese lunes tenía día libre.
+ */
+async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, opts = {}) {
+  const { barberoId = null } = opts || {};
   const c = cols(tenantId);
 
   const confSnap = await c.conf.get();
@@ -207,9 +232,8 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null) 
   const barberos = [];
   barbSnap.forEach(d => {
     const b = d.data();
-    if (b._mainDocId) return;
-    if (b.disponible === false || b.activo === false) return;
-    if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return;
+    if (!esElegible(b, tenantId)) return;
+    if (barberoId && d.id !== barberoId) return;
     barberos.push({ id: d.id, docHorario: b.horario || null });
   });
   if (!barberos.length) return [];
@@ -329,23 +353,66 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
  * @returns {{ fecha:string|null, esHoy:boolean, slots:string[] }}
  */
 async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
-  const { durMin = null, diasServicio = null } = opts || {};
+  const { durMin = null, diasServicio = null, barberoId = null } = opts || {};
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
   // Sin servicio elegido, la duración típica del local (una sola lectura para
   // toda la búsqueda, no una por día).
   const dur = Number(durMin) > 0 ? durMin : await duracionTipica(tenantId);
   // Con servicio restringido por días se amplía la búsqueda: 4 días podían no
-  // contener NINGÚN día válido (ej. promo Lu-Ju consultada un viernes).
-  const maxDias = Array.isArray(diasServicio) && diasServicio.length ? 10 : MAX_DIAS_BUSQUEDA;
+  // contener NINGÚN día válido (ej. promo Lu-Ju consultada un viernes). Filtrar
+  // por profesional necesita el mismo aire: quien trabaja 3 días a la semana no
+  // tiene por qué tener su próximo cupo dentro de los próximos 4.
+  const maxDias = (Array.isArray(diasServicio) && diasServicio.length) || barberoId ? 10 : MAX_DIAS_BUSQUEDA;
   for (let i = 0; i < maxDias; i++) {
     const fecha = sumarDias(desde, i);
     if (Array.isArray(diasServicio) && diasServicio.length && !diasServicio.includes(dowDe(fecha))) continue;
     const esHoy = fecha === ahora.fecha;
-    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur);
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { barberoId });
     if (slots.length) return { fecha, esHoy, slots };
   }
   return { fecha: null, esHoy: false, slots: [] };
+}
+
+/**
+ * ¿Ese profesional atiende ese día? Responde la diferencia que al cliente le
+ * importa: "Claudio hoy no trabaja" no es lo mismo que "Claudio hoy está lleno",
+ * y sin este dato el bot solo sabe que no hay slots y termina inventando el
+ * motivo. No mira ocupación — solo jornada del barbero y puertas del local.
+ *
+ * @returns {Promise<{atiende:boolean, motivo:'ok'|'dia_libre'|'local_cerrado'|'no_elegible'|'no_existe'}>}
+ */
+async function atiendeEseDia(tenantId, fechaStr, barberoId) {
+  const c = cols(tenantId);
+  const [confSnap, barbSnap] = await Promise.all([
+    c.conf.get(),
+    c.barberos.doc(String(barberoId || '')).get().catch(() => null),
+  ]);
+  if (!barbSnap || !barbSnap.exists) return { atiende: false, motivo: 'no_existe' };
+  const b = barbSnap.data() || {};
+  if (!esElegible(b, tenantId)) return { atiende: false, motivo: 'no_elegible' };
+
+  const conf = confSnap.exists ? (confSnap.data() || {}) : {};
+  const dow  = dowDe(fechaStr);
+  const diasLaborales = Array.isArray(conf.diasLaborales) ? conf.diasLaborales : [1, 2, 3, 4, 5, 6];
+  if (!diasLaborales.map(Number).includes(dow)) return { atiende: false, motivo: 'local_cerrado' };
+  if (Array.isArray(conf.diasBloqueados) && conf.diasBloqueados.includes(fechaStr)) {
+    return { atiende: false, motivo: 'local_cerrado' };
+  }
+  const dc  = conf.diasConfig || {};
+  const dia = dc[dow] ?? dc[String(dow)] ?? null;
+  if (dia && dia.activo === false) return { atiende: false, motivo: 'local_cerrado' };
+
+  const cfgSnap = await c.barberos.doc(barbSnap.id).collection('configuracion').doc('main').get().catch(() => null);
+  const rangos = rangosFueraDeJornada({
+    docHorario:  b.horario || null,
+    cfgPersonal: cfgSnap && cfgSnap.exists ? cfgSnap.data() : null,
+    dow,
+  });
+  // Día libre = su jornada tapa el día entero (rangosFueraDeJornada empuja
+  // [0,1440) en ese caso). Un descanso suelto no lo deja "sin atender".
+  const tapaTodo = rangos.some(([a, z]) => a <= 0 && z >= 1440);
+  return tapaTodo ? { atiende: false, motivo: 'dia_libre' } : { atiende: true, motivo: 'ok' };
 }
 
 /**
@@ -357,13 +424,17 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
  * @param {string} [opts.preferirBarberoId] Si ese profesional está libre, se
  *   devuelve a ÉL antes que a cualquier otro. Al reagendar, el cliente espera
  *   quedarse con la misma persona; sin esto el orden del snapshot decidía.
+ * @param {string} [opts.exigirBarberoId] Ese profesional o NADIE (devuelve null
+ *   si no está libre). Preferir no alcanza cuando el cliente pidió a alguien por
+ *   su nombre: caer en otro es exactamente el error que hay que evitar — que
+ *   llegue al local creyendo que lo atiende Claudio y se encuentre con Orlando.
  * @param {string} [opts.excluirCitaId] Ignora esa cita y su candado al calcular
  *   ocupación. Necesario al MOVER una cita: su propio cupo actual no puede
  *   bloquear el traslado (pasaba al mover a un horario solapado, ej. 13:00→12:45).
  * @returns {Promise<{ id:string, nombre:string }|null>}
  */
 async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
-  const { preferirBarberoId = null, excluirCitaId = null } = opts || {};
+  const { preferirBarberoId = null, exigirBarberoId = null, excluirCitaId = null } = opts || {};
   const c = cols(tenantId);
   const startMin = toMins(hora);
   const endMin   = startMin + (Number(dur) || 30);
@@ -393,9 +464,8 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
   const barberos = [];
   barbSnap.forEach(d => {
     const b = d.data();
-    if (b._mainDocId) return;
-    if (b.disponible === false || b.activo === false) return;
-    if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return;
+    if (!esElegible(b, tenantId)) return;
+    if (exigirBarberoId && d.id !== exigirBarberoId) return;
     barberos.push({ id: d.id, nombre: b.nombre || '', docHorario: b.horario || null });
   });
   if (!barberos.length) return null;
@@ -461,4 +531,5 @@ exports._horasParaFecha        = horasParaFecha;
 exports._buscarDisponibilidad  = buscarDisponibilidad;
 exports._duracionTipica        = duracionTipica;
 exports._barberoLibreParaSlot  = barberoLibreParaSlot;
+exports._atiendeEseDia         = atiendeEseDia;
 exports._ahoraChile            = ahoraChile;
