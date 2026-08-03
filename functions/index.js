@@ -394,6 +394,33 @@ exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, asy
 // ─────────────────────────────────────────────────────────────────
 //  HELPER: obtener tokens filtrados por rol (jefe/admin) y barbero
 // ─────────────────────────────────────────────────────────────────
+/* Quién recibe el aviso de una cita nueva ADEMÁS del profesional asignado:
+   quien tiene el panel abierto. Era solo `rol === 'admin'`, y eso dejaba sin
+   avisar a locales enteros — Kronnos Peñablanca y Kronnos Woman no tienen
+   ningún 'admin': ahí el panel lo lleva `recepcion`, que es literalmente el
+   mesón. Un jefe tampoco recibía nada. Ver [[project_rol_recepcion]]: recepción
+   no ve números, pero la agenda es su trabajo. */
+const ROLES_PANEL = new Set(['admin', 'jefe', 'recepcion']);
+
+/* Copy del aviso. Cuando la reserva la trajo el asistente se dice, porque es
+   una noticia distinta: no es "entró una cita" sino "esto lo consiguió el bot
+   mientras no estabas". Es el único momento en que el dueño SIENTE el valor de
+   lo que paga; el resto del mes el asistente es invisible. */
+function copyCitaNueva({ origen, cliente, servicio, barbero, fecha, hora }) {
+  const cuando = `${hora}${fecha ? ' · ' + fecha : ''}`.trim();
+  const conQuien = barbero ? ` · con ${barbero}` : '';
+  if (origen === 'wa_bot') {
+    return {
+      title: `🤖 Tu asistente agendó una reserva — ${cuando}`,
+      body:  `${cliente} · ${servicio}${conQuien}. La tomó por WhatsApp, sin que nadie contestara.`,
+    };
+  }
+  return {
+    title: `Nueva cita — ${cuando}`,
+    body:  `${cliente} · ${servicio}${conQuien}`,
+  };
+}
+
 async function getTokensActivos(barberoId, barberoNombre) {
   const validUids = new Set();
 
@@ -421,7 +448,7 @@ async function getTokensActivos(barberoId, barberoNombre) {
       const b = doc.data();
       if (b.activo === false) return;
 
-      const isManager      = b.rol === 'admin';
+      const isManager      = ROLES_PANEL.has(b.rol);
       const matchById      = barberoIdTrimmed && doc.id === barberoIdTrimmed;
       const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
       // Detecta doc de enlace (uid-doc): su _mainDocId apunta al doc original del barbero.
@@ -561,12 +588,11 @@ exports.notificarCitaAdmin = onDocumentCreated('citas/{citaId}', async (event) =
   const barbero = cita.barbero || cita.barberoNombre || '';
   const barberoId = cita.barberoId || '';
 
-  const title = `Nueva cita — ${hora} ${fecha}`.trim();
-  const body  = barbero
-    ? `${cliente} · ${servicio} · con ${barbero}`
-    : `${cliente} · ${servicio}`;
+  const { title, body } = copyCitaNueva({
+    origen: cita.origen, cliente, servicio, barbero, fecha, hora,
+  });
 
-  logger.info('[FCM] Cita admin creada:', { citaId, cliente, servicio, hora, fecha, barberoId, barbero });
+  logger.info('[FCM] Cita admin creada:', { citaId, cliente, servicio, hora, fecha, barberoId, barbero, origen: cita.origen || '' });
 
   try {
     await enviarPush({ title, body, citaId, fecha, hora, barberoId, barberoNombre: barbero });
@@ -638,7 +664,7 @@ async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
     barberosSnap.forEach(docSnap => {
       const b = docSnap.data();
       if (b.activo === false) return;
-      const isManager      = b.rol === 'admin';
+      const isManager      = ROLES_PANEL.has(b.rol);
       const matchById      = barberoIdTrimmed && docSnap.id === barberoIdTrimmed;
       const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
       const matchByMainDoc = barberoIdTrimmed && b._mainDocId === barberoIdTrimmed;
@@ -648,18 +674,27 @@ async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
       }
     });
 
-    const tokenSet = new Set();
+    // Se devuelve {token, plataforma} y no solo el string: el aviso se manda
+    // en dos tandas con destino distinto —el profesional a su agenda, el panel
+    // a gestion-interna— y sin la plataforma no hay cómo separarlos. El Map
+    // deduplica por token, así que el admin que además es el barbero de la
+    // cita recibe UNA sola notificación.
+    const porToken = new Map();
     tokensSnap.forEach(d => {
       const data = d.data();
-      if (validUids.has(data.uid)) tokenSet.add(data.token);
+      if (validUids.has(data.uid) && data.token) {
+        porToken.set(data.token, { token: data.token, plataforma: data.plataforma || null });
+      }
     });
     if (directTokensSnap) {
       directTokensSnap.forEach(d => {
-        const t = d.data().token;
-        if (t && !tokenSet.has(t)) tokenSet.add(t);
+        const data = d.data();
+        if (data.token && !porToken.has(data.token)) {
+          porToken.set(data.token, { token: data.token, plataforma: data.plataforma || null });
+        }
       });
     }
-    return [...tokenSet];
+    return [...porToken.values()];
   } catch (err) {
     logger.error('[FCM] Error filtrando tokens tenant:', err);
     return [];
@@ -684,12 +719,11 @@ exports.notificarCitaTenant = onDocumentCreated(
     const barbero   = cita.barbero || cita.barberoNombre || '';
     const barberoId = cita.barberoId || '';
 
-    const title = `Nueva cita — ${hora} ${fecha}`.trim();
-    const body  = barbero
-      ? `${cliente} · ${servicio} · con ${barbero}`
-      : `${cliente} · ${servicio}`;
+    const { title, body } = copyCitaNueva({
+      origen: cita.origen, cliente, servicio, barbero, fecha, hora,
+    });
 
-    logger.info('[FCM] Cita tenant creada:', { tenantId, citaId, cliente, hora, fecha });
+    logger.info('[FCM] Cita tenant creada:', { tenantId, citaId, cliente, hora, fecha, origen: cita.origen || '' });
 
     try {
       const tokens = await getTokensActivosTenant(tenantId, barberoId, barbero);
@@ -698,26 +732,16 @@ exports.notificarCitaTenant = onDocumentCreated(
         return null;
       }
 
-      const message = {
-        notification: { title, body },
-        data: { citaId, url: '/gestion-interna/agenda', fecha, hora, tag: `nueva-cita-${citaId}` },
-        webpush: {
-          headers: { Urgency: 'high' },
-          notification: {
-            title, body,
-            icon:     '/gestion-interna/pwa-192.png',
-            badge:    '/gestion-interna/pwa-192.png',
-            vibrate:  [200, 100, 200],
-            tag:      `nueva-cita-${citaId}`,
-            renotify: true,
-          },
-          fcmOptions: { link: '/gestion-interna/agenda' },
-        },
-        tokens,
-      };
-
-      const response = await messaging.sendEachForMulticast(message);
-      logger.info(`[FCM] Tenant ${tenantId}: ${response.successCount} OK, ${response.failureCount} errores`);
+      /* Dos tandas del MISMO aviso, con destino distinto: el profesional abre
+         su agenda personal (la PWA de agenda.html) y quien lleva el panel abre
+         gestion-interna. Antes iba un solo link para todos, así que al barbero
+         se le abría una pantalla que muchas veces ni tiene permiso de ver. */
+      const tandas = [
+        { destino: 'agenda', link: '/agenda.html',
+          tokens: tokens.filter(t => t.plataforma === 'web-agenda') },
+        { destino: 'panel', link: '/gestion-interna/agenda',
+          tokens: tokens.filter(t => t.plataforma !== 'web-agenda') },
+      ].filter(t => t.tokens.length);
 
       const TOKEN_ERRORS = new Set([
         'messaging/invalid-registration-token',
@@ -725,9 +749,31 @@ exports.notificarCitaTenant = onDocumentCreated(
         'messaging/invalid-argument',
       ]);
       const invalidos = [];
-      response.responses.forEach((res, idx) => {
-        if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tokens[idx]);
-      });
+
+      for (const tanda of tandas) {
+        const response = await messaging.sendEachForMulticast({
+          notification: { title, body },
+          data: { citaId, url: tanda.link, fecha, hora, tag: `nueva-cita-${citaId}` },
+          webpush: {
+            headers: { Urgency: 'high' },
+            notification: {
+              title, body,
+              icon:     '/gestion-interna/pwa-192.png',
+              badge:    '/gestion-interna/pwa-192.png',
+              vibrate:  [200, 100, 200],
+              tag:      `nueva-cita-${citaId}`,
+              renotify: true,
+            },
+            fcmOptions: { link: tanda.link },
+          },
+          tokens: tanda.tokens.map(t => t.token),
+        });
+        logger.info(`[FCM] Tenant ${tenantId} → ${tanda.destino}: ${response.successCount} OK, ${response.failureCount} errores`);
+        response.responses.forEach((res, idx) => {
+          if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tanda.tokens[idx].token);
+        });
+      }
+
       if (invalidos.length) {
         const batch = db.batch();
         invalidos.forEach(t => batch.update(db.collection(`tenants/${tenantId}/fcm_tokens`).doc(t), { activo: false }));
@@ -845,7 +891,9 @@ exports.notificarCancelacionTenant = onDocumentUpdated(
           },
           fcmOptions: { link: '/gestion-interna/agenda' },
         },
-        tokens,
+        // getTokensActivosTenant ahora devuelve {token, plataforma}; acá el
+        // destino es uno solo, así que basta con el string.
+        tokens: tokens.map(t => t.token),
       });
       logger.info(`[FCM] Cancelación tenant ${tenantId}: ${response.successCount} OK, ${response.failureCount} errores`);
 
@@ -856,7 +904,7 @@ exports.notificarCancelacionTenant = onDocumentUpdated(
       ]);
       const invalidos = [];
       response.responses.forEach((res, idx) => {
-        if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tokens[idx]);
+        if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tokens[idx].token);
       });
       if (invalidos.length) {
         const batch = db.batch();
@@ -1595,6 +1643,9 @@ exports.provisionarTenantAdmin = provisionTenant.provisionarTenantAdmin;
 // Importar negocio desde link de la competencia (Weibook completo, AgendaPro
 // parcial) para prellenar el wizard del alta express. Solo bootstrap.
 exports.importarNegocioExterno = provisionTenant.importarNegocioExterno;
+// Cron diario: tenants en trial con trialFinaliza vencida → status
+// 'trial_expired' (pausa suave de agenda pública + gate de planes en panel).
+exports.trialExpiryCron = require('./trial-expiry').trialExpiryCron;
 
 // Wallet-only self-service (wallets.bioo.cl/crea) — producto standalone.
 // Alta express de tenants SIN agenda: recibe email + slug + nombre y deja
@@ -1679,6 +1730,15 @@ exports.ventasBotConfigSet  = evolutionVentas.ventasBotConfigSet;
 const metaAds = require('./meta-ads-analista');
 exports.metaAdsAnalisis       = metaAds.metaAdsAnalisis;
 exports.metaAdsAnalisisManual = metaAds.metaAdsAnalisisManual;
+
+// ─────────────────────────────────────────────────────────────────
+//  Temporizador del medidor del agente: dos semanas después de que
+//  entró el medidor exacto, un correo con la distribución real y el
+//  corte de planes que aguanta. Ver informe-medidor-agente.js
+// ─────────────────────────────────────────────────────────────────
+const informeMedidor = require('./informe-medidor-agente');
+exports.informeMedidorAgente      = informeMedidor.informeMedidorAgente;
+exports.informeMedidorAgenteAhora = informeMedidor.informeMedidorAgenteAhora;
 
 // Libreta de cobranza para ops: ver y editar _billing.whatsappCobro (el
 // número al que la escalera manda el aviso por WhatsApp). Ver cobranza-config.js.
