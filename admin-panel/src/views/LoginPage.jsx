@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -114,6 +115,12 @@ export default function LoginPage() {
   const [resetSent,    setResetSent]    = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
+  /* Handoff self-service: crea.synaptechspa.cl entrega un custom token en el
+     fragment (#ct=) porque la sesión de Firebase no cruza subdominios. Aquí
+     se consume con signInWithCustomToken y onAuthStateChanged hace el resto. */
+  const [handoff, setHandoff] = useState(() => {
+    try { return /[#&]ct=/.test(window.location.hash); } catch { return false; }
+  });
 
   /* Carrusel del manifiesto de marca (panel izquierdo). */
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -139,6 +146,26 @@ export default function LoginPage() {
   useEffect(() => {
     try { localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? '1' : '0'); } catch {}
   }, [rememberMe]);
+
+  /* Consumo del token de handoff (#ct=). El token sale de la URL y del
+     historial ANTES de usarse; si expiró (vida útil 1h) o falla, se cae al
+     formulario normal con un mensaje claro — nunca a una pantalla rota. */
+  useEffect(() => {
+    let m = null;
+    try { m = window.location.hash.match(/[#&]ct=([^&]+)/); } catch { /* ignore */ }
+    if (!m) return;
+    try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch { /* ignore */ }
+    (async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence).catch(() => {});
+        await signInWithCustomToken(auth, decodeURIComponent(m[1]));
+        /* Éxito: onAuthStateChanged monta el panel y este componente se va. */
+      } catch {
+        setHandoff(false);
+        setError('Tu acceso automático expiró. Ingresa con el correo y la contraseña que acabas de crear.');
+      }
+    })();
+  }, []);
 
   const manifiesto = MANIFIESTO_MARCA[currentIndex];
 
@@ -200,6 +227,16 @@ export default function LoginPage() {
       setResetLoading(false);
     }
   };
+
+  /* Pantalla de handoff: entrando con la sesión recién creada en /crea. */
+  if (handoff) {
+    return (
+      <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center gap-4 bg-[#050505]">
+        <span className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-neutral-300 text-sm font-medium">Entrando a tu panel…</p>
+      </div>
+    );
+  }
 
   /* ── Diseño propio: Memphis Salón ──────────────────────────────── */
   if (tenant.id === 'memphis') {

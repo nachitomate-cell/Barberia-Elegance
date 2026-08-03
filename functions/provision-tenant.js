@@ -35,11 +35,22 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
-const { FieldValue }         = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 
 const BASE_DOMAIN = 'synaptechspa.cl';
+const TRIAL_DIAS  = 14;
+
+// Token de sesión para el handoff crea.synaptechspa.cl → {slug}.synaptechspa.cl.
+// La sesión de Firebase Auth NO cruza subdominios (IndexedDB por origen), así
+// que la callable devuelve un custom token (vida útil 1h, un solo uso práctico)
+// y el LoginPage del panel lo consume con signInWithCustomToken. Si falla el
+// mint, el flujo sigue sin token: el dueño entra con email+contraseña.
+async function tokenHandoff(uid) {
+  try { return await admin.auth().createCustomToken(uid); }
+  catch (e) { logger.warn('[self-service] createCustomToken falló:', e.message); return null; }
+}
 
 /* ─────────────────────────── Slugs reservados ───────────────────────────
    Los tenants existentes viven en código (config.js/_tenants, DOMAIN_MAP)
@@ -630,6 +641,7 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       ok: true, yaExistia: true, slug: pSlug,
       urlAgenda: `https://${pSlug}.${BASE_DOMAIN}`,
       urlPanel:  `https://${pSlug}.${BASE_DOMAIN}/gestion-interna/?local=${pSlug}`,
+      token: await tokenHandoff(uid),
     };
   }
 
@@ -647,6 +659,13 @@ exports.provisionarTenantSelf = onCall(async (req) => {
 
   const tenantRef = db.collection('tenants').doc(slug);
   const nombreCorto = nombre.split(/\s+/)[0];
+  const duenoNombre = nombreDueno || nombreCorto;
+
+  // Trial de 14 días desde el alta. `estado:'activo'` sigue siendo el kill
+  // switch del edge (middleware corta con 'suspendido'); `status`/`trialFinaliza`
+  // son el estado COMERCIAL. El espejo en _billing alimenta opsSummaryApi
+  // (active_trials) sin activar los crons de Wallo (filtran walletActivo).
+  const trialFinaliza = Timestamp.fromMillis(Date.now() + TRIAL_DIAS * 86400000);
 
   // 1. Doc raíz — reserva atómica del slug (create falla si ya existe).
   //    Público y no sensible: branding + plan. Lo consumen el edge middleware
@@ -669,6 +688,13 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       origen:    'self-service',
       plan:      'free',
       estado:    'activo',
+      status:        'trial',
+      trialFinaliza,
+      contacto: {
+        nombre:   duenoNombre,
+        email:    email || null,
+        whatsapp: telefono,
+      },
       ownerUid:  uid,
       ownerEmail: email || null,
       // Evidencia B2B del contrato SaaS + DPA + política de privacidad al alta.
@@ -705,7 +731,6 @@ exports.provisionarTenantSelf = onCall(async (req) => {
 
   // El dueño parte como admin QUE ATIENDE (caso típico: dueño solo). Puede
   // sumar equipo o marcarse no reservable después en gestión-interna/equipo.
-  const duenoNombre = nombreDueno || nombreCorto;
   const mainBarberoRef = tenantRef.collection('barberos').doc(`dueno-${slug}`);
   batch.set(mainBarberoRef, {
     nombre:     duenoNombre,
@@ -742,6 +767,18 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     creadoEn: TS,
   });
 
+  // Espejo comercial del trial: opsSummaryApi cuenta active_trials desde
+  // _billing.trialFinaliza. estadoPago 'trial' no gatilla la escalera de
+  // cobranza (solo reacciona a 'atrasado' / cuotas impagas).
+  batch.set(db.collection('_billing').doc(slug), {
+    estadoPago:     'trial',
+    trialFinaliza,
+    montoPendiente: 0,
+    emailCobro:     email || null,
+    origen:         'self-service',
+    creadoEn:       TS,
+  }, { merge: true });
+
   await batch.commit();
 
   // 3. Claims de admin — directo, sin esperar la propagación del trigger
@@ -763,5 +800,6 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     slug,
     urlAgenda: `https://${slug}.${BASE_DOMAIN}`,
     urlPanel:  `https://${slug}.${BASE_DOMAIN}/gestion-interna/?local=${slug}`,
+    token: await tokenHandoff(uid),
   };
 });

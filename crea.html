@@ -670,6 +670,7 @@
           <a class="cta" id="ctaPanel" href="#" target="_blank" rel="noopener">Entrar a mi panel →</a>
           <a class="cta ghost" id="ctaAgenda" href="#" target="_blank" rel="noopener">Ver mi agenda como cliente</a>
 
+          <p class="note" id="redir" style="display:none;font-weight:600;"></p>
           <p class="note">
             Te dejamos servicios de ejemplo según tu rubro — edítalos en <b>Panel → Servicios</b>.
             Luego pon el link de tu agenda en tu bio de Instagram y en tu WhatsApp para empezar
@@ -909,24 +910,67 @@
         })
         .catch(function(e3){
           busy(false);
-          err((e3 && e3.message) ? e3.message : 'Algo falló. Intenta de nuevo.');
+          err(mensajeError(e3));
         });
     });
+
+    // Traduce fallos técnicos (CF caída, sin red, errores "internal" del SDK)
+    // a mensajes accionables. Los HttpsError del backend ya vienen en español
+    // y se muestran tal cual.
+    function mensajeError(e){
+      var code = String((e && e.code) || '');
+      var m    = String((e && e.message) || '');
+      if (code === 'auth/network-request-failed' || /Failed to fetch|NetworkError/i.test(m)) {
+        return 'Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
+      }
+      if (/^(internal|INTERNAL)$/.test(m.trim()) || code === 'functions/internal') {
+        return 'Tuvimos un problema al crear tu agenda. Espera unos segundos e inténtalo de nuevo — si sigue fallando, escríbenos por WhatsApp.';
+      }
+      if (code === 'functions/unavailable' || code === 'functions/deadline-exceeded') {
+        return 'El servidor tardó demasiado en responder. Inténtalo de nuevo en un momento.';
+      }
+      return m || 'Algo falló. Intenta de nuevo.';
+    }
 
     function mostrarExito(d){
       var a = document.getElementById('urlAgenda');
       var p = document.getElementById('urlPanel');
       a.href = d.urlAgenda; a.textContent = d.urlAgenda.replace('https://', '');
       p.href = d.urlPanel;  p.textContent = d.urlPanel.replace('https://', '').split('?')[0];
-      document.getElementById('ctaPanel').href  = d.urlPanel;
+      // Handoff de sesión: el token va en el fragment (#ct=) — nunca llega al
+      // servidor y el LoginPage del panel lo consume y lo borra del historial.
+      var urlPanelSesion = d.urlPanel + (d.token ? '#ct=' + encodeURIComponent(d.token) : '');
+      var ctaPanel = document.getElementById('ctaPanel');
+      ctaPanel.href = urlPanelSesion;
+      if (d.token) ctaPanel.removeAttribute('target');   // misma pestaña: la sesión sigue el flujo
       document.getElementById('ctaAgenda').href = d.urlAgenda;
       ui.form.style.display = 'none';
       ui.done.style.display = 'block';
       ui.done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Redirección fluida al panel con la sesión ya iniciada. Se dan unos
+      // segundos para que el dueño vea/copie la URL de su agenda; "Entrar a
+      // mi panel" salta el countdown.
+      if (d.token) {
+        var r = document.getElementById('redir');
+        var seg = 6;
+        r.style.display = '';
+        r.textContent = 'Te llevamos a tu panel con la sesión iniciada en ' + seg + ' segundos…';
+        var iv = setInterval(function(){
+          seg--;
+          if (seg <= 0) {
+            clearInterval(iv);
+            r.textContent = 'Entrando a tu panel…';
+            window.location.assign(urlPanelSesion);
+            return;
+          }
+          r.textContent = 'Te llevamos a tu panel con la sesión iniciada en ' + seg + ' segundos…';
+        }, 1000);
+      }
     }
   })();
   </script>
   <div id="legal-footer-slot"></div>
-  <script src="/js/legal-widgets.js?v=1" defer></script>
+  <script src="/js/legal-widgets.js?v=2" defer></script>
 </body>
 </html>
