@@ -241,7 +241,12 @@ export function MiConsumo({ tid, standalone = false }) {
   useEffect(() => {
     let vivo = true;
     setCargando(true); setErr(false);
-    httpsCallable(getFunctions(getApp(), 'us-central1'), 'evolutionMiConsumo')({})
+    // `{ tenantId: tid }` y no `{}`: el servidor solo honra ese parámetro para
+    // operadores de SynapTech, pero sin él Ignacio veía SIEMPRE las métricas
+    // de su claim (elegance) aunque estuviera mirando otro local — todo en
+    // cero mientras el bot del local sí tenía citas agendadas. Para un admin
+    // normal no cambia nada: el servidor ignora el campo y usa su claim.
+    httpsCallable(getFunctions(getApp(), 'us-central1'), 'evolutionMiConsumo')({ tenantId: tid })
       .then(r => { if (vivo) setD(r.data); })
       .catch(() => { if (vivo) setErr(true); })
       .finally(() => { if (vivo) setCargando(false); });

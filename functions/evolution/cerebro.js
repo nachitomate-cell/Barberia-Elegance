@@ -214,6 +214,18 @@ const TOOLS = [
     input_schema: { type: 'object', properties: {}, required: [] },
   },
   {
+    name: 'verificar_reserva',
+    description: 'Busca una reserva por NOMBRE y FECHA, no por el número que escribe. Úsala SIEMPRE que el cliente diga que ya tiene hora y consultar_mis_citas no la haya encontrado — el caso normal es que la haya reservado en la web con otro teléfono. NUNCA le digas que su reserva no existe, ni que el sistema falló, ni le ofrezcas agendar de nuevo, sin haber usado esta herramienta antes: agendar sin verificar le deja DOS citas al cliente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cliente_nombre: { type: 'string', description: 'Nombre con el que reservó, tal como lo dijo el cliente.' },
+        fecha:          { type: 'string', description: 'Fecha de la cita en formato YYYY-MM-DD.' },
+      },
+      required: ['cliente_nombre', 'fecha'],
+    },
+  },
+  {
     name: 'cancelar_cita',
     description: 'Cancela UNA cita futura del cliente. Primero llama a consultar_mis_citas, confirma con el cliente CUÁL cancelar, y recién entonces llama esto. Si lo que quiere es CAMBIAR de hora (no anular), usa reagendar_cita en vez de esta.',
     input_schema: {
@@ -311,8 +323,57 @@ async function ejecutarTool(name, input, ctx) {
       });
     }
     futuras.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
-    if (!futuras.length) return { citas: [], nota: 'Este número no tiene citas futuras.' };
+    if (!futuras.length) {
+      return {
+        citas: [],
+        nota: 'Este NÚMERO no tiene citas futuras. OJO: eso NO significa que la reserva no exista ni que el sistema haya fallado — lo más común es que la haya hecho desde la web con OTRO teléfono, o que otra persona la haya reservado por él. Si el cliente afirma tener hora, pídele su NOMBRE y la FECHA y usa verificar_reserva antes de ofrecerle agendar de nuevo: agendar sin verificar le deja DOS citas.',
+      };
+    }
     return { citas: futuras.slice(0, 5) };
+  }
+
+  /* ── verificar_reserva ─────────────────────────────────────────────────────
+     Para el caso real (kronnos_limache, 03-08-2026): el cliente reservó en la
+     web con un teléfono y escribe por WhatsApp desde otro. `consultar_mis_citas`
+     no la encontraba, el bot dijo "es posible que la reserva no se haya
+     sincronizado o haya habido un inconveniente" —culpando al sistema sin
+     evidencia— y ofreció agendar de nuevo, con riesgo de cita duplicada.
+
+     Privacidad: esto CONFIRMA datos que el cliente ya dijo, no revela una
+     agenda. Exige nombre + fecha, compara el nombre normalizado y devuelve solo
+     servicio/hora/profesional — nunca el teléfono ni el nombre completo de
+     terceros, y nunca lista "las citas de ese día". */
+  if (name === 'verificar_reserva') {
+    const nombreBuscado = norm(input?.cliente_nombre);
+    const fecha = String(input?.fecha || '').trim();
+    if (!nombreBuscado || nombreBuscado.length < 3) return { ok: false, motivo: 'Pide el nombre con el que reservó.' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, motivo: 'Pide la fecha de la cita (YYYY-MM-DD).' };
+
+    const snap = await citasCol(tid).where('fecha', '==', fecha).get().catch(() => ({ docs: [] }));
+    const partes = nombreBuscado.split(/\s+/).filter(p => p.length >= 3);
+    const encontradas = [];
+    for (const d of snap.docs) {
+      const x = d.data() || {};
+      if (['Cancelada', 'NoAsistio'].includes(x.estado)) continue;
+      const n = norm(x.clienteNombre);
+      // Coincidencia por nombre: exacta, o todas las partes largas presentes
+      // (cubre "Agustín Maiben" vs "agustin maiben m.").
+      const coincide = n === nombreBuscado
+        || (partes.length > 0 && partes.every(p => n.includes(p)));
+      if (!coincide) continue;
+      encontradas.push({
+        cita_id: d.id, fecha: x.fecha, hora: x.hora,
+        servicio: x.servicioNombre || '', profesional: x.barbero || '',
+        codigo: x.codigoCita || '', estado: x.estado || '',
+      });
+    }
+    if (!encontradas.length) {
+      return { existe: false, nota: `No hay ninguna reserva a nombre de "${input?.cliente_nombre}" para el ${fecha}. Dile que no la encuentras a ese nombre y ofrécele agendarla ahora — recién acá es seguro ofrecer.` };
+    }
+    return {
+      existe: true, citas: encontradas.slice(0, 5),
+      nota: 'La reserva EXISTE y está en pie. Confírmasela con sus datos y NO ofrezcas agendar de nuevo. Como escribe desde otro número, avísale que sus recordatorios llegarán al teléfono con el que reservó.',
+    };
   }
 
   if (name === 'cancelar_cita') {
@@ -824,6 +885,7 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     '- REGLA DE ORO — nada de cambios imaginarios: JAMÁS afirmes que agendaste, cancelaste o cambiaste una cita si no llamaste a la herramienta correspondiente y te respondió ok:true. Nada de "listo", "ya te lo cambié" ni "quedó agendado" por adelantado. Si la herramienta falla o no la llamaste, dile la verdad al cliente u ofrécele hablar con el local. Prometer un cambio que no ocurrió es el peor error posible: el cliente llega y su hora no existe.',
     '- Si una hora ya no está disponible, discúlpate y ofrece las alternativas reales que devuelva la herramienta.',
     '- Si el cliente pregunta por su cita, o quiere CANCELARLA: usa consultar_mis_citas, confirma con él de cuál se trata y recién entonces llama a cancelar_cita.',
+    '- SI EL CLIENTE DICE QUE YA TIENE HORA Y NO LA ENCUENTRAS: consultar_mis_citas busca por el número desde el que te escribe, así que si reservó en la web con OTRO teléfono no aparece — es lo más común y NO es una falla. Pídele su nombre y la fecha y llama a verificar_reserva. JAMÁS le digas que su reserva "no se sincronizó", que "hubo un inconveniente" ni nada que sugiera que el sistema falló: no tienes cómo saber eso y lo asustas. Y NUNCA le ofrezcas agendar de nuevo sin haber verificado: terminaría con DOS citas.',
     '- Si quiere CAMBIAR la hora o el día de su cita (adelantar, atrasar, moverla): consultar_mis_citas → consultar_disponibilidad → reagendar_cita. NO la canceles para volver a agendarla: reagendar_cita la mueve conservando su código. Solo después de recibir ok:true confírmale el cambio.',
     '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
     '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',

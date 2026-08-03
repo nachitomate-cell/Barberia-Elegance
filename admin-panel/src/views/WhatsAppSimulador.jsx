@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Send, RotateCcw, FlaskConical } from 'lucide-react';
+import { resolveTenantId } from '../lib/tenantUtils';
 
 // Simulador — "prueba tu bot antes de soltarlo con clientes reales".
 //
@@ -39,7 +40,9 @@ export default function WhatsAppSimulador() {
     setPensando(true);
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waSimularBot');
-      const r  = await fn({ texto: mensaje, historial });
+      // tenantId explícito (solo lo honra el servidor para operadores): sin él,
+      // probar el bot desde el panel de un local ejecutaba el bot de OTRO.
+      const r  = await fn({ texto: mensaje, historial, tenantId: resolveTenantId() });
       if (r.data?.ok === false) {
         setError(r.data.motivo || 'El simulador no está disponible ahora.');
       } else {

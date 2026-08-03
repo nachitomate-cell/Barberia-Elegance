@@ -3,6 +3,7 @@ import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { RefreshCw, Bot, Hand, MessageSquare, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { resolveTenantId } from '../lib/tenantUtils';
 
 // Bandeja del local — leer lo que el bot conversó y tomar el control.
 //
@@ -36,7 +37,9 @@ export default function WhatsAppBandeja() {
     setError('');
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waMisConversaciones');
-      const r  = await fn({ limit: 20 });
+      // tenantId explícito: solo lo honra el servidor para operadores, pero sin
+      // él un operador viendo otro local recibía los chats de su propio claim.
+      const r  = await fn({ limit: 20, tenantId: resolveTenantId() });
       setChats(r.data?.conversaciones || []);
     } catch (e) {
       setError(e.message || 'No se pudieron cargar las conversaciones.');
@@ -64,7 +67,7 @@ export default function WhatsAppBandeja() {
     setChats(cs => cs.map(c => (c.chatId === chatId ? { ...c, pausado: pausar } : c)));
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waChatControl');
-      await fn({ chatId, pausar });
+      await fn({ chatId, pausar, tenantId: resolveTenantId() });
       await cargar(true);
     } catch (e) {
       setChats(cs => cs.map(c => (c.chatId === chatId ? { ...c, pausado: !pausar } : c)));

@@ -29,10 +29,15 @@ export default function WaEstadoLinea({ onIr }) {
       s => setCfg(s.data() || {}), () => setCfg({}));
     const un2 = onSnapshot(doc(db, '_system', tid),
       s => setSys(s.data() || {}), () => setSys({}));
-    httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifEstado')({})
-      .then(r => setNotif(r.data || {}))
-      .catch(() => setNotif({}));
-    return () => { un(); un2(); };
+    // `tenantId` explícito: el servidor solo lo honra para operadores, pero sin
+    // él un operador mirando OTRO local recibía el estado de su propio claim.
+    // Y bandera `vivo` para que una respuesta lenta del tenant anterior no pise
+    // el estado del nuevo al cambiar de local en el hub.
+    let vivo = true;
+    httpsCallable(getFunctions(getApp(), 'us-central1'), 'waNotifEstado')({ tenantId: tid })
+      .then(r => { if (vivo) setNotif(r.data || {}); })
+      .catch(() => { if (vivo) setNotif({}); });
+    return () => { vivo = false; un(); un2(); };
   }, [tid]);
 
   if (cfg === null || notif === null || sys === null) {
