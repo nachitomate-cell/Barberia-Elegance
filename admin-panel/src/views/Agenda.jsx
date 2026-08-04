@@ -7,7 +7,7 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift, MessageCircle, Activity,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap, UserX,
-  Coffee, Info,
+  Coffee, Info, Globe, Bot, PencilLine, HelpCircle,
 } from 'lucide-react';
 import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -761,9 +761,38 @@ export function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 /* ── CitaModal (create / edit) ───────────────────────────────── */
 // Exportado para que Caja lo reutilice en el drawer "Vender". `AgendaCtx`
 // tiene default (buildSlotCfg(30)) → funciona sin envolver en el Provider.
+/* ── ¿Quién agendó esta cita? ────────────────────────────────────────
+   Se deriva de `origen`, que cada camino de creación estampa. Tres grupos,
+   porque es la pregunta real del dueño: ¿la pidió el cliente solo, la tomó el
+   asistente, o alguien la escribió a mano?
+
+   Las citas viejas SIN `origen` devuelven 'desconocido' y se marcan como tal
+   — nunca como "a mano". Decir "la agendó alguien del local" sin saberlo es
+   peor que no decir nada: es exactamente la duda que este indicador viene a
+   resolver. Son ~29% del histórico; de aquí en adelante todas vienen selladas. */
+const ORIGEN_CLIENTE = ['reserva_online', 'reserva_online_grupo', 'reserva_online_sobrecupo',
+                        'web-mercadopago', 'web-corte-lapiz', 'barbero-page'];
+const ORIGEN_MANUAL  = ['agenda_manual', 'import_manual', 'practica'];
+
+export function origenDeCita(cita) {
+  const o = String(cita?.origen || '').trim();
+  if (!o)                          return { tipo: 'desconocido', Icon: HelpCircle,  color: 'text-slate-500', label: 'Sin registro de origen (cita anterior a esta función)' };
+  if (o === 'wa_bot')              return { tipo: 'bot',         Icon: Bot,         color: 'text-violet-300', label: 'La agendó el asistente de WhatsApp' };
+  if (ORIGEN_CLIENTE.includes(o))  return { tipo: 'cliente',     Icon: Globe,       color: 'text-sky-300',    label: 'La reservó el cliente por la web' };
+  if (ORIGEN_MANUAL.includes(o))   return { tipo: 'manual',      Icon: PencilLine,  color: 'text-amber-300',  label: 'Agendada a mano desde el panel' };
+  return { tipo: 'otro', Icon: HelpCircle, color: 'text-slate-500', label: `Origen: ${o}` };
+}
+
+/** Quién la escribió, cuando quedó registrado (solo en las agendadas a mano). */
+export function autorDeCita(cita) {
+  const email = cita?.creadoPor?.email;
+  return email ? String(email) : null;
+}
+
 export function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, sobrecupo = false, dateStr, onClose, onComplete }) {
   const { pickerLabels } = useContext(AgendaCtx);
   const isNew = !cita;
+  const { user: _authUser } = useAuth();   // para sellar quién agenda a mano
   const { id: tenantId } = useTenant();
   const { activeSucursal, sucursalDefault, sucursales: _sucursalesList } = useSucursal();  // para taggear la sede de la cita
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
@@ -1754,6 +1783,17 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
       }
       if (isNew) {
         payload.creadoEn = serverTimestamp();
+        // Quién la agendó y desde dónde. Este camino —el panel— era el ÚNICO
+        // que no estampaba `origen`, y por eso el 29% de las citas de la
+        // plataforma no tenía forma de distinguir "la reservó el cliente" de
+        // "se la agendaron a mano". Pasó con la cita de Maximiano
+        // (kronnos_limache, 04-08): el cliente pidió cancelar, no aparecía
+        // nada, y 51 min después alguien la creó a mano sin dejar rastro.
+        payload.origen = 'agenda_manual';
+        payload.creadoPor = {
+          uid:   _authUser?.uid   || null,
+          email: _authUser?.email || null,
+        };
         // Resolver el uid canónico del cliente ANTES de guardar la cita, así
         // clienteId/clienteUid del payload apuntan al doc correcto desde el
         // primer write. Si el CF falla (red/quota), la cita se guarda igual
@@ -3988,6 +4028,20 @@ function AppointmentBlock({ cita, colIndex, colTotal, barberColor, onClick, onCo
         <GripVertical size={12} className="absolute top-1 right-1 text-primary/45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       )}
       <p className="font-semibold truncate leading-tight">
+        {(() => {
+          // Quién la agendó. Va primero y siempre: es lo que responde de un
+          // vistazo "¿esta hora la pidió el cliente o se la pusimos nosotros?".
+          const og = origenDeCita(cita);
+          const autor = autorDeCita(cita);
+          return (
+            <og.Icon
+              size={11}
+              className={`inline-block mr-1 -mt-0.5 shrink-0 ${og.color}`}
+              aria-label={og.label}
+              title={autor ? `${og.label} · ${autor}` : og.label}
+            />
+          );
+        })()}
         {waAvisado(cita) && (
           <svg viewBox="0 0 24 24" width="11" height="11" className="inline-block mr-1 -mt-0.5" aria-label="WhatsApp enviado">
             <path fill="#25D366" d="M20.52 3.45C18.24 1.17 15.24 0 12.06 0 5.55 0 .21 5.28.21 11.79c0 2.07.54 4.11 1.62 5.91L.06 24l6.42-1.68c1.71.93 3.66 1.44 5.58 1.44 6.51 0 11.85-5.28 11.85-11.79 0-3.15-1.23-6.15-3.39-8.52z"/>
@@ -4904,6 +4958,15 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
             <Row icon={Timer}        label="Duración"  value={cita.duracion ? `${cita.duracion} min` : null} />
             <Row icon={DollarSign}   label="Precio"    value={cita.cortesia ? 'Cortesía (gratis)' : (cita.precio != null ? `$${Number(cita.precio).toLocaleString('es-CL')}` : null)} />
             {!cita.cortesia && cita.porcentajeDescuento > 0 && <Row icon={DollarSign} label="Descuento" value={`${cita.porcentajeDescuento}%`} />}
+            {/* Origen en palabras: el icono de la grilla responde de un vistazo,
+                acá va el detalle y, si se agendó a mano, quién la escribió. */}
+            {(() => {
+              const og = origenDeCita(cita);
+              const autor = autorDeCita(cita);
+              const texto = { cliente: 'La reservó el cliente (web)', bot: 'La agendó el asistente de WhatsApp',
+                              manual: 'Agendada a mano', desconocido: 'Sin registro', otro: og.label }[og.tipo] || og.label;
+              return <Row icon={og.Icon} label="Agendada por" value={autor ? `${texto} · ${autor}` : texto} />;
+            })()}
           </div>
 
           {/* Nota y fecha de reserva */}
