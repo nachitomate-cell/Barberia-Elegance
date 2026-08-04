@@ -37,6 +37,7 @@ const EVOLUTION_WEBHOOK_TOKEN = defineSecret('EVOLUTION_WEBHOOK_TOKEN');
 const ANTHROPIC_API_KEY       = defineSecret('ANTHROPIC_API_KEY');
 
 const BOOTSTRAP_EMAILS = ['ignaciiio.mate@gmail.com'];
+const { puedeAdministrarTenant } = require('../brand-admins');
 // URL pública de ESTA función (a la que apunta cada instancia del VPS).
 const WEBHOOK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/evolutionWebhook';
 
@@ -80,8 +81,23 @@ function tenantDelCaller(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Inicia sesión.');
   const claims = req.auth.token || {};
   const esBootstrap = BOOTSTRAP_EMAILS.includes(String(claims.email || '').toLowerCase());
-  let tid = claims.tenantId || null;
-  if (esBootstrap && req.data && req.data.tenantId) tid = String(req.data.tenantId);
+
+  // Sede pedida por el panel (selector "Cambiar de sede"). Antes solo el
+  // superadmin podía mandarla: para un admin de marca Kronnos el selector
+  // cambiaba el header y esta pestaña seguía mostrando la sede de su claim,
+  // sin avisar. Ahora se acepta de cualquiera que REALMENTE administre ese
+  // local, con la misma puerta que usa el hub — que es lo que pide la nota de
+  // brand-admins.js: toda callable que pregunte "¿este caller manda acá?"
+  // resuelve con puedeAdministrarTenant().
+  const pedido = String(req.data?.tenantId || '').trim();
+  if (pedido && pedido !== claims.tenantId) {
+    if (!puedeAdministrarTenant(req, pedido)) {
+      throw new HttpsError('permission-denied', 'No administras ese local.');
+    }
+    return pedido;
+  }
+
+  const tid = claims.tenantId || null;
   if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
   if (!esBootstrap && !['admin', 'jefe'].includes(claims.role || '')) {
     throw new HttpsError('permission-denied', 'Solo administradores del local.');
@@ -576,3 +592,6 @@ exports.evolutionWebhook = onRequest({
   }
   res.status(200).send('ok');
 });
+
+// Para tests locales (scripts/test-sede-gateway.js): no es API pública.
+module.exports._tenantDelCaller = tenantDelCaller;

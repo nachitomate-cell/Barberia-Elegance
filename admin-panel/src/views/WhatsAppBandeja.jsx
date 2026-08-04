@@ -37,8 +37,9 @@ export default function WhatsAppBandeja() {
     setError('');
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'waMisConversaciones');
-      // tenantId explícito: solo lo honra el servidor para operadores, pero sin
-      // él un operador viendo otro local recibía los chats de su propio claim.
+      // tenantId explícito: el servidor lo honra de cualquiera que administre
+      // ese local (superadmin o admin de marca). Sin él, quien cambiaba de sede
+      // recibía los chats de su propio claim, sin aviso.
       const r  = await fn({ limit: 20, tenantId: resolveTenantId() });
       setChats(r.data?.conversaciones || []);
     } catch (e) {
