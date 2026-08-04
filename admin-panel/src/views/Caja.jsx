@@ -2122,6 +2122,10 @@ export default function Caja() {
   // cada profesional" es de esos: Comisiones está `adminOnly` en el menú, así
   // que mostrarla dentro de la caja sería una puerta lateral a lo mismo.
   const puedeVerComisiones = role === 'admin';
+  // Mover plata del cajón al banco es decisión del dueño, no de quien atiende
+  // el mesón: recepción sigue registrando egresos (gasto, vuelto) pero no puede
+  // marcarlos como depósito. Mismo criterio que Comisiones, arriba.
+  const puedeRetirarAlBanco = role === 'admin';
   const tenant = useTenant();
   const userEmail = user?.email || 'admin';
   const [showReporteContador, setShowReporteContador] = useState(false);
@@ -2810,7 +2814,12 @@ export default function Caja() {
           nombre: (nombreApertura || '').trim() || (sesionActiva.nombreApertura || ''),
           // Solo en egresos: adónde fue la plata. Los items viejos no lo traen
           // y se leen como 'salida' (que es lo que eran antes de existir esto).
-          ...(tipo === 'egreso' ? { destino: adjDestino } : {}),
+          // El destino 'transferencia' se fuerza a 'salida' si quien registra no
+          // es admin: esconder el selector no basta, el estado podría quedar
+          // sucio de un modal anterior abierto por otro usuario en la sesión.
+          ...(tipo === 'egreso'
+            ? { destino: (adjDestino === 'transferencia' && puedeRetirarAlBanco) ? 'transferencia' : 'salida' }
+            : {}),
         }],
       });
       setAdjDesc('');
@@ -3580,6 +3589,7 @@ export default function Caja() {
               <label className={lbl}>Monto ($)</label>
               <input type="number" className={field} placeholder="0" min="0" value={adjMonto} onChange={e => setAdjMonto(e.target.value)} />
             </div>
+            {puedeRetirarAlBanco && (
             <div>
               <label className={lbl}>¿Adónde va esta plata?</label>
               <div className="grid grid-cols-2 gap-2 mt-1">
@@ -3608,6 +3618,7 @@ export default function Caja() {
                 </p>
               )}
             </div>
+            )}
             <button
               onClick={() => handleAjuste('egreso')}
               disabled={adjSaving || !adjDesc.trim() || !adjMonto}
