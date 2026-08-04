@@ -438,7 +438,11 @@ function renderAuraMembresiaPlanesModal(planes) {
 }
 
 function initAuraAnimations() {
-  if ((!document.documentElement.classList.contains('tenant-aura') && !document.documentElement.classList.contains('tenant-latincaribe'))) return;
+  // ⚠ Lista espejo del selector CSS `[data-aura-stagger]{opacity:0}` en
+  // dashboard.css — si un tenant entra ahí y no acá, sus secciones quedan
+  // invisibles para siempre (opacity 0 sin animación que las revele).
+  const _h = document.documentElement.classList;
+  if (!_h.contains('tenant-aura') && !_h.contains('tenant-latincaribe') && !_h.contains('tenant-renacer')) return;
   const els = document.querySelectorAll('[data-aura-stagger]');
   els.forEach((el, i) => {
     el.classList.add('aura-animate', `aura-d${Math.min(i, 4)}`);

@@ -908,7 +908,10 @@ const FDB = (() => {
   //  personas: [{ barberoId, barbero }]  — distintos entre sí, uno por persona
   //  base:     { fecha, hora, clienteNombre, clienteTelefono, clienteTelefonoSuf9,
   //              clienteEmail, servicioId, servicioNombre, duracionServicio,
-  //              precio, codigoCita, sucursalId?, sucursalNombre?, ...aceptos }
+  //              precio, codigoCita, sucursalId?, sucursalNombre?,
+  //              nombresAcompanantes?: string[]  — índice 0 = 1er acompañante
+  //              (idx cita 1). Si el string está vacío se cae al fallback
+  //              "{clienteNombre} · acompañante N". ...aceptos }
   async function addCitasGrupo(personas, base) {
     if (!Array.isArray(personas) || personas.length < 2) {
       throw new Error('Una reserva de grupo requiere al menos 2 personas.');
@@ -970,13 +973,23 @@ const FDB = (() => {
           duracion:  dur,
           creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
         });
+        // Nombre del acompañante: si el reservante lo escribió en el paso 4
+        // se guarda tal cual; si no, cae al fallback "{reservante} ·
+        // acompañante N" para que el barbero al menos vea de qué grupo es.
+        const _nombreAcomp = (() => {
+          if (esPrincipal) return base.clienteNombre || '';
+          const raw = Array.isArray(base.nombresAcompanantes)
+            ? String(base.nombresAcompanantes[it.idx - 1] || '').trim()
+            : '';
+          return raw || `${base.clienteNombre || 'Grupo'} · acompañante ${it.idx + 1}`;
+        })();
         tx.set(it.citaRef, {
           fecha:            base.fecha,
           hora:             base.hora,
-          // Acompañantes: nombre derivado del reservante; el staff los ubica
-          // por el badge de grupo en la agenda. Sin email/teléfono → las CFs
-          // de confirmación al cliente no se duplican.
-          clienteNombre:    esPrincipal ? (base.clienteNombre || '') : `${base.clienteNombre || 'Grupo'} · acompañante ${it.idx + 1}`,
+          // Acompañantes: nombre real (input opcional del reservante) o
+          // fallback derivado. Sin email/teléfono → las CFs de confirmación
+          // al cliente no se duplican.
+          clienteNombre:    _nombreAcomp,
           clienteTelefono:  esPrincipal ? (base.clienteTelefono || '') : '',
           clienteEmail:     esPrincipal ? (base.clienteEmail || '') : '',
           ...(esPrincipal && base.clienteTelefonoSuf9 ? { clienteTelefonoSuf9: base.clienteTelefonoSuf9 } : {}),

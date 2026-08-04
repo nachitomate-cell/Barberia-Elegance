@@ -12,8 +12,13 @@
 //  tiene, puede consultar o cancelar.
 //
 //  Acciones soportadas:
-//    - 'consultar': devuelve datos de la cita
-//    - 'cancelar':  marca estado='Cancelada' + libera slotLock
+//    - 'consultar':      devuelve datos de la cita
+//    - 'cancelar':       marca estado='Cancelada' + libera slotLock
+//    - 'cancelar-grupo': cancela TODAS las citas hermanas de la reserva
+//                        grupal. Solo el código del reservante
+//                        (grupoIndex===0) puede disparar esta acción —
+//                        un acompañante puede cancelar SÓLO la suya
+//                        con 'cancelar'.
 //
 //  DEPLOY:
 //    firebase deploy --only functions:gestionarCitaPorCodigo
@@ -108,7 +113,7 @@ exports.gestionarCitaPorCodigo = onCall(
     if (!codigo) {
       throw new HttpsError('invalid-argument', 'Falta código de cita.');
     }
-    if (!['consultar', 'cancelar'].includes(accion)) {
+    if (!['consultar', 'cancelar', 'cancelar-grupo'].includes(accion)) {
       throw new HttpsError('invalid-argument', 'Acción inválida.');
     }
 
@@ -156,6 +161,10 @@ exports.gestionarCitaPorCodigo = onCall(
       // Calcular qué acciones puede hacer este cliente con esta cita
       const dentroDeVentana = pol.minutosLimite === 0 ||
         (minsRestantes !== null && minsRestantes >= pol.minutosLimite);
+      // Grupo: idx 0 es el reservante. Solo él puede cancelar el grupo entero;
+      // un acompañante puede cancelar sólo su cita.
+      const esGrupo          = !!cita.grupoId;
+      const esGrupoPrincipal = esGrupo && (Number(cita.grupoIndex) || 0) === 0;
       return {
         ok: true,
         cita: {
@@ -167,13 +176,18 @@ exports.gestionarCitaPorCodigo = onCall(
           barbero:        cita.barbero || cita.barberoNombre || '',
           clienteNombre:  cita.clienteNombre || '',
           estado:         cita.estado || 'Pendiente',
+          esGrupo,
+          esGrupoPrincipal,
+          grupoTotal:     esGrupo ? (Number(cita.grupoTotal) || null) : null,
+          grupoIndex:     esGrupo ? (Number(cita.grupoIndex) || 0) : null,
         },
         politicas: {
-          puedeCancelar:     pol.chatCancelEnabled    && dentroDeVentana,
-          puedeReagendar:    pol.chatReagendarEnabled && dentroDeVentana,
-          minutosLimite:     pol.minutosLimite,
-          minutosRestantes:  minsRestantes,
-          mensaje:           pol.politicaMensaje,
+          puedeCancelar:      pol.chatCancelEnabled    && dentroDeVentana,
+          puedeReagendar:     pol.chatReagendarEnabled && dentroDeVentana,
+          puedeCancelarGrupo: esGrupoPrincipal && pol.chatCancelEnabled && dentroDeVentana,
+          minutosLimite:      pol.minutosLimite,
+          minutosRestantes:   minsRestantes,
+          mensaje:            pol.politicaMensaje,
           dentroDeVentana,
         },
       };
@@ -236,6 +250,101 @@ exports.gestionarCitaPorCodigo = onCall(
       return {
         ok: true,
         cancelada: true,
+        cita: {
+          id:    citaDoc.id,
+          fecha: cita.fecha,
+          hora:  cita.hora,
+        },
+      };
+    }
+
+    // ── CANCELAR GRUPO ──────────────────────────────────────
+    //  Solo el código de la cita PRINCIPAL (grupoIndex 0) puede cancelar
+    //  todo el grupo. Un acompañante que use su código llegará aquí solo
+    //  si maliciosamente pasa 'cancelar-grupo' — lo bloqueamos.
+    if (accion === 'cancelar-grupo') {
+      if (!cita.grupoId) {
+        throw new HttpsError('failed-precondition', 'Esta cita no pertenece a una reserva grupal.');
+      }
+      if ((Number(cita.grupoIndex) || 0) !== 0) {
+        throw new HttpsError(
+          'permission-denied',
+          'Solo quien hizo la reserva puede cancelar todo el grupo. Usa tu propio código para cancelar solo tu cita.',
+        );
+      }
+      if (!pol.chatCancelEnabled) {
+        throw new HttpsError(
+          'permission-denied',
+          'El local no permite cancelaciones desde el chat. Contactanos directamente.',
+        );
+      }
+      if (pol.minutosLimite > 0 && (minsRestantes === null || minsRestantes < pol.minutosLimite)) {
+        const horas = Math.round(pol.minutosLimite / 60);
+        throw new HttpsError(
+          'failed-precondition',
+          `Las cancelaciones se aceptan con al menos ${horas}h de anticipación. Contactanos para cancelar este grupo.`,
+        );
+      }
+
+      // Traer TODAS las hermanas (incluye la principal). Filtramos las que ya
+      // estén canceladas para no rescribirlas ni gatillar de nuevo el trigger
+      // liberarSlotTenant.
+      let hermanas;
+      try {
+        const snap = await citasCol(tenantId)
+          .where('grupoId', '==', cita.grupoId)
+          .get();
+        hermanas = snap.docs.filter(d => (d.data().estado || '') !== 'Cancelada');
+      } catch (err) {
+        logger.error('[gestion-cita] cancel-grupo query fail', { tenantId, grupoId: cita.grupoId, err: err.message });
+        throw new HttpsError('internal', 'Error consultando el grupo.');
+      }
+      if (!hermanas.length) {
+        throw new HttpsError('failed-precondition', 'Todas las citas del grupo ya estaban canceladas.');
+      }
+
+      // Batch: N updates atómicos. El trigger liberarSlotTenant se dispara por
+      // cada cita y borra su slotLock. Además intentamos borrar los locks
+      // best-effort (mismo patrón que 'cancelar' arriba) por si alguna cita
+      // vieja del grupo tuviera slotLockId=null.
+      const batch = db.batch();
+      hermanas.forEach(h => {
+        batch.update(h.ref, {
+          estado:       'Cancelada',
+          canceladaAt:  admin.firestore.FieldValue.serverTimestamp(),
+          canceladaVia: 'cliente_chat_grupo',
+        });
+      });
+      try {
+        await batch.commit();
+      } catch (err) {
+        logger.error('[gestion-cita] cancel-grupo commit fail', { grupoId: cita.grupoId, err: err.message });
+        throw new HttpsError('internal', 'No se pudo cancelar el grupo.');
+      }
+
+      const lockIds = new Set();
+      hermanas.forEach(h => {
+        const c = h.data();
+        if (c.slotLockId) lockIds.add(c.slotLockId);
+        if (c.barberoId && c.fecha && c.hora) {
+          const safeHora = String(c.hora).replace(':', '');
+          const safeBid  = String(c.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+          lockIds.add(`${safeBid}_${c.fecha}_${safeHora}`);
+        }
+      });
+      await Promise.all(
+        [...lockIds].map(id => slotLocksCol(tenantId).doc(id).delete().catch(() => {})),
+      );
+
+      logger.info('[gestion-cita] grupo cancelado por reservante', {
+        tenantId, grupoId: cita.grupoId, canceladas: hermanas.length,
+      });
+
+      return {
+        ok: true,
+        cancelada: true,
+        grupoCancelado: true,
+        canceladas: hermanas.length,
         cita: {
           id:    citaDoc.id,
           fecha: cita.fecha,

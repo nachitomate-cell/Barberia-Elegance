@@ -214,10 +214,10 @@ async function initLookbook() {
   if (navBtn) navBtn.classList.remove('hidden');
 
   grid.innerHTML = `
-    <div class="masonry-item rounded-md aspect-[3/4] bg-white/5 animate-pulse"></div>
-    <div class="masonry-item rounded-md aspect-[4/5] bg-white/5 animate-pulse"></div>
-    <div class="masonry-item rounded-md aspect-square bg-white/5 animate-pulse"></div>
-    <div class="masonry-item rounded-md aspect-[3/4] bg-white/5 animate-pulse"></div>`;
+    <div class="masonry-item rounded-2xl aspect-[3/4] bg-white/5 animate-pulse"></div>
+    <div class="masonry-item rounded-2xl aspect-[4/5] bg-white/5 animate-pulse"></div>
+    <div class="masonry-item rounded-2xl aspect-square bg-white/5 animate-pulse"></div>
+    <div class="masonry-item rounded-2xl aspect-[3/4] bg-white/5 animate-pulse"></div>`;
 
   if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
 
@@ -226,15 +226,27 @@ async function initLookbook() {
     ? db.collection('lookbook')
     : db.collection('tenants').doc(_lbTid).collection('lookbook');
   _lookbookUnsub = _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
+    const cnt = document.getElementById('lookbookCount');
     if (snap.empty) {
       _lbDocs = [];
       grid.innerHTML = '';
       empty.classList.remove('hidden');
       empty.classList.add('flex');
+      if (cnt) cnt.classList.add('hidden');
+      // CTA a Instagram del local mientras el lookbook está vacío.
+      const ig = document.getElementById('lookbookEmptyIg');
+      if (ig && window.SHOP && SHOP.instagram) {
+        ig.href = SHOP.instagram;
+        ig.classList.remove('hidden');
+      }
       return;
     }
     empty.classList.add('hidden');
     empty.classList.remove('flex');
+    if (cnt) {
+      cnt.textContent = snap.size + (snap.size === 1 ? ' look' : ' looks');
+      cnt.classList.remove('hidden');
+    }
     const newDocs  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const likedIds = _lbGetLiked();
     const changes  = snap.docChanges();
@@ -444,30 +456,33 @@ function _lbSaveLiked(ids) { try { localStorage.setItem(_lbLikesKey(), JSON.stri
 function _lbBadgeInner(d, liked) {
   const likes = d.likes || 0;
   if (likes <= 0) return '';
-  return `<div class="absolute z-20 flex items-center" style="top:0.6rem;right:0.6rem;gap:4px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;pointer-events:none;">
-            <i class="ph-fill ph-heart" style="font-size:10px;color:${liked ? '#f87171' : 'rgba(255,255,255,0.7)'}"></i>
+  return `<div class="absolute z-20 flex items-center" style="top:0.6rem;right:0.6rem;gap:4px;background:rgba(8,8,12,0.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:100px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,0.28);">
+            <i class="ph-fill ph-heart" style="font-size:11px;color:${liked ? '#f87171' : 'rgba(255,255,255,0.85)'}"></i>
             <span>${likes}</span>
           </div>`;
 }
 // Render de una sola tarjeta del lookbook. Para reels (mediaType==='VIDEO')
 // mostramos el thumbnail con un badge de play — la reproducción se abre en
 // el visor.
+// El min-height existe solo para darle caja al skeleton: se limpia al cargar
+// la foto, así la card abraza su proporción real (masonry de verdad, sin
+// franjas muertas bajo las fotos apaisadas).
 function _lbItemHtml(d, likedIds) {
   const url     = d.url;
   const liked   = likedIds.includes(d.id);
   const isVideo = d.mediaType === 'VIDEO';
   const playBadge = isVideo
-    ? `<div class="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center rounded-full bg-black/55 backdrop-blur-sm" style="width:44px;height:44px;">
-         <i class="ph-fill ph-play" style="color:#fff;font-size:20px;margin-left:2px;"></i>
+    ? `<div class="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center rounded-full" style="width:46px;height:46px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,0.35);box-shadow:0 4px 18px rgba(0,0,0,0.35);">
+         <i class="ph-fill ph-play" style="color:#fff;font-size:19px;margin-left:2px;"></i>
        </div>`
     : '';
   return `
-    <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
+    <div class="masonry-item lb-card rounded-2xl overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer"
          data-lb-id="${d.id}"
          onclick="abrirFotoLookbook('${url}','${d.id}')">
       <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
       <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
-           onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
+           onload="this.style.opacity='1';this.parentElement.style.minHeight='0';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
            onerror="this.parentElement.remove()">
       ${playBadge}
       <div class="lb-badge-slot">${_lbBadgeInner(d, liked)}</div>

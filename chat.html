@@ -2021,14 +2021,31 @@
             pendingAction = { type: 'awaiting-cancel-confirm', codigo, cita: res.cita, politicas: res.politicas };
             const resumen = plainText(fmtCitaResumen(res.cita));
             const pol = res.politicas || {};
+            const esGrupo          = !!res.cita.esGrupo;
+            const esGrupoPrincipal = !!res.cita.esGrupoPrincipal;
+            const grupoTotal       = Number(res.cita.grupoTotal) || 0;
             // Construir chips según lo que el local permita
             const replies = [];
-            if (pol.puedeCancelar)  replies.push({ id: '__cancel-cita__',    label: '❌ Cancelar' });
-            if (pol.puedeReagendar) replies.push({ id: '__reagendar-cita__', label: '🗓 Reagendar' });
+            if (pol.puedeCancelar)      replies.push({ id: '__cancel-cita__',    label: esGrupo ? '❌ Cancelar solo la mía' : '❌ Cancelar' });
+            if (pol.puedeReagendar)     replies.push({ id: '__reagendar-cita__', label: esGrupo ? '🗓 Reagendar solo la mía' : '🗓 Reagendar' });
+            // Chips de grupo: solo el reservante (principal) puede gestionar
+            // todo el grupo. Un acompañante ve arriba "cancelar solo la mía".
+            if (pol.puedeCancelarGrupo) {
+              replies.push({ id: '__cancel-grupo__',    label: `❌ Cancelar todo el grupo (${grupoTotal})` });
+              replies.push({ id: '__reagendar-grupo__', label: `🗓 Reagendar todo el grupo` });
+            }
             replies.push({ id: '__cancel-flow-end__', label: 'Nada' });
 
             // Mensaje contextual: si NO puede hacer nada, explicar por qué
             let bloque = `Cita encontrada ✓\n\n${resumen}`;
+            // Aviso de grupo: contexto extra según si es reservante o acompañante.
+            if (esGrupo && grupoTotal > 1) {
+              if (esGrupoPrincipal) {
+                bloque += `\n\n👥 Esta es una reserva grupal de ${grupoTotal} personas. Como tú la hiciste, puedes cancelar todo el grupo o solo tu cita.`;
+              } else {
+                bloque += `\n\n👥 Eres acompañante de una reserva grupal de ${grupoTotal} personas. Aquí solo puedes gestionar TU cita. Si quieren cancelar todo el grupo, tiene que hacerlo quien lo reservó.`;
+              }
+            }
             if (pol.mensaje) {
               bloque += `\n\nℹ️ ${pol.mensaje}`;
             }
@@ -2160,6 +2177,73 @@
         await sendBotMessage('Listo, dejamos todo como está 👍 ¿Algo más en lo que te ayude?', {
           replies: buildReplyChips(),
         });
+        pendingAction = null;
+        return;
+      }
+
+      // ── Chips de RESERVA GRUPAL ─────────────────────────────
+      // Cancelar todo el grupo: solo disponible para la cita principal (el
+      // servidor lo revalida — el chip no aparece si !puedeCancelarGrupo).
+      if (optionId === '__cancel-grupo__' && pendingAction?.cita) {
+        await echoClientLabel('❌ Cancelar todo el grupo');
+        const total = Number(pendingAction.cita.grupoTotal) || 0;
+        await sendBotMessage(
+          `¿Confirmas cancelar las ${total} citas del grupo del ${plainText(fmtFechaCorta(pendingAction.cita.fecha))} a las ${pendingAction.cita.hora}? Se libera el horario para todos.`,
+          {
+            replies: [
+              { id: '__cancel-grupo-yes__', label: `Sí, cancelar las ${total}` },
+              { id: '__cancel-confirm-no__', label: 'No, dejarla' },
+            ],
+          },
+        );
+        pendingAction = { ...pendingAction, type: 'awaiting-cancel-grupo-final' };
+        return;
+      }
+      if (optionId === '__cancel-grupo-yes__' && pendingAction?.type === 'awaiting-cancel-grupo-final') {
+        await echoClientLabel(`Sí, cancelar las ${pendingAction.cita.grupoTotal}`);
+        try {
+          const res = await callGestionarCita({
+            tenantId: TENANT_ID,
+            codigo:   pendingAction.codigo,
+            accion:   'cancelar-grupo',
+          });
+          const n = Number(res?.canceladas) || Number(pendingAction.cita.grupoTotal) || 0;
+          await sendBotMessage(`Listo, cancelé las ${n} citas del grupo ✓ Los horarios quedan liberados.`);
+        } catch (err) {
+          const code = err?.code || err?.details?.code || '';
+          const friendly = /failed-precondition|permission-denied/i.test(code)
+            ? (err?.message || 'No se puede cancelar el grupo.')
+            : 'No pudimos cancelar el grupo. Te contactamos pronto para gestionarlo 👍';
+          await sendBotMessage(friendly);
+          await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+        }
+        pendingAction = null;
+        return;
+      }
+      // Reagendar grupo = cancelar todas + link para volver a reservar
+      // (mismo patrón que reagendar individual, escalado a N personas).
+      if (optionId === '__reagendar-grupo__' && pendingAction?.cita) {
+        await echoClientLabel('🗓 Reagendar todo el grupo');
+        try {
+          const res = await callGestionarCita({
+            tenantId: TENANT_ID,
+            codigo:   pendingAction.codigo,
+            accion:   'cancelar-grupo',
+          });
+          const n = Number(res?.canceladas) || Number(pendingAction.cita.grupoTotal) || 0;
+          const url = getReservaUrl();
+          await sendBotMessage(
+            `Listo, cancelé las ${n} citas del grupo ✓ Ahora agenda la nueva hora aquí 👇 (recuerda elegir "grupo de ${n} personas")`,
+            { cta: { label: 'Reservar nueva hora', url } },
+          );
+        } catch (err) {
+          const code = err?.code || err?.details?.code || '';
+          const friendly = /failed-precondition|permission-denied/i.test(code)
+            ? (err?.message || 'No se puede reagendar el grupo.')
+            : 'No pudimos reagendar el grupo. Te contactamos pronto para gestionarlo 👍';
+          await sendBotMessage(friendly);
+          await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+        }
         pendingAction = null;
         return;
       }

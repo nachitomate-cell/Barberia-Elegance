@@ -25,6 +25,15 @@ function localDateStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Reservas en grupo: la cita principal (idx 0) es del reservante — los N-1
+// acompañantes son personas del mismo grupo, no clientes distintos. Contarlos
+// como clientes propios infla la recurrencia y el top10 (mismo nombre 3×).
+// Los KPIs de ingresos/comisiones/ocupación SÍ los suman: cada silla es una
+// atención real. Solo la métrica de CLIENTE excluye al acompañante.
+function esAcompanante(c) {
+  return !!c && c.grupoId && (Number(c.grupoIndex) || 0) > 0;
+}
+
 function dateToStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -711,9 +720,11 @@ export default function Metricas() {
     const ingresos    = completadas.reduce((s, c) => s + ingresoLocalCita(c), 0);
     const ticket      = completadas.length ? ingresos / completadas.length : 0;
 
-    // Clientes recurrentes (>1 cita global)
+    // Clientes recurrentes (>1 cita global). Excluimos acompañantes: no son
+    // clientes distintos, son gente del mismo grupo del reservante.
     const clienteCounts = {};
     citas.forEach(c => {
+      if (esAcompanante(c)) return;
       const k = c.clienteNombre || 'Anónimo';
       clienteCounts[k] = (clienteCounts[k] || 0) + 1;
     });
@@ -726,9 +737,12 @@ export default function Metricas() {
       ? Math.round((completadas.length / rangeCitas.length) * 100)
       : 0;
 
-    // Top 10 clientes del rango
+    // Top 10 clientes del rango. Los acompañantes no son clientes propios
+    // (el gasto lo hizo el reservante); excluirlos evita filas fantasma
+    // tipo "Ignacio · acompañante 2" y no infla el gasto del reservante.
     const clienteMap = {};
     rangeCitas.forEach(c => {
+      if (esAcompanante(c)) return;
       const k = c.clienteNombre || 'Anónimo';
       if (!clienteMap[k]) clienteMap[k] = { nombre: k, citas: 0, gasto: 0 };
       clienteMap[k].citas++;

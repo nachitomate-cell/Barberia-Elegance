@@ -38,11 +38,43 @@ function fmtPrecio(precio) {
 
 // ── Template HTML ─────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl, walletUrl }) {
+function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl, walletUrl, grupoHermanas }) {
   const fecha    = fmtFecha(cita.fecha);
   const precio   = fmtPrecio(cita.precio);
   const duracion = cita.duracion ? `${cita.duracion} min` : null;
   const nombre   = cita.clienteNombre || 'Cliente';
+
+  // Bloque de reserva grupal: solo va en el correo del RESERVANTE (grupoIndex 0).
+  // Lista "Tú → Vicente" + cada acompañante con su barbero y código individual,
+  // así el reservante puede reenviárselo por WhatsApp y cada acompañante gestiona
+  // su cita por separado si necesita.
+  const bloqueGrupo = (Array.isArray(grupoHermanas) && grupoHermanas.length > 1) ? `
+        <tr>
+          <td style="padding:0 36px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border-radius:12px;border:1px solid ${cfg.color}55;padding:20px 24px;">
+              <tr><td>
+                <p style="margin:0 0 14px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${cfg.color};">👥 Reserva grupal · ${grupoHermanas.length} personas</p>
+                <p style="margin:0 0 12px;font-size:12px;color:#aaa;line-height:1.55;">
+                  Todos a la <strong style="color:#ddd;">misma hora</strong> en sillones distintos. Cada acompañante tiene su código para gestionar SU cita si necesita.
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${grupoHermanas.map((h, i) => `
+                    <tr>
+                      <td style="padding:6px 0;color:${i === 0 ? '#fff' : '#cccccc'};font-size:13px;">
+                        ${i === 0 ? '<strong>Tú</strong>' : (h.nombre || 'Acompañante ' + (i + 1))}
+                        <span style="color:#666;"> → </span>
+                        <span style="color:#ddd;font-weight:600;">${h.barbero || '—'}</span>
+                      </td>
+                      <td style="padding:6px 0;color:${cfg.color};font-size:11px;font-weight:700;letter-spacing:2px;font-family:'Courier New',Monaco,monospace;text-align:right;">
+                        ${h.codigoCita || ''}
+                      </td>
+                    </tr>`).join('')}
+                </table>
+              </td></tr>
+            </table>
+          </td>
+        </tr>` : '';
 
   // Corte al Lápiz (Yūgen): reserva sin pago, se carga a la cuenta del cliente.
   const esCorteLapiz = cita.corteLapiz === true;
@@ -144,7 +176,7 @@ function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl, walletUrl
             </table>
           </td>
         </tr>
-${esCorteLapiz ? `
+${bloqueGrupo}${esCorteLapiz ? `
         <tr>
           <td style="padding:0 36px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
@@ -367,12 +399,42 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 
   const walletUrl = await urlTarjetaSiCorresponde(tenantId, data);
 
-  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl, walletUrl });
+  // Reserva grupal: solo el reservante (idx 0) lleva email, así que solo
+  // acá enriquecemos con el desglose. Consultamos las hermanas por grupoId
+  // y las ordenamos por índice para que "Tú" salga primero.
+  let grupoHermanas = null;
+  if (data.grupoId && (Number(data.grupoIndex) || 0) === 0) {
+    try {
+      const col = tenantId === 'elegance'
+        ? db.collection('citas')
+        : db.collection('tenants').doc(tenantId).collection('citas');
+      const snap = await col.where('grupoId', '==', data.grupoId).get();
+      grupoHermanas = snap.docs
+        .map(d => {
+          const c = d.data();
+          return {
+            idx:        Number(c.grupoIndex) || 0,
+            nombre:     c.clienteNombre || '',
+            barbero:    c.barbero || '',
+            codigoCita: c.codigoCita || '',
+          };
+        })
+        .sort((a, b) => a.idx - b.idx);
+    } catch (e) {
+      // Que un error acá NO bloquee el correo — el cliente igual necesita
+      // el aviso base. Solo perderíamos el bloque grupal en este caso.
+      logger.warn(`[Confirmacion] grupo hermanas fetch fail (${data.grupoId}): ${e.message}`);
+    }
+  }
+
+  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl, walletUrl, grupoHermanas });
 
   await enviarEmail({
     from:    cfg.from,
     to:      [email],
-    subject: `✅ Cita confirmada — ${data.servicioNombre || 'Tu reserva'} en ${cfg.nombre}`,
+    subject: grupoHermanas && grupoHermanas.length > 1
+      ? `✅ Reserva grupal confirmada · ${grupoHermanas.length} personas — ${cfg.nombre}`
+      : `✅ Cita confirmada — ${data.servicioNombre || 'Tu reserva'} en ${cfg.nombre}`,
     html,
   }, { grupo: 'citas', etiqueta: 'confirmacion-cita' });
 

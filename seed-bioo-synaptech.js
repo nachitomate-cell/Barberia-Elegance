@@ -1,17 +1,21 @@
 /**
- * seed-bioo-synaptech.js — Página bioo de SynapTech Labs (Link in Bio · bioo.cl)
+ * seed-bioo-synaptech.js — Página bioo de SynapTech (Link in Bio · bioo.cl)
  *
- * Página pública de la academia de Arquitectura de Software con IA:
+ *   → bioo.cl/synaptech   (Navy #0F1A2B + lima neón #C6F94E · paleta oficial)
  *
- *   → bioo.cl/synaptech   (tema Noche · fluid violeta/cobalto · ring neón)
+ * Escaparate del portafolio REAL de SynapTech SpA:
+ *   · SynapTech Studio — agenda + club de fidelidad (empieza.synaptechspa.cl)
+ *   · Self-service gratis (crea.synaptechspa.cl)
+ *   · bioo — link in bio (bioo.cl)
+ *   · Wallo — tarjetas Google/Apple Wallet (wallets.bioo.cl)
  *
- * Conserva uid, isAdmin, clicks, views y createdAt del dueño real
- * (merge:true). Solo reemplaza perfil/bloques/theme/seo. Los analytics
- * acumulados NO se borran.
+ * Conserva uid, isAdmin, clicks, views, createdAt, avatar y cover del
+ * dueño real (merge:true — perfil.avatar/cover NO se incluyen, así los
+ * base64 subidos en el editor quedan intactos).
  *
  * Uso:  node seed-bioo-synaptech.js
- *       node seed-bioo-synaptech.js --undo   (limpia perfil/bloques/theme;
- *                                              NO borra el doc ni el uid)
+ *       node seed-bioo-synaptech.js --undo   (limpia bloques/theme/seo;
+ *                                             NO borra el doc ni el uid)
  */
 
 const admin = require('firebase-admin');
@@ -33,117 +37,175 @@ const db = admin.firestore();
 const TS = admin.firestore.FieldValue.serverTimestamp;
 const USERNAME = 'synaptech';
 
-/* ── Helpers ─────────────────────────────────────────────────────── */
-const IMG = (id, w = 800) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=85`;
+const WA = { prefijo: '56', telefono: '983568212' };
 
+/* ── Helpers de bloques ─────────────────────────────────────────── */
 let _seq = 0;
 const bid = (p) => `${p}-${(++_seq).toString(36)}`;
 const blk = (tipo, o = {}) => ({ id: bid(tipo), tipo, label: '', url: '', activo: true, ...o });
 
 /* ════════════════════════════════════════════════════════════════
- * Perfil — Academia de Arquitectura de Software con IA
- * Voz: pragmática, futurista, B2B/edu. Tagline original del landing.
+ * Perfil — la empresa, no un producto suelto.
+ * avatar y cover NO van aquí: se preservan los subidos en el editor.
  * ════════════════════════════════════════════════════════════════ */
 const perfil = {
-  titulo: 'SynapTech Labs',
-  subtitulo: 'Arquitectura de Software con IA\nDonde tus ideas se hacen código.',
-  // Cover: dark-tech / matrix-code (cinematográfico, no distrae del avatar).
-  cover:  IMG('1518770660439-4636190af475', 1200),
-  verified: true,
-  // avatar se preserva (merge:true) — el dueño ya subió el logo en base64.
+  titulo:    'SynapTech',
+  // ⚠️ u.html colapsa los \n (no hay white-space:pre-line) → copy de corrido.
+  subtitulo: 'Agenda, fidelización, wallets y link in bio para negocios locales',
+  // La insignia /ic-verified.png es VERDE fija → con la paleta lima CALZA.
+  verified:  true,
 };
 
 /* ════════════════════════════════════════════════════════════════
- * Bloques — embudo: descubrir → conversar → consumir → fidelizar
- * Bento mixto (large/half/full) para jerarquía visual real.
+ * Bloques — embudo: producto estrella → empezar gratis → resto del
+ * portafolio → conversar → seguir.
+ *
+ * ⚠️ REGLAS APRENDIDAS (auditoría bioo 2026-07-16):
+ *  1. `icon` NO acepta emojis: solo claves de BUTTON_ICONS (SVG
+ *     stroke=currentColor). Un emoji cae al fallback PNG verde.
+ *  2. Bloque sin `url` se descarta EN SILENCIO en la página pública.
  * ════════════════════════════════════════════════════════════════ */
 const blocks = [
-  // 1. CTA hero — la postulación es la conversión #1 de la academia.
-  blk('enlace',    { label: '🚀 Postula al próximo cohorte', url: 'https://labs.synaptechspa.cl/postular', featured: true, layoutSize: 'large' }),
+  /* 1. Producto estrella — Studio con activación por IA */
+  blk('enlace', {
+    label: 'SynapTech Studio · Agenda + club de fidelidad',
+    url: 'https://empieza.synaptechspa.cl',
+    featured: true,
+    layoutSize: 'large',
+    icon: 'calendar',
+  }),
 
-  // 2. Doble fila — agendar mentoría (decisión calmada) + WhatsApp (decisión rápida).
-  blk('enlace',    { label: '📅 Agendar mentoría 1:1', url: 'https://labs.synaptechspa.cl/dashboard/mentoria', layoutSize: 'half' }),
-  blk('whatsapp',  { label: 'Conversar por WhatsApp', prefijo: '56', telefono: '912345678', mensaje: 'Hola SynapTech, me interesa el programa 🚀', layoutSize: 'half' }),
+  /* 2. Doble fila — entrar gratis vs conocer la empresa */
+  blk('enlace', {
+    label: 'Crea tu agenda gratis',
+    url: 'https://crea.synaptechspa.cl',
+    layoutSize: 'half',
+    icon: 'rocket',
+  }),
+  blk('enlace', {
+    label: 'Conoce SynapTech',
+    url: 'https://synaptechspa.cl',
+    layoutSize: 'half',
+    icon: 'globe',
+  }),
 
-  // 3. Pitch en video — embed YouTube real (placeholder genérico hasta que suban su pitch).
-  blk('embed',     { url: 'https://www.youtube.com/watch?v=Vu_yJaUjbZk' }),
+  /* 3. Resto del portafolio */
+  blk('enlace', {
+    label: 'bioo · Tu link in bio, gratis',
+    url: 'https://bioo.cl',
+    icon: 'link',
+  }),
+  blk('enlace', {
+    label: 'Wallo · Tarjetas en Google y Apple Wallet',
+    url: 'https://wallets.bioo.cl',
+    icon: 'wallet',
+  }),
 
-  // 4. Imagen-hero — workspace dark, refuerza el aspirational.
-  blk('imagen',    { img: IMG('1517077304055-6e89abbf09b0', 1000), url: 'https://labs.synaptechspa.cl', layoutSize: 'large' }),
-
-  // 5. Recursos descargables — prueba social + lead gen sin fricción.
-  blk('enlace',    { label: '📚 Recursos gratis', url: 'https://labs.synaptechspa.cl/dashboard/recursos', layoutSize: 'half' }),
-  blk('enlace',    { label: '🏆 Casos de éxito', url: 'https://labs.synaptechspa.cl/casos', layoutSize: 'half' }),
-
-  // 6. Texto editorial — refuerza valores (Pragmatismo · Autonomía · Evolución).
-  blk('texto',     { texto: 'Pragmatismo · Autonomía · Evolución\nProgramas en cohortes · 100% online' }),
+  /* 4. Qué incluye la plataforma */
+  blk('texto', {
+    texto: 'Agenda online · Club de sellos y premios · Recordatorios por WhatsApp · Notificaciones push · Pagos online · Hecho en Chile 🇨🇱',
+  }),
 
   blk('separador', {}),
 
-  // 7. Captura de leads — la "guía gratis" que el dueño ya tenía, con copy afilado.
-  blk('newsletter',{
-    label: 'Descarga la Guía del Arquitecto con IA',
-    subtitulo: 'PDF gratis · 40 páginas · stack completo + 12 prompts listos para producción',
-    btnText: 'Quiero la guía',
+  /* 5. Contacto directo — half + IG al lado */
+  blk('whatsapp', {
+    label: 'Hablemos por WhatsApp',
+    url: `https://wa.me/${WA.prefijo}${WA.telefono}?text=${encodeURIComponent('Hola SynapTech 👋 Quiero digitalizar mi negocio.')}`,
+    prefijo: WA.prefijo,
+    telefono: WA.telefono,
+    mensaje: 'Hola SynapTech 👋 Quiero digitalizar mi negocio.',
+    icon: 'phone-m',
+    layoutSize: 'half',
+  }),
+  blk('instagram', {
+    label: '@synaptechspa',
+    url: 'https://instagram.com/synaptechspa',
+    usuario: 'synaptechspa',
+    icon: 'instagram',
+    layoutSize: 'half',
   }),
 
-  // 8. Redes — LinkedIn primero (B2B), luego IG/YouTube.
-  blk('social',    { socials: [
-    { red: 'instagram', valor: 'synaptech.labs' },
-    { red: 'youtube',   valor: 'synaptechlabs' },
-    { red: 'enlace',    valor: 'https://www.linkedin.com/company/synaptech-labs' },
-  ] }),
+  /* 6. Redes al pie */
+  blk('social', {
+    label: '',
+    socials: [
+      { red: 'instagram', valor: 'synaptechspa' },
+      { red: 'whatsapp',  valor: `${WA.prefijo}${WA.telefono}` },
+    ],
+  }),
 ];
 
 /* ════════════════════════════════════════════════════════════════
- * Theme — Noche cinematográfica · fluid violeta/cobalto · ring neón
- * El mismo language visual del landing (dark + IA + futurista).
+ * Theme — paleta OFICIAL SynapTech (regla de los dos verdes):
+ *   marca #9CCC3C · neón #C6F94E (acento sobre oscuro) · navy #0F1A2B
+ * Fondo navy con lima profundo asomándose; botones blancos con texto
+ * navy (premium, sin saturar de verde); el neón va en el aro del avatar.
  * ════════════════════════════════════════════════════════════════ */
 const theme = {
   preset: 'night',
-  shape: 'rounded',          // 14px Apple-like; pill se ve clubby, no premium tech
+  shape: 'rounded',          // 14px look app/SaaS
   fill: 'solid',
-  font: 'montserrat',        // técnica, geométrica, legible en sans-serif
+  iconStyle: 'original',     // íconos sociales a color (no monocromo verde)
+  btnBgColor:   '#FAFAFA',
+  btnTextColor: '#0F1A2B',
   bg: {
-    mode: 'animated', fx: 'fluid',
-    c1: '#7c3aed',           // violeta IA
-    c2: '#0b1e3a',           // azul cobalto profundo
+    mode: 'animated',
+    fx:   'fluid',
+    c1:   '#243A10',         // lima profundo (sombra de #789C30) asomando
+    c2:   '#0F1A2B',         // navy profundo de marca
     angle: 160,
-    color: '#0b0d12',
+    color: '#0F1A2B',
     pattern: 'dots',
     image: '',
   },
-  avatarShape: 'rounded',    // squircle (no círculo) → look "app icon"
-  avatarRing: '#7c3aed',     // ring violeta neón sobre fondo dark → pop
-  btnAnim: 'none',           // sin glow/pulse: confianza/seriedad
-  text: { titleSize: 'l', subSize: 'm', weight: 'black', caps: 'normal', spacing: 'tight' },
+  avatarShape: 'rounded',    // squircle → look "app icon"
+  avatarRing:  '#C6F94E',    // lima NEÓN — el acento permitido sobre oscuro
+  btnAnim: 'none',           // sin rebotes: seriedad B2B
+  // ⚠️ u.html lee la fuente en theme.text.font (NO en theme.font) y el
+  //    merge:true conserva llaves viejas → pisar italic/subColor explícito.
+  text: {
+    font:      'montserrat', // geométrica, técnica
+    titleSize: 'l',
+    subSize:   'm',
+    weight:    'black',
+    caps:      'normal',
+    spacing:   'tight',
+    align:     'center',
+    subWeight: 'normal',
+    shadow:    'none',
+    italic:    false,
+    titleColor: '',
+    subColor:   '',          // '' → blanco .92 sobre fondo animado (limpio)
+    btnColor:   '',
+  },
 };
 
 const seo = {
-  title:       'SynapTech Labs · Arquitectura de Software con IA',
-  description: 'Academia de Arquitectura de Software con IA. Postula al próximo cohorte, agenda mentorías 1:1 y descarga la Guía del Arquitecto con IA. Donde tus ideas se hacen código.',
+  title:       'SynapTech · Agenda, fidelización y wallets para tu negocio',
+  description: 'Software chileno para negocios locales: agenda online con club de fidelidad (SynapTech Studio), tarjetas en Google y Apple Wallet (Wallo) y link in bio (bioo). Crea tu agenda gratis o pide tu demo.',
 };
 
 /* ── Escritura ──────────────────────────────────────────────────── */
 async function seed() {
   await db.doc(`bios/${USERNAME}`).set({
     username: USERNAME,
-    perfil,           // sobrescribe titulo/subtitulo/cover/verified
-                      // (avatar NO se toca — merge:true conserva el base64 subido)
+    perfil,           // merge profundo: avatar/cover base64 intactos
     bloques: blocks,
     theme,
     seo,
     updatedAt: TS(),
   }, { merge: true });
 
-  console.log(`✅ bioo.cl/${USERNAME}  (${blocks.length} bloques · uid/clicks/views preservados)`);
+  console.log(`✅ bioo.cl/${USERNAME}  (${blocks.length} bloques · navy + lima neón)`);
+  console.log('   uid/clicks/views/avatar/cover preservados');
   console.log('   Verifica en https://bioo.cl/synaptech');
 }
 
 async function undo() {
   // Solo limpia los campos editoriales — preserva uid, isAdmin, clicks, views.
   await db.doc(`bios/${USERNAME}`).set({
-    perfil:  { titulo: `@${USERNAME}`, subtitulo: '', cover: '', verified: false },
+    perfil:  { titulo: `@${USERNAME}`, subtitulo: '', verified: false },
     bloques: [],
     theme:   {},
     seo:     { title: '', description: '' },

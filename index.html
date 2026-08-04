@@ -10163,6 +10163,10 @@
             <input type="tel" id="clientPhone" placeholder="+56 9 XXXX XXXX" inputmode="numeric"
               class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
           </div>
+          <!-- Reserva grupal: N-1 inputs opcionales con el nombre de cada
+               acompañante. Sin llenar, el barbero ve "acompañante 2" (fallback).
+               Se puebla desde _renderGrupoAcompanantes() cuando _grupoSize > 1. -->
+          <div id="grupoAcompanantesInputs" class="hidden space-y-3"></div>
           <div>
             <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
               Correo
@@ -11692,8 +11696,39 @@
       selectedTimeStr = null;
       _selectedSlotInfo = null;
       _renderGrupoSelector();
+      _renderGrupoAcompanantes();
       if (typeof updateContinueBtn === 'function') updateContinueBtn();
     };
+
+    // Inputs opcionales con el nombre de cada acompañante en una reserva grupal.
+    // Sin llenar → fallback "{reservante} · acompañante N" en Firestore. Con
+    // nombre → aparece tal cual en la agenda del barbero. autoComplete off
+    // para no chocar con el buscador de servicios (regla del proyecto).
+    function _renderGrupoAcompanantes() {
+      const wrap = document.getElementById('grupoAcompanantesInputs');
+      if (!wrap) return;
+      if (_grupoSize <= 1) { wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
+      // Preservar valores ya escritos al re-render (ej. si el cliente cambia el
+      // tamaño de 3 a 4 no queremos borrar los dos ya escritos).
+      const prev = Array.from(wrap.querySelectorAll('input[data-acompanante-idx]'))
+        .reduce((acc, el) => { acc[el.dataset.acompananteIdx] = el.value; return acc; }, {});
+      const bloques = [];
+      for (let i = 1; i < _grupoSize; i++) {
+        const val = (prev[i] || '').replace(/"/g, '&quot;');
+        bloques.push(`
+          <div>
+            <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
+              Nombre acompañante ${i}
+              <span class="normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
+            </label>
+            <input type="text" data-acompanante-idx="${i}" value="${val}"
+              placeholder="Ej. Pedro" autocomplete="off"
+              class="w-full bg-[#0a0a0d] border border-white/10 rounded-2xl px-5 py-4 text-white font-medium focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-all placeholder-gray-700">
+          </div>`);
+      }
+      wrap.innerHTML = bloques.join('');
+      wrap.classList.remove('hidden');
+    }
 
     async function _prefetchChameleonSlots() {
       try {
@@ -13285,10 +13320,14 @@
 
       let hours = [];
       let lastErr;
+      // En reserva grupal SIEMPRE queremos la vista Multi (por hora sabemos
+      // qué barberos están libres). El reservante puede haber elegido su
+      // barbero — filtramos abajo horas donde él esté libre Y haya N-1 más.
+      const _usaMulti = window._selectedBarberId === 'any' || _grupoSize > 1;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
-          if (window._selectedBarberId === 'any') {
+          if (_usaMulti) {
             const _barberosActivos = (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos;
             hours = await FDB.getHorasDisponiblesMulti(currentDateStr, _duracionTotal, settings, _barberosActivos, _vipOptsMulti);
             _multiHoras = hours;
@@ -13318,13 +13357,21 @@
       // ── Reserva en grupo: solo horas con ≥N profesionales libres a la vez ──
       //  (sin cupos VIP/sobrecupo en modo grupo: un doble-booking múltiple no
       //  tiene sentido operacional). _multiHoras conserva la lista completa
-      //  para la asignación en el paso 4.
+      //  para la asignación en el paso 4. Si el reservante eligió su barbero
+      //  (no 'any'), además exigimos que ese barbero esté entre los libres.
       if (_grupoSize > 1) {
-        hours = hours.filter(h =>
-          !h.esSobrecupo &&
-          Array.isArray(h.availableBarberoIds) &&
-          h.availableBarberoIds.length >= _grupoSize
-        );
+        const _pinBid = window._selectedBarberId && window._selectedBarberId !== 'any'
+          ? _canonicalBarberoId(window._selectedBarberId)
+          : null;
+        hours = hours.filter(h => {
+          if (h.esSobrecupo) return false;
+          if (!Array.isArray(h.availableBarberoIds) || h.availableBarberoIds.length < _grupoSize) return false;
+          if (_pinBid) {
+            const disponibles = h.availableBarberoIds.map(_canonicalBarberoId);
+            if (!disponibles.includes(_pinBid)) return false;
+          }
+          return true;
+        });
       }
 
       grid.innerHTML = '';
@@ -13723,9 +13770,10 @@
         window.history.back();
       } else {
         // delnero y marcelo_hairdressing saltan el paso 2 en ambas direcciones.
-        // La reserva en grupo también (los profesionales se asignan solos).
+        // Reserva en grupo (mejora #4): AHORA el reservante SÍ ve el paso 2
+        // (elige su barbero). Los N-1 acompañantes se autoasignan al submit.
         const _skipStep2Tenants = ['delnero', 'marcelo_hairdressing'];
-        const _saltaPaso2 = _skipStep2Tenants.includes(window.CURRENT_TENANT_ID) || _grupoSize > 1;
+        const _saltaPaso2 = _skipStep2Tenants.includes(window.CURRENT_TENANT_ID);
         const targetStep = (_saltaPaso2 && currentStep === 3) ? 1 : currentStep - 1;
         const currentStepEl = document.getElementById(`step${currentStep}`);
         const prevStepEl = document.getElementById(`step${targetStep}`);
@@ -13841,40 +13889,29 @@
         // para ofrecer complementos. Los botones del modal re-llaman nextStep().
         if (_maybeShowUpsell()) return;
 
-        // ── Reserva en grupo: saltar la elección de barbero ──
-        //  Los profesionales se asignan automáticamente (se necesitan N libres
-        //  a la misma hora, elegir uno a mano no tiene sentido). Mismo patrón
-        //  de salto 1→3 que delnero/marcelo.
+        // ── Reserva en grupo: guard de packs (los packs cubren 1 persona) ──
+        // Antes también saltábamos el paso 2 aquí y auto-asignábamos 'any'. Ahora
+        // el RESERVANTE elige su propio barbero (mejora #4): si el tenant tiene
+        // paso 2 visible, se lo mostramos. Los N-1 acompañantes siguen
+        // auto-asignados al azar en el submit. En delnero/marcelo, que saltan el
+        // paso 2 por diseño, el bloque de abajo se encarga (fuerza 'any').
         if (_grupoSize > 1) {
-          // Una sesión de pack cubre UNA persona — no combinable con grupo.
           if (selectedServiceObj?.consumeSesionPack) {
             return showToast('Las sesiones de pack no aplican a reservas grupales. Cambia a "Solo yo" o quita el pack.');
           }
-          window._selectedBarberId = 'any';
-          window._selectedBarber   = 'any';
-          const summaryBarberGrp = document.getElementById('summaryBarber');
-          if (summaryBarberGrp) summaryBarberGrp.textContent = `Grupo de ${_grupoSize}`;
-          selectedTimeStr = null;
-          _selectedSlotInfo = null;
-          await precargarBloqueos(null);
-          _activeBarberConfig = null;
-          renderCalendar(null);
-          renderHours(null);
-          _subscribeSlotLocks(currentDateStr);
-          transitionStep(1, 3);
-          currentStep = 3;
-          updateProgress();
-          updateContinueBtn();
-          return;
         }
 
         if (window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
-          // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
-          const primerBarbero = (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
+          // Saltar directamente a Fecha y Hora — auto-asignar el único barbero.
+          // En grupo (mejora #4) usamos 'any' aunque el tenant salte el paso 2:
+          // pinnear a Vicente sobre-constriñe el filtro de horas (exigiría a
+          // Vicente libre + N-1 más). El resumen muestra "Grupo de N".
+          const _esGrupoAqui = _grupoSize > 1;
+          const primerBarbero = _esGrupoAqui ? null : (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
           window._selectedBarberId = primerBarbero ? primerBarbero.id : 'any';
           window._selectedBarber   = primerBarbero ? primerBarbero.nombre : 'any';
           const summaryBarberEl = document.getElementById('summaryBarber');
-          if (summaryBarberEl) summaryBarberEl.textContent = primerBarbero ? primerBarbero.nombre : 'Sin preferencia';
+          if (summaryBarberEl) summaryBarberEl.textContent = _esGrupoAqui ? `Grupo de ${_grupoSize}` : (primerBarbero ? primerBarbero.nombre : 'Sin preferencia');
           const barId = primerBarbero ? primerBarbero.id : null;
           selectedTimeStr = null;
           _selectedSlotInfo = null;
@@ -14723,12 +14760,33 @@
               eGrp.code = 'slot-taken';
               throw eGrp;
             }
-            // Elegir N barberos al azar entre los libres (distribuye la carga).
-            const elegidos = [...availGrp].sort(() => Math.random() - 0.5).slice(0, _grupoSize);
-            const personasGrp = elegidos.map(id => {
-              const bDoc = (_fsBarberos || []).find(b => b.id === id);
-              return { barberoId: _canonicalBarberoId(id), barbero: bDoc ? bDoc.nombre : '' };
+            // Si el reservante eligió su barbero (mejora #4), va en idx 0.
+            // Los N-1 restantes salen al azar de los otros libres.
+            const _pinBidGrp = window._selectedBarberId && window._selectedBarberId !== 'any'
+              ? _canonicalBarberoId(window._selectedBarberId)
+              : null;
+            const availCanon = availGrp.map(_canonicalBarberoId);
+            let ordenIds;
+            if (_pinBidGrp && availCanon.includes(_pinBidGrp)) {
+              const otros = availCanon.filter(id => id !== _pinBidGrp);
+              const restantes = otros.sort(() => Math.random() - 0.5).slice(0, _grupoSize - 1);
+              ordenIds = [_pinBidGrp, ...restantes];
+            } else {
+              // Fallback: reservante en 'any' (delnero/marcelo) o el elegido se
+              // colgó justo antes → azar completo, se distribuye la carga.
+              ordenIds = [...availCanon].sort(() => Math.random() - 0.5).slice(0, _grupoSize);
+            }
+            const personasGrp = ordenIds.map(id => {
+              const bDoc = (_fsBarberos || []).find(b => _canonicalBarberoId(b.id) === id);
+              return { barberoId: id, barbero: bDoc ? bDoc.nombre : '' };
             });
+            // Nombres opcionales de acompañantes (índice 1..N-1). Vacío → el
+            // servidor arma "{reservante} · acompañante N" como fallback.
+            const nombresAcompanantes = Array.from(
+              document.querySelectorAll('#grupoAcompanantesInputs input[data-acompanante-idx]')
+            )
+              .sort((a, b) => Number(a.dataset.acompananteIdx) - Number(b.dataset.acompananteIdx))
+              .map(el => String(el.value || '').trim());
             await FDB.addCitasGrupo(personasGrp, {
               fecha:            currentDateStr,
               hora:             selectedTimeStr,
@@ -14736,6 +14794,7 @@
               clienteTelefono:  tel,
               clienteTelefonoSuf9: telSuf9,
               clienteEmail:     email,
+              nombresAcompanantes,
               ..._reservaAcepto,
               servicioId:       selectedServiceObj.id,
               servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),

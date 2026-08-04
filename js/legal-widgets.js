@@ -68,6 +68,20 @@
       }
       .sptl-footer a { color: rgba(255,255,255,.55); text-decoration: underline; }
       .sptl-footer strong { color: rgba(255,255,255,.6); font-weight: 600; }
+      /* Tema claro — config.js marca <html class="theme-light"> en los
+         tenants de _lightTenants; el banner/footer oscuros desentonan ahí. */
+      html.theme-light .sptl-banner {
+        background: rgba(255,255,255,.97); color: #111827;
+        border: 1px solid rgba(17,24,39,.12);
+        box-shadow: 0 14px 32px -16px rgba(17,24,39,.35);
+      }
+      html.theme-light .sptl-banner p { color: #4B5563; }
+      html.theme-light .sptl-banner a { color: #6d5bd0; }
+      html.theme-light .sptl-banner__ok { background: #6d5bd0; color: #ffffff; }
+      html.theme-light .sptl-banner__ok:hover { background: #8b7cf6; }
+      html.theme-light .sptl-footer { color: rgba(17,24,39,.40); }
+      html.theme-light .sptl-footer a { color: rgba(17,24,39,.55); }
+      html.theme-light .sptl-footer strong { color: rgba(17,24,39,.60); }
       @media (prefers-reduced-motion: no-preference) {
         .sptl-banner { animation: sptl-slide-in .28s cubic-bezier(.16,1,.3,1); }
       }

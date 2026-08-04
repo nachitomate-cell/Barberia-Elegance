@@ -91,8 +91,10 @@ const bio = {
     }),
 
     /* Instagram — sin WhatsApp aún (tel pendiente), IG cubre el contacto */
+    // Label corto: el nombre solo, sin CTA — con icono, un texto largo se
+    // comprime en móvil y pierde jerarquía (issue 2026-08-01).
     blk('instagram', {
-      label: '@kronnoswoman · síguenos y escríbenos por DM',
+      label: '@kronnoswoman',
       url: 'https://instagram.com/kronnoswoman',
       usuario: 'kronnoswoman',
       icon: 'instagram',

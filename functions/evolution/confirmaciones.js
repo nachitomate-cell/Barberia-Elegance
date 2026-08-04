@@ -121,6 +121,29 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 /** Envía UNA confirmación por Evolution y deja el rastro para la respuesta. */
 async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLocal }) {
   const nombre = String(cita.clienteNombre || '').trim().split(/\s+/)[0] || '';
+
+  // Reserva grupal: solo el reservante (idx 0) tiene teléfono, así que solo él
+  // llega acá con grupoId. Le agregamos el desglose "Tú → Vicente, Pedro →
+  // Diego, ..." para que sepa quién atiende a cada acompañante. Fail-open:
+  // si algo falla en la consulta, el recordatorio base sigue saliendo.
+  let bloqueGrupo = '';
+  if (cita.grupoId && (Number(cita.grupoIndex) || 0) === 0) {
+    try {
+      const snap = await citasCol(tid).where('grupoId', '==', cita.grupoId).get();
+      const hermanas = snap.docs
+        .map(d => ({ idx: Number(d.data().grupoIndex) || 0, nombre: d.data().clienteNombre || '', barbero: d.data().barbero || '' }))
+        .sort((a, b) => a.idx - b.idx);
+      if (hermanas.length > 1) {
+        const lineas = hermanas.map((h, i) =>
+          `• ${i === 0 ? 'Tú' : (h.nombre || 'Acompañante ' + (i + 1))} → *${h.barbero || '—'}*`
+        );
+        bloqueGrupo = `\n👥 Reserva grupal (${hermanas.length} personas):\n${lineas.join('\n')}`;
+      }
+    } catch (e) {
+      logger.warn(`[confirm] grupo desglose fail tid=${tid} cita=${citaId}: ${e.message}`);
+    }
+  }
+
   const msg = [
     pick(SALUDOS)(nombre),
     '',
@@ -128,6 +151,7 @@ async function enviarConfirmacion({ tid, citaId, cita, tel, evoClient, nombreLoc
     `📅 ${fechaBonita(cita.fecha)}`,
     `🕐 ${cita.hora} hrs`,
     cita.servicioNombre ? `✂️ ${cita.servicioNombre}` : '',
+    bloqueGrupo,
     '',
     pick(CIERRES),
   ].filter(Boolean).join('\n');

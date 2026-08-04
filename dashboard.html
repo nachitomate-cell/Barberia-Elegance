@@ -47,6 +47,13 @@
   <!-- Functions compat requerido para firebase.functions().httpsCallable('crearCanje' | 'cancelarCanje'). -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script src="config.js"></script>
+  <script>
+    // Tenants claros: la barra del navegador/PWA acompaña el fondo blanco.
+    if (window.TENANT_THEME_MODE === 'light') {
+      var _mtc = document.querySelector('meta[name="theme-color"]');
+      if (_mtc) _mtc.setAttribute('content', '#FFFFFF');
+    }
+  </script>
   <script src="firebase-config.js?v=1.3"></script>
   <script src="firebaseUtils.js?v=3.3"></script>
   <script src="js/services/professional.service.js"></script>
@@ -66,7 +73,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="dashboard.css?v=7">
+  <link rel="stylesheet" href="dashboard.css?v=16">
 
 <body class="font-sans antialiased min-h-screen">
 
@@ -619,14 +626,26 @@
 
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
     <section id="tabLookbook" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-      <div class="mb-5">
-        <h2 class="text-2xl font-bold text-white tracking-tight">Estilos</h2>
-        <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barbería.</p>
+      <div class="mb-5 flex items-end justify-between gap-3">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] mb-1" style="color:var(--gold);">Lookbook</p>
+          <h2 class="text-2xl font-bold text-white tracking-tight">Estilos</h2>
+          <p class="text-sm text-gray-500 mt-1">Inspírate para tu próxima visita.</p>
+        </div>
+        <span id="lookbookCount" class="hidden text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/10 text-white/50 mb-1 shrink-0 whitespace-nowrap"></span>
       </div>
       <div class="masonry-grid" id="lookbookGrid"></div>
-      <div id="lookbookEmpty" class="hidden flex-col items-center justify-center text-center py-20">
-        <i class="ph ph-images text-5xl text-white/10 mb-4"></i>
-        <p class="text-sm text-gray-600 font-medium">Las fotos del lookbook<br>se subirán pronto.</p>
+      <div id="lookbookEmpty" class="hidden flex-col items-center justify-center text-center py-16">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+          <i class="ph ph-images text-2xl" style="color:var(--gold);"></i>
+        </div>
+        <p class="text-sm font-bold text-white mb-1">Aún no hay estilos</p>
+        <p class="text-xs text-gray-500 leading-relaxed">Muy pronto subiremos los cortes<br>y trabajos del equipo.</p>
+        <a id="lookbookEmptyIg" href="#" target="_blank" rel="noopener"
+           class="hidden mt-5 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-white/10 text-white/70 active:scale-95 transition-all">
+          <i class="ph-fill ph-instagram-logo text-base" style="color:var(--gold);"></i>
+          <span>Mira nuestro Instagram</span>
+        </a>
       </div>
     </section>
 
@@ -1451,13 +1470,13 @@
 <script src="js/dashboard/core.js?v=1"></script>
 <script src="js/dashboard/usuario.js?v=3"></script>
 <script src="js/dashboard/fidelidad.js?v=1"></script>
-<script src="js/dashboard/club.js?v=1"></script>
+<script src="js/dashboard/club.js?v=2"></script>
 <script src="js/dashboard/perfil.js?v=1"></script>
 <script src="js/dashboard/notificaciones.js?v=1"></script>
 <!-- Helper unificado de reseñas Google (deep-link Maps + copiar al portapapeles + guardar interno) -->
 <script src="js/shared/resena-google.js?v=2"></script>
 <script src="js/dashboard/citas.js?v=2"></script>
-<script src="js/dashboard/extras.js?v=1"></script>
+<script src="js/dashboard/extras.js?v=2"></script>
 <script src="js/dashboard/init.js?v=1"></script>
 
   <script>
@@ -1825,7 +1844,23 @@
     })();
   </script>
 
-  <script src="/js/legal-widgets.js?v=1" defer></script>
+  <script src="/js/legal-widgets.js?v=2" defer></script>
+
+  <!-- Banner propio del local en el hero del club. Espejo exacto del bloque
+       que ya existía en index.html: sin esto, un tenant dinámico con tema
+       aliaseado mostraba de fondo la foto del local del que hereda el CSS. -->
+  <script>
+  (function () {
+    try {
+      var s = window.SHOP || {};
+      if (!s.bannerUrl) return;
+      var hero = document.querySelector('.hero-bg');
+      if (!hero) return;
+      hero.style.setProperty('--hero-banner', 'url("' + String(s.bannerUrl).replace(/"/g, '') + '")');
+      hero.classList.add('hero-custom');
+    } catch (e) { /* sin banner: fondo del tema */ }
+  })();
+  </script>
 
 </body>
 </html>

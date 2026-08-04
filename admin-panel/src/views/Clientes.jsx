@@ -2431,6 +2431,12 @@ export default function Clientes() {
 
     const map = {};
     todasCitas.forEach(cita => {
+      // Reserva grupal: los acompañantes (grupoIndex > 0) no tienen teléfono
+      // ni email propios y su nombre suele ser "{reservante} · acompañante N".
+      // Contarlos como clientes potenciales genera filas fantasma y no aporta
+      // — la persona real es el reservante, que se cuenta con la cita idx 0.
+      if (cita.grupoId && (Number(cita.grupoIndex) || 0) > 0) return;
+
       const phone = normalizePhone(cita.clienteTelefono);
       const email = (cita.clienteEmail || '').toLowerCase();
 

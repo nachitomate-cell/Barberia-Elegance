@@ -404,6 +404,12 @@
       pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    /* Tenants claros: el toast rojo-sobre-negro desentona en fondo blanco. */
+    html.theme-light #toast {
+      background: #FEF2F2;
+      border-color: rgba(220, 38, 38, 0.35);
+      color: #B91C1C;
+    }
 
     /* Back link */
     #backBar {
@@ -691,15 +697,20 @@
     .tenant-infinity { --accent:#000000; --accent-r:0; --accent-g:0; --accent-b:0; --body-bg:#F4F4F5; }
     .tenant-infinity body, .tenant-infinity #appShell { background-color:#F4F4F5 !important; }
     .tenant-infinity #btnContinue { background:#000000 !important; color:#FFFFFF !important; }
-    .tenant-renacer { --accent:#7C3AED; --accent-r:124; --accent-g:58; --accent-b:237; --body-bg:#FFFFFF; }
+    /* Renacer: azul marino #1E2C55 de su agenda pública (el morado #7C3AED
+       era de un rediseño anterior y desentonaba con index.html). */
+    .tenant-renacer { --accent:#1E2C55; --accent-r:30; --accent-g:44; --accent-b:85; --body-bg:#FFFFFF; }
     .tenant-renacer body, .tenant-renacer #appShell { background-color:#FFFFFF !important; }
-    .tenant-renacer #btnContinue { background:#7C3AED !important; color:#FFFFFF !important; }
+    .tenant-renacer #btnContinue { background:#1E2C55 !important; color:#FFFFFF !important; }
 
     /* Renacer: la variante obsidiana/ámbar quedó obsoleta con el rediseño claro. */
-    .tenant-renacer .svc-card.renacer-compact { background:#FFFFFF !important; border-color:#BFDBFE !important; }
-    .tenant-renacer .svc-card.renacer-compact.selected { border-color:#7C3AED !important; background:rgba(124,58,237,0.06) !important; }
+    .tenant-renacer .svc-card.renacer-compact { background:#FFFFFF !important; border-color:#C9D2E8 !important; }
+    .tenant-renacer .svc-card.renacer-compact.selected { border-color:#1E2C55 !important; background:rgba(30,44,85,0.06) !important; }
     .tenant-renacer .svc-card.renacer-compact .svc-radio { border-color:#CBD5E1 !important; background:transparent !important; }
-    .tenant-renacer .svc-card.renacer-compact.selected .svc-radio { background:#7C3AED !important; border-color:#7C3AED !important; }
+    .tenant-renacer .svc-card.renacer-compact.selected .svc-radio { background:#1E2C55 !important; border-color:#1E2C55 !important; }
+    /* Día y hora seleccionados en navy (el #111827 grafito de la base clara es de Aura). */
+    .tenant-renacer .day-btn.active { background:#1E2C55 !important; border-color:#1E2C55 !important; }
+    .tenant-renacer .time-pill.selected { background:#1E2C55 !important; border-color:#1E2C55 !important; }
 
   
     /* Fondos oscuros que quedaban negros en tenants claros (guard
@@ -2426,7 +2437,7 @@
         yugen:         { r:245, g:243, b:239 },  // crema off-white (igual a la agenda pública)
         // ── Faltaban: caían al dorado de Elegance y descuadraban la ficha ──
         infinity:      { r:0,   g:0,   b:0   },  // claro con acento negro
-        renacer:       { r:124, g:58,  b:237 },  // #7C3AED morado (rediseño claro)
+        renacer:       { r:30,  g:44,  b:85  },  // #1E2C55 azul marino (igual al index)
         barbersclub:   { r:234, g:179, b:8   },  // #eab308
         estudioluxury: { r:234, g:179, b:8   },  // reusa el tema de Barbers Club
         delnero:       { r:57,  g:255, b:20  },  // #39ff14 verde neón
@@ -2478,7 +2489,10 @@
       root.style.setProperty('--accent-g', ac.g);
       root.style.setProperty('--accent-b', ac.b);
       if (SHOP.bodyBg) root.style.setProperty('--body-bg', SHOP.bodyBg);
-      document.querySelector('meta[name="theme-color"]').content = SHOP.bodyBg || '#050505';
+      // Tenants claros: la barra del navegador acompaña el fondo blanco
+      // (SHOP.bodyBg puede seguir oscuro por el hero, ej. renacer #0a0806).
+      document.querySelector('meta[name="theme-color"]').content =
+        (window.TENANT_THEME_MODE === 'light') ? '#FFFFFF' : (SHOP.bodyBg || '#050505');
 
       document.getElementById('backShopName').textContent = SHOP.nombreCorto || SHOP.nombre || 'Volver';
       document.getElementById('shopNameLabel').textContent = SHOP.nombre || '';
