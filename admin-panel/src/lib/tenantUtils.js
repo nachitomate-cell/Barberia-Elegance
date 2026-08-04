@@ -60,6 +60,11 @@ const DOMAIN_MAP = {
   // Blood Habib · Viña del Mar (2026-08-03, recreado desde Weibook).
   'bloodhabib.synaptechspa.cl':        'bloodhabib',
   'blood-habib.synaptechspa.cl':       'bloodhabib',
+  // Local de PRÁCTICA del equipo comercial (scripts/seed-practica.js). Va acá
+  // aunque sea un tenant dinámico: sin la entrada, abrir el panel en una
+  // pestaña nueva sin `?local=practica` cae al fallback 'elegance' de abajo y
+  // quien está aprendiendo termina hurgando la agenda REAL de un cliente.
+  'practica.synaptechspa.cl':          'practica',
 };
 
 // ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────
