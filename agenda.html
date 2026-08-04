@@ -41,6 +41,18 @@
       }
     </script>
 
+    <!-- Reglas de comisión: el MISMO módulo que usan Comisiones y Caja en el
+         panel (/js/comisiones-core.js). Se importa, no se copia: si esta vista
+         calculara por su cuenta, el barbero vería un número y el dueño otro. -->
+    <script type="module">
+      try {
+        window.ComisionesCore = await import('/js/comisiones-core.js');
+        window.dispatchEvent(new Event('comisiones:ready'));
+      } catch (e) {
+        console.warn('[Comisiones] no se pudo cargar el núcleo:', e);
+      }
+    </script>
+
     <!-- Tailwind CSS (linking existing output.css) -->
     <link href="/output.css?v=5" rel="stylesheet">
 
@@ -2818,9 +2830,37 @@
                     .where('fecha', '<=', endStr)
                     .get();
 
-                let diaTot = 0, diaCnt = 0;
-                let semTot = 0, semCnt = 0;
-                let mesTot = 0, mesCnt = 0;
+                // Config de comisión del barbero, una sola lectura para todo el
+                // cálculo. Si no se puede leer (o el núcleo no cargó), la
+                // comisión queda en null y la pantalla muestra solo el bruto:
+                // preferimos no decir nada antes que inventarle un sueldo.
+                let _cfgComision = null;
+                try {
+                    const CC = window.ComisionesCore;
+                    if (CC) {
+                        const bDoc = await tenantCol('barberos').doc(barberId).get();
+                        if (bDoc.exists) _cfgComision = CC.configBarbero(bDoc.data());
+                    }
+                } catch (e) { console.warn('[Proyección] sin config de comisión:', e.message); }
+
+                // Si falla UNA sola cita, se apaga la línea entera. Un total
+                // parcial —con unas citas contadas y otras en 0— es peor que no
+                // mostrarlo: parece un sueldo y no lo es.
+                let _comisionConfiable = !!(_cfgComision && window.ComisionesCore);
+                const _comisionDeCita = (c, monto) => {
+                    if (!_comisionConfiable) return 0;
+                    try {
+                        const r = window.ComisionesCore.comisionCita({
+                            cfg: _cfgComision, precio: monto,
+                            servicioId: c.servicioId, clienteNombre: c.clienteNombre,
+                        });
+                        return Math.round(Number(r.comision) || 0);
+                    } catch (e) { _comisionConfiable = false; return 0; }
+                };
+
+                let diaTot = 0, diaCnt = 0, diaGano = 0;
+                let semTot = 0, semCnt = 0, semGano = 0;
+                let mesTot = 0, mesCnt = 0, mesGano = 0;
                 snap.docs.forEach(doc => {
                     const c = doc.data();
                     if (c.barberoId !== barberId) return;
@@ -2831,16 +2871,37 @@
                     // prepagada (precio 0) o una cita sin precio sumaban $15.000
                     // fantasma, y en otros tenants ese monto era simplemente ajeno.
                     const monto = Number(c.precio) || 0;
+                    // Lo que de verdad le queda al barbero. Antes esta pantalla
+                    // mostraba el precio completo del servicio, que es lo que
+                    // factura el LOCAL: el barbero leía $24.000 y ganaba otra
+                    // cosa. El cálculo sale de /js/comisiones-core.js, el mismo
+                    // módulo de Comisiones y Caja — contempla % por servicio,
+                    // overrides, cartera propia y arriendo de sillón.
+                    const gano = _comisionDeCita(c, monto);
                     const f = c.fecha;
-                    if (f === hoyStr) { diaTot += monto; diaCnt++; }
-                    if (f >= weekStartStr && f <= weekEndStr) { semTot += monto; semCnt++; }
-                    if (f >= monthStartStr && f <= monthEndStr) { mesTot += monto; mesCnt++; }
+                    if (f === hoyStr) { diaTot += monto; diaGano += gano; diaCnt++; }
+                    if (f >= weekStartStr && f <= weekEndStr) { semTot += monto; semGano += gano; semCnt++; }
+                    if (f >= monthStartStr && f <= monthEndStr) { mesTot += monto; mesGano += gano; mesCnt++; }
                 });
 
                 const fmt = n => '$' + n.toLocaleString('es-CL');
                 document.getElementById('proyMontoDia').textContent = fmt(diaTot);
                 document.getElementById('proyMontoSemana').textContent = fmt(semTot);
                 document.getElementById('proyMontoMes').textContent = fmt(mesTot);
+
+                // Los DOS números: arriba lo que factura el local, acá lo que
+                // le queda a él. Sin config confiable la línea no aparece.
+                [['proyGanoDia', diaGano], ['proyGanoSemana', semGano], ['proyGanoMes', mesGano]]
+                    .forEach(([id, v]) => {
+                        const el = document.getElementById(id);
+                        if (!el) return;
+                        if (_comisionConfiable) {
+                            el.textContent = 'Para ti: ' + fmt(v);
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
                 document.getElementById('proyCountDia').textContent = `${diaCnt} ${diaCnt === 1 ? 'cita' : 'citas'}`;
                 document.getElementById('proyCountSemana').textContent = `${semCnt} ${semCnt === 1 ? 'cita' : 'citas'}`;
                 document.getElementById('proyCountMes').textContent = `${mesCnt} ${mesCnt === 1 ? 'cita' : 'citas'}`;
@@ -5666,7 +5727,7 @@
           <i class="ph-bold ph-x text-white/50"></i>
         </button>
       </div>
-      <p class="text-[11px] text-white/40 leading-relaxed mb-5">Estimación de ingresos considerando citas confirmadas, pendientes y completadas (excluye canceladas).</p>
+      <p class="text-[11px] text-white/40 leading-relaxed mb-5">El monto grande es lo que factura el local. <span class="text-emerald-400 font-semibold">Para ti</span> es lo que te queda según tu comisión. Considera citas confirmadas, pendientes y completadas (excluye canceladas).</p>
 
       <div id="proyeccionContent" class="space-y-3">
         <!-- Día -->
@@ -5679,6 +5740,7 @@
             <span id="proyCountDia" class="text-[10px] text-white/40 font-medium">0 citas</span>
           </div>
           <div id="proyMontoDia" class="text-2xl font-black text-white leading-tight">$0</div>
+          <div id="proyGanoDia" class="hidden text-[11px] font-bold text-emerald-400 mt-0.5 leading-tight"></div>
         </div>
 
         <!-- Semana -->
@@ -5691,6 +5753,7 @@
             <span id="proyCountSemana" class="text-[10px] text-white/40 font-medium">0 citas</span>
           </div>
           <div id="proyMontoSemana" class="text-2xl font-black text-white leading-tight">$0</div>
+          <div id="proyGanoSemana" class="hidden text-[11px] font-bold text-emerald-400 mt-0.5 leading-tight"></div>
           <div id="proyRangoSemana" class="text-[10px] text-white/40 mt-1"></div>
         </div>
 
@@ -5704,6 +5767,7 @@
             <span id="proyCountMes" class="text-[10px] text-white/40 font-medium">0 citas</span>
           </div>
           <div id="proyMontoMes" class="text-2xl font-black text-white leading-tight">$0</div>
+          <div id="proyGanoMes" class="hidden text-[11px] font-bold text-emerald-400 mt-0.5 leading-tight"></div>
           <div id="proyRangoMes" class="text-[10px] text-white/40 mt-1"></div>
         </div>
       </div>
