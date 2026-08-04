@@ -678,19 +678,29 @@ async function ejecutarTool(name, input, ctx) {
         : 'Sin horas libres en los próximos días.' };
     }
 
-    // Con profesional, el día que devuelve el motor puede NO ser el que pidió el
-    // cliente (es el próximo suyo con cupos). Hay que decirle al modelo por qué,
-    // o rellena el hueco solo: "hoy no atiende" ≠ "hoy está lleno".
+    // El día que devuelve el motor puede NO ser el que pidió el cliente (es el
+    // PRÓXIMO con cupos). Hay que decirle al modelo por qué, o rellena el hueco
+    // solo: "hoy no atiende" ≠ "hoy está lleno".
     const hoyStr = ahoraChile().fecha;
+    const fechaPedida = /^\d{4}-\d{2}-\d{2}$/.test(String(input?.fecha || ''))
+      ? input.fecha : hoyStr;
     let notaDia = null;
-    if (prof) {
-      const fechaPedida = /^\d{4}-\d{2}-\d{2}$/.test(String(input?.fecha || ''))
-        ? input.fecha : hoyStr;
-      if (r.fecha !== fechaPedida) {
+    if (r.fecha !== fechaPedida) {
+      if (prof) {
         const j = await atiendeEseDia(tid, fechaPedida, prof.id).catch(() => null);
         notaDia = j && j.motivo === 'dia_libre'
           ? `${prof.nombre} NO atiende ${fechaHablada(fechaPedida, hoyStr)} (es su día libre). Díselo explícitamente antes de ofrecer las horas de abajo, que son de otro día.`
           : `${prof.nombre} no tiene cupos ${fechaHablada(fechaPedida, hoyStr)}. Las horas de abajo son de otro día: acláraselo antes de ofrecerlas.`;
+      } else {
+        // Sin profesional el aviso NO existía, y el modelo presentaba las horas
+        // del día siguiente como si fueran de hoy. Pasó en kronnos_woman el
+        // 03-08: el local estaba cerrado (bloqueo de todo el día) y el bot
+        // ofreció "para hoy tengo 16:00, 16:15, 17:30…" — horas del MARTES.
+        // La clienta insistió 26 turnos y se fue sin hora.
+        notaDia = `OJO: el local NO tiene cupos ${fechaHablada(fechaPedida, hoyStr)}. `
+          + `Las horas de abajo son de ${fechaHablada(r.fecha, hoyStr)}. `
+          + `Dile PRIMERO que ${fechaHablada(fechaPedida, hoyStr)} no queda nada y recién entonces ofrécele las de ${fechaHablada(r.fecha, hoyStr)}. `
+          + `JAMÁS las presentes como si fueran de ${fechaHablada(fechaPedida, hoyStr)}.`;
       }
     }
 
@@ -1178,6 +1188,68 @@ function horasInventadas(texto, permitidas) {
   return out;
 }
 
+/* ── Cinturón 3: horas de OTRO día ofrecidas sin decir de qué día son ──
+   El cinturón 2 no las ve: son horas legítimas, salieron de la herramienta.
+   El problema es el DÍA. `consultar_disponibilidad` devuelve el próximo día
+   con cupos, así que cuando hoy está lleno (o el local cerrado) contesta con
+   las horas de mañana — y el modelo las presenta como de hoy.
+   Pasó en kronnos_woman el 03-08: local cerrado por bloqueo de todo el día,
+   y el bot ofreció "para hoy tengo 16:00, 16:15, 17:30…", que eran del martes.
+   26 turnos, cero citas. */
+
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+/** Separa las horas por procedencia: disponibilidad de HOY, disponibilidad de
+ *  OTRO día, y cualquier otra fuente (citas del cliente, texto del cliente…). */
+function horasSegunDia(messages) {
+  const hoy = new Set(), otroDia = new Set(), otras = new Set();
+  let cuando = null;
+  const cosechar = (set, t) => { for (const m of String(t).matchAll(RE_HORA)) set.add(normHora(m[0])); };
+  for (const msg of messages) {
+    if (typeof msg.content === 'string') { if (msg.role === 'user') cosechar(otras, msg.content); continue; }
+    if (!Array.isArray(msg.content)) continue;
+    for (const b of msg.content) {
+      if (b.type === 'text' && msg.role === 'user') { cosechar(otras, b.text); continue; }
+      if (b.type !== 'tool_result') continue;
+      const raw = typeof b.content === 'string' ? b.content : JSON.stringify(b.content);
+      let out = null;
+      try { out = JSON.parse(raw); } catch { /* no era JSON */ }
+      if (out && out.hay_cupos && Array.isArray(out.horas)) {
+        const destino = out.es_hoy === true ? hoy : otroDia;
+        out.horas.forEach(h => destino.add(normHora(String(h))));
+        if (out.es_hoy !== true && out.cuando) cuando = String(out.cuando);
+        continue;
+      }
+      cosechar(otras, raw);   // mis citas, agendar, reagendar…
+    }
+  }
+  return { hoy, otroDia, otras, cuando };
+}
+
+/** Palabras con las que el bot puede haber nombrado el día ("mañana", "martes"). */
+function etiquetasDeDia(cuando) {
+  const t = norm(cuando || '');
+  const out = [];
+  if (t.includes('manana')) out.push('manana');
+  for (const d of DIAS_SEMANA) if (t.includes(d)) out.push(d);
+  return out;
+}
+
+/** Horas de otro día ofrecidas SIN nombrar ese día. Si el bot lo aclaró
+ *  ("mañana tengo…", "el martes tengo…"), está bien y no devuelve nada. */
+function horasDeOtroDiaSinAclarar(texto, { hoy, otroDia, otras, cuando }) {
+  if (!otroDia.size) return [];
+  const etiquetas = etiquetasDeDia(cuando);
+  const t = norm(texto);
+  if (etiquetas.length && etiquetas.some(e => t.includes(e))) return [];
+  const out = [];
+  for (const m of String(texto || '').matchAll(RE_HORA)) {
+    const h = normHora(m[0]);
+    if (otroDia.has(h) && !hoy.has(h) && !otras.has(h) && !out.includes(h)) out.push(h);
+  }
+  return out;
+}
+
 /* ─────────────────────────── Loop agéntico ─────────────────────────── */
 
 async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, historia, texto, ctx, tools }) {
@@ -1200,7 +1272,8 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   ];
 
   let finalText = '';
-  let yaCorregido = false;   // el cinturón de horas solo reintenta UNA vez
+  let yaCorregido = false;      // el cinturón de horas inventadas reintenta UNA vez
+  let yaCorregidoDia = false;   // el de horas de otro día, otra (son fallos distintos)
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
@@ -1249,6 +1322,26 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
       // Reincidió: no se le manda al cliente una hora que no existe.
       logger.error(`[cerebro] ${ctx?.tid}: horas inventadas tras corregir (${inventadas.join(', ')}) — respuesta descartada`);
       return '¿Para qué día lo necesitas? Así reviso la disponibilidad exacta y te confirmo. 🙏';
+    }
+
+    // ── Cinturón 3: horas de OTRO día ofrecidas como si fueran del día pedido ──
+    const dias = horasSegunDia(messages);
+    const otroDia = horasDeOtroDiaSinAclarar(finalText, dias);
+    if (otroDia.length) {
+      if (!yaCorregidoDia) {
+        yaCorregidoDia = true;
+        logger.warn(`[cerebro] ${ctx?.tid}: horas de otro día sin aclarar (${otroDia.join(', ')}) — se fuerza aclaración`);
+        messages.push({ role: 'user', content:
+          `ALTO. Las horas que ofreciste (${otroDia.join(', ')}) NO son del día que pidió el cliente: son de ${dias.cuando || 'otro día'}. ` +
+          `Ese día no tiene cupos. Vuelve a responder diciéndoselo PRIMERO y nombrando explícitamente ${dias.cuando || 'el día real'} al ofrecer esas horas. ` +
+          'Este aviso es interno: no lo menciones ni te disculpes por él.' });
+        continue;
+      }
+      // Reincidió: antes que mentirle el día al cliente, no se ofrecen horas.
+      logger.error(`[cerebro] ${ctx?.tid}: horas de otro día tras corregir (${otroDia.join(', ')}) — respuesta descartada`);
+      return dias.cuando
+        ? `Para ese día no me queda disponibilidad. Lo más cercano que tengo es ${dias.cuando}. ¿Te sirve? 🙏`
+        : 'Para ese día no me queda disponibilidad. ¿Quieres que te revise otro día? 🙏';
     }
     break;
   }
@@ -1658,6 +1751,8 @@ module.exports._pensarYResponder    = pensarYResponder;
 module.exports._corregirVoseo       = corregirVoseo;
 module.exports._horasInventadas     = horasInventadas;
 module.exports._horasPermitidas     = horasPermitidas;
+module.exports._horasSegunDia       = horasSegunDia;
+module.exports._horasDeOtroDiaSinAclarar = horasDeOtroDiaSinAclarar;
 module.exports._cargarServicios     = cargarServicios;
 module.exports._cargarEquipo        = cargarEquipo;
 module.exports._armarContextoLocal  = armarContextoLocal;
