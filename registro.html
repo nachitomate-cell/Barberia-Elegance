@@ -1561,6 +1561,53 @@
     :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-neutral-900/80 { background-color:#F3F4F6 !important; }
     :is(.tenant-aura,.tenant-latincaribe,.theme-light) [class*="border-neutral-700"] { border-color:rgba(17,24,39,.12) !important; }
     :is(.tenant-aura,.tenant-latincaribe,.theme-light) .bg-[#050505]/85 { background-color:rgba(17,24,39,.45) !important; }
+
+    /* ═══ Registro al club — plantilla dinámica ══════════════════════════════
+       Los tenants dinámicos heredan el CSS de Chameleon o Aura, que traen su
+       dorado (#DAA520) y su verde esmeralda escritos a mano. Resultado: un
+       local con marca rosada reservaba en rosado y se registraba en dorado.
+       Acá todo se reengancha a --accent, que config.js escribe inline con el
+       color que el dueño eligió, así el registro cierra el círculo visual. */
+    html.tenant-selfservice {
+      --gold:     var(--accent, #c9a84c);
+      --gold-dim: rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.18);
+    }
+    html.tenant-selfservice .ambient-glow {
+      background: radial-gradient(circle,
+        rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.06) 0%,
+        transparent 65%) !important;
+    }
+    html.tenant-selfservice .logo-ring {
+      border-color: rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.55) !important;
+      box-shadow: 0 0 0 1px rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.08),
+                  0 0 24px rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.20) !important;
+    }
+    html.tenant-selfservice .gold-divider {
+      background: linear-gradient(90deg, transparent,
+        var(--accent, #c9a84c), transparent) !important;
+    }
+    html.tenant-selfservice .field:focus {
+      border-color: rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.55) !important;
+      box-shadow: 0 0 0 3px rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.10) !important;
+    }
+    /* El botón principal en el color del local, con el texto siempre legible:
+       se calcula contra un negro casi puro, que sobre un acento claro (dorado,
+       lima, ámbar) contrasta mejor que el blanco. */
+    html.tenant-selfservice .btn-primary {
+      background: var(--accent, #c9a84c) !important;
+      border: 1.5px solid var(--accent, #c9a84c) !important;
+      color: #0b0b0d !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 20px rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.35) !important;
+    }
+    html.tenant-selfservice .btn-primary:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 6px 26px rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.48) !important;
+    }
+    html.tenant-selfservice .spinner {
+      border-color: rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),.25) !important;
+      border-top-color: var(--accent, #c9a84c) !important;
+    }
   </style>
 </head>
 
@@ -2976,6 +3023,6 @@
   }
 </script>
 <div id="legal-footer-slot"></div>
-<script src="/js/legal-widgets.js?v=1" defer></script>
+<script src="/js/legal-widgets.js?v=2" defer></script>
 </body>
 </html>

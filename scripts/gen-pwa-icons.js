@@ -64,6 +64,10 @@ const TENANTS = {
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.
   synaptech:            { src: 'synaptech/ig.png',                bg: '#0f172a' },
+  // Local de práctica del equipo comercial. El logo lo genera
+  // scripts/gen-practica-brand.js (monograma champán sobre negro), así que no
+  // depende de ningún archivo subido a mano: si se borra, se vuelve a generar.
+  practica:             { src: 'practica/logo.png',               bg: '#0B0B0D', fit: 'cover' },
 };
 
 const SIZES = [192, 512];

@@ -9455,6 +9455,120 @@
       background-size: cover !important;
       background-position: center !important;
     }
+
+    /* ═══ Selección de servicio y profesional — plantilla dinámica ═══════════
+       Todo local nuevo (self-service y alta express) nace con esta selección,
+       así que es la primera impresión del producto: la tarjeta no "se marca",
+       se ENCIENDE. En vez de cambiar un borde de color, se compone luz —
+       filo superior, brillo interno, aro nítido y una sombra del color de la
+       marca— y un barrido pasa una sola vez al elegir.
+
+       Todo se construye sobre --accent / --accent-r,g,b, que config.js escribe
+       como estilo inline con el color que el dueño eligió en el wizard. Por eso
+       el mismo CSS se ve premium en dorado, en rosado o en azul sin una línea
+       por tenant. Gana por especificidad (html + 2 clases) al alias de tema. */
+
+    html.tenant-selfservice .service-option,
+    html.tenant-selfservice .barber-option,
+    html.tenant-selfservice .time-pill {
+      position: relative;
+      transition: transform .22s cubic-bezier(.2,.7,.3,1),
+                  box-shadow .28s ease,
+                  border-color .2s ease;
+    }
+
+    /* En reposo: solo un filo de luz arriba, para que la tarjeta tenga cuerpo
+       y el salto al seleccionar se note. */
+    html.tenant-selfservice .service-option:not(.border-neon),
+    html.tenant-selfservice .barber-option:not(.border-neon) {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.055),
+                  0 1px 2px rgba(0,0,0,.35) !important;
+    }
+
+    @media (hover: hover) {
+      html.tenant-selfservice .service-option:not(.border-neon):hover,
+      html.tenant-selfservice .barber-option:not(.border-neon):hover {
+        transform: translateY(-2px);
+        border-color: rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.42) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.075),
+                    0 10px 24px -12px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.35) !important;
+      }
+    }
+
+    /* Seleccionada ────────────────────────────────────────────────────────── */
+    html.tenant-selfservice .service-option.border-neon,
+    html.tenant-selfservice .barber-option.border-neon {
+      border-color: transparent !important;
+      transform: translateY(-3px);
+      background-image:
+        radial-gradient(130% 95% at 50% -32%,
+          rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.20),
+          transparent 62%) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.20),
+        inset 0 0 30px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.12),
+        0 0 0 1.5px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.72),
+        0 12px 34px -10px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.50),
+        0 3px 10px rgba(0,0,0,.55) !important;
+    }
+
+    /* Barrido de luz: una sola pasada al elegir. */
+    @keyframes ss-sweep {
+      from { transform: translateX(-130%); }
+      to   { transform: translateX(260%); }
+    }
+    html.tenant-selfservice .service-option.border-neon::after,
+    html.tenant-selfservice .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(100deg,
+        transparent 34%,
+        rgba(255,255,255,.13) 46%,
+        rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.32) 52%,
+        transparent 66%);
+      transform: translateX(-130%);
+      animation: ss-sweep .85s cubic-bezier(.22,.61,.36,1) 1;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* El ícono del servicio también se enciende. */
+    html.tenant-selfservice .service-option.border-neon .icon-bg {
+      border-color: rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.55) !important;
+      background: rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.10) !important;
+      box-shadow: 0 0 14px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.32) !important;
+    }
+    html.tenant-selfservice .service-option.border-neon .icon-svg {
+      color: var(--accent, #D4AF37) !important;
+      filter: drop-shadow(0 0 6px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.55)) !important;
+    }
+    /* Foto del profesional: aro de marca. */
+    html.tenant-selfservice .barber-option.border-neon img {
+      box-shadow: 0 0 0 2px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.75),
+                  0 0 14px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.35) !important;
+    }
+
+    /* Hora elegida: mismo lenguaje, en versión compacta. */
+    html.tenant-selfservice .time-pill.border-neon,
+    html.tenant-selfservice .time-pill[data-sel] {
+      background: rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.14) !important;
+      color: var(--accent, #D4AF37) !important;
+      border-color: rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.85) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16),
+                  0 0 14px rgba(var(--accent-r,212),var(--accent-g,175),var(--accent-b,55),.30) !important;
+      font-weight: 800 !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.tenant-selfservice .service-option,
+      html.tenant-selfservice .barber-option,
+      html.tenant-selfservice .time-pill { transition: none !important; }
+      html.tenant-selfservice .service-option.border-neon,
+      html.tenant-selfservice .barber-option.border-neon { transform: none !important; }
+      html.tenant-selfservice .service-option.border-neon::after,
+      html.tenant-selfservice .barber-option.border-neon::after { display: none !important; }
+    }
   </style>
 </head>
 

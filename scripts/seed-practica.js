@@ -143,11 +143,20 @@ async function sembrar() {
     nombreCorto: 'Práctica',
     tipo: 'barberia',
     telefono: '56900001000',
-    color: '#22c55e',
+    // Champán sobre negro: la familia de Chameleon, un punto menos saturada
+    // para que en una demo no se confunda con el local de un cliente real.
+    color: '#C8A45C',
     instagram: null,
-    slogan: 'Local de práctica del equipo comercial',
+    slogan: 'Reserva tu hora en segundos',
     direccion: 'Santiago',
-    logoUrl: null, bannerUrl: null, tema: null,
+    // Identidad generada por scripts/gen-practica-brand.js + gen-pwa-icons.js.
+    logoUrl:    '/practica/logo.png',
+    bannerUrl:  '/practica/banner.jpg',
+    iconPwa192: '/icons/pwa/practica-192.png',
+    iconPwa512: '/icons/pwa/practica-512.png',
+    // Reutiliza el tema OSCURO premium de Chameleon (config.js lo mapea a
+    // _themeAlias). Encima van los pills propios de .tenant-selfservice.
+    tema: 'chameleon',
     dominio: `${TID}.synaptechspa.cl`,
     // 'admin-express' y no 'practica': middleware.js:1910 solo resuelve
     // subdominios dinámicos con origen 'self-service' o 'admin-express' — con

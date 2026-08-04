@@ -1930,6 +1930,10 @@ async function fetchSelfTenant(slug) {
       slogan:      s('slogan'),
       direccion:   s('direccion'),
       logoUrl:     s('logoUrl'),
+      // Íconos PWA cuadrados propios (opcionales). Los genera
+      // scripts/gen-pwa-icons.js y el local los declara en su doc.
+      iconPwa192:  s('iconPwa192'),
+      iconPwa512:  s('iconPwa512'),
       bannerUrl:   s('bannerUrl'),
       tema:        s('tema'),
       trialVencido,
@@ -1973,7 +1977,12 @@ function buildSelfTenantMeta(slug, t) {
     appTitle:   corto,
     icon,
     // El logo del local siempre le gana al ícono genérico al instalar la PWA.
+    // Si además tiene íconos PWA propios (scripts/gen-pwa-icons.js, cuadrados
+    // y con safe zone), esos mandan: declarar un logo rectangular como
+    // 192x192/512x512 hace que Chrome rechace la instalación en silencio.
     ...(t.logoUrl ? { iconPwa192: t.logoUrl, iconPwa512: t.logoUrl } : {}),
+    ...(t.iconPwa192 ? { iconPwa192: t.iconPwa192 } : {}),
+    ...(t.iconPwa512 ? { iconPwa512: t.iconPwa512 } : {}),
     local: {
       schemaType: schemaPorTipo[t.tipo] || 'HairSalon',
       ...(t.telefono  ? { telephone: `+${String(t.telefono).replace(/^\+/, '')}` } : {}),
