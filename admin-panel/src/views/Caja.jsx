@@ -627,6 +627,9 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
                 {(s.egresosEfectivo ?? 0) > 0 && (
                   <FlujoRow label="Gastos y egresos" valor={s.egresosEfectivo}   max={maxFlujo} color="bg-rose-500" negativo />
                 )}
+                {(s.retirosATransferencia ?? 0) > 0 && (
+                  <FlujoRow label="Retiros al banco" valor={s.retirosATransferencia} max={maxFlujo} color="bg-cyan-500" negativo />
+                )}
                 <div className={`my-1.5 h-px ${LINEA}`} />
                 <FlujoRow label="Cierre" valor={real} max={maxFlujo} color="bg-primary/70" destacado />
               </div>
@@ -1399,7 +1402,8 @@ function buildCorteXTermicoHTML({ tenantName, kpis, cajero, efectivoContado, ape
           ...opt('+ Propinas efectivo', kpis.propinasEfectivo),
           ...opt('+ Ingresos manuales', kpis.ingManuales),
           ...opt('- Gastos efectivo', kpis.gastosEfectivo, '-'),
-          ...opt('- Egresos manuales', kpis.egrManuales, '-'),
+          ...opt('- Egresos manuales', kpis.egrOtros, '-'),
+          ...opt('- Retiros al banco', kpis.retirosATransferencia, '-'),
           ['ESPERADO EN CAJA', f(kpis.saldoEsperado), { fuerte: true }],
         ],
       },
@@ -1480,7 +1484,8 @@ function buildCorteXHTML({ tenantName, kpis, cajero, efectivoContado, apertura, 
   ${kpis.propinasEfectivo > 0 ? `<div class="row"><span>+ Propinas efectivo (equipo)</span><span>${fmt(kpis.propinasEfectivo)}</span></div>` : ''}
   ${kpis.ingManuales > 0 ? `<div class="row"><span>+ Ingresos manuales</span><span>${fmt(kpis.ingManuales)}</span></div>` : ''}
   <div class="row"><span>− Gastos efectivo</span><span>−${fmt(kpis.gastosEfectivo)}</span></div>
-  ${kpis.egrManuales > 0 ? `<div class="row"><span>− Egresos manuales</span><span>−${fmt(kpis.egrManuales)}</span></div>` : ''}
+  ${kpis.egrOtros > 0 ? `<div class="row"><span>− Egresos manuales</span><span>−${fmt(kpis.egrOtros)}</span></div>` : ''}
+  ${kpis.retirosATransferencia > 0 ? `<div class="row"><span>− Retiros al banco (traspaso)</span><span>−${fmt(kpis.retirosATransferencia)}</span></div>` : ''}
   <div class="row total"><span>Saldo esperado en efectivo</span><span>${fmt(kpis.saldoEsperado)}</span></div>
 
   ${efectivoContado != null && !isNaN(efectivoContado) ? `
@@ -1532,6 +1537,7 @@ function buildResumenCierreTermicoHTML({ tenantName, sesion }) {
           ...opt('+ Ventas efectivo', s.ingresosEfectivo),
           ...opt('+ Propinas efectivo', s.propinasEfectivo),
           ...opt('- Gastos y egresos', s.egresosEfectivo, '-'),
+          ...opt('- Retiros al banco', s.retirosATransferencia, '-'),
           ['Esperado', f(esperado)],
           ['Contado', f(real)],
           ['DIFERENCIA', `${diff > 0 ? '+' : ''}${f(diff)}`, { fuerte: true }],
@@ -1614,6 +1620,7 @@ function buildResumenCierreHTML({ tenantName, sesion }) {
   ${opt('+ Ventas en efectivo', s.ingresosEfectivo)}
   ${opt('+ Propinas en efectivo', s.propinasEfectivo)}
   ${opt('− Gastos y egresos', s.egresosEfectivo, '−')}
+  ${opt('− Retiros al banco (traspaso)', s.retirosATransferencia, '−')}
   ${row('Esperado en caja', fmt(esperado))}
   ${row('Contado físicamente', fmt(real))}
   ${row('Diferencia', `${diff > 0 ? '+' : ''}${fmt(diff)} ${diff === 0 ? '(cuadrada)' : diff > 0 ? '(sobrante)' : '(faltante)'}`, diff === 0 ? 'ok' : 'bad')}
@@ -2169,6 +2176,11 @@ export default function Caja() {
   const [adjDesc, setAdjDesc] = useState('');
   const [adjMonto, setAdjMonto] = useState('');
   const [adjSaving, setAdjSaving] = useState(false);
+  // Adónde va la plata que sale del cajón: 'salida' = se gastó o se la llevaron;
+  // 'transferencia' = se depositó/transfirió al banco. NO es lo mismo y el
+  // arqueo no podía distinguirlo (kronnos, 04-08: retiro de $130.000 al banco
+  // que quedaba igual que "saqué plata y me la llevé en el bolsillo").
+  const [adjDestino, setAdjDestino] = useState('salida');
   // Revertir ajuste manual: { tipo: 'ingreso'|'egreso', id }
   const [revertirTarget, setRevertirTarget] = useState(null);
   const [motivoReverso, setMotivoReverso] = useState('');
@@ -2492,9 +2504,17 @@ export default function Caja() {
     const ingManuales = (sesionActiva?.ingresosManuales || [])
       .filter(i => !i.revertido)
       .reduce((s, i) => s + (Number(i.monto) || 0), 0);
-    const egrManuales = (sesionActiva?.egresosManuales || [])
-      .filter(i => !i.revertido)
+    const egresosVivos = (sesionActiva?.egresosManuales || []).filter(i => !i.revertido);
+    const egrManuales = egresosVivos.reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    // Retiros que se fueron al banco. Salen del efectivo igual que cualquier
+    // egreso (por eso siguen dentro de `egrManuales`), pero se muestran aparte:
+    // no es plata perdida ni gastada, cambió de bolsillo. NO se suma a
+    // `ingresosTransf` — esa venta ya se contó cuando el cliente pagó en
+    // efectivo, y sumarla otra vez duplicaría el día.
+    const retirosATransferencia = egresosVivos
+      .filter(i => i.destino === 'transferencia')
       .reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    const egrOtros = egrManuales - retirosATransferencia;
 
     const totalIngresosEfectivo = serviciosEfectivo + productosEfectivo + ingManuales;
     const totalEgresosEfectivo = gastosEfectivo + egrManuales;
@@ -2545,7 +2565,7 @@ export default function Caja() {
       serviciosEfectivo, serviciosTarjeta, serviciosTransf, serviciosNoEspecificado,
       productosEfectivo, productosTarjeta, productosTransf,
       gastosEfectivo, gastosTarjeta, gastosTransf,
-      ingManuales, egrManuales,
+      ingManuales, egrManuales, retirosATransferencia, egrOtros,
       totalIngresosEfectivo, totalEgresosEfectivo, saldoEsperado,
       totalIngresosTarjeta, totalIngresosTransf, totalIngresosGeneral,
       propinasTotal, propinasEfectivo, propinasDetalle, propinasPorBarbero,
@@ -2653,7 +2673,9 @@ export default function Caja() {
       items.push({
         type: 'egreso_manual',
         label: i.descripcion || 'Egreso manual',
-        sub: `Retiro manual · Efectivo${quienSub(i)}`,
+        sub: i.destino === 'transferencia'
+          ? `Retiro al banco · Efectivo → Transferencia${quienSub(i)}`
+          : `Retiro manual · Efectivo${quienSub(i)}`,
         monto: -(Number(i.monto) || 0),
         time: i.hora ? fmtTime(i.hora) : '00:00',
         metodo: 'Efectivo',
@@ -2713,6 +2735,9 @@ export default function Caja() {
         ingresosTransf:    kpis.totalIngresosTransf,
         ingresosGeneral:   kpis.totalIngresosGeneral,
         egresosEfectivo:   kpis.totalEgresosEfectivo,
+        // Traspaso a banco del turno: se congela para que el histórico explique
+        // por qué salió efectivo sin que hubiera gastos.
+        retirosATransferencia: kpis.retirosATransferencia,
         propinasTotal:     kpis.propinasTotal,
         propinasEfectivo:  kpis.propinasEfectivo,
         serviciosEfectivo: kpis.serviciosEfectivo,
@@ -2783,10 +2808,14 @@ export default function Caja() {
           hora: Timestamp.now(),
           usuario: userEmail,
           nombre: (nombreApertura || '').trim() || (sesionActiva.nombreApertura || ''),
+          // Solo en egresos: adónde fue la plata. Los items viejos no lo traen
+          // y se leen como 'salida' (que es lo que eran antes de existir esto).
+          ...(tipo === 'egreso' ? { destino: adjDestino } : {}),
         }],
       });
       setAdjDesc('');
       setAdjMonto('');
+      setAdjDestino('salida');
       setShowIngreso(false);
       setShowEgreso(false);
     } finally { setAdjSaving(false); }
@@ -3183,7 +3212,15 @@ export default function Caja() {
             {kpis.propinasEfectivo > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Propinas efectivo <span className="text-[10px] text-amber-400">(para equipo)</span></span><span className="text-amber-400 font-semibold">+{fmtCurrency(kpis.propinasEfectivo)}</span></div>}
             {kpis.ingManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Ingresos manuales</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.ingManuales)}</span></div>}
             <div className="flex justify-between"><span className="text-slate-400">− Gastos (efectivo)</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.gastosEfectivo)}</span></div>
-            {kpis.egrManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">− Egresos manuales</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.egrManuales)}</span></div>}
+            {kpis.egrOtros > 0 && <div className="flex justify-between"><span className="text-slate-400">− Egresos manuales</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.egrOtros)}</span></div>}
+            {kpis.retirosATransferencia > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <ArrowRightLeft size={12} className="text-cyan-400" /> − Retiros al banco
+                </span>
+                <span className="text-cyan-400 font-semibold">-{fmtCurrency(kpis.retirosATransferencia)}</span>
+              </div>
+            )}
             <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between">
               <span className="text-primary font-bold">Saldo Esperado</span>
               <span className="text-emerald-400 font-black text-lg">{fmtCurrency(kpis.saldoEsperado)}</span>
@@ -3202,12 +3239,28 @@ export default function Caja() {
                 <p className="text-[10px] text-slate-500">Serv: {fmtCurrency(kpis.serviciosTarjeta)} · Prod: {fmtCurrency(kpis.productosTarjeta)}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
-              <div className="flex items-center gap-2 text-sm text-cyan-300"><ArrowRightLeft size={14} /> Transferencia</div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-cyan-300">{fmtCurrency(kpis.totalIngresosTransf)}</p>
-                <p className="text-[10px] text-slate-500">Serv: {fmtCurrency(kpis.serviciosTransf)} · Prod: {fmtCurrency(kpis.productosTransf)}</p>
+            <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-2 text-sm text-cyan-300"><ArrowRightLeft size={14} /> Transferencia</div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-cyan-300">{fmtCurrency(kpis.totalIngresosTransf)}</p>
+                  <p className="text-[10px] text-slate-500">Serv: {fmtCurrency(kpis.serviciosTransf)} · Prod: {fmtCurrency(kpis.productosTransf)}</p>
+                </div>
               </div>
+              {/* Traspaso, NO venta: el efectivo que se depositó ya se contabilizó
+                  cuando el cliente pagó. Va aparte y con su propia etiqueta para
+                  que nadie lo lea como facturación del día. */}
+              {kpis.retirosATransferencia > 0 && (
+                <div className="flex items-center justify-between px-3 py-2 border-t border-cyan-500/15 bg-cyan-500/[0.04]">
+                  <div className="min-w-0">
+                    <p className="text-[12px] text-cyan-200/90 flex items-center gap-1.5">
+                      <ArrowRightLeft size={11} /> Traspaso de efectivo al banco
+                    </p>
+                    <p className="text-[10px] text-slate-500 leading-snug">Salió del cajón hoy · no es venta</p>
+                  </div>
+                  <p className="text-sm font-bold text-cyan-200 tabular-nums shrink-0">+{fmtCurrency(kpis.retirosATransferencia)}</p>
+                </div>
+              )}
             </div>
             {kpis.propinasTotal > 0 && (
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl overflow-hidden">
@@ -3526,6 +3579,34 @@ export default function Caja() {
             <div>
               <label className={lbl}>Monto ($)</label>
               <input type="number" className={field} placeholder="0" min="0" value={adjMonto} onChange={e => setAdjMonto(e.target.value)} />
+            </div>
+            <div>
+              <label className={lbl}>¿Adónde va esta plata?</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {[
+                  { id: 'salida',        t: 'Sale de la caja',      s: 'Gasto, vuelto, se la llevaron' },
+                  { id: 'transferencia', t: 'Al banco',             s: 'Depósito o transferencia' },
+                ].map(o => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setAdjDestino(o.id)}
+                    className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      adjDestino === o.id
+                        ? 'border-cyan-400 bg-cyan-500/15'
+                        : 'border-white/10 bg-white/[0.03] hover:border-white/25'}`}
+                  >
+                    <span className={`block text-[13px] font-semibold ${adjDestino === o.id ? 'text-cyan-200' : 'text-slate-200'}`}>{o.t}</span>
+                    <span className="block text-[11px] text-slate-500 leading-snug mt-0.5">{o.s}</span>
+                  </button>
+                ))}
+              </div>
+              {adjDestino === 'transferencia' && (
+                <p className="text-[11px] text-slate-500 leading-relaxed mt-2">
+                  Sale del efectivo y queda registrado como traspaso al banco. No suma a las ventas
+                  del día: esa plata ya se contó cuando el cliente pagó.
+                </p>
+              )}
             </div>
             <button
               onClick={() => handleAjuste('egreso')}
