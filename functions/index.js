@@ -1544,13 +1544,16 @@ exports.mpTenantOAuthCallback = paymentsMpTenant.mpTenantOAuthCallback;
 exports.mpTenantDisconnect    = paymentsMpTenant.mpTenantDisconnect;
 
 // ─────────────────────────────────────────────────────────────────
-//  BARBERÍAS — configuración TUU (POS presencial Haulmer) por tenant.
-//  ONBOARDING VISUAL: guarda apiKey + serial. Aún NO dispara cobro.
+//  BARBERÍAS — TUU (POS presencial Haulmer) por tenant.
+//  Onboarding + cobro en vivo (POST Create + polling GET consulta).
 //  ver payments-tuu-tenant.js
 // ─────────────────────────────────────────────────────────────────
 const paymentsTuuTenant = require('./payments-tuu-tenant');
-exports.tuuGuardarConfig = paymentsTuuTenant.tuuGuardarConfig;
-exports.tuuDesconectar   = paymentsTuuTenant.tuuDesconectar;
+exports.tuuGuardarConfig  = paymentsTuuTenant.tuuGuardarConfig;
+exports.tuuDesconectar    = paymentsTuuTenant.tuuDesconectar;
+exports.tuuSetFlag        = paymentsTuuTenant.tuuSetFlag;
+exports.tuuCobrarCita     = paymentsTuuTenant.tuuCobrarCita;
+exports.tuuConsultarCobro = paymentsTuuTenant.tuuConsultarCobro;
 
 // ─────────────────────────────────────────────────────────────────
 //  BIOO — cobros SINGLE-SELLER de plataforma (SynapTech cobra al

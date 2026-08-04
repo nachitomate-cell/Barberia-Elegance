@@ -76,6 +76,7 @@ import TrialGate           from './components/TrialGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import TooltipHost         from './components/ui/TooltipHost';
 import TuuSandboxHost      from './components/ui/TuuSandboxHost';
+import TuuCobroHost        from './components/ui/TuuCobroHost';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
 import HubTenantGate        from './components/HubTenantGate';
 
@@ -360,6 +361,7 @@ export default function App() {
               {/* Un solo host para todos los `data-tooltip=""` de la app. */}
               <TooltipHost />
               <TuuSandboxHost />
+              <TuuCobroHost />
             </SucursalProvider>
           </AuthProvider>
         </TenantGate>

@@ -26,6 +26,7 @@ import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { tuuSandboxDialog } from '../lib/tuuSandbox';
+import { tuuCobroDialog }   from '../lib/tuuCobro';
 import { withTimeout } from '../lib/firestore-helpers';
 import { buscarClientes, normalizarTexto } from '../lib/clienteSearch';
 import { useConfig } from '../hooks/useConfig';
@@ -775,6 +776,22 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   // Cuando el usuario intenta guardar y aplica el gate, guardamos aquí el
   // "trabajo pendiente" — el modal de contraseña llama a onOk() para continuar.
   const [gatePending, setGatePending] = useState(false);
+
+  // Estado del POS TUU del tenant. Cuando `enabled` es true, el flujo de
+  // "Tarjeta" cobra directo por el POS al completar la cita, en vez de
+  // marcarse a mano (evita registrar efectivo como tarjeta).
+  const [tuuCfg, setTuuCfg] = useState(null);
+  useEffect(() => {
+    if (!tenantId) return undefined;
+    const u = onSnapshot(
+      doc(db, '_system', `tuu_${tenantId}`),
+      s => setTuuCfg(s.exists() ? s.data() : {}),
+      () => setTuuCfg({}),
+    );
+    return () => u();
+  }, [tenantId]);
+  const tuuActivo         = !!(tuuCfg?.configured && tuuCfg?.enabled);
+  const tuuPermitirManual = tuuActivo && tuuCfg?.permitirTarjetaManual === true;
 
   const matchedSvc = (() => {
     if (!cita) return null;
@@ -1558,16 +1575,46 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
       }
     }
 
-    // ── Sandbox visual TUU (POS presencial) — SOLO delnero ────────────
-    // Demo interno del flujo propuesto: al pasar a Completada aparece un
-    // modal preguntando el medio de pago (POS TUU / Efectivo / Cortesia).
-    // NO llama a TUU ni persiste medio de pago aun — es 100% visual para
-    // validar la UX antes de escribir backend real y disparar cobros.
-    // Gate: solo se muestra en delnero, cita no nueva y no marcada cortesia.
+    // ── Cobro REAL vía POS TUU ─────────────────────────────────────────
+    // Si el tenant tiene TUU activo y el barbero eligió "Tarjeta (POS)",
+    // enviamos el cobro al POS antes de guardar. La cita queda Completada
+    // SOLO si TUU confirma; si rechaza/cancela/timeout, abortamos el save.
+    // El usuario puede elegir "manual_fallback" desde el modal (solo si el
+    // admin habilitó permitirTarjetaManual en Recibir Pagos).
+    let metodoPagoOverride = null;
+    if (!isNew
+        && form.estado === 'Completada'
+        && cita?.estado !== 'Completada'
+        && !form.cortesia
+        && tuuActivo
+        && form.metodoPago === 'Tarjeta (POS)') {
+      const svcTuu   = servicios.find(s => s.id === form.servicioId)
+                    || servicios.find(s => (s.nombre || '') === form.servicioNombre);
+      const montoTuu = Number(form.precio) || Number(svcTuu?.precio) || 0;
+      const result   = await tuuCobroDialog({
+        tenantId,
+        citaId:   cita.id,
+        cliente:  form.clienteNombre,
+        monto:    montoTuu,
+        servicio: svcTuu?.nombre || form.servicioNombre || '',
+        showManualFallback: tuuPermitirManual,
+      });
+      if (result === 'manual_fallback') {
+        metodoPagoOverride = 'Tarjeta (manual)';
+        set('metodoPago', 'Tarjeta (manual)');
+      } else if (result !== 'approved') {
+        // 'rejected' | 'canceled' | 'timeout' | 'error' → no completamos.
+        return;
+      }
+    }
+
+    // ── Sandbox visual TUU (POS presencial) — SOLO delnero, y solo si NO
+    // hay TUU real activo (para no doblar modales). Sirve para demo interno.
     if (!isNew
         && form.estado === 'Completada'
         && cita?.estado !== 'Completada'
         && tenantId === 'delnero'
+        && !tuuActivo
         && !form.cortesia) {
       const svcSand   = servicios.find(s => s.id === form.servicioId)
                      || servicios.find(s => (s.nombre || '') === form.servicioNombre);
@@ -1587,6 +1634,9 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
       const fechaCita = form.fecha || dateStr;
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+      // Si el modal TUU forzó el fallback manual (POS caído), sobreescribe:
+      // el setState de `form.metodoPago` es async y podría no reflejarse aún.
+      if (metodoPagoOverride) payload.metodoPago = metodoPagoOverride;
 
       // ── Pagos divididos ─────────────────────────────────────────
       // Si el cliente dividió el pago, escribimos `pagos[]` normalizado y
@@ -2527,12 +2577,22 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                 </label>
                 <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 ${
                   errorMetodoPago ? 'ring-1 ring-rose-500/60 rounded-lg p-1 -m-1' : ''}`}>
-                  {[
-                    { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
-                    { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
-                    { v: 'Crédito',       txt: 'Crédito',       on: 'bg-violet-500/20 border-violet-500/60 text-violet-300' },
-                    { v: 'Transferencia', txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
-                  ].map(o => {
+                  {(tuuActivo
+                    ? [
+                        { v: 'Efectivo',       txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+                        { v: 'Tarjeta (POS)',  txt: 'Tarjeta (POS)', on: 'bg-yellow-500/20 border-yellow-500/60 text-yellow-300' },
+                        { v: 'Transferencia',  txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
+                        ...(tuuPermitirManual
+                          ? [{ v: 'Tarjeta (manual)', txt: 'Tarjeta manual', on: 'bg-slate-500/25 border-slate-400/60 text-slate-200' }]
+                          : []),
+                      ]
+                    : [
+                        { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+                        { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
+                        { v: 'Crédito',       txt: 'Crédito',       on: 'bg-violet-500/20 border-violet-500/60 text-violet-300' },
+                        { v: 'Transferencia', txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
+                      ]
+                  ).map(o => {
                     const activo = form.metodoPago === o.v;
                     return (
                       <button

@@ -197,7 +197,7 @@ export default function RecibirPagos() {
       />
 
       <p className="text-xs text-slate-500 [html.light_&]:text-ink-500 text-center mt-8">
-        Mercado Pago ya disponible. Flow, Stripe y el cobro automatico por POS TUU se activaran proximamente.
+        Mercado Pago y POS TUU ya disponibles. Flow y Stripe se activaran proximamente.
       </p>
     </div>
   );
@@ -334,11 +334,14 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
   const [saving, setSaving] = useState(false);
   const [busyDisc, setBusyDisc] = useState(false);
   const [localErr, setLocalErr] = useState(null);
+  const [permitirManual, setPermitirManual] = useState(!!tuu?.permitirTarjetaManual);
+  const [savingFlag, setSavingFlag] = useState(false);
 
   // Cuando cambian los props (por el listener), re-hidratar el serial pero NUNCA la apiKey.
   useEffect(() => {
     setDeviceSerial(tuu?.deviceSerial || '');
     setSerialsPorSucursal(tuu?.serialsPorSucursal ? { ...tuu.serialsPorSucursal } : {});
+    setPermitirManual(!!tuu?.permitirTarjetaManual);
   }, [tuu]);
 
   const sucursalesArr = useMemo(() => Array.isArray(sucursales) ? sucursales : [], [sucursales]);
@@ -378,11 +381,32 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'tuuGuardarConfig');
       await fn(payload);
       setApiKey('');       // no dejar la key en el DOM
-      onMsg({ ok: true, text: 'Configuracion de TUU guardada. La activacion del cobro automatico se libera proximamente.' });
+      onMsg({ ok: true, text: 'Configuracion de TUU guardada. Ya puedes cobrar con tarjeta desde la agenda.' });
     } catch (err) {
       onMsg({ ok: false, text: err.message || 'No se pudo guardar la configuracion de TUU.' });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function togglePermitirManual(nuevo) {
+    // Optimistic UI: si el CF falla, revertimos.
+    setPermitirManual(nuevo);
+    setSavingFlag(true);
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'tuuSetFlag');
+      await fn({ tenantId, permitirTarjetaManual: nuevo });
+      onMsg({
+        ok: true,
+        text: nuevo
+          ? 'Fallback activado: podras marcar tarjeta a mano si el POS falla.'
+          : 'Fallback desactivado: toda tarjeta pasa obligatoriamente por el POS.',
+      });
+    } catch (err) {
+      setPermitirManual(!nuevo);
+      onMsg({ ok: false, text: err.message || 'No se pudo actualizar el fallback.' });
+    } finally {
+      setSavingFlag(false);
     }
   }
 
@@ -407,10 +431,10 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
   return (
     <div className="space-y-5">
       {/* Aviso principal */}
-      <div className="flex items-start gap-2 p-3 rounded-xl bg-yellow-400/10 [html.light_&]:bg-yellow-100 border border-yellow-400/20 [html.light_&]:border-yellow-300 text-yellow-300 [html.light_&]:text-yellow-800">
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-400/10 [html.light_&]:bg-emerald-50 border border-emerald-400/20 [html.light_&]:border-emerald-300 text-emerald-300 [html.light_&]:text-emerald-800">
         <Info size={14} className="shrink-0 mt-0.5" />
         <p className="text-xs leading-relaxed">
-          Estamos habilitando el cobro automatico por POS TUU. Puedes dejar tu configuracion lista <b>ahora</b> y el dia que lo liberemos se activa solo. No enviamos ningun cobro real todavia.
+          Al marcar una cita como <b>Completada</b> con metodo <b>Tarjeta (POS)</b>, el sistema envia el cobro directo al POS con el monto exacto. Boleta electronica y confirmacion vuelven solas.
         </p>
       </div>
 
@@ -468,7 +492,7 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
           {/* API key */}
           <div>
             <label className="block text-xs font-medium text-slate-300 [html.light_&]:text-ink-700 mb-1.5">
-              API Key {configured && <span className="text-[10px] text-slate-500 [html.light_&]:text-ink-500 normal-case">(guardada · deja vacio para no cambiarla — proximamente)</span>}
+              API Key {configured && <span className="text-[10px] text-slate-500 [html.light_&]:text-ink-500 normal-case">(guardada · deja vacio para no cambiarla)</span>}
             </label>
             <div className="relative">
               <input
@@ -553,6 +577,45 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
           </div>
         </div>
       </div>
+
+      {/* Opciones avanzadas — solo visible si TUU está configurado */}
+      {configured && (
+        <div className="border-t border-slate-800/60 [html.light_&]:border-ink-200 pt-5">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300 [html.light_&]:text-ink-700 mb-3">
+            Opciones avanzadas
+          </h4>
+
+          <div className="flex items-start justify-between gap-4 p-3 rounded-xl bg-slate-950/40 [html.light_&]:bg-ink-50 border border-slate-800/60 [html.light_&]:border-ink-200">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-primary [html.light_&]:text-ink-900">
+                Permitir tarjeta manual (fallback)
+              </div>
+              <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 mt-1 leading-relaxed">
+                {permitirManual
+                  ? <>Aparece un boton extra <b>“Tarjeta manual”</b> en el cobro. Uselo solo si el POS se cayo — recuerda que no genera boleta ni verifica el pago.</>
+                  : <>Todo pago con tarjeta pasa <b>obligatoriamente</b> por el POS TUU. Evita que se registre efectivo como tarjeta por error o intencion.</>}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => togglePermitirManual(!permitirManual)}
+              disabled={savingFlag}
+              role="switch"
+              aria-checked={permitirManual}
+              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 ${
+                permitirManual ? 'bg-yellow-400' : 'bg-slate-700 [html.light_&]:bg-ink-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  permitirManual ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
