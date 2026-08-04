@@ -11150,7 +11150,15 @@
       const _isBMSvc        = window.CURRENT_TENANT_ID === 'elbarberomoderno';
       const _isInfSvc       = window.CURRENT_TENANT_ID === 'infinity';
       const _isBcSvc        = window.CURRENT_TENANT_ID === 'barbersclub';
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc || _isBcSvc;
+      // ESTÁNDAR de la plataforma: la tarjeta en FILA (miniatura circular a la
+      // izquierda, datos al centro, selector circular a la derecha) es la que
+      // usan Kronnos y la mayoría, y es la que debe traer TODO local nuevo.
+      // Se deriva de la clase que config.js pone en <html> para los tenants
+      // dinámicos, en vez de sumar cada slug nuevo a la lista de arriba: esa
+      // lista es justo el tipo de espejo que se desincroniza y deja al cliente
+      // recién creado con un layout distinto al del resto.
+      const _esDinamicoSvc  = document.documentElement.classList.contains('tenant-selfservice');
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc || _isBcSvc || _esDinamicoSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -13483,7 +13491,12 @@
         || window.CURRENT_TENANT_ID === 'chameleon'
         || window.CURRENT_TENANT_ID === 'memphis'
         || window.CURRENT_TENANT_ID === 'delnero'
-        || window.CURRENT_TENANT_ID === 'yugen';
+        || window.CURRENT_TENANT_ID === 'yugen'
+        // Mismo estándar que en la selección de servicio: los tenants dinámicos
+        // (self-service y alta express) nacen con la ficha en FILA —foto
+        // circular, días de atención, selector a la derecha—, derivado de la
+        // clase de <html> y no de una lista de slugs que hay que recordar.
+        || document.documentElement.classList.contains('tenant-selfservice');
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
       const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#737373' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
