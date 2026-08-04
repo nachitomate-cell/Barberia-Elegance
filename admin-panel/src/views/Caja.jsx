@@ -21,7 +21,8 @@ import { readGateConfig } from '../lib/reopenGate';
 import ReopenPassModal from '../components/ui/ReopenPassModal';
 import { Unlock } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { withTimeout } from '../lib/firestore-helpers';
 import { renderTicketTermico, escapeHTML } from '../lib/ticket-termico';
 import { abrirHTML } from '../lib/print';
@@ -2319,12 +2320,31 @@ export default function Caja() {
       where('fecha', '>=', start),
       where('fecha', '<', end),
     );
+    let vivo = true;
     const unsub3 = onSnapshot(qGastos, snap => {
+      if (!vivo) return;
       setGastosHoyRaw(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setFallos(f => (f.gastos ? { ...f, gastos: false } : f));
-    }, marcarFallo('gastos'));
+    }, () => {
+      // Recepción no puede leer /gastos (la colección tiene las liquidaciones
+      // de los barberos), pero el arqueo los necesita: un gasto en efectivo
+      // sale del cajón. El callable los devuelve con los pagos al equipo
+      // fundidos en una fila anónima. Si TAMBIÉN falla, ahí sí es un fallo
+      // real y se enciende el aviso de datos incompletos.
+      httpsCallable(getFunctions(undefined, 'us-central1'), 'cajaGastosDelDia')({
+        tenantId: resolveTenantId(),
+        desdeMs: start.getTime(),
+        hastaMs: end.getTime(),
+      })
+        .then(res => {
+          if (!vivo) return;
+          setGastosHoyRaw(res?.data?.gastos || []);
+          setFallos(f => (f.gastos ? { ...f, gastos: false } : f));
+        })
+        .catch(marcarFallo('gastos'));
+    });
 
-    return () => { unsub1(); unsub2(); unsub3(); };
+    return () => { vivo = false; unsub1(); unsub2(); unsub3(); };
   }, [sesionActiva]);
 
   /* ── Catálogo de servicios (una vez) — para valorizar cortesías ── */

@@ -1673,6 +1673,13 @@ const chatHoras = require('./chat-horas-disponibles');
 exports.chatHorasDisponibles = chatHoras.chatHorasDisponibles;
 
 // ─────────────────────────────────────────────────────────────────
+//  CAJA — gastos del día para recepción (callable). /gastos es admin-only
+//  porque contiene las liquidaciones; esto devuelve lo mismo con los pagos
+//  al equipo fundidos en una fila anónima. Ver functions/caja-gastos-dia.js.
+// ─────────────────────────────────────────────────────────────────
+exports.cajaGastosDelDia = require('./caja-gastos-dia').cajaGastosDelDia;
+
+// ─────────────────────────────────────────────────────────────────
 //  WHATSAPP NOTIFICACIONES — confirmaciones de cita vía Cloud API
 //  oficial de Meta. Nivel gratis (aviso al dueño, solo mensajes de
 //  sesión = costo $0 garantizado) + nivel pagado (plantilla utility

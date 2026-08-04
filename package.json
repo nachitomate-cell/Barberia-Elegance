@@ -13,7 +13,7 @@
     "check:tenants": "node scripts/check-tema-tenants.js",
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
     "check:rutas-admin": "node scripts/check-rutas-admin.js",
-    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run check:wallet-cors && npm run check:rutas-admin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run test:duracion && npm run test:cinturon-dia && npm run check:tema-claro && npm run check:espejos-claros",
+    "check": "npm run check:mojibake && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run check:wallet-cors && npm run check:rutas-admin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run test:duracion && npm run test:cinturon-dia && npm run test:caja-gastos && npm run check:tema-claro && npm run check:espejos-claros",
     "check:espejos-claros": "node scripts/check-espejos-claros.js",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
     "check:agenda": "node scripts/check-agenda-visibles.js",
@@ -31,7 +31,8 @@
     "test:duracion": "node scripts/test-duracion-tipica.js",
     "check:tema-claro": "node scripts/check-tema-claro.js",
     "test:bot": "node scripts/probar-bot.js",
-    "test:cinturon-dia": "node scripts/test-cinturon-dia.js"
+    "test:cinturon-dia": "node scripts/test-cinturon-dia.js",
+    "test:caja-gastos": "node scripts/test-caja-gastos-dia.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
