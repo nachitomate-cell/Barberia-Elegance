@@ -170,7 +170,8 @@ function HistorialSnapshotRow({ snapshot }) {
     { label: 'Efectivo', v: snapshot.ingresosEfectivo, color: 'text-emerald-400' },
     { label: 'Tarjeta',  v: snapshot.ingresosTarjeta,  color: 'text-purple-400' },
     { label: 'Transf.',  v: snapshot.ingresosTransf,   color: 'text-cyan-400'   },
-    { label: 'Gastos',   v: snapshot.egresosEfectivo,  color: 'text-rose-400', prefix: '−' },
+    { label: 'Gastos',   v: egresosSinRetiros(snapshot), color: 'text-rose-400', prefix: '−' },
+    { label: 'Al banco', v: snapshot.retirosATransferencia, color: 'text-cyan-400', prefix: '−' },
     { label: 'Propinas', v: snapshot.propinasTotal,    color: 'text-amber-400' },
   ].filter(c => (c.v ?? 0) > 0);
   if (chips.length === 0) return null;
@@ -225,6 +226,13 @@ function MetodoBadge({ metodo }) {
     </span>
   );
 }
+
+/** Egresos del turno que NO se fueron al banco. El snapshot guarda el TOTAL
+ *  en `egresosEfectivo` (incluye los retiros: los dos salen del cajón), así que
+ *  hay que restarlos o el arqueo impreso muestra la misma plata dos veces —
+ *  una como "gastos" y otra como "retiro al banco". */
+const egresosSinRetiros = (s) =>
+  Math.max(0, (Number(s?.egresosEfectivo) || 0) - (Number(s?.retirosATransferencia) || 0));
 
 /* ── Fila con barra proporcional (flujo de efectivo) ─────────── */
 function FlujoRow({ label, valor, max, color = 'bg-slate-500', negativo, destacado }) {
@@ -625,8 +633,8 @@ function SesionDetalleDrawer({ sesion, tenantName, onClose }) {
                 {(s.propinasEfectivo ?? 0) > 0 && (
                   <FlujoRow label="Propinas efectivo" valor={s.propinasEfectivo} max={maxFlujo} color="bg-amber-500" />
                 )}
-                {(s.egresosEfectivo ?? 0) > 0 && (
-                  <FlujoRow label="Gastos y egresos" valor={s.egresosEfectivo}   max={maxFlujo} color="bg-rose-500" negativo />
+                {egresosSinRetiros(s) > 0 && (
+                  <FlujoRow label="Gastos y egresos" valor={egresosSinRetiros(s)} max={maxFlujo} color="bg-rose-500" negativo />
                 )}
                 {(s.retirosATransferencia ?? 0) > 0 && (
                   <FlujoRow label="Retiros al banco" valor={s.retirosATransferencia} max={maxFlujo} color="bg-cyan-500" negativo />
@@ -1537,7 +1545,7 @@ function buildResumenCierreTermicoHTML({ tenantName, sesion }) {
           ['Base apertura', f(s.apertura ?? sesion.montoApertura)],
           ...opt('+ Ventas efectivo', s.ingresosEfectivo),
           ...opt('+ Propinas efectivo', s.propinasEfectivo),
-          ...opt('- Gastos y egresos', s.egresosEfectivo, '-'),
+          ...opt('- Gastos y egresos', egresosSinRetiros(s), '-'),
           ...opt('- Retiros al banco', s.retirosATransferencia, '-'),
           ['Esperado', f(esperado)],
           ['Contado', f(real)],
@@ -1620,7 +1628,7 @@ function buildResumenCierreHTML({ tenantName, sesion }) {
   ${row('Base de apertura', fmt(s.apertura ?? sesion.montoApertura))}
   ${opt('+ Ventas en efectivo', s.ingresosEfectivo)}
   ${opt('+ Propinas en efectivo', s.propinasEfectivo)}
-  ${opt('− Gastos y egresos', s.egresosEfectivo, '−')}
+  ${opt('− Gastos y egresos', egresosSinRetiros(s), '−')}
   ${opt('− Retiros al banco (traspaso)', s.retirosATransferencia, '−')}
   ${row('Esperado en caja', fmt(esperado))}
   ${row('Contado físicamente', fmt(real))}
@@ -3223,7 +3231,13 @@ export default function Caja() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard icon={Banknote} label="Saldo Esperado" value={fmtCurrency(kpis.saldoEsperado)} color="emerald" sub="En caja física" />
         <KpiCard icon={ArrowDownCircle} label="Ingresos Efectivo" value={fmtCurrency(kpis.totalIngresosEfectivo)} color="blue" sub={`${kpis.transEfectivo} ${kpis.transEfectivo === 1 ? 'transacción' : 'transacciones'} en efectivo`} />
-        <KpiCard icon={ArrowUpCircle} label="Egresos Efectivo" value={fmtCurrency(kpis.totalEgresosEfectivo)} color="rose" sub={`${kpis.totalGastos} gastos`} />
+        {/* Mide plata que SALIÓ DEL CAJÓN, no gastos. Con un retiro al banco
+            se leía "$130.000 · 0 gastos" y parecía contradicción; el subtítulo
+            ahora dice cuánto de eso fue traspaso y cuánto gasto de verdad. */}
+        <KpiCard icon={ArrowUpCircle} label="Egresos Efectivo" value={fmtCurrency(kpis.totalEgresosEfectivo)} color="rose"
+          sub={kpis.retirosATransferencia > 0
+            ? `${fmtCurrency(kpis.retirosATransferencia)} al banco · ${kpis.totalGastos} gastos`
+            : `${kpis.totalGastos} gastos`} />
         <KpiCard icon={CreditCard} label="Tarjeta" value={fmtCurrency(kpis.totalIngresosTarjeta)} color="purple" />
         <KpiCard icon={ArrowRightLeft} label="Transferencia" value={fmtCurrency(kpis.totalIngresosTransf)} color="cyan" />
         <KpiCard icon={TrendingUp} label="Total General" value={fmtCurrency(kpis.totalIngresosGeneral)} color="amber" sub={kpis.ticketPromedio > 0 ? `Ticket prom: ${fmtCurrency(kpis.ticketPromedio)} · ${kpis.totalCitas + kpis.totalVentas} transac.` : `${kpis.totalCitas + kpis.totalVentas} transacciones`} />
