@@ -5437,6 +5437,42 @@
     .tenant-alfamen.tenant-aura span.text-\[\#00285E\],
     .tenant-alfamen.tenant-aura .text-\[\#00285E\] { color: #111111 !important; }
 
+    /* Tab de Productos: el renderer (js/dashboard/usuario.js) hardcodea el
+       dorado #D4AF37 de Elegance en 4 lugares — chip activo, badge de
+       categoría, precio del producto y botón "Ver detalle". Sobre blanco
+       Alfa Men se veía amarillo/naranja rompiendo la paleta. Todos van a
+       tinta / grises B&N. Van con `[class]` porque son clases Tailwind
+       arbitrarias y necesitan la especificidad extra. */
+    .tenant-alfamen.tenant-aura .bg-\[\#D4AF37\] {
+      background-color: #111111 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-alfamen.tenant-aura .border-\[\#D4AF37\] { border-color: #111111 !important; }
+    /* Badge de categoría — versión translúcida del dorado, se cambia a un
+       neutro gris claro con tinta oscura. */
+    .tenant-alfamen.tenant-aura .text-\[\#D4AF37\]\/80 {
+      color: #6B7280 !important;
+    }
+    .tenant-alfamen.tenant-aura .bg-\[\#D4AF37\]\/10 {
+      background-color: rgba(17,17,17,0.04) !important;
+    }
+    .tenant-alfamen.tenant-aura .border-\[\#D4AF37\]\/20 {
+      border-color: rgba(17,17,17,0.12) !important;
+    }
+    /* Precio y CTA "Ver detalle" al 100% opaco → tinta pura. */
+    .tenant-alfamen.tenant-aura .text-\[\#D4AF37\],
+    .tenant-alfamen.tenant-aura span[style*="D4AF37"] { color: #111111 !important; }
+    .tenant-alfamen.tenant-aura .border-\[\#D4AF37\]\/60 {
+      border-color: rgba(17,17,17,0.32) !important;
+    }
+    /* Fallback robusto: cualquier hijo de producto-card cuya clase contenga
+       "#D4AF37" cae a tinta neutra. Cubre variantes de Tailwind arbitrary con
+       opacity (/80, /60, etc.) que a veces no matchean el selector escapado
+       directo cuando el compilador genera un color fallback distinto. */
+    .tenant-alfamen.tenant-aura .producto-card [class*="D4AF37"] { color: #111111 !important; }
+    .tenant-alfamen.tenant-aura .producto-card span[class*="text-\[\#D4AF37\]"],
+    .tenant-alfamen.tenant-aura #productosGrid span[class*="D4AF37"] { color: #6B7280 !important; }
+
 
     /* ═══════════════════════════════════════════════════════════════════════
        MODO CLARO — dashboard del cliente (html.theme-light)

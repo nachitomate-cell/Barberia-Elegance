@@ -10747,11 +10747,15 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega');
       // bloodhabib comparte la rama BM: mismo esquema plata-sobre-negro,
       // el default de abajo es el bloque dorado de Elegance.
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno' || window.CURRENT_TENANT_ID === 'bloodhabib');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
+      // Alfa Men: rama propia B&N pura sobre blanco. La rama isAura tiene un
+      // rayo rosado (#FF8EA6) que rompe la paleta y el default dorado sale
+      // amarillo sobre blanco (Ignacio lo rechazó, 2026-08-05).
+      const isAlfaMen = (window.CURRENT_TENANT_ID === 'alfamen');
 
       if (isInfinity) {
         // Infinity Studio — Monochrome Premium: gris claro + rayo negro + pills B/N.
@@ -10774,6 +10778,37 @@
                   style="background:#FFFFFF; border-color:#E5E5E5; color:#000000;"
                   onmouseover="this.style.borderColor='#000000';"
                   onmouseout="if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='#E5E5E5';this.style.color='#000000';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (isAlfaMen) {
+        // Alfa Men — B&N puro sobre blanco. Fondo #F4F4F5 (mismo tono del
+        // body-page del theme-light), rayo negro sólido, chips blancos con
+        // borde neutro y micro-shadow para separarlos del fondo, título en
+        // tinta. Coherente con la capa .tenant-alfamen del hero + la info-strip
+        // negra: TODO el paso 3 se lee sin colores del template Elegance.
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+               style="background:#F4F4F5;border-color:rgba(17,17,17,0.10);box-shadow:none;">
+            <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+               style="color:#111111;letter-spacing:0.16em;">
+              <i class="ph-fill ph-lightning text-sm" style="color:#111111;filter:none;"></i> Horas recomendadas
+            </p>
+            <p class="text-xs mb-3.5" style="color:#6B7280;font-weight:500;">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button
+                  onclick="selectSmartSlot('${r.time}')"
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+                  style="background:#FFFFFF; border-color:rgba(17,17,17,0.14); color:#111111; box-shadow:0 1px 2px rgba(17,17,17,0.04);"
+                  onmouseover="this.style.borderColor='#111111';"
+                  onmouseout="if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='rgba(17,17,17,0.14)';this.style.color='#111111';}"
                 >
                   ${r.time}
                 </button>
@@ -10911,10 +10946,11 @@
         updateSelectionRecap();
       }
 
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno' || window.CURRENT_TENANT_ID === 'bloodhabib');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
       const isRenacer = (window.CURRENT_TENANT_ID === 'renacer');
+      const isAlfaMen = (window.CURRENT_TENANT_ID === 'alfamen');
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
@@ -10935,6 +10971,13 @@
             btn.style.color = '#000000';
             btn.style.borderColor = '#E0E0E0';
             btn.style.boxShadow = '0 0 14px rgba(224,224,224,0.25)';
+          } else if (isAlfaMen) {
+            // Seleccionado: tinta sólida + texto blanco. Mismo criterio que
+            // la card de servicio elegida en alfamen (radio negro sólido).
+            btn.style.background = '#111111';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#111111';
+            btn.style.boxShadow = '0 4px 12px rgba(17,17,17,0.18)';
           } else if (isAura) {
             btn.style.background = '#111827';
             btn.style.color = '#FFFFFF';
@@ -10965,6 +11008,13 @@
             btn.style.color = '#16213F';
             btn.style.borderColor = '#C9D2E8';
             btn.style.boxShadow = 'none';
+          } else if (isAlfaMen) {
+            // Inactivo: blanco puro con borde tenue y micro-shadow. Igual al
+            // estado inicial de _renderSmartSlots (arriba).
+            btn.style.background = '#FFFFFF';
+            btn.style.color = '#111111';
+            btn.style.borderColor = 'rgba(17,17,17,0.14)';
+            btn.style.boxShadow = '0 1px 2px rgba(17,17,17,0.04)';
           } else if (isAura) {
             btn.style.background = '#FFFFFF';
             btn.style.color = '#111827';
