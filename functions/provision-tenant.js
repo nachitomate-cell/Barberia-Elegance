@@ -175,6 +175,47 @@ const CONFIG_DEFAULT = {
   diasConfig:       {},
 };
 
+/* ─────────────────────────── Helpers ───────────────────────────
+
+  Rate limit por IP (contra spam del self-service público). Firestore doc
+  `_rate_limits/{clave}` con ventana rodante — al ser públicas ambas callables
+  y sin App Check, un solo actor podría spammear cuentas de Auth (createUser
+  se llama antes del provisioner) o intentar tomar slugs. Rechazamos al
+  superar el tope con HttpsError('resource-exhausted') → el frontend muestra
+  el mensaje tal cual. Bootstrap admin (Ignacio) queda exento.
+*/
+async function chequearLimite(clave, ventanaSeg, tope) {
+  if (!clave) return;
+  const ref = db.collection('_rate_limits').doc(clave);
+  const ahora = Date.now();
+  const inicio = ahora - ventanaSeg * 1000;
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : {};
+      const hits = Array.isArray(data.hits) ? data.hits.filter((t) => t > inicio) : [];
+      if (hits.length >= tope) {
+        throw new HttpsError('resource-exhausted',
+          'Demasiados intentos desde tu conexión. Espera unos minutos y vuelve a intentar.');
+      }
+      hits.push(ahora);
+      tx.set(ref, { hits, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    });
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    // Si Firestore falla, no bloqueamos el flujo — solo perdemos rate limit
+    // ese request. Es preferible perder protección que perder al cliente.
+    logger.warn('[rate-limit] fallo transacción:', e.message);
+  }
+}
+
+function ipDeRequest(req) {
+  const raw = req && req.rawRequest;
+  if (!raw) return null;
+  const xff = String(raw.headers && raw.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xff || raw.ip || null;
+}
+
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
 function normalizarSlug(raw) {
@@ -206,6 +247,10 @@ async function chequearSlug(slug) {
 /* ─────────────────────── Callable: check de slug ─────────────────────── */
 
 exports.verificarSlugLibre = onCall(async (req) => {
+  // Cheap check: 40/min por IP (el input dispara uno cada 450ms al tipear).
+  const ip = ipDeRequest(req);
+  if (ip) await chequearLimite(`slug_${ip}`, 60, 40);
+
   const slug = normalizarSlug(req.data && req.data.slug);
   if (!slug) return { ok: true, libre: false, motivo: 'Escribe una dirección.' };
   const r = await chequearSlug(slug);
@@ -632,6 +677,14 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const uid   = req.auth.uid;
   const email = String(req.auth.token.email || '').toLowerCase();
 
+  // Rate limit por IP (3 provisions/hora). El bootstrap admin queda exento
+  // para que Ignacio pueda demoar en vivo sin bloquearse. La rama
+  // idempotente (mismo owner refresca) NO cuenta porque se retorna antes.
+  if (!BOOTSTRAP_ADMINS.includes(email)) {
+    const ip = ipDeRequest(req);
+    if (ip) await chequearLimite(`prov_${ip}`, 3600, 3);
+  }
+
   const raw      = req.data || {};
   const slug     = normalizarSlug(raw.slug);
   const nombre   = String(raw.nombre || '').trim().slice(0, 60);
@@ -661,6 +714,19 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const documentosAceptados = Array.isArray(acepto.documentos)
     ? acepto.documentos.map(String).slice(0, 20)
     : [];
+
+  // Atribución (vendedor + UTM). ref se sanitiza a slug: solo alfanumérico
+  // + guiones bajos/medios, máx 32 chars. Se guarda para comisiones y
+  // análisis de canal; nada bloqueante si falta.
+  const atribucionRaw = raw.atribucion || {};
+  const atribucion = {
+    ref:          String(atribucionRaw.ref || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || null,
+    utm_source:   String(atribucionRaw.utm_source   || '').slice(0, 60) || null,
+    utm_medium:   String(atribucionRaw.utm_medium   || '').slice(0, 60) || null,
+    utm_campaign: String(atribucionRaw.utm_campaign || '').slice(0, 80) || null,
+    referrer:     String(atribucionRaw.referrer     || '').slice(0, 200) || null,
+    landedAt:     String(atribucionRaw.landedAt     || '').slice(0, 30) || null,
+  };
 
   if (!nombre)   throw new HttpsError('invalid-argument', 'Falta el nombre de tu local.');
   if (!slug)     throw new HttpsError('invalid-argument', 'Falta la dirección web (slug).');
@@ -745,6 +811,8 @@ exports.provisionarTenantSelf = onCall(async (req) => {
       },
       ownerUid:  uid,
       ownerEmail: email || null,
+      atribucion,
+      refVendedor: atribucion.ref,
       // Evidencia B2B del contrato SaaS + DPA + política de privacidad al alta.
       aceptoTerminosAt:    FieldValue.serverTimestamp(),
       aceptoPrivacidadAt:  FieldValue.serverTimestamp(),
@@ -832,6 +900,9 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     montoPendiente: 0,
     emailCobro:     email || null,
     origen:         'self-service',
+    refVendedor:    atribucion.ref,
+    utmSource:      atribucion.utm_source,
+    utmCampaign:    atribucion.utm_campaign,
     creadoEn:       TS,
   }, { merge: true });
 
@@ -849,7 +920,7 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     logger.warn(`[self-service] provision QA falló (no crítico):`, err.message);
   }
 
-  logger.info(`[self-service] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) owner=${email || uid}`);
+  logger.info(`[self-service] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) owner=${email || uid} ref=${atribucion.ref || '-'} utm=${atribucion.utm_source || '-'}`);
 
   return {
     ok: true,
