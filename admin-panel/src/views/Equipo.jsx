@@ -320,6 +320,20 @@ function Section({ title, Icon, children, defaultOpen = false }) {
 }
 
 /* ─── DayRow ─────────────────────────────────────────────── */
+/* La fila de la jornada y la del descanso piden lo mismo: dos horas. Si alguien
+   escribe el descanso SIN pulsar antes "Añadir descanso", esas horas caen en la
+   jornada y el día se encoge a una hora. Le pasó a Aura: Matiaz cutz quedó con
+   jueves, viernes y sábado de 14:00 a 15:00 —su descanso de los lunes— en un
+   local que abre de 10 a 20. Nadie lo notó hasta que un cliente vio una sola
+   hora disponible. Por eso el día ahora se anuncia solo. */
+const minutosDeJornada = (config) => {
+  const aMin = (t) => { const [h, m] = String(t || '').split(':').map(Number); return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0); };
+  const ini = aMin(config.inicio);
+  const fin = aMin(config.fin) === 0 ? 1440 : aMin(config.fin);   // 00:00 de salida = medianoche
+  return fin - ini;
+};
+const JORNADA_CORTA = 90;   // minutos: por debajo de esto se pregunta
+
 function DayRow({ diaKey, config, onChange }) {
   const addDescanso = () => onChange({ ...config, descansos: [...config.descansos, { inicio:'13:00', fin:'14:00' }] });
   const rmDescanso  = i  => onChange({ ...config, descansos: config.descansos.filter((_,x) => x !== i) });
@@ -336,6 +350,11 @@ function DayRow({ diaKey, config, onChange }) {
   // del día (eran más chicos y por eso el descanso se leía como una nota al pie
   // en vez de como parte de la jornada).
   const selDescanso = `bg-slate-900 border border-amber-500/25 rounded px-1.5 py-1 text-xs text-primary focus:outline-none focus:border-amber-500 ${esquema}`;
+
+  const durMin = config.activo ? minutosDeJornada(config) : null;
+  const invertida = durMin !== null && durMin <= 0;
+  const corta     = durMin !== null && durMin > 0 && durMin <= JORNADA_CORTA;
+  const enHoras   = (m) => (m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60} min`);
 
   return (
     <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
@@ -362,6 +381,19 @@ function DayRow({ diaKey, config, onChange }) {
           <span className="text-xs text-slate-700 italic">Día libre</span>
         )}
       </div>
+
+      {/* El aviso va PEGADO a la fila del día y nombra la salida: quien se
+          equivocó de campo lee justo lo que acaba de escribir. */}
+      {(invertida || corta) && (
+        <div className={`flex items-start gap-1.5 px-3 pb-2 text-[10px] leading-snug ${invertida ? 'text-red-400' : 'text-amber-400'}`}>
+          <AlertTriangle size={11} className="shrink-0 mt-px" />
+          <span>
+            {invertida
+              ? <>La salida ({config.fin}) es anterior a la entrada ({config.inicio}). Ese día no se podrá reservar nada.</>
+              : <>Atiende solo <strong>{enHoras(durMin)}</strong> ese día. Si querías marcarle un descanso dentro de su jornada, usa <strong>Añadir descanso</strong> y deja la entrada y la salida reales.</>}
+          </span>
+        </div>
+      )}
 
       {config.activo && (
         <div className="px-3 pb-2.5 space-y-1.5 border-t border-slate-800/60 pt-2">
