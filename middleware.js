@@ -2092,6 +2092,23 @@ export default async function middleware(request) {
     return;
   }
 
+  // Galería pública de AGENDAS — screenshots reales de tenants en vivo con
+  // su CTA propio ("Quiero uno así" → /crea.html?ref=galeria-agendas). El
+  // <head> ya trae OG + JSON-LD; el pipeline SEO no debe reescribir nada.
+  // Los JPEG bajo /galeria-agendas/ son assets estáticos que pasan solos
+  // (matcher excluye rutas con extensión que no sean .html).
+  if (url.pathname === '/galeria-agendas.html' || url.pathname === '/galeria-agendas') {
+    if (url.pathname === '/galeria-agendas') {
+      const rw  = new URL('/galeria-agendas.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      const headers = new Headers(res.headers);
+      headers.set('Content-Type', 'text/html; charset=utf-8');
+      headers.set('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+      return new Response(res.body, { status: res.status, headers });
+    }
+    return;
+  }
+
   // ── Dashboard interno de Operaciones (ops.synaptechspa.cl) ──
   // No es un tenant: la raíz sirve ops.html (métricas unificadas barbería +
   // conexion). Los assets externos (gstatic) los carga el navegador directo.

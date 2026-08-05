@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Galería de agendas · Locales reales con SynapTech</title>
+<meta name="description" content="13 barberías, peluquerías y estéticas usando la agenda de SynapTech en vivo. Elige tu favorita y activa una parecida en 2 minutos con 14 días gratis.">
+<link rel="canonical" href="https://crea.synaptechspa.cl/galeria-agendas.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Galería de agendas · Locales reales con SynapTech">
+<meta property="og:description" content="13 barberías, peluquerías y estéticas usando la agenda de SynapTech. Diseños reales, en vivo, listos para inspirarte.">
+<meta property="og:image" content="https://crea.synaptechspa.cl/galeria-agendas/kronnos.jpeg">
+<meta property="og:url" content="https://crea.synaptechspa.cl/galeria-agendas.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="/synaptech/ig.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-2: #111;
+    --ink: #f5f5f7;
+    --muted: #8a8a94;
+    --line: rgba(255,255,255,0.08);
+    --acc: #c6f94e;
+    --acc-dim: #9CCC3C;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+
+  header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+  }
+  header .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -0.3px; }
+  header .brand img { width: 26px; height: 26px; border-radius: 6px; }
+  header .brand small { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-left: 6px; }
+  header nav { display: flex; gap: 4px; align-items: center; }
+  header nav a { padding: 8px 14px; font-size: 13.5px; font-weight: 600; color: var(--muted); border-radius: 10px; transition: 0.15s; }
+  header nav a:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
+  header nav a.cta { background: var(--acc); color: #0a0a0a; padding: 9px 16px; font-weight: 800; }
+  header nav a.cta:hover { background: var(--acc-dim); color: #0a0a0a; }
+
+  .hero {
+    max-width: 1000px;
+    margin: 60px auto 40px;
+    padding: 0 28px;
+    text-align: center;
+  }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--acc);
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(198,249,78,0.10); border: 1px solid rgba(198,249,78,0.25);
+    margin-bottom: 18px;
+  }
+  .hero .kicker::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--acc);
+    box-shadow: 0 0 8px var(--acc);
+  }
+  .hero h1 {
+    font-size: clamp(32px, 6vw, 56px);
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: 18px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--acc) 0%, var(--acc-dim) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 17px;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  .filters {
+    max-width: 1200px;
+    margin: 40px auto 20px;
+    padding: 0 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .filters button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: inherit;
+  }
+  .filters button:hover { color: var(--ink); border-color: rgba(255,255,255,0.2); }
+  .filters button.active {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+
+  .gallery {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+    padding: 20px 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .item { display: flex; flex-direction: column; gap: 12px; }
+  .item.hide { display: none; }
+
+  /* Mockup smartphone: bezel oscuro con notch, sombra premium */
+  .phone {
+    position: relative;
+    border-radius: 30px;
+    background: #1a1a1a;
+    padding: 8px;
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(255,255,255,0.06),
+      inset 0 0 0 1.5px rgba(255,255,255,0.03);
+    transition: transform 0.3s ease;
+    aspect-ratio: 390 / 844;
+    max-width: 320px;
+    margin: 0 auto;
+    width: 100%;
+    overflow: hidden;
+  }
+  .item:hover .phone { transform: translateY(-6px); }
+  .phone::before {
+    /* Notch/DynamicIsland pill */
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 88px;
+    height: 22px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 2;
+  }
+  .phone img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 22px;
+    display: block;
+  }
+  .phone-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    color: var(--acc);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(198,249,78,0.25);
+  }
+
+  .meta { padding: 6px 8px 0; }
+  .meta-title { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px; }
+  .meta-tag { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .meta-links {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .meta-links a {
+    flex: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: 0.15s;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .btn-visit {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .btn-visit:hover { background: rgba(255,255,255,0.08); color: var(--ink); }
+  .btn-quiero {
+    background: var(--acc);
+    color: #0a0a0a;
+  }
+  .btn-quiero:hover { background: var(--acc-dim); }
+  .btn-quiero::after { content: " →"; }
+
+  .cierre {
+    max-width: 800px;
+    margin: 0 auto 80px;
+    padding: 60px 28px;
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(198,249,78,0.06) 0%, transparent 60%);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-radius: 24px;
+  }
+  .cierre h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 900; letter-spacing: -1px; margin-bottom: 12px; }
+  .cierre h2 em { font-style: normal; color: var(--acc); }
+  .cierre p { font-size: 15px; color: var(--muted); margin-bottom: 26px; line-height: 1.55; }
+  .cierre-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--acc); color: #0a0a0a;
+    padding: 14px 26px; border-radius: 14px;
+    font-size: 15px; font-weight: 800; letter-spacing: -0.2px;
+    box-shadow: 0 12px 30px -8px rgba(198,249,78,0.4);
+    transition: 0.2s;
+  }
+  .cierre-btn:hover { transform: translateY(-2px); background: var(--acc-dim); }
+
+  footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 28px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  footer img { width: 16px; height: 16px; border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    header nav a:not(.cta) { display: none; }
+    .hero { margin-top: 30px; }
+    .gallery { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .phone { max-width: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="brand">
+    <img src="/synaptech/ig.png" alt="SynapTech">
+    SynapTech <small>· Agendas reales</small>
+  </a>
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/galeria-wallets.html">Wallet</a>
+    <a href="/crea.html">Ver planes</a>
+    <a class="cta" href="/crea.html?ref=galeria-agendas">Empieza gratis</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <span class="kicker">13 locales reales · en vivo</span>
+  <h1>Así se ve tu agenda <em>cuando la haces con nosotros</em>.</h1>
+  <p>Cada tarjeta es la agenda REAL de un local en producción. Toca cualquiera para ver en vivo cómo reservan sus clientes. Luego copia el estilo que te guste — en 2 minutos tienes la tuya andando.</p>
+</section>
+
+<div class="filters" id="filters">
+  <button data-rubro="all" class="active">Todos</button>
+  <button data-rubro="barberia">Barberías</button>
+  <button data-rubro="peluqueria">Peluquerías · Salones</button>
+  <button data-rubro="estetica">Estética · Nails</button>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<section class="cierre">
+  <h2>¿Ves algo que te gusta? <em>Tu turno.</em></h2>
+  <p>14 días gratis, sin tarjeta, tu agenda lista en 2 minutos. Copiar cualquiera de estos estilos es tan fácil como elegir un template en el editor.</p>
+  <a class="cierre-btn" href="/crea.html?ref=galeria-agendas">Crear mi agenda gratis →</a>
+</section>
+
+<footer>
+  <img src="/synaptech/ig.png" alt="SynapTech">
+  Powered by SynapTech SpA · <a href="mailto:hola@synaptechspa.cl" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">hola@synaptechspa.cl</a>
+</footer>
+
+<script>
+  // Cada tarjeta = screenshot móvil real tomado de la agenda pública del tenant.
+  // Los subdominios están vivos y responden 200; el link "Ver en vivo" abre el
+  // sitio real (mismo que sus clientes usan) y "Quiero uno como este" lleva
+  // al wizard con tracking ?ref=galeria-agendas&template={slug}.
+  const AGENDAS = [
+    { slug: 'kronnos',      nombre: 'Kronnos Studio',     tag: 'Premium · rojo/dorado sobre oscuro',   rubro: 'barberia',   ciudad: 'Peñablanca',   host: 'kronnospenablanca.synaptechspa.cl', tag2: 'PREMIUM' },
+    { slug: 'elegance',     nombre: 'Barbería Elegance',  tag: 'Clásico · agenda robusta',              rubro: 'barberia',   ciudad: 'Santiago',     host: 'barberiaelegance.synaptechspa.cl',  tag2: 'FUNDADOR' },
+    { slug: 'alfamen',      nombre: 'Alfa Men',           tag: 'Claro · blanco y negro',                rubro: 'barberia',   ciudad: 'Santiago',     host: 'alfamen.synaptechspa.cl' },
+    { slug: 'bloodhabib',   nombre: 'Blood Habib',        tag: 'Editorial · plata sobre negro',         rubro: 'barberia',   ciudad: 'Viña del Mar', host: 'bloodhabib.synaptechspa.cl' },
+    { slug: 'sion',         nombre: 'Sion Barbería',      tag: 'Nike · blanco/negro',                   rubro: 'barberia',   ciudad: 'Viña del Mar', host: 'sion.synaptechspa.cl' },
+    { slug: 'delnero',      nombre: 'Del Nero Barber',    tag: 'Verde bosque · sobrio',                 rubro: 'barberia',   ciudad: 'Santiago',     host: 'delnerobarber.synaptechspa.cl' },
+    { slug: 'machos',       nombre: "Macho's Barbershop", tag: 'Urbano · tono chill',                   rubro: 'barberia',   ciudad: 'Santiago',     host: 'machos.synaptechspa.cl' },
+    { slug: 'mapu',         nombre: 'Mapu Barber Shop',   tag: 'Étnico · tierras',                       rubro: 'barberia',   ciudad: 'Santiago',     host: 'mapubarbershop.synaptechspa.cl' },
+    { slug: 'oren',         nombre: 'Oren Barber',        tag: 'Multi-sucursal · pulido',                rubro: 'barberia',   ciudad: 'Reñaca',       host: 'orenbarber.synaptechspa.cl',       tag2: 'MULTI-SEDE' },
+    { slug: 'renacer',      nombre: 'Renacer',            tag: 'Peluquería + barbería · unisex',        rubro: 'peluqueria', ciudad: 'Santiago',     host: 'renacer.synaptechspa.cl' },
+    { slug: 'aura',         nombre: 'Aura Salón',         tag: 'Femenino · elegante',                    rubro: 'peluqueria', ciudad: 'Santiago',     host: 'aurasalon.synaptechspa.cl' },
+    { slug: 'kronnoswoman', nombre: 'Kronnos Woman',      tag: 'Femenino premium · rojo/negro',          rubro: 'peluqueria', ciudad: 'Quilpué',      host: 'kronnoswoman.synaptechspa.cl' },
+    { slug: 'gitana',       nombre: 'Gitana Nails',       tag: 'Nails · femenino · fresh',               rubro: 'estetica',   ciudad: 'Santiago',     host: 'gitananails.synaptechspa.cl' },
+  ];
+
+  const gallery = document.getElementById('gallery');
+  const filtros = document.getElementById('filters');
+
+  function itemHTML(a) {
+    const badge = a.tag2 ? `<span class="phone-badge">★ ${a.tag2}</span>` : '';
+    return `
+      <div class="item" data-rubro="${a.rubro}">
+        <div class="phone">
+          ${badge}
+          <img src="/galeria-agendas/${a.slug}.jpeg" alt="Agenda de ${a.nombre}" loading="lazy" width="390" height="844">
+        </div>
+        <div class="meta">
+          <p class="meta-title">${a.nombre} <span style="color:var(--muted);font-size:12px;font-weight:600">· ${a.ciudad}</span></p>
+          <p class="meta-tag">${a.tag}</p>
+          <div class="meta-links">
+            <a class="btn-visit" href="https://${a.host}/" target="_blank" rel="noopener">Ver en vivo</a>
+            <a class="btn-quiero" href="/crea.html?ref=galeria-agendas&template=${a.slug}">Quiero uno así</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  gallery.innerHTML = AGENDAS.map(itemHTML).join('');
+
+  filtros.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const rubro = btn.dataset.rubro;
+    filtros.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    gallery.querySelectorAll('.item').forEach(it => {
+      it.classList.toggle('hide', rubro !== 'all' && it.dataset.rubro !== rubro);
+    });
+  });
+
+  // JSON-LD para SEO — ItemList de las agendas reales.
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Galería de agendas · Locales reales con SynapTech",
+    "description": "13 barberías, peluquerías y estéticas usando la agenda de SynapTech en vivo.",
+    "url": "https://crea.synaptechspa.cl/galeria-agendas.html",
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": AGENDAS.length,
+      "itemListElement": AGENDAS.map((a, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "name": a.nombre,
+        "url": `https://${a.host}/`,
+      })),
+    },
+  };
+  const s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.textContent = JSON.stringify(ld);
+  document.head.appendChild(s);
+</script>
+
+</body>
+</html>
