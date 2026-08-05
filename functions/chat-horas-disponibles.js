@@ -393,7 +393,7 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
  * y sin este dato el bot solo sabe que no hay slots y termina inventando el
  * motivo. No mira ocupación — solo jornada del barbero y puertas del local.
  *
- * @returns {Promise<{atiende:boolean, motivo:'ok'|'dia_libre'|'local_cerrado'|'no_elegible'|'no_existe'}>}
+ * @returns {Promise<{atiende:boolean, motivo:'ok'|'dia_libre'|'bloqueado'|'local_cerrado'|'no_elegible'|'no_existe'}>}
  */
 async function atiendeEseDia(tenantId, fechaStr, barberoId) {
   const c = cols(tenantId);
@@ -425,7 +425,29 @@ async function atiendeEseDia(tenantId, fechaStr, barberoId) {
   // Día libre = su jornada tapa el día entero (rangosFueraDeJornada empuja
   // [0,1440) en ese caso). Un descanso suelto no lo deja "sin atender".
   const tapaTodo = rangos.some(([a, z]) => a <= 0 && z >= 1440);
-  return tapaTodo ? { atiende: false, motivo: 'dia_libre' } : { atiende: true, motivo: 'ok' };
+  if (tapaTodo) return { atiende: false, motivo: 'dia_libre' };
+
+  // Bloqueo de día completo: el local marcando "hoy esta persona no está"
+  // (vacaciones, licencia, franco puntual). NO es ocupación — es exactamente
+  // la diferencia que esta función existe para contar, y era el único caso
+  // que no miraba.
+  //
+  // Por eso el bot le dijo a Daniel "Araceli está atendiendo hasta las 19:00"
+  // (kronnos_penablanca, 03-08) con ella bloqueada el día entero desde el 29
+  // de julio: su horario semanal dice que los lunes trabaja, y esta función
+  // solo miraba el horario. Terminó mandándolo al local a que lo atendiera
+  // alguien que no estaba.
+  const blSnap = await c.bloqueos.where('fecha', '==', fechaStr).get().catch(() => null);
+  let bloqueadoTodoElDia = false;
+  if (blSnap) blSnap.forEach(d => {
+    const x = d.data() || {};
+    if (!x.todo_el_dia) return;
+    // Sin barberoId = bloqueo global del local; con él, solo si es suyo.
+    if (!x.barberoId || x.barberoId === barbSnap.id) bloqueadoTodoElDia = true;
+  });
+  if (bloqueadoTodoElDia) return { atiende: false, motivo: 'bloqueado' };
+
+  return { atiende: true, motivo: 'ok' };
 }
 
 /**

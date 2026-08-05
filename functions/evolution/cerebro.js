@@ -42,7 +42,7 @@ const {
 // Calendario masticado: ni el prompt ni los resultados de las tools dejan que
 // el modelo convierta una fecha en día de la semana (regla de la casa, 02-08).
 const { lineasCalendario, conDiaSemana } = require('../lib/calendario');
-const { logWaSend, logAiUsage, logBotNegocio } = require('../lib/metrics');
+const { logWaSend, logAiUsage, logBotNegocio, logCinturon } = require('../lib/metrics');
 const { puedeGastar } = require('../lib/ai-presupuesto');
 const { incluyeBot, incluyeRecordatorios } = require('../lib/wa-plan');
 const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
@@ -707,8 +707,8 @@ async function ejecutarTool(name, input, ctx) {
     if (r.fecha !== fechaPedida) {
       if (prof) {
         const j = await atiendeEseDia(tid, fechaPedida, prof.id).catch(() => null);
-        notaDia = j && j.motivo === 'dia_libre'
-          ? `${prof.nombre} NO atiende ${fechaHablada(fechaPedida, hoyStr)} (es su día libre). Díselo explícitamente antes de ofrecer las horas de abajo, que son de otro día.`
+        notaDia = j && (j.motivo === 'dia_libre' || j.motivo === 'bloqueado')
+          ? `${prof.nombre} NO ESTÁ en el local ${fechaHablada(fechaPedida, hoyStr)} (${j.motivo === 'bloqueado' ? 'tiene el día bloqueado' : 'es su día libre'}). No es que esté llena: ese día no atiende. Díselo explícitamente antes de ofrecer las horas de abajo, que son de otro día.`
           : `${prof.nombre} no tiene cupos ${fechaHablada(fechaPedida, hoyStr)}. Las horas de abajo son de otro día: acláraselo antes de ofrecerlas.`;
       } else {
         // Sin profesional el aviso NO existía, y el modelo presentaba las horas
@@ -1242,6 +1242,68 @@ function horasPermitidas(messages, system) {
   return permitidas;
 }
 
+/* ── Cinturón 5: afirmar algo que no pasó ──────────────────────────────
+   La regla lleva días en el prompt y el modelo se la salta igual. En un solo
+   día (04-08) dijo las tres:
+     · "¡Perfecto! Ve directo al local. Araceli te atiende" — sin cita y con
+       ella bloqueada el día entero.
+     · "Listo, te agendo" — y no agendó (Ceci, Romina).
+     · "No encuentro una cita a nombre de Maximiano Reitz" — nunca buscó por
+       nombre, no existe esa herramienta.
+   Contra eso no sirve más prompt: sirve código que lea la respuesta antes de
+   que salga y exija respaldo de una tool. */
+const RE_ACCION = /te\s+(?:la\s+)?(?:agend|cancel|reagend|cambi|mov)\w*|(?:qued[oó]|est[aá])\s+(?:agendad|reservad|cancelad|confirmad)\w*|(?:ya\s+)?(?:agend[eé]|cancel[eé]|reagend[eé]|reserv[eé])|ve\s+(?:directo\s+)?al\s+local|te\s+(?:esperamos|atiende)|tu\s+cita\s+qued[oó]/i;
+
+/** ¿Alguna herramienta de ESTE turno devolvió ok:true? Es el único respaldo
+ *  válido para decir que algo se hizo. */
+function huboAccionReal(messages) {
+  for (const msg of messages) {
+    if (!Array.isArray(msg.content)) continue;
+    for (const b of msg.content) {
+      if (b.type !== 'tool_result') continue;
+      try {
+        const r = JSON.parse(typeof b.content === 'string' ? b.content : JSON.stringify(b.content));
+        if (r && r.ok === true) return true;
+      } catch (e) { /* no era JSON */ }
+    }
+  }
+  return false;
+}
+
+/* ── Cinturón 6: precios que no salieron del catálogo ─────────────────
+   Mismo método que las horas: lo que el bot nombra tiene que venir de una
+   fuente real. El catálogo viaja en el bloque fijo del system, así que se
+   cosecha de ahí, de los resultados de tools y de lo que escribió el
+   cliente — nunca del texto del propio bot. */
+const RE_PRECIO = /\$\s?(\d{1,3}(?:[.\s]\d{3})+|\d{4,})/g;
+const normPrecio = (t) => String(t).replace(/[^\d]/g, '');
+
+function preciosPermitidos(messages, system) {
+  const ok = new Set();
+  const cosechar = (t) => { for (const m of String(t).matchAll(RE_PRECIO)) ok.add(normPrecio(m[1])); };
+  for (const b of system) cosechar(b.text || '');
+  for (const msg of messages) {
+    if (typeof msg.content === 'string') { if (msg.role === 'user') cosechar(msg.content); continue; }
+    if (!Array.isArray(msg.content)) continue;
+    for (const b of msg.content) {
+      if (b.type === 'tool_result') cosechar(typeof b.content === 'string' ? b.content : JSON.stringify(b.content));
+      else if (b.type === 'text' && msg.role === 'user') cosechar(b.text);
+    }
+  }
+  return ok;
+}
+
+function preciosInventados(texto, permitidos) {
+  const out = [];
+  for (const m of String(texto || '').matchAll(RE_PRECIO)) {
+    const v = normPrecio(m[1]);
+    // Bajo 1.000 son minutos, cantidades o vueltos, no precios de catálogo.
+    if (Number(v) < 1000) continue;
+    if (!permitidos.has(v) && !out.includes(m[0])) out.push(m[0]);
+  }
+  return out;
+}
+
 /** Horas que quedaron REALMENTE agendadas o movidas en este turno.
  *  Se leen del resultado de la tool, que es el único que sabe la verdad. */
 function horasConfirmadas(messages) {
@@ -1355,6 +1417,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   let finalText = '';
   let yaCorregido = false;      // el cinturón de horas inventadas reintenta UNA vez
   let yaCorregidoDia = false;   // el de horas de otro día, otra (son fallos distintos)
+  let yaCorregidoAccion = false; // y el de afirmar acciones que no ocurrieron
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
@@ -1393,6 +1456,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     if (inventadas.length) {
       if (!yaCorregido) {
         yaCorregido = true;
+        logCinturon(ctx?.tid, 'hora_inventada');
         logger.warn(`[cerebro] ${ctx?.tid}: horas inventadas (${inventadas.join(', ')}) — se fuerza consulta`);
         messages.push({ role: 'user', content:
           `ALTO. Ofreciste ${inventadas.join(', ')} y esas horas NO salieron de ninguna herramienta: te las inventaste. ` +
@@ -1411,6 +1475,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     if (otroDia.length) {
       if (!yaCorregidoDia) {
         yaCorregidoDia = true;
+        logCinturon(ctx?.tid, 'hora_de_otro_dia');
         logger.warn(`[cerebro] ${ctx?.tid}: horas de otro día sin aclarar (${otroDia.join(', ')}) — se fuerza aclaración`);
         messages.push({ role: 'user', content:
           `ALTO. Las horas que ofreciste (${otroDia.join(', ')}) NO son del día que pidió el cliente: son de ${dias.cuando || 'otro día'}. ` +
@@ -1439,6 +1504,8 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
       // las 17:15, llega antes de las 17:00" está bien y no hay que tocarlo.
       if (mal.length && !dichas.some(h => buenas.has(h))) {
         const real = confirmadas[confirmadas.length - 1];
+        logCinturon(ctx?.tid, 'hora_confirmada_distinta');
+        logCinturon(ctx?.tid, 'hora_confirmada_distinta');
         logger.error(`[cerebro] ${ctx?.tid}: confirmó ${mal.join(', ')} pero agendó ${real.hora} — corregido en seco`);
         // Reemplazo literal: es un dato, no una redacción. Pedirle al modelo
         // que lo arregle es otra ronda y otra oportunidad de equivocarse.
@@ -1448,6 +1515,30 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
           if (corto !== h) finalText = finalText.split(corto).join(real.hora);
         }
       }
+    }
+    // ── Cinturón 5: dice que hizo algo y ninguna tool lo respalda ──
+    if (RE_ACCION.test(finalText) && !huboAccionReal(messages)) {
+      logCinturon(ctx?.tid, 'accion_sin_respaldo');
+      if (!yaCorregidoAccion) {
+        yaCorregidoAccion = true;
+        logger.warn(`[cerebro] ${ctx?.tid}: afirma una acción sin respaldo de ninguna herramienta`);
+        messages.push({ role: 'user', content:
+          'ALTO. Estás dando por hecho algo que NO hiciste: ninguna herramienta confirmó una acción en este turno. ' +
+          'Si querías agendar, cancelar o mover una cita, LLÁMALA ahora y responde con su resultado. ' +
+          'Si no corresponde ninguna acción, responde sin afirmar que algo quedó hecho y sin mandar al cliente al local. ' +
+          'Este aviso es interno: no lo menciones ni te disculpes por él.' });
+        continue;
+      }
+      logger.error(`[cerebro] ${ctx?.tid}: reincidió afirmando una acción inexistente — respuesta descartada`);
+      return 'Déjame confirmarlo bien antes de responderte. ¿Me dices qué necesitas exactamente? 🙏';
+    }
+
+    // ── Cinturón 6: precios que no salieron del catálogo ──
+    const preciosMal = preciosInventados(finalText, preciosPermitidos(messages, system));
+    if (preciosMal.length) {
+      logCinturon(ctx?.tid, 'precio_inventado');
+      logger.error(`[cerebro] ${ctx?.tid}: precio inventado (${preciosMal.join(', ')}) — respuesta descartada`);
+      return 'Prefiero confirmarte el precio exacto antes de decírtelo. ¿Qué servicio te interesa? 🙏';
     }
     break;
   }
@@ -1940,3 +2031,8 @@ module.exports._MODEL               = MODEL;
 module.exports._detectarDecision    = detectarDecision;
 module.exports._aplicarDecision     = aplicarDecision;
 module.exports._CACHE_MIN_TOKENS    = CACHE_MIN_TOKENS;
+// Cinturones 5 y 6 — para scripts/test-cinturon-accion.js.
+module.exports._RE_ACCION            = RE_ACCION;
+module.exports._huboAccionReal       = huboAccionReal;
+module.exports._preciosPermitidos    = preciosPermitidos;
+module.exports._preciosInventados    = preciosInventados;

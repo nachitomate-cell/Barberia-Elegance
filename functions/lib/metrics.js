@@ -127,4 +127,23 @@ async function logBotNegocio(tid, evento) {
   }, { merge: true }).catch(() => {});
 }
 
-module.exports = { logWaSend, logAiUsage, logBotNegocio };
+/**
+ * Cuántas veces intervino cada cinturón del bot, por tenant y por mes.
+ *
+ * Hasta ahora solo escribían un logger.warn: no había forma de saber si el
+ * bot mejora o empeora sin leer logs a mano, ni de detectar que un local
+ * dispara mucho más que el resto (que casi siempre significa que ahí hay un
+ * dato mal cargado, no un modelo peor).
+ */
+async function logCinturon(tid, cinturon) {
+  if (!tid || !cinturon) return;
+  await db.doc(`_metrics/cinturones_${tid}_${mes()}`).set({
+    vendorId: tid,
+    mes: mes(),
+    [cinturon]: FieldValue.increment(1),
+    total: FieldValue.increment(1),
+    actualizado: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
+}
+
+module.exports = { logWaSend, logAiUsage, logBotNegocio, logCinturon };
