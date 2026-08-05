@@ -210,7 +210,7 @@ function esElegible(b, tenantId, servicioId = null) {
  *    como si fueran de Claudio, que ese lunes tenía día libre.
  */
 async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, opts = {}) {
-  const { barberoId = null, servicioId = null } = opts || {};
+  const { barberoId = null, servicioId = null, personas = 1 } = opts || {};
   const c = cols(tenantId);
 
   const confSnap = await c.conf.get();
@@ -313,7 +313,12 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
   for (let t = iniMins; t + dur <= finMins; t += step) {
     if (t < minMinuto) continue;
     if (colacion && solapan(t, t + dur, colacion[0], colacion[1])) continue;
-    if (barberos.some(b => libreBarbero(b.id, t, t + dur))) libres.push(toHHMM(t));
+    // Con N personas hacen falta N profesionales libres A LA VEZ. Ofrecer un
+    // slot donde solo cabe una y descubrirlo al agendar es lo que dejó a Ceci
+    // y su amiga sin hora en kronnos_woman (05-08): el bot agendó a la primera,
+    // eso consumió el único cupo, y le dijo a la segunda que ya estaba tomado.
+    const nLibres = barberos.filter(b => libreBarbero(b.id, t, t + dur)).length;
+    if (nLibres >= Math.max(1, Number(personas) || 1)) libres.push(toHHMM(t));
   }
   if (libres.length <= MAX_SLOTS) return libres;
 
@@ -345,7 +350,7 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
     for (let i = 0; i < MAX_DIAS_BUSQUEDA; i++) {
       const fecha = sumarDias(desde, i);
       const esHoy = fecha === ahora.fecha;
-      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { servicioId });
+      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { servicioId, personas });
       if (slots.length) return { ok: true, fecha, esHoy, slots };
     }
     return { ok: true, fecha: null, esHoy: false, slots: [] };
@@ -361,7 +366,7 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
  * @returns {{ fecha:string|null, esHoy:boolean, slots:string[] }}
  */
 async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
-  const { durMin = null, diasServicio = null, barberoId = null, servicioId = null } = opts || {};
+  const { durMin = null, diasServicio = null, barberoId = null, servicioId = null, personas = 1 } = opts || {};
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
   // Sin servicio elegido, la duración típica del local (una sola lectura para
@@ -376,7 +381,7 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
     const fecha = sumarDias(desde, i);
     if (Array.isArray(diasServicio) && diasServicio.length && !diasServicio.includes(dowDe(fecha))) continue;
     const esHoy = fecha === ahora.fecha;
-    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { barberoId, servicioId });
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { barberoId, servicioId, personas });
     if (slots.length) return { fecha, esHoy, slots };
   }
   return { fecha: null, esHoy: false, slots: [] };

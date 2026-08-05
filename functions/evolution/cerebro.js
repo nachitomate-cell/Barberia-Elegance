@@ -231,6 +231,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         fecha: { type: 'string', description: 'Fecha inicial de búsqueda en formato YYYY-MM-DD (opcional).' },
+        personas: { type: 'integer', description: 'Cuántas personas quieren atenderse A LA MISMA HORA (por defecto 1). Si el cliente dice que viene con alguien, PÁSALO: hacen falta tantos profesionales libres como personas, y sin esto se ofrecen horas donde solo cabe una.' },
         servicio_nombre: { type: 'string', description: 'Servicio que quiere el cliente, tal como aparece en el catálogo (recomendado: ajusta las horas a su duración real y a sus días válidos).' },
         profesional: { type: 'string', description: 'Nombre del profesional que pidió el cliente, tal como aparece en EQUIPO QUE ATIENDE. Devuelve SOLO las horas de esa persona. Obligatorio si el cliente lo nombró.' },
       },
@@ -670,6 +671,7 @@ async function ejecutarTool(name, input, ctx) {
       // dio a Ernesto dos "Retoque de Raíces" en kronnos_woman (05-08), que no
       // está entre los 13 que tiene habilitados.
       servicioId:    svc?.id || null,
+      personas:      Math.max(1, Number(input?.personas) || 1),
     });
 
     if (!r.slots.length) {
@@ -1096,6 +1098,7 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     '- SI EL CLIENTE DICE QUE YA TIENE HORA Y NO LA ENCUENTRAS: consultar_mis_citas busca por el número desde el que te escribe, así que si reservó en la web con OTRO teléfono no aparece — es lo más común y NO es una falla. Pídele su nombre y la fecha y llama a verificar_reserva. JAMÁS le digas que su reserva "no se sincronizó", que "hubo un inconveniente" ni nada que sugiera que el sistema falló: no tienes cómo saber eso y lo asustas. Y NUNCA le ofrezcas agendar de nuevo sin haber verificado: terminaría con DOS citas.',
     '- Si quiere CAMBIAR la hora o el día de su cita (adelantar, atrasar, moverla): consultar_mis_citas → consultar_disponibilidad → reagendar_cita. NO la canceles para volver a agendarla: reagendar_cita la mueve conservando su código. Solo después de recibir ok:true confírmale el cambio.',
     '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
+    '- Si vienen VARIAS personas a la misma hora ("somos dos", "con mi amiga", "para mi hijo y yo"), pasa el parámetro personas con esa cantidad a consultar_disponibilidad: hacen falta tantos profesionales libres como personas. Agenda de a una, y ANTES de agendar a la primera avísale si no alcanzan los cupos para todas — descubrirlo después deja a una con hora y a la otra sin nada.',
     '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',
     '- No prometas nada fuera de las herramientas (no cobras online, no cambias precios, no confirmas cosas del local que no sepas).',
     '',
@@ -1226,6 +1229,24 @@ function horasPermitidas(messages, system) {
     }
   }
   return permitidas;
+}
+
+/** Horas que quedaron REALMENTE agendadas o movidas en este turno.
+ *  Se leen del resultado de la tool, que es el único que sabe la verdad. */
+function horasConfirmadas(messages) {
+  const out = [];
+  for (const msg of messages) {
+    if (!Array.isArray(msg.content)) continue;
+    for (const b of msg.content) {
+      if (b.type !== 'tool_result') continue;
+      let r = null;
+      try { r = JSON.parse(typeof b.content === 'string' ? b.content : JSON.stringify(b.content)); } catch (e) { continue; }
+      if (r && r.ok === true && typeof r.hora === 'string' && /^\d{2}:\d{2}$/.test(r.hora)) {
+        out.push({ hora: r.hora, fecha: r.fecha || '', codigo: r.codigo || '' });
+      }
+    }
+  }
+  return out;
 }
 
 function horasInventadas(texto, permitidas) {
@@ -1392,6 +1413,31 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
         ? `Para ese día no me queda disponibilidad. Lo más cercano que tengo es ${dias.cuando}. ¿Te sirve? 🙏`
         : 'Para ese día no me queda disponibilidad. ¿Quieres que te revise otro día? 🙏';
     }
+
+    // ── Cinturón 4: la hora que confirma tiene que ser la que agendó ──
+    // El 04-08 el bot agendó a José Ignacio a las 17:15 y le escribió "a las
+    // 17:00" con el código correcto. El cliente llega 15 minutos antes de su
+    // hora y nadie se entera hasta que pasa. La verdad está en el resultado de
+    // la tool, no en lo que el modelo recuerde haber pedido.
+    const confirmadas = horasConfirmadas(messages);
+    if (confirmadas.length) {
+      const buenas = new Set(confirmadas.map(c => c.hora));
+      const dichas = [...new Set([...String(finalText).matchAll(RE_HORA)].map(m => normHora(m[0])))];
+      const mal = dichas.filter(h => !buenas.has(h));
+      // Solo se corrige si NO nombró ninguna de las buenas: si dice "quedó a
+      // las 17:15, llega antes de las 17:00" está bien y no hay que tocarlo.
+      if (mal.length && !dichas.some(h => buenas.has(h))) {
+        const real = confirmadas[confirmadas.length - 1];
+        logger.error(`[cerebro] ${ctx?.tid}: confirmó ${mal.join(', ')} pero agendó ${real.hora} — corregido en seco`);
+        // Reemplazo literal: es un dato, no una redacción. Pedirle al modelo
+        // que lo arregle es otra ronda y otra oportunidad de equivocarse.
+        for (const h of mal) {
+          finalText = finalText.split(h).join(real.hora);
+          const corto = h.replace(/^0/, '');
+          if (corto !== h) finalText = finalText.split(corto).join(real.hora);
+        }
+      }
+    }
     break;
   }
   return finalText || 'Perdona, ¿me repites eso? 🙏';
@@ -1544,20 +1590,55 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     await registrarSaliente(tid, { tipo: 'bot', ok }); // cuota anti-ban: el contador es UNO para bot + confirmaciones
   };
   const persistir = async (respuesta) => {
-    const nuevaHistoria = [
-      ...historia,
-      { role: 'user', content: textoHistoria },
-      { role: 'assistant', content: respuesta },
-    ].slice(-MAX_ARCHIVO);
+    /* El historial se guarda en TRANSACCIÓN, releyendo lo que haya en el doc.
+
+       `historia` se leyó ANTES de pensar la respuesta, y en WhatsApp lo normal
+       es que el cliente mande dos mensajes seguidos ("hola" + "quiero hora"):
+       llegan como dos webhooks concurrentes, los dos parten del mismo snapshot
+       y el segundo pisa el turno del primero.
+
+       Así se perdió el "¡Listo! Código AWP-D93" de José Ignacio el 04-08: el
+       mensaje le llegó al cliente pero no quedó en el historial, así que el bot
+       dejó de saber que ya había agendado y siguió ofreciéndole horas. En el
+       panel la conversación tampoco calzaba con el teléfono.
+
+       Es el mismo candado que ya usaba el cobro unas líneas más abajo —el doc
+       del chat como punto de serialización—, que se puso por exactamente este
+       motivo y no se le aplicó al historial. */
     const botMsgIds = [...(Array.isArray(convData.botMsgIds) ? convData.botMsgIds : []), ...sentIds].slice(-20);
-    await ref.set({
-      messages:      nuevaHistoria,
-      botMsgIds,
-      respDia:       { fecha: hoyChile, n: respHoy + 1 },  // tope diario anti-troll
-      clienteNombre: pushName || convData.clienteNombre || '',
-      remoteJid,
-      updatedAt:     FieldValue.serverTimestamp(),
-    }, { merge: true }).catch(() => {});
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const d = snap.exists ? (snap.data() || {}) : {};
+      // Lo que haya AHORA en el doc, no lo que leímos al empezar.
+      const base = Array.isArray(d.messages) ? d.messages : historia;
+      const nuevaHistoria = [
+        ...base,
+        { role: 'user', content: textoHistoria },
+        { role: 'assistant', content: respuesta },
+      ].slice(-MAX_ARCHIVO);
+      // El contador anti-troll también se recalcula desde el doc fresco: con el
+      // valor viejo, dos respuestas concurrentes escribían las dos n=1.
+      const rd = d.respDia && d.respDia.fecha === hoyChile ? (Number(d.respDia.n) || 0) : 0;
+      tx.set(ref, {
+        messages:      nuevaHistoria,
+        botMsgIds:     [...(Array.isArray(d.botMsgIds) ? d.botMsgIds : []), ...sentIds].slice(-20),
+        respDia:       { fecha: hoyChile, n: rd + 1 },
+        clienteNombre: pushName || d.clienteNombre || convData.clienteNombre || '',
+        remoteJid,
+        updatedAt:     FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }).catch(async (e) => {
+      logger.warn(`[cerebro] ${tid}: persistir en transacción falló (${e.message}); se guarda sin merge`);
+      // Peor guardar algo que perder el turno entero.
+      await ref.set({
+        messages: [...historia, { role: 'user', content: textoHistoria }, { role: 'assistant', content: respuesta }].slice(-MAX_ARCHIVO),
+        botMsgIds,
+        respDia: { fecha: hoyChile, n: respHoy + 1 },
+        clienteNombre: pushName || convData.clienteNombre || '',
+        remoteJid,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {});
+    });
 
     /* Unidad de cobro del plan. Abre la ventana de 24 h de ESTE chat si estaba
        vencida y suma la conversación al mes, todo en UNA transacción sobre el
