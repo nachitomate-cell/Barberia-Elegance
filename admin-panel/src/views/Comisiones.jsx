@@ -640,6 +640,10 @@ function DetalleBarberoDrawer({
   isOpen, onClose, barbero, citas, ventas, adelantos,
   precioServicio, precioVenta, fechaInicio, fechaFin,
   onEditarAdelanto, onBorrarAdelanto,
+  // Liquidaciones ya pagadas que tocan este rango. La tarjeta las avisaba y el
+  // cajón no: quien abría el detalle para revisar antes de pagar veía un "total
+  // a pagar" limpio aunque parte ya estuviera liquidada.
+  pagosPrevios = { dentro: [], parcial: [], total: 0 },
 }) {
   const detalle = useMemo(() => {
     if (!barbero) return { citas: [], ventas: [], adelantos: [] };
@@ -831,9 +835,58 @@ function DetalleBarberoDrawer({
       }
     >
       {/* Resumen arriba (grande) */}
-      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total a pagar</p>
-        <p className="text-3xl font-black text-emerald-400 mt-1 tabular-nums">{formatCLP(barbero.total)}</p>
+      <div className={`rounded-xl border p-4 mb-5 ${
+        pagosPrevios.dentro.length || pagosPrevios.parcial.length
+          ? 'border-amber-500/30 bg-amber-500/5'
+          : 'border-emerald-500/25 bg-emerald-500/5'
+      }`}>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          {pagosPrevios.dentro.length || pagosPrevios.parcial.length ? 'Total del período' : 'Total a pagar'}
+        </p>
+        <p className={`text-3xl font-black mt-1 tabular-nums ${
+          pagosPrevios.dentro.length || pagosPrevios.parcial.length ? 'text-slate-200' : 'text-emerald-400'
+        }`}>{formatCLP(barbero.total)}</p>
+
+        {/* Liquidaciones ENTERAS dentro del rango: se pueden restar. */}
+        {pagosPrevios.dentro.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-white/10 text-[12.5px]">
+            <div className="flex justify-between gap-3">
+              <span className="text-slate-400">
+                Ya pagado en este rango ({pagosPrevios.dentro.length} liquidación{pagosPrevios.dentro.length !== 1 ? 'es' : ''})
+              </span>
+              <span className="font-semibold text-emerald-400 tabular-nums">− {formatCLP(pagosPrevios.total)}</span>
+            </div>
+            <div className="flex justify-between gap-3 mt-1">
+              <span className="font-semibold text-slate-200">Falta por pagar</span>
+              <span className="font-bold text-emerald-400 tabular-nums">
+                {formatCLP(barbero.total - pagosPrevios.total)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Liquidaciones que CRUZAN el borde: no se pueden restar sin mentir,
+            porque cubren días fuera del filtro. Pero callarlas es peor: el
+            número de arriba se lee como pagable y no lo es. */}
+        {pagosPrevios.parcial.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-amber-500/20 text-[12px] text-amber-300/90 leading-relaxed">
+            <p className="font-semibold">
+              Ojo: parte de este período ya se liquidó.
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {pagosPrevios.parcial.map(p => (
+                <li key={p.id} className="tabular-nums">
+                  · {p.periodoInicio} → {p.periodoFin} · {formatCLP(p.montoPagado || 0)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-amber-300/70">
+              No se descuenta porque cubre días fuera de este filtro. Ajusta las fechas
+              para calzar con la liquidación antes de pagar, o vas a pagar dos veces los
+              días repetidos.
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-[12.5px]">
           <div>
             <p className="text-slate-500">Comisión servicios</p>
@@ -3051,6 +3104,7 @@ export default function Comisiones() {
         fechaFin={fechaFin}
         onEditarAdelanto={(a) => setAdelantoTarget({ barbero: detalleTarget, adelanto: a })}
         onBorrarAdelanto={handleBorrarAdelanto}
+        pagosPrevios={detalleTarget ? pagosPreviosEnRango(detalleTarget.id) : undefined}
       />
       {ajusteTarget && (
         <ComisionManualModal

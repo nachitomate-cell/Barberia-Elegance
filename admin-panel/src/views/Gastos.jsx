@@ -3,6 +3,7 @@ import { useSucursal } from '../contexts/SucursalContext';
 import {
   TrendingDown, Plus, X, Calendar, DollarSign,
   Tag, CreditCard, AlertCircle, ChevronDown, Trash2, Repeat,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
@@ -113,11 +114,17 @@ function gastosCol() {
   return tenantCol('gastos');
 }
 
-function thisMonthRange() {
-  const now   = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+/** Rango [1 del mes, 1 del mes siguiente) del mes al que pertenece `d`. */
+function monthRange(d) {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
   return { start: Timestamp.fromDate(start), end: Timestamp.fromDate(end) };
+}
+
+/** Día 1 del mes actual — el punto de partida y el tope de la navegación. */
+function mesActual() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), 1);
 }
 
 /* ─── GastoModal ─────────────────────────────────────────────── */
@@ -303,8 +310,19 @@ export default function Gastos() {
   // la misma sesión sin que necesitemos repetir el barrido.
   const recurrentesProcesados = useRef(false);
 
+  // Mes que se está mirando (día 1). El rango de la consulta y el rótulo salen
+  // de acá, así que no pueden desincronizarse.
+  const [mesVisto, setMesVisto] = useState(mesActual);
+  const esMesActual = mesVisto.getTime() === mesActual().getTime();
+  const irAMes = (delta) => setMesVisto(m => {
+    const siguiente = new Date(m.getFullYear(), m.getMonth() + delta, 1);
+    // Tope: no se navega al futuro, no hay nada que ver ahí.
+    return siguiente > mesActual() ? m : siguiente;
+  });
+
   useEffect(() => {
-    const { start, end } = thisMonthRange();
+    setLoading(true);
+    const { start, end } = monthRange(mesVisto);
     const q = query(
       gastosCol(),
       where('fecha', '>=', start),
@@ -316,12 +334,14 @@ export default function Gastos() {
       setLoading(false);
     }, () => setLoading(false));
 
+    // Los recurrentes se materializan para el mes CORRIENTE, mire lo que mire
+    // el usuario: es una tarea de fondo, no depende de la navegación.
     if (!recurrentesProcesados.current) {
       recurrentesProcesados.current = true;
       materializarRecurrentes();
     }
     return unsub;
-  }, []);
+  }, [mesVisto]);
 
   const handleDelete = async (g) => {
     // Borrar la plantilla detiene futuras instancias automáticas; lo dejamos
@@ -362,9 +382,36 @@ export default function Gastos() {
             <h1 className="text-xl font-bold text-primary">Gastos</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
-          </p>
+          {/* Navegación de meses: sin esto solo se veía el mes corriente y no
+              había forma de revisar lo que se gastó antes. */}
+          <div className="flex items-center gap-1 mt-0.5">
+            <button
+              onClick={() => irAMes(-1)}
+              aria-label="Mes anterior"
+              className="p-1 rounded-md text-slate-500 hover:text-primary hover:bg-white/5 transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <p className="text-sm text-slate-500 capitalize min-w-[128px] text-center">
+              {mesVisto.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
+            </p>
+            <button
+              onClick={() => irAMes(1)}
+              disabled={esMesActual}
+              aria-label="Mes siguiente"
+              className="p-1 rounded-md text-slate-500 enabled:hover:text-primary enabled:hover:bg-white/5 disabled:opacity-30 disabled:cursor-default transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {!esMesActual && (
+              <button
+                onClick={() => setMesVisto(mesActual())}
+                className="ml-1 text-[11.5px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                Hoy
+              </button>
+            )}
+          </div>
         </div>
         <button onClick={() => setModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-primary text-sm font-semibold rounded-lg transition-all">
@@ -381,7 +428,7 @@ export default function Gastos() {
           color="amber" />
         <KpiCard label="Promedio por Gasto"
           value={gastos.length ? fmt(Math.round(total / gastos.length)) : '$0'}
-          sub="Este mes"
+          sub={esMesActual ? 'Este mes' : mesVisto.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
           color="purple" />
       </div>
 
