@@ -11,6 +11,7 @@ import { ADDONS, fmtCLP } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import OnboardingWallet from '../components/OnboardingWallet';
+import WalletDesigner from '../components/WalletDesigner';
 
 // La PERSONALIZACIÓN de la tarjeta vive en su propio estudio (wallets.bioo.cl/estudio).
 // Esta vista es el launcher: estado del módulo + botón al estudio + upsell.
@@ -153,6 +154,13 @@ export default function Wallets() {
       {/* Onboarding — checklist mientras la config no esté completa. */}
       <OnboardingWallet tenantId={tenantId} />
 
+      {/* Editor visual in-panel: templates + colores + logo + geo + preview.
+          Reemplazó el launcher externo a wallets.bioo.cl (que sigue disponible
+          en el link "Abrir estudio avanzado" abajo). */}
+      <div className="mb-4">
+        <WalletDesigner tenantId={tenantId} />
+      </div>
+
       {/* Hero launcher → estudio de diseño (cristal + mockup smartphone) */}
       <div
         className="relative overflow-hidden rounded-[2rem] bg-white/[0.02] [html.light_&]:bg-white px-6 sm:px-10 py-10 sm:py-12 mb-4"
@@ -170,25 +178,26 @@ export default function Wallets() {
               Módulo activo
             </span>
             <h2 className="text-2xl sm:text-3xl font-semibold leading-tight tracking-tight text-primary [html.light_&]:text-ink-900">
-              Diseña tu tarjeta en{' '}
+              ¿Necesitas{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">
-                Wallo
+                más control
               </span>
+              ?
             </h2>
             <p className="text-sm sm:text-base text-slate-300 [html.light_&]:text-ink-600 mt-3 max-w-xl leading-relaxed">
-              Colores, logo, la zona del geo-push en el mapa y la visibilidad para tus clientes: todo se
-              personaliza en el estudio, con vista previa en vivo de cómo quedará la tarjeta.
+              El estudio avanzado te permite editar múltiples zonas geo, textos personalizados,
+              cumpleaños, expiración de sellos y sorteos. Para el 80% de los casos, el editor de arriba alcanza.
             </p>
             <a
               href={estudioUrl(tenantId)}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-7 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-white bg-amber-500/90 hover:bg-amber-500 shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset] transition-all duration-200 ease-in-out active:scale-95"
+              className="mt-7 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-white bg-white/10 [html.light_&]:bg-ink-100 [html.light_&]:text-ink-900 hover:bg-white/15 transition-all duration-200 ease-in-out active:scale-95"
             >
-              <span>Abrir el estudio</span>
+              <span>Abrir estudio avanzado</span>
               <ExternalLink size={15} strokeWidth={1.75} />
             </a>
-            <p className="text-xs text-slate-500 mt-3">Estudio Wallo · entra con esta misma cuenta</p>
+            <p className="text-xs text-slate-500 mt-3">Se abre en otra pestaña · entra con esta misma cuenta</p>
           </div>
 
           {/* Wireframe smartphone — trazos finos, opacidad baja */}
