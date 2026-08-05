@@ -2076,6 +2076,22 @@ export default async function middleware(request) {
     return;
   }
 
+  // Galería pública de tarjetas Wallet — trae su propio <head> (OG tags +
+  // JSON-LD) y no representa a ningún tenant, así que el pipeline SEO no
+  // tiene nada que aportar. También aceptamos la URL sin .html para SEO
+  // más limpio (los enlaces internos y compartidos usan la versión corta).
+  if (url.pathname === '/galeria-wallets.html' || url.pathname === '/galeria-wallets') {
+    if (url.pathname === '/galeria-wallets') {
+      const rw  = new URL('/galeria-wallets.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      const headers = new Headers(res.headers);
+      headers.set('Content-Type', 'text/html; charset=utf-8');
+      headers.set('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+      return new Response(res.body, { status: res.status, headers });
+    }
+    return;
+  }
+
   // ── Dashboard interno de Operaciones (ops.synaptechspa.cl) ──
   // No es un tenant: la raíz sirve ops.html (métricas unificadas barbería +
   // conexion). Los assets externos (gstatic) los carga el navegador directo.

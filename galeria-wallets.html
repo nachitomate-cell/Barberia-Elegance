@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Galería de tarjetas Wallet · SynapTech</title>
+<meta name="description" content="14 diseños listos de tarjeta de fidelidad para Google Wallet y Apple Wallet — barberías, peluquerías, estética, spa y más. Aplica cualquiera con un clic en tu panel SynapTech.">
+<link rel="canonical" href="https://crea.synaptechspa.cl/galeria-wallets.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Galería de tarjetas Wallet · SynapTech">
+<meta property="og:description" content="14 diseños listos para tu tarjeta de fidelidad en Google + Apple Wallet. Aplica el que te guste en 1 clic desde tu panel.">
+<meta property="og:image" content="https://crea.synaptechspa.cl/synaptech/ig.png">
+<meta property="og:url" content="https://crea.synaptechspa.cl/galeria-wallets.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="/synaptech/ig.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-2: #111;
+    --ink: #f5f5f7;
+    --muted: #8a8a94;
+    --line: rgba(255,255,255,0.08);
+    --acc: #c6f94e;         /* verde SynapTech neón */
+    --acc-dim: #9CCC3C;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Header ─────────────────────────────────────────── */
+  header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+  }
+  header .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -0.3px; }
+  header .brand img { width: 26px; height: 26px; border-radius: 6px; }
+  header .brand small { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-left: 6px; }
+  header nav { display: flex; gap: 4px; align-items: center; }
+  header nav a { padding: 8px 14px; font-size: 13.5px; font-weight: 600; color: var(--muted); border-radius: 10px; transition: 0.15s; }
+  header nav a:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
+  header nav a.cta { background: var(--acc); color: #0a0a0a; padding: 9px 16px; font-weight: 800; }
+  header nav a.cta:hover { background: var(--acc-dim); color: #0a0a0a; }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero {
+    max-width: 1000px;
+    margin: 60px auto 40px;
+    padding: 0 28px;
+    text-align: center;
+  }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--acc);
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(198,249,78,0.10); border: 1px solid rgba(198,249,78,0.25);
+    margin-bottom: 18px;
+  }
+  .hero .kicker::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--acc);
+    box-shadow: 0 0 8px var(--acc);
+  }
+  .hero h1 {
+    font-size: clamp(32px, 6vw, 56px);
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: 18px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--acc) 0%, var(--acc-dim) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 17px;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* ── Filtros ───────────────────────────────────────── */
+  .filters {
+    max-width: 1200px;
+    margin: 40px auto 20px;
+    padding: 0 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .filters button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+    font-family: inherit;
+  }
+  .filters button:hover { color: var(--ink); border-color: rgba(255,255,255,0.2); }
+  .filters button.active {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+
+  /* ── Grid galería ──────────────────────────────────── */
+  .gallery {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+    padding: 20px 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 22px;
+  }
+  .item { display: flex; flex-direction: column; gap: 12px; }
+  .item.hide { display: none; }
+
+  /* Tarjeta mockup — se estiliza con CSS custom props del template */
+  .mock {
+    aspect-ratio: 340 / 210;
+    border-radius: 22px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--m-bg) 0%, var(--m-bg) 65%, color-mix(in srgb, var(--m-acc) 15%, var(--m-bg)) 100%);
+    border: 1px solid color-mix(in srgb, var(--m-acc) 25%, transparent);
+    color: var(--m-txt, #fff);
+    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6);
+    transition: transform 0.25s ease;
+  }
+  .item:hover .mock { transform: translateY(-4px); }
+
+  .mock-head { display: flex; align-items: flex-start; gap: 10px; }
+  .mock-logo {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--m-acc);
+    color: var(--m-icon-txt, #000);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; letter-spacing: -0.5px;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px -4px var(--m-acc);
+  }
+  .mock-titles { flex: 1; min-width: 0; }
+  .mock-issuer { font-size: 8.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
+  .mock-program { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; margin-top: 2px; line-height: 1.15; }
+  .mock-icon {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--m-acc); color: var(--m-icon-txt, #000);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+
+  .mock-balance-lbl { font-size: 8.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.6; margin-top: 2px; }
+  .mock-balance-num { font-size: 32px; font-weight: 900; line-height: 1; letter-spacing: -1.5px; }
+  .mock-balance-num span { font-size: 18px; opacity: 0.5; font-weight: 700; }
+
+  .mock-strip {
+    margin-top: 4px;
+    padding: 8px 0 4px;
+    border-top: 1px solid color-mix(in srgb, var(--m-acc) 20%, transparent);
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+  }
+  .mock-dot {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--m-txt-alpha, #ffffff) 25%, transparent);
+    background: color-mix(in srgb, var(--m-txt-alpha, #ffffff) 3%, transparent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: var(--m-icon-txt, #000);
+  }
+  .mock-dot.done {
+    background: var(--m-acc);
+    border-color: var(--m-acc);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--m-acc) 40%, transparent);
+  }
+  .mock-dot.done::before { content: attr(data-glyph); font-weight: 900; }
+  .mock-dot.target-empty::before { content: "★"; opacity: 0.5; font-size: 9px; }
+
+  .mock-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; opacity: 0.85; }
+  .mock-foot > div { min-width: 0; }
+  .mock-foot .lbl { font-size: 8px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.6; }
+  .mock-foot .val { font-size: 11px; font-weight: 700; margin-top: 1px; }
+
+  /* Metadata bajo la tarjeta */
+  .meta { padding: 4px 4px 0; }
+  .meta-title { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+  .meta-tag { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .meta-swatches { display: flex; gap: 5px; margin-top: 8px; align-items: center; }
+  .meta-swatches .sw { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.06); }
+  .meta-swatches code { font-size: 9.5px; color: var(--muted); font-family: 'SF Mono', Menlo, monospace; opacity: 0.7; }
+  .meta-cta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    transition: 0.15s;
+  }
+  .meta-cta:hover { background: var(--acc); color: #0a0a0a; border-color: var(--acc); }
+  .meta-cta::after { content: "→"; opacity: 0.6; transition: 0.15s; }
+  .meta-cta:hover::after { transform: translateX(3px); opacity: 1; }
+
+  /* ── Cierre / CTA final ────────────────────────────── */
+  .cierre {
+    max-width: 800px;
+    margin: 0 auto 80px;
+    padding: 60px 28px;
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(198,249,78,0.06) 0%, transparent 60%);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-radius: 24px;
+  }
+  .cierre h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 900; letter-spacing: -1px; margin-bottom: 12px; }
+  .cierre h2 em { font-style: normal; color: var(--acc); }
+  .cierre p { font-size: 15px; color: var(--muted); margin-bottom: 26px; line-height: 1.55; }
+  .cierre-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--acc); color: #0a0a0a;
+    padding: 14px 26px; border-radius: 14px;
+    font-size: 15px; font-weight: 800; letter-spacing: -0.2px;
+    box-shadow: 0 12px 30px -8px rgba(198,249,78,0.4);
+    transition: 0.2s;
+  }
+  .cierre-btn:hover { transform: translateY(-2px); background: var(--acc-dim); }
+
+  /* ── Footer ────────────────────────────────────────── */
+  footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 28px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  footer img { width: 16px; height: 16px; border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    header nav a:not(.cta) { display: none; }
+    .hero { margin-top: 30px; }
+    .gallery { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="brand">
+    <img src="/synaptech/ig.png" alt="SynapTech">
+    SynapTech <small>· Wallet</small>
+  </a>
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/crea.html">Ver planes</a>
+    <a class="cta" href="/crea.html?ref=galeria">Empieza gratis</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <span class="kicker">Galería · 14 diseños listos</span>
+  <h1>Tu tarjeta de fidelidad, <em>como quieras que se vea</em>.</h1>
+  <p>Elige un diseño y aplícalo en tu panel con un clic. Todos vienen con Google Wallet, Apple Wallet, geo-push y sync automático de sellos. Puedes cambiar colores, logo e ícono cuando quieras.</p>
+</section>
+
+<div class="filters" id="filters">
+  <button data-rubro="all" class="active">Todos</button>
+  <button data-rubro="barberia">Barberías</button>
+  <button data-rubro="peluqueria">Peluquerías</button>
+  <button data-rubro="estetica">Estética · Nails</button>
+  <button data-rubro="wellness">Spa · Wellness</button>
+  <button data-rubro="hospitalidad">Café · Restaurantes</button>
+  <button data-rubro="retail">Retail · Otros</button>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<section class="cierre">
+  <h2>¿Te gustó uno? <em>Aplícalo en 30 segundos.</em></h2>
+  <p>Empieza tu prueba gratis de 14 días, activa el módulo Wallet ($9.990/mes) y elige tu template favorito desde el editor. Sin permanencia, cancelas cuando quieras.</p>
+  <a class="cierre-btn" href="/crea.html?ref=galeria">Crear mi cuenta gratis →</a>
+</section>
+
+<footer>
+  <img src="/synaptech/ig.png" alt="SynapTech">
+  Powered by SynapTech SpA · <a href="mailto:hola@synaptechspa.cl" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">hola@synaptechspa.cl</a>
+</footer>
+
+<script>
+  // 14 templates. Cada uno rinde con CSS custom props (--m-acc, --m-bg, --m-txt-alpha).
+  // El glyph del ícono se dibuja como texto UTF-8 para no depender de fuentes externas.
+  const TEMPLATES = [
+    { id: 'barberia-clasica', nombre: 'Clásico Dorado', rubro: 'barberia', tag: 'Elegante · atemporal',
+      acc: '#c9a84c', bg: '#0a0a0a', glyph: '✂', program: 'Club de Fidelidad', issuer: 'Barbería Elegance', icoTxt: '#0a0a0a' },
+    { id: 'barberia-neon', nombre: 'Neón Urbano', rubro: 'barberia', tag: 'Streetwear · joven',
+      acc: '#c6f94e', bg: '#0a0f0a', glyph: '★', program: 'The Club', issuer: 'Machos Barbershop', icoTxt: '#0a0a0a' },
+    { id: 'barberia-plata', nombre: 'Plata Minimal', rubro: 'barberia', tag: 'Editorial · limpio',
+      acc: '#e5e7eb', bg: '#0b0b0b', glyph: '✂', program: 'Members Club', issuer: 'Blood Habib', icoTxt: '#0b0b0b' },
+    { id: 'barberia-roja', nombre: 'Rojo Latino', rubro: 'barberia', tag: 'Poderoso · latino',
+      acc: '#ef4444', bg: '#150606', glyph: '★', program: 'Club VIP', issuer: 'Latin Caribe', icoTxt: '#0a0a0a' },
+    { id: 'barberia-azul', nombre: 'Azul Corporativo', rubro: 'barberia', tag: 'Confiable · pro',
+      acc: '#3b82f6', bg: '#060a15', glyph: '✂', program: 'Ejecutivos', issuer: 'Studio 16', icoTxt: '#fff' },
+    { id: 'pelu-femenina', nombre: 'Rosé Cálido', rubro: 'peluqueria', tag: 'Femenino · íntimo',
+      acc: '#e0879a', bg: '#2b1721', glyph: '♥', program: 'Club de Amigas', issuer: 'Aura Salón', icoTxt: '#0a0a0a' },
+    { id: 'pelu-purple', nombre: 'Púrpura Bold', rubro: 'peluqueria', tag: 'Atrevido · vibrante',
+      acc: '#a855f7', bg: '#160c1a', glyph: '★', program: 'Club Purple', issuer: 'Peluquería Bold', icoTxt: '#fff' },
+    { id: 'estetica', nombre: 'Nude Zen', rubro: 'estetica', tag: 'Suave · pulido',
+      acc: '#c9a58a', bg: '#1a1210', glyph: '★', program: 'Club Beauty', issuer: 'Estudio Estética', icoTxt: '#0a0a0a' },
+    { id: 'nails', nombre: 'Coral Fresh', rubro: 'estetica', tag: 'Fresco · girly',
+      acc: '#ff7f66', bg: '#231218', glyph: '♥', program: 'Nail Club', issuer: 'Gitana Nails', icoTxt: '#0a0a0a' },
+    { id: 'spa', nombre: 'Salvia Wellness', rubro: 'wellness', tag: 'Zen · natural',
+      acc: '#87a985', bg: '#111a13', glyph: '★', program: 'Club Spa', issuer: 'Spa Providencia', icoTxt: '#0a0a0a' },
+    { id: 'spa-oro', nombre: 'Oro Boutique', rubro: 'wellness', tag: 'Luxury · exclusivo',
+      acc: '#d4af37', bg: '#0f0a05', glyph: '★', program: 'Boutique Club', issuer: 'Spa Vitacura', icoTxt: '#0a0a0a' },
+    { id: 'cafe', nombre: 'Café Cálido', rubro: 'hospitalidad', tag: 'Cozy · morning',
+      acc: '#c48b56', bg: '#1a120a', glyph: '☕', program: 'Club Cafetería', issuer: 'Café Providencia', icoTxt: '#0a0a0a' },
+    { id: 'restaurant', nombre: 'Naranja Foodie', rubro: 'hospitalidad', tag: 'Vivo · social',
+      acc: '#f97316', bg: '#180d05', glyph: '★', program: 'Club Restaurant', issuer: 'La Cocina', icoTxt: '#0a0a0a' },
+    { id: 'retail', nombre: 'Champagne Chic', rubro: 'retail', tag: 'Elegante · unisex',
+      acc: '#eee2c5', bg: '#141210', glyph: '★', program: 'Club VIP', issuer: 'Boutique Store', icoTxt: '#0a0a0a' },
+  ];
+
+  const gallery = document.getElementById('gallery');
+  const filtros = document.getElementById('filters');
+
+  function itemHTML(t) {
+    // 10 puntos: 3 llenos, 4 vacíos, 1 vacío, 1 vacío, 1 estrella final vacía.
+    // Estado "3 de 10" para transmitir "empezando" en el mockup.
+    const dots = Array.from({ length: 10 }, (_, i) => {
+      const idx = i + 1;
+      const done = idx <= 3;
+      const isTarget = idx === 10;
+      if (done) return `<div class="mock-dot done" data-glyph="${t.glyph}"></div>`;
+      if (isTarget) return `<div class="mock-dot target-empty"></div>`;
+      return `<div class="mock-dot"></div>`;
+    }).join('');
+
+    // Iniciales del issuer para el logo redondo.
+    const iniciales = t.issuer.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+    // Contraste automático del texto principal según luminosidad del fondo.
+    const rgb = t.bg.replace('#', '').match(/.{2}/g).map(x => parseInt(x, 16));
+    const lum = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    const txt = lum > 0.6 ? '#0a0a0a' : '#ffffff';
+    const txtA = txt;
+
+    const ctaUrl = `/crea.html?ref=galeria&wallet-tpl=${encodeURIComponent(t.id)}`;
+
+    return `
+      <div class="item" data-rubro="${t.rubro}">
+        <div class="mock" style="--m-acc:${t.acc};--m-bg:${t.bg};--m-txt:${txt};--m-txt-alpha:${txtA};--m-icon-txt:${t.icoTxt}">
+          <div class="mock-head">
+            <div class="mock-logo">${iniciales || 'B'}</div>
+            <div class="mock-titles">
+              <p class="mock-issuer">${t.issuer}</p>
+              <p class="mock-program">${t.program}</p>
+            </div>
+            <div class="mock-icon">${t.glyph}</div>
+          </div>
+          <div>
+            <p class="mock-balance-lbl">Sellos</p>
+            <p class="mock-balance-num">3 <span>/ 10</span></p>
+          </div>
+          <div class="mock-strip">${dots}</div>
+          <div class="mock-foot">
+            <div><p class="lbl">Rango</p><p class="val">Silver</p></div>
+            <div style="text-align:right"><p class="lbl">Cliente</p><p class="val">María P.</p></div>
+          </div>
+        </div>
+        <div class="meta">
+          <p class="meta-title">${t.nombre}</p>
+          <p class="meta-tag">${t.tag}</p>
+          <div class="meta-swatches">
+            <div class="sw" style="background:${t.acc}" title="Acento"></div>
+            <div class="sw" style="background:${t.bg}" title="Fondo"></div>
+            <code>${t.acc.toUpperCase()} · ${t.bg.toUpperCase()}</code>
+          </div>
+          <a class="meta-cta" href="${ctaUrl}">Quiero uno como este</a>
+        </div>
+      </div>
+    `;
+  }
+
+  gallery.innerHTML = TEMPLATES.map(itemHTML).join('');
+
+  filtros.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const rubro = btn.dataset.rubro;
+    filtros.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    gallery.querySelectorAll('.item').forEach(it => {
+      it.classList.toggle('hide', rubro !== 'all' && it.dataset.rubro !== rubro);
+    });
+  });
+
+  // JSON-LD: item list para SEO.
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Galería de tarjetas Wallet · SynapTech",
+    "description": "14 diseños listos de tarjeta de fidelidad para barberías, peluquerías, estética y hospitalidad.",
+    "url": "https://crea.synaptechspa.cl/galeria-wallets.html",
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": TEMPLATES.length,
+      "itemListElement": TEMPLATES.map((t, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "name": t.nombre,
+      })),
+    },
+  };
+  const s = document.createElement('script');
+  s.type = 'application/ld+json';
+  s.textContent = JSON.stringify(ld);
+  document.head.appendChild(s);
+</script>
+
+</body>
+</html>
