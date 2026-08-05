@@ -247,6 +247,7 @@ const TOOLS = [
         fecha:           { type: 'string', description: 'Fecha de la cita en formato YYYY-MM-DD.' },
         hora:            { type: 'string', description: 'Hora de la cita en formato HH:MM (24h).' },
         cliente_nombre:  { type: 'string', description: 'Nombre del cliente.' },
+        permitir_segunda: { type: 'boolean', description: 'Solo true si el cliente YA tiene una cita futura y confirmó que quiere OTRA aparte (no cambiarla). Para mover una cita existente usa reagendar_cita, no esto.' },
         profesional:     { type: 'string', description: 'Profesional que pidió el cliente, tal como aparece en EQUIPO QUE ATIENDE. Si no lo pidió, no lo pases: el sistema asigna a quien esté libre.' },
       },
       required: ['servicio_nombre', 'fecha', 'hora', 'cliente_nombre'],
@@ -738,6 +739,48 @@ async function ejecutarTool(name, input, ctx) {
     const hoyC = ahoraChile();
     const faltanMin = absMin(fecha, toMinsHHMM(hora)) - absMin(hoyC.fecha, hoyC.mins);
     if (faltanMin <= 0) return { ok: false, motivo: `Esa fecha/hora ya pasó (hoy es ${hoyC.fecha}). Ofrece horarios desde hoy en adelante.` };
+
+    // Cinturón: este número YA tiene una cita futura activa.
+    //
+    // El modelo agenda de nuevo en vez de mover, y el cliente termina con dos
+    // horas y el local con el sillón bloqueado el doble. Pasó dos veces el
+    // 04-08: Ceci (kronnos_woman) quedó con 16:00 Y 17:30 del mismo servicio
+    // —tres horas muertas de Ernesto— porque quiso cambiarse de hora y el bot
+    // creó una segunda cita; y José Ignacio (kronnos_penablanca) recibió una
+    // confirmación y acto seguido el bot siguió ofreciéndole horas.
+    //
+    // No se bloquea a ciegas: si de verdad quiere DOS citas distintas (otro
+    // día, otro servicio) el modelo insiste pasando permitir_segunda=true. Lo
+    // que se corta es el caso por defecto, que es el que rompe agendas.
+    if (input?.permitir_segunda !== true) {
+      const suf9Nuevo = String(telefono).replace(/\D/g, '').slice(-9);
+      const [qa, qb] = await Promise.all([
+        citasCol(tid).where('clienteTelefonoSuf9', '==', suf9Nuevo).get().catch(() => ({ docs: [] })),
+        citasCol(tid).where('clienteTelefono', '==', String(telefono)).get().catch(() => ({ docs: [] })),
+      ]);
+      const vistos = new Set();
+      const futuras = [];
+      for (const d of [...qa.docs, ...qb.docs]) {
+        if (vistos.has(d.id)) continue;
+        vistos.add(d.id);
+        const x = d.data();
+        if (['Cancelada', 'NoAsistio', 'Completada'].includes(x.estado)) continue;
+        if (typeof x.fecha !== 'string' || typeof x.hora !== 'string') continue;
+        if (absMin(x.fecha, toMinsHHMM(x.hora)) <= absMin(hoyC.fecha, hoyC.mins)) continue;
+        futuras.push({ cita_id: d.id, fecha: x.fecha, hora: x.hora, servicio: x.servicioNombre || '', codigo: x.codigoCita || '' });
+      }
+      if (futuras.length) {
+        futuras.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+        const y = futuras[0];
+        return {
+          ok: false,
+          ya_tiene_cita: futuras,
+          motivo: `Este número ya tiene una cita el ${y.fecha} a las ${y.hora} (${y.servicio}). NO agendes otra encima. `
+            + 'Si lo que quiere es CAMBIARLA de hora o de día, usa reagendar_cita con ese cita_id. '
+            + 'Si de verdad quiere una SEGUNDA cita aparte, díselo y confírmalo con él; recién ahí vuelve a llamar a agendar_cita con permitir_segunda=true.',
+        };
+      }
+    }
 
     const servicios = await cargarServicios(tid);
     const svc = matchServicio(servicios, input?.servicio_nombre);
