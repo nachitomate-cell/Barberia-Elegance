@@ -187,18 +187,38 @@ messaging.onBackgroundMessage(payload => {
   const notifTitle = payload.notification?.title || payload.data?.title || 'Nueva reserva';
   const body       = payload.notification?.body  || payload.data?.body  || 'Tienes una nueva cita agendada.';
 
-  let tag, renotify, actions;
+  /* Firma de vibración por tipo. Con la app cerrada el SONIDO lo pone el
+     sistema y la web no puede cambiarlo (la propiedad `sound` de la API de
+     notificaciones no la implementa ningún navegador; Shopee y Rappi lo logran
+     porque son apps nativas con su propio canal de Android). La vibración sí
+     es nuestra, y alcanza para saber qué llegó sin sacar el teléfono:
+
+       · nueva/recordatorio — dos golpes iguales. "Llegó algo".
+       · cancelación        — largo y después corto, decae. "Se cayó algo".  */
+  const VIBRA_NUEVA   = [200, 100, 200];
+  const VIBRA_CANCELA = [400, 120, 120];
+
+  let tag, renotify, actions, vibrate;
 
   if (tipo === 'recordatorio') {
     tag      = `recordatorio-${citaId || 'cita'}`;
     renotify = false;
+    vibrate  = VIBRA_NUEVA;
     actions  = [
       { action: 'confirmar', title: '✅ Confirmar' },
       { action: 'cancelar',  title: '❌ Cancelar'  },
     ];
+  } else if (tipo === 'cancelacion') {
+    // Tag propio por cita: con el 'nueva-cita' de antes, una cancelación
+    // reemplazaba en pantalla al aviso de una reserva nueva sin leer.
+    tag      = `cancelacion-${citaId || 'cita'}`;
+    renotify = true;
+    vibrate  = VIBRA_CANCELA;
+    actions  = [{ action: 'abrir', title: 'Ver agenda' }];
   } else {
     tag      = 'nueva-cita';
     renotify = true;
+    vibrate  = VIBRA_NUEVA;
     actions  = [{ action: 'abrir', title: 'Ver cita' }];
   }
 
@@ -206,7 +226,7 @@ messaging.onBackgroundMessage(payload => {
     body,
     icon:    '/icons/icon-192.png',
     badge:   '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
+    vibrate,
     tag,
     renotify,
     data: {

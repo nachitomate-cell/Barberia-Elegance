@@ -2014,7 +2014,24 @@
             if (touchIcon) touchIcon.href = logo;
         }
 
+        /* ── FIRMAS DE VIBRACIÓN ──────────────────────────────────────
+           La API web ignora la propiedad `sound` de las notificaciones: con la
+           app cerrada suena SIEMPRE el tono del sistema y no hay forma de
+           cambiarlo desde la web (Shopee y Rappi lo logran porque son apps
+           nativas y crean su propio canal de Android). Lo que sí controlamos es
+           la vibración, y alcanza para distinguir sin mirar el teléfono.
+
+           Dos patrones, deliberadamente opuestos:
+             · NUEVA     — dos golpes iguales, igual que el panel. "Llegó algo".
+             · CANCELADA — largo y luego corto, decae. "Se cayó algo".        */
+        const VIBRA_NUEVA    = [200, 100, 200];
+        const VIBRA_CANCELA  = [400, 120, 120];
+
         // ── SISTEMA DE AUDIO (SINTETIZADOR BÁSICO) ──
+        //
+        // OJO: `playNotificationSound` NO se toca. Es el tono que los barberos
+        // ya tienen asociado a "entró una reserva" y cambiarlo los obligaría a
+        // reaprenderlo. Los sonidos nuevos se suman al lado, nunca lo pisan.
         function playNotificationSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -2039,10 +2056,41 @@
             } catch(e) { console.warn("Audio no soportado o bloqueado"); }
         }
 
+        /* Cancelación: DESCENDENTE (587 → 392 Hz), al revés que el de reserva,
+           que sube. Es la diferencia más fácil de reconocer de oído sin prestar
+           atención: algo subió = llegó, algo bajó = se cayó. Y en onda cuadrada
+           suave, para que no se confunda con el timbre limpio del otro. */
+        function playCancelSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+                [
+                    { freq: 587, start: 0,    dur: 0.28 },   // Re5
+                    { freq: 392, start: 0.20, dur: 0.42 },   // Sol4
+                ].forEach(({ freq, start, dur }) => {
+                    const osc  = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+                    gain.gain.setValueAtTime(0.30, audioCtx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + dur);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + start);
+                    osc.stop(audioCtx.currentTime + start + dur);
+                });
+            } catch(e) { console.warn("Audio no soportado o bloqueado"); }
+        }
+
         // ── ESTADO GLOBAL DE LA AGENDA ──
         let barberId = null;
         let barberNombre = null;
         let newlyAddedCitas = new Set(); // IDs de citas recién ingresadas para animarlas
+        // Cancelaciones ya avisadas: una cita cancelada puede recibir más
+        // escrituras después (notas, cierre de caja) y cada una vuelve como
+        // 'modified'. Sin esto sonaría en cada una.
+        const _cancelAvisadas = new Set();
 
         let currentDate = new Date();
         let barberConfig = null;
@@ -2536,7 +2584,7 @@
                                         messaging.onMessage(payload => {
                                             const title = payload.notification?.title || payload.data?.title || 'Nueva cita';
                                             const body  = payload.notification?.body  || payload.data?.body  || 'Tienes una nueva reserva.';
-                                            reg.showNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'nueva-cita', renotify: true, data: { url: window.location.href } });
+                                            reg.showNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'nueva-cita', renotify: true, vibrate: VIBRA_NUEVA, data: { url: window.location.href } });
                                         });
                                     }
                                 } catch(e) {
@@ -3358,10 +3406,45 @@
                                             badge: '/icons/icon-192.png',
                                             tag: 'nueva-cita',
                                             renotify: true,
+                                            vibrate: VIBRA_NUEVA,
                                             data: { url: window.location.href }
                                         });
                                     }).catch(() => {
                                         try { new Notification('Nueva Reserva', { body: `${data.clienteNombre} reservó para las ${data.hora}.`, icon: '/logo.jpg' }); } catch(_) {}
+                                    });
+                                }
+                            }
+                        }
+
+                        /* Cancelación: un hueco que se abre en el día es tan
+                           accionable como una reserva nueva, y hasta ahora no
+                           avisaba nada.
+
+                           Se escucha 'modified' con estado Cancelada y NO
+                           'removed': un doc puede salir de este snapshot por
+                           haber sido reagendado a OTRO día —el listener filtra
+                           por fecha—, y eso no es una cancelación. El Set evita
+                           repetir el aviso si la cita se vuelve a tocar después
+                           de cancelada. */
+                        if (change.type === 'modified' && _diaLoaded) {
+                            const data = change.doc.data();
+                            if (String(data.estado || '') === 'Cancelada' && !_cancelAvisadas.has(change.doc.id)) {
+                                _cancelAvisadas.add(change.doc.id);
+                                playCancelSound();
+                                if (Notification.permission === 'granted') {
+                                    const cuerpo = `${data.clienteNombre || 'Un cliente'} canceló su hora de las ${data.hora}.`;
+                                    navigator.serviceWorker.ready.then(reg => {
+                                        reg.showNotification('Hora cancelada', {
+                                            body: cuerpo,
+                                            icon: '/icons/icon-192.png',
+                                            badge: '/icons/icon-192.png',
+                                            tag: 'cita-cancelada-' + change.doc.id,
+                                            renotify: true,
+                                            vibrate: VIBRA_CANCELA,
+                                            data: { url: window.location.href }
+                                        });
+                                    }).catch(() => {
+                                        try { new Notification('Hora cancelada', { body: cuerpo, icon: '/logo.jpg' }); } catch(_) {}
                                     });
                                 }
                             }
@@ -5902,7 +5985,8 @@
                 const body = payload.notification?.body || payload.data?.body || 'Tienes una nueva reserva.';
                 registration.showNotification(title, {
                   body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
-                  tag: 'nueva-cita', renotify: true, data: { url: window.location.href }
+                  tag: 'nueva-cita', renotify: true, vibrate: VIBRA_NUEVA,
+                  data: { url: window.location.href }
                 });
               });
             }
