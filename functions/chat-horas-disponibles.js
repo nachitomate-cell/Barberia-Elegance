@@ -96,6 +96,16 @@ const toMins = (t) => {
 };
 const toHHMM = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
+/** Minutos de una HORA DE CIERRE. Igual que toMins salvo por medianoche:
+ *  "00:00" como fin significa "cierro a las 12 de la noche", no "cierro en el
+ *  minuto cero". Con toMins a secas la jornada quedaba invertida y el motor la
+ *  leía como día libre: estudioluxury tenía a Matías —su único profesional— con
+ *  08:00–00:00 los siete días y el bot ofrecía CERO horas, todos los días. */
+const toMinsFin = (t) => {
+  const m = toMins(t);
+  return m === 0 ? 1440 : m;
+};
+
 /** Fecha (YYYY-MM-DD), minutos del día y hora HH:MM actuales en Chile.
  *  `hhmm` existe para los prompts: el bot debe RECIBIR la hora, nunca deducirla. */
 function ahoraChile() {
@@ -153,14 +163,14 @@ function rangosFueraDeJornada({ docHorario, cfgPersonal, dow }) {
     const libre = viaHorario ? day.activo !== true : day.activo === false;
     if (libre) { push(0, 1440); return out; }
     const ini = toMins(day.inicio || cfg.horarioInicio || '00:00');
-    const fin = toMins(day.fin    || cfg.horarioFin    || '24:00');
+    const fin = toMinsFin(day.fin || cfg.horarioFin    || '24:00');
     push(0, ini);
     push(fin, 1440);
     descansosDe(day).forEach(([a, b]) => push(a, b));
   } else if (cfg.horarioInicio || cfg.horarioFin) {
     // Sin config del día pero con jornada base propia.
     push(0, toMins(cfg.horarioInicio || '00:00'));
-    push(toMins(cfg.horarioFin || '24:00'), 1440);
+    push(toMinsFin(cfg.horarioFin || '24:00'), 1440);
   }
 
   // Colación personal (la que muestra la Pizarra) también bloquea.
@@ -227,7 +237,7 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
   const dia = dc[dow] ?? dc[String(dow)] ?? null;
   if (dia && dia.activo === false) return [];
   const iniMins  = toMins((dia && dia.inicio) || conf.horarioInicio || '09:00');
-  const finMins  = toMins((dia && dia.fin)    || conf.horarioFin    || '20:00');
+  const finMins  = toMinsFin((dia && dia.fin) || conf.horarioFin    || '20:00');
   const step     = Number(conf.intervaloMinutos) || 30;
   if (finMins <= iniMins || step <= 0) return [];
 
@@ -278,7 +288,9 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
     const x = d.data();
     if (x.todo_el_dia) { addBusy(x.barberoId, 0, 1440); return; }
     if (typeof x.hora_inicio !== 'string' || typeof x.hora_fin !== 'string') return;
-    addBusy(x.barberoId, toMins(x.hora_inicio), toMins(x.hora_fin));
+    // hora_fin "00:00" = hasta medianoche. Con toMins quedaba [1200,0], un
+    // rango vacío: el bloqueo no bloqueaba nada.
+    addBusy(x.barberoId, toMins(x.hora_inicio), toMinsFin(x.hora_fin));
   });
 
   // Jornada personal: día libre / horas propias / descansos / colación → busy.
@@ -490,7 +502,7 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
   const diaCfg = dcCfg[dowLocal] ?? dcCfg[String(dowLocal)] ?? null;
   if (diaCfg && diaCfg.activo === false) return null;
   const abre   = toMins((diaCfg && diaCfg.inicio) || conf.horarioInicio || '09:00');
-  const cierra = toMins((diaCfg && diaCfg.fin)    || conf.horarioFin    || '20:00');
+  const cierra = toMinsFin((diaCfg && diaCfg.fin) || conf.horarioFin    || '20:00');
   if (startMin < abre || endMin > cierra) return null;
   if (conf.colacion && conf.colacion.inicio && conf.colacion.fin
       && solapan(startMin, endMin, toMins(conf.colacion.inicio), toMins(conf.colacion.fin))) return null;
@@ -536,7 +548,9 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
     const x = d.data();
     if (x.todo_el_dia) { addBusy(x.barberoId, 0, 1440); return; }
     if (typeof x.hora_inicio !== 'string' || typeof x.hora_fin !== 'string') return;
-    addBusy(x.barberoId, toMins(x.hora_inicio), toMins(x.hora_fin));
+    // hora_fin "00:00" = hasta medianoche. Con toMins quedaba [1200,0], un
+    // rango vacío: el bloqueo no bloqueaba nada.
+    addBusy(x.barberoId, toMins(x.hora_inicio), toMinsFin(x.hora_fin));
   });
 
   // Jornada personal (día libre / horas propias / descansos / colación).

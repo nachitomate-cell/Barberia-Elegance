@@ -1323,6 +1323,9 @@ const FDB = (() => {
     }
 
     const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    // Hora de CIERRE: "00:00" es medianoche, no el minuto cero. Sin esto la
+    // jornada quedaba invertida y caía al fallback de horario corrupto.
+    const toMinsFin = t => { const m = toMins(t); return m === 0 ? 1440 : m; };
     const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
     // Horario específico del día — prioriza horario del barbero
@@ -1333,18 +1336,18 @@ const FDB = (() => {
       const dayH = barbCfg.horario[String(dw)];
       if (!dayH.activo) return []; // este barbero no trabaja ese día
       ini = toMins(dayH.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
-      fin = toMins(dayH.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
+      fin = toMinsFin(dayH.fin || barbCfg.horarioFin  || cfg.horarioFin    || '20:00');
     } else if (barbCfg) {
       const dc = (barbCfg.diasConfig || {})[dw] || {};
       ini = toMins(dc.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
-      fin = toMins(dc.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
+      fin = toMinsFin(dc.fin || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
     } else {
       // Sin config de barbero: verificar si el local está abierto ese día
       const dl = cfg.diasLaborales;
       if (Array.isArray(dl) && dl.length > 0 && !dl.includes(dw)) return [];
       const dc = (cfg.diasConfig || {})[dw] || {};
       ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-      fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+      fin = toMinsFin(dc.fin || cfg.horarioFin    || '20:00');
     }
     // Sanidad: si el horario del barbero está corrupto (fin <= ini, NaN, valores
     // fuera de [0, 24*60]), forzamos el fallback default 09:00–20:00. Sin este
@@ -1554,6 +1557,8 @@ const FDB = (() => {
     if (todosBloqueos.some(b => b.todo_el_dia && !b.barberoId)) return [];
 
     const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    // Hora de CIERRE: "00:00" es medianoche, no el minuto cero.
+    const toMinsFin = t => { const m = toMins(t); return m === 0 ? 1440 : m; };
     const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
     const dw = new Date(fecha + 'T12:00:00').getDay();
@@ -1570,15 +1575,15 @@ const FDB = (() => {
         const dayH = bc.horario[String(dw)];
         if (!dayH.activo) continue;
         bIni = toMins(dayH.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
-        bFin = toMins(dayH.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+        bFin = toMinsFin(dayH.fin || bc.horarioFin    || cfg.horarioFin    || '20:00');
       } else if (bc) {
         const dc = (bc.diasConfig || {})[dw] || {};
         bIni = toMins(dc.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
-        bFin = toMins(dc.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+        bFin = toMinsFin(dc.fin || bc.horarioFin    || cfg.horarioFin    || '20:00');
       } else {
         const dc = (cfg.diasConfig || {})[dw] || {};
         bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-        bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+        bFin = toMinsFin(dc.fin || cfg.horarioFin    || '20:00');
       }
       if (bIni < globalIni) globalIni = bIni;
       if (bFin > globalFin) globalFin = bFin;
@@ -1587,7 +1592,7 @@ const FDB = (() => {
     if (globalIni === Infinity) {
       const dc = (cfg.diasConfig || {})[dw] || {};
       globalIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-      globalFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+      globalFin = toMinsFin(dc.fin || cfg.horarioFin   || '20:00');
     }
 
     const interval = cfg.intervaloMinutos || 30;
@@ -1688,15 +1693,15 @@ const FDB = (() => {
           const dayH = bc.horario[String(dw)];
           if (!dayH.activo) continue;
           bIni = toMins(dayH.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
-          bFin = toMins(dayH.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+          bFin = toMinsFin(dayH.fin || bc.horarioFin    || cfg.horarioFin    || '20:00');
         } else if (bc) {
           const dc = (bc.diasConfig || {})[dw] || {};
           bIni = toMins(dc.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
-          bFin = toMins(dc.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+          bFin = toMinsFin(dc.fin || bc.horarioFin    || cfg.horarioFin    || '20:00');
         } else {
           const dc = (cfg.diasConfig || {})[dw] || {};
           bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-          bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+          bFin = toMinsFin(dc.fin || cfg.horarioFin    || '20:00');
         }
         // Sanidad: horarios corruptos → barbero ignorado.
         if (!Number.isFinite(bIni) || !Number.isFinite(bFin) || bFin <= bIni || bIni < 0 || bFin > 24*60) {
