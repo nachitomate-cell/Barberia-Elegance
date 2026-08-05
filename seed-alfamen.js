@@ -1,14 +1,15 @@
 /**
- * seed-alfamen.js — Inicialización Firestore para Barbería Alfa Men (alfamen)
+ * seed-alfamen.js — Inicialización Firestore para Alfa Men – Estética Masculina (alfamen)
  *
- * Fuente: instagram.com/barberia_alfa · instagram.com/barberia.alfamen
- *         alfamen.site.agendapro.com/cl/sucursal/56554
+ * Fuente: alfamen.site.agendapro.com/cl/sucursal/56554 (scrape 2026-08-05)
+ *         instagram.com/barberia.alfamen
  *
  * Crea bajo tenants/alfamen/:
  *   servicios · barberos · configuracion · premios · profile · settings/theme · settings/general
  *
- * ⚠️  PRECIOS ESTIMADOS — confirmar con el cliente antes de publicar.
- * ⚠️  PROFESIONALES — reemplazar nombres por los reales del equipo Alfa Men.
+ * Servicios, precios, equipo y horarios son los REALES de su AgendaPro.
+ * Tema CLARO blanco + tinta negra (decisión de diseño — NO el negro/rojo
+ * que muestra su minisitio AgendaPro).
  */
 
 const admin = require('firebase-admin');
@@ -39,116 +40,118 @@ function separador(titulo) {
 }
 
 // ── Servicios ────────────────────────────────────────────────────────────────
-// ⚠️ Precios estimados según mercado Viña del Mar — confirmar con Alfa Men
+// Precios, duraciones y descripciones REALES de su AgendaPro (2026-08-05).
+// Sus categorías AgendaPro se mapean a las de config.js:
+//   Corte de cabello → Cortes · Corte de barba → Barba · Promociones →
+//   Promociones · Tratamientos Sir Fausto (barba/facial) → Tratamientos ·
+//   Otros → Otros. (El "servicio" PROPINA de AgendaPro se omite a propósito.)
 const SERVICIOS = [
   // Cortes
   {
     id: 'srv-alfa-01',
     nombre: 'Corte de Cabello',
-    descripcion: 'Corte personalizado con lavado, secado y aplicación de producto terminador.',
-    precio: 10000, duracion: 40, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 0,
+    descripcion: 'Corte con combinación de máquina y tijera, diseñado según tu estilo. Incluye lavado, masaje capilar y peinado final con productos de fijación de alta calidad.',
+    precio: 15000, duracion: 60, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 0,
   },
   {
     id: 'srv-alfa-02',
-    nombre: 'Corte Infantil',
-    descripcion: 'Corte para niños hasta 12 años.',
-    precio: 8000, duracion: 30, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 1,
+    nombre: 'Corte de Precisión (Tijera Premium) + Productos Sir Fausto',
+    descripcion: 'Técnica de tijera con fade detallado, nítido y pulido que realza la forma del rostro. Incluye lavado, masaje capilar revitalizante y styling premium con productos Sir Fausto 100% naturales.',
+    precio: 19000, duracion: 60, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 1,
   },
   {
     id: 'srv-alfa-03',
-    nombre: 'Corte + Diseño',
-    descripcion: 'Corte de cabello con diseño o tatuaje capilar personalizado.',
-    precio: 14000, duracion: 50, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 2,
+    nombre: 'Corte Express Habitual',
+    descripcion: 'Corte rápido de 40 minutos para clientes habituales que ya conocen su estilo y prefieren una atención más ágil.',
+    precio: 15000, duracion: 40, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 2,
   },
   // Barba
   {
     id: 'srv-alfa-04',
-    nombre: 'Arreglo de Barba',
-    descripcion: 'Perfilado y rebalance de barba con máquina y tijera.',
-    precio: 8000, duracion: 25, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 3,
+    nombre: 'Barba Express',
+    descripcion: 'Corte, perfilado y degradado de barba principalmente a máquina. Ideal para mantener contornos limpios y un acabado prolijo en poco tiempo.',
+    precio: 10000, duracion: 30, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 3,
   },
   {
     id: 'srv-alfa-05',
-    nombre: 'Afeitado Tradicional',
-    descripcion: 'Ritual completo con toallas calientes, vapor y navaja para un acabado impecable.',
-    precio: 10000, duracion: 30, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 4,
+    nombre: 'Barba Tradicional',
+    descripcion: 'Ritual completo: perfilado, degradado o recorte con toallas calientes, vaporizador, gel de afeitado, after shave y aceite o bálsamo final. Un clásico para un acabado limpio y definido.',
+    precio: 14000, duracion: 40, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 4,
   },
+  // Promociones
   {
     id: 'srv-alfa-06',
-    nombre: 'Diseño de Barba',
-    descripcion: 'Diseño personalizado y definición de líneas con navaja.',
-    precio: 11000, duracion: 35, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 5,
+    nombre: 'Corte de Cabello + Barba Express',
+    descripcion: 'Corte con máquina y tijera junto al perfilado y degradado rápido de barba. Look limpio, ordenado y definido en una sola sesión.',
+    precio: 22000, duracion: 70, categoria: 'Promociones', icono: 'ph-crown', activo: true, orden: 5,
   },
-  // Combos
   {
     id: 'srv-alfa-07',
-    nombre: 'Corte + Arreglo de Barba',
-    descripcion: 'Combo clásico: corte de cabello más arreglo y perfilado de barba.',
-    precio: 16000, duracion: 60, categoria: 'Combos', icono: 'ph-crown', activo: true, orden: 6,
+    nombre: 'Corte de Cabello + Barba Tradicional',
+    descripcion: 'Corte profesional más ritual tradicional de barba: perfilado, toallas calientes, vapor, gel de afeitado, after shave y aceite o bálsamo final.',
+    precio: 24000, duracion: 80, categoria: 'Promociones', icono: 'ph-crown', activo: true, orden: 6,
   },
   {
     id: 'srv-alfa-08',
-    nombre: 'Corte + Afeitado Tradicional',
-    descripcion: 'Corte de cabello más ritual de afeitado completo con navaja.',
-    precio: 18000, duracion: 65, categoria: 'Combos', icono: 'ph-crown', activo: true, orden: 7,
+    nombre: 'Corte de Precisión + Barba Premium',
+    descripcion: 'Corte de precisión a tijera diseñado según tu rostro y estilo, más barba trabajada al detalle con navaja, toalla caliente y productos de alta gama.',
+    precio: 28000, duracion: 60, categoria: 'Promociones', icono: 'ph-star', activo: true, orden: 7,
   },
   {
     id: 'srv-alfa-09',
-    nombre: 'Corte + Diseño + Barba',
-    descripcion: 'El servicio completo: corte con diseño capilar más arreglo de barba.',
-    precio: 22000, duracion: 80, categoria: 'Combos', icono: 'ph-star', activo: true, orden: 8,
+    nombre: 'Promo Servicio FULL',
+    descripcion: 'El paquete integral: corte profesional, full barba o perfilado según tu estilo, más limpieza facial que renueva, hidrata y deja la piel fresca.',
+    precio: 30000, duracion: 90, categoria: 'Promociones', icono: 'ph-star', activo: true, orden: 8,
   },
-  // Color
   {
     id: 'srv-alfa-10',
-    nombre: 'Coloración Capilar',
-    descripcion: 'Color global con productos profesionales de alta calidad.',
-    precio: 22000, duracion: 90, categoria: 'Color', icono: 'ph-palette', activo: true, orden: 9,
+    nombre: 'Corte de Cabello + Limpieza Facial Básica',
+    descripcion: 'Corte a máquina y/o tijera complementado con limpieza facial básica con vapor para remover impurezas y refrescar la piel.',
+    precio: 20000, duracion: 70, categoria: 'Promociones', icono: 'ph-crown', activo: true, orden: 9,
   },
   {
     id: 'srv-alfa-11',
-    nombre: 'Mechas / Balayage',
-    descripcion: 'Técnica de aclarado parcial para un look natural y degradado.',
-    precio: 28000, duracion: 100, categoria: 'Color', icono: 'ph-palette', activo: true, orden: 10,
+    nombre: 'All Face (Barba Tradicional + Limpieza Facial Básica)',
+    descripcion: 'Barba trabajada al detalle con vapor y navaja, más limpieza facial con exfoliación y mascarilla purificante. Un servicio integral con resultados fantásticos.',
+    precio: 16000, duracion: 60, categoria: 'Promociones', icono: 'ph-crown', activo: true, orden: 10,
   },
   {
     id: 'srv-alfa-12',
-    nombre: 'Tinte de Barba',
-    descripcion: 'Coloración de barba con productos especializados.',
-    precio: 8000, duracion: 30, categoria: 'Color', icono: 'ph-palette', activo: true, orden: 11,
+    nombre: 'Corte de Cabello + Limpieza Facial Spa',
+    descripcion: 'Corte a máquina y/o tijera más limpieza facial Spa: vapor, exfoliación y mascarilla para purificar, hidratar y revitalizar la piel.',
+    precio: 25000, duracion: 70, categoria: 'Promociones', icono: 'ph-crown', activo: true, orden: 11,
   },
-  // Extras
+  // Tratamientos (Sir Fausto Natural)
   {
     id: 'srv-alfa-13',
-    nombre: 'Cejas (Diseño y Depilación)',
-    descripcion: 'Diseño, depilación y perfilado de cejas masculinas.',
-    precio: 5000, duracion: 15, categoria: 'Extras', icono: 'ph-sparkle', activo: true, orden: 12,
+    nombre: 'Barba Fresh Sir Fausto',
+    descripcion: 'Lavado express de barba con shampoo premium Sir Fausto. Refresca, suaviza y deja un aroma masculino único.',
+    precio: 4990, duracion: 10, categoria: 'Tratamientos', icono: 'ph-drop', activo: true, orden: 12,
   },
   {
     id: 'srv-alfa-14',
-    nombre: 'Tratamiento Capilar',
-    descripcion: 'Tratamiento hidratante o nutritivo según tipo de cabello.',
-    precio: 12000, duracion: 30, categoria: 'Extras', icono: 'ph-first-aid', activo: true, orden: 13,
+    nombre: 'Detox Facial Sir Fausto',
+    descripcion: 'Limpieza profunda que elimina impurezas, toxinas y grasa que obstruyen los poros. Desintoxica la piel para una apariencia fresca y luminosa.',
+    precio: 10000, duracion: 15, categoria: 'Tratamientos', icono: 'ph-sparkle', activo: true, orden: 13,
+  },
+  // Otros
+  {
+    id: 'srv-alfa-15',
+    nombre: 'Cejas',
+    descripcion: 'Perfilado y orden de cejas para resaltar la mirada. Se trabaja con tijera, máquina o navaja según la necesidad.',
+    precio: 4000, duracion: 10, categoria: 'Otros', icono: 'ph-sparkle', activo: true, orden: 14,
   },
 ];
 
-// ── Profesionales ────────────────────────────────────────────────────────────
-// ⚠️ Reemplazar por los nombres reales del equipo Alfa Men
-const BARBEROS = [
-  { id: 'alfa-profesional1', nombre: 'Profesional 1', foto: null, disponible: true, activo: true, rol: 'jefe',        orden: 0 },
-  { id: 'alfa-profesional2', nombre: 'Profesional 2', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 1 },
-  { id: 'alfa-profesional3', nombre: 'Profesional 3', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 2 },
-];
-
-// ── Configuración de horarios ────────────────────────────────────────────────
-// ⚠️ Horario estimado — confirmar con Alfa Men (sábados 10:00-18:00 confirmado)
+// ── Horario del local ────────────────────────────────────────────────────────
+// Real de AgendaPro: Lun–Vie 10:00–20:00 · Sáb 10:00–18:00 · Dom cerrado.
 const CONFIG = {
   horarioInicio:           '10:00',
   horarioFin:              '20:00',
   intervaloMinutos:             30,
   minutosLimiteReagendar:        0,
   diasLaborales:    [1, 2, 3, 4, 5, 6], // Lun–Sáb
-  telefonoAdmin:    '',                  // ⚠️ Agregar teléfono real
+  telefonoAdmin:    '+56985773308',
   diasBloqueados:   [],
   colacion:         null,
   diasConfig: {
@@ -156,11 +159,47 @@ const CONFIG = {
   },
 };
 
+// ── Profesionales ────────────────────────────────────────────────────────────
+// Equipo real con fotos (alfamen/equipo/*.webp) y horarios individuales de su
+// AgendaPro. ⚠️ Rol 'jefe' asignado al primero por convención del seed —
+// confirmar con el cliente quién administra.
+const BARBEROS = [
+  {
+    id: 'alfa-claudio-iglesias', nombre: 'Claudio Iglesias',
+    foto: '/alfamen/equipo/claudio-iglesias.webp',
+    especialidad: 'Especialista en Fades, Taper y Cortes Modernos',
+    disponible: true, activo: true, rol: 'jefe', orden: 0,
+    config: { diasLaborales: [4, 5, 6] }, // Jue–Vie 10–20 · Sáb 10–18
+  },
+  {
+    id: 'alfa-ziggy', nombre: 'Ziggy',
+    foto: '/alfamen/equipo/ziggy.webp',
+    disponible: true, activo: true, rol: 'profesional', orden: 1,
+    config: { diasLaborales: [1, 2, 4] }, // Lun · Mar · Jue 10–20
+  },
+  {
+    id: 'alfa-sebastian-ignacio', nombre: 'Sebastián Ignacio',
+    foto: '/alfamen/equipo/sebastian-ignacio.webp',
+    disponible: true, activo: true, rol: 'profesional', orden: 2,
+    // Lun–Vie 10–19 · Sáb 10–18
+    config: {
+      horarioFin: '19:00',
+      diasConfig: { 6: { inicio: '10:00', fin: '18:00' } },
+    },
+  },
+  {
+    id: 'alfa-pablo-silva', nombre: 'Pablo Silva',
+    foto: '/alfamen/equipo/pablo-silva.webp',
+    disponible: true, activo: true, rol: 'profesional', orden: 3,
+    config: {}, // Lun–Vie 10–20 · Sáb 10–18 (igual al local)
+  },
+];
+
 // ── Premios del club ─────────────────────────────────────────────────────────
 const PREMIOS = [
-  { id: 'alfa-premio-1', nombre: 'Corte de Cabello Gratis',         costoSellos: 10, activo: true },
-  { id: 'alfa-premio-2', nombre: 'Arreglo de Barba Gratis',         costoSellos: 8,  activo: true },
-  { id: 'alfa-premio-3', nombre: 'Corte + Arreglo de Barba Gratis', costoSellos: 15, activo: true },
+  { id: 'alfa-premio-1', nombre: 'Corte de Cabello Gratis',              costoSellos: 10, activo: true },
+  { id: 'alfa-premio-2', nombre: 'Barba Express Gratis',                 costoSellos: 8,  activo: true },
+  { id: 'alfa-premio-3', nombre: 'Corte + Barba Tradicional Gratis',     costoSellos: 15, activo: true },
 ];
 
 // ── Seed functions ────────────────────────────────────────────────────────────
@@ -194,15 +233,18 @@ async function seedBarberos() {
 
   const batch = db.batch();
   for (const b of BARBEROS) {
-    const { id, ...data } = b;
+    const { id, config: _cfg, ...data } = b;
     batch.set(col('barberos').doc(id), { ...data, creadoEn: TS() }, { merge: true });
     console.log(`  → ${data.nombre} (${data.rol})`);
   }
   await batch.commit();
 
+  // Configuración individual: la del local como base + overrides del barbero
+  // (horarios reales de AgendaPro difieren entre ellos).
   for (const b of BARBEROS) {
     await col('barberos').doc(b.id).collection('configuracion').doc('main').set({
       ...CONFIG,
+      ...(b.config || {}),
       updatedAt: TS(),
     }, { merge: true });
   }
@@ -231,33 +273,36 @@ async function seedProfile() {
   separador('PERFIL & TEMA');
 
   await tenantRef.collection('profile').doc('main').set({
-    name:            'Barbería Alfa Men',
+    name:            'Alfa Men – Estética Masculina',
     shortName:       'Alfa Men',
     slogan:          'Since 2017 · Aesthetics For Men',
     club:            'Club Alfa Men',
-    address:         '📍 Av. Valparaíso #694 L. 14 | Viña del Mar',
-    scheduleText:    '🕒 Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00',
-    phone:           '',
-    logoUrl:         '/alfamen.jpg',
-    pageTitle:       'Barbería Alfa Men | Agenda tu hora en Viña del Mar',
-    metaDescription: 'Reserva tu hora en Barbería Alfa Men. Cortes, barba, coloración y diseño capilar desde 2017 en Av. Valparaíso 694, Viña del Mar.',
-    instagram:       'https://www.instagram.com/barberia_alfa/',
+    address:         '📍 Av. Valparaíso 694, Local 14 | Viña del Mar',
+    scheduleText:    '🕒 Lun–Vie: 10–20h · Sáb: 10–18h · Dom: cerrado',
+    phone:           '+56985773308',
+    email:           'barberia.alfa@hotmail.com',
+    logoUrl:         '/alfamen/logo.png',
+    pageTitle:       'Alfa Men – Estética Masculina | Agenda tu hora en Viña del Mar',
+    metaDescription: 'Reserva tu hora en Alfa Men. Cortes de precisión, fades, barba y limpieza facial desde 2017 en Av. Valparaíso 694, Viña del Mar.',
+    instagram:       'https://www.instagram.com/barberia.alfamen',
+    tiktok:          'https://www.tiktok.com/@barberia.alfamen',
     updatedAt:       TS(),
   }, { merge: true });
 
-  // Paleta Alfa Men: negro profundo + rojo vibrante + plateado
+  // Paleta Alfa Men: TEMA CLARO — tinta negra sobre blanco puro (identidad
+  // real del logo y wordmark). Espejo de la capa .tenant-alfamen del front.
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#0a0a0a',
-    colorSurface:       '#141414',
-    colorSurfaceAlt:    '#1c1c1c',
-    colorPrimary:       '#cc2222',
-    colorAccent:        '#e03030',
-    colorText:          '#f0f0f0',
-    colorMuted:         '#888888',
-    colorBorder:        'rgba(204,34,34,0.18)',
-    colorGlow:          'rgba(204,34,34,0.22)',
+    colorBg:            '#ffffff',
+    colorSurface:       '#f9fafb',
+    colorSurfaceAlt:    '#f3f4f6',
+    colorPrimary:       '#111111',
+    colorAccent:        '#111111',
+    colorText:          '#18181b',
+    colorMuted:         '#6b7280',
+    colorBorder:        'rgba(17,17,17,0.12)',
+    colorGlow:          'rgba(17,17,17,0.06)',
     colorButtonText:    '#ffffff',
-    colorProgressTrack: 'rgba(204,34,34,0.08)',
+    colorProgressTrack: 'rgba(17,17,17,0.08)',
     updatedAt:          TS(),
   }, { merge: true });
 
@@ -276,7 +321,7 @@ async function seedProfile() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function seed() {
   console.log('\n╔══════════════════════════════════════════════════╗');
-  console.log('║       Barbería Alfa Men (alfamen) — Seed         ║');
+  console.log('║   Alfa Men – Estética Masculina (alfamen) Seed   ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log(`Proyecto: barberia-elegance  |  Tenant: ${TENANT_ID}\n`);
 
@@ -288,11 +333,9 @@ async function seed() {
 
   console.log('\n✅ Seed completado con éxito.');
   console.log('\n⚠️  Pendientes:');
-  console.log('   · Confirmar precios reales de servicios con el cliente');
-  console.log('   · Reemplazar nombres de profesionales con el equipo real');
-  console.log('   · Agregar teléfono de administrador');
-  console.log('   · Subir logo (/alfamen.jpg) a Firebase Storage');
-  console.log('   · Confirmar horario completo (sábado solo hasta 18:00)');
+  console.log('   · Confirmar quién del equipo administra (rol jefe → Claudio por convención)');
+  console.log('   · Credenciales de acceso al panel para el equipo');
+  console.log('   · URL de reseñas de Google (googleReviewUrl en config.js)');
   process.exit(0);
 }
 

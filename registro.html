@@ -885,6 +885,37 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
+    /* ── OMEGA — sobrescribe el grafito Aura (#111827, con tinte azul) por
+       el negro puro #111111 de la marca. Sin este bloque los CTAs "CREAR
+       CUENTA" e "INGRESAR" y el subrayado del tab activo se ven navy sobre
+       el hueso, en vez del negro tinta que ya usa el resto de la marca. */
+    .tenant-omega.tenant-aura {
+      --gold: #111111 !important;
+    }
+    .tenant-omega.tenant-aura #heroClubTitle,
+    .tenant-omega.tenant-aura .tab-btn.active { color: #111111 !important; }
+    .tenant-omega.tenant-aura .tab-btn.active { border-bottom-color: #111111 !important; }
+    .tenant-omega.tenant-aura .btn-primary {
+      background: #111111 !important;
+      border-color: #111111 !important;
+    }
+    /* El botón lleva btn-primary + btn-cta-reserva. Mi override de btn-primary
+       (fondo negro sólido) pesa más que .btn-cta-reserva (transparent). Cuando
+       ambas coexisten, ES un outline por diseño: bg transparente + tinta. */
+    .tenant-omega.tenant-aura .btn-primary.btn-cta-reserva {
+      background: transparent !important;
+      border-color: #111111 !important;
+      color: #111111 !important;
+    }
+    .tenant-omega.tenant-aura .btn-cta-reserva {
+      border-color: #111111 !important;
+      color: #111111 !important;
+    }
+    .tenant-omega.tenant-aura .gold-divider {
+      background: linear-gradient(90deg, transparent, #111111, transparent) !important;
+    }
+    .tenant-omega.tenant-aura .field:focus { border-color: #111111 !important; }
+
     /* Passwordless por DEFAULT (todos los tenants): ocultamos los campos de
        contraseña y el enlace "¿Olvidaste tu contraseña?". El bloque de abajo
        (.show-password-fallback) los vuelve a mostrar solo cuando una cuenta
@@ -1351,6 +1382,61 @@
       background: rgba(224,224,224,0.06) !important;
       color: #ffffff !important;
       border-color: #C0C0C0 !important;
+    }
+
+    /* ══════════ BLOOD HABIB — B&N monocromático, acento plata ══════════
+       Mismo tratamiento que El Barbero Moderno (tema plata sobre negro),
+       pero manteniendo el logo circular (letrero blackletter recortado). */
+    .tenant-bloodhabib { --gold: #E5E5E5; --gold-dim: rgba(229,229,229,0.16); }
+    .tenant-bloodhabib body { background-color: #080808; }
+    .tenant-bloodhabib .ambient-glow { background: radial-gradient(circle, rgba(229,229,229,0.05) 0%, transparent 65%); }
+    .tenant-bloodhabib .logo-ring {
+      border: 2px solid rgba(229,229,229,0.35);
+      box-shadow: 0 0 0 1px rgba(229,229,229,0.08), 0 0 28px rgba(229,229,229,0.10), 0 0 50px rgba(229,229,229,0.04);
+    }
+    .tenant-bloodhabib .gold-divider {
+      background: linear-gradient(90deg, transparent, rgba(229,229,229,0.55), transparent);
+    }
+    .tenant-bloodhabib .tab-btn.active { color: #E5E5E5 !important; border-color: #E5E5E5 !important; }
+    .tenant-bloodhabib .field { background: #131313; border-color: rgba(255,255,255,0.10); }
+    .tenant-bloodhabib .field::placeholder { color: rgba(255,255,255,0.32); }
+    .tenant-bloodhabib .field:focus { border-color: #E5E5E5; box-shadow: 0 0 0 1px rgba(229,229,229,0.45); }
+    .tenant-bloodhabib input:-webkit-autofill,
+    .tenant-bloodhabib input:-webkit-autofill:hover,
+    .tenant-bloodhabib input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px #131313 inset !important; -webkit-text-fill-color: #ffffff !important; }
+    .tenant-bloodhabib .btn-primary {
+      background: #E5E5E5 !important;
+      border-color: #E5E5E5 !important;
+      color: #080808 !important;
+      box-shadow: 0 2px 20px rgba(229,229,229,0.14) !important;
+    }
+    .tenant-bloodhabib .btn-primary:hover {
+      background: #ffffff !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 4px 28px rgba(255,255,255,0.24) !important;
+    }
+    .tenant-bloodhabib .btn-google { background: #131313; border-color: rgba(255,255,255,0.10); color: #ffffff; }
+    .tenant-bloodhabib .btn-google:hover { background: #1a1a1a; border-color: rgba(255,255,255,0.20); }
+    .tenant-bloodhabib .spinner { border-top-color: #E5E5E5 !important; }
+    /* CTA "Continuar con mi reserva" viene con .btn-primary (fondo plata) +
+       .btn-cta-reserva: sin este override el texto plata queda sobre fondo
+       plata (invisible). Forzamos outline transparente, igual que el resto
+       de tenants oscuros con el mismo doble-clase. */
+    .tenant-bloodhabib .btn-cta-reserva {
+      background: transparent !important;
+      color: #E5E5E5 !important;
+      border: 2px solid rgba(229,229,229,0.35) !important;
+      box-shadow: none !important;
+    }
+    .tenant-bloodhabib #backLink,
+    .tenant-bloodhabib #backLinkText {
+      color: #E5E5E5 !important;
+      border-color: rgba(229,229,229,0.35) !important;
+    }
+    .tenant-bloodhabib .btn-cta-reserva:hover {
+      background: rgba(229,229,229,0.06) !important;
+      color: #ffffff !important;
+      border-color: #E5E5E5 !important;
     }
 
     .tenant-yugen { --gold: #f5f3ef; --gold-dim: rgba(245,243,239,0.16); }

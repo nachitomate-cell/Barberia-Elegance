@@ -160,16 +160,23 @@ const TENANT_CONFIG = {
     from:      'INFINITY STUDIO <citas@synaptechspa.cl>',
     dashboardUrl: 'https://infinity.synaptechspa.cl/dashboard',
   },
+  // Omega Studio · B&N sobre hueso en el front, pero el template de correo es
+  // dark: el negro de marca (#111) sería invisible sobre #1a1a1f. Se usa la
+  // misma receta que Blood Habib y Alfa Men (los otros B&N del sistema): header
+  // negro sólido + acento plata para que se lea. El champán #D4A96A anterior
+  // venía del slug muerto `omegastudio` y no existe en la identidad real.
   omega: {
-    nombre:    'OMEGA STUDIO',
-    slogan:    'Estudio atendido por profesionales',
-    direccion: 'Av. Valparaíso 595, Local 53, 2do Piso, Viña del Mar',
-    horario:   'Lun–Vie 10–20h · Sáb 10–18h',
-    color:     '#D4A96A',
-    instagram: 'https://www.instagram.com/omegastudio.cl/',
-    whatsapp:  '56972302811',
-    from:      'OMEGA STUDIO <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://omega.synaptechspa.cl/dashboard',
+    nombre:      'OMEGA STUDIO',
+    slogan:      'Estudio atendido por profesionales',
+    direccion:   'Av. Valparaíso 595, Local 53, 2do Piso, Viña del Mar',
+    horario:     'Lun–Vie 10–20h · Sáb 10–18h',
+    color:       '#E5E5E5',
+    darkHeader:  true,
+    headerBg:    '#0a0a0a',
+    instagram:   'https://www.instagram.com/omegastudio.cl/',
+    whatsapp:    '56972302811',
+    from:        'OMEGA STUDIO <citas@synaptechspa.cl>',
+    dashboardUrl:'https://omega.synaptechspa.cl/dashboard',
   },
   memphis: {
     nombre:    'Memphis Salón',
@@ -350,16 +357,22 @@ const TENANT_CONFIG = {
     from:        'The Latin Caribe <citas@synaptechspa.cl>',
     dashboardUrl:'https://thelatincaribe.synaptechspa.cl/dashboard',
   },
+  // Alfa Men – Estética Masculina · Viña del Mar. Marca B&N sobre blanco.
+  // El template de correo es dark, así que el acento no puede ser el #111
+  // del front (invisible sobre negro): se usa plata clara para contrastar,
+  // mismo criterio que Blood Habib (otro B&N). Header explícitamente negro.
+  // Datos reales sacados de AgendaPro (2026-08-05).
   alfamen: {
-    nombre:      'Barbería Alfa Men',
-    slogan:      'Aesthetics For Men · Since 2017',
-    direccion:   'Av. Valparaíso #694 L. 14, Viña del Mar',
+    nombre:      'Alfa Men',
+    slogan:      'Since 2017 · Aesthetics For Men',
+    direccion:   'Av. Valparaíso 694, Local 14, Viña del Mar',
     horario:     'Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00',
-    color:       '#DAA520',
+    color:       '#E5E5E5',
     darkHeader:  true,
-    instagram:   'https://www.instagram.com/barberia_alfa/',
-    whatsapp:    '',
-    from:        'Barbería Alfa Men <citas@synaptechspa.cl>',
+    headerBg:    '#0a0a0a',
+    instagram:   'https://www.instagram.com/barberia.alfamen',
+    whatsapp:    '56985773308',
+    from:        'Alfa Men <citas@synaptechspa.cl>',
     dashboardUrl:'https://alfamen.synaptechspa.cl/dashboard',
   },
   // Kronnos legacy — el tenant original antes de dividirse en

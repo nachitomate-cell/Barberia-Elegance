@@ -383,6 +383,35 @@
     .tenant-bloodhabib #aura-sobre-handle { background: rgba(229,229,229,0.30) !important; }
     .tenant-bloodhabib #aura-info-close,
     .tenant-bloodhabib #aura-sobre-close { background: #e5e5e5 !important; color: #080808 !important; }
+    /* ── Estados seleccionados en PLATA (pisan el dorado base de Elegance) ──
+       El bloque "Golden Booking Theme" pinta la selección con #D4AF37
+       !important para todos; sin estos overrides la card elegida, el barbero
+       y los radios se encienden dorados en un tema que no tiene dorado. */
+    .tenant-bloodhabib .service-option.border-neon {
+      border-color: #e5e5e5 !important;
+      box-shadow: 0 0 14px rgba(229,229,229,0.14) !important;
+    }
+    .tenant-bloodhabib .service-option.bg-brand-neon\/10 {
+      background-color: rgba(229,229,229,0.06) !important;
+    }
+    .tenant-bloodhabib .barber-option.border-neon {
+      border-color: #e5e5e5 !important;
+      box-shadow: 0 0 12px rgba(229,229,229,0.14) !important;
+    }
+    .tenant-bloodhabib .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(229,229,229,0.06) !important;
+    }
+    /* Radios: el template en fila los trae con borde dorado inline */
+    .tenant-bloodhabib .barber-radio { border-color: rgba(229,229,229,0.35) !important; }
+    .tenant-bloodhabib .barber-option.border-neon .barber-radio { border-color: #e5e5e5 !important; }
+    /* Estrella del rating del hero: ámbar → plata (tema sin dorados) */
+    .tenant-bloodhabib #heroGoogleBadge svg { fill: #e5e5e5 !important; }
+    /* Footer: etiquetas UBICACIÓN/HORARIO y sus cuadritos venían dorados inline */
+    .tenant-bloodhabib #footerContact .w-10.h-10[style] {
+      background: rgba(229,229,229,0.07) !important;
+      border-color: rgba(229,229,229,0.20) !important;
+    }
+    .tenant-bloodhabib #footerContact p.uppercase[style] { color: rgba(229,229,229,0.55) !important; }
 
     /* Gitana Nails Studio */
     .tenant-gitana {
@@ -3994,6 +4023,94 @@
     /* Secciones propias de Aura: el tenant no tiene ese contenido cargado
        (quienesSomos.activo = false) y salían vacías. Mismo criterio que Sion. */
     .tenant-omega.tenant-aura #aura-sobre-wrap { display: none !important; }
+
+    /* ── Alfa Men — tinta negra sobre blanco puro ─────────────────────────
+       Mismo tratamiento que Omega (tema CLARO de Aura + hero invertido a
+       claro), pero la base es #FFFFFF en vez de hueso: su logo (perfil B&N en
+       círculo) y su wordmark "ALFA MEN" oficiales son tinta negra sobre
+       blanco. Sin este bloque el hero mostraba /auralogin.png (la foto del
+       salón Aura). Hero tipográfico: nombre en mayúsculas con tracking amplio,
+       el gesto de la angular geométrica del wordmark. Toda la capa va con
+       doble clase .tenant-alfamen.tenant-aura por el empate de especificidad
+       con `:is(.tenant-aura,…)` (ver nota en el bloque de Omega). */
+    .tenant-alfamen.tenant-aura .booking-hero,
+    .tenant-alfamen .booking-hero {
+      background-image: none !important;
+      background-color: #FFFFFF !important;
+      border-bottom: 1px solid rgba(17,17,17,0.08) !important;
+    }
+    .tenant-alfamen.tenant-aura .booking-hero-overlay,
+    .tenant-alfamen .booking-hero-overlay { background: none !important; }
+    .tenant-alfamen.tenant-aura .booking-hero::after { display: none !important; }
+
+    /* Ring del logo: el markup trae background:#0a0a0a inline; el logo ya es
+       un círculo blanco con el perfil en tinta, así que el ring se funde en
+       blanco con borde sutil. */
+    .tenant-alfamen.tenant-aura .hero-logo-ring,
+    .tenant-alfamen .hero-logo-ring {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: none !important;
+      animation: none !important;
+    }
+    .tenant-alfamen.tenant-aura #heroGoogleBadge {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: 0 1px 3px rgba(17,17,17,0.06) !important;
+    }
+    .tenant-alfamen.tenant-aura #progressBar { background: #111111 !important; }
+    .tenant-alfamen.tenant-aura #shopNombre {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+      color: #111111 !important;
+      font-size: 1.45rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.24em !important;
+      text-transform: uppercase !important;
+      text-shadow: none !important;
+      text-indent: 0.24em !important;
+    }
+    .tenant-alfamen.tenant-aura .gold-divider,
+    .tenant-alfamen .gold-divider {
+      background: #111111 !important;
+      background-image: none !important;
+      width: 34px !important;
+      height: 1px !important;
+      opacity: 0.55 !important;
+      margin: 14px auto !important;
+      box-shadow: none !important;
+    }
+    .tenant-alfamen.tenant-aura .booking-hero p,
+    .tenant-alfamen.tenant-aura .booking-hero span,
+    .tenant-alfamen.tenant-aura #shopSlogan {
+      color: #6B7280 !important;
+      text-shadow: none !important;
+      animation: none !important;
+    }
+    .tenant-alfamen.tenant-aura #heroBadgeRating { color: #111111 !important; }
+    .tenant-alfamen.tenant-aura #heroBadgeCount  { color: #6B7280 !important; }
+    .tenant-alfamen.tenant-aura .booking-hero .text-white,
+    .tenant-alfamen.tenant-aura .booking-hero .text-white\/70,
+    .tenant-alfamen.tenant-aura .booking-hero .text-white\/50 { color: #6B7280 !important; }
+    .tenant-alfamen.tenant-aura .booking-hero button[onclick="goBack()"] {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: none !important;
+    }
+
+    /* Banda de datos bajo el hero en negro de marca (corte entre hero blanco
+       y cuerpo claro). El `[style]` es por la regla `.info-strip[style]` de
+       Aura — misma pelea de especificidad que documenta el bloque de Omega. */
+    .tenant-alfamen.tenant-aura .info-strip,
+    .tenant-alfamen.tenant-aura .info-strip[style] {
+      background: #111111 !important;
+      border-bottom-color: rgba(255,255,255,0.10) !important;
+    }
+    .tenant-alfamen.tenant-aura .info-strip i,
+    .tenant-alfamen.tenant-aura .info-strip i[style] { color: #A1A1AA !important; }
+
+    /* "Quiénes Somos" ya sale por el .qs-btn común del info-strip; el wrap de
+       Aura duplicaba el botón y no hay fotos de "Información" cargadas. */
+    .tenant-alfamen.tenant-aura #aura-sobre-wrap { display: none !important; }
 
     /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
        se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
@@ -10569,7 +10686,9 @@
 
       const recommendations = avail.slice(0, 3);
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
-      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
+      // bloodhabib comparte la rama BM: mismo esquema plata-sobre-negro,
+      // el default de abajo es el bloque dorado de Elegance.
+      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno' || window.CURRENT_TENANT_ID === 'bloodhabib');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
 
       if (isInfinity) {
@@ -10731,7 +10850,7 @@
       }
 
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion');
-      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
+      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno' || window.CURRENT_TENANT_ID === 'bloodhabib');
       const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
       const isRenacer = (window.CURRENT_TENANT_ID === 'renacer');
 
@@ -11046,7 +11165,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'bloodhabib';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
@@ -11187,7 +11306,7 @@
                 </div>
               </button>`;
           } else if (_useRowLayout) {
-            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'omegastudio' ? 'rgba(212,169,106,0.40)' : window.CURRENT_TENANT_ID === 'latincaribe' ? 'rgba(53,221,230,0.40)' : window.CURRENT_TENANT_ID === 'yugen' ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'latincaribe' ? 'rgba(53,221,230,0.40)' : window.CURRENT_TENANT_ID === 'yugen' ? 'rgba(245,243,239,0.4)' : window.CURRENT_TENANT_ID === 'bloodhabib' ? 'rgba(229,229,229,0.35)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
@@ -11780,7 +11899,7 @@
       // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
       // líneas. La rama default (abajo) los deja como hermanos sueltos del
       // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || window.CURRENT_TENANT_ID === 'bloodhabib';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || window.CURRENT_TENANT_ID === 'bloodhabib';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -12159,6 +12278,7 @@
           : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)'
           : _isBcSel ? '#525252'
           : _isRenacerSel ? '#525252'
+          : window.CURRENT_TENANT_ID === 'bloodhabib' ? 'rgba(229,229,229,0.35)'
           : 'rgba(212,175,55,0.4)';
         if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioBorderUnsel; }
         const chk = el.querySelector('.barber-check');
@@ -12185,6 +12305,7 @@
         : _isChameleonSel ? '#c9a84c'
         : _isBcSel ? '#eab308'
         : _isRenacerSel ? '#F59E0B'
+        : window.CURRENT_TENANT_ID === 'bloodhabib' ? '#E5E5E5'
         : '#D4AF37';
       if (selRadio) { selRadio.style.background = _radioFill; selRadio.style.borderColor = _radioFill; }
       // Check dentro del radio visible solo en tenants que sí muestran el ícono
@@ -13428,7 +13549,10 @@
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
-      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion');
+      // `omega` va acá y no en su propia rama: hereda el tema claro de Aura por
+      // _themeAlias, así que el estado seleccionado correcto es el de esta familia
+      // (sin glow dorado; el radio lo pinta el CSS de .tenant-aura con !important).
+      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega');
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
@@ -13444,6 +13568,7 @@
         || window.CURRENT_TENANT_ID === 'memphis'
         || window.CURRENT_TENANT_ID === 'delnero'
         || window.CURRENT_TENANT_ID === 'yugen'
+        || window.CURRENT_TENANT_ID === 'bloodhabib'
         // Mismo estándar que en la selección de servicio: los tenants dinámicos
         // (self-service y alta express) nacen con la ficha en FILA —foto
         // circular, días de atención, selector a la derecha—, derivado de la
@@ -13451,8 +13576,9 @@
         || document.documentElement.classList.contains('tenant-selfservice');
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
-      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#737373' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isBc ? '#eab308' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
+      const _isBlood    = window.CURRENT_TENANT_ID === 'bloodhabib';
+      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#737373' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : _isBlood ? 'rgba(229,229,229,0.35)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isBc ? '#eab308' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : _isBlood ? '#E5E5E5' : '#D4AF37';
 
       // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
       // Se reutilizan en modo single y en multi (cuando hay que pintar varios).
@@ -13476,7 +13602,7 @@
       const _setSel = (el) => {
         el.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
         if (!_isGitana && !_useRowSel) el.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-        if (_useRowSel) el.style.boxShadow = _isMapu || _isAura || _isKronnos || _isYugen ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
+        if (_useRowSel) el.style.boxShadow = _isMapu || _isAura || _isKronnos || _isYugen || _isBlood ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
         el.classList.replace('border-brand-accent/20', 'border-neon');
         el.classList.remove('border');
         const selIconBg = el.querySelector('.icon-bg');
@@ -13640,6 +13766,7 @@
         kronnos_woman:      { bg: '#ec4899', cl: '#ffffff', sh: '0 0 14px rgba(236,72,153,0.45)' },
         elbarberomoderno:   { bg: '#E0E0E0', cl: '#000000', sh: '0 0 14px rgba(224,224,224,0.28)' },
         renacer:            { bg: '#1E2C55', cl: '#ffffff', sh: '0 4px 14px rgba(30,44,85,0.30)' },
+        bloodhabib:         { bg: '#E5E5E5', cl: '#080808', sh: '0 0 14px rgba(229,229,229,0.28)' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
@@ -14324,11 +14451,11 @@
                     <p class="text-[10px] text-gray-500 font-semibold">por visita</p>
                   </div>
                   <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
-                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' ? '<i class="ph-fill ph-scissors"></i>' : _clubEmoji}</p>
+                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'bloodhabib' ? '<i class="ph-fill ph-scissors"></i>' : _clubEmoji}</p>
                     <p class="text-[10px] text-gray-500 font-semibold">gratis</p>
                   </div>
                   <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
-                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' ? '<i class="ph-fill ph-gift"></i>' : '🎁'}</p>
+                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'bloodhabib' ? '<i class="ph-fill ph-gift"></i>' : '🎁'}</p>
                     <p class="text-[10px] text-gray-500 font-semibold">premios</p>
                   </div>
                 </div>

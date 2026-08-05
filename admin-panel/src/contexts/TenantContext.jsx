@@ -35,7 +35,13 @@ export const TENANT_META = {
   // (#F57808, el mismo que traía su ficha de AgendaPro). NO confundir con
   // `sionbarberia`, que es Studio Dieciséis.
   sion:               { name: 'Sion Barbería', accent: 'orange', emoji: '💈', logo: '/sion.png', banner: '/sion/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Barbería' } },
+  // Blood Habib · Viña del Mar (recreado desde Weibook 2026-08-03). Acento
+  // zinc: su marca es el letrero blackletter blanco/negro, sin color.
+  bloodhabib:         { name: 'Blood Habib', accent: 'zinc', emoji: '✂️', logo: '/bloodhabib/logo.webp', banner: '/bloodhabib/banner.webp', brand: { hex: '#E5E5E5', sede: 'Viña del Mar', tagline: 'Barbería' } },
   restodemo:          { name: 'Restaurante Demo', accent: 'orange', emoji: '🍴', logo: '/restodemo/logo.jpg', tipo: 'restaurante' },
+  // Alfa Men (Viña del Mar). Acento zinc: identidad B&N tinta sobre blanco
+  // (mismo criterio que Omega). Banner = wordmark oficial.
+  alfamen:            { name: 'Alfa Men', accent: 'zinc', emoji: '💈', logo: '/alfamen/logo.png', banner: '/alfamen/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Estética Masculina' } },
 };
 
 const TenantContext = createContext(null);

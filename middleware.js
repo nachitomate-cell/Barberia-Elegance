@@ -1367,44 +1367,64 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=memphis',
     },
   },
+  // Alfa Men — datos reales desde su AgendaPro (2026-08-05). Tema CLARO
+  // blanco + tinta negra (alias de Aura en config.js): el theme-color
+  // acompaña el fondo blanco del sitio/PWA; el negro queda para el panel.
   alfamen: {
     booking: {
-      title:       'Barbería Alfa Men | Agenda tu hora',
-      description: 'Reserva tu hora en Barbería Alfa Men, Av. Valparaíso #694 L. 14, Viña del Mar. Since 2017 · Aesthetics For Men.',
-      ogTitle:     'Agendar Hora | Barbería Alfa Men',
-      ogDesc:      'Reserva tu hora en Barbería Alfa Men. Since 2017 · Aesthetics For Men.',
+      title:       'Alfa Men – Estética Masculina | Agenda tu hora',
+      description: 'Reserva tu hora en Alfa Men, Av. Valparaíso 694, Local 14, Viña del Mar. Cortes de precisión, fades, barba y limpieza facial. Since 2017.',
+      ogTitle:     'Agendar Hora | Alfa Men',
+      ogDesc:      'Reserva tu hora en Alfa Men – Estética Masculina. Since 2017 · Aesthetics For Men.',
     },
     dashboard: {
       title:       'Mi Club | Alfa Men',
-      description: 'Tu panel personal en Barbería Alfa Men. Revisa tus sellos, canjea premios y actualiza tu perfil.',
+      description: 'Tu panel personal en el Club Alfa Men. Revisa tus sellos, canjea premios y actualiza tu perfil.',
       ogTitle:     'Mi Club | Alfa Men',
       ogDesc:      'Club Alfa Men. Acumula sellos y canjea premios.',
     },
     registro: {
       title:       'Únete al Club Alfa Men',
-      description: 'Crea tu cuenta en Barbería Alfa Men. Acumula sellos y canjea premios.',
+      description: 'Crea tu cuenta en Alfa Men. Acumula sellos y canjea premios.',
       ogTitle:     'Únete al Club Alfa Men',
-      ogDesc:      'Regístrate en Barbería Alfa Men y disfruta de beneficios exclusivos.',
+      ogDesc:      'Regístrate en Alfa Men y disfruta de beneficios exclusivos.',
     },
-    siteName:    'Barbería Alfa Men',
-    ogImage:     '/icons/icon-512.png',   // PENDIENTE: logo real del local
-    themeColor:  '#0a0a0a',
+    siteName:    'Alfa Men – Estética Masculina',
+    // OG 1200x630: el wordmark oficial centrado sobre blanco (webp no rinde
+    // en todas las tarjetas de WhatsApp/FB — mismo criterio que Omega).
+    ogImage:     '/alfamen/og.png',
+    themeColor:  '#ffffff',
     appTitle:    'Alfa Men',
-    icon:        '/icons/icon-512.png',   // PENDIENTE: logo real del local
-    local: { telephone: '', streetAddress: 'Av. Valparaíso #694 L. 14', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', instagram: 'https://www.instagram.com/barberia_alfa/' },
+    icon:        '/alfamen/logo.png',
+    iconPwa192:  '/icons/pwa/alfamen-192.png',
+    iconPwa512:  '/icons/pwa/alfamen-512.png',
+    local: {
+      telephone:       '+56985773308',
+      streetAddress:   'Av. Valparaíso 694, Local 14',
+      addressLocality: 'Viña del Mar',
+      schemaType:      'HairSalon',
+      instagram:       'https://www.instagram.com/barberia.alfamen',
+      ratingGeneral:   5.0,
+      totalReviews:    173,
+    },
     manifest: {
-      name:             'Barbería Alfa Men',
+      name:             'Alfa Men – Estética Masculina',
       short_name:       'Alfa Men',
-      theme_color:      '#0a0a0a',
-      background_color: '#0a0a0a',
+      theme_color:      '#ffffff',
+      background_color: '#ffffff',
     },
     adminManifest: {
       name:             'Panel Admin · Alfa Men',
       short_name:       'Alfa Men',
-      description:      'Panel de administración — Barbería Alfa Men',
-      theme_color:      '#10b981',
-      background_color: '#0f172a',
+      description:      'Panel de administración — Alfa Men',
+      theme_color:      '#111111',
+      background_color: '#ffffff',
       start_url:        '/gestion-interna/?local=alfamen',
+      icons: [
+        { src: '/alfamen/logo.png',            sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
     },
   },
   deluxeperfumes: {

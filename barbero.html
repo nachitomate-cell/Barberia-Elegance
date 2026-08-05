@@ -492,6 +492,26 @@
     #barberHero #barberEspecialidad { color: rgba(255,255,255,0.92) !important; }
     #barberPhotoWrap { background: #111 !important; }
 
+    /* ── Alfa Men: hero de ficha en blanco, texto en tinta ──
+       Su heroBanner es el WORDMARK "ALFA MEN" (tinta negra sobre blanco), no
+       una foto del local: con object-fit:cover + overlay oscuro quedaban
+       letras gigantes recortadas y en penumbra (la misma trampa que documenta
+       Omega en dashboard.css). Acá el hero se invierte a la identidad real:
+       superficie blanca, wordmark completo como marca de agua y texto en
+       tinta — el espejo del hero claro del index. */
+    .tenant-alfamen #barberHero { background-color: #FFFFFF !important; border-bottom: 1px solid rgba(17,17,17,0.08); }
+    .tenant-alfamen #barberHeroImg {
+      object-fit: contain !important;
+      object-position: center !important;
+      padding: 26px 40px;
+      opacity: 0.07;
+    }
+    .tenant-alfamen #barberHero::before { background: none !important; }
+    .tenant-alfamen #barberHero #shopNameLabel      { color: rgba(17,17,17,0.55) !important; }
+    .tenant-alfamen #barberHero #barberName         { color: #111111 !important; text-shadow: none !important; }
+    .tenant-alfamen #barberHero #barberEspecialidad { color: rgba(17,17,17,0.72) !important; }
+    .tenant-alfamen #barberPhotoWrap { background: #F3F4F6 !important; }
+
     /* Barra de progreso */
     :is(.tenant-aura,.tenant-latincaribe,.theme-light,.tenant-infinity,.tenant-renacer) #progressTrack { background: #E5E7EB !important; }
     :is(.tenant-aura,.tenant-latincaribe,.theme-light,.tenant-infinity,.tenant-renacer) #progressPercentage { color: #6B7280 !important; }
@@ -2443,6 +2463,7 @@
         delnero:       { r:57,  g:255, b:20  },  // #39ff14 verde neón
         lumen:         { r:212, g:175, b:55  },  // #D4AF37
         omega:         { r:17,  g:17,  b:17  },  // #111111 negro de marca (igual al index)
+        alfamen:       { r:17,  g:17,  b:17  },  // #111111 tinta sobre blanco (igual al index)
         memphis:       { r:217, g:220, b:225 },  // #D9DCE1
         elbarberomoderno: { r:192, g:192, b:192 }, // #C0C0C0
         marcelo_hairdressing: { r:255, g:255, b:255 }, // #ffffff

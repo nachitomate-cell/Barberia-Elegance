@@ -92,6 +92,11 @@
     // _lightTenants (default global es dark; sin este par el tenant salía
     // dark estilo Elegance).
     sion:         'aura',
+    // Alfa Men reutiliza el tema CLARO de Aura con capa propia B&N sobre
+    // blanco puro (mismo tratamiento que Omega, que va sobre hueso): su logo
+    // y su wordmark oficiales son tinta negra sobre blanco. Va también en
+    // _lightTenants.
+    alfamen:      'aura',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -100,7 +105,7 @@
   // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
   // por modo (ej: el buscador de servicios en index.html / barbero.html).
   // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
-  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega', 'sion'];
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega', 'sion', 'alfamen'];
 
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
@@ -987,28 +992,43 @@
         { nombre: 'Benjamín Ordenes', foto: '/bloodhabib/equipo/benjamin-ordenes.webp', disponible: true },
       ],
     },
+    // Alfa Men – Estética Masculina · Viña del Mar — datos reales desde su
+    // AgendaPro (alfamen.site.agendapro.com/cl/sucursal/56554, 2026-08-05).
+    // Tema CLARO blanco + tinta negra (alias de Aura + capa propia B&N en
+    // index.html, ver _themeAlias): logo y wordmark oficiales son tinta negra
+    // sobre blanco puro. Mismo tratamiento que Omega pero sobre #FFFFFF.
     alfamen: {
-      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Extras'],
-      nombre:          'Barbería Alfa Men',
+      categoriasServicio: ['Cortes', 'Barba', 'Promociones', 'Tratamientos', 'Otros'],
+      nombre:          'Alfa Men',
       nombreCorto:     'Alfa Men',
-      pageTitle:       'Barbería Alfa Men | Agenda tu hora',
+      pageTitle:       'Alfa Men – Estética Masculina | Agenda tu hora',
       slogan:          'Since 2017 · Aesthetics For Men',
-      logo:            '/alfamen.jpg',
-      direccion:       '📍 Av. Valparaíso #694 L. 14 | Viña del Mar',
-      horario:         '🕒 Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00',
-      telefono:        '',
+      sobreNosotros:   '#SomosAlfa<br><br>Alfa Men es un salón especializado en estética masculina, ubicado en el corazón de Viña del Mar. Contamos con un equipo profesional altamente capacitado, enfocado en ofrecer cortes de precisión, fades definidos, perfilados, limpieza facial y servicios de barbería de alto nivel.<br><br>Ofrecemos atención personalizada, un ambiente cómodo y productos premium para garantizar una experiencia superior en cada visita.<br><br>Desde 2017 entregando estilo, calidad y excelencia.',
+      logo:            '/alfamen/logo.png',
+      heroBanner:      '/alfamen/banner.webp',
+      direccion:       '📍 Av. Valparaíso 694, Local 14 | Viña del Mar',
+      horario:         '🕒 Lun–Vie: 10–20h · Sáb: 10–18h · Dom: cerrado',
+      telefono:        '+56985773308',
       club:            'Club Alfa Men',
-      instagram:       'https://www.instagram.com/barberia_alfa/',
-      instagramHandle: '@barberia_alfa',
+      // Tagline real de su ficha AgendaPro ("Tu mejor versión comienza aquí.")
+      heroLine1:       'Tu mejor versión',
+      heroLine2:       'comienza aquí.',
+      headerInlineText:'ALFA MEN',
+      instagram:       'https://www.instagram.com/barberia.alfamen',
+      instagramHandle: '@barberia.alfamen',
       waEmoji:         '💈',
       googleReviewUrl: '',
-      ratingGeneral:   0,
-      totalReviews:    0,
+      // 5.0 con 173 reseñas reales en su AgendaPro, pero casi todas sin texto:
+      // se dejan vacías a propósito (mismo criterio que Omega). El hero igual
+      // muestra promedio y conteo.
+      ratingGeneral:   5.0,
+      totalReviews:    173,
       reviews:         [],
       barberos: [
-        { nombre: 'Profesional 1', foto: null, disponible: true },
-        { nombre: 'Profesional 2', foto: null, disponible: true },
-        { nombre: 'Profesional 3', foto: null, disponible: true },
+        { nombre: 'Claudio Iglesias',  foto: '/alfamen/equipo/claudio-iglesias.webp',  disponible: true },
+        { nombre: 'Ziggy',             foto: '/alfamen/equipo/ziggy.webp',             disponible: true },
+        { nombre: 'Sebastián Ignacio', foto: '/alfamen/equipo/sebastian-ignacio.webp', disponible: true },
+        { nombre: 'Pablo Silva',       foto: '/alfamen/equipo/pablo-silva.webp',       disponible: true },
       ],
     },
     memphis: {

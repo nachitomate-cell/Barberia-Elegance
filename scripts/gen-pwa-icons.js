@@ -60,9 +60,15 @@ const TENANTS = {
   // Sion Barbería (Viña) — logo scrapeado del mini-site AgendaPro. Fondo
   // matchea themeColor #2C3941 del middleware.
   sion:                 { src: 'sion.png',                        bg: '#2C3941' },
-  // Blood Habib: el logo es el letrero blackletter recortado de la fachada,
-  // ya montado sobre negro → 'cover' para que llene el ícono sin doble marco.
-  bloodhabib:           { src: 'bloodhabib/logo.png',             bg: '#080808', fit: 'cover' },
+  // Blood Habib: el letrero blackletter viene recortado de la fachada en un
+  // 1024x1024 con muchísimo relleno negro arriba y abajo. Sin trim, `cover` o
+  // `contain` dejaban el wordmark como una banda diminuta en el centro del
+  // ícono. `trim: true` recorta el negro fuera del wordmark antes del contain
+  // → el letrero llena ~80% del ícono con el negro del safe zone alrededor.
+  bloodhabib:           { src: 'bloodhabib/logo.png',             bg: '#080808', trim: true },
+  // Alfa Men: perfil B&N en círculo blanco (AgendaPro). Fondo blanco de marca
+  // — matchea el theme_color #ffffff del manifest (tenant claro).
+  alfamen:              { src: 'alfamen/logo.png',                bg: '#ffffff' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.
@@ -79,13 +85,18 @@ const SIZES = [192, 512];
   fs.mkdirSync(OUT, { recursive: true });
   let ok = 0, fail = 0;
 
-  for (const [tenant, { src, bg, fit }] of Object.entries(TENANTS)) {
+  for (const [tenant, { src, bg, fit, trim }] of Object.entries(TENANTS)) {
     const srcPath = path.join(ROOT, src);
     if (!fs.existsSync(srcPath)) {
       console.error(`✗ ${tenant}: falta ${src}`);
       fail++;
       continue;
     }
+    // Fuente ya recortada (una sola vez por tenant): evita repetir el trim
+    // en cada size y da un buffer estable para el composite.
+    const preparedSrc = trim
+      ? await sharp(srcPath).trim({ threshold: 20 }).toBuffer()
+      : null;
     for (const size of SIZES) {
       if (fit === 'cover') {
         await sharp(srcPath)
@@ -96,7 +107,7 @@ const SIZES = [192, 512];
       }
       // Safe zone maskable: logo al 80% del canvas, centrado sobre bg.
       const content = Math.round(size * 0.8);
-      const logo = await sharp(srcPath)
+      const logo = await sharp(preparedSrc || srcPath)
         .resize(content, content, { fit: 'contain', background: bg })
         .toBuffer();
       await sharp({

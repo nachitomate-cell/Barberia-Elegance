@@ -336,6 +336,108 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ══════════ BLOOD HABIB — B&N monocromático, acento plata ══════════
+       Mismo esquema que El Barbero Moderno (plata sobre negro puro), con la
+       foto real del local como hero. La marca es el letrero blackletter
+       plata sobre negro de Calle Quinta 323 — sin dorados, sin glow cálido. */
+    .tenant-bloodhabib {
+      --gold:      #E5E5E5;
+      --gold-dim:  rgba(229,229,229,0.22);
+      --gold-glow: rgba(229,229,229,0.08);
+    }
+    html.tenant-bloodhabib body { background-color: #080808; }
+    .tenant-bloodhabib header {
+      background-color: rgba(8,8,8,0.96) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
+    .tenant-bloodhabib #authGuard { background: #080808 !important; }
+    /* La foto de la fachada ya trae el letrero "Blood Habib" horneado, y el
+       título del hero es "Blood Habib" — sin tratamiento salen DOS wordmarks
+       superpuestos. Ponemos la foto en un ::before para poder blurearla sin
+       afectar al título, y le sumamos un overlay más denso encima. */
+    .tenant-bloodhabib .hero-bg {
+      background: #080808 !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .tenant-bloodhabib .hero-bg::before {
+      content: '';
+      position: absolute;
+      inset: -12px; /* margen extra: el blur no deja ver bordes vacíos */
+      background-image: url('/bloodhabib/banner.webp');
+      background-size: cover;
+      background-position: center 40%;
+      filter: blur(10px) brightness(0.45) grayscale(0.4);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .tenant-bloodhabib .hero-overlay {
+      background: linear-gradient(160deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.70) 45%, rgba(0,0,0,0.92) 100%) !important;
+      z-index: 10;
+    }
+    .tenant-bloodhabib .hero-glow-spot {
+      background: radial-gradient(circle, rgba(229,229,229,0.08) 0%, transparent 65%) !important;
+    }
+    .tenant-bloodhabib #heroLine1 {
+      color: #ffffff !important;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.7) !important;
+    }
+    .tenant-bloodhabib #heroLine2 {
+      color: #E5E5E5 !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.6) !important;
+    }
+    .tenant-bloodhabib .hero-cta {
+      background: rgba(0,0,0,0.55) !important;
+      border-color: rgba(229,229,229,0.35) !important;
+      box-shadow: 0 0 20px rgba(229,229,229,0.10) !important;
+    }
+    .tenant-bloodhabib .hero-cta i,
+    .tenant-bloodhabib .hero-cta span { color: #E5E5E5 !important; }
+    .tenant-bloodhabib #stampsBar {
+      box-shadow: 0 0 10px rgba(229,229,229,0.28) !important;
+      background: linear-gradient(90deg, #8A8A8A, #C0C0C0, #E5E5E5) !important;
+    }
+    .tenant-bloodhabib .stamp-cell.filled {
+      background: #E5E5E5 !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
+    }
+    .tenant-bloodhabib .stamp-cell.filled i { color: #080808 !important; }
+    .tenant-bloodhabib .premio-icon { color: rgba(229,229,229,0.7) !important; }
+    .tenant-bloodhabib .text-gold   { color: #E5E5E5 !important; text-shadow: none !important; }
+    .tenant-bloodhabib .border-gold { border-color: rgba(229,229,229,0.35) !important; box-shadow: none !important; }
+    .tenant-bloodhabib .membership-glow {
+      background: radial-gradient(circle, rgba(229,229,229,0.04) 0%, transparent 70%) !important;
+    }
+    .tenant-bloodhabib #membershipWatermark { color: rgba(229,229,229,0.05) !important; }
+    .tenant-bloodhabib #perfilIncompletoAviso {
+      background: rgba(229,229,229,0.06) !important;
+      border-color: rgba(229,229,229,0.28) !important;
+    }
+    .tenant-bloodhabib #perfilIncompletoAviso i,
+    .tenant-bloodhabib #perfilIncompletoMsg { color: rgba(229,229,229,0.90) !important; }
+    .tenant-bloodhabib input:focus {
+      border-color: #E5E5E5 !important;
+      --tw-ring-color: rgba(229,229,229,0.35) !important;
+      box-shadow: 0 0 0 1px rgba(229,229,229,0.35) !important;
+    }
+    .tenant-bloodhabib #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(229,229,229,0.05), rgba(229,229,229,0.02)) !important;
+      border-color: rgba(229,229,229,0.18) !important;
+      box-shadow: none !important;
+    }
+    .tenant-bloodhabib .pwa-icon-bg {
+      background: rgba(229,229,229,0.08) !important;
+      border-color: rgba(229,229,229,0.20) !important;
+      box-shadow: none !important;
+    }
+    /* Chat FAB (esquina inferior derecha): el markup lo pinta dorado inline. */
+    .tenant-bloodhabib #chatToggleBtn[style] {
+      background: #E5E5E5 !important;
+    }
+    .tenant-bloodhabib #chatToggleBtn svg { fill: #080808 !important; }
+    /* ────────────────────────────────────────────────────────── */
+
     /* ── Chameleon Barber Studio — Dark Premium ─────────────────── */
     .tenant-chameleon {
       --gold:      #DAA520;
@@ -5187,6 +5289,108 @@
 
     .tenant-omega.tenant-aura #rangosExplainerAura,
     .tenant-omega.tenant-aura #planesAnualesAura { display: none !important; }
+
+    /* Aura pinta TODO su acento con navy #00285E (variable --gold + reglas con
+       :is() para chips, botones, tabs, tier-badges y el chat flotante). Sin
+       este remap el club de Omega mostraba SILVER rosáceo, "Activar" y "Ver
+       premios" en navy y el trofeo del próximo premio dorado — nada calzaba
+       con la tinta negra de marca. La doble clase gana sobre la regla :is()
+       de Aura sin tocar código de otros tenants. */
+    .tenant-omega.tenant-aura {
+      --gold:      #111111 !important;
+      --gold-dim:  rgba(17,17,17,0.08) !important;
+      --gold-glow: rgba(17,17,17,0.12) !important;
+    }
+    .tenant-omega.tenant-aura #shopHeaderName,
+    .tenant-omega.tenant-aura #shopClubName,
+    .tenant-omega.tenant-aura #tabProductos h2,
+    .tenant-omega.tenant-aura .nav-tab.active .nav-label,
+    .tenant-omega.tenant-aura #sellosOnboarding i { color: #111111 !important; }
+    .tenant-omega.tenant-aura #notifBannerActivar { background: #111111 !important; }
+    .tenant-omega.tenant-aura button[onclick="togglePremios()"] {
+      color: #111111 !important;
+      border-color: #111111 !important;
+    }
+    .tenant-omega.tenant-aura .tier-badge.gold,
+    .tenant-omega.tenant-aura .tier-badge.platinum,
+    .tenant-omega.tenant-aura .tier-badge.silver {
+      color: #111111 !important;
+      border-color: rgba(17,17,17,0.28) !important;
+    }
+    /* Chat flotante: gradiente navy-azul → tinta sólida. Aura pinta el FAB
+       #chatToggleBtn con gradiente navy y el botón de enviar con el mismo
+       gradiente; ambos van a tinta. El markup del FAB tiene `style="background:
+       #D4AF37"` inline, así que hay que ganarle con `[style]`. */
+    .tenant-omega.tenant-aura #chatToggleBtn,
+    .tenant-omega.tenant-aura #chatToggleBtn[style] {
+      background: #111111 !important;
+      background-image: none !important;
+    }
+    .tenant-omega.tenant-aura button[onclick="sendChatMessage()"] {
+      background: #111111 !important;
+      background-image: none !important;
+    }
+    /* Trofeo del "Próximo premio": el ícono se pinta dorado por dos vías —
+       `text-yellow-600` (utility) en la vista principal (~L410) y un inline
+       `style="color:#D4AF37"` en el hero (~L1217). Ambos se llevan a tinta. */
+    .tenant-omega.tenant-aura .premio-icon,
+    .tenant-omega.tenant-aura .ph-trophy,
+    .tenant-omega.tenant-aura i.ph-trophy[style*="D4AF37"] { color: #111111 !important; }
+
+
+    /* ══════════════════════════════════════════════════════════════
+       ALFA MEN — ajustes sobre el tema claro heredado de Aura.
+       Mismo tratamiento que Omega (recibe `tenant-aura` por
+       _themeAlias) pero sobre BLANCO PURO: su logo y su wordmark son
+       tinta negra sobre #FFFFFF. Su heroBanner también es un wordmark
+       (no una foto), así que el hero del club es una superficie
+       blanca limpia con la frase de marca en tinta.
+    ══════════════════════════════════════════════════════════════ */
+
+    .tenant-alfamen.tenant-aura {
+      --gold:      #111111;
+      --gold-dim:  rgba(17,17,17,0.15);
+      --gold-glow: rgba(17,17,17,0.04);
+      --accent:    #111111;
+      --accent-r: 17; --accent-g: 17; --accent-b: 17;
+      --neon-clr:  #111111;
+      --neon-r:   17; --neon-g:   17; --neon-b:   17;
+    }
+
+    .tenant-alfamen.tenant-aura .hero-bg {
+      background-color: #FFFFFF !important;
+      background-image: none !important;
+      border: 1px solid rgba(17,17,17,0.08) !important;
+    }
+    .tenant-alfamen.tenant-aura .hero-bg::before {
+      background-image: none !important;
+      animation: none !important;
+    }
+    .tenant-alfamen.tenant-aura .hero-overlay,
+    .tenant-alfamen.tenant-aura .hero-glow-spot { background: none !important; }
+
+    /* "Tu mejor versión" / "comienza aquí." — tagline real del local. */
+    .tenant-alfamen.tenant-aura #heroLine1 {
+      color: #111111 !important;
+      text-shadow: none !important;
+    }
+    .tenant-alfamen.tenant-aura #heroLine2 {
+      color: #6B7280 !important;
+      font-style: normal !important;
+      text-shadow: none !important;
+    }
+    .tenant-alfamen.tenant-aura .hero-cta {
+      background: #111111 !important;
+      border: 1px solid #111111 !important;
+      color: #FFFFFF !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-alfamen.tenant-aura .hero-cta i { color: #FFFFFF !important; }
+
+    .tenant-alfamen.tenant-aura #rangosExplainerAura,
+    .tenant-alfamen.tenant-aura #planesAnualesAura { display: none !important; }
 
 
     /* ═══════════════════════════════════════════════════════════════════════
