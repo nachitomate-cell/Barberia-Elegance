@@ -129,6 +129,13 @@ const MAX_RESP_CHAT_DIA = 15;
 // Cuesta unos segundos de latencia; sale mucho más barato que contestar dos
 // veces cosas que se contradicen.
 const ESPERA_RAFAGA_MS = 7000;
+// La cola caduca: si la corrida que la iba a consumir murió (timeout, red,
+// error del modelo) los textos quedan ahí, y sin vencimiento el próximo
+// mensaje del cliente —horas o días después— arrastraría esa conversación
+// vieja como si fuera parte de su turno.
+const VIGENCIA_RAFAGA_MS = 3 * 60 * 1000;
+// Y tiene tope: sin esto, quien mande 50 mensajes infla el doc y el prompt.
+const MAX_COLA_RAFAGA = 8;
 
 /** Lista los servicios activos del local (para el prompt + para validar al agendar).
  *  Orden ALFABÉTICO estable: el catálogo viaja dentro del bloque cacheado del
@@ -1965,9 +1972,13 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
      El estado vive en el doc del chat, no en memoria: entre dos webhooks no
      hay proceso compartido. */
   const miTurno = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const entradaRafaga = { txt: textoClaude, at: Date.now(), id: String(msgId || miTurno) };
   await ref.set({
     rafagaTurno: miTurno,
-    rafagaCola:  FieldValue.arrayUnion(textoClaude),
+    // Objeto y no string: arrayUnion deduplica por igualdad, así que dos
+    // "sí" seguidos del mismo cliente se colapsaban en uno y se perdía un
+    // mensaje. Con el id del mensaje cada entrada es única.
+    rafagaCola:  FieldValue.arrayUnion(entradaRafaga),
   }, { merge: true }).catch(() => {});
 
   await new Promise(r => setTimeout(r, ESPERA_RAFAGA_MS));
@@ -1978,9 +1989,22 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     return;
   }
 
-  // El turno es mío: me llevo todo lo acumulado y limpio la cola.
-  const cola = Array.isArray(trasEspera.rafagaCola) && trasEspera.rafagaCola.length
-    ? trasEspera.rafagaCola : [textoClaude];
+  // El turno es mío. Se descarta lo vencido (cola que quedó sucia porque la
+  // corrida anterior murió antes de limpiarla) y se recorta a los últimos.
+  const ahoraMs = Date.now();
+  const crudo = Array.isArray(trasEspera.rafagaCola) ? trasEspera.rafagaCola : [];
+  const cola = crudo
+    // Compatibilidad: las entradas viejas eran strings sueltos.
+    .map(x => (typeof x === "string" ? { txt: x, at: ahoraMs } : x))
+    .filter(x => x && typeof x.txt === "string" && (ahoraMs - Number(x.at || 0)) < VIGENCIA_RAFAGA_MS)
+    .sort((a, b) => Number(a.at || 0) - Number(b.at || 0))
+    .slice(-MAX_COLA_RAFAGA)
+    .map(x => x.txt);
+  const descartadas = crudo.length - cola.length;
+  if (descartadas > 0) {
+    logger.warn(`[cerebro] ${tid} chat=${chatId}: ${descartadas} mensaje(s) de la cola descartados por vencidos o tope`);
+  }
+  if (!cola.length) cola.push(textoClaude);
   await ref.set({ rafagaCola: [] }, { merge: true }).catch(() => {});
   const textoRafaga = cola.join('\n');
   textoRafagaHistoria = textoRafaga;
