@@ -4035,53 +4035,115 @@
        con `:is(.tenant-aura,…)` (ver nota en el bloque de Omega). */
     .tenant-alfamen.tenant-aura .booking-hero,
     .tenant-alfamen .booking-hero {
-      background-image: none !important;
+      /* Rayado diagonal ultra-tenue, guiño al poste tricolor barbershop
+         reducido a un pulso rítmico. Sobre blanco puro da textura sin ensuciar
+         y desaparece a distancia (opacidad 3% en negro). */
+      background-image:
+        repeating-linear-gradient(-45deg,
+          rgba(17,17,17,0.032) 0 1px,
+          transparent 1px 14px) !important;
       background-color: #FFFFFF !important;
+      background-attachment: local !important;
       border-bottom: 1px solid rgba(17,17,17,0.08) !important;
+      padding-top: 2rem !important;
+      padding-bottom: 2.25rem !important;
+      position: relative;
+      overflow: hidden;
     }
     .tenant-alfamen.tenant-aura .booking-hero-overlay,
     .tenant-alfamen .booking-hero-overlay { background: none !important; }
     .tenant-alfamen.tenant-aura .booking-hero::after { display: none !important; }
+    /* Micro-badge editorial vertical en el borde derecho — clase de
+       identidad "portada de revista masculina". El único gesto que necesita
+       el hero encima del logo/wordmark; sin él la composición se ve muy
+       simétrica y le falta un ancla visual. */
+    .tenant-alfamen.tenant-aura .booking-hero::before {
+      content: 'ESTÉTICA MASCULINA';
+      display: block !important;
+      position: absolute;
+      right: 20px;
+      top: 78px;
+      z-index: 5;
+      pointer-events: none;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 9px;
+      line-height: 1;
+      letter-spacing: 0.32em;
+      font-weight: 700;
+      color: rgba(17,17,17,0.32);
+      text-transform: uppercase;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
 
     /* Ring del logo: el markup trae background:#0a0a0a inline; el logo ya es
        un círculo blanco con el perfil en tinta, así que el ring se funde en
-       blanco con borde sutil. */
+       blanco con drop-shadow suave para separarlo del rayado del fondo. */
     .tenant-alfamen.tenant-aura .hero-logo-ring,
     .tenant-alfamen .hero-logo-ring {
       background: #FFFFFF !important;
-      border: 1px solid rgba(17,17,17,0.12) !important;
-      box-shadow: none !important;
+      border: 1px solid rgba(17,17,17,0.10) !important;
+      box-shadow:
+        0 12px 32px -8px rgba(17,17,17,0.16),
+        0 3px 8px -2px rgba(17,17,17,0.08) !important;
       animation: none !important;
     }
     .tenant-alfamen.tenant-aura #heroGoogleBadge {
       background: #FFFFFF !important;
       border: 1px solid rgba(17,17,17,0.12) !important;
-      box-shadow: 0 1px 3px rgba(17,17,17,0.06) !important;
+      box-shadow: 0 2px 8px -2px rgba(17,17,17,0.08) !important;
+      backdrop-filter: none !important;
     }
     .tenant-alfamen.tenant-aura #progressBar { background: #111111 !important; }
+    /* Wordmark ALFA MEN: gesto tipográfico principal del hero — mayúsculas con
+       tracking amplio (guiño al wordmark oficial en stencil) y un poco más
+       grande que Omega para reforzar la identidad "revista masculina". */
     .tenant-alfamen.tenant-aura #shopNombre {
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
       color: #111111 !important;
-      font-size: 1.45rem !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.24em !important;
+      font-size: 1.75rem !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.28em !important;
       text-transform: uppercase !important;
       text-shadow: none !important;
-      text-indent: 0.24em !important;
+      text-indent: 0.28em !important;
+      margin-top: 4px !important;
     }
+    /* Divider editorial: tres segmentos — línea larga, punto, línea larga —
+       reemplaza el gold-divider genérico por algo con más carácter. Se hace
+       con box-shadow para no tocar el markup. */
     .tenant-alfamen.tenant-aura .gold-divider,
     .tenant-alfamen .gold-divider {
       background: #111111 !important;
       background-image: none !important;
-      width: 34px !important;
-      height: 1px !important;
-      opacity: 0.55 !important;
-      margin: 14px auto !important;
-      box-shadow: none !important;
+      width: 20px !important;
+      height: 1.5px !important;
+      opacity: 1 !important;
+      margin: 18px auto 14px !important;
+      border-radius: 2px !important;
+      /* Segmentos laterales: espacio + línea a cada lado. */
+      box-shadow:
+        -50px 0 0 -0.25px #111111,
+        -30px 0 0 -1px #111111,
+        50px 0 0 -0.25px #111111,
+        30px 0 0 -1px #111111 !important;
+      position: relative !important;
+    }
+    /* Antes del wordmark: kicker "EST. 2017 · VIÑA DEL MAR" muy pequeño con
+       tracking amplio, encima del nombre — el gesto del sub-título editorial. */
+    .tenant-alfamen.tenant-aura #shopSlogan {
+      color: rgba(17,17,17,0.62) !important;
+      text-shadow: none !important;
+      animation: none !important;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+      font-size: 10.5px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.32em !important;
+      text-transform: uppercase !important;
+      margin-top: 2px !important;
     }
     .tenant-alfamen.tenant-aura .booking-hero p,
-    .tenant-alfamen.tenant-aura .booking-hero span,
-    .tenant-alfamen.tenant-aura #shopSlogan {
+    .tenant-alfamen.tenant-aura .booking-hero span {
       color: #6B7280 !important;
       text-shadow: none !important;
       animation: none !important;
@@ -11165,7 +11227,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'bloodhabib';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'bloodhabib' || window.CURRENT_TENANT_ID === 'alfamen';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
@@ -11899,7 +11961,7 @@
       // .flex-1.min-w-0 con truncate, así que el nombre nunca parte en dos
       // líneas. La rama default (abajo) los deja como hermanos sueltos del
       // flex, y con eso el nombre, los días y la disponibilidad se pisaban.
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || window.CURRENT_TENANT_ID === 'bloodhabib';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'infinity' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || window.CURRENT_TENANT_ID === 'bloodhabib' || window.CURRENT_TENANT_ID === 'alfamen';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -13552,7 +13614,7 @@
       // `omega` va acá y no en su propia rama: hereda el tema claro de Aura por
       // _themeAlias, así que el estado seleccionado correcto es el de esta familia
       // (sin glow dorado; el radio lo pinta el CSS de .tenant-aura con !important).
-      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega');
+      const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'omega' || window.CURRENT_TENANT_ID === 'alfamen');
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
@@ -13569,6 +13631,7 @@
         || window.CURRENT_TENANT_ID === 'delnero'
         || window.CURRENT_TENANT_ID === 'yugen'
         || window.CURRENT_TENANT_ID === 'bloodhabib'
+        || window.CURRENT_TENANT_ID === 'alfamen'
         // Mismo estándar que en la selección de servicio: los tenants dinámicos
         // (self-service y alta express) nacen con la ficha en FILA —foto
         // circular, días de atención, selector a la derecha—, derivado de la
@@ -15369,6 +15432,7 @@
                         window.CURRENT_TENANT_ID === 'barbersclub' ? 'Interior premium de Barbers Club · Ciudad de los Valles, Pudahuel' :
                         window.CURRENT_TENANT_ID === 'sion' ? 'Fachada de Sion Barbería · 1 Oriente 985, Viña del Mar' :
                         window.CURRENT_TENANT_ID === 'bloodhabib' ? 'Fachada de Blood Habib · Calle Quinta 323, Viña del Mar' :
+                        window.CURRENT_TENANT_ID === 'alfamen' ? 'Alfa Men · Estética Masculina en Av. Valparaíso 694, Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
@@ -16389,7 +16453,7 @@
         if (titleEl) titleEl.textContent = 'Mapu Barber Shop';
         const bodyEl = document.getElementById('mapu-sobre-body');
         if (bodyEl) bodyEl.innerHTML = window.SHOP.sobreNosotros;
-      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'bloodhabib')) {
+      } else if ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'oren' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'sion' || window.CURRENT_TENANT_ID === 'bloodhabib' || window.CURRENT_TENANT_ID === 'alfamen')) {
         const titleEl = document.getElementById('aura-sobre-title');
         if (titleEl) titleEl.textContent = 'Quiénes Somos';
         const bodyEl = document.getElementById('aura-sobre-body');

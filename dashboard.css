@@ -5348,9 +5348,9 @@
     ══════════════════════════════════════════════════════════════ */
 
     .tenant-alfamen.tenant-aura {
-      --gold:      #111111;
-      --gold-dim:  rgba(17,17,17,0.15);
-      --gold-glow: rgba(17,17,17,0.04);
+      --gold:      #111111 !important;
+      --gold-dim:  rgba(17,17,17,0.08) !important;
+      --gold-glow: rgba(17,17,17,0.12) !important;
       --accent:    #111111;
       --accent-r: 17; --accent-g: 17; --accent-b: 17;
       --neon-clr:  #111111;
@@ -5391,6 +5391,51 @@
 
     .tenant-alfamen.tenant-aura #rangosExplainerAura,
     .tenant-alfamen.tenant-aura #planesAnualesAura { display: none !important; }
+
+    /* Header + textos de marca del club en tinta pura — mismo mapeo que
+       Omega. Sin esto Aura pinta el "ALFA MEN" del header en navy #00285E y
+       queda distinto al hero (que ya es tinta). */
+    .tenant-alfamen.tenant-aura #shopHeaderName,
+    .tenant-alfamen.tenant-aura #shopClubName,
+    .tenant-alfamen.tenant-aura #tabProductos h2,
+    .tenant-alfamen.tenant-aura .nav-tab.active .nav-label,
+    .tenant-alfamen.tenant-aura #sellosOnboarding i { color: #111111 !important; }
+    /* CTA de notificaciones "Activar" y botón Ver premios en tinta. */
+    .tenant-alfamen.tenant-aura #notifBannerActivar { background: #111111 !important; }
+    .tenant-alfamen.tenant-aura button[onclick="togglePremios()"] {
+      color: #111111 !important;
+      border-color: #111111 !important;
+    }
+    /* Tier badges (Silver/Gold/Platinum) en tinta neutra en vez del navy. */
+    .tenant-alfamen.tenant-aura .tier-badge.gold,
+    .tenant-alfamen.tenant-aura .tier-badge.platinum,
+    .tenant-alfamen.tenant-aura .tier-badge.silver {
+      color: #111111 !important;
+      border-color: rgba(17,17,17,0.28) !important;
+    }
+    /* Chat flotante: FAB + botón enviar en tinta sólida (ambos traen
+       gradiente navy o inline #D4AF37 heredado). */
+    .tenant-alfamen.tenant-aura #chatToggleBtn,
+    .tenant-alfamen.tenant-aura #chatToggleBtn[style] {
+      background: #111111 !important;
+      background-image: none !important;
+    }
+    .tenant-alfamen.tenant-aura button[onclick="sendChatMessage()"] {
+      background: #111111 !important;
+      background-image: none !important;
+    }
+    /* Trofeo del "Próximo premio" — Aura lo pinta dorado por text-yellow-600
+       y por inline #D4AF37. Ambos van a tinta. */
+    .tenant-alfamen.tenant-aura .premio-icon,
+    .tenant-alfamen.tenant-aura .ph-trophy,
+    .tenant-alfamen.tenant-aura i.ph-trophy[style*="D4AF37"] { color: #111111 !important; }
+
+    /* El nombre del local en el header del club viene en un span con la clase
+       Tailwind arbitraria `text-[#00285E]` (navy hardcodeado del tema Aura).
+       Para pintarlo en tinta hay que apuntar exactamente esa clase con
+       especificidad mayor — la de `:is()` gana igual al selector por clase. */
+    .tenant-alfamen.tenant-aura span.text-\[\#00285E\],
+    .tenant-alfamen.tenant-aura .text-\[\#00285E\] { color: #111111 !important; }
 
 
     /* ═══════════════════════════════════════════════════════════════════════
