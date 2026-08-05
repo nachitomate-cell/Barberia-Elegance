@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
+import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import {
@@ -23,7 +24,7 @@ const ESTADO_CFG = {
 
 /* ── AddModal ─────────────────────────────────────────────────────── */
 function AddModal({ onClose }) {
-  const { data: barberos = [] } = useCollection('barberos');
+  const { barberos = [] } = useBarberosUnicos();
   const [flexible, setFlexible] = useState(true);
   const [form, setForm] = useState({
     clienteNombre: '', clienteTelefono: '', fecha: today(),

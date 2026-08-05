@@ -10,6 +10,7 @@ import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import { useCollection } from '../hooks/useCollection';
+import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useConfig } from '../hooks/useConfig';
 import { buscarClientes } from '../lib/clienteSearch';
@@ -534,7 +535,6 @@ export default function Productos() {
   const fileRef = useRef(null);
   const initialized = useRef(false);
 
-  const [barberos, setBarberos] = useState([]);
   const [ventaRapidaOpen, setVentaRapidaOpen] = useState(false);
   const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', cliente: null });
   const [vrSaving, setVrSaving] = useState(false);
@@ -565,15 +565,15 @@ export default function Productos() {
   // Si esta lectura falla, el selector de barbero queda vacío y NO se puede
   // asignar la comisión de una venta: el usuario lee "no hay barberos" cuando
   // lo que pasó fue un error. Por eso el fallo se guarda y se muestra.
-  const [errorBarberos, setErrorBarberos] = useState(false);
-  useEffect(() => {
-    const q = query(tenantCol('barberos'), where('activo', '==', true));
-    const unsub = onSnapshot(q, snap => {
-      setBarberos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setErrorBarberos(false);
-    }, errorListener('los barberos (comisión de venta)', () => setErrorBarberos(true)));
-    return unsub;
-  }, []);
+  //
+  // Va por useBarberosUnicos y no por una query propia: acá se leía
+  // `where('activo','==',true)` sin descartar los link-docs de SSO, y eso hacía
+  // dos cosas malas a la vez. Los fantasmas aparecían como vendedor elegible, y
+  // como varios docs CANÓNICOS no traen el campo `activo`, el `=== true` dejaba
+  // fuera a la persona real y dentro a su fantasma: en delnero las dos únicas
+  // opciones para Vicente Maira eran fantasmas suyos. Auditoría 2026-08-05.
+  const { barberos = [], error: errBarberos } = useBarberosUnicos();
+  const errorBarberos = !!errBarberos;
 
   const criticalProductsCount = productos ? productos.filter(p => {
     return p.stock !== undefined && p.stock !== null && p.stock !== '' && 
@@ -778,7 +778,12 @@ export default function Productos() {
   };
 
   const openEntregaModal = (reserva) => {
-    setEntregaForm({ metodoPago: 'Efectivo', barberoId: barberos[0]?.id || '' });
+    // Sin barbero por defecto: preseleccionar `barberos[0]` significaba que toda
+    // entrega confirmada sin tocar el selector se le cargaba al primero de la
+    // lista — que por orden de docId solía ser un link-doc. Así se le anotaron
+    // $73.970 en comisiones a cuatro fantasmas. `handleEntregaConfirm` ya exige
+    // elegir, y el select ya trae su opción "— Seleccionar —".
+    setEntregaForm({ metodoPago: 'Efectivo', barberoId: '' });
     setEntregaModal(reserva);
   };
 

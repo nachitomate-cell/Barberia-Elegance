@@ -8,9 +8,9 @@ import {
   serverTimestamp, where,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
+import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -312,8 +312,12 @@ export default function HistorialCortes() {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const servicios = useCollection(tenantCol('servicios'));
-  const barberos  = useCollection(tenantCol('barberos'));
+  // `useCollection` recibe el NOMBRE de la colección, no una referencia: acá se
+  // le pasaba `tenantCol('servicios')` y el hook devolvía { data, loading }, así
+  // que `servicios.length` era undefined y los dos selectores del formulario de
+  // nueva visita nunca se renderizaron. Llevaban rotos en silencio.
+  const { data: servicios = [] } = useCollection('servicios');
+  const { barberos = [] } = useBarberosUnicos();
 
   useEffect(() => {
     setLoading(true);

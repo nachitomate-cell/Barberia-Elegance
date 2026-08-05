@@ -11,6 +11,7 @@ import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '..
 import SlideOver from '../components/ui/SlideOver';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
+import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { comisionCita, comisionVenta } from '../lib/comisiones-core';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursal } from '../contexts/SucursalContext';
@@ -1364,7 +1365,11 @@ export default function Comisiones() {
   const toggleEfectivoAlBarbero = () =>
     _guardarFlagComisiones('efectivoAlBarbero', !efectivoAlBarbero, setEfectivoAlBarbero);
 
-  const { data: rawBarberos = [] } = useCollection('barberos');
+  // `soloActivos: false` — a alguien desvinculado se le puede deber plata, así
+  // que su tarjeta tiene que seguir apareciendo. Lo que el hook sí saca son los
+  // link-docs de SSO: se mostraban como una persona más a pagar, con la comisión
+  // por defecto en vez de la suya (auditoría 2026-08-05).
+  const { barberos: rawBarberos = [] } = useBarberosUnicos({ soloActivos: false });
   // Catálogo de servicios: fuente del fallback de precio cuando la cita no
   // tiene c.precio grabado (típico en reservas online antiguas). Mismo
   // criterio que Metricas.jsx:589 para que ambas vistas cuadren.
