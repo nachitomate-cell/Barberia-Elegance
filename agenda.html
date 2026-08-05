@@ -2185,7 +2185,43 @@
                 // aunque el tenant esté oculto por hardcode o toggle global.
                 // Se usa en `_ocultaTelefono()` como excepción explícita.
                 verWhatsAppBarberos: Array.isArray(o.verWhatsAppBarberos) ? o.verWhatsAppBarberos : [],
+                // Opt-in (default apagado, al revés que el resto): impide
+                // completar citas si no hay caja abierta. Ver _cajaAbierta().
+                exigirCajaAbierta:   o.exigirCajaAbierta   === true,
             };
+        }
+
+        // ── ¿Hay un cajón abierto ahora? ────────────────────────────────────
+        // Respalda el guard opcional `exigirCajaAbierta`: si el local completa
+        // el día entero sin abrir caja, esos cobros nunca entran a una sesión y
+        // el arqueo del cierre no existe.
+        //
+        // Ante CUALQUIER duda devuelve true (deja pasar): un error de red no
+        // puede dejar al barbero sin poder cerrar sus citas. El guard es un
+        // recordatorio, no un control de acceso.
+        async function _cajaAbierta(sucursalId) {
+            try {
+                const snap = await tenantCol('caja_sesiones')
+                    .where('estado', '==', 'abierta').limit(10).get();
+                if (snap.empty) return false;
+                const abiertas = snap.docs.map(d => d.data());
+                if (!sucursalId) return true;
+                // Las sesiones sin `sucursalId` son previas a la separación por
+                // sede y valen para todo el tenant.
+                return abiertas.some(s => !s.sucursalId || s.sucursalId === sucursalId);
+            } catch (e) {
+                console.warn('[caja] no se pudo verificar la sesión abierta:', e && e.message);
+                return true;
+            }
+        }
+
+        // Mensaje único para los dos caminos que completan una cita (el botón
+        // rápido del detalle y el formulario de edición).
+        function _avisoCajaCerrada() {
+            alert('La caja está cerrada.\n\n'
+                + 'Para completar citas primero hay que abrir la caja del día desde el panel '
+                + '(Caja → Abrir caja). Así el cobro entra a la sesión y el arqueo cuadra.\n\n'
+                + 'La cita queda como está: al abrir la caja puedes volver y completarla.');
         }
 
         // Tenants que ocultan el teléfono del cliente a los barberos (privacidad).
@@ -2926,6 +2962,362 @@
             document.getElementById('proyeccionModal').classList.add('hidden');
         }
 
+        /* ═══════════════════════════════════════════════════════════════════
+           HISTORIAL DE COMISIONES Y PROPINAS
+
+           La Proyección responde "cuánto llevo"; esto responde "de dónde
+           salió". Las dos pantallas leen lo mismo (citas + ventas del barbero
+           en un rango) y calculan con /js/comisiones-core.js — el MISMO módulo
+           que usan Comisiones y Caja en el panel. Si acá se recalculara a mano,
+           el barbero vería un número y el dueño otro.
+
+           Solo cuentan las citas COMPLETADAS: una cita confirmada todavía no
+           se atendió y no generó comisión (la Proyección sí las incluye, por
+           eso puede mostrar más — dice "proyección" justamente por eso).
+        ═══════════════════════════════════════════════════════════════════ */
+
+        const _VENTA_VENDIDA = ['delivered', 'confirmed', 'completed', 'paid'];
+        let _comFiltro = null;   // { desde, hasta } o null = últimos 7 días
+        let _comDetalle = {};    // fecha → bool (acordeón abierto)
+
+        function _fmtMoneda(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('es-CL'); }
+
+        function _fechaLarga(ymd) {
+            const [y, m, d] = String(ymd).split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            const dias  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            return `${dias[dt.getDay()]}, ${d} ${meses[m - 1]} ${y}`;
+        }
+
+        /**
+         * Trae citas y ventas del barbero en un rango y las agrega por día.
+         * El rango va solo sobre `fecha` (single-field) y el filtro por barbero
+         * es en memoria: mismo criterio que la Proyección, para no obligar a
+         * crear un índice compuesto nuevo por una pantalla de consulta.
+         */
+        async function _cargarComisiones(desdeStr, hastaStr) {
+            const [citasSnap, ventasSnap] = await Promise.all([
+                tenantCol('citas').where('fecha', '>=', desdeStr).where('fecha', '<=', hastaStr).get(),
+                tenantCol('product_reservations').where('fecha', '>=', desdeStr).where('fecha', '<=', hastaStr).get(),
+            ]);
+
+            let cfg = null;
+            try {
+                const CC = window.ComisionesCore;
+                if (CC) {
+                    const bDoc = await tenantCol('barberos').doc(barberId).get();
+                    if (bDoc.exists) cfg = CC.configBarbero(bDoc.data());
+                }
+            } catch (e) { console.warn('[Comisiones] sin config:', e.message); }
+
+            const CC = window.ComisionesCore;
+            const dias = new Map();
+            const dia = (f) => {
+                if (!dias.has(f)) {
+                    dias.set(f, {
+                        fecha: f, comServicios: 0, comProductos: 0, propinas: 0,
+                        nServicios: 0, nProductos: 0, items: [],
+                    });
+                }
+                return dias.get(f);
+            };
+
+            let sinConfig = false;
+
+            citasSnap.docs.forEach(doc => {
+                const c = doc.data();
+                if (c.barberoId !== barberId) return;
+                // El fantasma de QA no es plata real (ver citas origenQA).
+                if (c.origenQA) return;
+                if (c.estado !== 'Completada') return;
+
+                const d = dia(c.fecha);
+                const monto = Number(c.precio) || 0;
+                let com = 0;
+                if (cfg && CC) {
+                    try {
+                        com = Math.round(Number(CC.comisionCita({
+                            cfg, precio: monto, servicioId: c.servicioId, clienteNombre: c.clienteNombre,
+                        }).comision) || 0);
+                    } catch (e) { sinConfig = true; }
+                } else { sinConfig = true; }
+
+                d.comServicios += com;
+                d.nServicios++;
+                const prop = Number(c.propina) || 0;
+                if (prop > 0) d.propinas += prop;
+                d.items.push({
+                    tipo: 'servicio',
+                    nombre: c.servicioNombre || c.servicio || 'Servicio',
+                    cliente: c.clienteNombre || '',
+                    hora: c.hora || '',
+                    monto, comision: com, propina: prop,
+                });
+            });
+
+            ventasSnap.docs.forEach(doc => {
+                const v = doc.data();
+                if (v.barberoId !== barberId) return;
+                if (!_VENTA_VENDIDA.includes(v.status)) return;   // deja fuera las devueltas
+
+                const d = dia(v.fecha);
+                // `precio` ya es el total de línea (× cantidad y con descuento).
+                const monto = Number(v.precio) || 0;
+                let com = 0;
+                if (cfg && CC) {
+                    try {
+                        com = Math.round(Number(CC.comisionVenta({ cfg, monto, productId: v.productId }).comision) || 0);
+                    } catch (e) { sinConfig = true; }
+                } else { sinConfig = true; }
+
+                d.comProductos += com;
+                d.nProductos += Number(v.cantidad) || 1;
+                d.items.push({
+                    tipo: 'producto',
+                    nombre: v.productName || 'Producto',
+                    cliente: v.userEmail === 'admin@barberia.cl' ? '' : (v.userName || ''),
+                    cantidad: Number(v.cantidad) || 1,
+                    monto, comision: com, propina: 0,
+                });
+            });
+
+            const lista = [...dias.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+            return { dias: lista, sinConfig, hayCfg: !!cfg };
+        }
+
+        async function abrirHistorialComisiones() {
+            document.getElementById('comisionesModal').classList.remove('hidden');
+            document.getElementById('comResumen').classList.add('hidden');
+            document.getElementById('comError').classList.add('hidden');
+            document.getElementById('comLoading').classList.remove('hidden');
+            await _renderComisiones();
+        }
+
+        async function _renderComisiones() {
+            const loading = document.getElementById('comLoading');
+            const errBox  = document.getElementById('comError');
+            const resumen = document.getElementById('comResumen');
+            loading.classList.remove('hidden');
+            errBox.classList.add('hidden');
+            resumen.classList.add('hidden');
+
+            try {
+                if (!barberId) throw new Error('barberId no disponible');
+
+                let desde, hasta, etiqueta;
+                if (_comFiltro) {
+                    desde = _comFiltro.desde; hasta = _comFiltro.hasta;
+                    etiqueta = `Desde ${_fechaLarga(desde)} hasta ${_fechaLarga(hasta)}`;
+                } else {
+                    const hoy = new Date();
+                    const ini = new Date(hoy); ini.setDate(hoy.getDate() - 6);   // hoy + 6 atrás = 7 días
+                    desde = _fmtDate(ini); hasta = _fmtDate(hoy);
+                    etiqueta = 'Total en los últimos 7 días';
+                }
+
+                const { dias, sinConfig } = await _cargarComisiones(desde, hasta);
+
+                const tot = dias.reduce((a, d) => ({
+                    com:  a.com  + d.comServicios + d.comProductos,
+                    serv: a.serv + d.comServicios,
+                    prod: a.prod + d.comProductos,
+                    prop: a.prop + d.propinas,
+                    nS:   a.nS   + d.nServicios,
+                    nP:   a.nP   + d.nProductos,
+                }), { com: 0, serv: 0, prod: 0, prop: 0, nS: 0, nP: 0 });
+
+                // Las propinas van completas al barbero, así que suman al total
+                // que se lleva (igual que en Weibook).
+                document.getElementById('comTotal').textContent = _fmtMoneda(tot.com + tot.prop);
+                document.getElementById('comRango').textContent = etiqueta;
+                document.getElementById('comPropinas').textContent      = _fmtMoneda(tot.prop);
+                document.getElementById('comServicios').textContent     = _fmtMoneda(tot.serv);
+                document.getElementById('comProductos').textContent     = _fmtMoneda(tot.prod);
+                document.getElementById('comCantServicios').textContent = tot.nS;
+                document.getElementById('comCantProductos').textContent = tot.nP;
+
+                document.getElementById('comSinConfig').classList.toggle('hidden', !sinConfig);
+                document.getElementById('comQuitarFiltro').classList.toggle('hidden', !_comFiltro);
+                document.getElementById('comVacio').classList.toggle('hidden', dias.length > 0);
+
+                document.getElementById('comDias').innerHTML = dias.map(d => {
+                    const abierto = !!_comDetalle[d.fecha];
+                    const detalle = d.items.map(it => `
+                        <div class="flex items-start justify-between gap-2 py-1.5" style="border-top:1px solid rgba(255,255,255,0.05);">
+                          <div class="min-w-0 flex-1">
+                            <p class="text-[12px] text-white/85 truncate">
+                              <i class="ph-fill ${it.tipo === 'producto' ? 'ph-package text-sky-400' : 'ph-scissors text-emerald-400'} text-[10px] mr-1"></i>
+                              ${_escHtml(it.nombre)}${it.cantidad > 1 ? ` ×${it.cantidad}` : ''}
+                            </p>
+                            <p class="text-[10px] text-white/35 truncate">
+                              ${it.hora ? _escHtml(it.hora) + ' · ' : ''}${it.cliente ? _escHtml(it.cliente) : (it.tipo === 'producto' ? 'Venta directa' : 'Sin cliente')}
+                            </p>
+                          </div>
+                          <div class="text-right shrink-0">
+                            <p class="text-[12px] font-bold text-emerald-400">${_fmtMoneda(it.comision)}</p>
+                            <p class="text-[10px] text-white/30">de ${_fmtMoneda(it.monto)}</p>
+                            ${it.propina > 0 ? `<p class="text-[10px] text-amber-400">+${_fmtMoneda(it.propina)} prop.</p>` : ''}
+                          </div>
+                        </div>`).join('');
+
+                    return `
+                    <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <p class="text-[13px] text-white/70">Total de comisiones</p>
+                          <p class="text-2xl font-black text-emerald-400 leading-tight">${_fmtMoneda(d.comServicios + d.comProductos + d.propinas)}</p>
+                        </div>
+                        <span class="text-[11px] text-white/40 shrink-0 pt-1">${_fechaLarga(d.fecha)}</span>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="rounded-xl px-3 py-2.5 text-center" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);">
+                          <p class="text-[10px] text-white/50 leading-tight">Ganancia en servicios</p>
+                          <p class="text-sm font-bold text-emerald-400 mt-0.5">${_fmtMoneda(d.comServicios)}</p>
+                        </div>
+                        <div class="rounded-xl px-3 py-2.5 text-center" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);">
+                          <p class="text-[10px] text-white/50 leading-tight">Ganancia en productos</p>
+                          <p class="text-sm font-bold text-emerald-400 mt-0.5">${_fmtMoneda(d.comProductos)}</p>
+                        </div>
+                      </div>
+
+                      <div class="mt-3 space-y-1.5">
+                        <div class="flex items-center justify-between text-[12px]"><span class="text-white/45">Cantidad de servicios</span><span class="text-white/85">${d.nServicios}</span></div>
+                        <div class="flex items-center justify-between text-[12px]"><span class="text-white/45">Cantidad de productos</span><span class="text-white/85">${d.nProductos}</span></div>
+                        <div class="flex items-center justify-between text-[12px] pt-1.5" style="border-top:1px solid rgba(255,255,255,0.06);"><span class="text-white/45">Ganancias en propinas</span><span class="text-white/85">${_fmtMoneda(d.propinas)}</span></div>
+                      </div>
+
+                      <button onclick="toggleDetalleDia('${d.fecha}')" class="w-full flex items-center justify-between mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,0.06);">
+                        <span class="text-[12px] text-white/70">Servicios o productos:</span>
+                        <i class="ph-bold ph-caret-${abierto ? 'up' : 'down'} text-white/40 text-xs"></i>
+                      </button>
+                      <div class="${abierto ? '' : 'hidden'} mt-1">${detalle || '<p class="text-[11px] text-white/30 py-2">Sin detalle.</p>'}</div>
+                    </div>`;
+                }).join('');
+
+                loading.classList.add('hidden');
+                resumen.classList.remove('hidden');
+            } catch (err) {
+                console.error('[Comisiones] error:', err);
+                loading.classList.add('hidden');
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function toggleDetalleDia(fecha) {
+            _comDetalle[fecha] = !_comDetalle[fecha];
+            _renderComisiones();
+        }
+
+        function cerrarHistorialComisiones() {
+            document.getElementById('comisionesModal').classList.add('hidden');
+        }
+
+        function toggleFiltroComisiones() {
+            const p = document.getElementById('comFiltroPanel');
+            p.classList.toggle('hidden');
+            if (!p.classList.contains('hidden')) {
+                const hoy = new Date();
+                const ini = new Date(hoy); ini.setDate(hoy.getDate() - 6);
+                if (!document.getElementById('comDesde').value) document.getElementById('comDesde').value = _comFiltro?.desde || _fmtDate(ini);
+                if (!document.getElementById('comHasta').value) document.getElementById('comHasta').value = _comFiltro?.hasta || _fmtDate(hoy);
+            }
+        }
+
+        function aplicarFiltroComisiones() {
+            const desde = document.getElementById('comDesde').value;
+            const hasta = document.getElementById('comHasta').value;
+            if (!desde || !hasta) { alert('Elige las dos fechas.'); return; }
+            if (desde > hasta)    { alert('La fecha "desde" no puede ser posterior a "hasta".'); return; }
+            _comFiltro = { desde, hasta };
+            document.getElementById('comFiltroPanel').classList.add('hidden');
+            _renderComisiones();
+        }
+
+        function quitarFiltroComisiones() {
+            _comFiltro = null;
+            document.getElementById('comDesde').value = '';
+            document.getElementById('comHasta').value = '';
+            _renderComisiones();
+        }
+
+        /* ── Propinas ────────────────────────────────────────────────────── */
+        async function abrirHistorialPropinas() {
+            const modal   = document.getElementById('propinasModal');
+            const loading = document.getElementById('propLoading');
+            const errBox  = document.getElementById('propError');
+            const resumen = document.getElementById('propResumen');
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            errBox.classList.add('hidden');
+            resumen.classList.add('hidden');
+            document.getElementById('propLista').innerHTML = '';
+            document.getElementById('propVacio').classList.add('hidden');
+
+            try {
+                if (!barberId) throw new Error('barberId no disponible');
+                // Últimos 6 meses: suficiente para el historial que mira un
+                // barbero y acota la lectura en locales con años de citas.
+                const hoy = new Date();
+                const ini = new Date(hoy); ini.setMonth(hoy.getMonth() - 6);
+                const snap = await tenantCol('citas')
+                    .where('fecha', '>=', _fmtDate(ini))
+                    .where('fecha', '<=', _fmtDate(hoy))
+                    .get();
+
+                const props = [];
+                snap.docs.forEach(doc => {
+                    const c = doc.data();
+                    if (c.barberoId !== barberId) return;
+                    if (c.origenQA) return;
+                    if (c.estado !== 'Completada') return;
+                    const monto = Number(c.propina) || 0;
+                    if (monto <= 0) return;
+                    props.push({ monto, cliente: c.clienteNombre || 'Cliente', fecha: c.fecha, hora: c.hora || '' });
+                });
+                props.sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+
+                const total = props.reduce((s, p) => s + p.monto, 0);
+                document.getElementById('propTotal').textContent = _fmtMoneda(total);
+                document.getElementById('propCount').textContent =
+                    `${props.length} propina${props.length === 1 ? '' : 's'} · últimos 6 meses`;
+
+                document.getElementById('propLista').innerHTML = props.map(p => `
+                    <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                          <p class="text-[11px] text-white/45">Propina</p>
+                          <p class="text-2xl font-black text-emerald-400 leading-tight">${_fmtMoneda(p.monto)}</p>
+                        </div>
+                        <span class="text-[10px] font-bold text-emerald-400 px-2 py-1 rounded-md shrink-0"
+                          style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);">Cobrada</span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,0.06);">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);">
+                          <i class="ph-fill ph-user text-white/50 text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-[12px] text-white/85 truncate">${_escHtml(p.cliente)}</p>
+                          <p class="text-[10px] text-white/35">${_fechaLarga(p.fecha)}${p.hora ? ' · ' + _escHtml(p.hora) : ''}</p>
+                        </div>
+                      </div>
+                    </div>`).join('');
+
+                document.getElementById('propVacio').classList.toggle('hidden', props.length > 0);
+                loading.classList.add('hidden');
+                resumen.classList.remove('hidden');
+            } catch (err) {
+                console.error('[Propinas] error:', err);
+                loading.classList.add('hidden');
+                errBox.classList.remove('hidden');
+            }
+        }
+
+        function cerrarHistorialPropinas() {
+            document.getElementById('propinasModal').classList.add('hidden');
+        }
+
         // ── CARGA Y RENDERIZADO DE AGENDA ──
         function loadAgendaData() {
             unsubs.forEach(u => u());
@@ -3517,6 +3909,16 @@
                 if (prevEstado === nuevoEstado) return;      // idempotente
                 const yaCompletada = prevEstado === 'Completada';
                 const yaCancelada  = prevEstado === 'Cancelada';
+                // Tercer camino que deja la cita en Completada (junto al botón
+                // del detalle y el formulario de edición). Los tres tienen que
+                // respetar el guard o el olvido se cuela por el que falte.
+                if (_opcionesAvanzadas().exigirCajaAbierta
+                    && nuevoEstado === 'Completada'
+                    && !yaCompletada
+                    && !(await _cajaAbierta(cita.sucursalId || null))) {
+                    _avisoCajaCerrada();
+                    return;
+                }
                 const payload = { estado: nuevoEstado };
                 // Al completar, marcar pendingGoogleReview para que el cliente
                 // vea el modal de calificación al abrir su dashboard. La CF
@@ -4132,6 +4534,15 @@
             try {
                 const cita = todayCitas.find(c => c.id === id);
                 const yaCompletada = cita?.estado === 'Completada';
+                // Mismo guard que el formulario de edición: este botón también
+                // deja la cita en Completada, y sin esto sería la puerta de atrás.
+                if (_opcionesAvanzadas().exigirCajaAbierta
+                    && nuevoEstado === 'Completada'
+                    && !yaCompletada
+                    && !(await _cajaAbierta((cita && cita.sucursalId) || null))) {
+                    _avisoCajaCerrada();
+                    return;
+                }
                 const payload = { estado: nuevoEstado };
                 if (nuevoEstado === 'Completada' && !yaCompletada) {
                     payload.pendingGoogleReview = true;
@@ -5779,6 +6190,133 @@
       <div id="proyeccionError" class="hidden text-center py-4">
         <p class="text-xs text-red-400/80">No se pudo cargar la proyección.</p>
       </div>
+
+      <!-- Entrada al detalle. La Proyección responde "cuánto llevo"; el
+           historial responde "de dónde salió", que es la pregunta que sigue. -->
+      <div class="mt-4 pt-4 grid grid-cols-2 gap-2" style="border-top:1px solid rgba(255,255,255,0.08);">
+        <button onclick="abrirHistorialComisiones()"
+          class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold text-white/80 active:scale-95 transition-transform"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <i class="ph-fill ph-receipt text-emerald-400 text-sm"></i> Mis comisiones
+        </button>
+        <button onclick="abrirHistorialPropinas()"
+          class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[11px] font-bold text-white/80 active:scale-95 transition-transform"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <i class="ph-fill ph-hand-coins text-amber-400 text-sm"></i> Mis propinas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Historial de comisiones ───────────────────────────────────────────
+       Pantalla completa (no card centrada como el resto de modales): es una
+       lista larga con scroll propio y en teléfono tiene que ocupar todo.
+       El desglose usa el MISMO /js/comisiones-core.js que Comisiones del panel
+       y Caja — si divergiera, el barbero vería un número y el dueño otro. -->
+  <!-- z-index INLINE y no `z-[5003]`: el CSS de Tailwind está precompilado, así
+       que una clase con un valor arbitrario nuevo no existe en la hoja y el
+       modal quedaba por debajo del header sticky de la agenda. -->
+  <div id="comisionesModal" class="hidden fixed inset-0 flex flex-col" style="z-index:5003;background:var(--brand-bg,#0a0a0a);">
+    <div class="flex items-center gap-3 px-4 py-4 shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+      <button onclick="cerrarHistorialComisiones()" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+        <i class="ph-bold ph-caret-left text-white/70"></i>
+      </button>
+      <h3 class="text-base font-bold text-white flex-1">Historial de comisiones</h3>
+      <button id="comFiltroBtn" onclick="toggleFiltroComisiones()" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+        <i class="ph-bold ph-funnel text-white/70"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-4 pb-8">
+      <!-- Filtro por rango -->
+      <div id="comFiltroPanel" class="hidden mt-4 rounded-2xl p-4" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">Seleccionar período</p>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase block mb-1">Desde</label>
+            <input type="date" id="comDesde" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color-scheme:dark;">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase block mb-1">Hasta</label>
+            <input type="date" id="comHasta" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color-scheme:dark;">
+          </div>
+        </div>
+        <button onclick="aplicarFiltroComisiones()"
+          class="w-full py-2.5 rounded-xl text-sm font-bold text-black active:scale-95 transition-transform"
+          style="background:var(--brand-accent,#d4af37);">Aplicar</button>
+      </div>
+
+      <!-- Resumen del período -->
+      <div id="comResumen" class="hidden mt-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm text-white/70">Total de comisiones</p>
+            <p id="comTotal" class="text-3xl font-black text-emerald-400 leading-tight">$0</p>
+            <p id="comRango" class="text-[11px] text-white/40 mt-0.5"></p>
+          </div>
+          <button id="comQuitarFiltro" onclick="quitarFiltroComisiones()" class="hidden text-[11px] font-bold text-red-400 underline shrink-0 pt-1">Quitar filtro</button>
+        </div>
+
+        <div class="mt-4 pt-4 space-y-2" style="border-top:1px solid rgba(255,255,255,0.08);">
+          <div class="flex items-center justify-between text-[13px]"><span class="text-white/50">Ganancias en propinas</span><span id="comPropinas" class="text-white font-semibold">$0</span></div>
+          <div class="flex items-center justify-between text-[13px]"><span class="text-white/50">Comisiones de servicios</span><span id="comServicios" class="text-white font-semibold">$0</span></div>
+          <div class="flex items-center justify-between text-[13px]"><span class="text-white/50">Comisiones de productos</span><span id="comProductos" class="text-white font-semibold">$0</span></div>
+        </div>
+        <div class="mt-3 pt-3 space-y-2" style="border-top:1px solid rgba(255,255,255,0.08);">
+          <div class="flex items-center justify-between text-[13px]"><span class="text-white/50">Cantidad de servicios</span><span id="comCantServicios" class="text-white font-semibold">0</span></div>
+          <div class="flex items-center justify-between text-[13px]"><span class="text-white/50">Cantidad de productos</span><span id="comCantProductos" class="text-white font-semibold">0</span></div>
+        </div>
+
+        <!-- Aviso cuando la comisión no se puede calcular: mejor decirlo que
+             mostrar $0 y que el barbero crea que no ganó nada. -->
+        <div id="comSinConfig" class="hidden mt-4 rounded-xl p-3 text-[11px] leading-relaxed"
+          style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);color:#fcd34d;">
+          No pudimos leer tu configuración de comisión, así que no podemos calcular cuánto te queda. Pídele al administrador que la revise.
+        </div>
+
+        <h4 class="text-lg font-bold text-white mt-7 mb-3">Historial</h4>
+        <div id="comDias" class="space-y-3"></div>
+        <p id="comVacio" class="hidden text-center text-xs text-white/40 py-10">Sin comisiones en este período.</p>
+      </div>
+
+      <div id="comLoading" class="text-center py-14">
+        <i class="ph ph-circle-notch animate-spin text-2xl text-white/40"></i>
+        <p class="text-xs text-white/40 mt-2">Cargando…</p>
+      </div>
+      <div id="comError" class="hidden text-center py-10">
+        <p class="text-xs text-red-400/80">No se pudo cargar el historial.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Historial de propinas ──────────────────────────────────────────── -->
+  <div id="propinasModal" class="hidden fixed inset-0 flex flex-col" style="z-index:5003;background:var(--brand-bg,#0a0a0a);">
+    <div class="flex items-center gap-3 px-4 py-4 shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+      <button onclick="cerrarHistorialPropinas()" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+        <i class="ph-bold ph-caret-left text-white/70"></i>
+      </button>
+      <h3 class="text-base font-bold text-white flex-1">Historial de propinas</h3>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-4 pb-8">
+      <div id="propResumen" class="hidden mt-5 rounded-2xl p-4" style="background:linear-gradient(135deg, rgba(245,158,11,0.10), rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.25);">
+        <p class="text-[11px] uppercase tracking-widest font-bold text-amber-400/80">Total recibido</p>
+        <p id="propTotal" class="text-3xl font-black text-white leading-tight mt-0.5">$0</p>
+        <p id="propCount" class="text-[11px] text-white/40 mt-0.5"></p>
+      </div>
+
+      <div id="propLista" class="mt-4 space-y-2"></div>
+      <p id="propVacio" class="hidden text-center text-xs text-white/40 py-10">Todavía no has recibido propinas.</p>
+
+      <div id="propLoading" class="text-center py-14">
+        <i class="ph ph-circle-notch animate-spin text-2xl text-white/40"></i>
+        <p class="text-xs text-white/40 mt-2">Cargando…</p>
+      </div>
+      <div id="propError" class="hidden text-center py-10">
+        <p class="text-xs text-red-400/80">No se pudo cargar el historial.</p>
+      </div>
     </div>
   </div>
 
@@ -6902,6 +7440,16 @@
                 : {});
 
         if (!nombre) { err.textContent = 'El nombre es obligatorio.'; err.classList.remove('hidden'); return; }
+
+        // Caja abierta obligatoria al COMPLETAR (opt-in del tenant). Solo al
+        // pasar A Completada: editar una cita ya cerrada no se bloquea.
+        if (_opcionesAvanzadas().exigirCajaAbierta
+            && estado === 'Completada'
+            && _ecCita.estado !== 'Completada'
+            && !(await _cajaAbierta(_ecCita.sucursalId || null))) {
+            _avisoCajaCerrada();
+            return;
+        }
 
         btn.disabled = true;
         btn.textContent = 'Guardando...';

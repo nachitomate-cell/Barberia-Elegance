@@ -30,6 +30,7 @@ import { tuuCobroDialog }   from '../lib/tuuCobro';
 import { withTimeout } from '../lib/firestore-helpers';
 import { buscarClientes, normalizarTexto } from '../lib/clienteSearch';
 import { useConfig } from '../hooks/useConfig';
+import { useCajaAbierta } from '../hooks/useCajaAbierta';
 import { readGateConfig } from '../lib/reopenGate';
 import ReopenPassModal from '../components/ui/ReopenPassModal';
 import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
@@ -802,6 +803,10 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   // activo, cambiar el estado de una cita ya Completada pide contraseña.
   const { config: mainConfig } = useConfig();
   const gateVenta = readGateConfig(mainConfig, 'ventaCerrada');
+  // Guard opt-in: no dejar completar citas con la caja cerrada (Configuración →
+  // opciones avanzadas). Apagado por defecto — ver useCajaAbierta.
+  const exigirCajaAbierta = mainConfig?.opcionesAvanzadas?.exigirCajaAbierta === true;
+  const { hayCajaAbierta } = useCajaAbierta();
   // Cuando el usuario intenta guardar y aplica el gate, guardamos aquí el
   // "trabajo pendiente" — el modal de contraseña llama a onOk() para continuar.
   const [gatePending, setGatePending] = useState(false);
@@ -821,6 +826,27 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   }, [tenantId]);
   const tuuActivo         = !!(tuuCfg?.configured && tuuCfg?.enabled);
   const tuuPermitirManual = tuuActivo && tuuCfg?.permitirTarjetaManual === true;
+
+  // Medios de pago del local — fuente ÚNICA. La usan los botones del método de
+  // la cita y el selector por línea de los productos del ticket. Con TUU
+  // integrado la lista es otra; si estuviera escrita en dos lados, un producto
+  // podría quedar con un método que el local no acepta.
+  const opcionesMetodoPago = tuuActivo
+    ? [
+        { v: 'Efectivo',       txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+        { v: 'Tarjeta (POS)',  txt: 'Tarjeta (POS)', on: 'bg-yellow-500/20 border-yellow-500/60 text-yellow-300' },
+        { v: 'Transferencia',  txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
+        ...(tuuPermitirManual
+          ? [{ v: 'Tarjeta (manual)', txt: 'Tarjeta manual', on: 'bg-slate-500/25 border-slate-400/60 text-slate-200' }]
+          : []),
+      ]
+    : [
+        { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
+        { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
+        { v: 'Crédito',       txt: 'Crédito',       on: 'bg-violet-500/20 border-violet-500/60 text-violet-300' },
+        { v: 'Transferencia', txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
+      ];
+  const metodosPagoLocal = opcionesMetodoPago.map(o => o.v);
 
   const matchedSvc = (() => {
     if (!cita) return null;
@@ -936,6 +962,10 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   const [newProductId, setNewProductId]   = useState('');
   const [newProductQty, setNewProductQty] = useState(1);
   const [newProductDesc, setNewProductDesc] = useState(0); // % descuento de la línea
+  // Método de pago de la línea de producto. '' = hereda el de la cita, que es
+  // el caso normal (corte y producto se pagan juntos). Se separa cuando el
+  // cliente paga el corte con un medio y el producto con otro.
+  const [newProductPago, setNewProductPago] = useState('');
 
   const productosDisponibles = useMemo(() => productos.filter(p => Number(p.precio) > 0), [productos]);
 
@@ -1167,15 +1197,25 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
       descuento,
       subtotalLinea,
       totalLinea: Math.round(subtotalLinea * (1 - descuento / 100)),
+      // null (no el método actual de la cita) para que siga heredando si el
+      // método de la cita cambia después de agregar el producto. Solo queda
+      // fijo cuando se elige uno distinto a propósito.
+      metodoPago: newProductPago || null,
     }]);
     setNewProductId('');
     setNewProductQty(1);
     setNewProductDesc(0);
+    setNewProductPago('');
     setAddingProducto(false);
   }
 
   function removeProductoNuevo(idx) {
     setTicketNuevos(arr => arr.filter((_, i) => i !== idx));
+  }
+
+  /** Cambia el medio de pago de una línea ya agregada. '' vuelve a heredar. */
+  function setTicketNuevoPago(idx, metodo) {
+    setTicketNuevos(arr => arr.map((n, i) => i === idx ? { ...n, metodoPago: metodo || null } : n));
   }
 
   const totalProductosPrev   = ticketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
@@ -1491,6 +1531,26 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     // cierre de caja no cuadraba sin que nadie supiera por qué.
     // Modo split: exige al menos una fila válida con monto > 0. Modo single:
     // exige metodoPago no vacío. La cortesía queda exenta (precio 0).
+    // ── Caja abierta obligatoria al COMPLETAR (opt-in del tenant) ────
+    // Se chequea ANTES que el método de pago: si el local no abrió la caja,
+    // pedirle el medio de pago primero es hacerle llenar un formulario que
+    // igual no va a poder guardar. Solo aplica al pasar A Completada — editar
+    // una cita ya cerrada (corregir una nota) no se bloquea.
+    if (exigirCajaAbierta
+        && form.estado === 'Completada'
+        && cita?.estado !== 'Completada'
+        && !hayCajaAbierta(cita?.sucursalId || activeSucursal?.id || null)) {
+      await confirmDialog({
+        title: 'La caja está cerrada',
+        message: 'Para completar citas primero hay que abrir la caja del día, en Caja → Abrir caja. '
+          + 'Así el cobro entra a la sesión y el arqueo del cierre cuadra.\n\n'
+          + 'La cita queda como está: al abrir la caja puedes volver y completarla.',
+        confirmText: 'Entendido',
+        cancelText: '',
+      });
+      return;
+    }
+
     if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago && !isSplit) {
       setErrorMetodoPago(true);
       await confirmDialog({
@@ -1880,12 +1940,21 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                 status:        'delivered',
                 userName:      form.clienteNombre || 'Cliente',
                 userEmail:     form.clienteEmail  || '',
-                // Hereda el método de la cita. NO defaultea a 'Efectivo': si
-                // la cita no tiene método, la venta queda sin él y Caja la
+                // Método propio de la línea si se eligió uno distinto (el
+                // corte con débito y la pomada con crédito, por ejemplo); si
+                // no, hereda el de la cita. NO defaultea a 'Efectivo': si la
+                // cita no tiene método, la venta queda sin él y Caja la
                 // excluye del efectivo esperado en vez de inventar plata en el
                 // cajón. Al completar ya se exige elegir, así que en la
                 // práctica siempre llega con valor.
-                ...(form.metodoPago ? { metodoPago: form.metodoPago } : {}),
+                ...((n.metodoPago || form.metodoPago)
+                  ? { metodoPago: n.metodoPago || form.metodoPago }
+                  : {}),
+                // Marca que el medio se separó del de la cita, para poder
+                // auditar después por qué el arqueo repartió distinto.
+                ...(n.metodoPago && n.metodoPago !== form.metodoPago
+                  ? { metodoPagoPropio: true }
+                  : {}),
                 barberoId:     form.barberoId,
                 barberoNombre: form.barbero,
                 citaId:        cita.id,
@@ -1902,6 +1971,7 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                 precio:        n.totalLinea,
                 subtotal:      n.subtotalLinea ?? n.totalLinea,
                 descuento:     n.descuento || 0,
+                metodoPago:    n.metodoPago || form.metodoPago || null,
                 reservationId: reservationRef.id,
               });
             });
@@ -2617,22 +2687,7 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                 </label>
                 <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 ${
                   errorMetodoPago ? 'ring-1 ring-rose-500/60 rounded-lg p-1 -m-1' : ''}`}>
-                  {(tuuActivo
-                    ? [
-                        { v: 'Efectivo',       txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
-                        { v: 'Tarjeta (POS)',  txt: 'Tarjeta (POS)', on: 'bg-yellow-500/20 border-yellow-500/60 text-yellow-300' },
-                        { v: 'Transferencia',  txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
-                        ...(tuuPermitirManual
-                          ? [{ v: 'Tarjeta (manual)', txt: 'Tarjeta manual', on: 'bg-slate-500/25 border-slate-400/60 text-slate-200' }]
-                          : []),
-                      ]
-                    : [
-                        { v: 'Efectivo',      txt: 'Efectivo',      on: 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' },
-                        { v: 'Débito',        txt: 'Débito',        on: 'bg-sky-500/20 border-sky-500/60 text-sky-300' },
-                        { v: 'Crédito',       txt: 'Crédito',       on: 'bg-violet-500/20 border-violet-500/60 text-violet-300' },
-                        { v: 'Transferencia', txt: 'Transferencia', on: 'bg-amber-500/20 border-amber-500/60 text-amber-300' },
-                      ]
-                  ).map(o => {
+                  {opcionesMetodoPago.map(o => {
                     const activo = form.metodoPago === o.v;
                     return (
                       <button
@@ -2829,6 +2884,9 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                       {p.nombre}
                     </span>
                     <span className="text-slate-400 font-medium shrink-0">${Math.round(p.precio || 0).toLocaleString('es-CL')}</span>
+                    {p.metodoPago && (
+                      <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded shrink-0">{p.metodoPago}</span>
+                    )}
                     <span className="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded shrink-0">Guardado</span>
                   </div>
                 ))}
@@ -2839,28 +2897,59 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
             {ticketNuevos.length > 0 && (
               <div className="space-y-1">
                 {ticketNuevos.map((p, i) => (
-                  <div key={`new-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-xs">
-                    <span className="text-primary truncate flex-1">
-                      <span className="text-emerald-400/80 mr-1.5">×{p.cantidad}</span>
-                      {p.nombre}
+                  <div key={`new-${i}`} className="px-2.5 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-primary truncate flex-1">
+                        <span className="text-emerald-400/80 mr-1.5">×{p.cantidad}</span>
+                        {p.nombre}
+                        {p.descuento > 0 && (
+                          <span className="ml-1.5 text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">-{p.descuento}%</span>
+                        )}
+                      </span>
                       {p.descuento > 0 && (
-                        <span className="ml-1.5 text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">-{p.descuento}%</span>
+                        <span className="text-slate-500 line-through text-[10px] shrink-0">${Math.round(p.subtotalLinea).toLocaleString('es-CL')}</span>
                       )}
-                    </span>
-                    {p.descuento > 0 && (
-                      <span className="text-slate-500 line-through text-[10px] shrink-0">${Math.round(p.subtotalLinea).toLocaleString('es-CL')}</span>
-                    )}
-                    <span className="text-emerald-400 font-bold shrink-0">${Math.round(p.totalLinea).toLocaleString('es-CL')}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeProductoNuevo(i)}
-                      className="text-rose-400/70 hover:text-rose-400 shrink-0 p-0.5"
-                      title="Quitar"
-                    >
-                      <X size={12} />
-                    </button>
+                      <span className="text-emerald-400 font-bold shrink-0">${Math.round(p.totalLinea).toLocaleString('es-CL')}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeProductoNuevo(i)}
+                        className="text-rose-400/70 hover:text-rose-400 shrink-0 p-0.5"
+                        title="Quitar"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    {/* Medio de pago de ESTA línea. Sin elegir sigue al de la
+                        cita, así que cambiar el método arriba lo arrastra. */}
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase shrink-0">Paga con</span>
+                      <select
+                        value={p.metodoPago || ''}
+                        onChange={e => setTicketNuevoPago(i, e.target.value)}
+                        disabled={isSplit}
+                        aria-label={`Método de pago de ${p.nombre}`}
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-emerald-500/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Igual que la cita{form.metodoPago ? ` (${form.metodoPago})` : ''}</option>
+                        {metodosPagoLocal.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      {!isSplit && p.metodoPago && p.metodoPago !== form.metodoPago && (
+                        <span className="text-[9px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.5 rounded shrink-0">
+                          aparte
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
+                {/* Con pago dividido, Caja reparte el ticket COMPLETO según las
+                    filas del split y deja fuera del reparto a las ventas de la
+                    cita — un método por producto no tendría ningún efecto. */}
+                {isSplit && (
+                  <p className="text-[10px] text-amber-400/90 leading-snug px-0.5">
+                    La cita está con pago dividido: el reparto por método lo definen las filas
+                    del split, que ya cubren el ticket completo (servicio + productos).
+                  </p>
+                )}
               </div>
             )}
 
@@ -2913,6 +3002,22 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                       onChange={e => setNewProductDesc(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
                     />
                   </div>
+                </div>
+                {/* Medio de pago del producto: por defecto el mismo de la cita.
+                    Se separa cuando el corte y el producto se pagan distinto. */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Método de pago</label>
+                  <Select
+                    className={field}
+                    ariaLabel="Método de pago del producto"
+                    value={newProductPago}
+                    onChange={setNewProductPago}
+                    disabled={isSplit}
+                    options={[
+                      { value: '', label: `Igual que la cita${form.metodoPago ? ` — ${form.metodoPago}` : ''}` },
+                      ...metodosPagoLocal.map(m => ({ value: m, label: m })),
+                    ]}
+                  />
                 </div>
                 {/* Acciones: Agregar amplio + Cancelar */}
                 <div className="flex items-center gap-2 pt-0.5">
