@@ -2519,9 +2519,20 @@ export default function Caja() {
     // sumó el ticket COMPLETO (servicio + productos) vía pagos[], y contar la
     // venta acá haría doble conteo.
     const ventasIndep = ventasHoy.filter(v => !v.citaId || !citasConSplit.has(v.citaId));
-    const productosEfectivo = ventasIndep.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + (Number(v.precio) || 0), 0);
-    const productosTarjeta  = ventasIndep.filter(v => isTarjeta(v.metodoPago)).reduce((s, v) => s + (Number(v.precio) || 0), 0);
-    const productosTransf   = ventasIndep.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + (Number(v.precio) || 0), 0);
+    // Split-aware, igual que los gastos de más abajo. Con el filtro por string
+    // una venta dividida —que deja `metodoPago:'Mixto'` y el desglose en
+    // `pagos[]`— no calzaba con 'Efectivo', ni con tarjeta, ni con
+    // 'Transferencia': caía en NINGÚN balde y su plata desaparecía del flujo
+    // del día y del saldo esperado. Antes era imposible (Productos no escribía
+    // splits); desde que la venta rápida y la entrega los permiten, sí.
+    const prodPorMetodo = ventasIndep.reduce((acc, v) => {
+      const m = montosPorMetodo(v);
+      acc.efectivo += m.efectivo; acc.tarjeta += m.tarjeta; acc.transf += m.transf;
+      return acc;
+    }, { efectivo: 0, tarjeta: 0, transf: 0 });
+    const productosEfectivo = prodPorMetodo.efectivo;
+    const productosTarjeta  = prodPorMetodo.tarjeta;
+    const productosTransf   = prodPorMetodo.transf;
 
     // Gastos — split-aware: una liquidación pagada mitad efectivo / mitad
     // transferencia (Comisiones → Registrar pago) escribe `pagos[]` y deja

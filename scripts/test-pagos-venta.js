@@ -107,6 +107,40 @@ function montosPorMetodo(item, total) {
   check(sinNada.efectivo + sinNada.tarjeta + sinNada.transf === 0,
     'una venta sin método no inventa plata en ningún bucket');
 
+  /* ── Flujo de efectivo del día (Caja → arqueo) ──────────────────
+     Distinto del reporte: el arqueo repartía los productos filtrando por el
+     STRING `metodoPago`. Una venta dividida deja 'Mixto', que no calza con
+     Efectivo ni con tarjeta ni con Transferencia — caía en ningún balde y su
+     plata desaparecía del saldo esperado. Se arregló usando montosPorMetodo,
+     igual que ya hacían los servicios y los gastos. */
+  console.log('\n── Arqueo del día: productos ──');
+  {
+    const ventas = [
+      { precio: 10000, metodoPago: 'Efectivo' },
+      { precio: 15000, metodoPago: 'Débito' },
+      { precio: 20000, metodoPago: 'Mixto', pagos: [{ tipo: 'Efectivo', monto: 8000 }, { tipo: 'Crédito', monto: 12000 }] },
+    ];
+    const totalReal = 45000;
+
+    // Como estaba antes: filtro por string.
+    const viejo =
+      ventas.filter(v => v.metodoPago === 'Efectivo').reduce((s, v) => s + v.precio, 0)
+      + ventas.filter(v => TARJETA.has(v.metodoPago)).reduce((s, v) => s + v.precio, 0)
+      + ventas.filter(v => v.metodoPago === 'Transferencia').reduce((s, v) => s + v.precio, 0);
+
+    // Como quedó: split-aware.
+    const nuevo = ventas.reduce((acc, v) => {
+      const m = montosPorMetodo(v, Number(v.precio) || 0);
+      return acc + m.efectivo + m.tarjeta + m.transf;
+    }, 0);
+
+    const efectivoNuevo = ventas.reduce((s, v) => s + montosPorMetodo(v, Number(v.precio) || 0).efectivo, 0);
+
+    check(viejo === 25000, `el filtro viejo perdía los $20.000 de la venta dividida (sumaba ${viejo.toLocaleString('es-CL')})`);
+    check(nuevo === totalReal, `split-aware reparte los ${totalReal.toLocaleString('es-CL')} completos`);
+    check(efectivoNuevo === 18000, 'el efectivo del día incluye los $8.000 de la parte en efectivo del split');
+  }
+
   console.log('\n── Etiqueta de la tabla ──');
   check(etiquetaPago({ metodoPago: 'Efectivo' }) === 'Efectivo', 'pago único muestra su método');
   check(etiquetaPago(split) === 'Efectivo + Crédito', 'split muestra el desglose, no "Mixto"');
