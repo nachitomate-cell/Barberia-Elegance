@@ -39,7 +39,38 @@ function montosPorMetodo(item, total) {
 }
 
 (async () => {
-  const { pagoValido, normalizarPago, etiquetaPago, sumaPagos, esSplit } = await import(LIB);
+  const { pagoValido, normalizarPago, etiquetaPago, sumaPagos, esSplit, puedeDividir } = await import(LIB);
+
+  /* ── La regla que evita duplicar plata en el arqueo ──────────────
+     Si una venta cuelga de una cita y la cita se pagó dividida, el `pagos[]`
+     de la CITA ya cubre el ticket completo. Caja excluye esas ventas del
+     reparto (línea 1263) SOLO mientras no tengan pagos[] propio: si se lo
+     pusiéramos, la línea 1262 lo sumaría igual y el ticket entraría dos
+     veces. Por eso el split se ofrece únicamente en ventas sueltas. */
+  console.log('\n── Split solo en ventas sueltas ──');
+  check(puedeDividir({ id: 'v1' }) === true, 'una venta de mostrador puede dividirse');
+  check(puedeDividir({ id: 'v2', citaId: 'c9' }) === false,
+    'una venta dentro del ticket de una cita NO (se duplicaría en la caja)');
+
+  {
+    // Simulación del arqueo con la regla puesta y sin ella.
+    const citas  = [{ id: 'c9', precio: 20000, pagos: [{ tipo: 'Efectivo', monto: 12000 }, { tipo: 'Débito', monto: 18000 }] }];
+    const citasConSplit = new Set(citas.filter(c => c.pagos?.length).map(c => c.id));
+    const reparto = (ventas) => {
+      let total = 0;
+      citas.forEach(c => { c.pagos.forEach(p => { total += p.monto; }); });
+      ventas.forEach(v => {
+        if (Array.isArray(v.pagos) && v.pagos.length) v.pagos.forEach(p => { total += Number(p.monto) || 0; });
+        else if (!v.citaId || !citasConSplit.has(v.citaId)) total += Number(v.precio) || 0;
+      });
+      return total;
+    };
+    const ticket = 30000;   // 20.000 servicio + 10.000 producto, pagados juntos
+    const bien = reparto([{ citaId: 'c9', precio: 10000, metodoPago: 'Efectivo' }]);
+    const mal  = reparto([{ citaId: 'c9', precio: 10000, pagos: [{ tipo: 'Efectivo', monto: 10000 }] }]);
+    check(bien === ticket, `con la regla, el arqueo cuadra en ${ticket.toLocaleString('es-CL')}`);
+    check(mal === ticket + 10000, `sin la regla se duplicarían $10.000 (daría ${mal.toLocaleString('es-CL')})`);
+  }
 
   console.log('\n── Validación ──');
   check(pagoValido({ metodoPago: 'Efectivo', pagos: null }, 10000), 'pago único con método vale');

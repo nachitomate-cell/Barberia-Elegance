@@ -18,6 +18,18 @@
 
 export const METODOS_VENTA = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
 
+/** ¿Esta venta puede tener su propio pago dividido?
+ *
+ *  NO si cuelga de una cita (`citaId`). Cuando una cita se paga dividida, su
+ *  `pagos[]` cubre el ticket COMPLETO —servicio + los productos de ese ticket—
+ *  y Caja excluye esas ventas del reparto para no contarlas dos veces
+ *  (Caja.jsx:1263). Pero esa exclusión solo aplica a las ventas SIN `pagos[]`
+ *  propio: si le pusiéramos uno, Caja lo sumaría igual (línea 1262) y la plata
+ *  del ticket entraría duplicada al arqueo.
+ *
+ *  Para esos casos el split se edita en la cita, que es donde vive el ticket. */
+export const puedeDividir = (venta) => !venta?.citaId;
+
 export const esSplit = (pagos) => Array.isArray(pagos) && pagos.length > 0;
 
 export const sumaPagos = (pagos) =>

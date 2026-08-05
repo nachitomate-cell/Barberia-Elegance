@@ -14,7 +14,7 @@ import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useConfig } from '../hooks/useConfig';
 import { buscarClientes } from '../lib/clienteSearch';
-import { METODOS_VENTA, esSplit, sumaPagos, pagoValido, normalizarPago, etiquetaPago } from '../lib/pagosVenta';
+import { METODOS_VENTA, esSplit, sumaPagos, pagoValido, normalizarPago, etiquetaPago, puedeDividir } from '../lib/pagosVenta';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import Spinner from '../components/ui/Spinner';
@@ -505,7 +505,7 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
 /* ── Editor de medio de pago (simple o dividido) ──────────────────────
    El contrato y las reglas viven en lib/pagosVenta.js, que se prueba sin React
    (`npm run test:pagos-venta`). Acá solo va la UI. */
-function EditorPago({ total, metodoPago, pagos, onChange, field }) {
+function EditorPago({ total, metodoPago, pagos, onChange, field, permiteSplit = true }) {
   const split = esSplit(pagos);
   const suma = split ? sumaPagos(pagos) : 0;
   const calza = Math.round(suma) === Math.round(total);
@@ -521,6 +521,17 @@ function EditorPago({ total, metodoPago, pagos, onChange, field }) {
         </select>
       )}
 
+      {/* Sin split cuando el producto va dentro del ticket de una cita: ahí el
+          desglose vive en la cita y duplicarlo acá inflaría el arqueo. */}
+      {!permiteSplit && (
+        <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+          Este producto va dentro del ticket de una cita. Si se pagó con varios
+          métodos, divídelo en la <span className="text-slate-400 font-medium">agenda</span> —
+          hacerlo acá lo contaría dos veces en la caja.
+        </p>
+      )}
+
+      {permiteSplit && (
       <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
         <input
           type="checkbox"
@@ -534,6 +545,7 @@ function EditorPago({ total, metodoPago, pagos, onChange, field }) {
         />
         Dividir en varios métodos (efectivo + tarjeta, etc.)
       </label>
+      )}
 
       {split && (
         <div className="mt-2 space-y-2 p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
@@ -617,6 +629,7 @@ function EditarPagoModal({ venta, field, onClose, onSave }) {
           metodoPago={estado.metodoPago}
           pagos={estado.pagos}
           field={field}
+          permiteSplit={puedeDividir(venta)}
           onChange={(patch) => setEstado(s => ({ ...s, ...patch }))}
         />
 
@@ -931,13 +944,20 @@ export default function Productos() {
     // lista — que por orden de docId solía ser un link-doc. Así se le anotaron
     // $73.970 en comisiones a cuatro fantasmas. `handleEntregaConfirm` ya exige
     // elegir, y el select ya trae su opción "— Seleccionar —".
-    setEntregaForm({ metodoPago: 'Efectivo', barberoId: '' });
+    setEntregaForm({ metodoPago: 'Efectivo', pagos: null, barberoId: '' });
     setEntregaModal(reserva);
   };
 
   const handleEntregaConfirm = async () => {
     if (!entregaModal) return;
     if (!entregaForm.barberoId) { alert('Selecciona un barbero vendedor.'); return; }
+    // Mismo candado que la venta rápida: un split que no suma el total exacto
+    // descuadra el arqueo del día.
+    const _totalEntrega = Math.round(Number(entregaModal.precio) || Number(entregaModal.total) || 0);
+    if (!pagoValido(entregaForm, _totalEntrega)) {
+      alert('El pago dividido debe sumar exactamente el total de la venta.');
+      return;
+    }
     setEntregaSaving(true);
     try {
       const reserva = entregaModal;
@@ -945,7 +965,7 @@ export default function Productos() {
       const batch = writeBatch(db);
       batch.update(doc(tenantCol('product_reservations'), reserva.id), {
         status: 'delivered',
-        metodoPago: entregaForm.metodoPago,
+        ...normalizarPago(entregaForm),
         barberoId: entregaForm.barberoId,
         barberoNombre: barb?.nombre || '',
         updatedAt: serverTimestamp(),
@@ -2313,19 +2333,14 @@ export default function Productos() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Método de Pago *</label>
-              <select
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
-                value={entregaForm.metodoPago}
-                onChange={e => setEntregaForm(f => ({ ...f, metodoPago: e.target.value }))}
-              >
-                <option value="Efectivo">Efectivo</option>
-                <option value="Débito">Débito</option>
-                <option value="Crédito">Crédito</option>
-                <option value="Transferencia">Transferencia</option>
-                {entregaForm.metodoPago === 'Tarjeta' && (
-                  <option value="Tarjeta">Tarjeta (legacy)</option>
-                )}
-              </select>
+              <EditorPago
+                total={Math.round(Number(entregaModal?.precio) || Number(entregaModal?.total) || 0)}
+                metodoPago={entregaForm.metodoPago}
+                pagos={entregaForm.pagos}
+                field="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-emerald-500 transition-colors"
+                permiteSplit={puedeDividir(entregaModal)}
+                onChange={(patch) => setEntregaForm(f => ({ ...f, ...patch }))}
+              />
             </div>
 
             <div>
