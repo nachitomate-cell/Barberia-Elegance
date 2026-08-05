@@ -613,16 +613,15 @@ async function saludChip(dias, chipId = CHIP_DEFAULT) {
 
 exports._saludChip = saludChip;   // para el test de umbrales
 
-// 512 MiB y 120 s a propósito: con 256 MiB el contenedor cargaba todo el grafo
-// de funciones (~130 MB) y el handler lo dejaba a ~180 MB — un cold start o dos
-// llamadas concurrentes lo tiraban por OOM y el panel veía 500 "internal"
-// intermitentes (31-jul). El handler además tarda ~20 s hoy; 60 s de timeout
-// quedaba sin margen en frío.
-exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN, WHATSAPP_TOKEN], memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
-  if (!req.auth || !esOperadorReq(req)) {
-    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
-  }
-
+/**
+ * Todo el cálculo del dashboard, sin auth ni transporte.
+ *
+ * Vive aparte del callable porque lo corren DOS caminos: `opsMetrics` (cuando
+ * el operador pide datos frescos) y el cron de `ops-snapshot.js`, que lo deja
+ * masticado en un doc para que abrir el panel cueste 1 lectura y no ~600.
+ * Exige los secrets OPS_TOKEN y WHATSAPP_TOKEN enlazados en quien la llame.
+ */
+async function calcularMetricas() {
   const ds = ultimosDias(30);
   const hoy = ds[0];
   const mesActual = hoy.slice(0, 7);
@@ -767,6 +766,20 @@ exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_T
   };
 
   return { total, barberia, sushipro, sushiError, alertas, trials, email: usoEmail, metaWhatsApp, mesActual, generadoEn: Date.now() };
+}
+
+exports._calcularMetricas = calcularMetricas;   // lo usa ops-snapshot.js
+
+// 512 MiB y 120 s a propósito: con 256 MiB el contenedor cargaba todo el grafo
+// de funciones (~130 MB) y el handler lo dejaba a ~180 MB — un cold start o dos
+// llamadas concurrentes lo tiraban por OOM y el panel veía 500 "internal"
+// intermitentes (31-jul). El handler tarda varios segundos; 60 s de timeout
+// quedaba sin margen en frío.
+exports.opsMetrics = onCall({ region: 'us-central1', cors: true, secrets: [OPS_TOKEN, WHATSAPP_TOKEN], memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  return await calcularMetricas();
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════

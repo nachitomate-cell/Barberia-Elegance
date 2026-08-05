@@ -7,20 +7,30 @@
 <title>Operaciones · SynapTech</title>
 <style>
   :root{
-    /* Fondo principal intacto */
-    --bg:#0d1117;
-    /* Cristal + soft */
-    --glass:rgba(255,255,255,0.02);
-    --glass-hover:rgba(255,255,255,0.05);
-    --glass-border:rgba(255,255,255,0.05);
+    /* ── Paleta SynapTech ──────────────────────────────────────────────
+       Navy de marca (#0F1A2B) para las superficies y lima (#9CCC3C) para
+       la marca. El neón (#C6F94E) es SOLO acento sobre oscuro: se reserva
+       para el dato que manda de cada tarjeta y para el foco — nunca como
+       fondo ni en bloques grandes (regla de los dos verdes).
+       El fondo va un punto más profundo que el navy para que las tarjetas
+       se despeguen sin necesitar bordes duros. */
+    --bg:#0A1420;
+    --surface:#0F1A2B;
+    --surface-2:#13233A;
+    --glass:rgba(255,255,255,0.025);
+    --glass-hover:rgba(255,255,255,0.055);
+    --glass-border:rgba(156,204,60,0.12);
     --hairline:rgba(255,255,255,0.06);
-    --ink:#e6edf3;
-    --soft:#8b949e;
-    /* Colores pastel tipo System iOS Dark */
-    --green:#5ee89a;
-    --amber:#ffcf6c;
-    --red:#ff7b72;
-    --accent:#7aa8ff;
+    --ink:#E8EFF6;
+    --soft:#8FA3B8;
+    --lima:#9CCC3C;
+    --neon:#C6F94E;
+    /* Semáforo: el verde del semáforo ES la lima, para no meter un tercer
+       verde en pantalla. Ámbar y rojo se mantienen cálidos y legibles. */
+    --green:#9CCC3C;
+    --amber:#FFCF6C;
+    --red:#FF7B72;
+    --accent:#9CCC3C;
   }
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
@@ -44,13 +54,58 @@
   .login p{ color:var(--soft); font-size:14px; }
   .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
   @media(max-width:720px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
-  .kpi{ background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:16px; transition:background .2s ease; }
-  .kpi:hover{ background:var(--glass-hover); }
+  .kpi{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; transition:background .2s ease, border-color .2s ease; }
+  .kpi:hover{ background:var(--surface-2); border-color:rgba(156,204,60,.24); }
   .kpi .n{ font-size:28px; font-weight:600; letter-spacing:-.02em; color:#fff; }
   .kpi .k{ font-size:11px; color:var(--soft); margin-top:4px; text-transform:uppercase; letter-spacing:.08em; font-weight:500; }
   .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
   @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
-  .panel{ background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
+  .panel{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
+
+  /* ── Frescura del snapshot ───────────────────────────────────────────
+     El panel se sirve de un doc precalculado, así que SIEMPRE dice de
+     cuándo es el dato. Fingir que es de este instante sería mentir sobre
+     la única cosa que un operador necesita saber para confiar en él. */
+  .fresh{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--soft); border:1px solid var(--glass-border); border-radius:9999px; padding:4px 10px; }
+  .fresh .p{ width:6px; height:6px; border-radius:50%; background:var(--lima); }
+  .fresh.viejo .p{ background:var(--amber); }
+  .fresh.cargando .p{ background:var(--neon); animation:pulso 1s ease-in-out infinite; }
+  @keyframes pulso{ 0%,100%{ opacity:1 } 50%{ opacity:.25 } }
+
+  /* ── KPI destacado (Meta Ads) ───────────────────────────────────────
+     El número que manda va en neón; el resto en tinta normal. Un solo
+     acento por tarjeta, si no deja de ser acento. */
+  .kpi.hero{ background:linear-gradient(160deg, var(--surface-2), var(--surface)); border-color:rgba(198,249,78,.22); }
+  .kpi.hero .n{ color:var(--neon); }
+  .delta{ font-size:11px; font-weight:600; margin-left:6px; }
+  .delta.bien{ color:var(--lima); } .delta.mal{ color:var(--red); }
+
+  /* ── Embudo ─────────────────────────────────────────────────────────
+     Barras proporcionales al paso ANTERIOR, no al total: así se ve dónde
+     se cae la gente, que es la única pregunta que importa acá. */
+  .fnl{ display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+  .fnl .paso{ display:grid; grid-template-columns:120px 1fr auto; gap:10px; align-items:center; font-size:12.5px; }
+  .fnl .barra{ height:22px; border-radius:6px; background:rgba(255,255,255,.04); overflow:hidden; }
+  .fnl .barra i{ display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--lima), rgba(156,204,60,.45)); }
+  .fnl .paso.fin .barra i{ background:linear-gradient(90deg, var(--neon), rgba(198,249,78,.4)); }
+  .fnl .paso.cero .barra i{ background:rgba(255,123,114,.5); }
+  .fnl .et{ color:var(--soft); }
+  .fnl .val{ font-weight:600; color:#fff; font-variant-numeric:tabular-nums; }
+  .fnl .costo{ font-size:11px; color:var(--soft); font-variant-numeric:tabular-nums; }
+
+  /* ── Sparkline de la serie diaria ───────────────────────────────────── */
+  .spark{ display:flex; align-items:flex-end; gap:2px; height:44px; margin-top:8px; }
+  .spark i{ flex:1; background:rgba(156,204,60,.35); border-radius:2px 2px 0 0; min-height:2px; transition:background .15s ease; }
+  .spark i.hoy{ background:var(--neon); }
+  .spark i:hover{ background:var(--neon); }
+
+  /* ── Tabla compacta (anuncios) ──────────────────────────────────────── */
+  .tb{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px; }
+  .tb th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--soft); font-weight:500; padding:6px 8px 6px 0; border-bottom:1px solid var(--hairline); }
+  .tb td{ padding:9px 8px 9px 0; border-bottom:1px solid var(--hairline); font-variant-numeric:tabular-nums; }
+  .tb tr:last-child td{ border-bottom:0; }
+  .tb .nom{ color:#fff; font-weight:500; }
+  .tb .num{ text-align:right; }
   .panel h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--soft); display:flex; align-items:center; gap:8px; font-weight:500; }
   /* Efecto ticket: sin divisorias, solo espacio en blanco. */
   .row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; font-size:14px; }
@@ -60,7 +115,7 @@
   .loc + .loc{ border-top:1px solid var(--hairline); }
   .loc .sub2{ flex-basis:100%; padding-left:16px; font-size:11px; color:var(--soft); margin-top:2px; }
   .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
-  .dot.on{ background:var(--green); box-shadow:0 0 6px rgba(94,232,154,.35); } .dot.off{ background:rgba(255,255,255,.15); }
+  .dot.on{ background:var(--green); box-shadow:0 0 6px rgba(156,204,60,.35); } .dot.off{ background:rgba(255,255,255,.15); }
   .dot.warn{ background:var(--red); box-shadow:0 0 6px rgba(255,123,114,.6); }
   .alerta{ display:flex; gap:9px; align-items:flex-start; border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:8px; border:1px solid var(--glass-border); }
   .alerta.rojo{ background:rgba(255,123,114,.08); color:#ffbcb5; }
@@ -68,7 +123,7 @@
   .alerta.info{ background:rgba(122,168,255,.07); color:#b9d0ff; }
   .trial-ok{ color:var(--green); } .trial-pronto{ color:var(--amber); } .trial-vencido{ color:var(--red); }
   .tag{ font-size:10px; padding:2px 8px; border-radius:9999px; background:var(--glass-hover); color:var(--soft); font-weight:500; }
-  .tag.g{ color:var(--green); background:rgba(94,232,154,.15); }
+  .tag.g{ color:var(--green); background:rgba(156,204,60,.15); }
   .muted{ color:var(--soft); font-size:12px; }
   .warn{ background:rgba(255,207,108,.08); border:1px solid var(--glass-border); color:var(--amber); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:14px; }
   #err{ color:var(--red); font-size:13px; margin-top:10px; }
@@ -89,7 +144,7 @@
   .chat .meta{ font-size:11px; color:var(--soft); margin-bottom:6px; }
   .msg{ font-size:12.5px; line-height:1.5; margin:3px 0; padding:5px 9px; border-radius:10px; white-space:pre-wrap; }
   .msg.user{ background:rgba(255,255,255,.04); }
-  .msg.assistant{ background:rgba(94,232,154,.08); }
+  .msg.assistant{ background:rgba(156,204,60,.08); }
 </style>
 </head>
 <body>
@@ -521,6 +576,150 @@
        La captura la declara el propio bot (tool registrar_reunion): acá solo
        se muestra el embudo y se mueve el estado a mano al confirmar/realizar
        la reunión. El chat completo vive en el WhatsApp de Ignacio. */
+    /* ═══════════════════════════════════════════════════════════════════
+       📣 META ADS — el embudo completo, de la plata al cliente.
+
+       El Ads Manager responde "¿cuánto costó una conversación?". Esa
+       pregunta ya la teníamos contestada y bien ($1.646, bajo el
+       benchmark) mientras la campaña no traía UN solo cliente. Lo que
+       falta siempre es la otra mitad: qué pasó DESPUÉS del clic. Este
+       panel pega las dos y muestra el costo de cada escalón, porque el
+       escalón donde el número se dispara es el que hay que arreglar.
+       ═══════════════════════════════════════════════════════════════════ */
+    // Como `clp` (línea ~168) pero distingue "no hay dato" de "cero": un anuncio
+    // sin conversaciones no tiene costo por conversación, y mostrarlo como $0
+    // haría creer que es el más barato de todos.
+    function clpOpt(n){ return n === null || n === undefined ? '—' : '$' + Math.round(n).toLocaleString('es-CL'); }
+
+    /** Barras proporcionales al paso anterior: muestran la CAÍDA, no el volumen. */
+    function embudoHtml(e){
+      if(!e) return '<p class="muted">Sin datos del embudo.</p>';
+      const c = e.costo || {};
+      const pasos = [
+        { et:'Conversaciones', v:e.chatsTotales7d,     costo:c.porConversacion },
+        { et:'Chats del bot',  v:e.chatsActivados7d,   costo:c.porChatBot   },
+        { et:'Leads',          v:e.leads7d,            costo:c.porLead      },
+        { et:'Reuniones',      v:e.reuniones7d,        costo:c.porReunion   },
+        { et:'Trials creados', v:e.trials7d,           costo:c.porTrial     },
+        { et:'Clientes',       v:e.clientesPagando,    costo:null, fin:true },
+      ];
+      const tope = Math.max(1, ...pasos.map(p => p.v || 0));
+      return `<div class="fnl">${pasos.map(p => {
+        const pct = Math.max(2, Math.round(100 * (p.v || 0) / tope));
+        const cls = [(p.v ? '' : 'cero'), (p.fin ? 'fin' : '')].filter(Boolean).join(' ');
+        return `<div class="paso ${cls}">
+          <span class="et">${p.et}</span>
+          <span class="barra"><i style="width:${pct}%"></i></span>
+          <span><span class="val">${p.v ?? 0}</span>${p.costo ? ` <span class="costo">${clpOpt(p.costo)} c/u</span>` : ''}</span>
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    function sparkHtml(serie){
+      const d = (serie || []).slice(-21);
+      if(!d.length) return '';
+      const tope = Math.max(...d.map(x => x.gasto), 1);
+      return `<div class="spark">${d.map((x,i) =>
+        `<i class="${i === d.length-1 ? 'hoy' : ''}" style="height:${Math.max(2, Math.round(100*x.gasto/tope))}%"
+            title="${x.fecha}: ${clpOpt(x.gasto)} · ${x.conversaciones} conv"></i>`).join('')}</div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--soft);margin-top:4px">
+          <span>${d[0].fecha}</span><span>gasto diario</span><span>${d[d.length-1].fecha}</span>
+        </div>`;
+    }
+
+    function metaAdsPanel(m){
+      if(!m) return '<p class="muted">Sin snapshot de Meta Ads todavía. Pulsa «Refrescar ads».</p>';
+      if(m.metaError){
+        return `<div class="panel"><h3>📣 Meta Ads</h3>
+          <div class="alerta ${m.metaEsAuth ? 'rojo' : 'ambar'}"><span>${m.metaEsAuth ? '🔴' : '🟡'}</span><span>
+            ${m.metaEsAuth ? 'El token de Meta venció o perdió permisos. Genera uno nuevo con ads_read y actualiza el secret META_ADS_TOKEN.' : m.metaError}
+          </span></div>
+          ${m.embudo ? `<h3 style="margin-top:14px">Embudo real (7 días)</h3>${embudoHtml(m.embudo)}` : ''}
+        </div>`;
+      }
+      const r = m.meta.resumen7 || {};
+      const prev = r.previo || {};
+      const bench = m.benchmark || 1850;
+      // Costo por conversación contra el benchmark: verde si va bajo, rojo si
+      // se pasó. Es el semáforo que decide si la campaña sigue o se mata.
+      const cpc = r.costoPorConversacion;
+      const vsBench = cpc ? Math.round(100 * (cpc - bench) / bench) : null;
+      const vsPrev  = (cpc && prev.costoPorConversacion)
+        ? Math.round(100 * (cpc - prev.costoPorConversacion) / prev.costoPorConversacion) : null;
+      const delta = (v, invertido) => v === null ? '' :
+        `<span class="delta ${(invertido ? v <= 0 : v >= 0) ? 'bien' : 'mal'}">${v > 0 ? '+' : ''}${v}%</span>`;
+
+      const anuncios = m.meta.anuncios7 || [];
+      const porAnuncio = (m.embudo && m.embudo.porAnuncio) || {};
+      const activas = m.meta.activas || 0;
+
+      return `
+        <div class="kpis" style="margin-bottom:14px">
+          <div class="kpi hero">
+            <div class="n tnum">${clpOpt(cpc)}</div>
+            <div class="k">Costo / conversación ${delta(vsBench, true)}</div>
+            <div class="costo" style="margin-top:4px">benchmark ${clpOpt(bench)}${vsPrev !== null ? ` · vs semana previa ${delta(vsPrev, true)}` : ''}</div>
+          </div>
+          <div class="kpi"><div class="n tnum">${clpOpt(r.gasto)}</div><div class="k">Gasto 7 días</div></div>
+          <div class="kpi"><div class="n tnum">${r.conversaciones ?? 0}</div><div class="k">Conversaciones</div></div>
+          <div class="kpi"><div class="n tnum">${m.embudo ? m.embudo.trials7d : '—'}</div><div class="k">Trials creados (7d)</div></div>
+        </div>
+
+        ${activas === 0 ? `<div class="alerta ambar"><span>⏸️</span><span>
+          <b>Todas las campañas están pausadas.</b> Los números de abajo son de los últimos 7 días con gasto, no de hoy.
+        </span></div>` : ''}
+
+        <div class="cols" style="margin-top:0">
+          <div class="panel">
+            <h3>🔻 Embudo real · 7 días</h3>
+            ${embudoHtml(m.embudo)}
+            ${m.embudo && m.embudo.chatsConAnuncio7d === 0 && m.embudo.chatsTotales7d > 0 ? `
+              <p class="muted" style="font-size:11.5px;margin-top:10px">
+                Ningún chat de la semana trae referido de anuncio. Con las campañas apagadas es lo esperado;
+                si están corriendo y sigue en 0, el referido CTWA no está llegando al webhook.
+              </p>` : ''}
+          </div>
+          <div class="panel">
+            <h3>📈 Gasto diario · 30 días</h3>
+            ${sparkHtml(m.meta.serieDiaria)}
+            <div class="row"><span>Impresiones (7d)</span><span class="v tnum">${num(r.impresiones)}</span></div>
+            <div class="row"><span>Clics (7d)</span><span class="v tnum">${num(r.clicks)}</span></div>
+            <div class="row"><span>Frecuencia máx.</span><span class="v tnum" style="color:${(r.frecuenciaMax||0) > 3 ? 'var(--red)' : '#fff'}">${(r.frecuenciaMax||0).toFixed(2)}</span></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <h3>🎬 Por anuncio · 7 días</h3>
+          ${anuncios.length ? `<table class="tb">
+            <thead><tr><th>Anuncio</th><th class="num">Gasto</th><th class="num">Conv</th><th class="num">$/conv</th><th class="num">CTR</th><th class="num">Freq</th><th class="num">Leads</th></tr></thead>
+            <tbody>${anuncios.map(a => {
+              const at = porAnuncio[a.id] || {};
+              // Semáforo del anuncio: el benchmark manda. Sobre 3x se mata.
+              const col = !a.costoPorConversacion ? 'var(--soft)'
+                : a.costoPorConversacion > bench * 3 ? 'var(--red)'
+                : a.costoPorConversacion > bench ? 'var(--amber)' : 'var(--green)';
+              return `<tr>
+                <td class="nom">${a.nombre}</td>
+                <td class="num">${clpOpt(a.gasto)}</td>
+                <td class="num">${a.conversaciones}</td>
+                <td class="num" style="color:${col};font-weight:600">${clpOpt(a.costoPorConversacion)}</td>
+                <td class="num">${a.ctr}%</td>
+                <td class="num">${a.frecuencia}</td>
+                <td class="num">${at.leads || 0}</td>
+              </tr>`;
+            }).join('')}</tbody></table>` : '<p class="muted">Sin gasto en los últimos 7 días.</p>'}
+        </div>
+
+        ${m.ultimoReporte ? `<div class="panel" style="margin-top:14px">
+          <h3>🤖 Análisis del ${m.ultimoReporte.fecha}</h3>
+          <div style="white-space:pre-wrap;font-size:13px;line-height:1.55">${
+            String(m.ultimoReporte.texto)
+              .replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))
+              .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+          }</div>
+        </div>` : ''}`;
+    }
+
     const LEAD_ESTADOS = {
       reunion_solicitada: { t:'⏳ Reunión solicitada', c:'var(--amber)'  },
       confirmada:         { t:'📅 Hora confirmada',    c:'var(--accent)' },
@@ -555,7 +754,7 @@
       </div>`;
     }
     async function opsLeadEstado(tel, estado){
-      try { await _fn('ventasLeadEstado')({ telefono: tel, estado }); await cargar(); }
+      try { await _fn('ventasLeadEstado')({ telefono: tel, estado }); await refrescarVentas(); }
       catch(e){ alert('Error: ' + e.message); }
     }
 
@@ -609,7 +808,7 @@
     }
     async function _botSet(payload, confirmMsg){
       if (confirmMsg && !confirm(confirmMsg)) return;
-      try { await _fn('ventasBotConfigSet')(payload); await cargar(); }
+      try { await _fn('ventasBotConfigSet')(payload); await refrescarVentas(); }
       catch(e){ alert('Error: ' + e.message); }
     }
     function opsBotToggle(){
@@ -667,12 +866,12 @@
     async function opsCobroNum(tid, actual){
       const raw = prompt('WhatsApp de cobro de "' + tid + '" (a este número le llegan los avisos de mensualidad DESDE TU NÚMERO):', actual ? '+' + actual : '+569');
       if (raw === null || !raw.trim()) return;
-      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: raw }); await cargar(); }
+      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: raw }); await refrescarCobranza(); }
       catch(e){ alert('Error: ' + e.message); }
     }
     async function opsCobroQuitar(tid){
       if (!confirm('Quitar el número de cobro de "' + tid + '"? Vuelve a avisos por push/email.')) return;
-      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: '' }); await cargar(); }
+      try { await _fn('cobranzaConfigSet')({ tenantId: tid, whatsappCobro: '' }); await refrescarCobranza(); }
       catch(e){ alert('Error: ' + e.message); }
     }
 
@@ -701,7 +900,7 @@
       if (chipId != null)  payload.chipId = chipId;
       if (activo != null)  payload.activo = activo;
       if (activo === false && !confirm('¿Apagar las confirmaciones por chip en este local?')) return;
-      try { await _fn('plataformaAsignar')(payload); await cargar(); }
+      try { await _fn('plataformaAsignar')(payload); await refrescarChips(); }
       catch(e){ alert('Error: ' + e.message); }
     }
 
@@ -709,7 +908,7 @@
       const tid  = document.getElementById('ops-nuevo-local').value;
       const chip = document.getElementById('ops-nuevo-chip').value;
       if (!tid || !chip) return;
-      try { await _fn('plataformaAsignar')({ tenantId: tid, chipId: chip, activo: true }); await cargar(); }
+      try { await _fn('plataformaAsignar')({ tenantId: tid, chipId: chip, activo: true }); await refrescarChips(); }
       catch(e){ alert('Error: ' + e.message); }
     }
 
@@ -726,7 +925,7 @@
           catch(e2){ alert('Error: ' + e2.message); return; }
         } else { alert('Error: ' + e.message); return; }
       }
-      await cargar();
+      await refrescarChips();
     }
 
     /* QR de vinculación. `chipId` null = chip nuevo (lo pide). */
@@ -799,11 +998,15 @@
 
       app.innerHTML = `
         <header>
-          <div><h1>Operaciones · SynapTech</h1><div class="sub">últimos 30 días · ${new Date(data.generadoEn).toLocaleString('es-CL')}</div></div>
-          <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh">Actualizar</button><button id="out">Salir</button></div>
+          <div>
+            <h1>Operaciones · SynapTech</h1>
+            <div class="sub">últimos 30 días · <span id="frescura">${frescuraHtml()}</span></div>
+          </div>
+          <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh" title="Recalcula todo desde cero (tarda unos segundos)">Actualizar</button><button id="out">Salir</button></div>
         </header>
         <nav class="tabs">
           <button data-tab="resumen">📊 Resumen</button>
+          <button data-tab="ads">📣 Meta Ads</button>
           <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
           <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
           <button data-tab="locales">💈 Locales</button>
@@ -838,13 +1041,20 @@
             </div>
           </section>
 
+          <section class="sec" data-sec="ads">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span class="muted" style="font-size:12px">Cuenta ${(ESTADO.metaAds && ESTADO.metaAds.adAccountId) || '—'}</span>
+              <button id="adsRefresh">↻ Refrescar ads</button>
+            </div>
+            ${metaAdsPanel(ESTADO.metaAds)}
+          </section>
+
           <section class="sec" data-sec="ventas">
-            ${ventasData ? leadsPanel(ventasData) : '<p class="muted">No se pudo cargar el módulo de leads.</p>'}
-            ${botCfgData ? botVentasPanel(botCfgData) : ''}
+            ${seccionVentas()}
           </section>
 
           <section class="sec" data-sec="cobranza">
-            ${cobranzaData ? cobranzaPanel(cobranzaData) : '<p class="muted">No se pudo cargar la cobranza.</p>'}
+            ${seccionCobranza()}
           </section>
 
           <section class="sec" data-sec="locales">
@@ -926,8 +1136,10 @@
       if (!document.querySelector('.sec[data-sec="' + tabIni + '"]')) tabIni = 'resumen';
       setTab(tabIni);
 
-      document.getElementById('refresh').onclick = cargar;
+      document.getElementById('refresh').onclick = () => cargar(true);
       document.getElementById('out').onclick = () => firebase.auth().signOut();
+      const bAds = document.getElementById('adsRefresh');
+      if (bAds) bAds.onclick = () => refrescarAds(bAds);
 
       // ── Kill switch ──
       // Solo apaga, nunca enciende: encender es una decisión deliberada que
@@ -1058,26 +1270,176 @@
       }
     }
 
-    async function cargar(){
-      app.innerHTML = `<div class="login"><p class="muted">Cargando métricas…</p></div>`;
+    /* ═══════════════════════════════════════════════════════════════════
+       CARGA EN DOS OLAS
+
+       Antes: 5 callables en paralelo y el panel en blanco hasta que volvía
+       la más lenta — `opsMetrics` recorre 36 locales haciendo ~600 lecturas,
+       así que eran 3-8 s de "Cargando métricas…". Peor: cada acción del
+       panel llamaba a `cargar()` de nuevo, así que marcar UN lead pagaba esa
+       cuenta completa otra vez.
+
+       Ahora:
+         Ola 1 — `opsSnapshot`: UNA lectura de un doc que el cron dejó
+                 masticado. Trae métricas + Meta Ads y pinta al toque.
+         Ola 2 — las tres callables baratas (leads, bot, cobranza), en
+                 paralelo y SIN bloquear el pintado. Cuando llegan, repintan
+                 solo su sección.
+
+       Y las mutaciones ya no recargan nada global: refrescan su propia
+       sección. Ver `repintar()`.
+       ═══════════════════════════════════════════════════════════════════ */
+    const ESTADO = {
+      metrics:null, metaAds:null, chips:null,
+      ventas:null, botCfg:null, cobranza:null,
+      edadSegundos:0, parcial:false, cargando:false,
+    };
+
+    /** Cuán viejo es el dato que se está mirando. Se dice siempre: el panel
+     *  sirve un snapshot, y fingir que es de este instante sería mentir en
+     *  lo único que hace confiable a un tablero de operaciones. */
+    function frescuraHtml(){
+      if (ESTADO.cargando) return '<span class="fresh cargando"><span class="p"></span>actualizando…</span>';
+      const s = ESTADO.edadSegundos || 0;
+      const txt = s < 90 ? 'recién' : s < 3600 ? `hace ${Math.round(s/60)} min` : `hace ${Math.round(s/3600)} h`;
+      // Sobre 15 min el cron se saltó al menos dos vueltas: vale la pena avisar.
+      return `<span class="fresh ${s > 900 ? 'viejo' : ''}"><span class="p"></span>datos de ${txt}</span>`;
+    }
+
+    function seccionVentas(){
+      if (!ESTADO.ventas && !ESTADO.botCfg) return '<p class="muted">Cargando leads…</p>';
+      return (ESTADO.ventas ? leadsPanel(ESTADO.ventas) : '<p class="muted">No se pudo cargar el módulo de leads.</p>')
+           + (ESTADO.botCfg ? botVentasPanel(ESTADO.botCfg) : '');
+    }
+    function seccionCobranza(){
+      if (!ESTADO.cobranza) return '<p class="muted">Cargando cobranza…</p>';
+      return cobranzaPanel(ESTADO.cobranza);
+    }
+
+    /** Repinta UNA sección sin tocar el resto del DOM: conserva la pestaña
+     *  activa, el scroll y cualquier cosa que el operador tenga abierta. */
+    function repintar(sec){
+      const el = document.querySelector(`.sec[data-sec="${sec}"]`);
+      if (!el) return;
+      if (sec === 'ventas')   el.innerHTML = seccionVentas();
+      if (sec === 'cobranza') el.innerHTML = seccionCobranza();
+      const f = document.getElementById('frescura');
+      if (f) f.innerHTML = frescuraHtml();
+      pintarBadges();
+    }
+
+    /** Los contadores de las pestañas viven fuera de las secciones, así que un
+     *  repintado parcial no los toca. Sin esto, "Ventas · 2" nunca aparecería
+     *  en la primera carga: los leads llegan en la ola 2, después del render. */
+    function pintarBadges(){
+      const set = (tab, txt) => {
+        const b = document.querySelector(`.tabs button[data-tab="${tab}"]`);
+        if (b) b.textContent = txt;
+      };
+      const pend = ESTADO.ventas ? (ESTADO.ventas.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
+      set('ventas', `🎯 Ventas${pend ? ' · ' + pend : ''}`);
+      const atrasado = ESTADO.cobranza && (ESTADO.cobranza.rows||[]).some(r => r.diasAtraso > 0);
+      set('cobranza', `💰 Cobranza${atrasado ? ' · 🔴' : ''}`);
+    }
+
+    /** Refresca solo los datos de ventas (3 lecturas) y repinta esa sección.
+     *  Reemplaza al `cargar()` que disparaban las acciones de leads/bot. */
+    async function refrescarVentas(){
+      const [rv, rb] = await Promise.all([
+        _fn('ventasLeads')({}).catch(() => null),
+        _fn('ventasBotConfig')({}).catch(() => null),
+      ]);
+      if (rv) ESTADO.ventas = rv.data;
+      if (rb) ESTADO.botCfg = rb.data;
+      repintar('ventas');
+    }
+    async function refrescarCobranza(){
+      const rk = await _fn('cobranzaConfig')({}).catch(() => null);
+      if (rk) ESTADO.cobranza = rk.data;
+      repintar('cobranza');
+    }
+    /** Asignar/desvincular chips cambia el mapa local↔chip. Solo se recarga esa
+     *  lista: las métricas de los 36 locales no tienen nada que ver. */
+    async function refrescarChips(){
+      const rc = await _fn('plataformaChips')({}).catch(() => null);
+      if (rc) ESTADO.chips = rc.data;
+      const w = document.querySelector('.sec[data-sec="whatsapp"]');
+      if (w && ESTADO.chips && ESTADO.metrics) {
+        w.innerHTML = chipsAdminPanel(ESTADO.chips.chips, ESTADO.chips.locales)
+          + ((ESTADO.metrics.barberia && ESTADO.metrics.barberia.chips) || []).map(chipPanel).join('')
+          + metaWaPanel(ESTADO.metrics.metaWhatsApp);
+      }
+    }
+    /** Meta Ads se refresca solo: vuelve a pegarle a la Marketing API sin
+     *  recalcular los 36 locales, que es lo caro y no tiene nada que ver. */
+    async function refrescarAds(btn){
+      const txt = btn ? btn.textContent : null;
+      if (btn) { btn.textContent = 'Consultando a Meta…'; btn.disabled = true; }
       try {
-        // Las dos en paralelo: opsMetrics recorre todos los locales y tarda
-        // varios segundos, y encadenar la de chips detrás duplicaría la espera
-        // por un dato que no depende de ella.
-        //
-        // Si la de chips falla, el panel de administración simplemente no se
-        // dibuja: las métricas son lo importante y no se pierden por no poder
-        // listar los chips.
-        const [rm, rc, rv, rb, rk] = await Promise.all([
-          _fn('opsMetrics')({}),
-          _fn('plataformaChips')({}).catch(() => null),
-          // Leads, config del bot y cobranza: si fallan, el resto vive igual.
-          _fn('ventasLeads')({}).catch(() => null),
-          _fn('ventasBotConfig')({}).catch(() => null),
-          _fn('cobranzaConfig')({}).catch(() => null),
-        ]);
-        render(rm.data, rc && rc.data, rv && rv.data, rb && rb.data, rk && rk.data);
+        const r = await _fn('opsMetaAdsRefrescar')({});
+        ESTADO.metaAds = (r.data && r.data.metaAds) || ESTADO.metaAds;
+        const el = document.querySelector('.sec[data-sec="ads"]');
+        if (el) {
+          el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span class="muted" style="font-size:12px">Cuenta ${(ESTADO.metaAds && ESTADO.metaAds.adAccountId) || '—'}</span>
+              <button id="adsRefresh">↻ Refrescar ads</button>
+            </div>${metaAdsPanel(ESTADO.metaAds)}`;
+          const b = document.getElementById('adsRefresh');
+          if (b) b.onclick = () => refrescarAds(b);
+        }
       } catch(e){
+        alert('No pude leer Meta: ' + (e.message || e));
+        if (btn) { btn.textContent = txt; btn.disabled = false; }
+      }
+    }
+
+    /** Ola 2: lo barato. No bloquea el primer pintado. */
+    function cargarLivianos(){
+      _fn('ventasLeads')({}).then(r => { ESTADO.ventas = r.data; repintar('ventas'); }).catch(() => {});
+      _fn('ventasBotConfig')({}).then(r => { ESTADO.botCfg = r.data; repintar('ventas'); }).catch(() => {});
+      _fn('cobranzaConfig')({}).then(r => { ESTADO.cobranza = r.data; repintar('cobranza'); }).catch(() => {});
+      // Los chips viven dentro del render grande (pestaña WhatsApp); si llegan
+      // después del primer pintado se dibujan en el siguiente repintado global.
+      _fn('plataformaChips')({}).then(r => {
+        ESTADO.chips = r.data;
+        const w = document.querySelector('.sec[data-sec="whatsapp"]');
+        if (w && ESTADO.metrics) {
+          w.innerHTML = chipsAdminPanel(ESTADO.chips.chips, ESTADO.chips.locales)
+            + ((ESTADO.metrics.barberia && ESTADO.metrics.barberia.chips) || []).map(chipPanel).join('')
+            + metaWaPanel(ESTADO.metrics.metaWhatsApp);
+        }
+      }).catch(() => {});
+    }
+
+    /**
+     * @param {boolean} fresco true = recalcular de verdad (botón "Actualizar").
+     *   false/omitido = servir el snapshot del cron, que es el caso normal.
+     */
+    async function cargar(fresco){
+      const primeraVez = !ESTADO.metrics;
+      if (primeraVez) app.innerHTML = `<div class="login"><p class="muted">Cargando…</p></div>`;
+      ESTADO.cargando = true;
+      const f = document.getElementById('frescura');
+      if (f) f.innerHTML = frescuraHtml();
+
+      try {
+        const r = (await _fn('opsSnapshot')({ fresco: !!fresco })).data || {};
+        ESTADO.metrics      = r.metrics || ESTADO.metrics;
+        ESTADO.metaAds      = r.metaAds || ESTADO.metaAds;
+        ESTADO.edadSegundos = r.edadSegundos || 0;
+        ESTADO.parcial      = !!r.parcial;
+        ESTADO.cargando     = false;
+
+        if (!ESTADO.metrics) {
+          app.innerHTML = `<div class="login"><h2>Sin datos</h2><p class="muted">El snapshot todavía no se ha generado. Pulsa Actualizar.</p>
+            <button id="rt" style="margin-top:12px">Actualizar</button></div>`;
+          document.getElementById('rt').onclick = () => cargar(true);
+          return;
+        }
+        render(ESTADO.metrics, ESTADO.chips, ESTADO.ventas, ESTADO.botCfg, ESTADO.cobranza);
+        if (primeraVez) cargarLivianos();
+      } catch(e){
+        ESTADO.cargando = false;
         app.innerHTML = `<div class="login"><h2>Sin acceso</h2><div id="err">${e.message||e}</div><button id="out" style="margin-top:12px">Salir</button></div>`;
         const b=document.getElementById('out'); if(b) b.onclick=()=>firebase.auth().signOut();
       }

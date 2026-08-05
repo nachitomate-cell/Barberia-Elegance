@@ -1836,6 +1836,13 @@ exports.opsKillSwitch    = opsMetricsModule.opsKillSwitch;
 exports.opsConversaciones = opsMetricsModule.opsConversaciones;
 exports.opsVigilancia    = opsMetricsModule.opsVigilancia;
 
+// Snapshot precalculado del panel: el cron hace las ~600 lecturas cada 5 min y
+// abrir ops cuesta UNA. `opsMetrics` sigue existiendo como camino "de verdad".
+const opsSnapshotModule = require('./ops-snapshot');
+exports.opsSnapshotCron     = opsSnapshotModule.opsSnapshotCron;
+exports.opsSnapshot         = opsSnapshotModule.opsSnapshot;
+exports.opsMetaAdsRefrescar = opsSnapshotModule.opsMetaAdsRefrescar;
+
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;

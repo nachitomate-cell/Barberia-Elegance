@@ -11,10 +11,11 @@
     "seed": "node seed-barberos.js",
     "check:mojibake": "node scripts/check-mojibake.js",
     "test:validacion": "node scripts/test-validacion-contacto.js",
+    "test:ctwa": "node scripts/test-ctwa-ventas.js",
     "check:tenants": "node scripts/check-tema-tenants.js",
     "check:bot-prompt": "node scripts/check-bot-prompt.js",
     "check:rutas-admin": "node scripts/check-rutas-admin.js",
-    "check": "npm run check:mojibake && npm run test:validacion && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run check:wallet-cors && npm run check:rutas-admin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run test:duracion && npm run test:cinturon-dia && npm run test:cinturon-accion && npm run test:cambio-hora && npm run test:caja-gastos && npm run test:sede-gateway && npm run check:tema-claro && npm run check:espejos-claros",
+    "check": "npm run check:mojibake && npm run test:validacion && npm run check:tenants && npm run check:agenda && npm run check:slotlocks && npm run check:wa-plan && npm run check:wa-optin && npm run check:wallet-cors && npm run check:rutas-admin && npm run test:alerta-sesion && npm run test:gasto-ia && npm run test:mailer && npm run test:link-legacy && npm run test:reagendar && npm run test:duracion && npm run test:cinturon-dia && npm run test:cinturon-accion && npm run test:cambio-hora && npm run test:caja-gastos && npm run test:sede-gateway && npm run check:tema-claro && npm run check:espejos-claros && npm run test:ctwa && npm run check:ops",
     "check:espejos-claros": "node scripts/check-espejos-claros.js",
     "test:rules": "firebase emulators:exec --only firestore \"node scripts/test-rules-roles.js\"",
     "check:agenda": "node scripts/check-agenda-visibles.js",
@@ -34,6 +35,7 @@
     "test:link-legacy": "node scripts/test-link-legacy.js",
     "test:reagendar": "node scripts/test-reagendar-bot.js",
     "test:dedupe-barberos": "node scripts/test-dedupe-barberos.js",
+    "test:pagos-venta": "node scripts/test-pagos-venta.js",
     "test:duracion": "node scripts/test-duracion-tipica.js",
     "check:tema-claro": "node scripts/check-tema-claro.js",
     "test:bot": "node scripts/probar-bot.js",
@@ -45,7 +47,8 @@
     "check:citas": "node scripts/auditar-citas-imposibles.js ALL 60",
     "check:jornadas": "node scripts/auditar-jornadas.js ALL",
     "test:cambio-hora": "node scripts/test-cambio-hora-chile.js",
-    "test:medianoche": "node scripts/test-jornada-medianoche.js"
+    "test:medianoche": "node scripts/test-jornada-medianoche.js",
+    "check:ops": "node scripts/check-ops-panel.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
