@@ -3876,6 +3876,125 @@
     .tenant-sion.tenant-aura #aura-info-wa,
     .tenant-sion #aura-info-wa { display: none !important; }
 
+    /* ── Omega Studio — hero editorial claro ──────────────────────────────
+       Reutiliza el tema CLARO de Aura (igual que Oren y Sion), pero al revés:
+       Aura pinta un hero OSCURO (foto + overlay) sobre cuerpo claro, y la
+       identidad de Omega es negro sobre hueso — su logo y su wordmark vienen
+       en tinta negra sobre #F8F7F4. Así que acá el hero se invierte a claro.
+
+       Sin este bloque el tenant mostraba /auralogin.png: literalmente la foto
+       del salón Aura en el hero de Omega. Oren y Sion ya tenían su override;
+       Omega se recreó (24-jul-2026) y se saltó ese paso.
+
+       No hay foto del local todavía, así que el hero es tipográfico: el Ω en
+       el ring y el nombre compuesto en Plus Jakarta Sans con tracking amplio,
+       que es lo más cercano a la geométrica del wordmark oficial y ya viene
+       cargada (no suma requests). Cuando lleguen las fotos, basta con darle
+       background-image acá — el resto del bloque no cambia. */
+    .tenant-omega.tenant-aura .booking-hero,
+    .tenant-omega .booking-hero {
+      background-image: none !important;
+      background-color: #F8F7F4 !important;
+      border-bottom: 1px solid rgba(17,17,17,0.10) !important;
+    }
+    /* El overlay de Aura es un degradado casi opaco pensado para tapar una
+       foto; sobre el hueso ensuciaría el fondo.
+
+       OJO con la especificidad: `:is(.tenant-aura,…) .booking-hero-overlay`
+       pesa lo mismo que `.tenant-omega .booking-hero-overlay` y vive MÁS
+       ABAJO en el archivo, así que ganaba el empate y el hero se veía negro
+       igual. Por eso todo este bloque va con la doble clase. */
+    .tenant-omega.tenant-aura .booking-hero-overlay,
+    .tenant-omega .booking-hero-overlay { background: none !important; }
+    /* Aura corona el hero con un glow gris que solo se lee sobre oscuro. */
+    .tenant-omega.tenant-aura .booking-hero::after { display: none !important; }
+
+    /* Ring del logo: el markup trae background:#0a0a0a inline y el Ω viene en
+       tinta negra con alfa, así que sin esto queda negro sobre negro. */
+    .tenant-omega.tenant-aura .hero-logo-ring,
+    .tenant-omega .hero-logo-ring {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: none !important;
+      animation: none !important;
+    }
+    .tenant-omega.tenant-aura #shopLogo,
+    .tenant-omega #shopLogo {
+      object-fit: contain !important;
+      padding: 14px !important;
+    }
+
+    /* Badge de reseñas: trae background negro translúcido + borde blanco
+       INLINE (pensado para hero oscuro). Sobre hueso hay que invertirlo. */
+    .tenant-omega.tenant-aura #heroGoogleBadge {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: 0 1px 3px rgba(17,17,17,0.06) !important;
+    }
+    /* Progreso: Aura usa gris pizarra; Omega lo lleva a su negro. */
+    .tenant-omega.tenant-aura #progressBar { background: #111111 !important; }
+
+    /* Nombre: mayúsculas espaciadas, el gesto del wordmark. */
+    .tenant-omega.tenant-aura #shopNombre {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+      color: #111111 !important;
+      font-size: 1.45rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.22em !important;
+      text-transform: uppercase !important;
+      text-shadow: none !important;
+      /* El tracking empuja el texto a la derecha: se compensa para que quede
+         ópticamente centrado bajo el logo. */
+      text-indent: 0.22em !important;
+    }
+    .tenant-omega.tenant-aura .gold-divider,
+    .tenant-omega .gold-divider {
+      background: #111111 !important;
+      background-image: none !important;
+      width: 34px !important;
+      height: 1px !important;
+      opacity: 0.55 !important;
+      margin: 14px auto !important;
+      box-shadow: none !important;
+    }
+    .tenant-omega.tenant-aura .booking-hero p,
+    .tenant-omega.tenant-aura .booking-hero span,
+    .tenant-omega.tenant-aura #shopSlogan {
+      color: #6B7280 !important;
+      text-shadow: none !important;
+      animation: none !important;
+    }
+    /* Rating: la nota en tinta, el conteo en gris de apoyo. */
+    .tenant-omega.tenant-aura #heroBadgeRating { color: #111111 !important; }
+    .tenant-omega.tenant-aura #heroBadgeCount  { color: #6B7280 !important; }
+    .tenant-omega.tenant-aura .booking-hero .text-white,
+    .tenant-omega.tenant-aura .booking-hero .text-white\/70,
+    .tenant-omega.tenant-aura .booking-hero .text-white\/50 { color: #6B7280 !important; }
+    /* Volver: sobre hueso el círculo frost de Aura desaparece; se le da borde. */
+    .tenant-omega.tenant-aura .booking-hero button[onclick="goBack()"] {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(17,17,17,0.12) !important;
+      box-shadow: none !important;
+    }
+
+    /* Banda de datos bajo el hero: negro de marca en vez del navy de Aura,
+       que hace de corte entre el hero claro y el cuerpo claro.
+
+       El `[style]` del selector no es decorativo: el markup trae un background
+       inline, y Aura lo pisa con `.info-strip[style]` — que pesa (0,3,0) y
+       vive más abajo. Sin el atributo acá quedaba empate y ganaba el navy. */
+    .tenant-omega.tenant-aura .info-strip,
+    .tenant-omega.tenant-aura .info-strip[style] {
+      background: #111111 !important;
+      border-bottom-color: rgba(255,255,255,0.10) !important;
+    }
+    .tenant-omega.tenant-aura .info-strip i,
+    .tenant-omega.tenant-aura .info-strip i[style] { color: #A1A1AA !important; }
+
+    /* Secciones propias de Aura: el tenant no tiene ese contenido cargado
+       (quienesSomos.activo = false) y salían vacías. Mismo criterio que Sion. */
+    .tenant-omega.tenant-aura #aura-sobre-wrap { display: none !important; }
+
     /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
        se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
        `sede-pendiente` la pone config.js (>1 sucursal) y la quita selectSucursal().
@@ -8885,246 +9004,6 @@
       border-color: rgba(15,23,42,0.14) !important;
     }
 
-    /* ══════════════════════════════════════════════════════════
-       OMEGA STUDIO — tenant-omegastudio
-       Tema: oscuro inmersivo · acento champán cálido (#d4a96a)
-    ══════════════════════════════════════════════════════════ */
-    .tenant-omegastudio {
-      --accent:   #d4a96a;
-      --accent-r: 212; --accent-g: 169; --accent-b: 106;
-      --neon-clr: #d4a96a;
-      --neon-r:   212; --neon-g: 169; --neon-b: 106;
-      --body-bg:  #0c0c0e;
-    }
-    .tenant-omegastudio body {
-      background-color: #0c0c0e !important;
-      background-image: none !important;
-    }
-
-    /* Hero: fondo inmersivo omega2.avif con overlay oscuro */
-    .tenant-omegastudio header.booking-hero {
-      background-image: url('/omega2.avif') !important;
-      background-size: cover !important;
-      background-position: center !important;
-      min-height: 300px !important;
-    }
-    .tenant-omegastudio .booking-hero-overlay {
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 100%) !important;
-    }
-
-    /* Logo ring — champán sutil */
-    .tenant-omegastudio .hero-logo-ring {
-      border: 1.5px solid rgba(212,169,106,0.30) !important;
-      box-shadow:
-        0 0 0 1px rgba(212,169,106,0.08),
-        0 0 40px rgba(0,0,0,0.80) !important;
-    }
-
-    /* Nombre — geométrico en mayúsculas, blanco puro */
-    .tenant-omegastudio #shopNombre {
-      color: #FFFFFF !important;
-      letter-spacing: 0.15em !important;
-      text-transform: uppercase !important;
-      font-weight: 800 !important;
-    }
-
-    /* ── Barra de progreso ── */
-    .tenant-omegastudio #progressBar {
-      background: linear-gradient(90deg, #d4a96a, #c08040) !important;
-      box-shadow: 0 0 10px rgba(212,169,106,0.30) !important;
-    }
-    .tenant-omegastudio #progressTrack { background-color: rgba(212,169,106,0.08) !important; }
-    .tenant-omegastudio #stepIndicatorText {
-      color: #d4a96a !important;
-      text-shadow: 0 0 8px rgba(212,169,106,0.25) !important;
-    }
-
-    /* ── Headings ── */
-    .tenant-omegastudio h2.text-neon {
-      color: #f0ede8 !important;
-      text-shadow: none !important;
-    }
-
-    /* ── "Ver más" interactivo ── */
-    .tenant-omegastudio .svc-desc-toggle {
-      color: #a1a1aa !important;
-      text-decoration: underline !important;
-      text-underline-offset: 2px !important;
-      text-decoration-color: rgba(161,161,170,0.35) !important;
-    }
-    .tenant-omegastudio .svc-desc-toggle::after {
-      content: ' ›';
-      font-size: 13px;
-      text-decoration: none;
-    }
-
-    /* ── Category pills ── */
-    .tenant-omegastudio .category-pill {
-      background: rgba(212,169,106,0.06) !important;
-      border: 1px solid rgba(212,169,106,0.15) !important;
-      color: #9ca3af !important;
-    }
-    .tenant-omegastudio .category-pill:hover {
-      border-color: rgba(212,169,106,0.40) !important;
-      color: #d4a96a !important;
-    }
-    .tenant-omegastudio .category-pill.border-neon {
-      background: rgba(212,169,106,0.12) !important;
-      border: 1.5px solid rgba(212,169,106,0.50) !important;
-      color: #d4a96a !important;
-      box-shadow: 0 0 10px rgba(212,169,106,0.12) !important;
-      font-weight: 700 !important;
-    }
-    .tenant-omegastudio .category-pill.text-neon { color: #d4a96a !important; }
-
-    /* ── Service cards ── */
-    .tenant-omegastudio .service-option {
-      background: #141416 !important;
-      border: 1px solid rgba(212,169,106,0.10) !important;
-    }
-    .tenant-omegastudio .service-option:hover {
-      border-color: rgba(212,169,106,0.30) !important;
-      background: #18181c !important;
-      box-shadow: 0 0 16px rgba(212,169,106,0.08) !important;
-    }
-    .tenant-omegastudio .service-option.border-neon {
-      border: 1.5px solid rgba(212,169,106,0.55) !important;
-      background: rgba(212,169,106,0.05) !important;
-      box-shadow: 0 0 18px rgba(212,169,106,0.12) !important;
-    }
-    .tenant-omegastudio .service-option.border-neon .icon-bg {
-      background: rgba(212,169,106,0.10) !important;
-      border-color: rgba(212,169,106,0.28) !important;
-    }
-    .tenant-omegastudio .service-option .price-tag {
-      color: #d4a96a !important;
-      font-weight: 700 !important;
-    }
-    .tenant-omegastudio .service-option .duration-tag { color: #9ca3af !important; }
-
-    /* ── Barber cards ── */
-    .tenant-omegastudio .barber-option {
-      background: #141416 !important;
-      border: 1px solid rgba(212,169,106,0.10) !important;
-    }
-    .tenant-omegastudio .barber-option:hover {
-      border-color: rgba(212,169,106,0.30) !important;
-      background: #18181c !important;
-      box-shadow: 0 0 16px rgba(212,169,106,0.08) !important;
-    }
-    .tenant-omegastudio .barber-option.border-neon {
-      border: 1.5px solid rgba(212,169,106,0.55) !important;
-      background: rgba(212,169,106,0.05) !important;
-      box-shadow: 0 0 18px rgba(212,169,106,0.12) !important;
-    }
-    .tenant-omegastudio .text-brand-neon { color: #d4a96a !important; }
-
-    /* ── Day buttons ── */
-    .tenant-omegastudio .day-btn {
-      background: #141416 !important;
-      border: 1px solid rgba(212,169,106,0.10) !important;
-    }
-    .tenant-omegastudio .day-btn:hover {
-      border-color: rgba(212,169,106,0.35) !important;
-      color: #d4a96a !important;
-    }
-    .tenant-omegastudio .day-btn.active,
-    .tenant-omegastudio .day-btn.border-neon {
-      background: #d4a96a !important;
-      border-color: #d4a96a !important;
-      color: #0c0c0e !important;
-      box-shadow: 0 0 14px rgba(212,169,106,0.28) !important;
-    }
-
-    /* ── Time pills ── */
-    .tenant-omegastudio .time-pill {
-      background: #141416 !important;
-      border: 1px solid rgba(212,169,106,0.08) !important;
-      color: #d1d5db !important;
-    }
-    .tenant-omegastudio .time-pill:not(.slot-pill-busy):not([data-sel]):hover {
-      border-color: rgba(212,169,106,0.35) !important;
-      color: #d4a96a !important;
-    }
-    .tenant-omegastudio .time-pill.border-neon,
-    .tenant-omegastudio .time-pill[data-sel] {
-      background: #d4a96a !important;
-      border-color: #d4a96a !important;
-      color: #0c0c0e !important;
-      box-shadow: 0 0 14px rgba(212,169,106,0.28) !important;
-      font-weight: 700 !important;
-    }
-
-    /* ── CTA ── */
-    .tenant-omegastudio #btnContinueBar {
-      background: rgba(12,12,14,0.90) !important;
-      border-top: 1px solid rgba(212,169,106,0.10) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-    }
-    .tenant-omegastudio #btnContinue {
-      background: linear-gradient(135deg, #d4a96a, #c08040) !important;
-      color: #0c0c0e !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 20px rgba(212,169,106,0.28) !important;
-      border-radius: 9999px !important;
-    }
-    .tenant-omegastudio #btnContinue:hover {
-      box-shadow: 0 4px 28px rgba(212,169,106,0.42) !important;
-      transform: scale(1.01) !important;
-    }
-    .tenant-omegastudio #btnContinue:disabled,
-    .tenant-omegastudio #btnContinue[disabled] {
-      background: #1e1e22 !important;
-      color: #555 !important;
-      box-shadow: none !important;
-    }
-
-    /* ── Inputs ── */
-    .tenant-omegastudio #clientName,
-    .tenant-omegastudio #clientPhone,
-    .tenant-omegastudio #clientEmail {
-      background: rgba(212,169,106,0.05) !important;
-      border: 1px solid rgba(212,169,106,0.15) !important;
-      color: #FFFFFF !important;
-    }
-    .tenant-omegastudio #clientName:focus,
-    .tenant-omegastudio #clientPhone:focus,
-    .tenant-omegastudio #clientEmail:focus {
-      border-color: rgba(212,169,106,0.50) !important;
-      box-shadow: 0 0 0 1px rgba(212,169,106,0.12) !important;
-    }
-
-    /* ── Club banner ── */
-    .tenant-omegastudio #clubBanner { background: transparent !important; border: none !important; }
-    .tenant-omegastudio #clubBanner a {
-      background: rgba(212,169,106,0.05) !important;
-      border: 1px solid rgba(212,169,106,0.15) !important;
-      box-shadow: none !important;
-    }
-    .tenant-omegastudio #clubBanner .club-icon-wrap {
-      background: rgba(212,169,106,0.08) !important;
-      border: 1px solid rgba(212,169,106,0.18) !important;
-    }
-    .tenant-omegastudio #clubBanner i.ph-fill { color: #d4a96a !important; filter: none !important; }
-    .tenant-omegastudio #shopClubNombre { color: #d4a96a !important; }
-
-    /* ── WhatsApp ── */
-    .tenant-omegastudio #waBtnLink {
-      background: rgba(37,211,102,0.08) !important;
-      border-color: rgba(37,211,102,0.50) !important;
-      color: #25D366 !important;
-      box-shadow: none !important;
-    }
-
-    /* ── Toast de error ── */
-    .tenant-omegastudio #toastValidation {
-      background: #160a0a !important;
-      border: 1px solid rgba(239,68,68,0.40) !important;
-      color: #ef4444 !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
-    }
-
     /* ══════════════════════════════════════════════════
        MEMPHIS SALÓN — tenant-memphis
     ══════════════════════════════════════════════════ */
@@ -10540,6 +10419,26 @@
     // pasa a selectedServiceObj y el resto a selectedAddons (mismo plumbing
     // que el upsell: la cita ya concatena nombres y suma precio/duración).
     let _multiSel = [];
+
+    // ¿Quiénes hacen TODOS los servicios elegidos? Regla del panel
+    // ("Servicios que realiza"): lista vacía = los hace todos.
+    //
+    // Vive acá arriba porque la usan TRES lugares y antes solo la aplicaba
+    // uno —el selector de profesional—. La grilla de horas y la
+    // auto-asignación de "Sin preferencia" trabajaban sobre la lista
+    // completa, así que el sistema podía asignar a alguien que no hace el
+    // servicio. Pasó en renacer el 04-08: Kimberly reservó "Corte de
+    // Cabello Femenino" sin preferencia y le tocó Yender, que tiene 8
+    // servicios habilitados y todos son masculinos.
+    function _barberosQueHacen(lista, seleccionados) {
+      const ids = (seleccionados || []).map(x => String(x.id));
+      if (!ids.length) return lista || [];
+      return (lista || []).filter(b => {
+        if (!b.serviciosIds || !b.serviciosIds.length) return true;
+        const suyos = b.serviciosIds.map(String);
+        return ids.every(sid => suyos.includes(sid));
+      });
+    }
     window._upsellShowed = false;
 
     // Pool de recomendados para la selección actual: unión de `recomendados`
@@ -13328,7 +13227,13 @@
         try {
           if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
           if (_usaMulti) {
-            const _barberosActivos = (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos;
+            // Solo quienes hacen el servicio: si esta lista trae a alguien que
+            // no lo realiza, sus huecos entran a la grilla y la auto-asignación
+            // se lo puede adjudicar.
+            const _barberosActivos = _barberosQueHacen(
+              (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos,
+              _multiSel,
+            );
             hours = await FDB.getHorasDisponiblesMulti(currentDateStr, _duracionTotal, settings, _barberosActivos, _vipOptsMulti);
             _multiHoras = hours;
           } else {
@@ -14552,20 +14457,25 @@
         let barberoNombreFinal = window._selectedBarber === 'any' ? '' : (window._selectedBarber || '');
 
         if (window._selectedBarberId === 'any' && _fsBarberos.length > 0) {
+          // Candidatos = los que hacen el servicio. El fallback de más abajo
+          // agarraba al PRIMERO de la lista completa, sin mirar servicio ni
+          // disponibilidad; ahora al menos no puede caer en alguien que no lo hace.
+          const _elegibles = _barberosQueHacen(_fsBarberos, _multiSel);
           const slotData = _multiHoras.find(h => h.time === selectedTimeStr);
-          const availIds = slotData?.availableBarberoIds || [];
+          const _okIds = new Set(_elegibles.map(b => String(b.id)));
+          const availIds = (slotData?.availableBarberoIds || []).filter(id => _okIds.has(String(id)));
           if (availIds.length > 0) {
             // Asignar al primer barbero disponible en el slot (orden aleatorio para distribuir carga)
             const shuffled = [...availIds].sort(() => Math.random() - 0.5);
-            const asignado = _fsBarberos.find(b => b.id === shuffled[0]);
+            const asignado = _elegibles.find(b => b.id === shuffled[0]);
             if (asignado) {
               barberoIdFinal    = _canonicalBarberoId(asignado.id);
               barberoNombreFinal = asignado.nombre;
             }
-          } else if (_fsBarberos.length > 0) {
-            // Fallback: primer barbero de la lista
-            barberoIdFinal    = _canonicalBarberoId(_fsBarberos[0].id);
-            barberoNombreFinal = _fsBarberos[0].nombre;
+          } else if (_elegibles.length > 0) {
+            // Fallback: primero de los que SÍ hacen el servicio.
+            barberoIdFinal    = _canonicalBarberoId(_elegibles[0].id);
+            barberoNombreFinal = _elegibles[0].nombre;
           }
         }
 
@@ -15315,7 +15225,7 @@
           infinity: '/infinity_bg.png',
           sionbarberia: '/dieciseis/banner16-bn.png',
           elbarberomoderno: '/elbarberomoderno/barbero1.png',
-          omegastudio:  '/omega2.avif',
+          omega:        '/omega/og.png',
           memphis:      '/mem.png',
           yugen:        '/yugen/yugen2.png',
           barbersclub:  '/barbersclub/hero-bg.png',
@@ -15328,7 +15238,7 @@
                         window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' :
                         window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Studio Dieciséis · barbería premium en Valparaíso' :
                         window.CURRENT_TENANT_ID === 'elbarberomoderno' ? 'El Barbero Moderno · estación de barbería de Jhoseth Morales' :
-                        window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
+                        window.CURRENT_TENANT_ID === 'omega' ? 'Omega Studio · estudio de barbería en Av. Valparaíso 595, Viña del Mar' :
                         window.CURRENT_TENANT_ID === 'barbersclub' ? 'Interior premium de Barbers Club · Ciudad de los Valles, Pudahuel' :
                         window.CURRENT_TENANT_ID === 'sion' ? 'Fachada de Sion Barbería · 1 Oriente 985, Viña del Mar' :
                         window.CURRENT_TENANT_ID === 'bloodhabib' ? 'Fachada de Blood Habib · Calle Quinta 323, Viña del Mar' :
