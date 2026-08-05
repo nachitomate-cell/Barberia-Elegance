@@ -1312,7 +1312,13 @@ const FDB = (() => {
       if (cfg.horario) {
         barbCfg = cfg; // configOverride ya es la config del barbero
       } else {
-        try { barbCfg = await getConfigBarbero(barberoId); } catch(e) {}
+        // Mismo criterio: sin su horario no se ofrecen horas. Caer al horario
+        // del local le abriría el día libre.
+        try { barbCfg = await getConfigBarbero(barberoId); }
+        catch (e) {
+          console.warn('[getHorasDisponibles] no se pudo leer el horario de', barberoId, '—', e && e.message);
+          return [];
+        }
       }
     }
 
@@ -1529,7 +1535,15 @@ const FDB = (() => {
     // Cargar configs individuales de cada barbero en paralelo
     const barberoConfigs = new Map();
     await Promise.all(barberos.map(async b => {
-      try { barberoConfigs.set(b.id, await getConfigBarbero(b.id)); } catch(e) { barberoConfigs.set(b.id, null); }
+      // Si la lectura FALLA hay que distinguirla de "no tiene horario propio":
+      // con null las dos, un timeout dejaba al barbero disponible el horario
+      // completo del local, su día libre incluido. Así se colaron citas por la
+      // web con profesionales que ese día no trabajaban (estudioluxury, 04-08).
+      try { barberoConfigs.set(b.id, await getConfigBarbero(b.id)); }
+      catch (e) {
+        console.warn('[getHorasMulti] no se pudo leer el horario de', b.id, '—', e && e.message);
+        barberoConfigs.set(b.id, '__error__');
+      }
     }));
 
     const [todasSlots, todosBloqueos] = await Promise.all([
@@ -1547,6 +1561,9 @@ const FDB = (() => {
     // Rango global: unión de todos los horarios de barberos activos ese día
     let globalIni = Infinity, globalFin = 0;
     for (const barbero of barberos) {
+      // Horario ilegible → NO se ofrece. Mejor perder un cupo que dar una hora
+      // que el profesional no puede atender.
+      if (barberoConfigs.get(barbero.id) === '__error__') continue;
       const bc = barberoConfigs.get(barbero.id);
       let bIni, bFin;
       if (bc && bc.horario && bc.horario[String(dw)]) {
@@ -1580,6 +1597,7 @@ const FDB = (() => {
     // colación global del local (que de otro modo aplicaría un break oculto).
     const anyDescansos = barberos.some(b => {
       const bc = barberoConfigs.get(b.id);
+      if (bc === '__error__') return false;   // sin horario legible no aporta descansos
       let dd;
       if (bc && bc.horario && bc.horario[String(dw)]) dd = bc.horario[String(dw)].descansos;
       else if (bc) dd = ((bc.diasConfig || {})[dw] || {}).descansos;
@@ -1660,6 +1678,9 @@ const FDB = (() => {
       for (const barbero of barberos) {
         if (todosBloqueos.some(b => b.todo_el_dia && b.barberoId === barbero.id)) continue;
 
+        // Horario ilegible → NO se ofrece. Mejor perder un cupo que dar una hora
+        // que el profesional no puede atender.
+        if (barberoConfigs.get(barbero.id) === '__error__') continue;
         // Horario del barbero para este día
         const bc = barberoConfigs.get(barbero.id);
         let bIni, bFin;
