@@ -185,10 +185,18 @@ async function aplicarJornadasPersonales(c, barberos, dow, addBusy) {
  *  Vive suelta porque la usan las tres entradas (horasParaFecha,
  *  barberoLibreParaSlot, atiendeEseDia) y una copia que se desincronice
  *  significa ofrecer horas de alguien que no puede tomarlas. */
-function esElegible(b, tenantId) {
+function esElegible(b, tenantId, servicioId = null) {
   if (b._mainDocId) return false;
   if (b.disponible === false || b.activo === false) return false;
   if (b.rol === 'admin' && b.mostrarEnAgenda !== true && tenantId !== 'delnero') return false;
+  // ¿Realiza ESE servicio? Misma convención que el panel y la reserva pública:
+  // `serviciosIds` vacío o ausente = los hace todos.
+  //
+  // Sin esto el bot ofrecía y agendaba con quien no puede atender: en
+  // kronnos_woman le dio a Ernesto dos "Retoque de Raíces" (05-08), servicio
+  // que no está en sus 13 habilitados. El cliente llega y nadie puede hacerlo.
+  if (servicioId && Array.isArray(b.serviciosIds) && b.serviciosIds.length
+      && !b.serviciosIds.map(String).includes(String(servicioId))) return false;
   return true;
 }
 
@@ -202,7 +210,7 @@ function esElegible(b, tenantId) {
  *    como si fueran de Claudio, que ese lunes tenía día libre.
  */
 async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, opts = {}) {
-  const { barberoId = null } = opts || {};
+  const { barberoId = null, servicioId = null } = opts || {};
   const c = cols(tenantId);
 
   const confSnap = await c.conf.get();
@@ -232,7 +240,7 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
   const barberos = [];
   barbSnap.forEach(d => {
     const b = d.data();
-    if (!esElegible(b, tenantId)) return;
+    if (!esElegible(b, tenantId, servicioId)) return;
     if (barberoId && d.id !== barberoId) return;
     barberos.push({ id: d.id, docHorario: b.horario || null });
   });
@@ -337,7 +345,7 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
     for (let i = 0; i < MAX_DIAS_BUSQUEDA; i++) {
       const fecha = sumarDias(desde, i);
       const esHoy = fecha === ahora.fecha;
-      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur);
+      const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { servicioId });
       if (slots.length) return { ok: true, fecha, esHoy, slots };
     }
     return { ok: true, fecha: null, esHoy: false, slots: [] };
@@ -353,7 +361,7 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
  * @returns {{ fecha:string|null, esHoy:boolean, slots:string[] }}
  */
 async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
-  const { durMin = null, diasServicio = null, barberoId = null } = opts || {};
+  const { durMin = null, diasServicio = null, barberoId = null, servicioId = null } = opts || {};
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(desdeFecha || '')) ? desdeFecha : ahora.fecha;
   // Sin servicio elegido, la duración típica del local (una sola lectura para
@@ -368,7 +376,7 @@ async function buscarDisponibilidad(tenantId, desdeFecha, opts = {}) {
     const fecha = sumarDias(desde, i);
     if (Array.isArray(diasServicio) && diasServicio.length && !diasServicio.includes(dowDe(fecha))) continue;
     const esHoy = fecha === ahora.fecha;
-    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { barberoId });
+    const slots = await horasParaFecha(tenantId, fecha, esHoy ? ahora.mins + MARGEN_HOY_MIN : 0, dur, { barberoId, servicioId });
     if (slots.length) return { fecha, esHoy, slots };
   }
   return { fecha: null, esHoy: false, slots: [] };
@@ -434,7 +442,7 @@ async function atiendeEseDia(tenantId, fechaStr, barberoId) {
  * @returns {Promise<{ id:string, nombre:string }|null>}
  */
 async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
-  const { preferirBarberoId = null, exigirBarberoId = null, excluirCitaId = null } = opts || {};
+  const { preferirBarberoId = null, exigirBarberoId = null, excluirCitaId = null, servicioId = null } = opts || {};
   const c = cols(tenantId);
   const startMin = toMins(hora);
   const endMin   = startMin + (Number(dur) || 30);
@@ -464,7 +472,7 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
   const barberos = [];
   barbSnap.forEach(d => {
     const b = d.data();
-    if (!esElegible(b, tenantId)) return;
+    if (!esElegible(b, tenantId, servicioId)) return;
     if (exigirBarberoId && d.id !== exigirBarberoId) return;
     barberos.push({ id: d.id, nombre: b.nombre || '', docHorario: b.horario || null });
   });

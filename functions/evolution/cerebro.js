@@ -532,6 +532,7 @@ async function ejecutarTool(name, input, ctx) {
     const barb = await barberoLibreParaSlot(tid, fecha, hora, dur, {
       preferirBarberoId: x.barberoId || null,
       excluirCitaId:     id,
+      servicioId:        x.servicioId || null,
     });
     if (!barb) return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
 
@@ -664,6 +665,10 @@ async function ejecutarTool(name, input, ctx) {
       durMin:        svc?.duracion || null,
       diasServicio:  svc?.dias || null,
       barberoId:     prof?.id || null,
+      // Sin esto se ofrecían horas de quien NO realiza el servicio: el bot le
+      // dio a Ernesto dos "Retoque de Raíces" en kronnos_woman (05-08), que no
+      // está entre los 13 que tiene habilitados.
+      servicioId:    svc?.id || null,
     });
 
     if (!r.slots.length) {
@@ -763,6 +768,7 @@ async function ejecutarTool(name, input, ctx) {
     // Elegir profesional libre en ese slot exacto (misma regla que la agenda pública).
     const barb = await barberoLibreParaSlot(tid, fecha, hora, svc.duracion, {
       exigirBarberoId: exigir?.id || null,
+      servicioId:      svc.id,
     });
     if (!barb) {
       if (exigir) {
