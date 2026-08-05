@@ -3,10 +3,10 @@ import { getDocs, getDoc, setDoc, query, where, addDoc, deleteDoc, doc, serverTi
 import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
-  Plus, Minus, Trash2, Pencil, AlertTriangle,
+  Plus, Minus, Trash2, Pencil, AlertTriangle, Search, X,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import { SheetModal, sheetBtn, sheetInput, sheetLabel, sheetHighlight } from '../components/ui/SheetModal';
 import SlideOver from '../components/ui/SlideOver';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -64,6 +64,56 @@ const PRESETS = [
   { label: 'Mes pasado', fn: () => [firstOfLastMonth(), lastOfLastMonth()] },
   { label: 'Últimos 30 días', fn: () => [thirtyDaysAgo(), today()] },
 ];
+
+/** 'YYYY-MM-DD' + 1 día, sin tocar zonas horarias (todo el módulo trabaja
+ *  con strings de fecha local). El día siguiente al último pago es el primer
+ *  día que todavía no se ha liquidado. */
+function diaSiguiente(fecha) {
+  const [y, m, d] = String(fecha).split('-').map(Number);
+  if (!y || !m || !d) return fecha;
+  const x = new Date(y, m - 1, d + 1);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+/* ── Preferencias por local ───────────────────────────────────────────
+   El rango y el orden se guardan por tenant: entrar y tener que rearmar el
+   período que estabas mirando hace 30 segundos es la fricción más tonta de
+   esta vista. El rango caduca a los 7 días para que volver el mes siguiente
+   no te deje mirando un período viejo sin darte cuenta. */
+const PREFS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const prefsKey = (tid) => `comisiones:${tid || 'default'}`;
+
+function leerPrefs(tid) {
+  try {
+    const raw = localStorage.getItem(prefsKey(tid));
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object') return null;
+    if (p.rango && Date.now() - Number(p.guardadoEn || 0) > PREFS_TTL_MS) delete p.rango;
+    return p;
+  } catch { return null; }
+}
+
+function guardarPrefs(tid, patch) {
+  try {
+    const actual = leerPrefs(tid) || {};
+    localStorage.setItem(prefsKey(tid), JSON.stringify({ ...actual, ...patch, guardadoEn: Date.now() }));
+  } catch { /* modo incógnito o storage lleno: la vista funciona igual */ }
+}
+
+const ORDENES = [
+  { id: 'pendientes', label: 'Pendientes primero' },
+  { id: 'nombre',     label: 'Nombre (A-Z)' },
+  { id: 'total',      label: 'Total a pagar' },
+  { id: 'ingresos',   label: 'Ingresos' },
+];
+
+const ESTADOS = {
+  pendiente: { label: 'Pendientes', clase: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+  revisar:   { label: 'Por revisar', clase: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+  saldo:     { label: 'Con saldo',   clase: 'text-orange-400 border-orange-500/30 bg-orange-500/10' },
+  pagado:    { label: 'Pagados',     clase: 'text-slate-400 border-slate-600 bg-slate-700/30' },
+};
 
 const METODOS_PAGO = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
 
@@ -644,6 +694,7 @@ function DetalleBarberoDrawer({
   // cajón no: quien abría el detalle para revisar antes de pagar veía un "total
   // a pagar" limpio aunque parte ya estuviera liquidada.
   pagosPrevios = { dentro: [], parcial: [], total: 0 },
+  onVerDesdeUltimoPago,
 }) {
   const detalle = useMemo(() => {
     if (!barbero) return { citas: [], ventas: [], adelantos: [] };
@@ -841,7 +892,9 @@ function DetalleBarberoDrawer({
           : 'border-emerald-500/25 bg-emerald-500/5'
       }`}>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          {pagosPrevios.dentro.length || pagosPrevios.parcial.length ? 'Total del período' : 'Total a pagar'}
+          {pagosPrevios.parcial.length
+            ? 'Total del rango — NO es lo que le debes'
+            : pagosPrevios.dentro.length ? 'Total del período' : 'Total a pagar'}
         </p>
         <p className={`text-3xl font-black mt-1 tabular-nums ${
           pagosPrevios.dentro.length || pagosPrevios.parcial.length ? 'text-slate-200' : 'text-emerald-400'
@@ -881,10 +934,21 @@ function DetalleBarberoDrawer({
               ))}
             </ul>
             <p className="mt-1.5 text-amber-300/70">
-              No se descuenta porque cubre días fuera de este filtro. Ajusta las fechas
-              para calzar con la liquidación antes de pagar, o vas a pagar dos veces los
-              días repetidos.
+              No se puede restar porque esa liquidación también cubre días que están
+              fuera de este filtro. El número de arriba incluye días ya pagados.
             </p>
+            {/* Un clic lleva al rango donde el sistema SÍ puede restar y decir
+                cuánto falta de verdad. Sin esto había que deducir las fechas a
+                mano, que es exactamente donde uno se equivoca por un día. */}
+            {onVerDesdeUltimoPago && (
+              <button
+                onClick={onVerDesdeUltimoPago}
+                className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-[12px] font-bold hover:bg-amber-500/20 transition-all"
+              >
+                <Calendar size={12} />
+                Ver lo que falta por pagar
+              </button>
+            )}
           </div>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-[12.5px]">
@@ -1350,8 +1414,19 @@ function PagarModal({ barbero, periodo, pagoExistente, onConfirm, onClose }) {
 /* ── Main view ────────────────────────────────────────────────────── */
 export default function Comisiones() {
   const { user } = useAuth();
-  const [fechaInicio, setFechaInicio] = useState(firstOfMonth());
-  const [fechaFin, setFechaFin] = useState(today());
+  const _tidPrefs = resolveTenantId();
+  const _prefs0   = useMemo(() => leerPrefs(_tidPrefs), [_tidPrefs]);
+  const [fechaInicio, setFechaInicio] = useState(() => _prefs0?.rango?.inicio || firstOfMonth());
+  const [fechaFin, setFechaFin] = useState(() => _prefs0?.rango?.fin || today());
+  // Buscador, orden y filtro por estado. Aditivos: sin escribir ni elegir nada
+  // la vista se comporta igual que siempre.
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState(() => _prefs0?.orden || 'pendientes');
+  const [filtroEstado, setFiltroEstado] = useState(null);
+
+  useEffect(() => { guardarPrefs(_tidPrefs, { rango: { inicio: fechaInicio, fin: fechaFin } }); },
+    [_tidPrefs, fechaInicio, fechaFin]);
+  useEffect(() => { guardarPrefs(_tidPrefs, { orden }); }, [_tidPrefs, orden]);
   const [citasRaw, setCitasRaw] = useState([]);
   const [ventasRaw, setVentasRaw] = useState([]);
   const [adelantos, setAdelantos] = useState([]);
@@ -1911,6 +1986,70 @@ export default function Comisiones() {
     const total = dentro.reduce((s, p) => s + (Number(p.montoPagado) || 0), 0);
     return { dentro, parcial, total };
   }, [pagosSemanales, fechaInicio, fechaFin]);
+
+  /* ── Última liquidación ──────────────────────────────────────────────
+     El período que uno quiere ver casi nunca es "este mes": es "desde que le
+     pagué la última vez". Sin esto había que mirar Gastos, anotar la fecha y
+     escribirla a mano en el filtro — y equivocarse por un día significa pagar
+     dos veces (pasó con Araceli el 05-08-2026). */
+  const ultimoPagoDe = useCallback((barberoId) => {
+    const propios = pagosSemanales
+      .filter(p => p.barberoId === barberoId && p.periodoFin)
+      .sort((a, b) => String(b.periodoFin).localeCompare(String(a.periodoFin)));
+    return propios[0] || null;
+  }, [pagosSemanales]);
+
+  // Global: el pago más reciente de cualquiera del equipo. Sirve para el preset
+  // de la barra de filtros, que aplica a todos a la vez.
+  const ultimoPagoEquipo = useMemo(() => {
+    const conFin = pagosSemanales.filter(p => p.periodoFin);
+    if (!conFin.length) return null;
+    return conFin.reduce((a, b) => (String(b.periodoFin) > String(a.periodoFin) ? b : a));
+  }, [pagosSemanales]);
+
+  /* Estado de pago de una tarjeta, en UNA palabra. Es lo que alimenta la barra
+     de arriba: sin ella había que recorrer las 13 tarjetas para saber a quién
+     le debes. */
+  const estadoDe = useCallback((b) => {
+    if (pagados.has(b.id)) return 'pagado';
+    const pago = pagoDelPeriodo(b.id);
+    if (pago?.estado === 'reabierto') return 'saldo';
+    if (pago) return 'pagado';
+    const previos = pagosPreviosEnRango(b.id);
+    // Hay liquidaciones tocando el rango pero el período exacto no está pagado:
+    // el total de la tarjeta NO es pagable tal cual. Es el caso que hay que mirar.
+    if (previos.dentro.length || previos.parcial.length) return 'revisar';
+    return 'pendiente';
+  }, [pagados, pagoDelPeriodo, pagosPreviosEnRango]);
+
+  /* Cuántos hay en cada estado y cuánta plata suman. `data` NO se toca: los KPI
+     de arriba siguen siendo los del período completo, para que los números no
+     bailen al filtrar. */
+  const conteos = useMemo(() => {
+    const n = { pendiente: 0, revisar: 0, saldo: 0, pagado: 0 };
+    const monto = { pendiente: 0, revisar: 0, saldo: 0, pagado: 0 };
+    data.forEach(b => { const e = estadoDe(b); n[e]++; monto[e] += b.total; });
+    return { n, monto };
+  }, [data, estadoDe]);
+
+  const dataVisible = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const peso = { pendiente: 0, revisar: 1, saldo: 2, pagado: 3 };
+    const porNombre = (a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+    return data
+      .filter(b => !q || String(b.nombre || '').toLowerCase().includes(q))
+      .filter(b => !filtroEstado || estadoDe(b) === filtroEstado)
+      .slice()
+      .sort((a, b) => {
+        if (orden === 'nombre')   return porNombre(a, b);
+        if (orden === 'total')    return b.total - a.total;
+        if (orden === 'ingresos') return b.ingresos - a.ingresos;
+        // Pendientes primero y, dentro de cada grupo, por nombre: así la tarjeta
+        // de una persona no cambia de lugar entre una visita y otra.
+        const d = peso[estadoDe(a)] - peso[estadoDe(b)];
+        return d !== 0 ? d : porNombre(a, b);
+      });
+  }, [data, busqueda, filtroEstado, orden, estadoDe]);
 
   const handlePagar = async (barbero, metodoPago = 'Efectivo', pagos = null) => {
     const pagoExistente = pagoDelPeriodo(barbero.id);
@@ -2572,7 +2711,30 @@ export default function Comisiones() {
               <ChevronDown size={12} />
             </button>
             {showPresets && (
-              <div className="absolute left-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20 w-44 py-1">
+              <div className="absolute left-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20 w-56 py-1">
+                {/* El preset que de verdad se usa: el período de pago no es un
+                    mes de calendario, es "desde la última liquidación". */}
+                {ultimoPagoEquipo && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setFechaInicio(diaSiguiente(ultimoPagoEquipo.periodoFin));
+                        setFechaFin(today());
+                        setShowPresets(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-800 transition-colors"
+                    >
+                      <span className="block text-sm font-semibold text-emerald-400">Desde el último pago del equipo</span>
+                      <span className="block text-[11px] text-slate-500 tabular-nums">
+                        {diaSiguiente(ultimoPagoEquipo.periodoFin)} → hoy
+                      </span>
+                      <span className="block text-[10.5px] text-slate-600 mt-0.5">
+                        Para una persona en particular, usa su chip en la tarjeta
+                      </span>
+                    </button>
+                    <div className="h-px bg-slate-700/70 my-1" />
+                  </>
+                )}
                 {PRESETS.map(p => (
                   <button key={p.label} onClick={() => { const [i, f] = p.fn(); setFechaInicio(i); setFechaFin(f); setShowPresets(false); }}
                     className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-primary transition-colors">
@@ -2588,6 +2750,67 @@ export default function Comisiones() {
             {loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
+
+        {/* ── Estado del equipo · buscador · orden ──────────────────────
+            Responde de un vistazo las dos preguntas con las que uno entra
+            acá: "¿a quién le falta?" y "¿dónde está fulano?". Los chips
+            filtran; sin ninguno activo la lista es la de siempre. */}
+        {data.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center gap-2">
+            {Object.entries(ESTADOS).map(([id, cfg]) => {
+              if (!conteos.n[id]) return null;
+              const activo = filtroEstado === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setFiltroEstado(activo ? null : id)}
+                  title={`${cfg.label}: ${formatCLP(conteos.monto[id])} en total`}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-semibold transition-all ${cfg.clase} ${
+                    activo ? 'ring-2 ring-white/25' : 'hover:brightness-125'
+                  }`}
+                >
+                  <span className="tabular-nums">{conteos.n[id]}</span>
+                  {cfg.label}
+                </button>
+              );
+            })}
+            {filtroEstado && (
+              <button onClick={() => setFiltroEstado(null)}
+                className="text-[11.5px] font-semibold text-slate-400 hover:text-primary transition-colors">
+                Ver todos
+              </button>
+            )}
+
+            <div className="flex-1" />
+
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar profesional…"
+                autoComplete="off"
+                className="w-40 sm:w-48 bg-slate-800 border border-slate-700 rounded-lg pl-7 pr-7 py-1.5 text-[13px] text-primary placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda('')} aria-label="Limpiar búsqueda"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={orden}
+              onChange={e => setOrden(e.target.value)}
+              title="Orden de las tarjetas"
+              className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[13px] text-slate-300 focus:border-emerald-500 focus:outline-none"
+            >
+              {ORDENES.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Reglas del pago — flags por tenant */}
@@ -2709,9 +2932,20 @@ export default function Comisiones() {
           <AlertCircle size={32} className="opacity-40" />
           <p className="text-sm">Sin citas completadas en el período seleccionado.</p>
         </div>
+      ) : dataVisible.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
+          <Search size={28} className="opacity-40" />
+          <p className="text-sm">Ningún profesional calza con este filtro.</p>
+          <button
+            onClick={() => { setBusqueda(''); setFiltroEstado(null); }}
+            className="text-[13px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            Quitar filtros
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
-          {data.map(barbero => (
+          {dataVisible.map(barbero => (
             <div key={barbero.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-all">
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Avatar + nombre — clic abre detalle */}
@@ -2726,6 +2960,35 @@ export default function Comisiones() {
                     <p className="text-xs text-slate-500">{barbero.citas} cita{barbero.citas !== 1 ? 's' : ''} · ver detalle</p>
                   </div>
                 </button>
+
+                {/* Atajo al período que de verdad importa para ESTA persona.
+                    Antes había que ir a Gastos, buscar su liquidación, anotar
+                    la fecha y escribirla a mano en el filtro. */}
+                {(() => {
+                  const ult = ultimoPagoDe(barbero.id);
+                  if (!ult) return null;
+                  // Se abarca la liquidación ENTERA (desde su inicio, no desde el
+                  // día siguiente a su fin): así queda "dentro" del rango, el
+                  // sistema puede restarla y la tarjeta muestra total − pagado =
+                  // falta. Empezar el día después da el mismo neto pero esconde
+                  // de dónde sale, que es justo lo que confunde.
+                  const yaEsteRango = fechaInicio === ult.periodoInicio && fechaFin === today();
+                  return (
+                    <button
+                      onClick={() => { setFechaInicio(ult.periodoInicio); setFechaFin(today()); }}
+                      disabled={yaEsteRango}
+                      title={`Última liquidación: ${ult.periodoInicio} → ${ult.periodoFin} · ${formatCLP(ult.montoPagado || 0)}. Al tocarlo, el filtro la abarca entera y se descuenta.`}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] font-semibold tabular-nums transition-all ${
+                        yaEsteRango
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400/70 cursor-default'
+                          : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40'
+                      }`}
+                    >
+                      <Calendar size={11} />
+                      {yaEsteRango ? 'Desde su última liquidación' : `Últ. pago ${ult.periodoFin}`}
+                    </button>
+                  );
+                })()}
 
                 {/* Stats */}
                 <div className="flex flex-1 flex-wrap gap-4 items-center">
@@ -3105,6 +3368,19 @@ export default function Comisiones() {
         onEditarAdelanto={(a) => setAdelantoTarget({ barbero: detalleTarget, adelanto: a })}
         onBorrarAdelanto={handleBorrarAdelanto}
         pagosPrevios={detalleTarget ? pagosPreviosEnRango(detalleTarget.id) : undefined}
+        onVerDesdeUltimoPago={(() => {
+          if (!detalleTarget) return undefined;
+          const ult = ultimoPagoDe(detalleTarget.id);
+          if (!ult) return undefined;
+          // Se cierra el cajón: `detalleTarget` es una foto del bucket calculado
+          // con el rango viejo, así que dejarlo abierto mostraría números que ya
+          // no corresponden al filtro nuevo.
+          return () => {
+            setFechaInicio(ult.periodoInicio);
+            setFechaFin(today());
+            setDetalleTarget(null);
+          };
+        })()}
       />
       {ajusteTarget && (
         <ComisionManualModal
