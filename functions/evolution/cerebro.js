@@ -1083,9 +1083,22 @@ Tú: Listo, te confirmo:
 ¿Lo agendo?
 `.trim();
 
-function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChileno, horario, catalogo, equipo, politicas }) {
+/* ── Nombre del agente (configuracion/whatsapp.nombreAgente) ──────────
+   El local puede bautizar a su asistente: "Hola, soy Hermes, el asistente de
+   citas de Kronnos". Se sanea ACÁ y no solo en el panel porque el valor se
+   concatena DENTRO del system: texto libre con saltos de línea podría colar
+   instrucciones en el prompt. Vacío = como siempre, sin nombre. */
+const RE_NOMBRE_AGENTE = /^\p{L}[\p{L}\p{M}' -]{1,23}$/u;
+function limpiarNombreAgente(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim();
+  return RE_NOMBRE_AGENTE.test(s) ? s : '';
+}
+
+function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLocal, estiloChileno, horario, catalogo, equipo, politicas }) {
   return [
-    `Eres el asistente virtual de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`,
+    nombreAgente
+      ? `Te llamas ${nombreAgente} y eres el asistente de citas de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`
+      : `Eres el asistente virtual de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`,
     direccion ? `Dirección del local: ${direccion}.` : '',
     telefonoLocal ? `Teléfono del local: ${telefonoLocal}.` : '',
     '',
@@ -1100,6 +1113,14 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
     estiloChileno
       ? '- ESTILO CHILENO CERCANO: habla como un chileno amable. Puedes usar modismos suaves CHILENOS con moderación ("bacán", "al tiro", "ya po") — máximo UNO por mensaje y siempre entendible. SIN voseo escrito ("querís", "podís", "vos") ni groserías. PROHIBIDOS los modismos de otros países: nada mexicano ("te late", "órale", "ahorita", "padrísimo", "chido") ni rioplatense ("dale che", "querés", "tenés", "elegís"). La claridad manda: fechas, horas y precios siempre en lenguaje estándar.'
       : '- ESPAÑOL NEUTRO SIEMPRE: trato de "tú" con conjugación estándar (tienes, puedes, quieres, prefieres). PROHIBIDO el voseo en cualquier variante ("querís", "podís", "vos", "querés", "tenés", "elegís") y los modismos REGIONALES DE CUALQUIER PAÍS: ni chilenos ("bacán", "al tiro", "cachai", "po"), ni mexicanos ("te late", "órale", "ahorita", "padrísimo", "chido"), ni argentinos ("che", "dale che"), ni de ningún otro. En vez de "¿cuál te late?" di "¿cuál prefieres?". Escribe claro y universal, como para cualquier país hispanohablante.',
+    // El nombre se presenta UNA sola vez. Repetirlo en cada respuesta suena a
+    // firma de plantilla, que es justo lo que delata a un bot. Y la aclaración
+    // de que no es parte del equipo va acá y no en el manual porque solo tiene
+    // sentido cuando el asistente tiene nombre propio: con un nombre humano el
+    // cliente asume que le escribe una persona del local.
+    nombreAgente
+      ? `- TE LLAMAS ${nombreAgente}: preséntate así SOLO en tu primer mensaje de la conversación ("¡Hola! Soy ${nombreAgente}, el asistente de citas de ${nombreLocal} 👋"). Si más arriba ya hay mensajes tuyos, NO vuelvas a presentarte ni firmes con tu nombre. Si te preguntan si eres una persona, responde que eres el asistente virtual del local: JAMÁS digas que eres parte del equipo ni que atiendes en el local.`
+      : '',
     '- Tu único trabajo es informar del local y agendar/gestionar citas. Si preguntan otra cosa, redirige con amabilidad.',
     '- NUNCA inventes precios ni servicios: los del CATÁLOGO de arriba son los únicos que existen y ya los tienes completos, no necesitas ninguna herramienta para consultarlos.',
     '- Si un servicio del catálogo dice "SOLO <días>", existe ÚNICAMENTE esos días: no lo ofrezcas ni lo agendes para ningún otro día. Antes de listar opciones, descarta los que no correspondan al día que pide el cliente; si insiste en ese servicio otro día, explica la restricción y ofrece su día válido más próximo u otro servicio.',
@@ -1131,7 +1152,7 @@ function construirSystemFijo({ nombreLocal, direccion, telefonoLocal, estiloChil
  * tokens y falla si el local queda bajo CACHE_MIN_TOKENS (si se desincronizaran
  * mediríamos un prompt y enviaríamos otro).
  */
-async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
+async function armarContextoLocal(tid, { estiloChileno = false, nombreAgente = '' } = {}) {
   const [tenantSnap, confSnap, servicios, equipo] = await Promise.all([
     db.doc(`tenants/${tid}`).get(),
     configRef(tid).get(),
@@ -1151,7 +1172,25 @@ async function armarContextoLocal(tid, { estiloChileno = false } = {}) {
     String(conf.politicaMensaje || '').trim() ? `- ${String(conf.politicaMensaje).trim()}` : '',
   ].filter(Boolean).join('\n');
 
+  /* El nombre del agente se valida en ESTE punto y no en cada llamador: por acá
+     pasan los cuatro (webhook Evolution, simulador, canal oficial de Meta y
+     scripts/probar-bot.js), así que el candado vale para todos.
+
+     Si choca con un profesional REAL del equipo se descarta: un local que
+     bautiza al bot "Jhon" teniendo un barbero Jhon deja al cliente convencido
+     de que está hablando con esa persona. El panel avisa al guardar; esto es
+     la red por si el nombre entró por otra vía o el barbero se creó después. */
+  const agente = (() => {
+    const n = limpiarNombreAgente(nombreAgente);
+    if (!n) return '';
+    const choca = equipo.some(b =>
+      String(b.nombre || '').trim().split(/\s+/)[0].toLowerCase() === n.toLowerCase());
+    if (choca) logger.warn(`[cerebro] ${tid}: nombreAgente "${n}" choca con un profesional del equipo — se ignora`);
+    return choca ? '' : n;
+  })();
+
   const systemFijo = construirSystemFijo({
+    nombreAgente: agente,
     nombreLocal: tdoc.nombre || tdoc.nombreCorto || tid,
     // Dirección y teléfono a veces viven en el doc del tenant y a veces en
     // configuracion/main (sion los tenía SOLO en conf y el bot no los sabía).
@@ -1935,6 +1974,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   //    scripts/check-bot-prompt.js para que lo que medimos sea lo que se envía) ──
   const { systemFijo, toolsBase } = await armarContextoLocal(tid, {
     estiloChileno: waCfg.estiloChileno === true,
+    nombreAgente:  waCfg.nombreAgente,
   });
   let systemVariable = construirSystemVariable({ fechaHoy: hoyChile, horaHoy: horaChile, pushName, telefono });
   if (citaPendiente) {

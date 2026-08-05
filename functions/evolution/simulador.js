@@ -110,6 +110,7 @@ exports.waSimularBot = onCall(
     const cfgWa = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get()).data() || {};
     const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, {
       estiloChileno: cfgWa.estiloChileno === true,
+      nombreAgente:  cfgWa.nombreAgente,
     });
 
     // Calendario masticado + hora actual, EXACTAMENTE como producción. Antes

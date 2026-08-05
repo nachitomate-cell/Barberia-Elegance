@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
 import { planDe, incluyeBot, incluyeRecordatorios, tienePlan, ETIQUETA_PLAN } from '../lib/waPlan';
@@ -482,6 +482,26 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
     return onSnapshot(ref, (snap) => setCfg(snap.exists() ? snap.data() : {}), () => setCfg({}));
   }, [tid]);
 
+  /* ── Nombre del asistente ──────────────────────────────────────────
+     Se edita en estado local y se guarda al salir del campo: escribir
+     "Hermes" letra por letra serían seis escrituras a Firestore. */
+  const [nombreAgente, setNombreAgente] = useState('');
+  useEffect(() => { setNombreAgente(cfg?.nombreAgente || ''); }, [cfg?.nombreAgente]);
+
+  /* Nombres de pila del equipo, solo para avisar si el bot quedaría llamándose
+     igual que un profesional real — el cliente creería que habla con esa
+     persona. El servidor lo descarta igual (cerebro.armarContextoLocal), pero
+     un rechazo silencioso es deuda: acá se ve ANTES de guardar. */
+  const [equipoNombres, setEquipoNombres] = useState([]);
+  useEffect(() => {
+    const col = collection(db, 'tenants', tid, 'barberos');
+    return onSnapshot(col,
+      (snap) => setEquipoNombres(snap.docs
+        .map((d) => String(d.data()?.nombre || '').trim().split(/\s+/)[0].toLowerCase())
+        .filter(Boolean)),
+      () => setEquipoNombres([]));
+  }, [tid]);
+
   const estado      = cfg?.estadoConexion || 'disconnected';
   const isConnected = estado === 'connected';
   const numero      = cfg?.numeroVinculado;
@@ -489,6 +509,15 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
   const confirmOn   = cfg?.confirmacionesEnabled === true;
   const estiloChileno = cfg?.estiloChileno === true;
   const ventana     = cfg?.recordatorio?.ventanaHoras ?? 24;
+
+  // Mismo patrón que valida el servidor en cerebro.js (RE_NOMBRE_AGENTE).
+  const agenteVal   = nombreAgente.replace(/\s+/g, ' ').trim();
+  const agenteError =
+    agenteVal && !/^\p{L}[\p{L}\p{M}' -]{1,23}$/u.test(agenteVal)
+      ? 'Solo letras, entre 2 y 24 caracteres.'
+      : agenteVal && equipoNombres.includes(agenteVal.toLowerCase())
+        ? `Ya hay alguien del equipo que se llama ${agenteVal}. Elige otro nombre para que ningún cliente crea que habla con esa persona.`
+        : '';
 
   // Habilitado = tiene plan, o el número sigue vinculado. Lo segundo NO es un
   // permiso: es para que un local al que le quitaron el plan pueda igual ver
@@ -861,6 +890,40 @@ export default function WhatsAppAsistente({ embedded = false, onEstado, seccion 
                     <option value="neutro">Neutro</option>
                     <option value="chileno">Chileno</option>
                   </select>
+                </SettingRow>
+              )}
+              {botOn && (
+                <SettingRow
+                  Icon={Bot}
+                  title="Nombre del asistente"
+                  description={agenteVal && !agenteError
+                    ? `Se presenta como "${agenteVal}" al empezar la conversación y no vuelve a repetirlo.`
+                    : 'Opcional. Si le pones nombre, saluda con él ("Hola, soy Hermes, el asistente de citas").'
+                  }
+                  stackedOnMobile
+                >
+                  <div className="w-full sm:w-52">
+                    <input
+                      type="text"
+                      value={nombreAgente}
+                      maxLength={24}
+                      placeholder="Sin nombre"
+                      autoComplete="off"
+                      onChange={(e) => setNombreAgente(e.target.value)}
+                      onBlur={() => {
+                        if (agenteError) return;
+                        if (agenteVal !== (cfg?.nombreAgente || '')) patchCfg({ nombreAgente: agenteVal });
+                      }}
+                      className={`w-full bg-white/[0.04] border rounded-full px-3 py-1.5 text-[13px] text-primary focus:outline-none ${
+                        agenteError
+                          ? 'border-amber-500/60 focus:border-amber-500'
+                          : 'border-white/10 focus:border-emerald-500'
+                      }`}
+                    />
+                    {agenteError && (
+                      <p className="text-[11.5px] text-amber-400 mt-1.5 leading-snug">{agenteError}</p>
+                    )}
+                  </div>
                 </SettingRow>
               )}
 

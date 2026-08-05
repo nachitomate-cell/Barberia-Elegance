@@ -75,7 +75,19 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
   if (respHoy >= MAX_RESP_DIA) return true;                                  // tope anti-troll
 
   const cerebro = require('./evolution/cerebro');
-  const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, { estiloChileno: false });
+  // El nombre del agente lo elige el local en /gestion-interna/whatsapp y tiene
+  // que ser el MISMO en los dos canales: sin esta lectura el bot se llamaría
+  // Hermes por el número propio y quedaría anónimo por el oficial, que es
+  // justo el tipo de lista espejo que se desincroniza en silencio.
+  const cfgWa = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get()).data() || {};
+  // `estiloChileno` también sale de la config del local y no de un `false` fijo:
+  // un local que eligió "chileno" hablaba neutro por este canal y cercano por el
+  // propio, o sea dos personalidades para el mismo negocio según por dónde le
+  // escribieran. Mismo dato, misma fuente.
+  const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, {
+    estiloChileno: cfgWa.estiloChileno === true,
+    nombreAgente:  cfgWa.nombreAgente,
+  });
   // Calendario masticado (lib/calendario): hoy + próximos 7 días con su día de
   // semana y la hora actual — el modelo no calcula fechas ni deduce la hora
   // (regla de la casa, 02 y 03-08-2026). La línea de la hora la arma la lib:

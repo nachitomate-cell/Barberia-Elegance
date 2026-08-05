@@ -289,7 +289,10 @@ async function tenantsConBot() {
       // prompt distinto al que de verdad se le manda al modelo.
       const waCfg = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get().catch(() => null))?.data() || {};
       const estiloChileno = waCfg.estiloChileno === true;
-      const base = await cerebro._armarContextoLocal(tid, { estiloChileno });
+      const base = await cerebro._armarContextoLocal(tid, {
+        estiloChileno,
+        nombreAgente: waCfg.nombreAgente,   // mismo motivo: el prompt real, no uno parecido
+      });
       // Horas del HORARIO DE ATENCIÓN: el bot puede nombrarlas sin consultar
       // disponibilidad ("abrimos a las 10:30"), así que no son horas inventadas.
       const conf = (await db.doc(`tenants/${tid}/configuracion/main`).get().catch(() => null))?.data() || {};

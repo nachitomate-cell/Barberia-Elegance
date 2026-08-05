@@ -109,7 +109,14 @@ async function listarTenants() {
   for (const tid of tenants) {
     let linea;
     try {
-      const { systemFijo, toolsBase, servicios, equipo } = await armarContextoLocal(tid);
+      // Con la config REAL del local: el estilo y el nombre del asistente viven
+      // dentro del bloque cacheado, así que medirlo sin ellos sería medir un
+      // prompt que no es el que se envía.
+      const waCfg = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get().catch(() => null))?.data() || {};
+      const { systemFijo, toolsBase, servicios, equipo } = await armarContextoLocal(tid, {
+        estiloChileno: waCfg.estiloChileno === true,
+        nombreAgente:  waCfg.nombreAgente,
+      });
       const tokens = API_KEY
         ? await contarTokens(systemFijo, toolsBase)
         : Math.round((systemFijo.length + JSON.stringify(toolsBase).length) / CHARS_POR_TOKEN);

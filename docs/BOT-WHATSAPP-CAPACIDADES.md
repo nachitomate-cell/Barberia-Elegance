@@ -22,6 +22,7 @@
 | **Pide confirmación de asistencia** | Con confirmaciones activas escribe antes de la cita (12/24/48 h configurables): "Responde CONFIRMAR o CANCELAR". CANCELAR libera el cupo solo. | Cron `evolutionConfirmaciones` (cada 30 min) + fast-path sin IA en el webhook |
 | **Deriva a un humano cuando corresponde** | Si el cliente pide hablar con una persona, reclama, o pide algo fuera de alcance (pagos, convenios, cotizaciones): avisa que el equipo seguirá la conversación y se calla 2 h en ese chat. | Tool `pasar_con_humano` (`botSilencedUntil`) |
 | **Habla español neutro o chileno** | Neutro por defecto (tú estándar, sin modismos). "Chileno cercano" activable por local: modismos suaves, máx. uno por mensaje, sin voseo escrito. | `configuracion/whatsapp.estiloChileno` |
+| **Tiene nombre propio (opcional)** | El local lo bautiza y se presenta con él en el primer mensaje ("Hola, soy Hermes, el asistente de citas de Kronnos"); después no lo repite ni firma. Si le preguntan si es persona, dice que es el asistente virtual — nunca que es del equipo. Se rechaza el nombre de un profesional real para que nadie crea que habla con esa persona. Vacío = asistente anónimo, como siempre. | `configuracion/whatsapp.nombreAgente` (se sanea y valida en `cerebro.armarContextoLocal`) |
 | **Recuerda la conversación** | Mantiene los últimos 10 intercambios con cada cliente para no repreguntar. | `wa_conversaciones/{tel}.messages` (20 turnos) |
 
 ## 🚫 Lo que NO hace (a propósito)
