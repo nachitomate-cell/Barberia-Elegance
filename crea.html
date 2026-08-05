@@ -415,6 +415,55 @@
   .ref-chip.show{display:block;}
   .ref-chip b{color:var(--mint);}
 
+  /* ── Import Weibook/AgendaPro ────────────────────────────────── */
+  .import-shell{
+    margin-bottom:22px;border-radius:14px;overflow:hidden;
+    background:linear-gradient(135deg,rgba(139,124,246,.08),rgba(110,231,168,.06));
+    border:1px solid rgba(139,124,246,.28);
+  }
+  .import-toggle{
+    width:100%;display:flex;align-items:center;gap:11px;padding:14px 16px;
+    background:transparent;border:0;cursor:pointer;color:var(--txt);text-align:left;
+    font-family:inherit;font-size:14px;font-weight:700;transition:background .15s;
+  }
+  .import-toggle:hover{background:rgba(139,124,246,.06);}
+  .import-toggle .ico{font-size:18px;line-height:1;color:var(--mint);}
+  .import-toggle .tt{flex:1;letter-spacing:-.15px;}
+  .import-toggle .arr{color:var(--acc-soft);font-size:12px;transition:transform .2s;}
+  .import-shell.open .import-toggle .arr{transform:rotate(180deg);}
+  .import-body{display:none;padding:0 16px 16px;}
+  .import-shell.open .import-body{display:block;}
+  .import-row{display:flex;gap:8px;margin-top:8px;}
+  .import-row input{
+    flex:1;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);
+    border-radius:12px;padding:12px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;
+  }
+  .import-row input:focus{border-color:var(--acc);}
+  .btn-import{
+    background:linear-gradient(135deg,#a99bf8,#8b7cf6);color:var(--ink);
+    font-family:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:12px;
+    padding:0 18px;cursor:pointer;transition:all .15s;white-space:nowrap;
+  }
+  .btn-import:hover:not(:disabled){filter:brightness(1.1);}
+  .btn-import:disabled{opacity:.55;cursor:wait;}
+  .import-hint{margin-top:9px;font-size:12px;color:var(--muted);line-height:1.5;}
+  .import-hint.ok{color:var(--mint);font-weight:600;}
+  .import-hint.err{color:var(--err);font-weight:600;}
+
+  /* ── Chips de días laborales ─────────────────────────────────── */
+  .dias-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .dia-chip{
+    flex:1;min-width:38px;padding:9px 4px;border-radius:10px;
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);
+    color:var(--muted);font-family:var(--disp);font-size:12px;font-weight:700;
+    cursor:pointer;transition:all .15s;
+  }
+  .dia-chip:hover{border-color:rgba(255,255,255,.22);color:var(--txt);}
+  .dia-chip.on{
+    background:linear-gradient(135deg,#c5bbfb,#8b7cf6);color:var(--ink);
+    border-color:transparent;
+  }
+
   /* Reveal on scroll */
   .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease;}
   .rv.in{opacity:1;transform:none;}
@@ -776,6 +825,27 @@
 
           <!-- ── PASO 1 · Tu local ─────────────────────────────────── -->
           <div class="wstep act" data-wstep="1">
+            <!-- Import desde Weibook/AgendaPro: killer feature.
+                 Prellena nombre/tipo/teléfono/IG + servicios reales con precios.
+                 Solo lee páginas públicas + rate limit por IP en el server. -->
+            <div class="import-shell" id="importShell">
+              <button type="button" class="import-toggle" id="importToggle">
+                <span class="ico">⚡</span>
+                <span class="tt">¿Ya tienes agenda? Impórtala en 1 clic</span>
+                <span class="arr">▾</span>
+              </button>
+              <div class="import-body" id="importBody">
+                <label for="importUrl" style="font-size:11px;color:#8f8ca1;letter-spacing:.08em;text-transform:uppercase;font-weight:700;">
+                  Pega el link de reservas de tu Weibook o AgendaPro
+                </label>
+                <div class="import-row">
+                  <input id="importUrl" type="url" placeholder="https://book.weibook.co/branch/..." autocomplete="off" spellcheck="false" />
+                  <button type="button" id="importBtn" class="btn-import">Importar</button>
+                </div>
+                <p class="import-hint" id="importHint">Traemos nombre, servicios reales con precios y duración, y tu equipo. Sigues completando lo que falte.</p>
+              </div>
+            </div>
+
             <div class="field">
               <label for="nombre">Nombre del local</label>
               <input id="nombre" type="text" maxlength="60" placeholder="Ej: Barbería Don Pedro" autocapitalize="words" autocomplete="organization" required />
@@ -811,6 +881,31 @@
                 <span class="dom">.synaptechspa.cl</span>
               </div>
               <p class="slughint" id="slugHint"></p>
+            </div>
+
+            <!-- Horario real: reemplaza el default Lun-Sáb 10-20 del provisioner.
+                 Todo opcional — si no lo tocan, el default sigue vivo. -->
+            <div class="field">
+              <label>Tu horario <span class="opt">(opcional — puedes ajustarlo desde el panel)</span></label>
+              <div class="frow" style="grid-template-columns:1fr 1fr;">
+                <div>
+                  <label for="horaInicio" style="font-size:10px;">Abres</label>
+                  <input id="horaInicio" type="time" value="10:00" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="horaFin" style="font-size:10px;">Cierras</label>
+                  <input id="horaFin" type="time" value="20:00" autocomplete="off" />
+                </div>
+              </div>
+              <div class="dias-row" id="diasRow" role="group" aria-label="Días laborales">
+                <button type="button" class="dia-chip" data-dia="1">Lun</button>
+                <button type="button" class="dia-chip" data-dia="2">Mar</button>
+                <button type="button" class="dia-chip" data-dia="3">Mié</button>
+                <button type="button" class="dia-chip" data-dia="4">Jue</button>
+                <button type="button" class="dia-chip" data-dia="5">Vie</button>
+                <button type="button" class="dia-chip" data-dia="6">Sáb</button>
+                <button type="button" class="dia-chip" data-dia="0">Dom</button>
+              </div>
             </div>
 
             <div class="wnav">
@@ -1068,6 +1163,130 @@
       try { localStorage.setItem('syn_attrib', JSON.stringify(out)); } catch(_) {}
       return out;
     })();
+
+    // ── Import Weibook/AgendaPro (P4a) ─────────────────────────
+    // Killer feature: dueño pega link de su agenda actual y el wizard se
+    // prellena con nombre, IG, servicios reales con precios y equipo.
+    // Los servicios importados van al provisioner como serviciosCustom y
+    // reemplazan la plantilla genérica del tipo de negocio.
+    var IMPORTADO = { servicios: [], equipo: [] };
+    (function () {
+      var shell   = document.getElementById('importShell');
+      var toggle  = document.getElementById('importToggle');
+      var body    = document.getElementById('importBody');
+      var input   = document.getElementById('importUrl');
+      var btn     = document.getElementById('importBtn');
+      var hint    = document.getElementById('importHint');
+      var HINT_D  = hint.textContent;
+
+      toggle.addEventListener('click', function () {
+        shell.classList.toggle('open');
+        if (shell.classList.contains('open')) setTimeout(function () { input.focus(); }, 80);
+      });
+
+      btn.addEventListener('click', async function () {
+        var url = (input.value || '').trim();
+        if (!/^https?:\/\/(book\.weibook\.co|[a-z0-9.-]+\.(weibook\.co|agendapro\.com))/i.test(url)) {
+          hint.className = 'import-hint err';
+          hint.textContent = 'Pega un link válido de Weibook o AgendaPro (empieza con https://).';
+          return;
+        }
+        btn.disabled = true;
+        var htmlPrev = btn.innerHTML;
+        btn.innerHTML = 'Importando…';
+        hint.className = 'import-hint';
+        hint.textContent = 'Leyendo tu página…';
+
+        try {
+          var res = await fns.httpsCallable('importarNegocioExternoPublic')({ url: url });
+          var d = (res && res.data) || {};
+          if (!d.ok) throw new Error('No pudimos leer esa página.');
+
+          // Prellenar campos del wizard
+          if (d.nombre)    ui.nombre.value    = d.nombre.slice(0, 60);
+          if (d.telefono)  ui.telefono.value  = d.telefono;
+          if (d.instagram) ui.instagram.value = d.instagram;
+          if (d.tipo && ['barberia','peluqueria','nails','spa','mixto','otro'].includes(d.tipo)) {
+            ui.tipo.value = d.tipo;
+          }
+          if (d.color && /^#[0-9a-fA-F]{6}$/.test(d.color)) {
+            ui.color.value = d.color;
+            // Marcar como activo si coincide con algún swatch; si no, actualizar picker.
+            document.querySelectorAll('.sw').forEach(function (b) {
+              b.classList.toggle('active', b.getAttribute('data-c') && b.getAttribute('data-c').toLowerCase() === d.color.toLowerCase());
+            });
+            var picker = document.getElementById('colorCustom');
+            if (picker) picker.value = d.color;
+          }
+          // Slug: si el user no editó, autogenerar del nombre importado.
+          if (d.nombre && !slugTocado) {
+            ui.slug.value = slugify(d.nombre);
+            programarCheck();
+          }
+          // Guardar servicios + equipo para enviarlos en el submit
+          IMPORTADO.servicios = Array.isArray(d.servicios) ? d.servicios.slice(0, 60) : [];
+          IMPORTADO.equipo    = Array.isArray(d.equipo)    ? d.equipo.slice(0, 20) : [];
+
+          var partes = [];
+          if (IMPORTADO.servicios.length) partes.push(IMPORTADO.servicios.length + ' servicios reales');
+          if (IMPORTADO.equipo.length)    partes.push(IMPORTADO.equipo.length + ' del equipo');
+          if (d.parcial) partes.push('(parcial — completa lo que falte)');
+
+          hint.className = 'import-hint ok';
+          hint.textContent = '✓ Importado desde ' + (d.proveedor === 'weibook' ? 'Weibook' : 'AgendaPro') +
+            (partes.length ? ' — ' + partes.join(' + ') : '') + '.';
+        } catch (e) {
+          hint.className = 'import-hint err';
+          var msg = String((e && e.message) || 'No pudimos importar. Revisa el link o pégalo distinto.');
+          hint.textContent = msg;
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = htmlPrev;
+        }
+      });
+    })();
+
+    // ── Días laborales (P4b) ───────────────────────────────────
+    // Prefill por rubro: barbería y peluquería suelen abrir mar-sáb; spa
+    // suele ir mar-dom; el dueño puede tocar cualquier chip.
+    (function () {
+      var chips = document.querySelectorAll('.dia-chip');
+      var PRESETS = {
+        barberia:   [2,3,4,5,6],
+        peluqueria: [2,3,4,5,6],
+        mixto:      [2,3,4,5,6],
+        nails:      [2,3,4,5,6],
+        spa:        [2,3,4,5,6,0],
+        otro:       [1,2,3,4,5,6],
+      };
+      function setDias(dias) {
+        var set = new Set(dias.map(Number));
+        chips.forEach(function (c) {
+          c.classList.toggle('on', set.has(Number(c.getAttribute('data-dia'))));
+        });
+      }
+      // Prefill inicial (barbería default del wizard)
+      setDias(PRESETS.barberia);
+      // Cambio de tipo → cambia preset (solo si el user aún no tocó ningún chip)
+      var toqueUser = false;
+      ui.tipo.addEventListener('change', function () {
+        if (!toqueUser) setDias(PRESETS[ui.tipo.value] || PRESETS.otro);
+      });
+      chips.forEach(function (c) {
+        c.addEventListener('click', function () {
+          toqueUser = true;
+          c.classList.toggle('on');
+        });
+      });
+    })();
+
+    function diasSeleccionados() {
+      var out = [];
+      document.querySelectorAll('.dia-chip.on').forEach(function (c) {
+        out.push(Number(c.getAttribute('data-dia')));
+      });
+      return out;
+    }
 
     // Chip visible "Te atiende: <ref>" cuando llega por link con ?ref=.
     if (ATTRIB.ref) {
@@ -1341,7 +1560,14 @@
                 'privacidad@'   + TERMINOS_VERSION,
               ],
             },
-            atribucion: ATTRIB,
+            atribucion:      ATTRIB,
+            serviciosCustom: IMPORTADO.servicios,
+            equipoCustom:    IMPORTADO.equipo,
+            horario: {
+              horaInicio: (document.getElementById('horaInicio').value || '').trim(),
+              horaFin:    (document.getElementById('horaFin').value    || '').trim(),
+              dias:       diasSeleccionados(),
+            },
           });
         })
         .then(function(res){

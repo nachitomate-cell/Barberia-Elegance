@@ -1522,16 +1522,28 @@
   </div>
 
   <!-- ── Alta express de tenants (a medida, sobre rieles dinámicos) ── -->
-  <button onclick="abrirWizardTenant()" style="
-    width:100%; max-width:660px; margin:0 0 1rem; padding:0.875rem 1rem;
-    border-radius:0.875rem; cursor:pointer; border:1px dashed rgba(52,211,153,0.45);
-    background:rgba(52,211,153,0.07); color:#34d399; font-size:0.875rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:all 0.2s;"
-    onmouseover="this.style.background='rgba(52,211,153,0.14)'"
-    onmouseout="this.style.background='rgba(52,211,153,0.07)'">
-    <i class="ph-bold ph-rocket-launch" style="font-size:1rem;"></i>
-    Crear tenant express — agenda funcionando en minutos
-  </button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;width:100%;max-width:660px;margin:0 0 1rem;">
+    <button onclick="abrirWizardTenant()" style="
+      padding:0.875rem 0.75rem;
+      border-radius:0.875rem; cursor:pointer; border:1px dashed rgba(52,211,153,0.45);
+      background:rgba(52,211,153,0.07); color:#34d399; font-size:0.8125rem; font-weight:700;
+      display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(52,211,153,0.14)'"
+      onmouseout="this.style.background='rgba(52,211,153,0.07)'">
+      <i class="ph-bold ph-rocket-launch" style="font-size:1rem;"></i>
+      Crear tenant express
+    </button>
+    <button onclick="abrirTenantsNuevos()" id="btnTenantsNuevos" style="
+      padding:0.875rem 0.75rem; position:relative;
+      border-radius:0.875rem; cursor:pointer; border:1px dashed rgba(139,124,246,0.45);
+      background:rgba(139,124,246,0.07); color:#b4a9fa; font-size:0.8125rem; font-weight:700;
+      display:flex; align-items:center; justify-content:center; gap:0.5rem; transition:all 0.2s;"
+      onmouseover="this.style.background='rgba(139,124,246,0.14)'"
+      onmouseout="this.style.background='rgba(139,124,246,0.07)'">
+      <i class="ph-bold ph-users-three" style="font-size:1rem;"></i>
+      Tenants nuevos <span id="tnBadge" style="display:none;margin-left:0.25rem;background:#8b7cf6;color:#0d0b22;font-size:0.6875rem;font-weight:800;padding:0.05rem 0.4rem;border-radius:999px;">0</span>
+    </button>
+  </div>
 
   <!-- ── Tenant list ── -->
   <h3 class="sa-section-title">✅ Funcionando <span class="sa-count" id="count-ok">0</span></h3>
@@ -2768,6 +2780,9 @@
       try {
         var r = await firebase.app().functions('us-central1').httpsCallable('adminListarTenants')({});
         var lista = (r.data && r.data.tenants) || [];
+        // Cache completo para la vista "Tenants Nuevos" (self-service + admin-express).
+        window._TENANTS_RAW = lista;
+        if (window._renderTenantsNuevos) window._renderTenantsNuevos();
         if (lista.length) {
           all = {};
           lista.forEach(function(t){
@@ -8664,6 +8679,253 @@
         btn.innerHTML = '<i class="ph-bold ph-rocket-launch"></i> Crear tenant';
       }
     };
+  })();
+  </script>
+
+  <!-- ══ PANEL: TENANTS NUEVOS (self-service + admin-express) ═════════════ -->
+  <div id="tnModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(2,6,17,0.94);backdrop-filter:blur(10px);overflow-y:auto;">
+    <div style="max-width:1100px;margin:0 auto;padding:1.5rem 1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div>
+          <h2 style="font-size:1.375rem;font-weight:800;color:#fff;letter-spacing:-0.02em;margin:0;">
+            <i class="ph-bold ph-users-three" style="color:#b4a9fa;margin-right:0.5rem;"></i>
+            Tenants nuevos
+          </h2>
+          <p style="font-size:0.75rem;color:#94a3b8;margin:0.25rem 0 0;" id="tnResumen">Cargando…</p>
+        </div>
+        <button onclick="cerrarTenantsNuevos()" style="background:transparent;border:0;color:#94a3b8;font-size:1.5rem;cursor:pointer;padding:0.5rem;">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;padding:0.75rem;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;">
+        <select id="tnFStatus" onchange="_renderTenantsNuevos()" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;padding:0.4rem 0.6rem;font-size:0.8125rem;font-weight:600;">
+          <option value="">Todos los status</option>
+          <option value="trial">Trial vigente</option>
+          <option value="trial_expired">Trial vencido</option>
+          <option value="active">Activo (pagando)</option>
+          <option value="suspended">Suspendido</option>
+        </select>
+        <select id="tnFVendedor" onchange="_renderTenantsNuevos()" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;padding:0.4rem 0.6rem;font-size:0.8125rem;font-weight:600;">
+          <option value="">Todos los vendedores</option>
+        </select>
+        <select id="tnFPeriodo" onchange="_renderTenantsNuevos()" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;padding:0.4rem 0.6rem;font-size:0.8125rem;font-weight:600;">
+          <option value="all">Todo el tiempo</option>
+          <option value="7">Últimos 7 días</option>
+          <option value="30">Últimos 30 días</option>
+        </select>
+        <select id="tnFOrigen" onchange="_renderTenantsNuevos()" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;padding:0.4rem 0.6rem;font-size:0.8125rem;font-weight:600;">
+          <option value="">Todos los orígenes</option>
+          <option value="self-service">Self-service (crea.*)</option>
+          <option value="admin-express">Admin express</option>
+        </select>
+        <input id="tnFBuscar" oninput="_renderTenantsNuevos()" placeholder="Buscar…" style="flex:1;min-width:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;padding:0.4rem 0.6rem;font-size:0.8125rem;" />
+      </div>
+
+      <!-- Lista de tarjetas -->
+      <div id="tnLista" style="display:flex;flex-direction:column;gap:0.625rem;">
+        <div style="text-align:center;padding:2rem;color:#64748b;font-size:0.875rem;">Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var CLP = function (n) { return '$' + Number(n || 0).toLocaleString('es-CL'); };
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    }); }
+
+    var ORIGENES_SELF = new Set(['self-service', 'admin-express']);
+
+    window.abrirTenantsNuevos = function () {
+      document.getElementById('tnModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      window._renderTenantsNuevos();
+      // Fuerza recarga en background para refrescar contadores
+      if (window.saCargarTenants) window.saCargarTenants();
+    };
+    window.cerrarTenantsNuevos = function () {
+      document.getElementById('tnModal').style.display = 'none';
+      document.body.style.overflow = '';
+    };
+
+    function statusBadge(t) {
+      var s = t.status || 'active';
+      var map = {
+        'trial':         { txt: 'Trial · ' + (t.diasParaVencer != null ? t.diasParaVencer + 'd' : '—'), col: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+        'trial_expired': { txt: 'Trial vencido', col: '#f43f5e', bg: 'rgba(244,63,94,0.12)' },
+        'active':        { txt: 'Activo',        col: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+        'suspended':     { txt: 'Suspendido',    col: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+      };
+      var m = map[s] || map.active;
+      // Badge extra si el trial está por vencer (≤3 días)
+      if (s === 'trial' && t.diasParaVencer != null && t.diasParaVencer <= 3) {
+        m = { txt: '⚠️ Vence en ' + t.diasParaVencer + 'd', col: '#f43f5e', bg: 'rgba(244,63,94,0.14)' };
+      }
+      return '<span style="padding:0.15rem 0.5rem;border-radius:999px;font-size:0.6875rem;font-weight:700;background:' + m.bg + ';color:' + m.col + ';">' + esc(m.txt) + '</span>';
+    }
+
+    function pagoBadge(t) {
+      var e = t.estadoPago || '—';
+      var col = e === 'al_dia' ? '#34d399' : e === 'atrasado' ? '#f43f5e' : '#94a3b8';
+      var bg  = e === 'al_dia' ? 'rgba(52,211,153,0.1)' : e === 'atrasado' ? 'rgba(244,63,94,0.1)' : 'rgba(148,163,184,0.08)';
+      return '<span style="padding:0.15rem 0.5rem;border-radius:999px;font-size:0.6875rem;font-weight:700;background:' + bg + ';color:' + col + ';">' + esc(e) + '</span>';
+    }
+
+    function refBadge(ref) {
+      if (!ref) return '';
+      return '<span style="padding:0.15rem 0.5rem;border-radius:999px;font-size:0.6875rem;font-weight:700;background:rgba(139,124,246,0.14);color:#b4a9fa;">👤 ' + esc(ref) + '</span>';
+    }
+
+    function fila(t) {
+      var wa = (t.contacto && t.contacto.whatsapp) ? String(t.contacto.whatsapp).replace(/\D/g, '') : '';
+      var urlAgenda = 'https://' + t.id + '.synaptechspa.cl';
+      var urlPanel  = urlAgenda + '/gestion-interna/';
+      var altaTxt   = t.diasDesdeAlta != null ? (t.diasDesdeAlta === 0 ? 'hoy' : 'hace ' + t.diasDesdeAlta + 'd') : '—';
+      var mostrarActivar = (t.status === 'trial' || t.status === 'trial_expired');
+
+      return '' +
+      '<div style="background:rgba(15,23,42,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:0.875rem;padding:0.875rem 1rem;display:grid;grid-template-columns:1fr auto;gap:0.75rem;align-items:center;">' +
+        '<div style="min-width:0;">' +
+          '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">' +
+            '<span style="font-size:0.9375rem;font-weight:800;color:#fff;letter-spacing:-0.01em;">' + esc(t.nombre || t.id) + '</span>' +
+            '<span style="font-size:0.6875rem;color:#64748b;font-family:ui-monospace,monospace;">/' + esc(t.id) + '</span>' +
+            statusBadge(t) +
+            pagoBadge(t) +
+            refBadge(t.refVendedor) +
+            (t.plan ? '<span style="padding:0.15rem 0.5rem;border-radius:999px;font-size:0.6875rem;font-weight:700;background:rgba(52,211,153,0.08);color:#a7f3d0;">Plan ' + esc(t.plan) + '</span>' : '') +
+          '</div>' +
+          '<div style="font-size:0.75rem;color:#94a3b8;line-height:1.5;">' +
+            '<span>👤 ' + esc((t.contacto && t.contacto.nombre) || '—') + '</span>' +
+            (t.contacto && t.contacto.email ? ' · <span>✉ ' + esc(t.contacto.email) + '</span>' : '') +
+            (wa ? ' · <span>📱 ' + esc(wa) + '</span>' : '') +
+            ' · <span>📅 alta ' + esc(altaTxt) + '</span>' +
+            (t.utmSource ? ' · <span>📢 utm: ' + esc(t.utmSource) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:0.35rem;">' +
+          (wa ? '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener" title="WhatsApp" style="background:rgba(52,211,153,0.14);color:#34d399;padding:0.4rem 0.5rem;border-radius:0.5rem;font-size:0.8125rem;text-decoration:none;"><i class="ph-bold ph-whatsapp-logo"></i></a>' : '') +
+          '<a href="' + urlAgenda + '" target="_blank" rel="noopener" title="Ver agenda" style="background:rgba(148,163,184,0.14);color:#cbd5e1;padding:0.4rem 0.5rem;border-radius:0.5rem;font-size:0.8125rem;text-decoration:none;"><i class="ph-bold ph-calendar"></i></a>' +
+          '<a href="' + urlPanel  + '" target="_blank" rel="noopener" title="Ver panel"  style="background:rgba(148,163,184,0.14);color:#cbd5e1;padding:0.4rem 0.5rem;border-radius:0.5rem;font-size:0.8125rem;text-decoration:none;"><i class="ph-bold ph-gauge"></i></a>' +
+          (mostrarActivar
+            ? '<button onclick="tnActivar(\'' + esc(t.id) + '\')" title="Activar plan manual" style="background:rgba(139,124,246,0.18);color:#c5bbfb;border:0;padding:0.4rem 0.5rem;border-radius:0.5rem;font-size:0.8125rem;cursor:pointer;"><i class="ph-bold ph-lightning"></i></button>'
+            : ''
+          ) +
+          (t.status === 'trial' || t.status === 'trial_expired'
+            ? '<button onclick="tnExtender(\'' + esc(t.id) + '\')" title="Extender trial" style="background:rgba(245,158,11,0.14);color:#fbbf24;border:0;padding:0.4rem 0.5rem;border-radius:0.5rem;font-size:0.8125rem;cursor:pointer;"><i class="ph-bold ph-clock-clockwise"></i></button>'
+            : ''
+          ) +
+        '</div>' +
+      '</div>';
+    }
+
+    window._renderTenantsNuevos = function () {
+      var lista = window._TENANTS_RAW || [];
+      var self  = lista.filter(function (t) { return ORIGENES_SELF.has(t.origen); });
+
+      // Actualizar badge del botón principal (cuenta trials vigentes ≤3 días de vencer)
+      var alertar = self.filter(function (t) {
+        return t.status === 'trial' && t.diasParaVencer != null && t.diasParaVencer <= 3;
+      }).length + self.filter(function (t) { return t.status === 'trial_expired'; }).length;
+      var badge = document.getElementById('tnBadge');
+      if (badge) {
+        badge.textContent = alertar;
+        badge.style.display = alertar > 0 ? 'inline-block' : 'none';
+      }
+
+      // Rellenar dropdown de vendedores (una vez)
+      var selVend = document.getElementById('tnFVendedor');
+      var refs = [...new Set(self.map(function (t) { return t.refVendedor; }).filter(Boolean))].sort();
+      if (selVend && selVend.options.length - 1 !== refs.length) {
+        var prev = selVend.value;
+        selVend.innerHTML = '<option value="">Todos los vendedores</option>' +
+          refs.map(function (r) { return '<option value="' + esc(r) + '">👤 ' + esc(r) + '</option>'; }).join('') +
+          '<option value="__none__">— Sin vendedor</option>';
+        selVend.value = prev;
+      }
+
+      // Aplicar filtros
+      var fStatus  = document.getElementById('tnFStatus').value;
+      var fVend    = document.getElementById('tnFVendedor').value;
+      var fPeriodo = document.getElementById('tnFPeriodo').value;
+      var fOrigen  = document.getElementById('tnFOrigen').value;
+      var fBuscar  = (document.getElementById('tnFBuscar').value || '').toLowerCase().trim();
+      var ahora    = Date.now();
+
+      var filtrado = self.filter(function (t) {
+        if (fStatus && t.status !== fStatus) return false;
+        if (fVend === '__none__' && t.refVendedor) return false;
+        if (fVend && fVend !== '__none__' && t.refVendedor !== fVend) return false;
+        if (fOrigen && t.origen !== fOrigen) return false;
+        if (fPeriodo !== 'all' && t.createdAtMs) {
+          var maxAge = Number(fPeriodo) * 86400000;
+          if (ahora - t.createdAtMs > maxAge) return false;
+        }
+        if (fBuscar) {
+          var hay = (t.id + ' ' + (t.nombre || '') + ' ' +
+            ((t.contacto && t.contacto.nombre) || '') + ' ' +
+            ((t.contacto && t.contacto.email) || '') + ' ' +
+            ((t.contacto && t.contacto.whatsapp) || '')).toLowerCase();
+          if (!hay.includes(fBuscar)) return false;
+        }
+        return true;
+      });
+
+      // Resumen
+      var trialVig = self.filter(function (t) { return t.status === 'trial'; }).length;
+      var trialVen = self.filter(function (t) { return t.status === 'trial_expired'; }).length;
+      var activos  = self.filter(function (t) { return t.status === 'active'; }).length;
+      document.getElementById('tnResumen').textContent =
+        self.length + ' tenants self-service · ' + trialVig + ' en trial · ' + trialVen + ' trial vencido · ' + activos + ' activos pagando';
+
+      var cont = document.getElementById('tnLista');
+      if (!filtrado.length) {
+        cont.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b;font-size:0.875rem;">Sin resultados con esos filtros.</div>';
+        return;
+      }
+      cont.innerHTML = filtrado.map(fila).join('');
+    };
+
+    window.tnActivar = async function (tid) {
+      var plan = prompt('Plan a activar en ' + tid + ':\n\n"individual" o "local"', 'individual');
+      if (!plan) return;
+      plan = String(plan).trim().toLowerCase();
+      if (plan !== 'individual' && plan !== 'local') { alert('Plan inválido.'); return; }
+      if (!confirm('¿Confirmas activar plan ' + plan + ' en ' + tid + '?\n\nEsto marca el tenant como pagando (para casos de pago fuera de MP: transferencia, efectivo). El pago automático MP tiene su propio flujo desde el TrialGate del dueño.')) return;
+      try {
+        var fn = firebase.app().functions('us-central1').httpsCallable('adminActivarPlanTenant');
+        await fn({ tenantId: tid, plan: plan });
+        alert('✓ ' + tid + ' activado plan ' + plan);
+        if (window.saCargarTenants) window.saCargarTenants();
+      } catch (e) {
+        alert('Error: ' + (e && e.message || e));
+      }
+    };
+
+    window.tnExtender = async function (tid) {
+      var dias = prompt('¿Cuántos días extender el trial de ' + tid + '?', '7');
+      if (!dias) return;
+      dias = Math.max(1, Math.min(90, Number(dias) || 7));
+      try {
+        var fn = firebase.app().functions('us-central1').httpsCallable('adminExtenderTrial');
+        await fn({ tenantId: tid, dias: dias });
+        alert('✓ Trial extendido +' + dias + ' días.');
+        if (window.saCargarTenants) window.saCargarTenants();
+      } catch (e) {
+        alert('Error: ' + (e && e.message || e));
+      }
+    };
+
+    // ESC cierra
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && document.getElementById('tnModal').style.display === 'block') {
+        cerrarTenantsNuevos();
+      }
+    });
   })();
   </script>
 </body>

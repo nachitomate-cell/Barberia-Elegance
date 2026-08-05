@@ -74,6 +74,7 @@ const SaldoGiftCard = lazy(() => import('./views/SaldoGiftCard'));
 const VIPDashboard = lazy(() => import('./views/VIPDashboard'));
 import BillingGate         from './components/BillingGate';
 import TrialGate           from './components/TrialGate';
+import OnboardingChecklist from './components/OnboardingChecklist';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import TooltipHost         from './components/ui/TooltipHost';
 import TuuSandboxHost      from './components/ui/TuuSandboxHost';
@@ -253,6 +254,7 @@ function ProtectedApp() {
           self-service venció, reemplaza TODO el panel por la selección de plan. */}
       <Route path="/*" element={
         <TrialGate>
+        <OnboardingChecklist />
         <AdminLayout>
           <GuardRutaAdmin role={role} fallback={defaultRoute} />
           <DailyWelcomePanel />

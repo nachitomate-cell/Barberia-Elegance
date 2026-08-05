@@ -71,6 +71,14 @@ const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 // evita crear suscripciones con un _billing a medio configurar.
 const MONTO_MINIMO = 1000;
 
+// Precios NETOS (sin IVA) para tenants self-service que activan plan desde
+// TrialGate — el frontend envía { plan: 'individual'|'local' } y el servidor
+// resuelve el monto (evita que el cliente inyecte precios).
+const PRECIOS_SELF_SERVICE_NETO = {
+  individual: 25126,   // ≈ $29.900 con IVA (público)
+  local:      41933,   // ≈ $49.900 con IVA (público)
+};
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 async function mpRequest(method, endpoint, token, { body } = {}) {
@@ -222,6 +230,31 @@ exports.mpMensualidadCrearLink = onCall(
 
     const bSnap   = await db.doc(`_billing/${tid}`).get();
     const billing = bSnap.exists ? bSnap.data() : {};
+
+    // Self-service: si el tenant aún no tiene mensualidad configurada (nace con
+    // montoPendiente:0 en el trial) y el frontend elige plan desde TrialGate,
+    // seteamos el monto server-side según el plan elegido — el cliente NO
+    // controla precios. Válido solo para tenants con origen self-service o
+    // admin-express que aún estén en trial/trial_expirado.
+    const planPedido = String(request.data?.plan || '').trim().toLowerCase();
+    if (planPedido && PRECIOS_SELF_SERVICE_NETO[planPedido] && (Number(billing.montoPendiente) || 0) < MONTO_MINIMO) {
+      const tSnap = await db.doc(`tenants/${tid}`).get();
+      const tData = tSnap.exists ? tSnap.data() : {};
+      const esSelfService = ['self-service', 'admin-express'].includes(tData.origen);
+      const enTrial = ['trial', 'trial_expired'].includes(tData.status)
+        || ['trial', 'trial_expirado'].includes(billing.estadoPago);
+      if (esSelfService && enTrial) {
+        await db.doc(`_billing/${tid}`).set({
+          montoPendiente: PRECIOS_SELF_SERVICE_NETO[planPedido],
+          plan:           planPedido,
+          origen:         billing.origen || tData.origen || 'self-service',
+        }, { merge: true });
+        billing.montoPendiente = PRECIOS_SELF_SERVICE_NETO[planPedido];
+        billing.plan = planPedido;
+        logger.info(`[MPmens] self-service ${tid} elige plan=${planPedido} monto=${PRECIOS_SELF_SERVICE_NETO[planPedido]}`);
+      }
+    }
+
     // montoPendiente se guarda NETO (criterio 2026-07-20); el cargo real de la
     // suscripción es neto + IVA 19% — igual que lo que muestra la vista
     // Mensualidad (ej: $29.900 + IVA = $35.581).

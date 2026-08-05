@@ -25,6 +25,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { esOperador } = require("./lib/operadores");
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
+const { FieldValue }         = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 
@@ -47,12 +48,14 @@ exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async
   ids.add('elegance');                       // vive en las colecciones raíz
 
   const out = await Promise.all([...ids].map(async (id) => {
-    const [tdSnap, sysSnap] = await Promise.all([
+    const [tdSnap, sysSnap, billSnap] = await Promise.all([
       db.doc(`tenants/${id}`).get().catch(() => null),
       db.doc(`_system/${id}`).get().catch(() => null),
+      db.doc(`_billing/${id}`).get().catch(() => null),
     ]);
-    const td  = tdSnap?.data()  || {};
-    const sys = sysSnap?.data() || {};
+    const td   = tdSnap?.data()   || {};
+    const sys  = sysSnap?.data()  || {};
+    const bill = billSnap?.data() || {};
 
     // ¿Tiene contenido? Una lectura de 1 doc por colección: barato y suficiente
     // para distinguir un local real de un id que quedó dando vueltas.
@@ -63,17 +66,109 @@ exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async
       if (s && !s.empty) { contenido = true; break; }
     }
 
+    // Campos self-service para el panel "Tenants nuevos": permiten filtrar
+    // por vendedor, ver días restantes de trial y estado de pago.
+    const createdAtMs    = td.createdAt?.toMillis?.() ?? null;
+    const trialFinalMs   = td.trialFinaliza?.toMillis?.() ?? null;
+    const diasParaVencer = trialFinalMs != null ? Math.ceil((trialFinalMs - Date.now()) / 86400000) : null;
+    const diasDesdeAlta  = createdAtMs != null   ? Math.floor((Date.now() - createdAtMs) / 86400000) : null;
+
     return {
       id,
-      nombre:      td.nombre || td.nombreCorto || null,
-      operativo:   sys.operativo !== false,
-      status:      sys.status || 'active',
-      waPlan:      sys.waPlan ?? (sys.waAsistente === true ? 'full' : null),
+      nombre:       td.nombre || td.nombreCorto || null,
+      operativo:    sys.operativo !== false,
+      status:       td.status || sys.status || 'active',   // el status comercial lo manda el tenant doc
+      waPlan:       sys.waPlan ?? (sys.waAsistente === true ? 'full' : null),
       conContenido: contenido,
+      // Self-service metadata
+      origen:       td.origen || null,
+      refVendedor:  td.refVendedor || null,
+      contacto: td.contacto ? {
+        nombre:   td.contacto.nombre || null,
+        email:    td.contacto.email  || td.ownerEmail || null,
+        whatsapp: td.contacto.whatsapp || td.telefono || null,
+      } : null,
+      tipo:            td.tipo || null,
+      plan:            bill.plan || td.plan || null,
+      estadoPago:      bill.estadoPago || null,
+      montoPendiente:  bill.montoPendiente || null,
+      suscripcionMp:   bill.suscripcionMp ? {
+        status:          bill.suscripcionMp.status || null,
+        nextPaymentDate: bill.suscripcionMp.nextPaymentDate || null,
+      } : null,
+      createdAtMs,
+      trialFinalizaMs: trialFinalMs,
+      diasParaVencer,
+      diasDesdeAlta,
+      atribucion:      td.atribucion || null,
+      utmSource:       bill.utmSource || null,
     };
   }));
 
-  out.sort((a, b) => a.id.localeCompare(b.id, 'es'));
+  out.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));  // más recientes primero
   logger.info(`[adminListarTenants] ${out.length} tenants (${out.filter(t => t.conContenido).length} con contenido)`);
   return { tenants: out, total: out.length };
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  Acciones sobre tenants self-service desde el panel superadmin.
+//  Solo bootstrap admin. Nada bloqueante: si algo falla, se reintenta
+//  desde el UI.
+// ─────────────────────────────────────────────────────────────────
+
+const PRECIOS_NETOS = { individual: 25126, local: 41933 };
+
+exports.adminActivarPlanTenant = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const email = String(req.auth?.token?.email || '').toLowerCase();
+  if (!req.auth || !esOperador(email)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid  = String(req.data?.tenantId || '').trim();
+  const plan = String(req.data?.plan || '').trim().toLowerCase();
+  if (!tid)                          throw new HttpsError('invalid-argument', 'Falta tenantId.');
+  if (!PRECIOS_NETOS[plan])          throw new HttpsError('invalid-argument', 'Plan inválido (individual|local).');
+
+  const batch = db.batch();
+  batch.set(db.doc(`tenants/${tid}`), {
+    status: 'active', plan, trialFinaliza: null,
+    activadoEn: FieldValue.serverTimestamp(), activadoPor: email,
+    updatedAt:  FieldValue.serverTimestamp(),
+  }, { merge: true });
+  batch.set(db.doc(`_billing/${tid}`), {
+    estadoPago:     'al_dia',
+    plan,
+    montoPendiente: PRECIOS_NETOS[plan],
+    activadoManualEn: FieldValue.serverTimestamp(),
+    activadoManualPor: email,
+  }, { merge: true });
+  batch.set(db.doc(`_system/${tid}`), {
+    status: 'active', plan, activadoEn: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+
+  logger.info(`[admin] tenant ${tid} activado manualmente plan=${plan} por ${email}`);
+  return { ok: true };
+});
+
+exports.adminExtenderTrial = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const email = String(req.auth?.token?.email || '').toLowerCase();
+  if (!req.auth || !esOperador(email)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid  = String(req.data?.tenantId || '').trim();
+  const dias = Math.max(1, Math.min(90, Number(req.data?.dias) || 7));
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
+
+  const nuevoFin = admin.firestore.Timestamp.fromMillis(Date.now() + dias * 86400000);
+  await db.doc(`tenants/${tid}`).set({
+    status: 'trial', trialFinaliza: nuevoFin,
+    trialExtendidoEn: FieldValue.serverTimestamp(), trialExtendidoPor: email,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await db.doc(`_billing/${tid}`).set({
+    estadoPago: 'trial', trialFinaliza: nuevoFin,
+  }, { merge: true });
+
+  logger.info(`[admin] trial extendido ${tid} +${dias}d por ${email}`);
+  return { ok: true, trialFinalizaMs: nuevoFin.toMillis() };
 });

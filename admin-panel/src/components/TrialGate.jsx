@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, Check, Sparkles } from 'lucide-react';
+import { Clock, Check, Sparkles, CreditCard, Loader2, MessageCircle } from 'lucide-react';
 
 /* Trial self-service de 14 días — gate del panel completo.
    · Días 1-10:  nada (acceso libre).
@@ -13,11 +15,21 @@ import { Clock, Check, Sparkles } from 'lucide-react';
      reemplaza el panel por la ventana de selección de plan. La agenda
      pública ya está en pausa suave a nivel edge (middleware).
    Solo aplica a tenants con doc raíz en trial (self-service); los a-medida
-   no tienen `status:'trial'` y pasan directo. */
+   no tienen `status:'trial'` y pasan directo.
+
+   Flujo de pago (2026-08):
+   · CTA principal = Mercado Pago suscripción recurrente automática
+     (mpMensualidadCrearLink → preapproval_plan → checkout MP → webhook
+     activa tenant sin intervención manual). El dueño ingresa tarjeta una
+     vez y MP cobra solo cada mes.
+   · CTA secundario = WhatsApp a Ignacio (fallback si el flujo MP falla o
+     el dueño prefiere otro medio: transferencia, efectivo).
+*/
 
 const SUPERADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 const WA_SYNAPTECH = '56983568212';
 const BANNER_DESDE_DIAS = 4;   // días 11-14 de un trial de 14
+const REGION = 'us-central1';
 
 const PLANES = [
   {
@@ -72,11 +84,36 @@ export function useTrialEstado() {
 }
 
 function waActivarHref(plan, tenant) {
-  const msg = `Hola, terminó mi prueba gratis en SynapTech y quiero activar el ${plan.nombre} (${plan.precio} CLP/mes) para mi local ${tenant.name} (${tenant.id}).`;
+  const msg = `Hola, terminó mi prueba gratis en SynapTech y quiero activar el ${plan.nombre} (${plan.precio} CLP/mes) para mi local ${tenant.name} (${tenant.id}) por otro medio de pago.`;
   return `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(msg)}`;
 }
 
 function PlanCard({ plan, tenant }) {
+  const [cargando, setCargando] = useState(false);
+  const [error, setError]       = useState('');
+
+  async function pagarConMP() {
+    setCargando(true);
+    setError('');
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), REGION), 'mpMensualidadCrearLink');
+      const res = await fn({
+        tenantId: tenant.id,
+        plan:     plan.id,
+        origen:   window.location.origin,
+      });
+      const url = res?.data?.url;
+      if (!url) throw new Error('No pudimos crear el link de pago. Intenta de nuevo.');
+      // Redirige al checkout de MP en la misma pestaña — al volver, el
+      // webhook ya habrá activado el tenant y TrialGate se desmonta solo.
+      window.location.assign(url);
+    } catch (e) {
+      setCargando(false);
+      const msg = String(e?.message || e || '').replace(/^FirebaseError: /, '');
+      setError(msg || 'Algo falló. Escríbenos por WhatsApp para ayudarte.');
+    }
+  }
+
   return (
     <div className={`relative flex flex-col rounded-2xl border p-6 text-left ${
       plan.destacado
@@ -102,17 +139,35 @@ function PlanCard({ plan, tenant }) {
           </li>
         ))}
       </ul>
-      <a
-        href={waActivarHref(plan, tenant)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`w-full text-center font-bold rounded-xl py-3 text-sm transition-all active:scale-[0.98] ${
+
+      <button
+        onClick={pagarConMP}
+        disabled={cargando}
+        className={`w-full flex items-center justify-center gap-2 text-center font-bold rounded-xl py-3 text-sm transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait ${
           plan.destacado
             ? 'bg-emerald-500 hover:bg-emerald-400 text-ink-950'
             : 'bg-neutral-800 hover:bg-neutral-700 text-primary border border-neutral-700'
         }`}
       >
-        Activar este plan
+        {cargando
+          ? <><Loader2 size={15} className="animate-spin" /> Preparando pago…</>
+          : <><CreditCard size={15} /> Pagar con Mercado Pago</>}
+      </button>
+      <p className="mt-2 text-[11px] text-center text-neutral-500 leading-snug">
+        Suscripción automática. MP cobra solo cada mes. Cancelas cuando quieras.
+      </p>
+
+      {error && (
+        <p className="mt-2 text-[11px] text-center text-rose-400 leading-snug">{error}</p>
+      )}
+
+      <a
+        href={waActivarHref(plan, tenant)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex items-center justify-center gap-1.5 text-[12px] font-medium text-neutral-400 hover:text-neutral-200 transition-colors"
+      >
+        <MessageCircle size={12} /> Prefiero pagar por otro medio
       </a>
     </div>
   );

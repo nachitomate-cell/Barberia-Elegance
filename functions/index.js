@@ -1658,9 +1658,15 @@ exports.provisionarTenantAdmin = provisionTenant.provisionarTenantAdmin;
 // Importar negocio desde link de la competencia (Weibook completo, AgendaPro
 // parcial) para prellenar el wizard del alta express. Solo bootstrap.
 exports.importarNegocioExterno = provisionTenant.importarNegocioExterno;
+// Versión pública (sin auth) para el wizard self-service en crea.synaptechspa.cl.
+// Solo lee páginas públicas de proveedores whitelisted, con rate limit por IP.
+exports.importarNegocioExternoPublic = provisionTenant.importarNegocioExternoPublic;
 // Cron diario: tenants en trial con trialFinaliza vencida → status
 // 'trial_expired' (pausa suave de agenda pública + gate de planes en panel).
 exports.trialExpiryCron = require('./trial-expiry').trialExpiryCron;
+// Trigger que activa el tenant self-service al recibirse el primer pago MP
+// (cierra el loop trial → active sin intervención manual).
+exports.activarSelfServicePostPago = require('./self-service-payment-hook').activarSelfServicePostPago;
 
 // Wallet-only self-service (wallets.bioo.cl/crea) — producto standalone.
 // Alta express de tenants SIN agenda: recibe email + slug + nombre y deja
@@ -1774,7 +1780,10 @@ exports.miPlanDetalle = require('./mi-plan-detalle').miPlanDetalle;
 
 // Lista autoritativa de tenants para /admin (listDocuments; el navegador NO
 // puede enumerarlos). Ver functions/admin-listar-tenants.js.
-exports.adminListarTenants = require('./admin-listar-tenants').adminListarTenants;
+const adminListar = require('./admin-listar-tenants');
+exports.adminListarTenants   = adminListar.adminListarTenants;
+exports.adminActivarPlanTenant = adminListar.adminActivarPlanTenant;
+exports.adminExtenderTrial   = adminListar.adminExtenderTrial;
 
 const evolutionConfirmaciones = require('./evolution/confirmaciones');
 exports.evolutionConfirmaciones = evolutionConfirmaciones.evolutionConfirmaciones;

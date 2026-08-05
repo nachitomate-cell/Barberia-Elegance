@@ -416,25 +416,41 @@ async function importarAgendaPro(url) {
   };
 }
 
+async function ejecutarImport(urlStr) {
+  let url;
+  try { url = new URL(String(urlStr || '').trim()); }
+  catch (_) { throw new HttpsError('invalid-argument', 'Pega un link válido (https://…).'); }
+  const host = url.hostname.toLowerCase();
+  if (host === 'book.weibook.co' || host.endsWith('.weibook.co')) {
+    return await importarWeibook(url.href);
+  }
+  if (host.endsWith('agendapro.com')) {
+    return await importarAgendaPro(url.href);
+  }
+  throw new HttpsError('invalid-argument', 'Proveedor no soportado aún. Hoy: Weibook y AgendaPro.');
+}
+
+// Bootstrap: solo SynapTech (uso en /admin alta express).
 exports.importarNegocioExterno = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const callerEmail = String((req.auth && req.auth.token && req.auth.token.email) || '').toLowerCase();
   if (!req.auth || !BOOTSTRAP_ADMINS.includes(callerEmail)) {
     throw new HttpsError('permission-denied', 'Solo SynapTech puede importar negocios.');
   }
-  let url;
-  try { url = new URL(String(req.data && req.data.url || '').trim()); }
-  catch (_) { throw new HttpsError('invalid-argument', 'Pega un link válido (https://…).'); }
+  const out = await ejecutarImport(req.data && req.data.url);
+  logger.info(`[importar] ${out.proveedor} "${out.nombre}" servicios=${out.servicios.length} equipo=${out.equipo.length}`);
+  return { ok: true, ...out };
+});
 
-  const host = url.hostname.toLowerCase();
-  let out;
-  if (host === 'book.weibook.co' || host.endsWith('.weibook.co')) {
-    out = await importarWeibook(url.href);
-  } else if (host.endsWith('agendapro.com')) {
-    out = await importarAgendaPro(url.href);
-  } else {
-    throw new HttpsError('invalid-argument', 'Proveedor no soportado aún. Hoy: Weibook y AgendaPro.');
-  }
-  logger.info(`[importar] ${out.proveedor} "${out.nombre}" servicios=${out.servicios.length} equipo=${out.equipo.length} (${url.href})`);
+/* Versión pública (sin auth) para el wizard self-service en crea.synaptechspa.cl:
+   el dueño pega su link de Weibook/AgendaPro antes de tener cuenta y el
+   wizard prellena todos los campos. Solo lee páginas públicas — nada que un
+   scraper anónimo no pueda hacer igual — y tiene rate limit por IP (20/hora)
+   contra abuso. NO acepta URLs raras: solo whitelist de proveedores. */
+exports.importarNegocioExternoPublic = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  const ip = ipDeRequest(req);
+  if (ip) await chequearLimite(`import_${ip}`, 3600, 20);
+  const out = await ejecutarImport(req.data && req.data.url);
+  logger.info(`[importar-public] ${out.proveedor} "${out.nombre}" ip=${ip || '-'} servicios=${out.servicios.length}`);
   return { ok: true, ...out };
 });
 
@@ -715,6 +731,52 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     ? acepto.documentos.map(String).slice(0, 20)
     : [];
 
+  // Servicios importados (Weibook completo). Si vienen del import del
+  // wizard, se usan tal cual — el dueño ve su catálogo REAL en el panel día
+  // 1, no una plantilla genérica. Fallback: PLANTILLAS_SERVICIOS[tipo].
+  // Mismo formato que provisionarTenantAdmin (line 503-516).
+  const svcRaw = Array.isArray(raw.serviciosCustom) ? raw.serviciosCustom : [];
+  const serviciosCustom = svcRaw
+    .map((s, i) => ({
+      nombre:    String(s?.nombre || '').trim().slice(0, 80),
+      precio:    Math.max(0, Math.round(Number(s?.precio) || 0)),
+      duracion:  Math.max(5, Math.round(Number(s?.duracion) || 30)),
+      categoria: String(s?.categoria || 'Otro').trim().slice(0, 40) || 'Otro',
+      icono:     'ph-scissors',
+      activo:    true,
+      orden:     i,
+    }))
+    .filter((s) => s.nombre && s.precio > 0)
+    .slice(0, 60);
+
+  // Equipo importado (colaboradores del negocio de la competencia). Se
+  // crean como barberos sin cuenta; el dueño les asigna credenciales luego
+  // desde Equipo. Se dedupe contra el nombre del dueño.
+  const eqRaw = Array.isArray(raw.equipoCustom) ? raw.equipoCustom : [];
+  const equipoCustom = eqRaw
+    .map((n) => String(n || '').trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 20);
+
+  // Horario del wizard: si el dueño lo especifica, sobreescribe CONFIG_DEFAULT.
+  // Formato esperado: { horaInicio: 'HH:MM', horaFin: 'HH:MM', dias: [0-6] }.
+  const horarioRaw = raw.horario || {};
+  const horarioCustom = {};
+  const hhmm = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  if (typeof horarioRaw.horaInicio === 'string' && hhmm.test(horarioRaw.horaInicio)) {
+    horarioCustom.horarioInicio = horarioRaw.horaInicio;
+  }
+  if (typeof horarioRaw.horaFin === 'string' && hhmm.test(horarioRaw.horaFin)) {
+    horarioCustom.horarioFin = horarioRaw.horaFin;
+  }
+  if (Array.isArray(horarioRaw.dias)) {
+    const dias = [...new Set(horarioRaw.dias
+      .map((d) => Number(d))
+      .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+    )].sort();
+    if (dias.length) horarioCustom.diasLaborales = dias;
+  }
+
   // Atribución (vendedor + UTM). ref se sanitiza a slug: solo alfanumérico
   // + guiones bajos/medios, máx 32 chars. Se guarda para comisiones y
   // análisis de canal; nada bloqueante si falta.
@@ -837,11 +899,12 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   const batch = db.batch();
   const TS = FieldValue.serverTimestamp();
 
-  const servicios = PLANTILLAS_SERVICIOS[tipo];
+  const servicios = serviciosCustom.length ? serviciosCustom : PLANTILLAS_SERVICIOS[tipo];
   const categorias = [...new Set(servicios.map((s) => s.categoria))];
 
   batch.set(tenantRef.collection('configuracion').doc('main'), {
     ...CONFIG_DEFAULT,
+    ...horarioCustom,
     telefonoAdmin: telefono,
     categoriasServicio: [...categorias, 'Otro'].filter((c, i, a) => a.indexOf(c) === i),
     updatedAt: TS,
@@ -877,6 +940,28 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     rol:    'admin',
     activo: true,
   });
+
+  // Equipo importado (Weibook): se crean sin cuenta — el dueño les asigna
+  // credenciales cuando quiera desde Equipo. Dedupe contra el dueño.
+  const nombreDuenoNorm = String(duenoNombre || '').toLowerCase().trim();
+  equipoCustom
+    .filter((n) => n.toLowerCase().trim() !== nombreDuenoNorm)
+    .forEach((nombre, i) => {
+      const docId = `equipo-${slug}-${i + 1}`;
+      const ref = tenantRef.collection('barberos').doc(docId);
+      batch.set(ref, {
+        nombre,
+        email:      null,
+        rol:        'barbero',
+        activo:     true,
+        disponible: true,
+        importado:  true,
+        creadoEn:   TS,
+      });
+      batch.set(ref.collection('configuracion').doc('main'), {
+        ...CONFIG_DEFAULT, ...horarioCustom, updatedAt: TS,
+      });
+    });
 
   batch.set(tenantRef.collection('premios').doc(`premio-${slug}-1`), {
     nombre: 'Servicio gratis', costoSellos: 10, activo: true, creadoEn: TS,
