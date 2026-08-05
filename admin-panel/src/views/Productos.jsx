@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X, History, TrendingUp, User, CreditCard, ChevronDown, Undo2, RotateCcw } from 'lucide-react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X, History, TrendingUp, User, CreditCard, ChevronDown, Undo2, RotateCcw, Pencil } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
@@ -14,6 +14,7 @@ import { useBarberosUnicos } from '../hooks/useBarberosUnicos';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useConfig } from '../hooks/useConfig';
 import { buscarClientes } from '../lib/clienteSearch';
+import { METODOS_VENTA, esSplit, sumaPagos, pagoValido, normalizarPago, etiquetaPago } from '../lib/pagosVenta';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import Spinner from '../components/ui/Spinner';
@@ -501,6 +502,139 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
   );
 }
 
+/* ── Editor de medio de pago (simple o dividido) ──────────────────────
+   El contrato y las reglas viven en lib/pagosVenta.js, que se prueba sin React
+   (`npm run test:pagos-venta`). Acá solo va la UI. */
+function EditorPago({ total, metodoPago, pagos, onChange, field }) {
+  const split = esSplit(pagos);
+  const suma = split ? sumaPagos(pagos) : 0;
+  const calza = Math.round(suma) === Math.round(total);
+
+  const setPagos = (arr) => onChange({ metodoPago: arr?.length ? 'Mixto' : (metodoPago === 'Mixto' ? 'Efectivo' : metodoPago), pagos: arr?.length ? arr : null });
+
+  return (
+    <div>
+      {!split && (
+        <select className={field} value={metodoPago} onChange={e => onChange({ metodoPago: e.target.value, pagos: null })}>
+          {METODOS_VENTA.map(m => <option key={m} value={m}>{m}</option>)}
+          {metodoPago === 'Tarjeta' && <option value="Tarjeta">Tarjeta (legacy)</option>}
+        </select>
+      )}
+
+      <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          className="w-3.5 h-3.5 accent-emerald-500"
+          checked={split}
+          onChange={e => setPagos(e.target.checked
+            // Arranca con una fila por el total y el método que ya estaba: el
+            // usuario solo baja el monto y agrega la segunda.
+            ? [{ tipo: metodoPago && metodoPago !== 'Mixto' ? metodoPago : 'Efectivo', monto: Math.round(total) }]
+            : null)}
+        />
+        Dividir en varios métodos (efectivo + tarjeta, etc.)
+      </label>
+
+      {split && (
+        <div className="mt-2 space-y-2 p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
+          {pagos.map((p, idx) => (
+            <div key={idx} className="flex gap-2 items-center">
+              <select
+                className={`${field} flex-1`}
+                value={p.tipo}
+                onChange={e => setPagos(pagos.map((x, i) => i === idx ? { ...x, tipo: e.target.value } : x))}
+              >
+                {METODOS_VENTA.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <input
+                type="number" inputMode="numeric" min="0" placeholder="0"
+                className={`${field} w-28 text-right`}
+                value={p.monto}
+                onChange={e => setPagos(pagos.map((x, i) => i === idx ? { ...x, monto: e.target.value !== '' ? Number(e.target.value) : 0 } : x))}
+              />
+              <button
+                type="button"
+                onClick={() => setPagos(pagos.filter((_, i) => i !== idx))}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 shrink-0"
+                title="Quitar esta fila"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={() => setPagos([...pagos, { tipo: 'Efectivo', monto: Math.max(0, Math.round(total - suma)) }])}
+              className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300"
+            >
+              + agregar método
+            </button>
+            <div className={`text-[11px] font-bold tabular-nums ${calza ? 'text-emerald-400' : 'text-rose-400'}`}>
+              ${Math.round(suma).toLocaleString('es-CL')} / ${Math.round(total).toLocaleString('es-CL')}
+              {calza ? ' ✓' : ` · falta $${Math.round(total - suma).toLocaleString('es-CL')}`}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Modal para corregir el medio de pago de una venta ya registrada. */
+function EditarPagoModal({ venta, field, onClose, onSave }) {
+  const total = Math.round(Number(venta.precio) || Number(venta.total) || 0);
+  const [estado, setEstado] = useState({
+    metodoPago: venta.metodoPago || 'Efectivo',
+    pagos: Array.isArray(venta.pagos) && venta.pagos.length ? venta.pagos : null,
+  });
+  const [guardando, setGuardando] = useState(false);
+  const valido = pagoValido(estado, total);
+
+  const guardar = async () => {
+    if (!valido || guardando) return;
+    setGuardando(true);
+    try { await onSave(estado); }
+    catch (e) { alert('No se pudo guardar: ' + (e?.message || e)); setGuardando(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={() => !guardando && onClose()}>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-1">
+          <CreditCard size={16} className="text-emerald-400" />
+          <h3 className="text-base font-bold text-primary">Medio de pago</h3>
+        </div>
+        <p className="text-[12px] text-slate-500 mb-4 leading-relaxed">
+          {venta.productName || 'Producto'} · <span className="tabular-nums">${total.toLocaleString('es-CL')}</span>
+          <br />
+          Corrige cómo se cobró. No cambia el monto ni el stock.
+        </p>
+
+        <EditorPago
+          total={total}
+          metodoPago={estado.metodoPago}
+          pagos={estado.pagos}
+          field={field}
+          onChange={(patch) => setEstado(s => ({ ...s, ...patch }))}
+        />
+
+        <div className="flex gap-3 pt-5">
+          <button onClick={onClose} disabled={guardando}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button onClick={guardar} disabled={!valido || guardando}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed">
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Productos() {
   const tenant = useTenant();
   const { activeSucursal, sucursales: _sucList } = useSucursal();  // sede de la venta
@@ -535,8 +669,9 @@ export default function Productos() {
   const fileRef = useRef(null);
   const initialized = useRef(false);
 
+  const [editarPagoModal, setEditarPagoModal] = useState(null);   // venta a la que se le corrige el pago
   const [ventaRapidaOpen, setVentaRapidaOpen] = useState(false);
-  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', cliente: null });
+  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', pagos: null, cliente: null });
   const [vrSaving, setVrSaving] = useState(false);
   // Buscador de cliente de la venta rápida. Es OPCIONAL: sin cliente la venta
   // se guarda como mostrador, igual que siempre.
@@ -593,7 +728,7 @@ export default function Productos() {
   }, [clientesClub, vrClienteQuery]);
 
   const openVentaRapida = () => {
-    setVrForm({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', cliente: null });
+    setVrForm({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', pagos: null, cliente: null });
     setVrClienteQuery('');
     setVrSuggOpen(false);
     setVentaRapidaOpen(true);
@@ -607,6 +742,17 @@ export default function Productos() {
     const prod = productos.find(p => p.id === vrForm.productId);
     const barb = barberos.find(b => b.id === vrForm.barberoId);
     if (!prod || !barb) return;
+
+    // El split tiene que sumar el total exacto: guardarlo descuadrado mete un
+    // desfase en la caja del día que recién aparece al cerrar turno.
+    const _totalVr = Math.round(
+      Number(prod.precio || 0) * Number(vrForm.cantidad)
+      * (1 - Math.min(100, Math.max(0, Number(vrForm.descuento) || 0)) / 100),
+    );
+    if (!pagoValido(vrForm, _totalVr)) {
+      alert('El pago dividido debe sumar exactamente el total de la venta.');
+      return;
+    }
 
     setVrSaving(true);
     try {
@@ -647,7 +793,9 @@ export default function Productos() {
               userName:  'Venta Directa Local',
               userEmail: 'admin@barberia.cl',
             }),
-        metodoPago: vrForm.metodoPago,
+        // normalizarPago deja `pagos: null` y el string de siempre cuando el
+        // pago es único, así ninguna vista legacy nota la diferencia.
+        ...normalizarPago(vrForm),
         barberoId: barb.id,
         barberoNombre: barb.nombre,
         createdAt: serverTimestamp(),
@@ -1419,12 +1567,21 @@ export default function Productos() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className="text-xs text-slate-400">{v.barberoNombre || '—'}</span>
                           </td>
+                          {/* Medio de pago — editable. Se registran ventas con
+                              el método equivocado (o sin ninguno: varias filas
+                              muestran "—") y hasta ahora la única salida era
+                              devolver la venta y rehacerla, lo que ensucia el
+                              historial y descuadra el stock. */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {v.metodoPago ? (
-                              <span className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-md px-2 py-1 text-xs">
-                                <CreditCard size={9} />{v.metodoPago}
-                              </span>
-                            ) : <span className="text-xs text-slate-600">—</span>}
+                            <button
+                              onClick={() => setEditarPagoModal(v)}
+                              title="Cambiar el medio de pago de esta venta"
+                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition-colors bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300"
+                            >
+                              <CreditCard size={9} />
+                              {etiquetaPago(v) || 'Sin registrar'}
+                              <Pencil size={9} className="opacity-50" />
+                            </button>
                           </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
                             <span className={`font-medium ${isDevuelta ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
@@ -1930,22 +2087,25 @@ export default function Productos() {
                 )}
               </div>
 
-              {/* Método de Pago */}
+              {/* Método de Pago — admite dividir en varios */}
               <div>
                 <label className={lbl}>Método de Pago *</label>
-                <select
-                  className={field}
-                  value={vrForm.metodoPago}
-                  onChange={e => setVrForm(f => ({ ...f, metodoPago: e.target.value }))}
-                >
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Débito">Débito</option>
-                  <option value="Crédito">Crédito</option>
-                  <option value="Transferencia">Transferencia</option>
-                  {vrForm.metodoPago === 'Tarjeta' && (
-                    <option value="Tarjeta">Tarjeta (legacy)</option>
-                  )}
-                </select>
+                {(() => {
+                  const prod = productos.find(p => p.id === vrForm.productId);
+                  const desc = Math.min(100, Math.max(0, Number(vrForm.descuento) || 0));
+                  const totalVr = prod
+                    ? Math.round(Number(prod.precio || 0) * Number(vrForm.cantidad) * (1 - desc / 100))
+                    : 0;
+                  return (
+                    <EditorPago
+                      total={totalVr}
+                      metodoPago={vrForm.metodoPago}
+                      pagos={vrForm.pagos}
+                      field={field}
+                      onChange={(patch) => setVrForm(f => ({ ...f, ...patch }))}
+                    />
+                  );
+                })()}
               </div>
 
               {/* Resumen e Margen */}
@@ -2020,6 +2180,21 @@ export default function Productos() {
           Se detalla exactamente qué se va a revertir antes de confirmar: es una
           operación que toca stock y plata, y desde el historial es fácil
           apretar en la fila equivocada. */}
+      {editarPagoModal && (
+        <EditarPagoModal
+          venta={editarPagoModal}
+          field={field}
+          onClose={() => setEditarPagoModal(null)}
+          onSave={async (estado) => {
+            await updateDoc(doc(tenantCol('product_reservations'), editarPagoModal.id), {
+              ...normalizarPago(estado),
+              updatedAt: serverTimestamp(),
+            });
+            setEditarPagoModal(null);
+          }}
+        />
+      )}
+
       {devolucionModal && (() => {
         const v = devolucionModal;
         const unidades = Number(v.cantidad) || 1;

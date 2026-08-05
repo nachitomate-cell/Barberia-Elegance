@@ -1,0 +1,1 @@
+import{r as t}from"./vendor-DMA0cjBn.js";import{o as a}from"./firebase-CP2MVGiM.js";import{t as n}from"./index-D3u8Ph0Z.js";function m(){const[u,r]=t.useState([]);return t.useEffect(()=>{const e=n("settings","general");return a(e,o=>{const s=o.data();r(Array.isArray(s==null?void 0:s.sucursales)?s.sucursales:[])},()=>r([]))},[]),u}export{m as u};
