@@ -6,6 +6,7 @@ import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
 import BillingBanner       from './BillingBanner';
 import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
+import ClubAttentionBanner from '../ClubAttentionBanner';
 import SucursalBar               from '../SucursalBar';
 import ContextualHelpButton     from '../ContextualHelpButton';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
@@ -245,6 +246,9 @@ export default function AdminLayout({ children }) {
 
         {/* End of day pending appointments banner */}
         <PendingAppointmentsBanner />
+
+        {/* Clientes del Club que pidieron hablar con una persona */}
+        <ClubAttentionBanner />
 
         {/* Page content */}
         <main

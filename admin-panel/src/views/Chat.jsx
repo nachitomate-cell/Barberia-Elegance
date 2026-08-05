@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquare, Send, User, Crown, Globe, Mail, Phone,
   Copy, Check, QrCode, Instagram, ExternalLink, Bell, Sparkles, ArrowRight, ArrowLeft,
@@ -927,7 +928,14 @@ export default function Chat() {
   const [selectedName, setSelectedName] = useState('');
   const [showHelp,     setShowHelp]     = useState(false);
   const [showQR,       setShowQR]       = useState(false);
-  const [filter,       setFilter]       = useState('all');
+  // El aviso de "clientes del Club esperando" llega con ?origen=club para dejar
+  // la bandeja ya filtrada: si cayeras en "Todos", habría que volver a buscar
+  // entre los anónimos justo lo que el aviso te vino a señalar.
+  const [searchParams] = useSearchParams();
+  const origenInicial = searchParams.get('origen');
+  const [filter,       setFilter]       = useState(
+    origenInicial === 'club' || origenInicial === 'public_chat' ? origenInicial : 'all',
+  );
   const [chats,        setChats]        = useState([]);
 
   // Stream de chats centralizado (lo usa la lista + el header de conversación)
