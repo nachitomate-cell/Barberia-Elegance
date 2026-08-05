@@ -281,7 +281,12 @@ function MovimientosDelDia({ ymd }) {
         citas: cSnap.docs.map(x => ({ id: x.id, ...x.data() }))
           .filter(c => c.estado === 'Completada' && !c.origenQA)
           .sort((a, b) => String(a.hora).localeCompare(String(b.hora))),
-        ventas: vSnap.docs.map(x => ({ id: x.id, ...x.data() })),
+        // Mismo criterio de "vendido" que el arqueo (VENTA_OK): sin este
+        // filtro una venta devuelta seguía apareciendo en la planilla del día
+        // sumando como si nada, mientras el esperado de caja ya la había
+        // descontado — el cuadre no calzaba con lo que la pantalla mostraba.
+        ventas: vSnap.docs.map(x => ({ id: x.id, ...x.data() }))
+          .filter(v => ['confirmed', 'completed', 'paid', 'delivered'].includes(v.status)),
         gastos: gSnap.docs.map(x => ({ id: x.id, ...x.data() })),
       });
       setEstado('listo');

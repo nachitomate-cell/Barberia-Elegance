@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X, History, TrendingUp, User, CreditCard, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X, History, TrendingUp, User, CreditCard, ChevronDown, Undo2, RotateCcw } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
@@ -10,7 +10,9 @@ import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useSucursal } from '../contexts/SucursalContext';
 import { useCollection } from '../hooks/useCollection';
+import { useClubUsers } from '../hooks/useClubUsers';
 import { useConfig } from '../hooks/useConfig';
+import { buscarClientes } from '../lib/clienteSearch';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import Spinner from '../components/ui/Spinner';
@@ -534,8 +536,12 @@ export default function Productos() {
 
   const [barberos, setBarberos] = useState([]);
   const [ventaRapidaOpen, setVentaRapidaOpen] = useState(false);
-  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo' });
+  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', cliente: null });
   const [vrSaving, setVrSaving] = useState(false);
+  // Buscador de cliente de la venta rápida. Es OPCIONAL: sin cliente la venta
+  // se guarda como mostrador, igual que siempre.
+  const [vrClienteQuery, setVrClienteQuery] = useState('');
+  const [vrSuggOpen, setVrSuggOpen] = useState(false);
 
   // Historial de ventas
   const [ventas,        setVentas]        = useState([]);
@@ -547,6 +553,13 @@ export default function Productos() {
   const [entregaModal, setEntregaModal] = useState(null); // reserva object or null
   const [entregaForm, setEntregaForm] = useState({ metodoPago: 'Efectivo', barberoId: '' });
   const [entregaSaving, setEntregaSaving] = useState(false);
+
+  /* Devoluciones: ventas revertidas (status 'refunded'). Se listan junto a las
+     vendidas para dejar rastro, pero NO suman en ningún total. */
+  const [devueltas, setDevueltas] = useState([]);
+  const [devolucionModal, setDevolucionModal] = useState(null);  // venta a devolver
+  const [devolucionMotivo, setDevolucionMotivo] = useState('');
+  const [devolucionSaving, setDevolucionSaving] = useState(false);
 
   // Load barbers for commissions
   // Si esta lectura falla, el selector de barbero queda vacío y NO se puede
@@ -568,8 +581,21 @@ export default function Productos() {
            Number(p.stock) <= Number(p.stockMinimo);
   }).length : 0;
 
+  // Clientes del club para poder atribuir la venta a una persona. Mismo hook que
+  // usa la Agenda: lee users/ (NO el mirror clientes/, que trae el mismo humano
+  // duplicado con distinto formato de docId).
+  const { data: clientesClub } = useClubUsers();
+
+  const vrSugerencias = useMemo(() => {
+    const q = vrClienteQuery.trim();
+    if (!q) return [];
+    return buscarClientes(clientesClub, q, { limite: 6 });
+  }, [clientesClub, vrClienteQuery]);
+
   const openVentaRapida = () => {
-    setVrForm({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo' });
+    setVrForm({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo', cliente: null });
+    setVrClienteQuery('');
+    setVrSuggOpen(false);
     setVentaRapidaOpen(true);
   };
 
@@ -606,8 +632,21 @@ export default function Productos() {
         cantidad: Number(vrForm.cantidad),
         fecha: fechaHoy,
         status: 'delivered',
-        userName: 'Venta Directa Local',
-        userEmail: 'admin@barberia.cl',
+        // Cliente opcional. Sin cliente se conserva el marcador de mostrador de
+        // siempre — el historial y la Caja distinguen la venta directa por
+        // `userEmail === 'admin@barberia.cl'`, así que ese par no se puede
+        // cambiar sin romper esa lectura.
+        ...(vrForm.cliente
+          ? {
+              clienteId:        vrForm.cliente.id || null,
+              userName:         vrForm.cliente.nombre || 'Cliente',
+              userEmail:        vrForm.cliente.email || '',
+              clienteTelefono:  vrForm.cliente.telefono || '',
+            }
+          : {
+              userName:  'Venta Directa Local',
+              userEmail: 'admin@barberia.cl',
+            }),
         metodoPago: vrForm.metodoPago,
         barberoId: barb.id,
         barberoNombre: barb.nombre,
@@ -673,6 +712,70 @@ export default function Productos() {
     );
     return unsub;
   }, []);
+
+  /* Ventas devueltas. Listener aparte del de 'delivered' y no un `where in`,
+     porque combinar `in` con orderBy pide un índice compuesto nuevo; con dos
+     suscripciones al mismo par (status, createdAt) se reusa el que ya existe. */
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(tenantCol('product_reservations'), where('status', '==', 'refunded'), orderBy('createdAt', 'desc')),
+      snap => setDevueltas(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => setDevueltas([]),
+    );
+    return unsub;
+  }, []);
+
+  /**
+   * Devuelve una venta: repone el stock y saca la plata de los ingresos.
+   *
+   * No se borra el documento. Todo lo que cuenta dinero en el panel (Caja,
+   * Comisiones, Métricas, Inicio, Equipo, Inventario) filtra por una lista
+   * blanca de estados vendidos — ['confirmed','completed','paid','delivered'] —
+   * así que basta con moverlo a 'refunded' para que desaparezca de los
+   * ingresos, de la comisión del barbero y del esperado de caja, conservando
+   * el rastro de qué se devolvió, cuándo y por qué. Borrarlo dejaría el arqueo
+   * cuadrado pero sin explicación de por qué bajó la venta del día.
+   */
+  const handleDevolucion = async () => {
+    const venta = devolucionModal;
+    if (!venta) return;
+    setDevolucionSaving(true);
+    try {
+      const batch = writeBatch(db);
+      const unidades = Number(venta.cantidad) || 1;
+
+      batch.update(doc(tenantCol('product_reservations'), venta.id), {
+        status: 'refunded',
+        devuelta: true,
+        devueltaEn: serverTimestamp(),
+        devueltaMotivo: devolucionMotivo.trim() || null,
+        // Se guarda cuánto se revirtió: `precio` queda intacto para poder
+        // auditar la venta original.
+        montoDevuelto: Number(venta.precio) || 0,
+        unidadesRepuestas: unidades,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Reponer stock. El producto puede haber sido borrado, o no llevar
+      // control de stock (campo vacío): en ambos casos la devolución procede
+      // igual, solo que sin tocar inventario.
+      const prod = productos?.find(p => p.id === venta.productId);
+      if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
+        batch.update(doc(tenantCol('productos'), prod.id), {
+          stock: Number(prod.stock) + unidades,
+        });
+      }
+
+      await batch.commit();
+      setDevolucionModal(null);
+      setDevolucionMotivo('');
+    } catch (err) {
+      console.error('Error al devolver la venta:', err);
+      alert('No se pudo registrar la devolución: ' + err.message);
+    } finally {
+      setDevolucionSaving(false);
+    }
+  };
 
   const openEntregaModal = (reserva) => {
     setEntregaForm({ metodoPago: 'Efectivo', barberoId: barberos[0]?.id || '' });
@@ -1138,17 +1241,26 @@ export default function Productos() {
           return '';
         }
 
-        const ventasFiltradas = ventas.filter(v => {
+        const enVentana = v => {
           const f = v.fecha || fechaStr(v.createdAt);
           if (filtroPeriodo === 'hoy'    && f !== hoy)      return false;
           if (filtroPeriodo === 'semana' && f < lunesStr)   return false;
           if (filtroPeriodo === 'mes'    && f < primerDiaMes) return false;
           if (filtroBarberoH && v.barberoId !== filtroBarberoH) return false;
           return true;
-        });
+        };
+
+        const ventasFiltradas = ventas.filter(enVentana);
+
+        // Las devueltas se muestran en la tabla para que quede el rastro de qué
+        // se revirtió, pero van FUERA de los KPIs: su plata ya no existe.
+        const devueltasFiltradas = devueltas.filter(enVentana);
+        const filasHistorial = [...ventasFiltradas, ...devueltasFiltradas]
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         const totalMonto   = ventasFiltradas.reduce((s, v) => s + (Number(v.precio) || 0), 0);
         const totalUnidades = ventasFiltradas.reduce((s, v) => s + (Number(v.cantidad) || 1), 0);
+        const totalDevuelto = devueltasFiltradas.reduce((s, v) => s + (Number(v.precio) || 0), 0);
 
         // Producto más vendido
         const prodCount = {};
@@ -1225,12 +1337,25 @@ export default function Productos() {
               </div>
             )}
 
+            {/* Devoluciones del período: se avisa aparte para que no parezca que
+                el total vendido "bajó solo". */}
+            {!ventasLoading && devueltasFiltradas.length > 0 && (
+              <div className="flex items-center gap-2.5 px-4 py-3 mb-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                <RotateCcw size={14} className="shrink-0" />
+                <span>
+                  {devueltasFiltradas.length} devolución{devueltasFiltradas.length > 1 ? 'es' : ''} por
+                  {' '}<strong>${totalDevuelto.toLocaleString('es-CL')}</strong> en este período.
+                  Ya se descontó de los ingresos y el stock se repuso.
+                </span>
+              </div>
+            )}
+
             {/* Lista */}
             {ventasLoading ? (
               <div className="flex justify-center py-10">
                 <Spinner size={24} className="text-slate-500" />
               </div>
-            ) : ventasFiltradas.length === 0 ? (
+            ) : filasHistorial.length === 0 ? (
               <div className="flex items-center gap-3 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 text-sm">
                 <TrendingUp size={16} className="text-slate-600 shrink-0" />
                 Sin ventas en {PERIODO_LABELS[filtroPeriodo].toLowerCase()}{filtroBarberoH ? ` para ${barberos.find(b => b.id === filtroBarberoH)?.nombre || 'este barbero'}` : ''}.
@@ -1246,16 +1371,18 @@ export default function Productos() {
                       <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Barbero</th>
                       <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Pago</th>
                       <th className="text-right px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Total</th>
+                      <th className="text-right px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {ventasFiltradas.map(v => {
+                    {filasHistorial.map(v => {
                       const prod = productos?.find(p => p.id === v.productId);
                       const fecha = v.fecha || fechaStr(v.createdAt);
                       const qty   = Number(v.cantidad) || 1;
                       const isDirecta = v.userEmail === 'admin@barberia.cl';
+                      const isDevuelta = v.status === 'refunded';
                       return (
-                        <tr key={v.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                        <tr key={v.id} className={`border-b border-slate-800/50 transition-colors ${isDevuelta ? 'opacity-60' : 'hover:bg-slate-800/30'}`}>
                           <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fecha}</td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2.5 min-w-0">
@@ -1264,8 +1391,15 @@ export default function Productos() {
                                 : <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Package size={12} className="text-slate-600" /></div>
                               }
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-primary truncate">{v.productName || '—'}</p>
-                                {qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>}
+                                <p className={`text-sm font-medium truncate ${isDevuelta ? 'text-slate-400 line-through' : 'text-primary'}`}>{v.productName || '—'}</p>
+                                {isDevuelta ? (
+                                  <p className="text-[10px] text-amber-400 font-semibold">
+                                    Devuelta{qty > 1 ? ` · ×${qty} repuestas` : ''}
+                                    {v.devueltaMotivo ? ` · ${v.devueltaMotivo}` : ''}
+                                  </p>
+                                ) : (
+                                  qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -1288,9 +1422,24 @@ export default function Productos() {
                             ) : <span className="text-xs text-slate-600">—</span>}
                           </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <span className="font-medium text-emerald-400">
+                            <span className={`font-medium ${isDevuelta ? 'text-slate-500 line-through' : 'text-emerald-400'}`}>
                               ${(Number(v.precio) || 0).toLocaleString('es-CL')}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            {isDevuelta ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-md px-2 py-1">
+                                <RotateCcw size={9} /> Devuelta
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => { setDevolucionMotivo(''); setDevolucionModal(v); }}
+                                title="Devolver este producto"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 rounded-md px-2 py-1 transition-colors"
+                              >
+                                <Undo2 size={11} /> Devolver
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1301,6 +1450,7 @@ export default function Productos() {
                       <tr className="border-t border-slate-700">
                         <td colSpan={5} className="px-4 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap">Total</td>
                         <td className="px-4 pt-4 text-right font-medium text-emerald-400 whitespace-nowrap">${totalMonto.toLocaleString('es-CL')}</td>
+                        <td className="px-4 pt-4"></td>
                       </tr>
                     </tfoot>
                   )}
@@ -1683,6 +1833,75 @@ export default function Productos() {
                 </div>
               )}
 
+              {/* Cliente (opcional) — buscador sobre los usuarios del club.
+                  autoComplete="off" es obligatorio: sin él el navegador monta su
+                  propio dropdown de autocompletado encima del nuestro. */}
+              <div>
+                <label className={lbl}>Cliente (opcional)</label>
+                {vrForm.cliente ? (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700">
+                    <User size={13} className="text-emerald-400 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-primary truncate">{vrForm.cliente.nombre || 'Cliente'}</p>
+                      {(vrForm.cliente.email || vrForm.cliente.telefono) && (
+                        <p className="text-[10px] text-slate-500 truncate">
+                          {vrForm.cliente.email || vrForm.cliente.telefono}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setVrForm(f => ({ ...f, cliente: null })); setVrClienteQuery(''); }}
+                      className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                      title="Quitar cliente"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      className={field}
+                      type="text"
+                      autoComplete="off"
+                      placeholder="Buscar por nombre, correo o teléfono…"
+                      value={vrClienteQuery}
+                      onChange={e => { setVrClienteQuery(e.target.value); setVrSuggOpen(true); }}
+                      onFocus={() => setVrSuggOpen(true)}
+                      // blur diferido: sin el timeout, el click en una sugerencia
+                      // nunca llega porque la lista se desmonta antes.
+                      onBlur={() => setTimeout(() => setVrSuggOpen(false), 150)}
+                    />
+                    {vrSuggOpen && vrClienteQuery.trim() && (
+                      <div className="absolute z-20 left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-lg shadow-2xl max-h-52 overflow-y-auto">
+                        {vrSugerencias.length === 0 ? (
+                          <p className="px-3 py-2.5 text-xs text-slate-500">
+                            Sin coincidencias. Puedes dejarlo vacío y queda como venta de mostrador.
+                          </p>
+                        ) : vrSugerencias.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setVrForm(f => ({ ...f, cliente: c }));
+                              setVrSuggOpen(false);
+                              setVrClienteQuery('');
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-800 transition-colors border-b border-slate-800 last:border-0"
+                          >
+                            <p className="text-sm text-primary truncate">{c.nombre || 'Sin nombre'}</p>
+                            <p className="text-[10px] text-slate-500 truncate">{c.email || c.telefono || ''}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  Si no eliges a nadie, la venta se guarda como venta directa de mostrador.
+                </p>
+              </div>
+
               {/* Seleccionar Barbero */}
               <div>
                 <label className={lbl}>Barbero Vendedor *</label>
@@ -1792,6 +2011,108 @@ export default function Productos() {
       )}
 
       {/* ── Modal de Entrega con Método de Pago ────────────────── */}
+      {/* ── Devolución de una venta ─────────────────────────────────────────
+          Se detalla exactamente qué se va a revertir antes de confirmar: es una
+          operación que toca stock y plata, y desde el historial es fácil
+          apretar en la fila equivocada. */}
+      {devolucionModal && (() => {
+        const v = devolucionModal;
+        const unidades = Number(v.cantidad) || 1;
+        const prod = productos?.find(p => p.id === v.productId);
+        const llevaStock = prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '';
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !devolucionSaving && setDevolucionModal(null)}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <Undo2 size={18} className="text-amber-400" /> Devolver producto
+                </h3>
+                <button onClick={() => setDevolucionModal(null)} disabled={devolucionSaving} className="text-slate-500 hover:text-primary transition-colors disabled:opacity-40">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
+                <p className="text-sm text-primary font-semibold">{v.productName || 'Producto'}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {v.userEmail === 'admin@barberia.cl' ? 'Venta directa' : (v.userName || '—')}
+                  {v.barberoNombre ? ` · ${v.barberoNombre}` : ''}
+                </p>
+                <p className="text-sm font-bold text-emerald-400 mt-1">
+                  ${(Number(v.precio) || 0).toLocaleString('es-CL')}
+                  {unidades > 1 && <span className="text-xs font-normal text-slate-500"> · {unidades} unidades</span>}
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-300">
+                <p className="font-semibold text-slate-400 uppercase tracking-wide text-[10px]">Qué va a pasar</p>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    Se devuelven <strong>${(Number(v.precio) || 0).toLocaleString('es-CL')}</strong>
+                    {v.metodoPago ? ` (pagados con ${v.metodoPago})` : ''}: salen de los ingresos,
+                    de la caja del día y de la comisión de {v.barberoNombre || 'quien vendió'}.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  {llevaStock ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                      <span>
+                        Vuelven <strong>{unidades}</strong> unidad{unidades > 1 ? 'es' : ''} al stock
+                        {' '}({prod.stock} → {Number(prod.stock) + unidades}).
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                      <span>
+                        {prod
+                          ? 'Este producto no lleva control de stock, así que el inventario no cambia.'
+                          : 'El producto ya no existe en el catálogo: no se puede reponer stock.'}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <span>La venta queda registrada como devuelta, para que el arqueo tenga explicación.</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Motivo (opcional)</label>
+                <input
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary focus:outline-none focus:border-amber-500 transition-colors"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Producto fallado, cliente se arrepintió…"
+                  value={devolucionMotivo}
+                  onChange={e => setDevolucionMotivo(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-1">
+                <button
+                  onClick={() => setDevolucionModal(null)}
+                  disabled={devolucionSaving}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all disabled:opacity-40"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDevolucion}
+                  disabled={devolucionSaving}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {devolucionSaving ? <><Spinner size={14} /> Devolviendo…</> : <><Undo2 size={14} /> Confirmar devolución</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {entregaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEntregaModal(null)}>
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
