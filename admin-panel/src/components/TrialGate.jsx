@@ -33,28 +33,42 @@ const REGION = 'us-central1';
 
 const PLANES = [
   {
-    id: 'individual',
-    nombre: 'Plan Individual',
+    id: 'basico',
+    nombre: 'Plan Básico',
     precio: '$29.900',
-    para: 'Para un profesional independiente',
+    para: 'Para partir sin complicaciones',
     bullets: [
       'Agenda online con reservas ilimitadas',
       'Club de fidelidad con sellos y premios',
       'Panel completo desde el celular',
-      '1 profesional en la agenda',
+      'Un profesional en la agenda',
     ],
   },
   {
-    id: 'local',
-    nombre: 'Plan Local',
+    id: 'pro',
+    nombre: 'Plan Pro',
     precio: '$49.900',
-    para: 'Para locales con equipo',
+    para: 'Con IA + Wallet · lo que usan los mejores',
     destacado: true,
+    badge: 'IA + Wallet',
     bullets: [
-      'Todo lo del Plan Individual',
-      'Equipo ilimitado, cada uno con su agenda',
-      'Caja, comisiones y liquidaciones',
-      'Métricas del negocio',
+      'Todo lo del Básico + equipo ilimitado',
+      'Bot de WhatsApp con IA 24/7',
+      'Google & Apple Wallet para tus clientes',
+      'Caja, comisiones y métricas del negocio',
+    ],
+  },
+  {
+    id: 'anual',
+    nombre: 'Plan Anual',
+    precio: '$399.000',
+    para: 'Ahorra 3 meses · un pago al año',
+    ahorro: 'Equivale a 9 meses de Pro',
+    bullets: [
+      'Todo lo del Pro incluido',
+      'Un solo pago, cero recordatorios',
+      'Ahorras vs. pagar mes a mes',
+      'Ideal para locales establecidos',
     ],
   },
 ];
@@ -182,7 +196,8 @@ function BotonExtenderTrial({ tenant, sePuede }) {
 }
 
 function waActivarHref(plan, tenant) {
-  const msg = `Hola, terminó mi prueba gratis en SynapTech y quiero activar el ${plan.nombre} (${plan.precio} CLP/mes) para mi local ${tenant.name} (${tenant.id}) por otro medio de pago.`;
+  const sufijoPrecio = plan.id === 'anual' ? 'CLP/año' : 'CLP/mes';
+  const msg = `Hola, terminó mi prueba gratis en SynapTech y quiero activar el ${plan.nombre} (${plan.precio} ${sufijoPrecio}) para mi local ${tenant.name} (${tenant.id}) por otro medio de pago.`;
   return `https://wa.me/${WA_SYNAPTECH}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -220,14 +235,20 @@ function PlanCard({ plan, tenant }) {
     }`}>
       {plan.destacado && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500 text-ink-950 text-[11px] font-bold whitespace-nowrap">
-          <Sparkles size={11} /> Recomendado
+          <Sparkles size={11} /> {plan.badge || 'Recomendado'}
+        </span>
+      )}
+      {plan.id === 'anual' && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500 text-ink-950 text-[11px] font-bold whitespace-nowrap">
+          🔥 Ahorras 3 meses
         </span>
       )}
       <p className="text-sm font-semibold text-neutral-400">{plan.para}</p>
       <h3 className="text-lg font-bold text-primary mt-1">{plan.nombre}</h3>
       <p className="mt-3 mb-5">
         <span className="text-3xl font-extrabold text-primary">{plan.precio}</span>
-        <span className="text-sm text-neutral-400 font-medium"> CLP/mes</span>
+        <span className="text-sm text-neutral-400 font-medium"> CLP/{plan.id === 'anual' ? 'año' : 'mes'}</span>
+        {plan.ahorro && <span className="block text-xs text-amber-300 font-semibold mt-1">{plan.ahorro}</span>}
       </p>
       <ul className="space-y-2.5 mb-6 flex-1">
         {plan.bullets.map(b => (
@@ -244,15 +265,19 @@ function PlanCard({ plan, tenant }) {
         className={`w-full flex items-center justify-center gap-2 text-center font-bold rounded-xl py-3 text-sm transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-wait ${
           plan.destacado
             ? 'bg-emerald-500 hover:bg-emerald-400 text-ink-950'
-            : 'bg-neutral-800 hover:bg-neutral-700 text-primary border border-neutral-700'
+            : plan.id === 'anual'
+              ? 'bg-amber-500 hover:bg-amber-400 text-ink-950'
+              : 'bg-neutral-800 hover:bg-neutral-700 text-primary border border-neutral-700'
         }`}
       >
         {cargando
           ? <><Loader2 size={15} className="animate-spin" /> Preparando pago…</>
-          : <><CreditCard size={15} /> Pagar con Mercado Pago</>}
+          : <><CreditCard size={15} /> {plan.id === 'anual' ? 'Pagar año completo' : 'Pagar con Mercado Pago'}</>}
       </button>
       <p className="mt-2 text-[11px] text-center text-neutral-500 leading-snug">
-        Suscripción automática. MP cobra solo cada mes. Cancelas cuando quieras.
+        {plan.id === 'anual'
+          ? 'Un solo pago de $399.000. Sin renovación automática.'
+          : 'Suscripción automática. MP cobra solo cada mes. Cancelas cuando quieras.'}
       </p>
 
       {error && (
@@ -275,14 +300,14 @@ function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar, puedeExtender }) 
   return (
     <div className="fixed inset-0 z-[95] overflow-y-auto bg-[#050505]/95 backdrop-blur-sm">
       <div className="min-h-full flex flex-col items-center justify-center px-4 py-10">
-        <div className="w-full max-w-2xl text-center">
+        <div className="w-full max-w-4xl text-center">
           <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
             <Clock size={26} className="text-emerald-400" />
           </div>
           <h1 className="text-2xl font-extrabold text-primary tracking-tight mb-2">{titulo}</h1>
           <p className="text-sm text-neutral-400 leading-relaxed mb-8 max-w-md mx-auto">{subtitulo}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 text-left">
             {PLANES.map(p => <PlanCard key={p.id} plan={p} tenant={tenant} />)}
           </div>
 

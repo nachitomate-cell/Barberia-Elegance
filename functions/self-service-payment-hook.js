@@ -36,7 +36,11 @@ const ORIGENES_SELF = new Set(['self-service', 'admin-express']);
 const MAIL_FROM = 'SynapTech <hola@synaptechspa.cl>';
 
 function htmlBienvenida({ nombre, nombreLocal, plan, urlAgenda, urlPanel }) {
-  const planNice = plan === 'local' ? 'Local' : 'Individual';
+  const planNice = ({
+    basico: 'Básico', pro: 'Pro', anual: 'Anual',
+    // legacy
+    individual: 'Básico', local: 'Pro',
+  })[plan] || 'Básico';
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;background:#0b1220;color:#e2e8f0;border-radius:14px;overflow:hidden;border:1px solid #1e293b;">
     <div style="padding:22px 26px;border-bottom:1px solid #1e293b;">
@@ -125,12 +129,13 @@ exports.activarSelfServicePostPago = onDocumentUpdated(
     const urlPanel    = `https://${tid}.synaptechspa.cl/gestion-interna/`;
     const plan        = String(after.plan || t.plan || 'individual');
 
+    const planLabel = ({ basico: 'Básico', pro: 'Pro', anual: 'Anual', individual: 'Básico', local: 'Pro' })[plan] || 'Básico';
     if (emailDueno && emailDueno.includes('@')) {
       try {
         await enviarEmail({
           from:    MAIL_FROM,
           to:      emailDueno,
-          subject: `¡Bienvenido a SynapTech! Tu plan ${plan === 'local' ? 'Local' : 'Individual'} está activo`,
+          subject: `¡Bienvenido a SynapTech! Tu plan ${planLabel} está activo`,
           html:    htmlBienvenida({ nombre: nombreCorto, nombreLocal: nombreLoc, plan, urlAgenda, urlPanel }),
         });
         logger.info(`[selfPay] email bienvenida enviado a ${emailDueno}`);
@@ -146,7 +151,7 @@ exports.activarSelfServicePostPago = onDocumentUpdated(
       const { dispatchAdminPush } = require('./admin-push');
       await dispatchAdminPush({
         title: '💚 Nuevo cliente pagado',
-        body:  `${nombreLoc} activó ${after.plan === 'local' ? 'Local' : 'Individual'}` +
+        body:  `${nombreLoc} activó ${planLabel}` +
                (t.refVendedor ? ` · vendedor: ${t.refVendedor}` : ''),
         data:  { tid, tipo: 'self-service-active' },
         url:   '/admin/',

@@ -380,8 +380,10 @@
   @media(max-width:520px){ .social-pills span{font-size:12px;padding:7px 12px;} }
 
   /* ── Precios ─────────────────────────────────────────────────── */
-  .price-wrap{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;max-width:820px;margin-left:auto;margin-right:auto;}
+  .price-wrap{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;max-width:1080px;margin-left:auto;margin-right:auto;}
   @media(min-width:720px){.price-wrap{grid-template-columns:1fr 1fr;}}
+  @media(min-width:1020px){.price-wrap{grid-template-columns:1fr 1fr 1fr;}}
+  .price.anual{border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.05);}
   .price{
     position:relative;background:var(--surface);border:1px solid var(--line);
     border-radius:22px;padding:28px 26px;
@@ -768,9 +770,9 @@
       </div>
       <div class="price-wrap rv">
         <div class="price">
-          <p class="pname">Individual</p>
+          <p class="pname">Básico</p>
           <p class="pnum">$29.900 <small>/ mes</small></p>
-          <p class="pdesc">Ideal para 1 profesional trabajando solo (dueño-barbero).</p>
+          <p class="pdesc">Para partir sin complicaciones. Ideal si atiendes solo.</p>
           <ul>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 1 profesional activo</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Reservas ilimitadas 24/7</li>
@@ -780,21 +782,33 @@
           </ul>
         </div>
         <div class="price pop">
-          <span class="tag">Más elegido</span>
-          <p class="pname">Local</p>
+          <span class="tag">IA + Wallet</span>
+          <p class="pname">Pro</p>
           <p class="pnum">$49.900 <small>/ mes</small></p>
-          <p class="pdesc">Para locales con equipo. Cada profesional con su agenda.</p>
+          <p class="pdesc">Lo que usan los mejores. IA que atiende WhatsApp por ti + tarjetas Wallet.</p>
           <ul>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Profesionales ilimitados</li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Roles (admin, recepción, barbero)</li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Reservas ilimitadas 24/7</li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Club de fidelidad + estadísticas</li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Soporte por WhatsApp</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Todo lo del Básico + equipo ilimitado</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Bot de WhatsApp con IA 24/7</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Google & Apple Wallet para tus clientes</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Caja, comisiones y métricas del negocio</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Soporte prioritario por WhatsApp</li>
+          </ul>
+        </div>
+        <div class="price anual">
+          <span class="tag" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1206;">🔥 Ahorra 3 meses</span>
+          <p class="pname">Anual · Pago Único</p>
+          <p class="pnum">$399.000 <small>/ año</small></p>
+          <p class="pdesc">Un solo pago. Todo el Pro incluido. Sin cargos mensuales, sin sorpresas.</p>
+          <ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Equivale a 9 meses de Pro (ahorras 3)</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Todas las funciones del Pro</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Cero recordatorios de pago</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Ideal para locales establecidos</li>
           </ul>
         </div>
       </div>
       <p class="price-note">
-        <b>Sin permanencia.</b> Cancelas cuando quieras. <b>Sin comisión</b> sobre tus reservas.
+        <b>Sin permanencia</b> en los planes mensuales. Cancelas cuando quieras. <b>Sin comisión</b> sobre tus reservas.
         <br />¿Muchas sucursales o funciones a medida? <a href="https://wa.me/56983568212" style="color:var(--acc-soft);text-decoration:none;font-weight:700;">Conversemos</a>.
       </p>
     </div>
@@ -1060,7 +1074,7 @@
       <div class="faq rv">
         <details>
           <summary>¿Cuánto cuesta después del trial? <span class="plus">+</span></summary>
-          <p class="a"><b>$29.900/mes</b> el plan Individual (1 profesional) o <b>$49.900/mes</b> el plan Local (equipo completo). Sin permanencia, cancelas cuando quieras. Si al terminar los 14 días no activas un plan, tu agenda se pausa pero <b>no se borra nada</b>: tus datos, clientes y configuración te esperan.</p>
+          <p class="a"><b>$29.900/mes</b> el plan Básico (1 profesional), <b>$49.900/mes</b> el plan Pro (equipo + IA + Wallet) o <b>$399.000/año</b> el plan Anual (todo el Pro con ahorro de 3 meses). Sin permanencia en los mensuales, cancelas cuando quieras. Si al terminar los 14 días no activas un plan, tu agenda se pausa pero <b>no se borra nada</b>: tus datos, clientes y configuración te esperan.</p>
         </details>
         <details>
           <summary>¿Cobran comisión por cada reserva? <span class="plus">+</span></summary>

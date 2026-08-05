@@ -72,12 +72,23 @@ const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 const MONTO_MINIMO = 1000;
 
 // Precios NETOS (sin IVA) para tenants self-service que activan plan desde
-// TrialGate — el frontend envía { plan: 'individual'|'local' } y el servidor
+// TrialGate — el frontend envía { plan: 'basico'|'pro'|'anual' } y el servidor
 // resuelve el monto (evita que el cliente inyecte precios).
+//
+// Compatibilidad hacia atrás: 'individual'/'local' aún se aceptan como aliases
+// de 'basico'/'pro' para tenants creados antes del rename 2026-08-05.
 const PRECIOS_SELF_SERVICE_NETO = {
-  individual: 25126,   // ≈ $29.900 con IVA (público)
-  local:      41933,   // ≈ $49.900 con IVA (público)
+  basico:     25126,   // ≈ $29.900 con IVA (público) mensual
+  pro:        41933,   // ≈ $49.900 con IVA (público) mensual
+  anual:     335294,   // ≈ $399.000 con IVA (público) UNA VEZ al año
+  // aliases legacy
+  individual: 25126,
+  local:      41933,
 };
+
+// Los planes mensuales usan preapproval (recurrente); el anual usa Checkout Pro
+// (pago único, sin renovación automática — al mes 11 se le manda recordatorio).
+const PLAN_ES_ANUAL = (p) => String(p || '').trim().toLowerCase() === 'anual';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -279,6 +290,47 @@ exports.mpMensualidadCrearLink = onCall(
     const backUrl = `${origenOk ? origen : 'https://barberiaelegance.synaptechspa.cl'}/gestion-interna/mensualidad?local=${encodeURIComponent(tid)}&autopay=ok`;
 
     const local = await nombreLocal(tid);
+
+    // BIFURCACIÓN: Plan Anual = Checkout Pro (pago único). Todo el resto =
+    // preapproval_plan (suscripción recurrente que se cobra sola cada mes).
+    if (PLAN_ES_ANUAL(planPedido) || PLAN_ES_ANUAL(billing.plan)) {
+      const pref = {
+        items: [{
+          title:       `SynapTech · Plan Anual · ${local}`.slice(0, 250),
+          quantity:    1,
+          currency_id: 'CLP',
+          unit_price:  montoIva,
+        }],
+        external_reference: `anual:${tid}`,
+        back_urls: {
+          success: backUrl + '&plan=anual&status=ok',
+          failure: backUrl + '&plan=anual&status=fail',
+          pending: backUrl + '&plan=anual&status=pending',
+        },
+        auto_return: 'approved',
+        notification_url: 'https://us-central1-barberia-elegance.cloudfunctions.net/mpMensualidadWebhook',
+      };
+      const { httpStatus: hs, json: pr } = await mpRequest('POST', '/checkout/preferences', MP_PLATFORM_ACCESS_TOKEN.value(), { body: pref });
+      if (hs >= 300 || !pr || !pr.init_point) {
+        logger.error('[MPmens] crear pref anual falló', JSON.stringify(pr));
+        throw new HttpsError('internal', 'Mercado Pago no pudo crear el link. Intenta de nuevo.');
+      }
+      await db.doc(`_billing/${tid}`).set({
+        planTipo:       'anual',
+        pagoAnualMp: {
+          preferenceId: pr.id,
+          initPoint:    pr.init_point,
+          status:       'link_creado',
+          monto,
+          montoIva,
+          creadoEn:     FieldValue.serverTimestamp(),
+          creadoPor:    String((request.auth.token && request.auth.token.email) || request.auth.uid),
+        },
+      }, { merge: true });
+      logger.info(`[MPmens] plan ANUAL creado ${tid} → ${pr.id} (${clp(montoIva)} pago único)`);
+      return { url: pr.init_point };
+    }
+
     const plan  = {
       reason:             `Mensualidad SynapTech · ${local}`.slice(0, 250),
       external_reference: tid,
@@ -447,6 +499,72 @@ async function procesarCobro(authorizedPaymentId, token) {
   } catch (e) { logger.warn(`[MPmens] comprobante falló: ${e.message}`); }
 }
 
+// Pago único del Plan Anual (Checkout Pro). Idempotente por payment.id.
+// Al aprobarse: setea _billing.estadoPago='al_dia' + plan='anual' +
+// fechaVencimientoAnual = +365d. El trigger activarSelfServicePostPago
+// se encarga de marcar tenants/{tid}.status='active' automáticamente.
+async function procesarPagoAnual(paymentId, pay, token) {
+  if (!pay || !pay.id) { logger.warn(`[MPmens] pago anual ${paymentId} sin data`); return; }
+
+  const ext = String(pay.external_reference || '');
+  const tid = ext.startsWith('anual:') ? ext.slice(6) : null;
+  if (!tid) { logger.warn(`[MPmens] pago anual sin tid en external_reference: ${ext}`); return; }
+
+  const status = String(pay.status || '').toLowerCase();
+  const monto  = Math.round(Number(pay.transaction_amount) || 0);
+  const hoy    = hoyChile();
+  const billingRef = db.doc(`_billing/${tid}`);
+  const reciboRef  = billingRef.collection('pagosAnual').doc(String(pay.id));
+
+  if (status !== 'approved') {
+    logger.info(`[MPmens] pago anual NO aprobado ${tid} status=${status}`);
+    return;
+  }
+
+  const vencMs = Date.now() + 365 * 86400000;
+  await db.runTransaction(async (tx) => {
+    const recibo = await tx.get(reciboRef);
+    if (recibo.exists) return;    // idempotencia: MP reintentó el webhook
+    tx.set(reciboRef, {
+      monto,
+      mpPaymentId: String(pay.id),
+      fecha:       hoy,
+      creadoEn:    FieldValue.serverTimestamp(),
+    });
+    tx.set(billingRef, {
+      estadoPago:            'al_dia',
+      plan:                  'anual',
+      planTipo:              'anual',
+      montoPendiente:        Math.round(monto / 1.19),   // guardo NETO
+      fechaVencimientoAnual: new Date(vencMs).toISOString().slice(0, 10),
+      pagoAnualMp: {
+        status:       'approved',
+        preferenceId: pay.additional_info?.items?.[0]?.id || null,
+        ultimoPago:   { status: 'approved', monto, fecha: hoy, paymentId: String(pay.id) },
+        actualizadoEn: FieldValue.serverTimestamp(),
+      },
+    }, { merge: true });
+  });
+
+  logger.info(`[MPmens] ✓ plan ANUAL activado ${tid} ${clp(monto)} vence=${new Date(vencMs).toISOString().slice(0, 10)}`);
+
+  // Comprobante por email — best-effort.
+  try {
+    const bSnap   = await billingRef.get();
+    const billing = bSnap.exists ? bSnap.data() : {};
+    const emails  = await emailsComprobante(tid, billing);
+    if (emails.length) {
+      const local = await nombreLocal(tid);
+      await enviarEmail({
+        from:    MAIL_FROM,
+        to:      emails,
+        subject: `Plan Anual activado · ${local} (${clp(monto)})`,
+        html:    htmlComprobante({ local, monto, fecha: hoy, proximo: new Date(vencMs).toISOString().slice(0, 10) }),
+      }, { grupo: 'interno', etiqueta: 'anual-comprobante' });
+    }
+  } catch (e) { logger.warn(`[MPmens] comprobante anual falló: ${e.message}`); }
+}
+
 exports.mpMensualidadWebhook = onRequest(
   { secrets: [MP_PLATFORM_ACCESS_TOKEN, ...MAIL_SECRETS], region: 'us-central1' },
   async (req, res) => {
@@ -466,6 +584,28 @@ exports.mpMensualidadWebhook = onRequest(
       } else if (type.includes('subscription_preapproval') || type === 'preapproval') {
         if (!id) return res.status(200).send('no id');
         await procesarPreapproval(String(id), MP_PLATFORM_ACCESS_TOKEN.value());
+      } else if (type === 'payment' || type.startsWith('payment.')) {
+        // Pago único (Checkout Pro) — puede ser plan anual self-service o
+        // cualquier otro pago del ecosistema bioo. Miramos external_reference:
+        // si empieza con "anual:" es nuestro plan anual, lo procesamos aquí;
+        // si no, lo forwardeamos a bioo como siempre.
+        if (!id) return res.status(200).send('no id');
+        const { json: pay } = await mpRequest('GET', `/v1/payments/${id}`, MP_PLATFORM_ACCESS_TOKEN.value());
+        const ext = String(pay?.external_reference || '');
+        if (ext.startsWith('anual:')) {
+          await procesarPagoAnual(String(id), pay, MP_PLATFORM_ACCESS_TOKEN.value());
+          return res.status(200).send('anual-ok');
+        }
+        // Reenvío a bioo (comportamiento previo).
+        try {
+          const qs = new URLSearchParams(q).toString();
+          await fetch(`${BIO_WEBHOOK_URL}${qs ? '?' + qs : ''}`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+          });
+        } catch (e) { logger.warn('[MPmens] forward a mpBioWebhook falló:', e.message); }
+        return res.status(200).send('forwarded');
       } else {
         // Evento ajeno a suscripciones (ej: "Pagos" de bioo) → reenviar a
         // mpBioWebhook, que era el destino original de la URL de la app.

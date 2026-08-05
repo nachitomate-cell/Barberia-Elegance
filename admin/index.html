@@ -8891,10 +8891,13 @@
     };
 
     window.tnActivar = async function (tid) {
-      var plan = prompt('Plan a activar en ' + tid + ':\n\n"individual" o "local"', 'individual');
+      var plan = prompt('Plan a activar en ' + tid + ':\n\n"basico" · "pro" · "anual"', 'basico');
       if (!plan) return;
       plan = String(plan).trim().toLowerCase();
-      if (plan !== 'individual' && plan !== 'local') { alert('Plan inválido.'); return; }
+      // Aliases legacy
+      if (plan === 'individual') plan = 'basico';
+      if (plan === 'local') plan = 'pro';
+      if (['basico', 'pro', 'anual'].indexOf(plan) === -1) { alert('Plan inválido. Usa basico, pro o anual.'); return; }
       if (!confirm('¿Confirmas activar plan ' + plan + ' en ' + tid + '?\n\nEsto marca el tenant como pagando (para casos de pago fuera de MP: transferencia, efectivo). El pago automático MP tiene su propio flujo desde el TrialGate del dueño.')) return;
       try {
         var fn = firebase.app().functions('us-central1').httpsCallable('adminActivarPlanTenant');

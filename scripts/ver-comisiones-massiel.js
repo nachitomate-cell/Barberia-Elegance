@@ -4,31 +4,55 @@
 /*
  * ver-comisiones-massiel.js
  *
- * Reporte de trials creados por Massiel (o cualquier vendedor con ?ref=).
- * Consulta Firestore prod, cruza tenants con _billing, y estima comisión.
+ * Reporte de comisiones para vendedores externos SynapTech (Massiel es el
+ * primer piloto). Consulta Firestore prod, cruza tenants con _billing y
+ * calcula el bono al cierre + el recurring por cada mes activo (con tope
+ * de 24 meses).
  *
  * Uso:
- *   node scripts/ver-comisiones-massiel.js               (default: ref=massiel)
+ *   node scripts/ver-comisiones-massiel.js               (default ref=massiel)
  *   node scripts/ver-comisiones-massiel.js otro-ref
  *
- * Reglas de comisión (ver ventas-massiel/comisiones.md):
- *   - Fijo por trial válido: $3.000
- *   - Bonus one-time por plan activado:
- *       Individual ($29.900/mes) → $15.000
- *       Local      ($49.900/mes) → $25.000
- *   - Recurring 15% del pago mensual, meses 2-6 desde el alta.
- *   - Trial válido = 72h de vida + 1 servicio editado + email único.
+ * ─────────────────────────────────────────────────────────────────────────
+ *  MODELO DE COMISIONES · Definitivo desde 2026-08-05
+ * ─────────────────────────────────────────────────────────────────────────
  *
- * NOTA: los criterios de "servicio editado" y "email único" NO se validan
- * en este script (para eso hace falta cruzar con servicios y auditar
- * duplicados por email). Aquí se listan TODOS los trials y se marcan los
- * casos obvios de invalidez (< 72h de vida, tenant borrado).
+ *  Sin fijo por trial: solo se cobra cuando el cliente PAGA (activa plan).
+ *
+ *   Plan Básico  $29.900/mes  → $25.000 al cierre + $2.990/mes × 24 meses
+ *   Plan Pro     $49.900/mes  → $40.000 al cierre + $7.485/mes × 24 meses
+ *   Plan Anual   $399.000/año → $100.000 UNA VEZ (sin recurring)
+ *
+ *   Tope recurring: 24 meses desde la activación. Después, el cliente
+ *   sigue siendo de SynapTech sin costo variable.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ *  📋 CÓMO SE PAGA
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ *   · Corte los días 30 de cada mes
+ *   · Reporte por WhatsApp el día 1 siguiente con desglose
+ *   · Transferencia hasta el día 5
+ *   · Boleta de honorarios por el total
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ *  ⚠️  REGLAS ANTI-FRAUDE
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ *   · El pago del cliente tiene que estar aprobado por Mercado Pago
+ *   · Si el cliente pide devolución en 30 días → clawback del bono
+ *   · Si cancela antes de 60 días → clawback 50% del bono
+ *   · El tenant tiene que editar al menos 1 servicio real (prueba de uso)
+ *
+ *   Todo lo demás es limpio. Cada peso que aparece en el reporte es del
+ *   vendedor.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 const admin = require('firebase-admin');
 const path  = require('path');
 
-// Buscar credenciales admin en las ubicaciones habituales del repo.
 function cargarCreds() {
   const candidatos = [
     path.join(__dirname, '..', 'functions', 'service-account.json'),
@@ -36,10 +60,7 @@ function cargarCreds() {
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
   ].filter(Boolean);
   for (const p of candidatos) {
-    try {
-      const c = require(p);
-      return c;
-    } catch (_) {}
+    try { return require(p); } catch (_) {}
   }
   return null;
 }
@@ -52,20 +73,45 @@ if (!creds && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
 admin.initializeApp(creds ? { credential: admin.credential.cert(creds) } : undefined);
 const db = admin.firestore();
 
-const REF        = (process.argv[2] || 'massiel').toLowerCase();
-const FIJO       = 3_000;
-const BONUS      = { individual: 15_000, local: 25_000 };
-const MENSUAL    = { individual: 29_900, local: 49_900 };
-const PCT_RECUR  = 0.15;
+const REF          = (process.argv[2] || 'massiel').toLowerCase();
+const RECURRING_MESES_CAP = 24;
+
+const BONOS = {
+  basico: 25_000,
+  pro:    40_000,
+  anual: 100_000,
+  // legacy
+  individual: 25_000,
+  local:      40_000,
+};
+
+const RECURRING_MENSUAL = {
+  basico: 2_990,
+  pro:    7_485,
+  anual:  0,   // el anual no tiene recurring — se pagó todo el bono al inicio
+  // legacy
+  individual: 2_990,
+  local:      7_485,
+};
+
+// Aliases → nombre normalizado para reporte
+const NORMALIZAR_PLAN = {
+  basico: 'basico', pro: 'pro', anual: 'anual',
+  individual: 'basico', local: 'pro',
+};
 
 const CLP = (n) => '$ ' + Math.round(n).toLocaleString('es-CL');
 
+function planPretty(p) {
+  return ({ basico: 'Básico', pro: 'Pro', anual: 'Anual' })[NORMALIZAR_PLAN[p] || p] || '—';
+}
+
 async function main() {
-  console.log(`\n╔══ Reporte comisiones · ref=${REF} ══════════════════════════╗\n`);
+  console.log(`\n╔══ Reporte comisiones · ref=${REF} · ${new Date().toLocaleDateString('es-CL')} ══════════════════════════╗\n`);
 
   const snap = await db.collection('tenants').where('refVendedor', '==', REF).get();
   if (snap.empty) {
-    console.log(`  Sin trials con ref=${REF} aún.\n`);
+    console.log(`  Sin tenants con ref=${REF} aún.\n`);
     process.exit(0);
   }
 
@@ -77,82 +123,95 @@ async function main() {
     const slug = doc.id;
     const bill = await db.collection('_billing').doc(slug).get();
     const b = bill.exists ? bill.data() : {};
-    const creado = t.createdAt && t.createdAt.toMillis ? t.createdAt.toMillis() : null;
+
+    const creado   = t.createdAt?.toMillis ? t.createdAt.toMillis() : null;
+    const activado = t.activadoEn?.toMillis ? t.activadoEn.toMillis() : null;
     const diasVida = creado ? Math.floor((ahora - creado) / 86400000) : null;
 
-    const plan = String(b.plan || t.plan || 'free').toLowerCase();
-    // Heurística: si el plan ya no es 'free' y el pago está activo, hay conversión.
-    const convertido = plan !== 'free' && b.estadoPago && b.estadoPago !== 'trial';
-    const tipoPlan = plan.includes('local') ? 'local' : (plan.includes('individual') ? 'individual' : null);
+    const planRaw   = String(b.plan || t.plan || 'free').toLowerCase();
+    const planNorm  = NORMALIZAR_PLAN[planRaw] || null;
+    const convertido = planNorm != null && b.estadoPago === 'al_dia';
 
-    // Fijo: solo si vivió al menos 72h (regla anti-fraude simplificada).
-    const fijoValido = diasVida !== null && diasVida >= 3;
-    const bonus = convertido && tipoPlan ? BONUS[tipoPlan] : 0;
+    let bono = 0, recurringMensual = 0, recurringAcumulado = 0, mesesActivos = 0, mesesElegibles = 0;
+    if (convertido && planNorm) {
+      bono = BONOS[planRaw] || 0;
+      recurringMensual = RECURRING_MENSUAL[planRaw] || 0;
 
-    // Recurring: por cada mes activo entre el 2 y el 6, sumar 15% del plan mensual.
-    let recurring = 0;
-    if (convertido && tipoPlan && diasVida !== null) {
-      const mesesActivos = Math.min(6, Math.floor(diasVida / 30));
-      const mesesElegibles = Math.max(0, mesesActivos - 1); // meses 2..6
-      recurring = mesesElegibles * MENSUAL[tipoPlan] * PCT_RECUR;
+      // Recurring: solo planes mensuales (no anual). Meses activos desde
+      // activadoEn (si existe) o desde createdAt como fallback.
+      if (planNorm !== 'anual') {
+        const inicio = activado || creado || ahora;
+        mesesActivos = Math.max(0, Math.floor((ahora - inicio) / (30 * 86400000)));
+        // Tope 24 meses (el mes 1 es el bono, meses 2-25 son recurring = 24 meses)
+        mesesElegibles = Math.min(RECURRING_MESES_CAP, Math.max(0, mesesActivos - 1));
+        recurringAcumulado = mesesElegibles * recurringMensual;
+      }
     }
 
-    const total = (fijoValido ? FIJO : 0) + bonus + recurring;
+    const total = bono + recurringAcumulado;
 
     filas.push({
       slug,
-      nombre:    t.nombre || '—',
-      tipo:      t.tipo || '—',
-      diasVida:  diasVida !== null ? diasVida : '?',
-      status:    t.status || '—',
-      estadoPago: b.estadoPago || '—',
-      plan,
+      nombre:      t.nombre || '—',
+      diasVida:    diasVida != null ? diasVida : '?',
+      status:      t.status || '—',
+      estadoPago:  b.estadoPago || '—',
+      plan:        planNorm ? planPretty(planNorm) : planRaw,
       convertido,
-      fijoValido,
-      fijo:      fijoValido ? FIJO : 0,
-      bonus,
-      recurring,
+      bono,
+      recurringMensual,
+      mesesElegibles,
+      recurringAcumulado,
       total,
     });
   }
 
-  // Print
-  console.log('  Tenants creados con ref=' + REF + ': ' + filas.length + '\n');
-  console.log('  ┌─────────────────────────────┬───────────┬──────┬──────────┬───────┬────────────┐');
-  console.log('  │ Slug                        │ Estado    │ Días │ Plan     │ Conv? │ Comisión   │');
-  console.log('  ├─────────────────────────────┼───────────┼──────┼──────────┼───────┼────────────┤');
+  console.log(`  Tenants con ref=${REF}: ${filas.length}\n`);
+  console.log('  ┌─────────────────────────────┬───────────┬──────┬─────────┬───────┬──────────┬────────────┬────────────┐');
+  console.log('  │ Slug                        │ Estado    │ Días │ Plan    │ Conv? │ Bono     │ Recurring  │ Total      │');
+  console.log('  ├─────────────────────────────┼───────────┼──────┼─────────┼───────┼──────────┼────────────┼────────────┤');
   for (const f of filas.sort((a, b) => b.total - a.total)) {
     console.log('  │ ' + f.slug.padEnd(27) +
       ' │ ' + String(f.status).padEnd(9) +
       ' │ ' + String(f.diasVida).padStart(4) +
-      ' │ ' + String(f.plan).padEnd(8) +
+      ' │ ' + String(f.plan).padEnd(7) +
       ' │ ' + (f.convertido ? '  ✓  ' : '  -  ') +
+      ' │ ' + CLP(f.bono).padStart(8) +
+      ' │ ' + (f.recurringAcumulado
+        ? `${CLP(f.recurringAcumulado).padStart(8)} (${f.mesesElegibles}m)`.padStart(10)
+        : '        —').padStart(10) +
       ' │ ' + CLP(f.total).padStart(10) + ' │');
   }
-  console.log('  └─────────────────────────────┴───────────┴──────┴──────────┴───────┴────────────┘\n');
+  console.log('  └─────────────────────────────┴───────────┴──────┴─────────┴───────┴──────────┴────────────┴────────────┘\n');
 
   const totales = filas.reduce((acc, f) => ({
-    fijo: acc.fijo + f.fijo,
-    bonus: acc.bonus + f.bonus,
-    recurring: acc.recurring + f.recurring,
-    total: acc.total + f.total,
-    trialsValidos: acc.trialsValidos + (f.fijoValido ? 1 : 0),
+    bono:        acc.bono + f.bono,
+    recurring:   acc.recurring + f.recurringAcumulado,
+    total:       acc.total + f.total,
     conversiones: acc.conversiones + (f.convertido ? 1 : 0),
-  }), { fijo: 0, bonus: 0, recurring: 0, total: 0, trialsValidos: 0, conversiones: 0 });
+    porPlan:     {
+      basico: acc.porPlan.basico + (f.plan === 'Básico' && f.convertido ? 1 : 0),
+      pro:    acc.porPlan.pro    + (f.plan === 'Pro'    && f.convertido ? 1 : 0),
+      anual:  acc.porPlan.anual  + (f.plan === 'Anual'  && f.convertido ? 1 : 0),
+    },
+  }), { bono: 0, recurring: 0, total: 0, conversiones: 0, porPlan: { basico: 0, pro: 0, anual: 0 } });
 
   console.log('  RESUMEN');
-  console.log('  ────────────────────────────────');
-  console.log('  Trials creados:      ' + filas.length);
-  console.log('  Trials válidos (>72h): ' + totales.trialsValidos);
-  console.log('  Conversiones plan:   ' + totales.conversiones);
-  console.log('  Tasa conversión:     ' + (filas.length ? Math.round(100 * totales.conversiones / filas.length) : 0) + '%');
-  console.log('  ────────────────────────────────');
-  console.log('  Fijo:                ' + CLP(totales.fijo));
-  console.log('  Bonus planes:        ' + CLP(totales.bonus));
-  console.log('  Recurring acumulado: ' + CLP(totales.recurring));
-  console.log('  ────────────────────────────────');
-  console.log('  TOTAL A PAGAR:       ' + CLP(totales.total));
+  console.log('  ──────────────────────────────────');
+  console.log('  Tenants trackeados:       ' + filas.length);
+  console.log('  Conversiones a plan:      ' + totales.conversiones +
+    '  (Básico ' + totales.porPlan.basico + ' · Pro ' + totales.porPlan.pro + ' · Anual ' + totales.porPlan.anual + ')');
+  console.log('  Tasa conversión:          ' + (filas.length ? Math.round(100 * totales.conversiones / filas.length) : 0) + '%');
+  console.log('  ──────────────────────────────────');
+  console.log('  Bonos al cierre:          ' + CLP(totales.bono));
+  console.log('  Recurring acumulado:      ' + CLP(totales.recurring));
+  console.log('  ──────────────────────────────────');
+  console.log('  TOTAL A PAGAR:            ' + CLP(totales.total));
   console.log();
+  console.log('  📋 Recordatorio de pago:');
+  console.log('  · Corte los días 30 · reporte WA día 1 · transferencia hasta día 5');
+  console.log('  · Boleta de honorarios por el total mensual\n');
+
   process.exit(0);
 }
 

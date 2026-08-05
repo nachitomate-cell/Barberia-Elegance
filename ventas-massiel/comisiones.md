@@ -1,129 +1,122 @@
-# Estructura de comisiones — Massiel (propuesta)
-
-**Autor:** propuesta desde el kit de venta 2026-08-05.
-**Estado:** BORRADOR — Ignacio ajusta y valida con Massiel.
-**Filosofía:** motivar cantidad (fijo por trial) + calidad (bonus por plan activado) + retención (recurring hasta mes 6). Sin retención el modelo se corrompe: la vendedora sale, cobra su bonus y el cliente se va al mes 2.
+# Comisiones — Massiel · SynapTech
+**Vigente desde:** 2026-08-05 · **Versión:** Definitiva v1.0
 
 ---
 
-## Modelo propuesto
+## Tu esquema en 3 líneas
 
-### 🎯 Componente 1 — Fijo por trial válido: **$3.000 CLP**
+| Producto | Precio cliente | Tu bono al cierre | Tu recurring |
+|---|---|---|---|
+| 🟢 **Plan Básico** | $29.900/mes | **$25.000** | **$2.990/mes** durante 24 meses |
+| 🟣 **Plan Pro** (IA + Wallet) | $49.900/mes | **$40.000** | **$7.485/mes** durante 24 meses |
+| 🔥 **Plan Anual Contado** | $399.000/año | **$100.000 al toque** | — |
 
-Cada tenant que se crea desde `?ref=massiel` y cumple los criterios de trial válido (ver abajo).
-
-**Por qué:** motivar volumen de puertas tocadas. Massiel cobra algo aunque el trial no termine en pago — reconoce el esfuerzo comercial. $3.000 × 5 trials/sem = $60.000 base al mes.
-
-### 🚀 Componente 2 — Bonus por plan activado (primer mes cobrado)
-
-| Plan activado | Bonus one-time |
-|---|---|
-| Individual ($29.900) | **$15.000** |
-| Local ($49.900) | **$25.000** |
-
-**Por qué:** la conversión trial→plan es donde está la plata real. El bonus representa ~50% del primer mes cobrado (industry standard SaaS 50-100% de la primera mensualidad). Se paga cuando el pago del primer mes efectivamente ingresa.
-
-### 🔁 Componente 3 — Recurring por retención (meses 2 a 6)
-
-**15% del pago mensual** de cada tenant activo, durante los meses 2 al 6 desde su alta.
-
-| Plan | Recurring mensual |
-|---|---|
-| Individual | $4.485 (15% de $29.900) |
-| Local | $7.485 (15% de $49.900) |
-
-**Por qué:** un cliente que se va al mes 3 es un mal cliente y no debería producir comisión completa. Con recurring, a Massiel le conviene traer clientes que se queden — hará seguimiento post-venta sola. Cortamos al mes 6 para no cargar el margen a perpetuidad.
+**Sin fijo por trial.** Solo cobras cuando el cliente PAGA (activa un plan). Los trials creados no te generan comisión hasta que se conviertan.
 
 ---
 
-## Reglas anti-fraude (importantes)
+## Cuánto ganas en cada escenario
 
-Un "trial válido" DEBE cumplir TODOS:
+### 🌱 Mes 1 · Aprendizaje (te mueves con Ignacio en las primeras cerradas)
 
-1. **Email único:** el email del dueño no puede coincidir con otro tenant creado en los últimos 30 días.
-2. **WhatsApp verificable:** el número de contacto debe ser respondible por WhatsApp (no números inventados).
-3. **Al menos 1 servicio editado:** el dueño (o Massiel con él) debe editar al menos 1 servicio de la plantilla (nombre, precio o duración) → prueba de que el tenant se usó, no solo se creó.
-4. **Sobrevive 72 horas:** el tenant sigue activo (`status: 'trial'`) 3 días después de creado. Esto filtra los "creo y borro" o los que se arrepienten al minuto.
-5. **No es un email @sinaptech / @synaptechspa / @sinaptech.cl** (autotest interno).
-6. **La cuenta del dueño no tiene rol admin en otro tenant** (Massiel no puede crear "para probar" con emails que ya son dueños).
-
-**Los trials que no cumplen se marcan `_billing.comisionValida: false` y no cuentan para el fijo NI para el bonus.**
-
----
-
-## Escenarios ejemplo
-
-### Escenario CONSERVADOR (semana 1-2 de aprendizaje)
-
-- 5 trials válidos/semana × 4 semanas = **20 trials/mes**
-- Conversión trial → plan pagado: **30%** = 6 planes (mix 4 Individual + 2 Local)
-
-**Ingresos Massiel mes 1:**
-- Fijo: 20 × $3.000 = **$60.000**
-- Bonus planes: 4 × $15.000 + 2 × $25.000 = **$110.000**
-- Recurring mes 1: **$0** (arranca mes 2)
-- **Total mes 1: $170.000**
-
-### Escenario BUENO (rutina establecida)
-
-- 10 trials/sem × 4 = **40 trials/mes**
-- Conversión **35%** = 14 planes (10 Individual + 4 Local)
-
-**Ingresos Massiel mes 3 (con recurring acumulado meses 1-2):**
-- Fijo: 40 × $3.000 = **$120.000**
-- Bonus: 10 × $15.000 + 4 × $25.000 = **$250.000**
-- Recurring de meses previos: ~20 tenants activos × prom $5.000 = **$100.000**
-- **Total mes 3: ~$470.000**
-
-### Escenario GRAN LOTE (Providencia + Ñuñoa + Las Condes)
-
-- 15 trials/sem × 4 = **60 trials/mes**
-- Conversión **40%** = 24 planes/mes
-
-**Ingresos Massiel mes 6 (recurring pleno):**
-- Fijo: 60 × $3.000 = **$180.000**
-- Bonus: 20 × $15.000 + 4 × $25.000 = **$400.000**
-- Recurring acumulado (meses 1-5 aún vigente): ~80 tenants × $5.500 prom = **$440.000**
-- **Total mes 6: ~$1.020.000**
-
----
-
-## Costos para SynapTech
-
-| Escenario | Massiel mes | % del MRR captado |
+| Cierres | Cálculo | Total mes 1 |
 |---|---|---|
-| Conservador | $170.000 | ~55% del primer mes; ~15% del LTV a 6m |
-| Bueno | $470.000 | ~50% del primer mes; ~13% del LTV a 6m |
-| Gran lote | $1.020.000 | ~48% del primer mes; ~11% del LTV a 6m |
+| 4 Básico + 6 Pro | 4×$25k + 6×$40k = $340k | **$340.000** |
+| + 2 anuales adicionales | + 2×$100k = $200k | **$540.000** |
 
-**Regla de oro SaaS:** CAC (costo de adquisición) debe ser recuperado en < 12 meses. Con este esquema, Massiel cobra 100% de la comisión en 6 meses; SynapTech recupera desde el mes 7 en adelante en margen 100%.
+*Recurring aún = $0 (empieza mes 2).*
+
+### 🚀 Mes 3 · Rutina establecida (recurring ya suma)
+
+Asumiendo mismo ritmo (4 Básico + 6 Pro/mes) y retención 90%:
+
+| Concepto | Cálculo | Monto |
+|---|---|---|
+| Cierres frescos del mes | 4×$25k + 6×$40k | $340.000 |
+| Recurring 8 Básicos activos (mes 2) | 8×$2.990 | $23.920 |
+| Recurring 12 Pros activos (mes 2) | 12×$7.485 | $89.820 |
+| **Total mes 3** | | **$453.740** |
+
+### 🏆 Mes 6 · Recurring pleno + anuales
+
+| Concepto | Cálculo | Monto |
+|---|---|---|
+| Cierres frescos del mes | Igual arriba | $340.000 |
+| Recurring 18 Básicos acumulados | 18×$2.990 | $53.820 |
+| Recurring 27 Pros acumulados | 27×$7.485 | $202.095 |
+| + 3 anuales el mes | 3×$100.000 | $300.000 |
+| **Total mes 6** | | **$895.915** |
+
+### 💎 Mes 12 · Cliente top
+
+Con 12 meses de recurring acumulado + 3 anuales/mes:
+
+| Concepto | Monto aprox |
+|---|---|
+| Cierres nuevos + anuales | $640.000 |
+| Recurring acumulado (~40 Básicos + ~60 Pros) | $569.100 |
+| **Total mes 12** | **~$1.209.100** |
 
 ---
 
-## Cómo se paga (mecánica)
+## Total año 1 estimado (10 planes/mes + 2 anuales/mes)
 
-1. **Corte mensual el día 30**: script SQL/Firestore que suma:
-   - Trials válidos creados en el mes (fijo)
-   - Bonus por planes activados ese mes
-   - Recurring por tenants aún activos (meses 2-6 desde su alta)
-2. **Reporte automático** vía WhatsApp a Massiel el día 1 del mes siguiente: total a cobrar + desglose.
-3. **Transferencia** hasta el día 5.
-4. **Boleta de honorarios** (Massiel es freelance/comisionista) por el total.
+| Componente | Cálculo | Total anual |
+|---|---|---|
+| Bonos mensuales | (4×$25k + 6×$40k) × 12 | $4.080.000 |
+| Bonos anuales | 2×$100k × 12 | $2.400.000 |
+| Recurring acumulado año 1 | ~50% del steady state | ~$1.500.000 |
+| **TOTAL AÑO 1** | | **~$7.980.000** |
 
----
-
-## Reglas de "pause" y "clawback"
-
-- Si un cliente pide reembolso del primer mes → **clawback del bonus** correspondiente.
-- Si un cliente cancela antes de 60 días → **clawback del 50% del bonus** (retención mínima esperada).
-- Si Massiel detiene la actividad por >30 días sin previo aviso → recurring congelado hasta reanudar.
+**A 24 meses** (con recurring pleno): ~$14-16 millones.
 
 ---
 
-## Discusión abierta con Massiel (antes de firmar)
+## La palanca del Plan Anual (léelo bien)
 
-- ¿Prefiere fijo mensual base + comisión menor? (ej. $150.000 base + 30% del primer mes). Da estabilidad pero menos upside.
-- ¿Quiere trabajar solo Providencia o expandir? (define su cuota).
-- ¿Qué necesita como herramienta extra? (auto atribución vía QR ya está; falta un dashboard donde ella vea sus tenants + estado + comisión pendiente en tiempo real).
+Cerrar 1 anual = **$100.000 inmediatos** para ti + **$399.000 cash inmediato** para SynapTech.
 
-**Sugerencia final:** partir con el modelo de arriba por 30 días como piloto, luego ajustar según data real. NO firmar contrato a 6 meses sin la data del primer mes.
+**Cuándo ofrecerlo:**
+- Al final del cierre de un plan mensual: *"Perfecto, te dejo el Básico mensual. ¿Sabías que si pagas anual te ahorras 3 meses completos?"*
+- A clientes que ya tenían Weibook/AgendaPro (están acostumbrados a pagar planes largos).
+- A clientes con local establecido (no arrancando) — tienen flujo estable.
+
+**Conversión típica**: 15-20% de los cierres mensuales acepta anual si se ofrece bien. Con 10 cierres mensuales, eso son 1-2 anuales extra/mes = $100-200k más para ti.
+
+---
+
+## Reglas anti-fraude (para que no haya sorpresas)
+
+Un cierre es **válido** y paga comisión SOLO si:
+
+1. ✅ El pago con Mercado Pago se **procesó y aprobó**.
+2. ✅ El cliente **NO reembolsa dentro de 30 días** (si lo hace, clawback del bono).
+3. ✅ El tenant sigue **activo al mes 60** (retención mínima). Si cancela antes: clawback 50% del bono.
+4. ✅ El email del dueño es **único** — no se puede crear el mismo cliente 2 veces.
+5. ✅ El tenant edita **al menos 1 servicio real** en el panel (prueba de uso).
+
+El **recurring** se detiene automáticamente si el cliente:
+- Cancela su suscripción MP
+- Pausa el plan
+- No renueva un plan anual
+
+---
+
+## Cómo se te paga
+
+1. **Corte mensual día 30**: script `ver-comisiones-massiel.js` calcula todo por ref.
+2. **Reporte por WhatsApp día 1** del mes siguiente con desglose.
+3. **Transferencia hasta el día 5** del mes.
+4. **Boleta de honorarios** por el total mensual.
+
+---
+
+## Meta oficial (contra la que se mide tu desempeño)
+
+**Cuota mensual: 10 planes cerrados** (4 Básico + 6 Pro) + Plan Anual opcional pero altamente premiado.
+
+**Si superas cuota** durante 3 meses seguidos → conversamos condiciones especiales (bono adicional, expansión geográfica, subir tarifa).
+
+---
+
+**Cualquier duda sobre las comisiones, escríbeme directo. Este documento reemplaza cualquier conversación previa sobre montos.**

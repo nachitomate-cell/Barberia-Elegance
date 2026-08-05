@@ -116,31 +116,49 @@ exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async
 //  desde el UI.
 // ─────────────────────────────────────────────────────────────────
 
-const PRECIOS_NETOS = { individual: 25126, local: 41933 };
+// Aceptamos los 3 planes públicos + aliases legacy (individual→basico, local→pro).
+const PRECIOS_NETOS = {
+  basico:     25126,
+  pro:        41933,
+  anual:     335294,
+  // aliases legacy
+  individual: 25126,
+  local:      41933,
+};
+const NORMALIZAR_PLAN = { individual: 'basico', local: 'pro' };
 
 exports.adminActivarPlanTenant = onCall({ region: 'us-central1', cors: true }, async (req) => {
   const email = String(req.auth?.token?.email || '').toLowerCase();
   if (!req.auth || !esOperador(email)) {
     throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
   }
-  const tid  = String(req.data?.tenantId || '').trim();
-  const plan = String(req.data?.plan || '').trim().toLowerCase();
+  const tid    = String(req.data?.tenantId || '').trim();
+  let plan     = String(req.data?.plan || '').trim().toLowerCase();
+  plan         = NORMALIZAR_PLAN[plan] || plan;
   if (!tid)                          throw new HttpsError('invalid-argument', 'Falta tenantId.');
-  if (!PRECIOS_NETOS[plan])          throw new HttpsError('invalid-argument', 'Plan inválido (individual|local).');
+  if (!PRECIOS_NETOS[plan])          throw new HttpsError('invalid-argument', 'Plan inválido (basico|pro|anual).');
 
-  const batch = db.batch();
-  batch.set(db.doc(`tenants/${tid}`), {
+  const esAnual = plan === 'anual';
+  const patchTenant = {
     status: 'active', plan, trialFinaliza: null,
     activadoEn: FieldValue.serverTimestamp(), activadoPor: email,
     updatedAt:  FieldValue.serverTimestamp(),
-  }, { merge: true });
-  batch.set(db.doc(`_billing/${tid}`), {
+  };
+  const patchBilling = {
     estadoPago:     'al_dia',
     plan,
     montoPendiente: PRECIOS_NETOS[plan],
     activadoManualEn: FieldValue.serverTimestamp(),
     activadoManualPor: email,
-  }, { merge: true });
+  };
+  if (esAnual) {
+    patchBilling.planTipo = 'anual';
+    patchBilling.fechaVencimientoAnual = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  }
+
+  const batch = db.batch();
+  batch.set(db.doc(`tenants/${tid}`), patchTenant, { merge: true });
+  batch.set(db.doc(`_billing/${tid}`), patchBilling, { merge: true });
   batch.set(db.doc(`_system/${tid}`), {
     status: 'active', plan, activadoEn: FieldValue.serverTimestamp(),
   }, { merge: true });
