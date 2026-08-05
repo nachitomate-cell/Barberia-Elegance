@@ -4,6 +4,7 @@ import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
   Plus, Minus, Trash2, Pencil, AlertTriangle, Search, X,
+  ChevronLeft, ChevronRight, Settings,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
@@ -65,14 +66,32 @@ const PRESETS = [
   { label: 'Últimos 30 días', fn: () => [thirtyDaysAgo(), today()] },
 ];
 
-/** 'YYYY-MM-DD' + 1 día, sin tocar zonas horarias (todo el módulo trabaja
- *  con strings de fecha local). El día siguiente al último pago es el primer
- *  día que todavía no se ha liquidado. */
-function diaSiguiente(fecha) {
+/** 'YYYY-MM-DD' + n días. Se parsea por componentes y no con `new Date(str)`,
+ *  que interpreta el string como UTC y en Chile devuelve el día anterior. */
+function sumarDias(fecha, n) {
   const [y, m, d] = String(fecha).split('-').map(Number);
   if (!y || !m || !d) return fecha;
-  const x = new Date(y, m - 1, d + 1);
+  const x = new Date(y, m - 1, d + n);
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+
+/** El día siguiente al último pago es el primero que todavía no se liquidó. */
+const diaSiguiente = (fecha) => sumarDias(fecha, 1);
+
+/** Días que abarca el rango, ambos extremos incluidos. */
+function diasEntre(a, b) {
+  const [y1, m1, d1] = String(a).split('-').map(Number);
+  const [y2, m2, d2] = String(b).split('-').map(Number);
+  if (!y1 || !y2) return 1;
+  const ms = new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+  return Math.max(1, Math.round(ms / 86400000) + 1);
+}
+
+/** "5 ago" — para leer el rango de un vistazo sin descifrar YYYY-MM-DD. */
+function fechaCorta(f) {
+  const [y, m, d] = String(f).split('-').map(Number);
+  if (!y) return f;
+  return new Date(y, m - 1, d).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 }
 
 /* ── Preferencias por local ───────────────────────────────────────────
@@ -1433,7 +1452,9 @@ export default function Comisiones() {
   const [ajustesManuales, setAjustesManuales] = useState([]);
   const [pagosSemanales, setPagosSemanales] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showPresets, setShowPresets] = useState(false);
+  // Los atajos de período ya no viven en un desplegable: están a la vista como
+  // chips. Lo que sí se colapsa son los ajustes de cálculo, que se tocan una vez.
+  const [showAjustes, setShowAjustes] = useState(false);
   const [pagarTarget, setPagarTarget] = useState(null);
   const [adelantoTarget, setAdelantoTarget] = useState(null);
   // { barbero, ajuste? } — ajuste presente = edit; ausente = nuevo.
@@ -2688,67 +2709,91 @@ export default function Comisiones() {
         </div>
       </div>
 
-      {/* Date range */}
+      {/* ── Período ──────────────────────────────────────────────────────
+          Los atajos pasaron de vivir dentro de un desplegable a estar a la
+          vista: elegir "Este mes" eran dos clics y ahora es uno. Las flechas
+          corren el rango por su propio largo, que es como uno se mueve de
+          verdad ("la semana pasada", "el período anterior"). */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Desde</label>
-            <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hasta</label>
-            <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowPresets(v => !v)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-all"
-            >
-              <Calendar size={14} />
-              Período
-              <ChevronDown size={12} />
-            </button>
-            {showPresets && (
-              <div className="absolute left-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20 w-56 py-1">
-                {/* El preset que de verdad se usa: el período de pago no es un
-                    mes de calendario, es "desde la última liquidación". */}
-                {ultimoPagoEquipo && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setFechaInicio(diaSiguiente(ultimoPagoEquipo.periodoFin));
-                        setFechaFin(today());
-                        setShowPresets(false);
-                      }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-800 transition-colors"
-                    >
-                      <span className="block text-sm font-semibold text-emerald-400">Desde el último pago del equipo</span>
-                      <span className="block text-[11px] text-slate-500 tabular-nums">
-                        {diaSiguiente(ultimoPagoEquipo.periodoFin)} → hoy
-                      </span>
-                      <span className="block text-[10.5px] text-slate-600 mt-0.5">
-                        Para una persona en particular, usa su chip en la tarjeta
-                      </span>
-                    </button>
-                    <div className="h-px bg-slate-700/70 my-1" />
-                  </>
-                )}
-                {PRESETS.map(p => (
-                  <button key={p.label} onClick={() => { const [i, f] = p.fn(); setFechaInicio(i); setFechaFin(f); setShowPresets(false); }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-primary transition-colors">
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {ultimoPagoEquipo && (() => {
+            const desde = diaSiguiente(ultimoPagoEquipo.periodoFin);
+            const activo = fechaInicio === desde && fechaFin === today();
+            return (
+              <button
+                onClick={() => { setFechaInicio(desde); setFechaFin(today()); }}
+                title={`Desde el día siguiente a la última liquidación del equipo (${ultimoPagoEquipo.periodoFin}). Para una persona, usa el chip de su tarjeta.`}
+                className={`px-3 py-1.5 rounded-full border text-[13px] font-semibold transition-all ${
+                  activo
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                }`}
+              >
+                Desde el último pago
+              </button>
+            );
+          })()}
+          {PRESETS.map(p => {
+            const [i, f] = p.fn();
+            const activo = fechaInicio === i && fechaFin === f;
+            return (
+              <button
+                key={p.label}
+                onClick={() => { setFechaInicio(i); setFechaFin(f); }}
+                className={`px-3 py-1.5 rounded-full border text-[13px] font-semibold transition-all ${
+                  activo
+                    ? 'bg-slate-700 text-primary border-slate-500'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-primary hover:border-slate-600'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+
+          <div className="flex-1" />
+
           <button onClick={() => { loadCitas(); loadVentas(); loadAdelantos(); }} disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 disabled:opacity-50 transition-all">
-            <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 disabled:opacity-50 transition-all">
+            <RefreshCcw size={13} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Cargando...' : 'Actualizar'}
           </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <button
+            onClick={() => { const n = diasEntre(fechaInicio, fechaFin); setFechaInicio(sumarDias(fechaInicio, -n)); setFechaFin(sumarDias(fechaFin, -n)); }}
+            title="Período anterior del mismo largo"
+            aria-label="Período anterior"
+            className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-primary transition-colors"
+          >
+            <ChevronLeft size={14} />
+          </button>
+
+          <input type="date" value={fechaInicio} max={fechaFin} onChange={e => setFechaInicio(e.target.value)}
+            aria-label="Desde"
+            className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[13px] text-primary focus:border-emerald-500 focus:outline-none" />
+          <span className="text-slate-600">→</span>
+          <input type="date" value={fechaFin} min={fechaInicio} onChange={e => setFechaFin(e.target.value)}
+            aria-label="Hasta"
+            className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[13px] text-primary focus:border-emerald-500 focus:outline-none" />
+
+          <button
+            onClick={() => { const n = diasEntre(fechaInicio, fechaFin); setFechaInicio(sumarDias(fechaInicio, n)); setFechaFin(sumarDias(fechaFin, n)); }}
+            disabled={fechaFin >= today()}
+            title="Período siguiente del mismo largo"
+            aria-label="Período siguiente"
+            className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 enabled:hover:text-primary disabled:opacity-30 disabled:cursor-default transition-colors"
+          >
+            <ChevronRight size={14} />
+          </button>
+
+          {/* El rango en cristiano: "36 días · 1 jul → 5 ago" se lee de una
+              ojeada; dos campos YYYY-MM-DD hay que descifrarlos. */}
+          <p className="text-[12.5px] text-slate-500 ml-1">
+            <span className="font-semibold text-slate-400 tabular-nums">{diasEntre(fechaInicio, fechaFin)} días</span>
+            {' · '}{fechaCorta(fechaInicio)} → {fechaCorta(fechaFin)}
+          </p>
         </div>
 
         {/* ── Estado del equipo · buscador · orden ──────────────────────
@@ -2813,91 +2858,6 @@ export default function Comisiones() {
         )}
       </div>
 
-      {/* Reglas del pago — flags por tenant */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <FileText size={15} className="text-blue-400" />
-          <p className="text-sm font-bold text-primary">Reglas del pago</p>
-        </div>
-        <label className="flex items-start gap-3 cursor-pointer select-none group">
-          <button
-            type="button"
-            onClick={toggleCortesiaPagaComision}
-            role="switch"
-            aria-checked={cortesiaPagaComision}
-            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              cortesiaPagaComision ? 'bg-emerald-500' : 'bg-slate-700'
-            }`}
-          >
-            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-              cortesiaPagaComision ? 'translate-x-5' : 'translate-x-1'
-            }`} />
-          </button>
-          <div onClick={toggleCortesiaPagaComision} className="flex-1">
-            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
-              Las cortesías pagan comisión al barbero
-            </p>
-            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
-              {cortesiaPagaComision
-                ? 'Cada cita marcada como cortesía suma comisión al barbero (usa el precio del catálogo). El ingreso del local sigue en $0 — solo cambia el pago al equipo.'
-                : 'Las cortesías NO generan comisión al barbero (comportamiento por defecto). Activa el toggle si tu política es pagarle igual por el servicio.'}
-            </p>
-          </div>
-        </label>
-        <label className="flex items-start gap-3 cursor-pointer select-none group mt-4 pt-4 border-t border-slate-800">
-          <button
-            type="button"
-            onClick={toggleEfectivoAlBarbero}
-            role="switch"
-            aria-checked={efectivoAlBarbero}
-            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              efectivoAlBarbero ? 'bg-emerald-500' : 'bg-slate-700'
-            }`}
-          >
-            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-              efectivoAlBarbero ? 'translate-x-5' : 'translate-x-1'
-            }`} />
-          </button>
-          <div onClick={toggleEfectivoAlBarbero} className="flex-1">
-            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
-              Los barberos se llevan el efectivo
-            </p>
-            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
-              {efectivoAlBarbero
-                ? 'Lo cobrado en efectivo queda en la mano del barbero: del pago del período se descuenta ese efectivo completo, con el desglose visible (su comisión ya cobrada + la parte del local que retuvo). Si el efectivo supera lo generado, queda saldo a favor del local.'
-                : 'El efectivo entra a la caja del local (comportamiento por defecto). Activa el toggle si tus barberos se quedan con lo pagado en efectivo y quieres que el sistema lo descuente del pago con detalle visible.'}
-            </p>
-          </div>
-        </label>
-      </div>
-
-      {/* Cálculo del neto (IVA + comisión POS) — se usa al exportar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <DollarSign size={15} className="text-emerald-400" />
-          <p className="text-sm font-bold text-primary">Cálculo del neto (para exportar)</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">IVA %</label>
-            <input type="number" min="0" step="0.01" value={ivaPct} onChange={e => setIvaPct(e.target.value)}
-              className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Débito %</label>
-            <input type="number" min="0" step="0.01" value={comDebPct} onChange={e => setComDebPct(e.target.value)}
-              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Crédito %</label>
-            <input type="number" min="0" step="0.01" value={comCredPct} onChange={e => setComCredPct(e.target.value)}
-              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
-          </div>
-        </div>
-        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
-          El <span className="text-slate-300 font-medium">neto</span> = bruto − IVA − comisión del POS. La comisión solo se aplica a débito/crédito; efectivo y transferencia solo descuentan IVA. Ajusta los valores a los de tu comercio.
-        </p>
-      </div>
 
       {/* Summary KPIs */}
       {data.length > 0 && (
@@ -3352,6 +3312,112 @@ export default function Comisiones() {
           </div>
         </div>
       )}
+
+      {/* ── Ajustes de cálculo ─────────────────────────────────────────
+          Se configuran una vez y no se vuelven a tocar, pero estaban entre
+          el filtro y los profesionales, robándole el lugar a lo que uno
+          viene a ver. Colapsados y al final: siguen a mano, ya no estorban. */}
+      <div className="space-y-3">
+        <button
+          onClick={() => setShowAjustes(v => !v)}
+          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-2 text-left hover:border-slate-700 transition-all"
+        >
+          <Settings size={15} className="text-slate-400 shrink-0" />
+          <span className="text-sm font-bold text-primary">Ajustes de cálculo</span>
+          <span className="hidden sm:block text-[11.5px] text-slate-500 truncate">
+            · Reglas del pago · IVA {ivaPct}% · POS {comDebPct}/{comCredPct}%
+          </span>
+          <span className="flex-1" />
+          <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${showAjustes ? 'rotate-180' : ''}`} />
+        </button>
+        {showAjustes && (<>
+      {/* Reglas del pago — flags por tenant */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={15} className="text-blue-400" />
+          <p className="text-sm font-bold text-primary">Reglas del pago</p>
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer select-none group">
+          <button
+            type="button"
+            onClick={toggleCortesiaPagaComision}
+            role="switch"
+            aria-checked={cortesiaPagaComision}
+            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              cortesiaPagaComision ? 'bg-emerald-500' : 'bg-slate-700'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+              cortesiaPagaComision ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+          <div onClick={toggleCortesiaPagaComision} className="flex-1">
+            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
+              Las cortesías pagan comisión al barbero
+            </p>
+            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
+              {cortesiaPagaComision
+                ? 'Cada cita marcada como cortesía suma comisión al barbero (usa el precio del catálogo). El ingreso del local sigue en $0 — solo cambia el pago al equipo.'
+                : 'Las cortesías NO generan comisión al barbero (comportamiento por defecto). Activa el toggle si tu política es pagarle igual por el servicio.'}
+            </p>
+          </div>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer select-none group mt-4 pt-4 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={toggleEfectivoAlBarbero}
+            role="switch"
+            aria-checked={efectivoAlBarbero}
+            className={`shrink-0 mt-0.5 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              efectivoAlBarbero ? 'bg-emerald-500' : 'bg-slate-700'
+            }`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+              efectivoAlBarbero ? 'translate-x-5' : 'translate-x-1'
+            }`} />
+          </button>
+          <div onClick={toggleEfectivoAlBarbero} className="flex-1">
+            <p className="text-[13px] font-semibold text-slate-200 group-hover:text-primary transition-colors">
+              Los barberos se llevan el efectivo
+            </p>
+            <p className="text-[11.5px] text-slate-500 mt-0.5 leading-relaxed">
+              {efectivoAlBarbero
+                ? 'Lo cobrado en efectivo queda en la mano del barbero: del pago del período se descuenta ese efectivo completo, con el desglose visible (su comisión ya cobrada + la parte del local que retuvo). Si el efectivo supera lo generado, queda saldo a favor del local.'
+                : 'El efectivo entra a la caja del local (comportamiento por defecto). Activa el toggle si tus barberos se quedan con lo pagado en efectivo y quieres que el sistema lo descuente del pago con detalle visible.'}
+            </p>
+          </div>
+        </label>
+      </div>
+
+      {/* Cálculo del neto (IVA + comisión POS) — se usa al exportar */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign size={15} className="text-emerald-400" />
+          <p className="text-sm font-bold text-primary">Cálculo del neto (para exportar)</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">IVA %</label>
+            <input type="number" min="0" step="0.01" value={ivaPct} onChange={e => setIvaPct(e.target.value)}
+              className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Débito %</label>
+            <input type="number" min="0" step="0.01" value={comDebPct} onChange={e => setComDebPct(e.target.value)}
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Crédito %</label>
+            <input type="number" min="0" step="0.01" value={comCredPct} onChange={e => setComCredPct(e.target.value)}
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none" />
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+          El <span className="text-slate-300 font-medium">neto</span> = bruto − IVA − comisión del POS. La comisión solo se aplica a débito/crédito; efectivo y transferencia solo descuentan IVA. Ajusta los valores a los de tu comercio.
+        </p>
+      </div>
+        </>)}
+      </div>
 
       {/* Modales */}
       <DetalleBarberoDrawer
