@@ -1667,6 +1667,10 @@ exports.trialExpiryCron = require('./trial-expiry').trialExpiryCron;
 // Trigger que activa el tenant self-service al recibirse el primer pago MP
 // (cierra el loop trial → active sin intervención manual).
 exports.activarSelfServicePostPago = require('./self-service-payment-hook').activarSelfServicePostPago;
+// Extensión de trial auto-aprobada (1 vez por tenant, +14d) para tenants
+// self-service que necesitan más tiempo para decidir. Botón visible en
+// TrialGate cuando quedan ≤2 días.
+exports.solicitarExtensionTrial = require('./self-service-trial-extension').solicitarExtensionTrial;
 
 // Wallet-only self-service (wallets.bioo.cl/crea) — producto standalone.
 // Alta express de tenants SIN agenda: recibe email + slug + nombre y deja

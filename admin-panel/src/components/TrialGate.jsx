@@ -5,7 +5,7 @@ import { getApp } from 'firebase/app';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Clock, Check, Sparkles, CreditCard, Loader2, MessageCircle } from 'lucide-react';
+import { Clock, Check, Sparkles, CreditCard, Loader2, MessageCircle, Gift } from 'lucide-react';
 
 /* Trial self-service de 14 días — gate del panel completo.
    · Días 1-10:  nada (acceso libre).
@@ -61,26 +61,124 @@ const PLANES = [
 
 export function useTrialEstado() {
   const { id } = useTenant();
-  const [estado, setEstado] = useState({ enTrial: false, vencido: false, diasRestantes: null });
+  const [estado, setEstado] = useState({ enTrial: false, vencido: false, diasRestantes: null, extensionesUsadas: 0 });
 
   useEffect(() => {
     const unsub = onSnapshot(
       doc(db, 'tenants', id),
       s => {
-        if (!s.exists()) { setEstado({ enTrial: false, vencido: false, diasRestantes: null }); return; }
+        if (!s.exists()) { setEstado({ enTrial: false, vencido: false, diasRestantes: null, extensionesUsadas: 0 }); return; }
         const d = s.data();
         const finMs = d.trialFinaliza?.toMillis?.() ?? null;
         const vencido = d.status === 'trial_expired' ||
           (d.status === 'trial' && finMs != null && finMs < Date.now());
         const diasRestantes = finMs != null ? Math.max(0, Math.ceil((finMs - Date.now()) / 86400000)) : null;
-        setEstado({ enTrial: d.status === 'trial' && !vencido, vencido, diasRestantes });
+        setEstado({
+          enTrial: d.status === 'trial' && !vencido,
+          vencido,
+          diasRestantes,
+          extensionesUsadas: Number(d.trialExtensionesUsadas || 0),
+        });
       },
-      () => setEstado({ enTrial: false, vencido: false, diasRestantes: null }),
+      () => setEstado({ enTrial: false, vencido: false, diasRestantes: null, extensionesUsadas: 0 }),
     );
     return unsub;
   }, [id]);
 
   return estado;
+}
+
+/* Regalo "+14 días" en el TrialGate: aparece solo cuando quedan ≤2 días de
+   trial (o ya venció) Y el tenant nunca ha extendido. Filtra a los verdaderos
+   indecisos sin retrasar el pago de los que ya iban a pagar.
+   La extensión se aplica al toque (auto-aprobada, sin depender de Ignacio).
+   Motivo es opcional pero recomendado — lo usamos para iterar el onboarding. */
+function BotonExtenderTrial({ tenant, sePuede }) {
+  const [abierto, setAbierto]   = useState(false);
+  const [motivo, setMotivo]     = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [error, setError]       = useState('');
+  const [listo, setListo]       = useState(false);
+
+  if (!sePuede) return null;
+
+  async function extender() {
+    setCargando(true);
+    setError('');
+    try {
+      const fn = httpsCallable(getFunctions(getApp(), REGION), 'solicitarExtensionTrial');
+      const res = await fn({ tenantId: tenant.id, motivo });
+      const dias = res?.data?.diasExtendidos || 14;
+      setListo(true);
+      // El onSnapshot del hook se encarga de refrescar la UI automáticamente.
+      setTimeout(() => { setAbierto(false); setListo(false); setMotivo(''); }, 3000);
+      // Aviso visible extra por si el snapshot tarda
+      console.info(`[trial] extensión aplicada +${dias}d`);
+    } catch (e) {
+      setError(String(e?.message || 'No pudimos extender el trial.').replace(/^FirebaseError: /, ''));
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  if (listo) {
+    return (
+      <div className="mt-4 mx-auto max-w-md bg-emerald-500/[0.08] border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-200 text-sm font-semibold flex items-center gap-2 justify-center">
+        <Gift size={16} className="text-emerald-400" /> ¡Listo! Tienes 14 días más de prueba gratis.
+      </div>
+    );
+  }
+
+  if (!abierto) {
+    return (
+      <div className="mt-5 text-center">
+        <button
+          onClick={() => setAbierto(true)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-purple-200 hover:text-white bg-purple-500/[0.08] hover:bg-purple-500/15 border border-purple-500/30 rounded-xl px-4 py-2.5 transition-colors"
+        >
+          <Gift size={14} /> ¿Necesitas más tiempo? Te regalamos 14 días extra
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 mx-auto max-w-md bg-neutral-900/60 border border-purple-500/30 rounded-2xl p-5 text-left">
+      <div className="flex items-start gap-3 mb-3">
+        <Gift size={20} className="text-purple-300 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-bold text-white">+14 días extra, gratis</p>
+          <p className="text-[12.5px] text-neutral-400 mt-1 leading-relaxed">Los usamos para que termines de ver si te sirve. Opcional: cuéntanos qué te faltó decidir — nos ayuda a mejorar.</p>
+        </div>
+      </div>
+      <textarea
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value.slice(0, 300))}
+        rows={2}
+        placeholder="Ej: no alcancé a subir mis fotos, quiero probar con clientes reales primero…"
+        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-neutral-200 placeholder:text-neutral-600 outline-none focus:border-purple-500/50 resize-none"
+      />
+      {error && (
+        <p className="mt-2 text-[11.5px] text-rose-400 leading-snug">{error}</p>
+      )}
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => { setAbierto(false); setMotivo(''); setError(''); }}
+          className="flex-1 text-xs font-semibold text-neutral-400 hover:text-neutral-200 py-2 rounded-lg border border-neutral-800"
+        >
+          Ahora no
+        </button>
+        <button
+          onClick={extender}
+          disabled={cargando}
+          className="flex-[2] flex items-center justify-center gap-2 text-sm font-bold text-ink-950 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-300 hover:to-purple-400 py-2.5 rounded-lg disabled:opacity-60 disabled:cursor-wait"
+        >
+          {cargando ? <><Loader2 size={14} className="animate-spin" /> Extendiendo…</> : <><Gift size={14} /> Sí, dame 14 días más</>}
+        </button>
+      </div>
+      <p className="mt-3 text-[10.5px] text-neutral-500 leading-relaxed text-center">Solo una vez por local. Después de esta extensión, si necesitas más, hablamos por WhatsApp.</p>
+    </div>
+  );
 }
 
 function waActivarHref(plan, tenant) {
@@ -173,7 +271,7 @@ function PlanCard({ plan, tenant }) {
   );
 }
 
-function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar }) {
+function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar, puedeExtender }) {
   return (
     <div className="fixed inset-0 z-[95] overflow-y-auto bg-[#050505]/95 backdrop-blur-sm">
       <div className="min-h-full flex flex-col items-center justify-center px-4 py-10">
@@ -192,6 +290,7 @@ function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar }) {
             Al activar un plan tu agenda vuelve a recibir reservas al instante.
             Tus datos, clientes y configuración están intactos.
           </p>
+          <BotonExtenderTrial tenant={tenant} sePuede={puedeExtender} />
           {onCerrar && (
             <button
               onClick={onCerrar}
@@ -209,10 +308,14 @@ function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar }) {
 export default function TrialGate({ children }) {
   const tenant = useTenant();
   const { user } = useAuth();
-  const { enTrial, vencido, diasRestantes } = useTrialEstado();
+  const { enTrial, vencido, diasRestantes, extensionesUsadas } = useTrialEstado();
   const [verPlanes, setVerPlanes] = useState(false);
 
   const esSuperadmin = (user?.email || '').toLowerCase() === SUPERADMIN_EMAIL;
+  // Regalo +14d disponible cuando quedan ≤2 días de trial (o ya venció) y
+  // el tenant nunca ha extendido. Filtra a los verdaderos indecisos sin
+  // aplazar el pago de los que ya iban a pagar.
+  const puedeExtender = extensionesUsadas === 0 && (vencido || (enTrial && diasRestantes != null && diasRestantes <= 2));
 
   // Trial vencido → el panel completo se reemplaza por la selección de plan.
   // El superadmin nunca queda fuera (necesita entrar a reactivar/soportar).
@@ -222,6 +325,7 @@ export default function TrialGate({ children }) {
         tenant={tenant}
         titulo="Tu prueba gratuita terminó"
         subtitulo={`La agenda de ${tenant.name} está en pausa y tus clientes no pueden reservar. Activa tu plan para reanudarla al instante — no se borró nada.`}
+        puedeExtender={puedeExtender}
       />
     );
   }
@@ -250,6 +354,7 @@ export default function TrialGate({ children }) {
           titulo="Elige tu plan"
           subtitulo={`Te ${diasRestantes === 1 ? 'queda' : 'quedan'} ${diasRestantes} ${diasRestantes === 1 ? 'día' : 'días'} de prueba en ${tenant.name}. Activa tu plan ahora y no te preocupes más.`}
           onCerrar={() => setVerPlanes(false)}
+          puedeExtender={puedeExtender}
         />
       )}
       {children}
