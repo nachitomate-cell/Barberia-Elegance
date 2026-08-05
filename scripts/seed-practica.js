@@ -33,6 +33,8 @@
 //                                                       (citas/clientes/ventas)
 //                                                       y vuelve a sembrar
 //    node scripts/seed-practica.js --owner=ella@x.cl  → le da acceso admin
+//    node scripts/seed-practica.js --owner=ella@x.cl --pass=Practica7912
+//                                                     → fija/repone la clave
 //
 //  Panel:  https://practica.synaptechspa.cl/gestion-interna/?local=practica
 //  Agenda: https://practica.synaptechspa.cl
@@ -62,6 +64,7 @@ const NOMBRE = 'Barbería Práctica';
 const args   = process.argv.slice(2);
 const RESET  = args.includes('--reset');
 const OWNER  = (args.find(a => a.startsWith('--owner=')) || '').split('=')[1] || null;
+const PASS   = (args.find(a => a.startsWith('--pass=')) || '').split('=')[1] || null;
 
 const T  = (p) => db.collection(`tenants/${TID}/${p}`);
 const TS = FieldValue.serverTimestamp();
@@ -319,17 +322,29 @@ async function sembrar() {
 }
 
 // ── Acceso de la vendedora ───────────────────────────────────────────────────
-async function darAcceso(email) {
+async function darAcceso(email, pass) {
   let user;
+  let vigente = null;   // solo se conoce si la fijamos en esta corrida
   try {
     user = await admin.auth().getUserByEmail(email);
     console.log(`  cuenta existente: ${email}`);
+    // Con la cuenta ya creada el seed NO tocaba la contraseña, así que la
+    // única que servía era la aleatoria del primer run — impresa una vez en
+    // consola y perdida apenas se cerraba la terminal. Pasando --pass se
+    // repone sin tener que borrar el usuario.
+    if (pass) {
+      await admin.auth().updateUser(user.uid, { password: pass });
+      vigente = pass;
+      console.log('  contraseña repuesta con --pass');
+    } else {
+      console.log('  contraseña: sin cambios (usa --pass=… para reponerla)');
+    }
   } catch (_) {
-    const pass = 'Practica' + Math.floor(1000 + Math.random() * 9000);
-    user = await admin.auth().createUser({ email, password: pass, displayName: 'Equipo comercial' });
+    vigente = pass || ('Practica' + Math.floor(1000 + Math.random() * 9000));
+    user = await admin.auth().createUser({ email, password: vigente, displayName: 'Equipo comercial' });
     console.log(`  cuenta creada: ${email}`);
-    console.log(`  contraseña temporal: ${pass}   ← que la cambie al entrar`);
   }
+  if (vigente) console.log(`  contraseña: ${vigente}   ← anótala, no queda guardada`);
   await admin.auth().setCustomUserClaims(user.uid, { role: 'admin', tenantId: TID });
   await T('barberos').doc(user.uid).set({
     _mainDocId: 'practica-b1', uid: user.uid, email,
@@ -358,7 +373,7 @@ async function darAcceso(email) {
 
   if (OWNER) {
     console.log('\nAcceso:');
-    await darAcceso(OWNER);
+    await darAcceso(OWNER, PASS);
   }
 
   console.log('\n  Panel:  https://practica.synaptechspa.cl/gestion-interna/?local=practica');

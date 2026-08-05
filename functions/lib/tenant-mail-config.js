@@ -396,27 +396,73 @@ const TENANT_CONFIG = {
  * @param {import('firebase-functions').logger} [logger] opcional para warn.
  * @returns {Promise<object>} branding del tenant.
  */
-async function getTenantConfig(tenantId, logger) {
-  const cfg = TENANT_CONFIG[tenantId];
-  if (cfg) return cfg;
-
-  // Derivar branding real del doc del tenant (nunca impersonar Elegance).
-  let nombre = null, direccion = '', horario = '', whatsapp = '', instagram = '';
+/**
+ * Lee los datos que el DUEÑO edita en /gestion-interna/configuracion.
+ *
+ * Esa pantalla guarda en `tenants/{tid}/settings/general` (ver settingsRef()
+ * en Configuracion.jsx), NO en el doc raíz del tenant. Antes esta librería
+ * miraba solo el doc raíz, así que aunque el tenant no tuviera entrada
+ * estática, la dirección editada tampoco llegaba nunca al correo.
+ */
+async function _datosEditablesDelPanel(tenantId, logger) {
+  const out = { nombre: '', direccion: '', horario: '', whatsapp: '', instagram: '' };
+  const dbf = admin.firestore();
   try {
-    const snap = await admin.firestore().collection('tenants').doc(tenantId).get();
-    if (snap.exists) {
-      const d = snap.data() || {};
-      nombre    = d.nombre || d.nombreLocal || d.nombreCorto || (d.branding && d.branding.nombre) || null;
-      direccion = d.direccion || (d.branding && d.branding.direccion) || '';
-      horario   = d.horario || '';
-      whatsapp  = d.whatsapp || d.telefono || '';
-      instagram = d.instagram || '';
-    }
+    const [general, profile, raiz] = await Promise.all([
+      dbf.doc(`tenants/${tenantId}/settings/general`).get(),
+      dbf.doc(`tenants/${tenantId}/profile/main`).get(),
+      dbf.collection('tenants').doc(tenantId).get(),
+    ]);
+
+    const g = general.exists ? (general.data() || {}) : {};
+    const p = profile.exists ? (profile.data() || {}) : {};
+    const d = raiz.exists    ? (raiz.data()    || {}) : {};
+
+    // Orden de prioridad: lo que el dueño acaba de guardar en el panel primero.
+    // `profile/main.address` viene con emoji de pin del sitio público; se limpia
+    // para que el correo no muestre "📍 📍 Serrano 73" (la plantilla ya pone su
+    // propio ícono).
+    const limpiar = (s) => String(s || '').replace(/^[\s\u{1F4CD}\u{1F550}-\u{1F567}]+/u, '').trim();
+
+    out.direccion = limpiar(g.direccion || p.address || d.direccion || (d.branding && d.branding.direccion) || '');
+    // OJO: `settings/general.horario` es un OBJETO por día (para la agenda), no
+    // una frase. El texto legible del horario vive en `profile/main.scheduleText`.
+    out.horario   = limpiar(p.scheduleText || d.horario || '');
+    out.whatsapp  = String(g.whatsapp || g.telefono || p.phone || d.whatsapp || d.telefono || '').trim();
+    out.instagram = String(g.instagram || p.instagram || d.instagram || '').trim();
+    out.nombre    = String(g.nombre || p.name || d.nombre || d.nombreLocal || d.nombreCorto
+                    || (d.branding && d.branding.nombre) || '').trim();
   } catch (e) {
     if (logger && typeof logger.warn === 'function') {
-      logger.warn(`[tenant-mail-config] no se pudo leer tenants/${tenantId}: ${e.message}`);
+      logger.warn(`[tenant-mail-config] no se pudieron leer los datos editables de ${tenantId}: ${e.message}`);
     }
   }
+  return out;
+}
+
+async function getTenantConfig(tenantId, logger) {
+  const cfg = TENANT_CONFIG[tenantId];
+
+  if (cfg) {
+    // La entrada estática aporta el branding técnico (from, color, cabecera,
+    // dashboardUrl) que el dueño NO edita. Pero dirección, horario, WhatsApp e
+    // Instagram sí se editan en el panel, y antes el hardcode ganaba siempre:
+    // el dueño cambiaba la dirección, guardaba, y el correo seguía mostrando la
+    // vieja para siempre. Ahora lo guardado en el panel pisa al estático.
+    const editable = await _datosEditablesDelPanel(tenantId, logger);
+    return {
+      ...cfg,
+      ...(editable.direccion ? { direccion: editable.direccion } : {}),
+      ...(editable.horario   ? { horario:   editable.horario   } : {}),
+      ...(editable.whatsapp  ? { whatsapp:  editable.whatsapp  } : {}),
+      ...(editable.instagram ? { instagram: editable.instagram } : {}),
+    };
+  }
+
+  // Sin entrada estática: branding derivado (nunca impersonar Elegance).
+  const der = await _datosEditablesDelPanel(tenantId, logger);
+  const nombre = der.nombre || null;
+  const { direccion, horario, whatsapp, instagram } = der;
 
   const displayName = nombre || tenantId;   // jamás "Elegance"
   if (logger && typeof logger.warn === 'function') {
