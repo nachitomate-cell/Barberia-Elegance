@@ -4948,139 +4948,6 @@
       color: #111827 !important;
     }
 
-    /* ══════════════════════════════════════════════════════════
-       OMEGA STUDIO — tenant-omegastudio
-       Champán #d4a96a sobre fondo oscuro #0c0c0e
-    ══════════════════════════════════════════════════════════ */
-
-    /* ── Variables & fondo ── */
-    .tenant-omegastudio {
-      --gold:      #d4a96a;
-      --gold-dim:  rgba(212,169,106,0.30);
-      --gold-glow: rgba(212,169,106,0.14);
-      --accent:    #d4a96a;
-      --accent-r:  212; --accent-g: 169; --accent-b: 106;
-    }
-    html.tenant-omegastudio body { background-color: #0c0c0e !important; }
-
-    /* ── Hero banner: interior de Omega Studio ── */
-    .tenant-omegastudio .hero-bg {
-      background-image: url('/omega2.avif');
-      background-size: cover;
-      background-position: center;
-    }
-    .tenant-omegastudio .hero-overlay {
-      background: linear-gradient(160deg,
-        rgba(0,0,0,0.25) 0%,
-        rgba(0,0,0,0.60) 45%,
-        rgba(0,0,0,0.88) 100%);
-    }
-    .tenant-omegastudio .hero-glow-spot {
-      background: radial-gradient(circle, rgba(212,169,106,0.10) 0%, transparent 65%) !important;
-    }
-    .tenant-omegastudio #heroLine2 { color: #d4a96a !important; font-style: normal !important; }
-
-    /* ── Sello lleno: champán ── */
-    .tenant-omegastudio .stamp-cell.filled {
-      background: #d4a96a !important;
-      border: 1px solid #d4a96a !important;
-      box-shadow: 0 0 10px rgba(212,169,106,0.35) !important;
-    }
-    .tenant-omegastudio .stamp-cell.filled i { color: #0c0c0e !important; }
-
-    /* ── Sello vacío: hendidura con relieve interior ── */
-    .tenant-omegastudio .stamp-cell.empty {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.06) !important;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.30) !important;
-    }
-
-    /* ── Próximo sello: resplandor champán para incentivar ── */
-    .tenant-omegastudio .stamp-cell.stamp-next {
-      border: 1.5px solid rgba(212,169,106,0.55) !important;
-      box-shadow:
-        inset 0 2px 4px rgba(0,0,0,0.40),
-        0 0 10px rgba(212,169,106,0.28),
-        0 0 20px rgba(212,169,106,0.12) !important;
-      background: rgba(212,169,106,0.06) !important;
-      animation: omega-next-pulse 2.4s ease-in-out infinite !important;
-    }
-    @keyframes omega-next-pulse {
-      0%, 100% { box-shadow: inset 0 2px 4px rgba(0,0,0,0.40), 0 0 8px rgba(212,169,106,0.22), 0 0 18px rgba(212,169,106,0.08); }
-      50%       { box-shadow: inset 0 2px 4px rgba(0,0,0,0.40), 0 0 14px rgba(212,169,106,0.42), 0 0 28px rgba(212,169,106,0.18); }
-    }
-
-    /* ── Premio vacío: icono atenuado ── */
-    .tenant-omegastudio .stamp-cell.prize-empty i { opacity: 0.35 !important; }
-    .tenant-omegastudio .stamp-cell.prize-filled {
-      background: #d4a96a !important;
-      border: 1px solid #d4a96a !important;
-      box-shadow: 0 0 14px rgba(212,169,106,0.45) !important;
-    }
-    .tenant-omegastudio .stamp-cell.prize-filled i { color: #0c0c0e !important; opacity: 1 !important; }
-
-    /* ── Barra de sellos ── */
-    .tenant-omegastudio #stampsBar {
-      background: linear-gradient(90deg, #d4a96a, #c08040) !important;
-      box-shadow: 0 0 8px rgba(212,169,106,0.35) !important;
-    }
-
-    /* ── PWA install card: peso reducido (sin borde dorado prominente) ── */
-    .tenant-omegastudio #pwaBigInstallCard {
-      background: linear-gradient(to right, rgba(212,169,106,0.07), rgba(212,169,106,0.02)) !important;
-      border: 1px solid rgba(212,169,106,0.18) !important;
-      box-shadow: none !important;
-    }
-    .tenant-omegastudio .pwa-icon-bg {
-      background: rgba(212,169,106,0.08) !important;
-      border: 1px solid rgba(212,169,106,0.18) !important;
-      box-shadow: none !important;
-    }
-    .tenant-omegastudio #pwaBanner { border-color: rgba(212,169,106,0.22) !important; }
-
-    /* ── Próximo premio: texto sin corte ── */
-    .tenant-omegastudio #nextRewardText {
-      white-space: normal !important;
-      overflow: visible !important;
-      text-overflow: unset !important;
-      font-size: 0.75rem !important;
-      line-height: 1.4 !important;
-    }
-
-    /* ── Inputs del perfil: borde visible + focus champán ── */
-    .tenant-omegastudio #editNombre,
-    .tenant-omegastudio #editTelefono,
-    .tenant-omegastudio #editFechaNacimiento {
-      border-color: rgba(212,169,106,0.20) !important;
-    }
-    .tenant-omegastudio #editNombre:focus,
-    .tenant-omegastudio #editTelefono:focus,
-    .tenant-omegastudio #editFechaNacimiento:focus {
-      border-color: #d4a96a !important;
-      box-shadow: 0 0 0 2px rgba(212,169,106,0.18) !important;
-    }
-
-    /* ── Tier badge Silver: gradiente metálico ── */
-    .tenant-omegastudio .tier-badge.silver {
-      color: #d4d4d4 !important;
-      border-color: rgba(200,200,200,0.28) !important;
-      background: linear-gradient(135deg,
-        rgba(220,220,230,0.14) 0%,
-        rgba(180,180,195,0.06) 50%,
-        rgba(220,220,230,0.10) 100%) !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
-    }
-    .tenant-omegastudio .tier-badge.gold {
-      color: #d4a96a !important;
-      border-color: rgba(212,169,106,0.30) !important;
-      background: linear-gradient(135deg, rgba(212,169,106,0.14) 0%, rgba(212,169,106,0.04) 100%) !important;
-      box-shadow: 0 2px 8px rgba(212,169,106,0.12) !important;
-    }
-    .tenant-omegastudio .tier-badge.platinum {
-      color: #e8d5ff !important;
-      border-color: rgba(216,180,254,0.35) !important;
-    }
-
     /* ═══ THE LATIN CARIBE — dashboard: banner propio + paleta del logo ═══ */
     /* Acento de marca (cian) en vez del navy heredado de Aura */
     .tenant-latincaribe {
@@ -5258,12 +5125,66 @@
        Sin este bloque el club mostraba la FOTO de Aura en el hero y
        las secciones exclusivas de Aura (planes anuales con spinner
        infinito, porque su loader corta si el tenant no es `aura`).
+
+       El hero apuntaba a /omega2.avif creyendo que era una foto del
+       local; en realidad ese archivo es el WORDMARK (912x513, tinta
+       sobre hueso, opaco). Con background-size:cover y el overlay
+       oscuro encima quedaba un recorte gigante de las letras. Acá el
+       hero pasa a ser una superficie hueso limpia con la frase de
+       marca en tinta, que es la identidad real del local.
     ══════════════════════════════════════════════════════════════ */
-    .tenant-omega.tenant-aura .hero-bg::before {
-      background-image: url('/omega2.avif') !important;
-      background-position: center !important;
+
+    /* Aura ya usa grafito (#111827) como "dorado" del tema claro; Omega lo
+       lleva a negro neutro, sin el tinte azul, que es el de su logo. */
+    .tenant-omega.tenant-aura {
+      --gold:      #111111;
+      --gold-dim:  rgba(17,17,17,0.15);
+      --gold-glow: rgba(17,17,17,0.04);
+      --accent:    #111111;
+      --accent-r: 17; --accent-g: 17; --accent-b: 17;
+      --neon-clr:  #111111;
+      --neon-r:   17; --neon-g:   17; --neon-b:   17;
     }
-    .tenant-omega.tenant-aura .hero-bg { background-color: #0c0c0e !important; }
+
+    /* Hero sin foto: superficie hueso. Aura anima su imagen con Ken Burns en
+       ::before, así que hay que anularlo ahí y no solo en .hero-bg. Cuando
+       lleguen las fotos del local, esto vuelve a ser un background-image. */
+    .tenant-omega.tenant-aura .hero-bg {
+      background-color: #F8F7F4 !important;
+      background-image: none !important;
+      border: 1px solid rgba(17,17,17,0.10) !important;
+    }
+    .tenant-omega.tenant-aura .hero-bg::before {
+      background-image: none !important;
+      animation: none !important;
+    }
+    /* Overlay y glow existen para dar contraste sobre una foto oscura. */
+    .tenant-omega.tenant-aura .hero-overlay,
+    .tenant-omega.tenant-aura .hero-glow-spot { background: none !important; }
+
+    /* La frase de marca: "La puntualidad" / "es nuestro estilo.". El text-shadow
+       y la itálica vienen inline del tema Elegance y sobre hueso solo ensucian. */
+    .tenant-omega.tenant-aura #heroLine1 {
+      color: #111111 !important;
+      text-shadow: none !important;
+    }
+    .tenant-omega.tenant-aura #heroLine2 {
+      color: #6B7280 !important;
+      font-style: normal !important;
+      text-shadow: none !important;
+    }
+    /* CTA: sobre hueso el botón translúcido de Aura se pierde; se invierte a
+       negro sólido, que además es el CTA que ya usa la agenda pública. */
+    .tenant-omega.tenant-aura .hero-cta {
+      background: #111111 !important;
+      border: 1px solid #111111 !important;
+      color: #FFFFFF !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-omega.tenant-aura .hero-cta i { color: #FFFFFF !important; }
+
     .tenant-omega.tenant-aura #rangosExplainerAura,
     .tenant-omega.tenant-aura #planesAnualesAura { display: none !important; }
 

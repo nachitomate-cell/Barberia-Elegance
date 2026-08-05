@@ -186,7 +186,7 @@ async function seedSettings() {
     telefono:  '+56972302811',
     whatsapp:  '+56972302811',
     instagram: '@omegastudio.cl',
-    logo:      '',      // el fallback usa /omega.jpg del config.js hasta que suban logo propio
+    logo:      '',      // el fallback usa /omega/logo.webp del config.js hasta que suban logo propio
     loginBanner: '',    // opcional — se muestra en el panel LoginPage
     emailAvisos: '',    // el dueño lo completa en Configuración
     horario:   HORARIO_MAIN,
@@ -212,19 +212,22 @@ async function seedSettings() {
   }, { merge: true });
 
   // settings/theme — tokens de tema CLARO (alias visual de Aura).
-  // El header/hero permanecen oscuros por contraste (aura hace lo mismo).
+  // Identidad B&N: tinta negra sobre hueso, igual que su logo y su wordmark.
+  // El champán #d4a96a que había acá era invención del slug viejo
+  // `omegastudio` y no existe en la marca real; el hero además pasó a claro
+  // (ver el bloque .tenant-omega en index.html y dashboard.css).
   await tenantRef.collection('settings').doc('theme').set({
     colorBg:            '#f8f7f4',
     colorSurface:       '#ffffff',
     colorSurfaceAlt:    '#f0efec',
-    colorPrimary:       '#d4a96a',
-    colorAccent:        '#c08040',
-    colorText:          '#1a1a1a',
+    colorPrimary:       '#111111',
+    colorAccent:        '#111111',
+    colorText:          '#18181b',
     colorMuted:         '#6b7280',
-    colorBorder:        'rgba(212,169,106,0.28)',
-    colorGlow:          'rgba(212,169,106,0.18)',
+    colorBorder:        'rgba(17,17,17,0.12)',
+    colorGlow:          'rgba(17,17,17,0.06)',
     colorButtonText:    '#ffffff',
-    colorProgressTrack: 'rgba(212,169,106,0.10)',
+    colorProgressTrack: 'rgba(17,17,17,0.10)',
     updatedAt:          TS(),
   }, { merge: true });
 
@@ -253,7 +256,7 @@ async function seedProfile() {
     address:         '📍 Av. Valparaíso 595, Local 53, 2do Piso | Viña del Mar',
     scheduleText:    'Lun–Vie 10–20h · Sáb 10–18h · Domingo cerrado',
     phone:           '+56972302811',
-    logoUrl:         '/omega.jpg',
+    logoUrl:         '/omega/logo.webp',
     instagram:       'https://www.instagram.com/omegastudio.cl/',
     pageTitle:       'Omega Studio | Agenda tu hora en Viña del Mar',
     metaDescription: 'Reserva tu hora en Omega Studio. Cortes, barba, tratamientos faciales y color en Av. Valparaíso 595, Local 53, Viña del Mar.',

@@ -777,11 +777,14 @@ const TENANT_META = {
       ogDesc:      'Regístrate en Omega Studio y disfruta de beneficios exclusivos.',
     },
     siteName:    'Omega Studio',
-    ogImage:     '/omega.jpg',
+    // OG propio 1200x630: el wordmark oficial centrado sobre el hueso de marca.
+    // Antes apuntaba a /omega.jpg (el logo cuadrado de 320px), que al compartir
+    // el link salía recortado y borroso en la tarjeta de WhatsApp.
+    ogImage:     '/omega/og.png',
     // Tema claro (alias de Aura) — el theme-color acompaña el fondo del panel/PWA.
     themeColor:  '#f8f7f4',
     appTitle:    'Omega',
-    icon:        '/omega.jpg',
+    icon:        '/omega/favicon.png',
     iconPwa192:  '/icons/pwa/omega-192.png',
     iconPwa512:  '/icons/pwa/omega-512.png',
     local: {
@@ -802,11 +805,13 @@ const TENANT_META = {
       name:             'Panel Admin · Omega',
       short_name:       'Omega',
       description:      'Panel de administración — Omega Studio',
-      theme_color:      '#d4a96a',
+      // Negro de marca: el champán #d4a96a venía del tema descartado del slug
+      // viejo `omegastudio` y no existe en la identidad real del local.
+      theme_color:      '#111111',
       background_color: '#f8f7f4',
       start_url:        '/gestion-interna/?local=omega',
       icons: [
-        { src: '/omega.jpg',                   sizes: 'any',     type: 'image/jpeg' },
+        { src: '/omega/favicon.png',           sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

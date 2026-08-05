@@ -37,7 +37,10 @@ const TENANTS = {
   latincaribe:          { src: 'thelatin/latin.png',              bg: '#0a0a0a' },
   machos:               { src: 'machos.png',                      bg: '#090d16' },
   infinity:             { src: 'infinity.png',                    bg: '#121214' },
-  omega:                { src: 'omega.jpg',                       bg: '#f8f7f4' },
+  // Omega: el Ω ya viene recortado y con alfa (omega/logo.webp), así que el
+  // fondo hueso de marca queda visible alrededor. El omega.jpg original traía
+  // su propio fondo blanco puro y se veía como un parche sobre el hueso.
+  omega:                { src: 'omega/logo.webp',                 bg: '#f8f7f4' },
   sionbarberia:         { src: 'dieciseis/logo.png',              bg: '#0a0a0a' },
   kronnos:              { src: 'kronnos/studio.jpg',              bg: '#0a0a0a' },
   kronnos_woman:        { src: 'kronnos/woman.jpg',               bg: '#0a0a0a' },

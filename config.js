@@ -865,15 +865,19 @@
       ],
     },
     // Omega Studio · Viña del Mar — recreado 2026-07-24 desde AgendaPro.
-    // Tema claro (alias de Aura, ver _themeAlias + _lightTenants arriba).
+    // Tema claro (alias de Aura, ver _themeAlias + _lightTenants arriba) con
+    // una capa propia B&N: su identidad real es tinta negra sobre hueso
+    // (#F8F7F4), el mismo fondo de su logo y su wordmark oficiales. El hero
+    // se invierte a claro en index.html y dashboard.css — Aura lo pinta
+    // oscuro con foto, y sin ese override Omega mostraba /auralogin.png.
     omega: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Otros'],
       nombre:          'OMEGA STUDIO',
       nombreCorto:     'Omega',
       pageTitle:       'Omega Studio | Agenda tu hora',
       slogan:          'ESTUDIO ATENDIDO POR PROFESIONALES',
-      logo:            '/omega.jpg',
-      heroBanner:      '/omega2.avif',
+      logo:            '/omega/logo.webp',
+      heroBanner:      '/omega/banner.webp',
       direccion:       '📍 Av. Valparaíso 595, Local 53, 2do Piso | Viña del Mar',
       horario:         '🕒 Lun–Vie: 10–20h · Sáb: 10–18h · Dom: cerrado',
       telefono:        '+56972302811',
@@ -887,8 +891,15 @@
       googleReviewUrl: '',
       ratingGeneral:   5.0,
       totalReviews:    14,
+      // Las 14 reseñas son reales (5.0 en su ficha), pero AgendaPro no expone
+      // los textos: se dejan vacías a propósito en vez de inventarlas. El hero
+      // igual muestra el promedio y el conteo.
       reviews:         [],
-      barberos: [],
+      barberos: [
+        { nombre: 'Julián Beltrán',  foto: null, disponible: true },
+        { nombre: 'Antonio Morales', foto: null, disponible: true },
+        { nombre: 'Thomas Castillo', foto: null, disponible: true },
+      ],
     },
     // Sion Barbería · Viña del Mar — recreado 2026-07-27 desde AgendaPro
     // (mini-site sionbarberia.site.agendapro.com/cl/sucursal/477414).

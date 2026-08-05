@@ -28,7 +28,9 @@ export const TENANT_META = {
   estudioluxury:      { name: 'Studio Luxury',             accent: 'amber',  emoji: '💈', logo: '/luxury/luxury.jpg', banner: '/luxury/banner.webp', brand: { sede: 'Talagante', tagline: 'Barbería' } },
   renacer:            { name: 'Peluquería y Barbería Renacer', accent: 'amber', emoji: '✂️', logo: '/renacer/logo.webp', banner: '/renacer/banner.webp' },
   oren:               { name: 'Oren Barber', accent: 'amber', emoji: '✂️', logo: '/oren/oren-logo.webp', banner: '/oren/renaca.webp' },
-  omega:              { name: 'OMEGA STUDIO', accent: 'amber', emoji: '✂️', logo: '/omega.jpg' },
+  // Acento zinc (no amber): la identidad real de Omega es B&N sobre hueso; el
+  // ámbar venía del tema champán descartado del slug viejo `omegastudio`.
+  omega:              { name: 'OMEGA STUDIO', accent: 'zinc', emoji: '✂️', logo: '/omega/logo.webp', banner: '/omega/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Estudio de barbería' } },
   // Sion Barbería (Viña del Mar). Acento naranja = su color de marca real
   // (#F57808, el mismo que traía su ficha de AgendaPro). NO confundir con
   // `sionbarberia`, que es Studio Dieciséis.
