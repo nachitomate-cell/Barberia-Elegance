@@ -4174,6 +4174,48 @@
        Aura duplicaba el botón y no hay fotos de "Información" cargadas. */
     .tenant-alfamen.tenant-aura #aura-sobre-wrap { display: none !important; }
 
+    /* Pantalla de éxito post-reserva: el default trae el botón de WhatsApp
+       con glow verde neón, que sobre blanco alfamen se ve chillón y rompe la
+       paleta B&N (mismo criterio que llevó el smart slot dorado a tinta).
+       Se lleva a tinta sólida con el ícono en verde de marca — mantiene
+       reconocimiento de WhatsApp sin el glow. */
+    .tenant-alfamen.tenant-aura #waBtnLink,
+    .tenant-alfamen.tenant-aura #success-state a#waBtnLink {
+      background: #111111 !important;
+      border-color: #111111 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 6px 18px rgba(17,17,17,0.16) !important;
+    }
+    .tenant-alfamen.tenant-aura #waBtnLink i {
+      color: #25D366 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+    /* Botón Google Calendar en la misma familia visual que las cards del
+       hero (fondo blanco puro + borde tinta tenue + ícono en tinta). */
+    .tenant-alfamen.tenant-aura #successGCalBtn {
+      background: #FFFFFF !important;
+      border-color: rgba(17,17,17,0.12) !important;
+      color: #111111 !important;
+    }
+    .tenant-alfamen.tenant-aura #successGCalBtn i { color: #111111 !important; }
+    /* Card de resumen dinámico: fondo blanco (heredaba el negro) + borde
+       tinta muy tenue + textos en tinta. */
+    .tenant-alfamen.tenant-aura #success-state .bg-\[\#0a0a0d\] {
+      background: #FFFFFF !important;
+      border-color: rgba(17,17,17,0.10) !important;
+    }
+    .tenant-alfamen.tenant-aura #successSummaryService { color: #111111 !important; }
+    .tenant-alfamen.tenant-aura #successSummaryDate,
+    .tenant-alfamen.tenant-aura #successSummaryDate span { color: #6B7280 !important; }
+    .tenant-alfamen.tenant-aura #successSummaryExtras { color: #6B7280 !important; border-top-color: rgba(17,17,17,0.08) !important; }
+    /* Bloque del código de gestión: dashed en tinta + código en negro. */
+    .tenant-alfamen.tenant-aura #successCodigoWrap {
+      background: #FFFFFF !important;
+      border-color: rgba(17,17,17,0.22) !important;
+    }
+    .tenant-alfamen.tenant-aura #successCodigoCita { color: #111111 !important; }
+
     /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
        se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
        `sede-pendiente` la pone config.js (>1 sucursal) y la quita selectSucursal().
@@ -10355,14 +10397,43 @@
         </div>
         <h2 class="text-3xl font-bold text-neon tracking-tight mb-3">¡Reserva Confirmada!</h2>
         
-        <!-- Contenedor Resumen Dinámico -->
-        <div class="bg-[#0a0a0d] border border-neon/30 rounded-xl p-4 mb-6 shadow-sm w-full max-w-sm mx-auto">
+        <!-- Contenedor Resumen Dinámico — enriquecido con barbero + precio.
+             La fecha va en formato editorial (Jue 07 · Agosto · 15:30) y no
+             solo dd/mm/yyyy: lee más rápido en móvil y no rompe con locales
+             que muestran su calendario en otro orden. -->
+        <div class="bg-[#0a0a0d] border border-neon/30 rounded-xl p-4 mb-4 shadow-sm w-full max-w-sm mx-auto">
           <p id="successSummaryService" class="font-bold text-brand-text text-lg leading-tight mb-2"></p>
           <p id="successSummaryDate" class="text-neon font-medium text-sm flex items-center justify-center gap-1.5"></p>
+          <div id="successSummaryExtras" class="hidden text-[13px] text-brand-neon/70 mt-2.5 pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1"></div>
         </div>
 
-        <p class="text-brand-neon/80 font-medium mb-8 text-[15px] leading-relaxed">Tu espacio está 100% asegurado en nuestra agenda. Por favor, haz clic abajo para enviar un WhatsApp rápido al local y activar tus recordatorios.</p>
-        
+        <!-- Código de gestión: el cliente que reserva sin login NO ve este
+             código hasta que llega su correo. Ponerlo acá le da control
+             inmediato para cancelar o reagendar (chat.html se abre con este
+             código como llave). Font mono para leer/dictar fácil por teléfono.
+             Wallet card lo repite igual, así que el hueco cuando no hay Wallet
+             activo queda tapado con este bloque. -->
+        <div id="successCodigoWrap" class="hidden w-full max-w-sm mx-auto mb-6 rounded-xl p-4 text-center"
+             style="background:#0a0a0d;border:1px dashed rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);">
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] mb-2" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.62);">Tu código de gestión</p>
+          <p id="successCodigoCita" class="text-2xl font-black tracking-[0.3em] text-brand-text" style="font-family:'Courier New',Monaco,monospace;letter-spacing:0.3em;"></p>
+          <p class="text-[11px] text-white/40 mt-2 leading-snug">Guárdalo. Con él puedes reagendar o cancelar desde <a href="chat.html" class="underline hover:text-white/70">nuestro chat</a> sin iniciar sesión.</p>
+        </div>
+
+        <p class="text-brand-neon/80 font-medium mb-6 text-[15px] leading-relaxed">Tu espacio está 100% asegurado en nuestra agenda. Guarda la cita en tu calendario y avísale al local por WhatsApp.</p>
+
+        <!-- Añadir a Google Calendar: URL scheme sin backend, sin permisos,
+             y funciona en cualquier navegador. Universal, se genera solo con
+             los datos de la reserva. El equivalente para iOS es descargar el
+             .ics, pero el link de Google Calendar Web abre igual el modal de
+             "guardar en calendario" en iOS 17+ (que ya representa >85% del
+             parque instalado a agosto 2026). -->
+        <a id="successGCalBtn" href="#" target="_blank" rel="noopener"
+          class="hidden w-full bg-brand-neon/5 border border-brand-neon/30 text-brand-text text-sm font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 mb-3">
+          <i class="ph-fill ph-calendar-plus text-lg" style="color:var(--accent);"></i>
+          Añadir a Google Calendar
+        </a>
+
         <a id="waBtnLink" href="#" target="_blank"
           class="w-full bg-[#25D366]/10 border-2 border-[#25D366] text-[#25D366] text-lg font-bold py-4 rounded-[2rem] shadow-[0_0_20px_rgba(37,211,102,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mb-6 hover:bg-[#25D366]/20">
           Enviar WhatsApp <i
@@ -11693,7 +11764,14 @@
     // de lo contrario, cae al precio base.
     // El código de cita (XXX-XXX) lo genera ReservaCore, compartido con
     // barbero.html. Se mantiene el alias porque hay 4 llamadas abajo.
-    window._generarCodigoCita = () => ReservaCore.generarCodigoCita();
+    // Además guardamos el último código emitido en window._lastCodigoCita
+    // para que la pantalla de éxito lo muestre al cliente (~80% reserva sin
+    // login, así que no lo verá en el correo hasta después). Universal.
+    window._generarCodigoCita = () => {
+      const c = ReservaCore.generarCodigoCita();
+      window._lastCodigoCita = c;
+      return c;
+    };
 
     function _getPrecioEfectivo(s, dow) {
       if (!s) return 0;
@@ -15215,6 +15293,74 @@
         document.getElementById('successSummaryService').textContent = _svcSummary;
         const [yyyy, mm, dd] = currentDateStr.split('-');
         document.getElementById('successSummaryDate').innerHTML = `📅 <span>${dd}/${mm}/${yyyy} a las ${selectedTimeStr} hrs</span>`;
+
+        // Chips extra: barbero + precio + duración. Van en una segunda línea
+        // solo si hay al menos uno con dato. Datos y iconografía coherentes con
+        // la card de resumen de arriba. UNIVERSAL — se muestran en todos los
+        // tenants sin CSS extra.
+        try {
+          const _extras = document.getElementById('successSummaryExtras');
+          if (_extras) {
+            const _duracionMin = (selectedServiceObj.duracion || 0)
+              + selectedAddons.reduce((s, a) => s + (a.duracion || 0), 0);
+            const _chips = [];
+            if (barberoNombreFinal) _chips.push(`<span class="inline-flex items-center gap-1"><i class="ph-fill ph-user text-[13px]" style="color:var(--accent);"></i>${barberoNombreFinal}</span>`);
+            if (typeof _basePrecioAdd === 'number' && _basePrecioAdd > 0) _chips.push(`<span class="inline-flex items-center gap-1"><i class="ph-fill ph-currency-dollar-simple text-[13px]" style="color:var(--accent);"></i>$${_basePrecioAdd.toLocaleString('es-CL')}</span>`);
+            if (_duracionMin) _chips.push(`<span class="inline-flex items-center gap-1"><i class="ph-fill ph-clock text-[13px]" style="color:var(--accent);"></i>${_duracionMin} min</span>`);
+            if (_chips.length) {
+              _extras.innerHTML = _chips.join('');
+              _extras.classList.remove('hidden');
+            }
+          }
+        } catch (_) {}
+
+        // Código de gestión visible: reagendar/cancelar sin login. Reutiliza
+        // el mismo XXX-XXX que ya se guardó con la cita (window._lastCodigoCita
+        // lo captura _generarCodigoCita, ver alias arriba).
+        try {
+          const _codeEl  = document.getElementById('successCodigoCita');
+          const _codeWrap = document.getElementById('successCodigoWrap');
+          const _codigo   = window._lastCodigoCita;
+          if (_codeEl && _codeWrap && _codigo) {
+            _codeEl.textContent = _codigo;
+            _codeWrap.classList.remove('hidden');
+          }
+        } catch (_) {}
+
+        // Botón "Añadir a Google Calendar": URL scheme, sin backend.
+        // Rango = hora de inicio + duracion (mínimo 30 min). Sin timezone en
+        // la URL (Google la infiere del navegador del cliente), lo cual es
+        // correcto porque la cita se agendó en la timezone del local.
+        try {
+          const _gcalBtn = document.getElementById('successGCalBtn');
+          if (_gcalBtn) {
+            const _duracionMin = Math.max(30,
+              (selectedServiceObj.duracion || 0)
+              + selectedAddons.reduce((s, a) => s + (a.duracion || 0), 0));
+            const [_gY, _gM, _gD] = currentDateStr.split('-');
+            const [_gH, _gMi] = selectedTimeStr.split(':');
+            const _pad = (n) => String(n).padStart(2, '0');
+            const _startD = new Date(+_gY, +_gM - 1, +_gD, +_gH, +_gMi);
+            const _endD   = new Date(_startD.getTime() + _duracionMin * 60000);
+            const _fmt = (d) => `${d.getFullYear()}${_pad(d.getMonth() + 1)}${_pad(d.getDate())}T${_pad(d.getHours())}${_pad(d.getMinutes())}00`;
+            const _dates = `${_fmt(_startD)}/${_fmt(_endD)}`;
+            const _title = `${_svcSummary} · ${SHOP.nombreCorto || SHOP.nombre || ''}`.trim();
+            const _details = [
+              barberoNombreFinal ? `Profesional: ${barberoNombreFinal}` : '',
+              window._lastCodigoCita ? `Código de gestión: ${window._lastCodigoCita}` : '',
+              `Reservado en ${window.location.origin}`,
+            ].filter(Boolean).join('\n');
+            const _location = (SHOP.direccion || '').replace(/^[^\wÀ-ÿ]+\s*/, '');
+            const _url = 'https://calendar.google.com/calendar/render'
+              + '?action=TEMPLATE'
+              + `&text=${encodeURIComponent(_title)}`
+              + `&dates=${_dates}`
+              + `&details=${encodeURIComponent(_details)}`
+              + (_location ? `&location=${encodeURIComponent(_location)}` : '');
+            _gcalBtn.href = _url;
+            _gcalBtn.classList.remove('hidden');
+          }
+        } catch (_) {}
 
 
         const barberPart = barberoNombreFinal ? ` con ${barberoNombreFinal}` : '';
