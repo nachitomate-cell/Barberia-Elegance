@@ -34,9 +34,16 @@
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
+const { defineSecret }       = require('firebase-functions/params');
 const admin                  = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const crypto                 = require('crypto');
+
+// Conversions API: el alta del trial es el evento que la campaña de Meta debe
+// aprender a buscar. Ver lib/meta-capi.js. Opcional: sin secret ni pixelId el
+// envío se salta solo y el alta sigue igual.
+const { enviarEventoCapi } = require('./lib/meta-capi');
+const META_CAPI_TOKEN      = defineSecret('META_CAPI_TOKEN');
 
 const db = admin.firestore();
 
@@ -686,7 +693,7 @@ exports.provisionarTenantAdmin = onCall({ region: 'us-central1', cors: true }, a
   };
 });
 
-exports.provisionarTenantSelf = onCall(async (req) => {
+exports.provisionarTenantSelf = onCall({ secrets: [META_CAPI_TOKEN] }, async (req) => {
   if (!req.auth) {
     throw new HttpsError('unauthenticated', 'Crea tu cuenta antes de activar la agenda.');
   }
@@ -788,7 +795,17 @@ exports.provisionarTenantSelf = onCall(async (req) => {
     utm_campaign: String(atribucionRaw.utm_campaign || '').slice(0, 80) || null,
     referrer:     String(atribucionRaw.referrer     || '').slice(0, 200) || null,
     landedAt:     String(atribucionRaw.landedAt     || '').slice(0, 30) || null,
+    // Identificadores de Meta: `fbclid` viaja en el link del anuncio y el píxel
+    // lo convierte en la cookie `_fbc`; `_fbp` es el id de navegador del píxel.
+    // Son los que permiten que Meta reconozca el alta como resultado del clic.
+    fbclid:       String(atribucionRaw.fbclid       || '').slice(0, 255) || null,
+    fbc:          String(atribucionRaw.fbc          || '').slice(0, 255) || null,
+    fbp:          String(atribucionRaw.fbp          || '').slice(0, 255) || null,
   };
+  // Id compartido con el evento del píxel del navegador para que Meta cuente
+  // UNA conversión y no dos. Si el navegador no lo mandó, se genera acá.
+  const eventIdTrial = String(atribucionRaw.eventId || '').slice(0, 64)
+    || `trial_${slug || 'x'}_${Date.now()}`;
 
   if (!nombre)   throw new HttpsError('invalid-argument', 'Falta el nombre de tu local.');
   if (!slug)     throw new HttpsError('invalid-argument', 'Falta la dirección web (slug).');
@@ -1006,6 +1023,31 @@ exports.provisionarTenantSelf = onCall(async (req) => {
   }
 
   logger.info(`[self-service] tenant creado: ${slug} ("${nombre}", tipo=${tipo}) owner=${email || uid} ref=${atribucion.ref || '-'} utm=${atribucion.utm_source || '-'}`);
+
+  // 5. Avisarle a Meta que este clic llegó hasta el final. Es el evento por el
+  //    que optimiza la campaña: sin él, el algoritmo solo sabe quién abre un
+  //    chat, no quién realmente monta su agenda. `await` y no fire-and-forget
+  //    porque en Cloud Functions el proceso puede congelarse al retornar; la
+  //    función nunca lanza, así que no puede voltear un alta ya escrita.
+  await enviarEventoCapi({
+    evento:    'StartTrial',
+    eventId:   eventIdTrial,
+    email,
+    telefono:  telefono || null,
+    nombre:    duenoNombre || null,
+    ip:        ipDeRequest(req),
+    userAgent: String(req.rawRequest?.headers?.['user-agent'] || '').slice(0, 400),
+    fbp:       atribucion.fbp,
+    fbc:       atribucion.fbc,
+    sourceUrl: `https://crea.${BASE_DOMAIN}/`,
+    custom: {
+      content_name: 'trial-self-service',
+      content_category: tipo || null,
+      // Valor esperado del alta = plan Individual mensual. Le da a Meta una
+      // escala para comparar altas entre sí, no es plata cobrada.
+      value: 29900, currency: 'CLP',
+    },
+  });
 
   return {
     ok: true,

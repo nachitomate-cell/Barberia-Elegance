@@ -54,6 +54,11 @@ const MAX_RESP_CHIP_DIA = 150;  // por chip — un solo número no conversa más
 
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
 
+// Click-to-WhatsApp: lee el referido del anuncio y el texto de los botones /
+// Flow del mensaje de bienvenida. Ver lib/ctwa.js para el porqué (auditoría
+// 05-08-2026: 14 de 23 chats de anuncios quedaron sin respuesta por esto).
+const { referidoDeAnuncio, textoInteractivo, esRespuestaDeFormulario } = require('../lib/ctwa');
+
 // Teclado en el bolsillo: se contesta 2 veces y después silencio (ver
 // lib/texto-ilegible — misma regla en el bot de los locales).
 const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
@@ -135,8 +140,16 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
     updatedAt:    FieldValue.serverTimestamp(),
   };
   const ref = db.doc(`wa_ventas_leads/${telefono}`);
-  const ya = await ref.get();
-  await ref.set({ ...lead, ...(ya.exists ? {} : { creadoEn: FieldValue.serverTimestamp() }) }, { merge: true });
+  const [ya, conv] = await Promise.all([ref.get(), convRef(telefono).get()]);
+  // Atribución al anuncio que trajo el lead: sin píxel, este es el único puente
+  // entre lo que se gastó en Meta y una reunión real. Se copia al lead para que
+  // el analista pueda calcular costo por reunión POR ANUNCIO.
+  const anuncio = (conv.data() || {}).anuncio || null;
+  await ref.set({
+    ...lead,
+    ...(anuncio ? { anuncio } : {}),
+    ...(ya.exists ? {} : { creadoEn: FieldValue.serverTimestamp() }),
+  }, { merge: true });
 
   // Aviso instantáneo a Ignacio: mensaje a sí mismo desde su propia línea →
   // cae en el chat "Tú" de WhatsApp. Fire-and-forget: si falla, el lead igual
@@ -148,6 +161,7 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
     [lead.rubro, lead.comuna].filter(Boolean).join(' · '),
     `📅 Prefiere: ${[lead.diaPreferido, lead.franja].filter(Boolean).join(' · ') || 'sin preferencia clara'}`,
     lead.notas ? `📝 ${lead.notas}` : '',
+    anuncio ? `📣 Llegó del anuncio${anuncio.titulo ? ` "${anuncio.titulo}"` : ''}${anuncio.sourceId ? ` (id ${anuncio.sourceId})` : ''}` : '',
     '',
     `💬 wa.me/${telefono}`,
     'Confirma hora + link de Meet por ese chat. Card completa en ops.',
@@ -167,7 +181,7 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
 }
 
 const { lineasCalendario } = require('../lib/calendario');
-function systemVariable({ fecha, pushName, telefono }) {
+function systemVariable({ fecha, pushName, telefono, anuncio }) {
   return [
     // Calendario masticado: el agente propone días de reunión y JAMÁS debe
     // calcular él qué día de la semana cae una fecha (regla de la casa 02-08).
@@ -175,7 +189,14 @@ function systemVariable({ fecha, pushName, telefono }) {
     `El lead escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
     'Si es el primer mensaje de la conversación, saluda breve como Ignacio ("¡Hola! Soy Ignacio, de SynapTech 👋" o similar).',
     'SOLO si el mensaje de la persona menciona ExpoVino, agradécele la visita al stand. Si no lo menciona (por ejemplo llega con "me gustaría conseguir más información sobre esto", que viene de un anuncio en redes), NO des por hecho de dónde viene ni menciones la feria.',
-  ].join('\n');
+    // Cuando el referido del anuncio viene en el mensaje sabemos con certeza de
+    // dónde llega: el modelo puede enganchar con el gancho que ya lo convenció
+    // en vez de arrancar en frío. Nunca decirle "vi que venías de un anuncio":
+    // suena a vigilancia y enfría el chat.
+    anuncio
+      ? `ESTA PERSONA LLEGA DE UN ANUNCIO PAGADO EN FACEBOOK/INSTAGRAM${anuncio.titulo ? `, cuyo gancho era "${anuncio.titulo}"` : ''}. Es un lead frío que recién conoce SynapTech: parte por lo que le interesó del anuncio y no menciones ExpoVino. NO le digas que sabes que viene de un anuncio ni que lo estás rastreando.`
+      : '',
+  ].filter(Boolean).join('\n');
 }
 
 /* ─────────────────────────── Entrada pública ─────────────────────────── */
@@ -230,7 +251,7 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   const texto = String(
     msg.conversation ?? msg.extendedTextMessage?.text ??
     msg.imageMessage?.caption ?? msg.videoMessage?.caption ?? '',
-  ).trim();
+  ).trim() || textoInteractivo(msg);
   const esAudio = !!msg.audioMessage;
   const esMedia = esAudio || !!msg.imageMessage || !!msg.videoMessage
     || !!msg.documentMessage || !!msg.documentWithCaptionMessage
@@ -254,15 +275,21 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   // palabra. Gatillos extra configurables en el doc del chip (`activadores`).
   const preData = (await ref.get()).data() || {};
   const yaActivo = preData.activado === true;
+  // Un referido de anuncio ES la identificación: quien llega por un CTWA pagado
+  // no es amigo ni proveedor. Abre la puerta aunque el texto no matchee nada.
+  const anuncio = referidoDeAnuncio(data, msg);
   if (!yaActivo) {
     const textoNorm = String(texto).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-    const gatillo = /expo\s*vino|agenda\s+online/.test(textoNorm)
+    const gatillo = !!anuncio
+      || esRespuestaDeFormulario(msg)   // completó el formulario del anuncio
+      || /expo\s*vino|agenda\s+online/.test(textoNorm)
       || (Array.isArray(cfg?.activadores) && cfg.activadores.some(k =>
            k && textoNorm.includes(String(k).toLowerCase())));
     if (!gatillo) {
-      logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)} sin gatillo (ExpoVino/agenda online); lo maneja Ignacio`);
+      logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)} sin gatillo (ExpoVino/agenda online/anuncio); lo maneja Ignacio`);
       return;
     }
+    if (anuncio) logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)} 📣 llega del anuncio ${anuncio.sourceId || anuncio.origen}`);
   }
 
   // ── Dedup transaccional: reclamar el mensaje antes del trabajo lento ──
@@ -272,7 +299,13 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
     if (prev.lastMsgId && prev.lastMsgId === msgId) return false;
     // `activado` queda escrito en el claim: el chat ya cruzó la puerta y los
     // mensajes siguientes entran directo aunque no repitan el gatillo.
-    tx.set(ref, { lastMsgId: msgId, activado: true, remoteJid, chipId, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    // La atribución del anuncio se guarda en FIRST-TOUCH: si el lead vuelve a
+    // escribir desde otro anuncio, manda el que lo trajo la primera vez.
+    tx.set(ref, {
+      lastMsgId: msgId, activado: true, remoteJid, chipId,
+      ...(anuncio && !prev.anuncio ? { anuncio: { ...anuncio, visto: FieldValue.serverTimestamp() } } : {}),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
     return true;
   });
   if (!claimed) return;
@@ -344,7 +377,9 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
     // pitch es corto, pero el TTL largo cubre el ritmo lento de WhatsApp.
     const system = [
       { type: 'text', text: SYSTEM_FIJO, cache_control: { type: 'ephemeral', ttl: '1h' } },
-      { type: 'text', text: systemVariable({ fecha: hoy, pushName, telefono }) },
+      // `anuncio || preData.anuncio`: el referido solo viaja en el PRIMER
+      // mensaje del lead; en los siguientes se recupera de la conversación.
+      { type: 'text', text: systemVariable({ fecha: hoy, pushName, telefono, anuncio: anuncio || preData.anuncio || null }) },
     ];
     for (let round = 0; round < MAX_ROUNDS; round++) {
       const resp = await client.messages.create({

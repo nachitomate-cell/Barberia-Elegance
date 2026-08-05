@@ -1174,9 +1174,58 @@
       if (utm.campaign) out.utm_campaign = utm.campaign;
       if (!out.landedAt) out.landedAt = new Date().toISOString();
       if (!out.referrer) out.referrer = String(document.referrer || '').slice(0,200) || null;
+      // fbclid: lo agrega Meta al link cuando el clic viene de un anuncio. Es
+      // lo que permite atribuir el alta a la campaña que la pagó, así que se
+      // guarda en el primer aterrizaje aunque el dueño complete el wizard días
+      // después (first-touch, igual que ref/utm).
+      var fbclid = String(q.get('fbclid') || '').slice(0,255);
+      if (fbclid && !out.fbclid) {
+        out.fbclid = fbclid;
+        // Formato que exige Meta para _fbc: fb.1.<timestamp ms>.<fbclid>
+        out.fbc = 'fb.1.' + Date.now() + '.' + fbclid;
+      }
       try { localStorage.setItem('syn_attrib', JSON.stringify(out)); } catch(_) {}
       return out;
     })();
+
+    // ── Meta Pixel ─────────────────────────────────────────────────
+    // Deja META_PIXEL_ID vacío y no se carga NADA (ni script ni cookies):
+    // así el wizard no depende de que el píxel exista para funcionar.
+    // Al crear el píxel en Meta Events Manager hay que poner el MISMO id acá
+    // y en `_system/meta_ads.pixelId` (lo usa la Conversions API server-side,
+    // functions/lib/meta-capi.js) — con ids distintos Meta cuenta doble.
+    var META_PIXEL_ID = '';
+    (function(){
+      if (!META_PIXEL_ID) return;
+      /* eslint-disable */
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+      (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      /* eslint-enable */
+      window.fbq('init', META_PIXEL_ID);
+      window.fbq('track', 'PageView');
+    })();
+
+    // Lee la cookie _fbp/_fbc que deja el píxel. Viajan al backend para que la
+    // Conversions API pueda emparejar el alta con la persona que hizo el clic.
+    function cookieMeta(nombre) {
+      var m = document.cookie.match(new RegExp('(^| )' + nombre + '=([^;]+)'));
+      return m ? decodeURIComponent(m[2]).slice(0,255) : null;
+    }
+
+    // Dispara el evento en el navegador y devuelve el eventId para que el
+    // backend mande el MISMO id por CAPI y Meta deduplique (una conversión,
+    // no dos). Si no hay píxel, igual devuelve el id: el envío server-side es
+    // el que manda y no depende del navegador.
+    function trackTrial() {
+      var eventId = 'trial_' + Date.now() + '_' + Math.random().toString(36).slice(2,10);
+      try {
+        if (window.fbq) window.fbq('track', 'StartTrial', { value: 29900, currency: 'CLP' }, { eventID: eventId });
+      } catch(_) {}
+      return eventId;
+    }
 
     // ── Import Weibook/AgendaPro (P4a) ─────────────────────────
     // Killer feature: dueño pega link de su agenda actual y el wizard se
@@ -1574,7 +1623,14 @@
                 'privacidad@'   + TERMINOS_VERSION,
               ],
             },
-            atribucion:      ATTRIB,
+            // Atribución + señales de Meta. El evento del píxel se dispara
+            // ACÁ (no al mostrar el éxito) para compartir el eventID con el
+            // envío server-side de la Conversions API y que Meta deduplique.
+            atribucion: Object.assign({}, ATTRIB, {
+              fbp:     cookieMeta('_fbp'),
+              fbc:     cookieMeta('_fbc') || ATTRIB.fbc || null,
+              eventId: trackTrial(),
+            }),
             serviciosCustom: IMPORTADO.servicios,
             equipoCustom:    IMPORTADO.equipo,
             horario: {
