@@ -568,3 +568,7 @@ exports._duracionTipica        = duracionTipica;
 exports._barberoLibreParaSlot  = barberoLibreParaSlot;
 exports._atiendeEseDia         = atiendeEseDia;
 exports._ahoraChile            = ahoraChile;
+// La usa scripts/auditar-citas-imposibles.js: la jornada se DERIVA de acá,
+// no se recalcula, o el auditor y el motor dirían cosas distintas.
+exports._rangosFueraDeJornada  = rangosFueraDeJornada;
+exports._dowDe                 = dowDe;
