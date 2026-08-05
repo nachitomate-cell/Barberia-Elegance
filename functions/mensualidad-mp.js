@@ -203,23 +203,44 @@ function hoyChile() {
   return dtf.format(new Date());
 }
 
-// Resuelve a qué tenant pertenece una suscripción/plan de MP.
-// 1º por external_reference (el plan se crea con external_reference = tenantId);
-// 2º escaneando _billing (pocas decenas de docs) por preapprovalId / planId.
+// Resuelve a qué tenant pertenece una suscripción/plan de MP y de qué producto.
+// 1º por external_reference (el plan del PLAN mensual se crea con external_reference
+//    = tenantId; el ADD-ON WALLET usa 'wallet:{tid}');
+// 2º escaneando _billing por preapprovalId / planId, mirando tanto suscripcionMp
+//    (plan) como suscripcionWallet (add-on).
+// Devuelve { tid, producto:'plan'|'wallet' } o null.
 async function tenantPorSuscripcion({ externalRef, preapprovalId, planId }) {
-  if (externalRef) {
+  const ext = String(externalRef || '');
+  // Add-on Wallet: external_reference = 'wallet:{tid}'
+  if (ext.startsWith('wallet:')) {
+    const tid = ext.slice(7);
     try {
-      const d = await db.doc(`_billing/${externalRef}`).get();
-      if (d.exists) return externalRef;
+      const d = await db.doc(`_billing/${tid}`).get();
+      if (d.exists) return { tid, producto: 'wallet' };
     } catch (_) {}
   }
+  // Plan mensual: external_reference = tenantId directo.
+  if (ext && !ext.includes(':')) {
+    try {
+      const d = await db.doc(`_billing/${ext}`).get();
+      if (d.exists) return { tid: ext, producto: 'plan' };
+    } catch (_) {}
+  }
+  // Fallback: escaneo por preapprovalId / planId en ambos campos.
   try {
     const snap = await db.collection('_billing').get();
     for (const d of snap.docs) {
-      const s = d.data().suscripcionMp;
-      if (!s) continue;
-      if (preapprovalId && s.preapprovalId === preapprovalId) return d.id;
-      if (planId && (s.planId === planId)) return d.id;
+      const data = d.data();
+      const s  = data.suscripcionMp;
+      const sw = data.suscripcionWallet;
+      if (s) {
+        if (preapprovalId && s.preapprovalId === preapprovalId) return { tid: d.id, producto: 'plan' };
+        if (planId && s.planId === planId) return { tid: d.id, producto: 'plan' };
+      }
+      if (sw) {
+        if (preapprovalId && sw.preapprovalId === preapprovalId) return { tid: d.id, producto: 'wallet' };
+        if (planId && sw.planId === planId) return { tid: d.id, producto: 'wallet' };
+      }
     }
   } catch (e) { logger.warn('[MPmens] scan _billing falló', e.message); }
   return null;
@@ -372,20 +393,23 @@ exports.mpMensualidadCrearLink = onCall(
 // ════════════════════════════════════════════════════════════════════════════
 
 // Alta / cambio de estado de la suscripción (authorized, paused, cancelled…)
+// Bifurca según producto: 'plan' (mensualidad Básico/Pro) o 'wallet' (add-on).
 async function procesarPreapproval(preapprovalId, token) {
   const { json: pre } = await mpRequest('GET', `/preapproval/${preapprovalId}`, token);
   if (!pre || !pre.id) { logger.warn(`[MPmens] preapproval ${preapprovalId} no encontrado`); return; }
 
-  const tid = await tenantPorSuscripcion({
+  const hit = await tenantPorSuscripcion({
     externalRef:   pre.external_reference || null,
     preapprovalId: pre.id,
     planId:        pre.preapproval_plan_id || null,
   });
-  if (!tid) { logger.warn(`[MPmens] preapproval ${preapprovalId} sin tenant (ext=${pre.external_reference || '—'})`); return; }
+  if (!hit) { logger.warn(`[MPmens] preapproval ${preapprovalId} sin tenant (ext=${pre.external_reference || '—'})`); return; }
+  const { tid, producto } = hit;
 
   const next = String(pre.next_payment_date || (pre.summarized && pre.summarized.next_payment_date) || '').slice(0, 10) || null;
+  const campo = producto === 'wallet' ? 'suscripcionWallet' : 'suscripcionMp';
   await db.doc(`_billing/${tid}`).set({
-    suscripcionMp: {
+    [campo]: {
       preapprovalId:   pre.id,
       status:          pre.status || 'unknown',
       payerEmail:      pre.payer_email || null,
@@ -393,17 +417,24 @@ async function procesarPreapproval(preapprovalId, token) {
       actualizadoEn:   FieldValue.serverTimestamp(),
     },
   }, { merge: true });
-  logger.info(`[MPmens] preapproval ${pre.id} → ${tid} status=${pre.status}`);
+  logger.info(`[MPmens] preapproval ${pre.id} → ${tid}/${producto} status=${pre.status}`);
 }
 
 // Resultado de un cobro mensual. Idempotente por authorizedPaymentId.
+// Bifurca en procesarCobroWallet si el preapproval es del add-on.
 async function procesarCobro(authorizedPaymentId, token) {
   const { json: ap } = await mpRequest('GET', `/authorized_payments/${authorizedPaymentId}`, token);
   if (!ap || !ap.id) { logger.warn(`[MPmens] authorized_payment ${authorizedPaymentId} no encontrado`); return; }
 
   const preId = ap.preapproval_id || null;
-  const tid   = await tenantPorSuscripcion({ externalRef: ap.external_reference || null, preapprovalId: preId });
-  if (!tid) { logger.warn(`[MPmens] cobro ${authorizedPaymentId} sin tenant (pre=${preId || '—'})`); return; }
+  const hit   = await tenantPorSuscripcion({ externalRef: ap.external_reference || null, preapprovalId: preId });
+  if (!hit) { logger.warn(`[MPmens] cobro ${authorizedPaymentId} sin tenant (pre=${preId || '—'})`); return; }
+  const { tid, producto } = hit;
+
+  // Add-on Wallet: pipeline distinto (activa walletActivo, no toca cuotas).
+  if (producto === 'wallet') {
+    return procesarCobroWallet(tid, ap, preId, token);
+  }
 
   const pagoStatus = String((ap.payment && ap.payment.status) || ap.status || '').toLowerCase();
   const monto      = Math.round(Number(ap.transaction_amount) || 0);
@@ -497,6 +528,66 @@ async function procesarCobro(authorizedPaymentId, token) {
       logger.info(`[MPmens] comprobante enviado a ${emails.join(', ')}`);
     }
   } catch (e) { logger.warn(`[MPmens] comprobante falló: ${e.message}`); }
+}
+
+// Cobro mensual del ADD-ON WALLET. Idempotente por authorizedPaymentId.
+// Setea walletActivo=true; el trigger activarWalletPostPago hace el resto
+// (email + push + provisión de la clase Google Wallet si hay config).
+async function procesarCobroWallet(tid, ap, preId, token) {
+  const pagoStatus = String((ap.payment && ap.payment.status) || ap.status || '').toLowerCase();
+  const monto      = Math.round(Number(ap.transaction_amount) || 0);
+  const billingRef = db.doc(`_billing/${tid}`);
+  const reciboRef  = billingRef.collection('pagosWallet').doc(String(ap.id));
+
+  if (pagoStatus !== 'approved') {
+    // Cobro rechazado del add-on: anotamos y NO apagamos walletActivo (la
+    // escalera de reintentos de MP puede recuperarlo). Se apaga solo si
+    // el preapproval pasa a 'cancelled' / 'paused' vía procesarPreapproval.
+    await billingRef.set({
+      suscripcionWallet: {
+        ultimoPago: { status: pagoStatus || 'rejected', monto, fecha: hoyChile(), authorizedPaymentId: String(ap.id) },
+        actualizadoEn: FieldValue.serverTimestamp(),
+      },
+    }, { merge: true });
+    logger.info(`[MPmens/wallet] cobro NO aprobado ${tid} status=${pagoStatus}`);
+    return;
+  }
+
+  let next = null;
+  if (preId) {
+    try {
+      const { json: pre } = await mpRequest('GET', `/preapproval/${preId}`, token);
+      next = String((pre && (pre.next_payment_date || (pre.summarized && pre.summarized.next_payment_date))) || '').slice(0, 10) || null;
+    } catch (_) {}
+  }
+
+  const hoy = hoyChile();
+  const yaProcesado = await db.runTransaction(async (tx) => {
+    const recibo = await tx.get(reciboRef);
+    if (recibo.exists) return true;
+    tx.set(reciboRef, {
+      monto,
+      mpPaymentId:   (ap.payment && ap.payment.id) ? String(ap.payment.id) : null,
+      preapprovalId: preId,
+      fecha:         hoy,
+      creadoEn:      FieldValue.serverTimestamp(),
+    });
+    tx.set(billingRef, {
+      walletActivo: true,
+      walletDesde:  FieldValue.serverTimestamp(),
+      suscripcionWallet: {
+        status:          'authorized',
+        preapprovalId:   preId || null,
+        nextPaymentDate: next,
+        ultimoPago:      { status: 'approved', monto, fecha: hoy, authorizedPaymentId: String(ap.id) },
+        actualizadoEn:   FieldValue.serverTimestamp(),
+      },
+    }, { merge: true });
+    return false;
+  });
+
+  if (yaProcesado) { logger.info(`[MPmens/wallet] cobro ${ap.id} ya estaba procesado (${tid})`); return; }
+  logger.info(`[MPmens/wallet] ✓ Wallet cobrado ${tid} ${clp(monto)} próximo=${next || '—'}`);
 }
 
 // Pago único del Plan Anual (Checkout Pro). Idempotente por payment.id.

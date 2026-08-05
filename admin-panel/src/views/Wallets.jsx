@@ -10,6 +10,7 @@ import { db } from '../lib/firebase';
 import { ADDONS, fmtCLP } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
+import OnboardingWallet from '../components/OnboardingWallet';
 
 // La PERSONALIZACIÓN de la tarjeta vive en su propio estudio (wallets.bioo.cl/estudio).
 // Esta vista es el launcher: estado del módulo + botón al estudio + upsell.
@@ -129,7 +130,7 @@ export default function Wallets() {
 
   // Add-on no contratado → pantalla de venta (upsell).
   if (!walletActivo) {
-    return <UpsellWallet tenantName={tenantName} />;
+    return <UpsellWallet tenantName={tenantName} tenantId={tenantId} />;
   }
 
   // ── Módulo ACTIVO → launcher al estudio wallets.bioo.cl ──────────
@@ -148,6 +149,9 @@ export default function Wallets() {
           </p>
         </div>
       </div>
+
+      {/* Onboarding — checklist mientras la config no esté completa. */}
+      <OnboardingWallet tenantId={tenantId} />
 
       {/* Hero launcher → estudio de diseño (cristal + mockup smartphone) */}
       <div
@@ -382,7 +386,8 @@ export default function Wallets() {
 // Pantalla de venta cuando el local aún no contrató el add-on Wallet.
 // Copy tipo agencia creativa — el geo-push es el gancho estrella.
 // El flag pagado (_billing/{tid}.walletActivo) solo lo enciende SynapTech.
-function UpsellWallet({ tenantName }) {
+function UpsellWallet({ tenantName, tenantId }) {
+  // Fallback WhatsApp (por si el checkout MP falla o el usuario prefiere hablar).
   const waMsg = encodeURIComponent(
     `Hola SynapTech, quiero activar el módulo Wallet (tarjeta de fidelidad + geo-push) para mi local ${tenantName || ''}.`.trim(),
   );
@@ -391,6 +396,28 @@ function UpsellWallet({ tenantName }) {
   // única de todas las tarifas (planes y add-ons). Antes cada vista tenía
   // el suyo hardcodeado y subir precios obligaba a tocar 4 archivos.
   const PRECIO = fmtCLP(ADDONS.find(a => a.id === 'wallets').mes).replace('$', '');
+
+  // Checkout self-service: crea preapproval MP separado ($9.990/mes) y redirige
+  // al init_point de MP. Al aprobarse el primer cobro, el webhook activa
+  // walletActivo=true y el trigger manda el email de bienvenida.
+  const [activando, setActivando] = useState(false);
+  const [errAct, setErrAct] = useState('');
+  async function activarConMp() {
+    if (activando || !tenantId) return;
+    setActivando(true); setErrAct('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'walletAddonCrearLink');
+      const res = await fn({ tenantId, origen: window.location.origin });
+      const url = res.data?.url;
+      if (!url) throw new Error('MP no devolvió el link.');
+      window.location.href = url;
+    } catch (e) {
+      // Si el error tiene mensaje user-facing (permission-denied, ya activo, etc.),
+      // lo muestra tal cual — las CFs devuelven textos redactados.
+      setErrAct(e?.message || 'No pudimos abrir el checkout. Intenta de nuevo o escríbenos por WhatsApp.');
+      setActivando(false);
+    }
+  }
 
   const HOOKS = [
     { Icon: MapPinned, titulo: 'Aparece cuando pasa cerca', desc: 'Su tarjeta salta sola a la pantalla de bloqueo al acercarse a tu local. El recordatorio perfecto, en el segundo perfecto.', star: true },
@@ -450,15 +477,24 @@ function UpsellWallet({ tenantName }) {
               <span className="text-sm font-semibold text-slate-300 [html.light_&]:text-ink-700">/mes · IVA incluido</span>
             </p>
             <p className="text-xs text-slate-500 -mt-1.5">Google + Apple Wallet en un solo precio · tarjetas ilimitadas</p>
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-black text-ink-900 bg-amber-400 hover:bg-amber-300 shadow-[0_10px_30px_-8px_rgba(251,191,36,0.6)] transition-transform active:scale-95"
+            <button
+              type="button"
+              onClick={activarConMp}
+              disabled={activando}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-black text-ink-900 bg-amber-400 hover:bg-amber-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_10px_30px_-8px_rgba(251,191,36,0.6)] transition-transform active:scale-95"
             >
-              Quiero esto en mi negocio <ArrowRight size={18} />
-            </a>
-            <p className="text-xs text-slate-500">Add-on mensual · lo activamos por ti en minutos</p>
+              {activando
+                ? <>Abriendo Mercado Pago… <Loader2 size={18} className="animate-spin" /></>
+                : <>Activar ahora — ${PRECIO}/mes <ArrowRight size={18} /></>}
+            </button>
+            <p className="text-xs text-slate-500">
+              Pago automático · cancela cuando quieras · activo en el momento
+            </p>
+            {errAct && (
+              <p className="mt-1 text-xs text-rose-300 [html.light_&]:text-rose-700 max-w-md">
+                {errAct} · <a href={waUrl} target="_blank" rel="noopener noreferrer" className="underline">Prefiero hablar por WhatsApp</a>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -507,16 +543,21 @@ function UpsellWallet({ tenantName }) {
           Fidelización que trabaja incluso con el local cerrado.
         </p>
         <p className="text-sm text-slate-400 [html.light_&]:text-ink-600 mb-5 max-w-lg mx-auto">
-          Tú atiendes; el geo-push trae a la gente de vuelta. Escríbenos y lo dejamos andando en tu negocio.
+          Tú atiendes; el geo-push trae a la gente de vuelta. Se activa en el momento.
         </p>
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-ink-900 bg-amber-400 hover:bg-amber-300 transition-transform active:scale-95"
+        <button
+          type="button"
+          onClick={activarConMp}
+          disabled={activando}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-ink-900 bg-amber-400 hover:bg-amber-300 disabled:opacity-70 transition-transform active:scale-95"
         >
-          Activar el módulo <ArrowRight size={16} />
-        </a>
+          {activando
+            ? <>Abriendo Mercado Pago… <Loader2 size={15} className="animate-spin" /></>
+            : <>Activar el módulo · ${PRECIO}/mes <ArrowRight size={16} /></>}
+        </button>
+        <p className="text-xs text-slate-500 mt-3">
+          ¿Prefieres hablar antes? <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-amber-400 underline">WhatsApp con nosotros</a>
+        </p>
         <div className="flex items-center justify-center gap-2 mt-6 opacity-70">
           <img src="/synaptech/ig.png" alt="SynapTech" className="w-4 h-4 rounded object-contain" />
           <span className="text-[11px] text-slate-500">Powered by SynapTech</span>

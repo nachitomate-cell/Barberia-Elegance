@@ -107,6 +107,82 @@ exports.walletStampImg = onRequest({ region: 'us-central1', cors: true }, (req, 
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  1b) HTTP — logo fallback (660x660) para cuando el dueño aún no
+//      subió el suyo. Google Wallet EXIGE programLogo o rechaza el
+//      LoyaltyClass con 400. Este endpoint pinta las iniciales del
+//      negocio sobre un círculo del color acento, así el módulo
+//      NUNCA falla por logo faltante durante el onboarding.
+//
+//      Uso: /walletFallbackLogo?text=BP&c=d4af37&bg=1a1207
+//      · text: 1-3 letras (default 'B')
+//      · c:    hex del texto (default blanco/negro según luminosidad del bg)
+//      · bg:   hex del fondo (default #d4af37)
+// ═══════════════════════════════════════════════════════════════
+exports.walletFallbackLogo = onRequest({ region: 'us-central1', cors: true }, (req, res) => {
+  try {
+    const { createCanvas } = require('@napi-rs/canvas');
+    const SZ = 660;
+    const raw = String(req.query.text || 'B').toUpperCase().replace(/[^A-Z0-9ÑÁÉÍÓÚ]/g, '').slice(0, 3) || 'B';
+    const bgHex = '#' + String(req.query.bg || 'd4af37').replace(/[^0-9a-fA-F]/g, '').slice(0, 6).padEnd(6, '0');
+    // Color de texto: si viene por query úsalo, si no auto-contraste.
+    const toRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+    const lum   = (h) => { const [r, g, b] = toRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+    const auto  = lum(bgHex) > 0.6 ? '#0b0b0b' : '#ffffff';
+    const fgHex = req.query.c
+      ? '#' + String(req.query.c).replace(/[^0-9a-fA-F]/g, '').slice(0, 6).padEnd(6, '0')
+      : auto;
+
+    const c = createCanvas(SZ, SZ);
+    const ctx = c.getContext('2d');
+
+    // Fondo circular con degradado suave (efecto premium simple).
+    const grad = ctx.createLinearGradient(0, 0, SZ, SZ);
+    // Sombreamos el color del centro un poco hacia negro/blanco según luminosidad.
+    const mixHex = (h, target, amt) => {
+      const a = toRgb(h);
+      return '#' + a.map((v) => {
+        const m = Math.round(v + (target - v) * amt);
+        return Math.max(0, Math.min(255, m)).toString(16).padStart(2, '0');
+      }).join('');
+    };
+    grad.addColorStop(0, mixHex(bgHex, lum(bgHex) > 0.6 ? 0 : 255, 0.12));
+    grad.addColorStop(1, bgHex);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(SZ / 2, SZ / 2, SZ / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Anillo interior sutil para dar profundidad.
+    ctx.strokeStyle = mixHex(bgHex, lum(bgHex) > 0.6 ? 0 : 255, 0.18);
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(SZ / 2, SZ / 2, SZ / 2 - 14, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Texto centrado. Tamaño se ajusta al largo (1 letra grande, 3 letras chicas).
+    const fontSize = raw.length === 1 ? 340 : raw.length === 2 ? 240 : 180;
+    ctx.fillStyle = fgHex;
+    ctx.font = `900 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Ligera sombra para separar del fondo cuando los colores son parecidos.
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur  = 8;
+    ctx.shadowOffsetY = 4;
+    ctx.fillText(raw, SZ / 2, SZ / 2 + fontSize * 0.03);
+
+    const png = c.toBuffer('image/png');
+    // Cache larga: el output es puramente función de query.
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.set('Content-Type', 'image/png');
+    res.status(200).send(png);
+  } catch (e) {
+    logger.error('[Wallet fallback logo] error:', e);
+    res.status(500).send('render error');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 //  2) CALLABLE (admin) — provisiona/actualiza el LoyaltyClass del tenant
 // ═══════════════════════════════════════════════════════════════
 exports.walletProvisionarClase = onCall(
@@ -131,6 +207,32 @@ exports.walletProvisionarClase = onCall(
     }
 
     const cfg = config && typeof config === 'object' ? config : {};
+
+    // Fallback de logo: Google Wallet exige programLogo o rechaza el
+    // LoyaltyClass con 400. Si el dueño no lo subió, generamos uno con
+    // sus iniciales sobre el color de acento — la clase nunca falla.
+    if (!cfg.logoUrl) {
+      try {
+        const tSnap = await db.doc(`tenants/${tenantId}`).get();
+        const tData = tSnap.exists ? tSnap.data() : {};
+        const nombre = String(cfg.programName || tData.nombre || tenantId || 'B').trim();
+        const iniciales = nombre
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map(w => w[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 3) || 'B';
+        const bg = String(cfg.accent || cfg.bg || '#d4af37').replace('#', '');
+        cfg.logoUrl = `https://us-central1-barberia-elegance.cloudfunctions.net/walletFallbackLogo?text=${encodeURIComponent(iniciales)}&bg=${bg}`;
+        logger.info(`[Wallet] usando logo fallback para ${tenantId}: ${iniciales}`);
+      } catch (e) {
+        // Si algo raro pasa, dejamos que Google devuelva el 400 y el usuario lo ve.
+        logger.warn(`[Wallet] fallback logo falló ${tenantId}: ${e.message}`);
+      }
+    }
+
     // Persistir config (branding, geo, color, enabled) para sync e imágenes.
     try {
       await walletCfgRef(tenantId).set(

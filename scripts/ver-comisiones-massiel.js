@@ -26,6 +26,12 @@
  *   Tope recurring: 24 meses desde la activación. Después, el cliente
  *   sigue siendo de SynapTech sin costo variable.
  *
+ *  BONUS · Add-on Wallet ($9.990/mes)
+ *   Si el tenant activa el módulo Wallet (Google + Apple Wallet + geo-push),
+ *   Massiel gana +$5.000 UNA VEZ (bonus al cierre del add-on, no recurring).
+ *   La idea: incentivarla a mencionarlo en TODO cierre porque es el gancho
+ *   más "wow" del producto.
+ *
  * ─────────────────────────────────────────────────────────────────────────
  *  📋 CÓMO SE PAGA
  * ─────────────────────────────────────────────────────────────────────────
@@ -75,6 +81,7 @@ const db = admin.firestore();
 
 const REF          = (process.argv[2] || 'massiel').toLowerCase();
 const RECURRING_MESES_CAP = 24;
+const BONO_WALLET  = 5_000;   // add-on Wallet: bonus único al activarse
 
 const BONOS = {
   basico: 25_000,
@@ -148,7 +155,13 @@ async function main() {
       }
     }
 
-    const total = bono + recurringAcumulado;
+    // Add-on Wallet: bonus $5.000 único al activarse (independiente del plan).
+    // Se cuenta apenas walletActivo=true; no exige que el plan base esté al día
+    // porque MP puede aprobar el add-on antes que la mensualidad grande.
+    const walletActivo = b.walletActivo === true;
+    const bonoWallet   = walletActivo ? BONO_WALLET : 0;
+
+    const total = bono + recurringAcumulado + bonoWallet;
 
     filas.push({
       slug,
@@ -162,14 +175,16 @@ async function main() {
       recurringMensual,
       mesesElegibles,
       recurringAcumulado,
+      walletActivo,
+      bonoWallet,
       total,
     });
   }
 
   console.log(`  Tenants con ref=${REF}: ${filas.length}\n`);
-  console.log('  ┌─────────────────────────────┬───────────┬──────┬─────────┬───────┬──────────┬────────────┬────────────┐');
-  console.log('  │ Slug                        │ Estado    │ Días │ Plan    │ Conv? │ Bono     │ Recurring  │ Total      │');
-  console.log('  ├─────────────────────────────┼───────────┼──────┼─────────┼───────┼──────────┼────────────┼────────────┤');
+  console.log('  ┌─────────────────────────────┬───────────┬──────┬─────────┬───────┬──────────┬────────────┬────────┬────────────┐');
+  console.log('  │ Slug                        │ Estado    │ Días │ Plan    │ Conv? │ Bono     │ Recurring  │ Wallet │ Total      │');
+  console.log('  ├─────────────────────────────┼───────────┼──────┼─────────┼───────┼──────────┼────────────┼────────┼────────────┤');
   for (const f of filas.sort((a, b) => b.total - a.total)) {
     console.log('  │ ' + f.slug.padEnd(27) +
       ' │ ' + String(f.status).padEnd(9) +
@@ -180,13 +195,16 @@ async function main() {
       ' │ ' + (f.recurringAcumulado
         ? `${CLP(f.recurringAcumulado).padStart(8)} (${f.mesesElegibles}m)`.padStart(10)
         : '        —').padStart(10) +
+      ' │ ' + (f.walletActivo ? '💳 +5k' : '   —  ').padStart(6) +
       ' │ ' + CLP(f.total).padStart(10) + ' │');
   }
-  console.log('  └─────────────────────────────┴───────────┴──────┴─────────┴───────┴──────────┴────────────┴────────────┘\n');
+  console.log('  └─────────────────────────────┴───────────┴──────┴─────────┴───────┴──────────┴────────────┴────────┴────────────┘\n');
 
   const totales = filas.reduce((acc, f) => ({
     bono:        acc.bono + f.bono,
     recurring:   acc.recurring + f.recurringAcumulado,
+    bonoWallet:  acc.bonoWallet + f.bonoWallet,
+    walletCount: acc.walletCount + (f.walletActivo ? 1 : 0),
     total:       acc.total + f.total,
     conversiones: acc.conversiones + (f.convertido ? 1 : 0),
     porPlan:     {
@@ -194,7 +212,7 @@ async function main() {
       pro:    acc.porPlan.pro    + (f.plan === 'Pro'    && f.convertido ? 1 : 0),
       anual:  acc.porPlan.anual  + (f.plan === 'Anual'  && f.convertido ? 1 : 0),
     },
-  }), { bono: 0, recurring: 0, total: 0, conversiones: 0, porPlan: { basico: 0, pro: 0, anual: 0 } });
+  }), { bono: 0, recurring: 0, bonoWallet: 0, walletCount: 0, total: 0, conversiones: 0, porPlan: { basico: 0, pro: 0, anual: 0 } });
 
   console.log('  RESUMEN');
   console.log('  ──────────────────────────────────');
@@ -202,9 +220,13 @@ async function main() {
   console.log('  Conversiones a plan:      ' + totales.conversiones +
     '  (Básico ' + totales.porPlan.basico + ' · Pro ' + totales.porPlan.pro + ' · Anual ' + totales.porPlan.anual + ')');
   console.log('  Tasa conversión:          ' + (filas.length ? Math.round(100 * totales.conversiones / filas.length) : 0) + '%');
+  console.log('  Add-on Wallet activo:     ' + totales.walletCount +
+    ' local' + (totales.walletCount === 1 ? '' : 'es') +
+    (filas.length ? '  (' + Math.round(100 * totales.walletCount / filas.length) + '% attach rate)' : ''));
   console.log('  ──────────────────────────────────');
   console.log('  Bonos al cierre:          ' + CLP(totales.bono));
   console.log('  Recurring acumulado:      ' + CLP(totales.recurring));
+  console.log('  Bonos Wallet:             ' + CLP(totales.bonoWallet));
   console.log('  ──────────────────────────────────');
   console.log('  TOTAL A PAGAR:            ' + CLP(totales.total));
   console.log();

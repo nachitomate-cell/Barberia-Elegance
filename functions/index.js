@@ -1873,6 +1873,10 @@ exports.eliminarMisDatosTenant   = eliminarMisDatos.eliminarMisDatosTenant;
 // ─────────────────────────────────────────────────────────────────
 const wallet = require('./wallet');
 exports.walletStampImg          = wallet.walletStampImg;
+// Logo fallback (660×660 con iniciales) — Google Wallet exige programLogo o
+// rechaza el LoyaltyClass con 400. Sin esto, cada onboarding fallaba si el
+// dueño no había subido su logo todavía.
+exports.walletFallbackLogo      = wallet.walletFallbackLogo;
 exports.walletProvisionarClase  = wallet.walletProvisionarClase;
 exports.walletGenerarPase       = wallet.walletGenerarPase;
 exports.walletActivarTenant     = wallet.walletActivarTenant;
@@ -1931,6 +1935,19 @@ const walletApple = require('./wallet-apple');
 exports.walletAppleGenerarLink = walletApple.walletAppleGenerarLink;
 exports.walletApplePase        = walletApple.walletApplePase;
 exports.walletAppleWs          = walletApple.walletAppleWs;
+
+// ─────────────────────────────────────────────────────────────────
+//  ADD-ON WALLET · checkout self-service $9.990/mes
+//  Reemplaza el flujo "toca botón → WhatsApp a Ignacio → activación manual".
+//  Ahora el dueño toca "Activar" y MP le cobra: al aprobarse, el webhook
+//  activa walletActivo=true, y el trigger avisa por email + push + notif
+//  al vendedor referido (para su comisión $5k).
+//  Ver functions/wallet-addon.js
+// ─────────────────────────────────────────────────────────────────
+const walletAddon = require('./wallet-addon');
+exports.walletAddonCrearLink    = walletAddon.walletAddonCrearLink;
+exports.walletAddonCancelar     = walletAddon.walletAddonCancelar;
+exports.activarWalletPostPago   = walletAddon.activarWalletPostPago;
 
 // ─────────────────────────────────────────────────────────────────
 //  CLUB PASSWORDLESS — migración de cuentas al vuelo. Cuentas viejas
