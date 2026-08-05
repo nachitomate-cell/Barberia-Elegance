@@ -2,142 +2,140 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    function isAuth() {
-      return request.auth != null;
-    }
+    function isAuth()      { return request.auth != null; }
+    function isImage()     { return request.resource.contentType.matches('image/.*'); }
+    function isUnder5MB()  { return request.resource.size < 5 * 1024 * 1024; }
+    function isUnder10MB() { return request.resource.size < 10 * 1024 * 1024; }
 
-    function isImage() {
-      return request.resource.contentType.matches('image/.*');
+    // ── Autorización de escritura por tenant ─────────────────────────────
+    // Antes casi todo era `isAuth()`: cualquier usuario autenticado (y el club
+    // es de registro abierto) podía SOBRESCRIBIR logo, fotos de barberos,
+    // banners, menú y assets de Wallet de CUALQUIER local (defacement) e inflar
+    // el storage (costo Blaze). Ahora los assets de marca exigen staff del
+    // tenant. Espeja esStaff() de firestore.rules. Auditoría 2026-08-05.
+    function rol()    { return isAuth() && 'role'     in request.auth.token ? request.auth.token.role     : ''; }
+    function tclaim() { return isAuth() && 'tenantId' in request.auth.token ? request.auth.token.tenantId : ''; }
+    function esBootstrap() {
+      return isAuth() && 'email' in request.auth.token
+          && request.auth.token.email == 'ignaciiio.mate@gmail.com';
     }
+    function esStaffClaim(tid) {
+      return isAuth() && tclaim() == tid
+          && (rol() == 'admin' || rol() == 'jefe' || rol() == 'barbero' || rol() == 'recepcion');
+    }
+    // Fallback pre-claims (barberos que aún no tienen Custom Claims): su doc existe.
+    function esBarberoFS(tid) {
+      return isAuth() && (
+        tid == 'elegance'
+          ? firestore.exists(/databases/(default)/documents/barberos/$(request.auth.uid))
+          : firestore.exists(/databases/(default)/documents/tenants/$(tid)/barberos/$(request.auth.uid))
+      );
+    }
+    function esStaff(tid) { return esStaffClaim(tid) || esBootstrap() || esBarberoFS(tid); }
 
-    function isUnder5MB() {
-      return request.resource.size < 5 * 1024 * 1024;
-    }
-
-    function isUnder10MB() {
-      return request.resource.size < 10 * 1024 * 1024;
-    }
+    // ═══ Rutas de USUARIO — cada quien sube lo suyo ═══════════════════════
 
     // Fotos de perfil de clientes — cada usuario sube solo a su propio uid
     match /avatars/{userId}/{fileName} {
       allow read: if true;
-      allow write: if isAuth()
-                   && request.auth.uid == userId
-                   && isImage()
-                   && isUnder5MB();
+      allow write: if isAuth() && request.auth.uid == userId && isImage() && isUnder5MB();
     }
 
-    // Imágenes del chat público (/chat) — el cliente (sesión anónima) sube
-    // solo a la carpeta de SU chat (userId == uid). Se comprimen client-side
-    // antes de subir; el cap de 5MB es la red de seguridad.
+    // Imágenes del chat público (/chat) — el cliente sube solo a SU carpeta.
     match /chat/{tenantId}/{userId}/{fileName} {
       allow read: if true;
-      allow write: if isAuth()
-                   && request.auth.uid == userId
-                   && isImage()
-                   && isUnder5MB();
+      allow write: if isAuth() && request.auth.uid == userId && isImage() && isUnder5MB();
     }
+
+    // Servicio Favorito: el dueño (su uid) o el staff del local.
+    match /servicioFavorito/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if (request.auth.uid == userId || esStaff('elegance')) && isImage() && isUnder5MB();
+    }
+    match /tenants/{tenantId}/avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && request.auth.uid == userId && isImage() && isUnder5MB();
+    }
+    match /tenants/{tenantId}/servicioFavorito/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if (request.auth.uid == userId || esStaff(tenantId)) && isImage() && isUnder5MB();
+    }
+
+    // ═══ Assets de MARCA / contenido — solo staff del local ═══════════════
 
     // Fotos de perfil de barberos
     match /barberos/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
-
     // Galería lookbook (elegance root)
     match /lookbook/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder10MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder10MB();
     }
-
     // Productos (elegance root)
     match /productos/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
-
-    // Servicio Favorito (elegance root)
-    match /servicioFavorito/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
-    }
-
     // Servicios (elegance root)
     match /servicios/{servicioId}/{fileName} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
-
     // Assets del local (logo, fondo, etc.)
     match /assets/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
-
-    // Imágenes de banners/campañas de Marketing (elegance root)
+    // Banners/campañas de Marketing (elegance root)
     match /marketing/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
 
-    // Rutas multi-tenant (ferraza, gitana, etc.)
-    // Fotos de perfil de clientes del club — cada usuario sube solo a su propio uid
-    match /tenants/{tenantId}/avatars/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isAuth()
-                   && request.auth.uid == userId
-                   && isImage()
-                   && isUnder5MB();
-    }
+    // ── Multi-tenant ─────────────────────────────────────────────────────
     match /tenants/{tenantId}/barberos/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
     match /tenants/{tenantId}/lookbook/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder10MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder10MB();
     }
     match /tenants/{tenantId}/productos/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
     match /tenants/{tenantId}/marketing/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
-    match /tenants/{tenantId}/servicioFavorito/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
-    }
+    // Fondo de BarberTV (puede ser imagen o video → sin isImage; cap alto).
+    // Antes cualquier autenticado podía subir 100MB al TV de otro local.
     match /tenants/{tenantId}/{fileName} {
       allow read: if fileName.matches('tv-bg\\..*');
-      allow write: if isAuth() 
-                   && fileName.matches('tv-bg\\..*') 
+      allow write: if esStaff(tenantId)
+                   && fileName.matches('tv-bg\\..*')
                    && request.resource.size < 100 * 1024 * 1024;
     }
     match /tenants/{tenantId}/publicidad_tv/{imageId} {
       allow read: if true;
-      allow write: if isAuth() && isUnder10MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder10MB();
     }
     match /tenants/{tenantId}/servicios/{servicioId}/{fileName} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
-
-    // Menú (tenants tipo restaurante) — fotos de platos subidas desde el panel.
+    // Menú (tenants tipo restaurante) — fotos de platos desde el panel.
     match /tenants/{tenantId}/menu/{itemId}/{fileName} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
-
     // Wallo — assets de la tarjeta de fidelidad (logo + banner del local).
-    // Se sirven público porque Google Wallet los descarga desde su
-    // infraestructura y la landing /r/{slug} los muestra a clientes no
-    // logueados. Escritura: cualquier admin/staff del panel (isAuth basta,
-    // el estudio ya valida rol antes de exponer el botón subir).
     match /tenants/{tenantId}/wallo/{fileName} {
       allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+      allow write: if esStaff(tenantId) && isImage() && isUnder5MB();
     }
 
     // Bloquear cualquier otra ruta

@@ -31,36 +31,40 @@ if (!firebase.apps.length) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  FIREBASE APP CHECK (reCAPTCHA v3) — deshabilitado por defecto.
+//  FIREBASE APP CHECK (reCAPTCHA v3)
 //
-//  Activar cuando esté listo el setup en Firebase Console:
-//    1. Firebase Console → App Check → Register the web app.
-//    2. Elige "reCAPTCHA v3" como proveedor y crea un site key
-//       (protégelo en Firebase, NO en Google reCAPTCHA admin).
-//    3. Copia la site key aquí abajo (APPCHECK_SITE_KEY).
-//    4. En cada tenant, agrega el subdominio en Google reCAPTCHA
-//       admin → allowed domains (*.synaptechspa.cl cubre a todos).
-//    5. Descomenta el bloque y agrega en TODOS los HTML públicos:
+//  Mitiga bots y clientes no autorizados en Firestore + Cloud Functions.
+//  Es la defensa REAL contra el flooding del booking público: sin App Check,
+//  cualquiera con la config pública puede escribir `citas` directo, limitado
+//  solo por las reglas (auditoría 2026-08-05). Requerido por Sprint 3.1 del
+//  roadmap legal.
+//
+//  INERTE por defecto: mientras APPCHECK_SITE_KEY sea el placeholder no se
+//  activa nada, así que commitear/desplegar este archivo no cambia el
+//  comportamiento. Para encenderlo:
+//    1. Firebase Console → App Check → registra la web app con reCAPTCHA v3.
+//    2. Pega la site key en APPCHECK_SITE_KEY (abajo).
+//    3. En Google reCAPTCHA admin → allowed domains agrega los subdominios
+//       (*.synaptechspa.cl cubre a todos).
+//    4. Agrega en TODOS los HTML públicos, ANTES de este archivo:
 //         <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check-compat.js"></script>
-//    6. Activa el enforcement en Firebase Console (después de probar
-//       una semana en modo "unenforced"): Firestore, Functions.
-//
-//  Impacto: protege Firestore y Cloud Functions contra bots y clientes
-//  no autorizados. Requerido por Sprint 3.1 del roadmap legal.
+//    5. Prueba ~1 semana en modo "unenforced" y recién ahí activa el
+//       enforcement (Firestore + Functions) en la consola.
 // ═══════════════════════════════════════════════════════════════════
-/*
+const APPCHECK_SITE_KEY = 'REEMPLAZAR_CON_SITE_KEY_RECAPTCHA_V3';
 try {
-  const APPCHECK_SITE_KEY = 'REEMPLAZAR_CON_SITE_KEY_RECAPTCHA_V3';
-  if (typeof firebase.appCheck === 'function') {
+  if (APPCHECK_SITE_KEY !== 'REEMPLAZAR_CON_SITE_KEY_RECAPTCHA_V3'
+      && typeof firebase !== 'undefined'
+      && typeof firebase.appCheck === 'function') {
     firebase.appCheck().activate(
       new firebase.appCheck.ReCaptchaV3Provider(APPCHECK_SITE_KEY),
       true // isTokenAutoRefreshEnabled
     );
+    console.info('[AppCheck] activado (reCAPTCHA v3)');
   }
 } catch (e) {
   console.warn('[AppCheck] no se pudo inicializar:', e.message);
 }
-*/
 
 let auth;
 try {

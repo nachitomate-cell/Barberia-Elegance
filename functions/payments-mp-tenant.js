@@ -34,6 +34,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const { FieldValue } = require('firebase-admin/firestore');
+const crypto = require('crypto');
 
 const MP_APP_ID     = defineSecret('MP_APP_ID');
 const MP_APP_SECRET = defineSecret('MP_APP_SECRET');
@@ -109,7 +110,7 @@ async function getValidTenantToken(tenantId) {
 exports.getValidTenantToken = getValidTenantToken;
 
 // ════════════════════════════════════════════════════════════════════════════
-//  1) CONNECT — admin/jefe inicia el OAuth. state = tenantId.
+//  1) CONNECT — admin/jefe inicia el OAuth. state = nonce single-use.
 // ════════════════════════════════════════════════════════════════════════════
 exports.mpTenantConnect = onCall(
   { region: REGION, cors: CORS, secrets: [MP_APP_ID] },
@@ -117,9 +118,22 @@ exports.mpTenantConnect = onCall(
     const tenantId = request.data && request.data.tenantId;
     if (!tenantId) throw new HttpsError('invalid-argument', 'Falta tenantId.');
     assertTenantAdmin(request, tenantId);
+
+    // `state` DEBE ser un nonce imprevisible y de un solo uso, atado al tenant y
+    // al admin que inicia el flujo. Antes era el tenantId en texto plano, lo que
+    // dejaba a un atacante enlazar SU cuenta MP a otro local llamando al callback
+    // con ?code=<suyo>&state=<slug_víctima> (CSRF de OAuth → los pagos del local
+    // víctima caían en su cuenta). Auditoría 2026-08-05.
+    const nonce = crypto.randomBytes(32).toString('hex');
+    await db().collection('mp_oauth_states').doc(nonce).set({
+      tenantId: String(tenantId),
+      adminUid: request.auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     const url = `${MP_AUTH}?client_id=${encodeURIComponent(MP_APP_ID.value())}`
       + `&response_type=code&platform_id=mp`
-      + `&state=${encodeURIComponent(tenantId)}`
+      + `&state=${encodeURIComponent(nonce)}`
       + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     return { url };
   },
@@ -133,9 +147,24 @@ exports.mpTenantOAuthCallback = onRequest(
   async (req, res) => {
     const back = (ok) => res.redirect(`${PANEL_URL}/recibir-pagos?mp=${ok ? 'connected' : 'error'}`);
     try {
-      const code = req.query.code;
-      const tenantId = req.query.state;
-      if (!code || !tenantId) return back(false);
+      const code  = req.query.code;
+      const nonce = req.query.state;
+      if (!code || !nonce) return back(false);
+
+      // Validar y CONSUMIR el nonce (single-use, ≤15 min). El tenantId sale del
+      // registro server-side, NUNCA del query — así un atacante no puede enlazar
+      // su cuenta MP a un tenant ajeno (CSRF de OAuth). Auditoría 2026-08-05.
+      const stateRef  = db().collection('mp_oauth_states').doc(String(nonce));
+      const stateSnap = await stateRef.get();
+      if (!stateSnap.exists) { logger.warn('[MP-tenant] state desconocido'); return back(false); }
+      const st = stateSnap.data() || {};
+      await stateRef.delete().catch(() => {});            // consumir siempre (anti-replay)
+      const createdMs = st.createdAt && st.createdAt.toMillis ? st.createdAt.toMillis() : 0;
+      if (!createdMs || Date.now() - createdMs > 15 * 60 * 1000) {
+        logger.warn('[MP-tenant] state expirado'); return back(false);
+      }
+      const tenantId = st.tenantId;
+      if (!tenantId) return back(false);
 
       const { httpStatus, json } = await mpRequest('POST', '/oauth/token', null, {
         form: {

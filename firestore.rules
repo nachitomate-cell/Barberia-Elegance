@@ -199,11 +199,57 @@ service cloud.firestore {
     }
 
     // Booking público válido: campos mínimos + estado inicial correcto
-    // + no inyecta campos de privilegio
+    // + tipos/tamaños acotados + no inyecta campos de privilegio.
+    // Los formatos están calcados de firebaseUtils.js (addCita/addCitasGrupo)
+    // para no rechazar reservas legítimas del widget.
+    // OJO: el flood de reservas BIEN formadas NO se frena acá — esa mitigación
+    // es App Check (reCAPTCHA v3 + enforcement). Ver firebase-config.js.
+    // Regresión: scripts/test-rules-booking-abuse.js (auditoría 2026-08-05).
     function bookingPublicoValido() {
       return request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'estado'])
           && request.resource.data.estado in ['Confirmada', 'Confirmado', 'Pendiente']
+          // Tipos + formato: fecha YYYY-MM-DD, hora H:MM / HH:MM.
+          && request.resource.data.fecha is string
+          && request.resource.data.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.hora is string
+          && request.resource.data.hora.matches('^[0-9]{1,2}:[0-9]{2}$')
+          // Nombre obligatorio y acotado: corta payloads gigantes.
+          && request.resource.data.clienteNombre is string
+          && request.resource.data.clienteNombre.size() >= 1
+          && request.resource.data.clienteNombre.size() <= 80
+          // Contacto y nota opcionales; si vienen, string y acotados.
+          && (!('clienteTelefono' in request.resource.data)
+              || (request.resource.data.clienteTelefono is string
+                  && request.resource.data.clienteTelefono.size() <= 30))
+          && (!('clienteEmail' in request.resource.data)
+              || (request.resource.data.clienteEmail is string
+                  && request.resource.data.clienteEmail.size() <= 120))
+          && (!('nota' in request.resource.data)
+              || (request.resource.data.nota is string
+                  && request.resource.data.nota.size() <= 500))
           && !request.resource.data.keys().hasAny(['rol', 'role', 'tenantId', 'adminOverride', 'barberoRol']);
+    }
+
+    // slotLock público válido: las 6 claves + tipos/formato acotados. El candado
+    // anti-doble-booking sigue siendo el docId determinístico; esto corta payloads
+    // basura (fecha/hora inválida, barberoId gigante → polución de disponibilidad).
+    // El flood de locks BIEN formados lo frena App Check. Regresión:
+    // scripts/test-rules-hardening.js (auditoría 2026-08-05).
+    function slotLockPublicoValido() {
+      return request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion'])
+          && request.resource.data.fecha is string
+          && request.resource.data.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.hora is string
+          && request.resource.data.hora.matches('^[0-9]{1,2}:[0-9]{2}$')
+          && request.resource.data.barberoId is string
+          && request.resource.data.barberoId.size() >= 1
+          && request.resource.data.barberoId.size() <= 64
+          && (!('citaId' in request.resource.data)
+              || (request.resource.data.citaId is string && request.resource.data.citaId.size() <= 64))
+          && (!('duracion' in request.resource.data)
+              || (request.resource.data.duracion is number
+                  && request.resource.data.duracion > 0
+                  && request.resource.data.duracion <= 480));
     }
 
     // ── Planes del add-on de WhatsApp (canal Evolution) ─────────────
@@ -841,6 +887,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── /mp_oauth_states — nonce single-use del OAuth de MP por tenant ──
+    // Lo escribe mpTenantConnect y lo consume mpTenantOAuthCallback (Admin SDK).
+    // CERRADO al cliente: el nonce ata el flujo OAuth al tenant+admin que lo
+    // inició, evitando que un atacante enlace su cuenta MP a otro local
+    // (CSRF de OAuth, auditoría 2026-08-05).
+    match /mp_oauth_states/{nonce} {
+      allow read, write: if false;
+    }
+
     // ── /tenant_tuu — API key de TUU (POS presencial Haulmer) por tenant ──
     // Mismo patrón que tenant_mp. CERRADO al cliente: solo el Admin SDK
     // (Cloud Functions vía tuuGuardarConfig) lee/escribe la key. El estado
@@ -966,8 +1021,13 @@ service cloud.firestore {
     // ── /system_errors ─────────────────────────────────────────────
     // El error-logger del cliente escribe aquí para observabilidad.
     match /system_errors/{docId} {
-      allow write: if true;
-      allow read:  if esBootstrap();
+      // El logger del cliente solo CREA (cota anti-spam de claves; Firestore ya
+      // topa el doc a 1MB). Editar/borrar (resolver) es solo del superadmin —
+      // antes `write: if true` dejaba a cualquiera borrar los logs (auditoría
+      // 2026-08-05, scripts/test-rules-hardening.js).
+      allow create: if request.resource.data.size() <= 40;
+      allow update, delete: if esBootstrap();
+      allow read:   if esBootstrap();
     }
 
     // ── /notification_logs ─────────────────────────────────────────
@@ -1019,10 +1079,18 @@ service cloud.firestore {
                         && request.resource.data.uid == request.auth.uid
                         && !request.resource.data.keys().hasAny(['role', 'adminOverride']));
       allow update: if esStaff('elegance')
+                    // Dueño edita su propio doc.
                     || (autenticado()
-                        && (resource.data.get('uid', '') == request.auth.uid
-                            || resource.data.get('uid', null) == null
-                            || resource.data.get('uid', '') == '')
+                        && resource.data.get('uid', '') == request.auth.uid
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']))
+                    // Reclamo de doc legacy SIN dueño: solo TOMANDO posesión
+                    // (uid == quien reclama). Antes cualquier autenticado podía
+                    // editar/vandalizar registros legacy sin uid (auditoría
+                    // 2026-08-05). Calcado de js/dashboard/perfil.js, que
+                    // siempre escribe uid=self. Ver scripts/test-rules-idor.js.
+                    || (autenticado()
+                        && (resource.data.get('uid', null) == null || resource.data.get('uid', '') == '')
+                        && request.resource.data.uid == request.auth.uid
                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
       allow delete: if esAdmin('elegance');
     }
@@ -1120,10 +1188,13 @@ service cloud.firestore {
     }
 
     // ── /fcm_tokens ────────────────────────────────────────────────
-    // Cualquier usuario autenticado puede registrar su token push.
+    // Tokens de push del STAFF (agenda/panel). Los de cliente viven en
+    // fcm_clientes. Escritura solo del staff del local — antes cualquier
+    // autenticado escribía tokens y podía suscribirse al push ajeno
+    // (auditoría 2026-08-05, scripts/test-rules-idor.js).
     match /fcm_tokens/{tokenId} {
-      allow read: if esStaff('elegance');
-      allow write: if autenticado();
+      allow read:  if esStaff('elegance');
+      allow write: if esStaff('elegance');
     }
 
     // ── /barber_settings (legacy) ───────────────────────────────────
@@ -1191,8 +1262,7 @@ service cloud.firestore {
     // el widget pueda filtrar sin leer citas (que requieren auth).
     match /slotLocks/{lockId} {
       allow read:   if true;
-      allow create: if esStaff('elegance')
-                    || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+      allow create: if esStaff('elegance') || slotLockPublicoValido();
       allow update: if esStaff('elegance');
       allow delete: if esStaff('elegance');
     }
@@ -1775,17 +1845,18 @@ service cloud.firestore {
       // Fuente pública de ocupación para el widget de reservas (sin auth).
       match /slotLocks/{lockId} {
         allow read:   if true;
-        allow create: if esStaff(tid)
-                      || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+        allow create: if esStaff(tid) || slotLockPublicoValido();
         allow update: if esStaff(tid);
         allow delete: if esStaff(tid);
       }
 
       // ── fcm_tokens ────────────────────────────────────────────────
-      // Cualquier usuario autenticado del tenant puede registrar su token push.
+      // Tokens de push del STAFF (agenda/panel); los de cliente van en
+      // fcm_clientes. Cerrado al staff del tenant — antes cualquier
+      // autenticado escribía en el store de OTRO local (auditoría 2026-08-05).
       match /fcm_tokens/{tokenId} {
         allow read:  if esStaff(tid);
-        allow write: if autenticado();
+        allow write: if esStaff(tid);
       }
     }
   }
