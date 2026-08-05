@@ -3,7 +3,7 @@ import { getDocs, getDoc, setDoc, query, where, addDoc, deleteDoc, doc, serverTi
 import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
-  Plus, Minus, Trash2, Pencil,
+  Plus, Minus, Trash2, Pencil, AlertTriangle,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
@@ -1831,6 +1831,29 @@ export default function Comisiones() {
     ) || null;
   }, [pagosSemanales, fechaInicio, fechaFin]);
 
+  /**
+   * Pagos YA registrados que caen dentro del rango visible pero con otro
+   * período. Existen porque el id de `pagos_semanales` es determinístico por
+   * rango exacto: si se liquidó día por día (01→01, 02→02) y después se mira
+   * la semana completa (01→04), `pagoDelPeriodo` no encuentra nada y la card
+   * ofrece "Registrar pago" por el total íntegro — el dueño no ve que ya pagó
+   * y puede pagar dos veces. Caso real: Orlando Palacios, kronnos_limache,
+   * $82.694 ya liquidados invisibles al filtrar la semana.
+   *
+   * Solo cuenta los períodos CONTENIDOS por completo en el rango. Uno que
+   * solapa a medias no se puede descontar sin partir su monto, así que se
+   * reporta aparte como advertencia.
+   */
+  const pagosPreviosEnRango = useCallback((barberoId) => {
+    const propios = pagosSemanales.filter(p => p.barberoId === barberoId);
+    const esElExacto = p => p.periodoInicio === fechaInicio && p.periodoFin === fechaFin;
+    const dentro  = propios.filter(p => !esElExacto(p) && p.periodoInicio >= fechaInicio && p.periodoFin <= fechaFin);
+    const parcial = propios.filter(p => !esElExacto(p) && !(p.periodoInicio >= fechaInicio && p.periodoFin <= fechaFin)
+      && p.periodoInicio <= fechaFin && p.periodoFin >= fechaInicio);
+    const total = dentro.reduce((s, p) => s + (Number(p.montoPagado) || 0), 0);
+    return { dentro, parcial, total };
+  }, [pagosSemanales, fechaInicio, fechaFin]);
+
   const handlePagar = async (barbero, metodoPago = 'Efectivo', pagos = null) => {
     const pagoExistente = pagoDelPeriodo(barbero.id);
     const enReapertura = pagoExistente?.estado === 'reabierto';
@@ -2702,13 +2725,35 @@ export default function Comisiones() {
                   {barbero.propinas > 0 && (
                     <StatItem label={`Propinas (${barbero.propinasCount})`} value={formatCLP(barbero.propinas)} valueClass="text-pink-400" />
                   )}
-                  <div className="min-w-[100px]">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total a pagar</p>
-                    <p className="text-lg font-bold text-emerald-400">{formatCLP(barbero.total)}</p>
-                    {barbero.saldoPendiente > 0 && (
-                      <p className="text-[10px] font-semibold text-amber-400 mt-0.5">Saldo a favor del local: {formatCLP(barbero.saldoPendiente)}</p>
-                    )}
-                  </div>
+                  {(() => {
+                    const previos = pagosPreviosEnRango(barbero.id);
+                    const saldo = barbero.total - previos.total;
+                    return (
+                      <div className="min-w-[100px]">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                          {previos.total > 0 ? 'Total del período' : 'Total a pagar'}
+                        </p>
+                        <p className={`text-lg font-bold ${previos.total > 0 ? 'text-slate-300' : 'text-emerald-400'}`}>
+                          {formatCLP(barbero.total)}
+                        </p>
+                        {previos.total > 0 && (
+                          <>
+                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                              Ya pagado: <span className="text-emerald-400">{formatCLP(previos.total)}</span>
+                            </p>
+                            <p className={`text-sm font-bold mt-0.5 ${saldo > 0 ? 'text-amber-400' : saldo < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {saldo > 0 ? `Falta: ${formatCLP(saldo)}`
+                                : saldo < 0 ? `Pagado de más: ${formatCLP(-saldo)}`
+                                : 'Al día'}
+                            </p>
+                          </>
+                        )}
+                        {barbero.saldoPendiente > 0 && (
+                          <p className="text-[10px] font-semibold text-amber-400 mt-0.5">Saldo a favor del local: {formatCLP(barbero.saldoPendiente)}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Acciones */}
@@ -2765,6 +2810,24 @@ export default function Comisiones() {
                         </button>
                       );
                     }
+                    // Ya hay liquidaciones dentro del rango, pero de otros
+                    // períodos: el botón verde de siempre invitaría a pagar el
+                    // total completo otra vez. Se pinta en ámbar y dice el
+                    // saldo real que falta.
+                    const previos = pagosPreviosEnRango(barbero.id);
+                    if (previos.total > 0 && !pagados.has(barbero.id)) {
+                      const saldo = barbero.total - previos.total;
+                      return (
+                        <button
+                          onClick={() => setPagarTarget(barbero)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 transition-all"
+                          title={`Ya se pagó ${formatCLP(previos.total)} de este rango en ${previos.dentro.length} liquidación(es). Revisa antes de registrar otro pago.`}
+                        >
+                          <AlertTriangle size={14} />
+                          {saldo > 0 ? `Pagar saldo · ${formatCLP(saldo)}` : 'Ya liquidado en este rango'}
+                        </button>
+                      );
+                    }
                     // Sin pago previo → flujo normal.
                     return (
                       <button
@@ -2782,6 +2845,63 @@ export default function Comisiones() {
                   })()}
                 </div>
               </div>
+
+              {/* Liquidaciones que ya se pagaron dentro de este rango. Sin
+                  esto, mirar un rango amplio después de haber liquidado día a
+                  día hacía parecer que no se había pagado nada. */}
+              {(() => {
+                const previos = pagosPreviosEnRango(barbero.id);
+                if (!previos.dentro.length && !previos.parcial.length) return null;
+                const saldo = barbero.total - previos.total;
+                return (
+                  <div className="mt-3 pt-3 border-t border-slate-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 size={12} className="text-emerald-400" />
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        Ya pagado en este rango ({previos.dentro.length})
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      {previos.dentro
+                        .slice()
+                        .sort((a, b) => String(a.periodoInicio).localeCompare(String(b.periodoInicio)))
+                        .map(p => (
+                          <div key={p.id} className="flex items-center justify-between gap-3 text-[12.5px] rounded-lg px-3 py-2 bg-slate-800/40">
+                            <div className="min-w-0">
+                              <span className="text-slate-300">
+                                {p.periodoInicio === p.periodoFin
+                                  ? p.periodoInicio
+                                  : `${p.periodoInicio} al ${p.periodoFin}`}
+                              </span>
+                              <span className="text-slate-500 ml-2">
+                                pagado el {fechaToStr(p.fechaPago)}
+                                {p.estado === 'reabierto' ? ' · reabierto' : ''}
+                              </span>
+                            </div>
+                            <span className="text-emerald-400 font-semibold shrink-0">{formatCLP(p.montoPagado)}</span>
+                          </div>
+                        ))}
+                      <div className="flex items-center justify-between gap-3 text-[12.5px] px-3 pt-1.5 border-t border-slate-800">
+                        <span className="text-slate-400 font-semibold">
+                          {saldo > 0 ? 'Falta por pagar' : saldo < 0 ? 'Pagado de más' : 'Al día'}
+                        </span>
+                        <span className={`font-bold shrink-0 ${saldo > 0 ? 'text-amber-400' : saldo < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          {formatCLP(Math.abs(saldo))}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Solapamiento parcial: no se puede descontar sin partir el
+                        monto del pago, así que se avisa en vez de adivinar. */}
+                    {previos.parcial.length > 0 && (
+                      <p className="mt-2 text-[11px] text-amber-400/90 leading-snug">
+                        Ojo: hay {previos.parcial.length} liquidación(es) que cruzan el borde de este rango
+                        ({previos.parcial.map(p => `${p.periodoInicio}→${p.periodoFin}`).join(', ')}).
+                        No se descuentan acá porque cubren días fuera del filtro; ajusta las fechas para verlas completas.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Ajustes manuales del período — visible solo si hay líneas */}
               {barbero.ajustesLineas.length > 0 && (

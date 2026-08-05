@@ -428,7 +428,15 @@ export default function Gastos() {
                         {fmtDate(g.fecha)}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-primary max-w-xs truncate">{g.descripcion}</td>
+                    {/* La descripción de una liquidación trae el período entre
+                        paréntesis y con `truncate` se cortaba justo ahí
+                        ("Liquidación Orlando Palacios (2026-08…"), que es el
+                        dato que hace falta para saber QUÉ se pagó. Se deja
+                        envolver en dos líneas y el texto completo queda en el
+                        title para verlo entero al pasar el mouse. */}
+                    <td className="px-5 py-3.5 text-primary max-w-xs" title={g.descripcion}>
+                      <span className="block break-words leading-snug line-clamp-2">{g.descripcion}</span>
+                    </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[g.categoria] || CAT_COLORS.Otros}`}>
