@@ -66,6 +66,7 @@ const ListaEspera = lazy(() => import('./views/ListaEspera'));
 const Sucursales = lazy(() => import('./views/Sucursales'));
 const RecibirPagos = lazy(() => import('./views/RecibirPagos'));
 const Integraciones = lazy(() => import('./views/Integraciones'));
+const Ahorro = lazy(() => import('./views/Ahorro'));
 const Wallets = lazy(() => import('./views/Wallets'));
 const Facturacion = lazy(() => import('./views/Facturacion'));
 const Referidos = lazy(() => import('./views/Referidos'));
@@ -284,6 +285,7 @@ function ProtectedApp() {
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="recibir-pagos"   element={<RecibirPagos />} />
             <Route path="integraciones"   element={<Integraciones />} />
+            <Route path="ahorro"          element={<Ahorro />} />
             <Route path="wallets"         element={<Wallets />} />
             <Route path="facturacion"     element={<Facturacion />} />
             <Route path="referidos"       element={<Referidos />} />

@@ -50,6 +50,7 @@ export const HELP_MAP = {
   '/recibir-pagos':    { categoriaSlug: 'pagos-caja',      titulo: 'Activar cobros online' },
   '/facturacion':      { categoriaSlug: 'pagos-caja',      titulo: 'Facturación electrónica' },
   '/gastos':           { categoriaSlug: 'pagos-caja',      titulo: 'Registrar gastos' },
+  '/ahorro':            { categoriaSlug: 'finanzas',        titulo: 'Ahorro' },
   '/finanzas':         { categoriaSlug: 'pagos-caja',      titulo: 'Análisis financiero' },
   '/metricas':         { categoriaSlug: 'pagos-caja',      titulo: 'Métricas de tu negocio' },
 

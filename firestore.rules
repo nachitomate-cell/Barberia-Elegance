@@ -1509,6 +1509,14 @@ service cloud.firestore {
         allow write: if esAdmin(tid);
       }
 
+      // ── ahorro_movimientos ───────────────────────────────────────
+      // Libro del efectivo que el local guarda aparte (pedido de Infinity).
+      // Es plata del negocio: mismo cierre que gastos y facturación. No lo
+      // ve recepción ni el barbero — el menú lo esconde, esto lo impide.
+      match /ahorro_movimientos/{docId} {
+        allow read, write: if esAdmin(tid);
+      }
+
       // ── gastos ────────────────────────────────────────────────────
       // Admin/jefe gestiona. Excepción quirúrgica: el barbero LEE su
       // liquidación y sella su aceptación (banner "Confirmar recibo").

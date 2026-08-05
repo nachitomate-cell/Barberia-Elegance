@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar, UtensilsCrossed,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar, UtensilsCrossed, PiggyBank,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -101,6 +101,12 @@ function RecibirPagosIcon({ size = 16, className = '', strokeWidth = 2 }) {
 // fidelidad clásica, así que vive fuera del módulo Fidelización.
 // Chameleon usaba `membresias` acá; ahora Membresías es un tab dentro de
 // Fidelización, así que solo Yūgen queda en el mapa.
+// Ahorro: libro del efectivo que el local guarda aparte. Pedido de Infinity
+// Studio y exclusivo de ellos — no es un modulo general de la plataforma.
+const AHORRO_ITEM = {
+  infinity: { to: 'ahorro', label: 'Ahorro', Icon: PiggyBank, adminOnly: true },
+};
+
 const MEMBRESIAS_ITEM = {
   yugen: { to: 'corte-al-lapiz', label: 'Corte al Lápiz', Icon: Medal },
 };
@@ -776,6 +782,11 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
     if (tenant.id === 'restodemo')      return NAV_GROUPS_RESTO;
 
     let base = NAV_GROUPS_DEFAULT.map(group => {
+      // Ahorro va dentro de Finanzas y SOLO para el tenant que lo tiene.
+      if (group.id === 'finanzas') {
+        const ahorroItem = AHORRO_ITEM[tenant.id];
+        return ahorroItem ? { ...group, items: [...group.items, ahorroItem] } : group;
+      }
       if (group.id !== 'clientes') return group;
       // Inyectar el ítem de membresía en Clientes para los tenants con módulo activo.
       const membItem = MEMBRESIAS_ITEM[tenant.id];
