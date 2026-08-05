@@ -76,11 +76,11 @@ function renderProductosCategorias() {
   const totalActivos = _productosLista.filter(p => p.activo !== false).length;
   const chip = (id, label, count, active) => `
     <button type="button" data-cat="${id.replace(/"/g, '&quot;')}"
-      class="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+      class="prod-chip shrink-0 px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all duration-200 active:scale-95 ${
         active
-          ? 'bg-[#D4AF37] border-[#D4AF37] text-black'
-          : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
-      }">${label} <span class="ml-1 opacity-70">${count}</span></button>`;
+          ? 'is-active bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_4px_16px_-4px_rgba(212,175,55,0.55)]'
+          : 'bg-white/[0.04] border-white/10 text-gray-400 hover:bg-white/[0.08] hover:text-white'
+      }">${label}<span class="ml-1.5 opacity-60 tabular-nums">${count}</span></button>`;
   row.innerHTML = [
     chip('all', 'Todos', totalActivos, _productosCatSel === 'all'),
     ...cats.map(c => chip(c.nombre, c.nombre, c.count, _productosCatSel === c.nombre)),
@@ -98,11 +98,20 @@ function renderProductosCategorias() {
 function renderProductosGrid() {
   const grid  = document.getElementById('productosGrid');
   const empty = document.getElementById('productosEmpty');
+  const cnt   = document.getElementById('productosCount');
   if (!grid || !empty) return;
   const visibles = _productosLista.filter(p => p.activo !== false);
   const lista = _productosCatSel === 'all'
     ? visibles
     : visibles.filter(p => (p.categoria || '').trim() === _productosCatSel);
+  if (cnt) {
+    if (lista.length > 0) {
+      cnt.textContent = lista.length + (lista.length === 1 ? ' producto' : ' productos');
+      cnt.classList.remove('hidden');
+    } else {
+      cnt.classList.add('hidden');
+    }
+  }
   if (lista.length === 0) {
     grid.innerHTML = '';
     empty.classList.remove('hidden');
@@ -114,45 +123,68 @@ function renderProductosGrid() {
   grid.innerHTML = lista.map(p => {
     const safeNombre = (p.nombre || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
     const safeDesc   = (p.descripcion || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    const precio     = Number(p.precio || 0).toLocaleString('es-CL');
+    const precioNum  = Number(p.precio || 0);
+    const precio     = precioNum.toLocaleString('es-CL');
+    const precioOrig = Number(p.precioOriginal || 0);
+    const enOferta   = precioOrig > 0 && precioOrig > precioNum;
+    const descPct    = enOferta ? Math.round((1 - precioNum / precioOrig) * 100) : 0;
     const stockVal   = p.stock !== undefined && p.stock !== null && p.stock !== '' ? Number(p.stock) : null;
-    const stockHtml  = stockVal !== null
-      ? (stockVal > 0
-          ? `<p class="text-[10px] text-gray-400 font-semibold mt-1">Stock: ${stockVal}</p>`
-          : `<p class="text-[10px] text-red-500 font-bold mt-1">Agotado</p>`)
+    const agotado    = stockVal !== null && stockVal <= 0;
+    const stockBajo  = stockVal !== null && stockVal > 0 && stockVal <= 5;
+
+    // Badges flotantes sobre la imagen (arriba). Máximo 2 para no saturar.
+    const badgeOferta = enOferta
+      ? `<span class="absolute z-10 font-black uppercase text-white shadow-lg" style="top:8px;left:8px;font-size:9.5px;letter-spacing:0.06em;padding:4px 8px;border-radius:100px;background:linear-gradient(135deg,#ef4444,#dc2626);">−${descPct}%</span>`
       : '';
-    // Badge de sede — si el producto pertenece a una sede específica
-    // (multi-sede, opción B), lo dejamos claro antes de que el cliente
-    // decida comprarlo. El nombre viene denormalizado del panel admin.
+    const badgeAgotado = agotado
+      ? `<span class="absolute z-10 font-black uppercase backdrop-blur-md" style="top:8px;right:8px;font-size:9.5px;letter-spacing:0.06em;padding:4px 8px;border-radius:100px;background:rgba(0,0,0,0.72);color:rgba(255,255,255,0.95);">Agotado</span>`
+      : '';
+    // Categoría como chip glassy arriba (solo si no hay badge de oferta ahí)
+    const catFloat = (!enOferta && p.categoria && String(p.categoria).trim())
+      ? `<span class="absolute z-10 font-bold uppercase backdrop-blur-md" style="top:8px;left:8px;font-size:9px;letter-spacing:0.14em;padding:4px 8px;border-radius:100px;background:rgba(0,0,0,0.45);color:rgba(255,255,255,0.92);border:1px solid rgba(255,255,255,0.12);">${String(p.categoria).replace(/</g, '&lt;')}</span>`
+      : '';
+    // Barra sutil de stock bajo (solo si aplica y no está agotado)
+    const stockBar = stockBajo
+      ? `<div class="absolute bottom-0 left-0 right-0" style="height:3px;background:linear-gradient(90deg, transparent 0%, #f59e0b ${Math.max(15, stockVal * 20)}%, transparent 100%);"></div>`
+      : '';
+    // Sede badge (multi-sede) — vive abajo con el precio
     const sedeHtml = p.sucursalNombre
-      ? `<p class="text-[10px] font-bold mt-1" style="color:#fdba74;">📍 Solo en ${String(p.sucursalNombre).replace(/</g, '&lt;')}</p>`
+      ? `<p class="font-bold mt-1.5 flex items-center gap-1" style="font-size:9.5px;color:#fdba74;"><i class="ph-fill ph-map-pin" style="font-size:10px;"></i>Solo en ${String(p.sucursalNombre).replace(/</g, '&lt;')}</p>`
       : '';
-    // Badge de categoría (arriba del nombre) para que el cliente
-    // ubique el producto en el mismo esquema que los chips de filtro.
-    const catHtml = (p.categoria && String(p.categoria).trim())
-      ? `<span class="inline-block text-[9px] font-semibold uppercase tracking-widest text-[#D4AF37]/80 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-full px-2 py-0.5 mb-1.5 self-start">${String(p.categoria).replace(/</g, '&lt;')}</span>`
-      : '';
+    // Precio: si hay oferta, mostrar tachado el original
+    const precioHtml = enOferta
+      ? `<div class="flex flex-col leading-none">
+           <span class="text-gray-500 line-through font-medium" style="font-size:10px;">$${precioOrig.toLocaleString('es-CL')}</span>
+           <span class="prod-precio font-black" style="font-size:16px;margin-top:2px;color:#D4AF37;">$${precio}</span>
+         </div>`
+      : `<span class="prod-precio font-black leading-none" style="font-size:16px;color:#D4AF37;">$${precio}</span>`;
+
     const passedStock = stockVal !== null ? stockVal : 'null';
+    const dimClass    = agotado ? 'opacity-70' : '';
+    const safeImg     = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+
     return `
-    <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}', ${passedStock})"
-         class="producto-card bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
-      <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
+    <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${precioNum},'${p.id}', ${passedStock})"
+         class="producto-card group relative bg-[#0d0d10] border border-white/10 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-all duration-200 ${dimClass}"
+         style="box-shadow:0 2px 12px -4px rgba(0,0,0,0.6);">
+      <div class="prod-img-wrap relative overflow-hidden pointer-events-none" style="aspect-ratio:4/5;background:radial-gradient(circle at 50% 40%, #ffffff 0%, #f4f4f5 100%);">
+        ${badgeOferta}
+        ${catFloat}
+        ${badgeAgotado}
         ${p.imagen
-          ? `<img src="${p.imagen}" alt="${safeNombre}" loading="lazy" class="w-full h-full object-contain">`
-          : `<i class="ph ph-shopping-bag text-4xl text-gray-300"></i>`}
+          ? `<img src="${p.imagen}" alt="${safeNombre}" loading="lazy" class="prod-img w-full h-full object-contain p-3 transition-transform duration-500">`
+          : `<div class="w-full h-full flex items-center justify-center"><i class="ph ph-shopping-bag text-5xl text-gray-300"></i></div>`}
+        ${stockBar}
       </div>
-      <div class="p-3 flex flex-col flex-1 pointer-events-none">
-        ${catHtml}
-        <p class="text-sm font-bold text-white leading-tight">${p.nombre || ''}</p>
-        ${p.descripcion
-          ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
-          : ''}
-        ${stockHtml}
+      <div class="p-3 flex flex-col flex-1 pointer-events-none" style="padding-top:10px;">
+        ${p.marca ? `<p class="font-bold uppercase text-gray-500" style="font-size:9px;letter-spacing:0.15em;margin-bottom:2px;">${String(p.marca).replace(/</g,'&lt;')}</p>` : ''}
+        <p class="font-bold text-white leading-tight line-clamp-2" style="font-size:13px;min-height:2.2em;">${p.nombre || ''}</p>
         ${sedeHtml}
-        <div class="flex items-center justify-between mt-auto pt-3">
-          <span class="text-lg font-bold" style="color:#D4AF37;">$${precio}</span>
-          <span class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold">Ver detalle</span>
+        <div class="flex items-end justify-between mt-auto" style="padding-top:10px;">
+          ${precioHtml}
+          <span class="prod-cta shrink-0 inline-flex items-center justify-center rounded-full transition-all" style="width:32px;height:32px;background:#D4AF37;color:#000;">
+            <i class="ph-bold ph-arrow-right" style="font-size:13px;"></i>
+          </span>
         </div>
       </div>
     </div>`;

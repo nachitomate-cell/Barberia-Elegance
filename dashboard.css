@@ -1159,6 +1159,19 @@
       color: #1E2C55 !important;
       background: rgba(30,44,85,0.06) !important;
     }
+    /* Tienda (productos): estilo boutique. La card entera es clickeable; la
+       imagen hace un leve zoom al hover y la sombra recobra tinte dorado. */
+    .producto-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .producto-card:hover {
+      border-color: rgba(212,175,55,0.35) !important;
+      box-shadow: 0 6px 24px -6px rgba(212,175,55,0.25) !important;
+    }
+    .producto-card:hover .prod-img { transform: scale(1.04); }
+    .producto-card .prod-cta { box-shadow: 0 4px 12px -4px rgba(212,175,55,0.55); }
+    .producto-card:hover .prod-cta { transform: translateX(2px); }
+    /* Chips activos: leve elevación */
+    .prod-chip.is-active { transform: translateY(-1px); }
+
     /* Tienda (productos) en tenants CLAROS: la card y el modal de detalle
        venían con fondos dark hardcodeados (bg-[#0d0d10] / bg-gray-900) y el
        título heredaba la tinta oscura del modo claro → texto ilegible sobre
@@ -1170,11 +1183,36 @@
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card {
       background: #ffffff !important;
       border-color: rgba(17, 24, 39, 0.10) !important;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card:hover {
+      border-color: rgba(161, 98, 7, 0.35) !important;
+      box-shadow: 0 6px 24px -6px rgba(161, 98, 7, 0.18) !important;
     }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card .text-white { color: #111827 !important; }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card .text-gray-400 { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card .text-gray-500 { color: #6B7280 !important; }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card span[style*="D4AF37"] { color: #A16207 !important; }
+    /* Precio y CTA circular dorado → ámbar oscuro sobre blanco */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card .prod-precio { color: #A16207 !important; }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card .prod-cta {
+      background: #A16207 !important; color: #ffffff !important;
+      box-shadow: 0 4px 12px -4px rgba(161, 98, 7, 0.45) !important;
+    }
+    /* Chips categoría en claro */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .prod-chip:not(.is-active) {
+      background: rgba(17,24,39,0.04) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+      color: #52525B !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .prod-chip.is-active {
+      background: #A16207 !important; border-color: #A16207 !important; color: #ffffff !important;
+      box-shadow: 0 4px 16px -4px rgba(161, 98, 7, 0.55) !important;
+    }
+    /* Contador arriba a la derecha */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) #productosCount {
+      color: #52525B !important; border-color: rgba(17,24,39,0.10) !important;
+    }
     :is(.tenant-aura,.tenant-latincaribe,.tenant-infinity,.tenant-renacer) .producto-card span.border {
       color: #A16207 !important;
       border-color: rgba(161, 98, 7, 0.5) !important;
@@ -2987,7 +3025,19 @@
     }
     /* Precio dorado → navy */
     :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) #productosGrid [style*="color:#D4AF37"] { color: #00285E !important; }
-    /* "Ver detalle" badge */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) .producto-card .prod-precio { color: #00285E !important; }
+    /* CTA circular + chips activos → navy en aura/latincaribe/renacer */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) .producto-card .prod-cta {
+      background: #00285E !important; color: #ffffff !important;
+      box-shadow: 0 4px 12px -4px rgba(0,40,94,0.45) !important;
+    }
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) .prod-chip.is-active {
+      background: #00285E !important; border-color: #00285E !important; color: #ffffff !important;
+      box-shadow: 0 4px 16px -4px rgba(0,40,94,0.55) !important;
+    }
+    /* Acento arriba (eyebrow "Tienda") */
+    :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) #tabProductos [style*="color:#D4AF37"] { color: #00285E !important; }
+    /* "Ver detalle" badge (legacy — cards viejas si algún tenant custom lo re-inyecta) */
     :is(.tenant-aura,.tenant-latincaribe,.tenant-renacer) #productosGrid .border-\[\#D4AF37\]\/60 {
       border-color: rgba(0,40,94,0.22) !important;
       color: #00285E !important;
@@ -5336,6 +5386,41 @@
     .tenant-omega.tenant-aura .premio-icon,
     .tenant-omega.tenant-aura .ph-trophy,
     .tenant-omega.tenant-aura i.ph-trophy[style*="D4AF37"] { color: #111111 !important; }
+
+    /* Tab "Tienda": el renderer (js/dashboard/usuario.js) hardcodea el dorado
+       #D4AF37 de Elegance en 4 lugares — chip filtro activo, badge de categoría
+       dentro de la card, precio (inline `style="color:#D4AF37"` que Aura pisa
+       con navy) y borde del botón "Ver detalle". Todos van a tinta neutra. Van
+       con [class] escapado por ser Tailwind arbitrarios (ver [[tailwind-
+       valores-arbitrarios]]). Mismo patrón que Alfa Men (línea ~5446). */
+    .tenant-omega.tenant-aura .bg-\[\#D4AF37\] {
+      background-color: #111111 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-omega.tenant-aura .border-\[\#D4AF37\] { border-color: #111111 !important; }
+    .tenant-omega.tenant-aura .text-\[\#D4AF37\]\/80 { color: #6B7280 !important; }
+    .tenant-omega.tenant-aura .bg-\[\#D4AF37\]\/10 { background-color: rgba(17,17,17,0.04) !important; }
+    .tenant-omega.tenant-aura .border-\[\#D4AF37\]\/20 { border-color: rgba(17,17,17,0.12) !important; }
+    .tenant-omega.tenant-aura .text-\[\#D4AF37\],
+    .tenant-omega.tenant-aura span[style*="D4AF37"] { color: #111111 !important; }
+    .tenant-omega.tenant-aura .border-\[\#D4AF37\]\/60 { border-color: rgba(17,17,17,0.32) !important; }
+    /* Fallback: el precio del producto viene `<span style="color:#D4AF37">` y
+       Aura lo pisa con `#productosGrid [style*="color:#D4AF37"] {color:#00285E}`,
+       navy que gana por especificidad extra. El selector con [style] y la doble
+       clase supera esa regla y baja a tinta. */
+    .tenant-omega.tenant-aura #productosGrid [style*="D4AF37"],
+    .tenant-omega.tenant-aura #productosGrid span[style*="color:#D4AF37"] { color: #111111 !important; }
+    .tenant-omega.tenant-aura .producto-card [class*="D4AF37"] { color: #111111 !important; }
+    .tenant-omega.tenant-aura .producto-card span[class*="text-\[\#D4AF37\]"],
+    .tenant-omega.tenant-aura #productosGrid span[class*="D4AF37"] { color: #6B7280 !important; }
+    /* Aura sube el borde del badge y del precio del modal a ámbar oscuro
+       #A16207 (regla en L1178). Sobre B&N eso deja el badge con contorno
+       naranja. Se rebaja a tinta translúcida + gris del texto. */
+    .tenant-omega.tenant-aura .producto-card span.border {
+      color: #6B7280 !important;
+      border-color: rgba(17,17,17,0.12) !important;
+    }
+    .tenant-omega.tenant-aura #productoModalPrecio { color: #111111 !important; }
 
 
     /* ══════════════════════════════════════════════════════════════
