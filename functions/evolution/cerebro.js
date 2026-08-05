@@ -119,6 +119,17 @@ const absMin = (fecha, mins) => { const [y, mo, d] = String(fecha).split('-').ma
 // heurística de Meta que cualquier volumen.
 const MAX_RESP_CHAT_DIA = 15;
 
+// Ventana para juntar mensajes seguidos del mismo cliente antes de contestar.
+// En WhatsApp la gente escribe en ráfaga ("Gracias" + "🙏", "a las 17:00" +
+// "corte masculino") y cada mensaje dispara su propio webhook: el bot
+// contestaba dos veces, y la segunda corrida arrancaba antes de que la
+// primera terminara de guardar, así que ni sabía lo que acababa de hacer.
+// Pasó con José Ignacio el 04-08 (kronnos_penablanca): le confirmó la cita y
+// acto seguido le ofreció horas, como si no hubiera agendado nada.
+// Cuesta unos segundos de latencia; sale mucho más barato que contestar dos
+// veces cosas que se contradicen.
+const ESPERA_RAFAGA_MS = 7000;
+
 /** Lista los servicios activos del local (para el prompt + para validar al agendar).
  *  Orden ALFABÉTICO estable: el catálogo viaja dentro del bloque cacheado del
  *  system, así que un orden que baile entre lecturas rompería el caché. */
@@ -1540,6 +1551,10 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     : texto;
   const textoHistoria = textoClaude
     || (esAudio ? '[el cliente envió un audio]' : '[el cliente envió una imagen o archivo]');
+  // Lo que se guarda en el historial. Se reasigna si la ráfaga junta varios
+  // mensajes; los caminos de salida tempranos (STOP, toma de control, tope de
+  // gasto) persisten con este valor y nunca llegan al bloque de ráfaga.
+  let textoRafagaHistoria = textoHistoria;
 
   // ── Dedup transaccional: reclama el mensaje antes del trabajo lento ──
   const claimed = await db.runTransaction(async (tx) => {
@@ -1613,7 +1628,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       const base = Array.isArray(d.messages) ? d.messages : historia;
       const nuevaHistoria = [
         ...base,
-        { role: 'user', content: textoHistoria },
+        { role: 'user', content: textoRafagaHistoria },
         { role: 'assistant', content: respuesta },
       ].slice(-MAX_ARCHIVO);
       // El contador anti-troll también se recalcula desde el doc fresco: con el
@@ -1850,6 +1865,38 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
     return;
   }
 
+  /* ── Ráfaga: junta los mensajes seguidos y contesta UNA vez ───────────
+     Cada mensaje reclama el turno con un token propio y deja su texto en la
+     cola del chat. Después espera: si en esa ventana llegó otro mensaje, el
+     token dejó de ser mío y me retiro en silencio — el último se lleva la
+     cola entera y responde por todos.
+
+     El estado vive en el doc del chat, no en memoria: entre dos webhooks no
+     hay proceso compartido. */
+  const miTurno = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await ref.set({
+    rafagaTurno: miTurno,
+    rafagaCola:  FieldValue.arrayUnion(textoClaude),
+  }, { merge: true }).catch(() => {});
+
+  await new Promise(r => setTimeout(r, ESPERA_RAFAGA_MS));
+
+  const trasEspera = (await ref.get().catch(() => null))?.data() || {};
+  if (trasEspera.rafagaTurno && trasEspera.rafagaTurno !== miTurno) {
+    logger.info(`[cerebro] ${tid} chat=${chatId}: llegó otro mensaje, contesta esa corrida`);
+    return;
+  }
+
+  // El turno es mío: me llevo todo lo acumulado y limpio la cola.
+  const cola = Array.isArray(trasEspera.rafagaCola) && trasEspera.rafagaCola.length
+    ? trasEspera.rafagaCola : [textoClaude];
+  await ref.set({ rafagaCola: [] }, { merge: true }).catch(() => {});
+  const textoRafaga = cola.join('\n');
+  textoRafagaHistoria = textoRafaga;
+  if (cola.length > 1) {
+    logger.info(`[cerebro] ${tid} chat=${chatId}: ${cola.length} mensajes juntados en una respuesta`);
+  }
+
   // ── Pensar ──
   let respuesta;
   try {
@@ -1857,7 +1904,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
       anthropicKey, systemFijo, systemVariable,
       // Al modelo solo los últimos turnos: el archivo es más largo (auditoría).
       historia: historia.slice(-MAX_HISTORIA),
-      texto: textoClaude, tools,
+      texto: textoRafaga, tools,
       ctx: { tid, telefono, pushName, confirmacionesEnabled: confOn, chatId, citaPendiente },
     });
   } catch (e) {
