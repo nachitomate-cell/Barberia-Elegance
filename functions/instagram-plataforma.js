@@ -181,6 +181,14 @@ exports.instagramWebhook = onRequest({
   region: 'us-central1',
   secrets: [INSTAGRAM_APP_SECRET, IG_WEBHOOK_TOKEN, EVOLUTION_API_URL, EVOLUTION_API_KEY, ANTHROPIC_API_KEY],
   timeoutSeconds: 120,
+  // 512 MiB por lo mismo que opsMetrics: el contenedor carga todo el grafo de
+  // funciones (~130 MB) y con 256 el arranque en frío se arrastra justo cuando
+  // hay alguien esperando respuesta al otro lado.
+  memory: '512MiB',
+  // SIN minInstances a propósito: medido, el arranque en frío es ~1,7 s. Los 3
+  // minutos de demora del 06-08 no eran el frío sino el mensaje perdido por
+  // hacer el ack antes de trabajar. Una instancia siempre viva costaría ~US$10
+  // al mes para ahorrar menos de 2 segundos: no se justifica todavía.
 }, async (req, res) => {
   // Handshake de suscripción: Meta pega un GET con el token que configuraste.
   if (req.method === 'GET') {
@@ -205,28 +213,44 @@ exports.instagramWebhook = onRequest({
   }
 
   const body = req.body || {};
-  res.status(200).send('EVENT_RECEIVED');   // ack primero, trabajo después
 
+  // Se TRABAJA y recién después se responde. La versión anterior hacía el ack
+  // primero "para no hacer esperar a Meta", y eso perdía mensajes: Cloud
+  // Functions congela la CPU de la instancia apenas se envía la respuesta, así
+  // que el trabajo de después puede no ejecutarse nunca. Medido el 06-08-2026:
+  // el primer DM real no se procesó y solo se contestó cuando Meta reintentó
+  // 3 minutos más tarde.
+  //
+  // Responder después es seguro porque el cerebro deduplica por id de mensaje
+  // (`lastMsgId` en la transacción de reclamo de ventas.js): si Meta reintenta,
+  // el segundo intento no vuelve a contestar. Y si algo falla se devuelve 500 a
+  // propósito, para que Meta reintente en vez de perder el lead.
   try {
     const cfg = await leerCfg();
-    if (cfg.activo === false) { logger.info('[ig-webhook] plataforma apagada'); return; }
+    if (cfg.activo === false) {
+      logger.info('[ig-webhook] plataforma apagada');
+      res.status(200).send('EVENT_RECEIVED'); return;
+    }
     const con = await leerConexion();
-    if (!con) { logger.warn('[ig-webhook] llegó un evento pero no hay cuenta conectada'); return; }
+    if (!con) {
+      logger.warn('[ig-webhook] llegó un evento pero no hay cuenta conectada');
+      res.status(200).send('EVENT_RECEIVED'); return;
+    }
 
     for (const entrada of (body.entry || [])) {
       // DMs: vienen en `messaging`.
       for (const m of (entrada.messaging || [])) {
-        await manejarDM(m, con, cfg).catch((e) => logger.error('[ig-webhook] DM:', e.message));
+        await manejarDM(m, con, cfg);
       }
       // Comentarios y menciones: vienen en `changes`.
       for (const c of (entrada.changes || [])) {
-        if (c.field === 'comments') {
-          await manejarComentario(c.value, con, cfg).catch((e) => logger.error('[ig-webhook] comentario:', e.message));
-        }
+        if (c.field === 'comments') await manejarComentario(c.value, con, cfg);
       }
     }
+    res.status(200).send('EVENT_RECEIVED');
   } catch (e) {
     logger.error('[ig-webhook] proceso:', e.message);
+    res.status(500).send('retry');
   }
 });
 

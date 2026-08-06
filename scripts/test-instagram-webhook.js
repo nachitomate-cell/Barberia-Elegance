@@ -60,9 +60,20 @@ ok('usa comparación en tiempo constante',
 ok('el handshake GET valida el verify_token',
   /hub\.verify_token/.test(SRC_WEBHOOK) && /IG_WEBHOOK_TOKEN\.value\(\)/.test(SRC_WEBHOOK),
   'cualquiera podría suscribir su propio webhook');
-ok('responde 200 antes de trabajar',
-  SRC_WEBHOOK.indexOf("res.status(200).send('EVENT_RECEIVED')") < SRC_WEBHOOK.indexOf('for (const entrada'),
-  'Meta reintenta y termina desactivando el webhook si tarda');
+// Esta regla nació al revés y costó un mensaje perdido: la versión original
+// hacía el ack ANTES de trabajar "para no hacer esperar a Meta". Cloud
+// Functions congela la CPU al responder, así que el trabajo posterior puede no
+// correr nunca — medido el 06-08-2026, el primer DM real solo se contestó
+// cuando Meta reintentó 3 minutos después.
+ok('trabaja ANTES de responder 200',
+  SRC_WEBHOOK.indexOf('for (const entrada') < SRC_WEBHOOK.lastIndexOf("res.status(200).send('EVENT_RECEIVED')"),
+  'el ack temprano congela la instancia y se pierden mensajes');
+ok('devuelve 500 si algo falla, para que Meta reintente',
+  /res\.status\(500\)/.test(SRC_WEBHOOK),
+  'un error tragado con 200 pierde el lead para siempre');
+ok('el webhook tiene memoria para arrancar rápido',
+  /memory: '512MiB'/.test(SRC_WEBHOOK),
+  'con 256 MiB el arranque en frío se arrastra con un lead esperando al otro lado');
 ok('ignora los ecos de los mensajes propios',
   /is_echo/.test(SRC_WEBHOOK) && /remitente === con\.igUserId/.test(SRC_WEBHOOK),
   'el bot se respondería a sí mismo en bucle');
