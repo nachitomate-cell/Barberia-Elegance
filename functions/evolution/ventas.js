@@ -41,7 +41,14 @@ const db = admin.firestore();
 // stand y tótem para existir. La diferencia de costo por chat (~US$0,05 vs
 // ~US$0,01) es ruido al lado de perder un lead por una respuesta torpe.
 const MODEL        = 'claude-sonnet-5';
-const MAX_TOKENS   = 500;                  // WhatsApp: respuestas cortas
+// 2000 y no 500. El largo de la respuesta lo manda el PROMPT ("1 a 4 líneas");
+// `max_tokens` es un techo de seguridad, y ponerlo en el largo que uno quiere
+// leer es lo que rompió esto: el modelo razona y arma la llamada a herramienta
+// ANTES de escribir, así que con 500 se quedaba sin cupo a mitad del tool_use
+// y devolvía cero texto. Medido el 06-08: 1 llamada, tokensOut=500 exacto, el
+// lead escribió "quiero agendar una hora" y no recibió nada.
+// Mismo error que ya mordió en meta-ads-analista.js (1200 → 4000).
+const MAX_TOKENS   = 2000;
 const MAX_ROUNDS   = 3;                    // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 16;                   // turnos que se le MANDAN al modelo (8 pares)
 const MAX_ARCHIVO  = 80;                   // turnos archivados para auditar (ver cerebro.js)
@@ -404,6 +411,7 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   const historia = historiaCompleta.slice(-MAX_HISTORIA);
   const client = new Anthropic({ apiKey: anthropicKey });
   let respuesta = '';
+  let motivoCorte = null;   // stop_reason, para poder diagnosticar un vacío
   try {
     const messages = [...historia, { role: 'user', content: textoClaude }];
     // Mismo esquema de caché que el cerebro: prefijo fijo a 1 h — acá el
@@ -439,13 +447,22 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
       }
 
       respuesta = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      motivoCorte = resp.stop_reason || null;
       break;
     }
   } catch (e) {
     logger.error(`[ventas:${chipId}] Claude:`, e.message);
     return;   // mejor callar que responder basura: el lead le llega igual a Ignacio
   }
-  if (!respuesta) return;
+
+  // Quedarse mudo es la peor salida posible: pasa justo cuando el lead dice
+  // algo tan comprometido como "quiero agendar una hora" (ahí el modelo llama
+  // a la herramienta y puede quedarse sin cupo antes de escribir). Antes esto
+  // era un `return` sin log y no había forma de enterarse.
+  if (!respuesta) {
+    logger.error(`[ventas:${chipId}] respuesta VACÍA (stop_reason=${motivoCorte}) para ***${telefono.slice(-4)} — se manda un puente para no dejarlo colgado`);
+    respuesta = 'Perdón, se me cruzaron los cables un segundo 😅 ¿Me lo repites?';
+  }
 
   // ── Responder + persistir (eco registrado AL TIRO, como cerebro.js) ──
   const sentIds = [];

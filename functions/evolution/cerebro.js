@@ -58,7 +58,13 @@ const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
 const db = admin.firestore();
 
 const MODEL       = 'claude-haiku-4-5-20251001'; // el más barato + rápido, ideal para agendar (subir a 'claude-sonnet-5' si falta calidad)
-const MAX_TOKENS  = 900;                 // respuestas de WhatsApp: cortas
+// El largo de la respuesta lo manda el PROMPT, no este número: `max_tokens` es
+// un techo de seguridad. Ponerlo en el largo deseado es un error, porque el
+// modelo razona y arma las llamadas a herramientas ANTES de escribir, y con el
+// techo bajo se queda sin cupo a mitad y devuelve CERO texto. Le pasó a
+// ventas.js con 500 (06-08-2026) y a meta-ads-analista.js con 1200. Este
+// cerebro tiene muchas más herramientas, así que estaba más expuesto todavía.
+const MAX_TOKENS  = 2000;
 const MAX_ROUNDS  = 5;                   // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 20;                 // turnos que se le MANDAN al modelo (10 pares)
 // Turnos que se ARCHIVAN en el doc. Va aparte de MAX_HISTORIA a propósito:
@@ -2065,6 +2071,15 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   } catch (e) {
     logger.error(`[cerebro] ${tid} pensar:`, e.message);
     return; // sin respuesta antes que una respuesta rota
+  }
+
+  // Un texto vacío significa que el modelo gastó todo el cupo razonando o
+  // llamando herramientas y no alcanzó a escribir. Mandarlo así deja al cliente
+  // esperando en el momento en que más interés tiene. Se avisa fuerte y se
+  // responde algo humano en vez de callar.
+  if (!String(respuesta || '').trim()) {
+    logger.error(`[cerebro] ${tid} chat=${chatId}: respuesta VACÍA del modelo — se manda un puente`);
+    respuesta = 'Perdón, se me cruzaron los cables un segundo 😅 ¿Me lo repites?';
   }
 
   await responder(respuesta);
