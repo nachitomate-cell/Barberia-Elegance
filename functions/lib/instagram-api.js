@@ -155,6 +155,45 @@ async function ocultarComentario(token, commentId, oculto = true) {
   return llamar('POST', commentId, { token, params: { hide: oculto } });
 }
 
+/* ─────────────────────── Publicaciones de la cuenta ─────────────────────── */
+
+/** Últimas publicaciones, para poder reutilizarlas (p. ej. resubirlas como historia). */
+async function misPublicaciones(token, limite = 24) {
+  const r = await llamar('GET', 'me/media', {
+    token,
+    params: {
+      fields: 'id,media_type,media_product_type,media_url,thumbnail_url,permalink,caption,timestamp',
+      limit: limite,
+    },
+  });
+  return (r.data || []).map((m) => ({
+    id: m.id,
+    tipo: m.media_type,
+    producto: m.media_product_type || null,
+    url: m.media_url || null,
+    miniatura: m.thumbnail_url || m.media_url || null,
+    permalink: m.permalink || null,
+    caption: String(m.caption || '').split('\n')[0].slice(0, 90),
+    fecha: (m.timestamp || '').slice(0, 10),
+  }));
+}
+
+/**
+ * URL FRESCA de una publicación.
+ *
+ * Imprescindible para lo programado: `media_url` es un enlace firmado de la
+ * CDN de Meta que caduca en horas. Guardar la URL al programar y usarla tres
+ * días después publica un 403 — hay que volver a pedirla justo antes.
+ */
+async function urlDePublicacion(token, mediaId) {
+  const m = await llamar('GET', String(mediaId), {
+    token, params: { fields: 'id,media_type,media_url,thumbnail_url' },
+  });
+  const url = m.media_url || m.thumbnail_url;
+  if (!url) throw new Error(`La publicación ${mediaId} ya no tiene media accesible.`);
+  return { url, tipo: m.media_type };
+}
+
 /* ─────────────────────────────── Publicación ─────────────────────────────── */
 
 /**
@@ -232,5 +271,5 @@ module.exports = {
   llamar, perfil, insights,
   enviarDM, responderComentarioEnPrivado, dentroDeVentana, VENTANA_MS, perfilDeUsuario,
   responderComentario, ocultarComentario,
-  publicar, cupoPublicacion,
+  publicar, cupoPublicacion, misPublicaciones, urlDePublicacion,
 };

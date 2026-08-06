@@ -1850,6 +1850,7 @@ exports.instagramPublicar         = igPlataforma.instagramPublicar;
 // no pueden recibir un pitch de ventas.
 exports.instagramMarcarSoporte    = igPlataforma.instagramMarcarSoporte;
 exports.instagramConversaciones   = igPlataforma.instagramConversaciones;
+exports.instagramMisPublicaciones = igPlataforma.instagramMisPublicaciones;
 
 // Creativos programados: la cola de publicaciones y el cron que las saca.
 const igProgramador = require('./instagram-programador');

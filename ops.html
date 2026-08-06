@@ -108,6 +108,14 @@
   .inp{ background:var(--surface-2); color:var(--ink); border:1px solid var(--glass-border);
         border-radius:9px; padding:8px; font:inherit; font-size:13px; width:100%; }
   .inp:focus{ outline:none; border-color:var(--lima); }
+
+  /* Galería para resubir publicaciones como historia. Miniaturas chicas: la
+     decisión es "cuál de estas", no mirar la foto en detalle. */
+  .galeria{ display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px; margin-top:8px; }
+  .gitem{ padding:0; border-radius:10px; overflow:hidden; background:var(--surface-2); border:1px solid var(--glass-border); display:block; }
+  .gitem img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; }
+  .gitem span{ display:block; font-size:9.5px; color:var(--soft); padding:3px 4px; }
+  .gitem:hover{ border-color:var(--lima); }
   /* Los logos vienen en su color de marca sobre fondo blanco recortado. Un
      punto de brillo los despega del navy sin desaturarlos. */
   .tabs button .brand{ filter:saturate(1.05); }
@@ -937,6 +945,8 @@
                 <button class="primary" id="igProgramar" style="flex:1">Programar</button>
                 <button id="igPublicar" title="Salta la cola y publica en este instante">Publicar ahora</button>
               </div>
+              <button class="mini" id="igVerPosts" style="margin-top:4px">📱 …o resubir una publicación mía como historia</button>
+              <div id="igGaleria"></div>
             </div>
           </div>
         </div>
@@ -1085,6 +1095,48 @@
       if (el) { el.innerHTML = seccionInstagram(); bindInstagram(); }
     }
 
+    /* Resubir una publicación como historia.
+       Instagram NO expone por API el "compartir en historias" con el sticker
+       del post — eso es exclusivo de la app. Lo que sí se puede, y es
+       equivalente en la práctica, es publicar una historia con la MISMA imagen.
+       La URL no se guarda: caduca en horas, así que el programador vuelve a
+       pedirla justo antes de publicar usando el id de la publicación. */
+    async function igVerPosts(btn){
+      const cont = document.getElementById('igGaleria');
+      if (cont.innerHTML) { cont.innerHTML = ''; return; }   // segundo clic = cerrar
+      cont.innerHTML = '<p class="muted" style="font-size:12px">Cargando tus publicaciones…</p>';
+      try {
+        const r = await _fn('instagramMisPublicaciones')({ limite: 18 });
+        const items = (r.data.items || []).filter(x => x.miniatura);
+        if (!items.length) { cont.innerHTML = '<p class="muted">No hay publicaciones.</p>'; return; }
+        cont.innerHTML = `
+          <p class="hint" style="margin:10px 0 6px">Elige una y sale como historia. Se republica la misma imagen — el sticker de "compartir publicación" no lo permite la API de Instagram, solo la app.</p>
+          <div class="galeria">${items.map(m => `
+            <button class="gitem" data-igpost="${m.id}" data-tipo="${m.tipo}" title="${String(m.caption).replace(/"/g,'&quot;')}">
+              <img src="${m.miniatura}" alt="" loading="lazy">
+              <span>${m.fecha}${m.tipo === 'VIDEO' ? ' · video' : ''}</span>
+            </button>`).join('')}</div>`;
+        cont.querySelectorAll('[data-igpost]').forEach(b =>
+          b.onclick = () => igResubir(b.dataset.igpost, b.dataset.tipo));
+      } catch(e){
+        cont.innerHTML = `<p style="color:var(--red);font-size:12px">${e.message || e}</p>`;
+      }
+    }
+
+    async function igResubir(mediaId, tipo){
+      const cuando = document.getElementById('igCuando').value;
+      if (!cuando) { alert('Primero elige la fecha y hora arriba, después la publicación.'); return; }
+      if (!confirm(`Programar esta publicación como HISTORIA para el ${new Date(cuando).toLocaleString('es-CL')}?`)) return;
+      try {
+        await _fn('instagramProgramar')({
+          tipo: 'STORIES', origenMediaId: mediaId,
+          publicarEn: new Date(cuando).toISOString(),
+        });
+        document.getElementById('igGaleria').innerHTML = '';
+        igLimpiar(); await refrescarInstagram();
+      } catch(e){ alert('No se pudo programar: ' + (e.message || e)); }
+    }
+
     async function igSoporte(igsid, soporte){
       try { await _fn('instagramMarcarSoporte')({ igsid, soporte }); await refrescarInstagram(); }
       catch(e){ alert('No se pudo cambiar: ' + (e.message || e)); }
@@ -1096,6 +1148,7 @@
       const c = document.getElementById('igConectar');   if (c) c.onclick = () => igConectar(c);
       const p = document.getElementById('igPublicar');   if (p) p.onclick = () => igPublicar(p);
       const g = document.getElementById('igProgramar');  if (g) g.onclick = () => igProgramar(g);
+      const vp = document.getElementById('igVerPosts');  if (vp) vp.onclick = () => igVerPosts(vp);
       document.querySelectorAll('[data-igdel]').forEach(b => b.onclick = () => igCancelar(b.dataset.igdel));
     }
 

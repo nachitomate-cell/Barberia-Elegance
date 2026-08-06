@@ -573,6 +573,24 @@ exports.instagramPublicar = onCall({
   return { ok: true, ...out };
 });
 
+/**
+ * Las últimas publicaciones de la cuenta, para reutilizarlas.
+ *
+ * Las URLs que devuelve son de la CDN de Meta y caducan en horas: sirven para
+ * la miniatura del panel, NO para publicar más tarde. Por eso lo programado
+ * guarda el id de la publicación y vuelve a pedir la URL al momento de salir.
+ */
+exports.instagramMisPublicaciones = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const con = await leerConexion();
+  if (!con) throw new HttpsError('failed-precondition', 'Instagram no está conectado.');
+  const items = await ig.misPublicaciones(con.token, Number(req.data?.limite) || 18)
+    .catch((e) => { throw new HttpsError('internal', e.message); });
+  return { ok: true, items };
+});
+
 /* ───────────────── Métricas para el snapshot de ops ───────────────── */
 
 /** Resumen para el panel. Nunca lanza: sin Instagram el panel sigue vivo. */

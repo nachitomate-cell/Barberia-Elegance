@@ -78,10 +78,21 @@ exports.instagramProgramar = onCall({ region: 'us-central1', cors: true }, async
   const tipo = String(d.tipo || 'IMAGE').toUpperCase();
   if (!TIPOS.includes(tipo)) throw new HttpsError('invalid-argument', `tipo debe ser ${TIPOS.join(', ')}.`);
 
-  const urls = (Array.isArray(d.urls) ? d.urls : [d.url]).filter(Boolean).map(String);
-  validarUrls(urls);
-  if (tipo !== 'CAROUSEL' && urls.length > 1) {
-    throw new HttpsError('invalid-argument', 'Solo el carrusel admite varias imágenes.');
+  // Resubir una publicación propia: en vez de una URL se manda el id de la
+  // publicación, y la URL se resuelve al momento de publicar (la de la CDN
+  // caduca). Es el "compartir en historias" hecho por API.
+  const origenMediaId = String(d.origenMediaId || '').trim() || null;
+  let urls = [];
+  if (origenMediaId) {
+    if (tipo !== 'STORIES' && tipo !== 'IMAGE') {
+      throw new HttpsError('invalid-argument', 'Resubir una publicación solo sirve como historia o como foto.');
+    }
+  } else {
+    urls = (Array.isArray(d.urls) ? d.urls : [d.url]).filter(Boolean).map(String);
+    validarUrls(urls);
+    if (tipo !== 'CAROUSEL' && urls.length > 1) {
+      throw new HttpsError('invalid-argument', 'Solo el carrusel admite varias imágenes.');
+    }
   }
 
   const cuando = new Date(String(d.publicarEn || ''));
@@ -96,7 +107,9 @@ exports.instagramProgramar = onCall({ region: 'us-central1', cors: true }, async
   }
 
   const doc = await db.collection(COL).add({
-    tipo, urls,
+    tipo, urls, origenMediaId,
+    // Solo para mostrarlo en la cola; NO se usa al publicar (caduca).
+    vistaPrevia: String(d.vistaPrevia || '').slice(0, 500) || null,
     caption: String(d.caption || '').slice(0, 2200),
     publicarEn: Timestamp.fromDate(cuando),
     estado: 'pendiente',
@@ -189,8 +202,19 @@ async function publicarPendientes() {
     }
 
     try {
+      // Si el item nació de una publicación existente (resubirla como historia),
+      // la URL se pide AHORA. La que se guardó al programar es un enlace firmado
+      // de la CDN de Meta que caduca en horas: usarla tres días después publica
+      // un 403 y el creativo no sale.
+      let urls = v.urls;
+      if (v.origenMediaId) {
+        const fresca = await ig.urlDePublicacion(con.token, v.origenMediaId);
+        urls = [fresca.url];
+        logger.info(`[ig-prog] ${doc.id} URL re-resuelta desde la publicación ${v.origenMediaId}`);
+      }
+
       const out = await ig.publicar(con.token, con.igUserId, {
-        tipo: v.tipo, urls: v.urls, caption: v.caption,
+        tipo: v.tipo, urls, caption: v.caption,
       });
       await doc.ref.update({
         estado: 'publicado', mediaId: out.id,
@@ -238,6 +262,10 @@ async function resumenProgramadas() {
       pendientes: pend.docs.map((d) => ({
         id: d.id, tipo: d.data().tipo,
         caption: String(d.data().caption || '').slice(0, 60),
+        // `esResubida` cambia lo que hay que entender al mirar la cola: no es
+        // un creativo nuevo, es una publicación existente saliendo otra vez.
+        esResubida: !!d.data().origenMediaId,
+        vistaPrevia: d.data().vistaPrevia || null,
         publicarEn: d.data().publicarEn?.toMillis?.() || null,
       })),
       conError: err.docs.map((d) => ({
