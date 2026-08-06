@@ -26,6 +26,7 @@ const admin                             = require('firebase-admin');
 const { FieldValue }                    = require('firebase-admin/firestore');
 const { crearCliente }                  = require('./client');
 const { procesarMensajeEntrante }       = require('./cerebro');
+const { registrarCaida }                = require('./cuota');
 const { tienePlan }                     = require('../lib/wa-plan');
 const plataforma                        = require('./plataforma');
 
@@ -568,6 +569,13 @@ exports.evolutionWebhook = onRequest({
             ? {} : { desconectadoEn: FieldValue.serverTimestamp() }),
           ...motivoCierre(body),
         }, { merge: true }).catch(() => {});
+        // Cuenta de caídas del día — solo la TRANSICIÓN, igual que los chips.
+        // Sin esto, una sesión que se cae y vuelve en minutos no dejaba rastro:
+        // al reconectar se borra `desconectadoEn` y la alerta de 20 min nunca
+        // llega a dispararse. El flapping era invisible por los dos lados.
+        if (prev.estadoConexion !== 'disconnected') {
+          await registrarCaida(tid).catch(() => {});
+        }
       }
     }
 

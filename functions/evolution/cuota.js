@@ -88,7 +88,7 @@ async function registrarSaliente(tid, { tipo = 'bot', ok = true } = {}) {
 /** Snapshot del día para el dashboard de ops: cuánto salió, cuánto falló y
  *  contra qué topes. Falla-abierto con ceros. */
 async function resumenHoy(tid) {
-  const vacio = { n: 0, botOk: 0, botFail: 0, confOk: 0, confFail: 0 };
+  const vacio = { n: 0, botOk: 0, botFail: 0, confOk: 0, confFail: 0, caidas: 0 };
   if (!tid) return vacio;
   try {
     const s = await cuotaRef(tid, ahoraChile().fecha).get();
@@ -100,6 +100,10 @@ async function resumenHoy(tid) {
       botFail:  Number(d.bot_fail) || 0,
       confOk:   Number(d.confirmacion_ok) || 0,
       confFail: Number(d.confirmacion_fail) || 0,
+      // Caídas de sesión del día: una sesión que se cae seguido está degradada
+      // aunque ahora se vea verde, y ese es justo el caso que el semáforo de
+      // "caída AHORA" no puede mostrar.
+      caidas:   Number(d.caidas) || 0,
     };
   } catch (_) { return vacio; }
 }
@@ -143,6 +147,40 @@ async function conversacionesHoy(tid) {
   } catch (_) { return 0; }
 }
 
+/* ── CAÍDAS DE SESIÓN por día ────────────────────────────────────────────────
+   Los chips de SynapTech ya contaban esto (`plataforma._registrarEvento`); los
+   números de los LOCALES no, y esa asimetría dejaba un hueco real: al
+   reconectar, el webhook borra `desconectadoEn`, así que una sesión que se cae
+   y vuelve en cinco minutos —diez veces al día— no dejaba ningún rastro.
+
+   Y el aviso por correo tampoco la veía: solo dispara sobre 20 minutos caída,
+   una gracia deliberada para no alarmar por cada parpadeo de Baileys. O sea que
+   el flapping era invisible por los dos lados a la vez. Caso real: reportaron
+   que a kronnos_limache "se le cierra el QR" y no hubo forma de confirmarlo ni
+   de desmentirlo con datos (2026-08-06).
+
+   Una sesión que se cae seguido es una sesión degradada, y eso precede al
+   bloqueo — la misma señal que ya vigila CHIP_UMBRAL para los chips. */
+async function registrarCaida(tid) {
+  if (!tid) return;
+  const fecha = ahoraChile().fecha;
+  await cuotaRef(tid, fecha).set({
+    fecha,
+    caidas: FieldValue.increment(1),
+    ultimaCaida: FieldValue.serverTimestamp(),
+    actualizado: FieldValue.serverTimestamp(),
+  }, { merge: true }).catch(() => {});
+}
+
+/** Caídas registradas hoy. Falla-abierto (0). */
+async function caidasHoy(tid) {
+  if (!tid) return 0;
+  try {
+    const s = await cuotaRef(tid, ahoraChile().fecha).get();
+    return s.exists ? (Number(s.data().caidas) || 0) : 0;
+  } catch (_) { return 0; }
+}
+
 /** Suma 1 al contador de conversaciones del día (solo en la PRIMERA respuesta
  *  del bot a ese chat en el día). Nunca lanza. */
 async function registrarConversacion(tid) {
@@ -168,4 +206,6 @@ module.exports = {
   limiteConversaciones,
   conversacionesHoy,
   registrarConversacion,
+  registrarCaida,
+  caidasHoy,
 };

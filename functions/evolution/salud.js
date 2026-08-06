@@ -39,6 +39,16 @@ const MAIL_FROM      = 'SynapTech <avisos@synaptechspa.cl>';
 const EMAIL_SYNAPTECH = 'ignaciiio.mate@gmail.com';
 const GRACIA_MIN     = 20;   // minutos caída antes de alertar (anti-flapping)
 
+/* Caídas en un día que dejan de ser "Baileys reconectando" y pasan a ser una
+   sesión degradada. Mismo umbral que CHIP_UMBRAL usa para los chips.
+
+   Este aviso cubre el punto ciego del de arriba: aquel exige 20 minutos caída
+   seguidos, así que una sesión que se cae y vuelve en cinco minutos —diez veces
+   al día— nunca lo dispara, y al reconectar se borra `desconectadoEn` y no
+   queda rastro. Reportaron eso mismo en kronnos_limache el 2026-08-06 y no
+   hubo con qué confirmarlo. Acá se mira la FRECUENCIA, no la duración. */
+const CAIDAS_DIA_ALERTA = 4;
+
 // Destinatarios del dueño — mismo orden que recordatorio-cobro / comprobantes:
 // settings.emailAvisos (lo edita el dueño) → tenants/{tid}.ownerEmail.
 // NUNCA correos de barberos/ (credenciales de login, muchos inventados).
@@ -96,6 +106,37 @@ function htmlAlerta({ local, tid, minutos, url }) {
   </div>`;
 }
 
+/* Aviso de sesión INESTABLE. Va solo a SynapTech, no al dueño: el local no
+   puede hacer nada con "tu sesión se cayó 6 veces" —no está caída ahora— y
+   mandárselo solo genera una llamada. Es una señal para nosotros: revisar el
+   VPS, la antigüedad del número o proponer un chip de respaldo. */
+function htmlInestable({ local, tid, caidas, ultima }) {
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;background:#0b1220;color:#e2e8f0;border-radius:14px;overflow:hidden;border:1px solid #1e293b;">
+    <div style="padding:22px 26px;border-bottom:1px solid #1e293b;">
+      <p style="margin:0;font-size:12px;letter-spacing:3px;color:#f59e0b;font-weight:bold;">SYNAPTECH · INTERNO</p>
+      <h2 style="margin:6px 0 0;font-size:19px;color:#f8fafc;">Sesión inestable</h2>
+    </div>
+    <div style="padding:22px 26px;">
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#cbd5e1;">
+        La sesión de <b style="color:#f8fafc;">${local}</b> (${tid}) se cayó
+        <b>${caidas} veces hoy</b>. Reconecta sola cada vez, así que el aviso de
+        "20 minutos caída" nunca se dispara — pero una sesión que se cae seguido
+        es una sesión degradada, y eso precede a un bloqueo.
+      </p>
+      <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;">Última caída: <b style="color:#cbd5e1;">${ultima}</b></p>
+      <p style="margin:14px 0 0;font-size:13px;color:#cbd5e1;">
+        Qué revisar: estado del VPS, antigüedad del número, y si el teléfono del
+        local tiene batería o red inestable.
+      </p>
+      <a href="https://ops.synaptechspa.cl" style="display:inline-block;margin-top:16px;padding:10px 18px;border-radius:10px;background:#34d399;color:#052e16;font-size:13px;font-weight:bold;text-decoration:none;">Abrir ops</a>
+    </div>
+    <div style="padding:14px 26px;background:#0f172a;font-size:11px;color:#475569;">
+      Powered by SynapTech SpA · synaptechspa.cl
+    </div>
+  </div>`;
+}
+
 exports.evolutionSaludSesiones = onSchedule(
   {
     schedule: 'every 30 minutes',
@@ -119,6 +160,38 @@ exports.evolutionSaludSesiones = onSchedule(
         if (!cfg) continue;
         // Solo tenants que USAN el módulo: para el resto, desconectado es lo normal.
         if (cfg.botEnabled !== true && cfg.confirmacionesEnabled !== true) continue;
+
+        /* ── Sesión inestable (flapping) ──────────────────────────────
+           Se evalúa ANTES del `continue` de "no está desconectada": el caso
+           que cubre es justamente una sesión que AHORA está conectada pero
+           se cayó varias veces hoy. Con el chequeo abajo nunca se alcanzaría.
+           Un aviso por día y por local (`alertaInestableDia`). */
+        try {
+          const hoyCl = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+          }).format(new Date());
+          const cuota  = (await db.doc(`tenants/${tid}/wa_cuota/${hoyCl}`).get()).data() || {};
+          const caidas = Number(cuota.caidas) || 0;
+          if (caidas >= CAIDAS_DIA_ALERTA && cfg.alertaInestableDia !== hoyCl) {
+            const td    = (await db.doc(`tenants/${tid}`).get()).data() || {};
+            const local = td.nombre || td.nombreCorto || tid;
+            const ultima = cuota.ultimaCaida?.toDate
+              ? cuota.ultimaCaida.toDate().toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+              : '—';
+            await enviarEmail({
+              from:    MAIL_FROM,
+              to:      [EMAIL_SYNAPTECH],
+              subject: `📶 Sesión inestable · ${local} (${caidas} caídas hoy)`,
+              html:    htmlInestable({ local, tid, caidas, ultima }),
+            }, { grupo: 'interno', etiqueta: 'evolution-inestable' });
+            await ref.set({ alertaInestableDia: hoyCl }, { merge: true });
+            alertas++;
+            logger.warn(`[salud] ${tid}: sesión inestable, ${caidas} caídas hoy → alerta interna`);
+          }
+        } catch (e) {
+          logger.error(`[salud] ${tid} flapping:`, e.message);
+        }
+
         if (cfg.estadoConexion !== 'disconnected') continue;
         if (cfg.alertaDesconexionEnviada === true) continue;   // ya se avisó esta caída
 

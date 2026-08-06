@@ -206,6 +206,11 @@ const UMBRAL = {
   optoutPct:    0.05,   // bajas / envíos del mes
   failPct:      0.20,   // fallos de envío del día
   mailPct:      0.80,   // % de la cuota diaria de correo de un proveedor
+  // Caídas de sesión en un día. Mismo umbral que usa evolution/salud.js para
+  // el correo: una sesión que se cae seguido está degradada aunque el semáforo
+  // la muestre verde, y eso precede al bloqueo. Sin esto el panel solo veía la
+  // caída que estaba ocurriendo AHORA, nunca el patrón.
+  caidasDia:    4,
 };
 
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
@@ -344,6 +349,15 @@ async function analizarLocal(tid, hoy, mesActual) {
       alertas.push({ nivel: 'rojo', texto: `${tid}: ${Math.round(failPct * 100)}% de los envíos de hoy están fallando (${fallos}/${intentos}) — revisa la sesión antes de que se caiga.` });
     }
 
+    // ── Sesión inestable (flapping) ──
+    // El semáforo solo puede mostrar la caída que ocurre AHORA. Una sesión que
+    // se cae y vuelve sola varias veces al día se ve verde en cada mirada y
+    // aun así está degradada — es el reporte de kronnos_limache del 06-08 que
+    // no se pudo confirmar con datos porque nadie contaba las caídas.
+    if (cuota.caidas >= UMBRAL.caidasDia) {
+      alertas.push({ nivel: 'ambar', texto: `${tid}: la sesión se cayó ${cuota.caidas} veces hoy — reconecta sola, pero una sesión inestable precede a un bloqueo.` });
+    }
+
     // Chats con el bot silenciado AHORA (intervención humana o derivación).
     const silenciados = silSnap ? silSnap.size : 0;
     if (silenciados > 0) {
@@ -411,6 +425,10 @@ async function analizarLocal(tid, hoy, mesActual) {
         confirmaciones: confHoy, capConfirm,
         fallos, intentos,
         pct: capTotal ? Math.round(cuota.n / capTotal * 100) : 0,
+        // Caídas de hoy: el semáforo dice cómo está AHORA, esto dice cómo se
+        // portó durante el día. Sin el segundo dato, una sesión que parpadea
+        // diez veces se ve idéntica a una estable cada vez que uno mira.
+        caidas: cuota.caidas,
       },
       negocio,
       // ── Uso del MES: la base sobre la que se cobran los planes del agente ──
