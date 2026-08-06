@@ -2486,6 +2486,261 @@ window.ReservaCore = (function () {
       : { ok: false, motivo: 'Ingresa un correo válido (por ejemplo: nombre@ejemplo.com).' };
   }
 
+  /* ── Validación estricta de contacto (flag por tenant) ───────────────
+     configuracion/main.validacionContactoEstricta. APAGADO por defecto:
+     encenderlo cambia lo que el formulario acepta, y eso se prueba en UN
+     local antes de tocar a los 35. Con el flag apagado el piso sigue siendo
+     el de siempre (9 dígitos), solo que ahora vive en un lugar y no en dos.
+
+     Origen: 2026-08-05, reserva basura en kronnos_limache
+     (nombre "Hola", tel 88555885886, correo trefghut@mhhh.cpm) que bloqueó
+     un cupo de hora peak. Los tres filtros que la dejaron pasar eran de
+     cartón y estaban duplicados entre index.html y barbero.html. */
+  function validacionEstricta(cfg) {
+    return !!(cfg && cfg.validacionContactoEstricta === true);
+  }
+
+  /* ── Teléfono chileno ────────────────────────────────────────────────
+     Móvil chileno = 9 dígitos que parten con 9, o sea +56 9 XXXX XXXX.
+
+     La defensa REAL no es esta función sino la máscara: si el campo formatea
+     mientras el cliente teclea, un 88555885886 no se puede escribir — se
+     trunca a 9 dígitos y no parte con 9. El error deja de ser posible en vez
+     de ser rechazado al final, que es lo que arruina la conversión (el toast
+     llega en el paso 4, después de elegir servicio, barbero, fecha y hora:
+     el peor momento para decirle a alguien que algo está mal).
+
+     validarTelefono es la red por si pegaron algo raro o la máscara no corrió. */
+
+  /* Dígitos NACIONALES (sin código de país), tope 9. Es la pieza que comparten
+     la máscara y la validación, así que ambas cuentan lo mismo. */
+  function _telNacional(raw) {
+    let d = String(raw == null ? '' : raw).replace(/\D/g, '');
+    // "+56 9 1234 5678", "56912345678" y "912345678" son el mismo número:
+    // sacamos el 56 solo si sobran dígitos, para no comerse un número que
+    // legítimamente empiece con 56 (no existe en móviles, pero el guard es gratis).
+    if (d.length > 9 && d.startsWith('56')) d = d.slice(2);
+    return d.slice(0, 9);
+  }
+
+  /* Formato en vivo para el input. Devuelve '' con string vacío para no
+     dejar un '+56' fantasma cuando el cliente borra todo. */
+  function formatearTelefonoLive(raw) {
+    const d = _telNacional(raw);
+    if (!d) return '';
+    const partes = ['+56', d.slice(0, 1)];
+    if (d.length > 1) partes.push(d.slice(1, 5));
+    if (d.length > 5) partes.push(d.slice(5, 9));
+    return partes.join(' ');
+  }
+
+  function validarTelefono(telRaw, cfg) {
+    const d = _telNacional(telRaw);
+    if (!d) return { ok: false, motivo: 'Por favor ingresa tu teléfono.' };
+    if (validacionEstricta(cfg)) {
+      return /^9\d{8}$/.test(d)
+        ? { ok: true }
+        : { ok: false, motivo: 'Ingresa un celular chileno de 9 dígitos (parte con 9).' };
+    }
+    // Piso histórico: el de index.html. barbero.html pedía 8 y quedaba más
+    // blando que la página principal para la MISMA reserva del MISMO cliente
+    // — el mismo bug de reglas divergentes que ya se corrigió con el correo.
+    return d.length >= 9
+      ? { ok: true }
+      : { ok: false, motivo: 'Ingresa un número de teléfono válido (mínimo 9 dígitos).' };
+  }
+
+  /* ── Sugerencia de correo (nunca bloquea) ────────────────────────────
+     Un typo de dominio no se rechaza, se ofrece corregido: "¿quisiste decir
+     …@gmail.com?" y un tap lo aplica. Es una MEJORA de conversión, no un
+     filtro: hoy el que escribe gmail.con reserva igual y simplemente nunca
+     recibe su confirmación (y de paso nos deja un rebote en Brevo, que
+     degrada la reputación de envío de todos los locales).
+
+     Al 2026-08-05 hay 85 correos con dominio inválido en la plataforma.
+
+     Devuelve null si el correo se ve bien, o { sugerencia, motivo }.
+     `sugerencia: null` = sospechoso pero sin propuesta razonable → la vista
+     lo deja pasar y solo lo marca. */
+  const _TLDS_VALIDOS = [
+    'com', 'cl', 'net', 'org', 'es', 'io', 'co', 'me', 'info', 'app', 'dev',
+    'edu', 'gob', 'gov', 'ar', 'pe', 'mx', 'br', 'uk', 'fr', 'de', 'it', 'ca',
+    'us', 'ru', 'pt', 'nl', 'se', 'ch', 'be', 'au', 'nz', 'jp', 'cn', 'in',
+  ];
+  /* ORDENADA POR POPULARIDAD a propósito: un typo puede quedar a distancia 1
+     de dos dominios a la vez (gmail.clm está a 1 de gmail.com y de gmail.cl),
+     y gana el primero de la lista. Poner el más usado arriba es el desempate
+     correcto. No reordenar por estética. */
+  const _DOMINIOS_COMUNES = [
+    'gmail.com', 'hotmail.com', 'hotmail.cl', 'hotmail.es', 'outlook.com',
+    'outlook.cl', 'outlook.es', 'yahoo.com', 'yahoo.es', 'yahoo.cl',
+    'icloud.com', 'live.com', 'live.cl', 'me.com', 'protonmail.com',
+    'proton.me', 'duocuc.cl', 'uc.cl', 'usm.cl', 'uchile.cl',
+  ];
+
+  /* Damerau-Levenshtein acotada. La transposición cuenta 1 y no 2 a propósito:
+     "hotmial"/"gmial" son de los typos más frecuentes que existen y con
+     Levenshtein plano quedaban a distancia 2, fuera del umbral. */
+  function _distanciaTipeo(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    const d = [];
+    for (let i = 0; i <= m; i++) d[i] = [i];
+    for (let j = 0; j <= n; j++) d[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const costo = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + costo);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+          d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+      }
+    }
+    return d[m][n];
+  }
+
+  function sugerirCorreo(email) {
+    const v = String(email || '').trim().toLowerCase();
+    const at = v.lastIndexOf('@');
+    if (at < 1 || at === v.length - 1) return null;   // sin @ lo agarra validarCorreo
+    const local   = v.slice(0, at);
+    const dominio = v.slice(at + 1);
+    if (!dominio.includes('.')) return null;
+
+    // 1. ¿Es casi un dominio muy común? (gmai.com → gmail.com, hotmial → hotmail)
+    //    Umbral 1 a secas: una sugerencia equivocada que el cliente ACEPTA es
+    //    peor que no sugerir nada, así que preferimos quedarnos cortos.
+    for (const d of _DOMINIOS_COMUNES) {
+      if (d === dominio) return null;                 // exacto, no hay nada que decir
+      if (_distanciaTipeo(dominio, d) <= 1) {
+        return { sugerencia: local + '@' + d, motivo: 'dominio' };
+      }
+    }
+
+    // 2. TLD inexistente pero a un carácter de uno real (mhhh.cpm → mhhh.com).
+    const punto = dominio.lastIndexOf('.');
+    const tld   = dominio.slice(punto + 1);
+    if (_TLDS_VALIDOS.includes(tld)) return null;
+
+    let mejor = null, mejorD = 99;
+    for (const t of _TLDS_VALIDOS) {
+      const dd = _distanciaTipeo(tld, t);
+      if (dd < mejorD) { mejorD = dd; mejor = t; }
+    }
+    if (mejor && mejorD <= 1) {
+      return { sugerencia: local + '@' + dominio.slice(0, punto + 1) + mejor, motivo: 'tld' };
+    }
+    // TLD desconocido y lejos de todo (xd@xd.xd): sospechoso, pero inventar
+    // una corrección sería peor. Se deja pasar y la agenda lo marca.
+    return { sugerencia: null, motivo: 'tld-desconocido' };
+  }
+
+  /* ── Cableado de la UI (máscara + avisos inline) ─────────────────────
+     Vive acá y no en cada HTML por la misma razón que validarCorreo: cuando
+     la regla estaba duplicada, index.html pedía 9 dígitos y barbero.html 8
+     para la MISMA reserva del MISMO cliente, y nadie se enteró por meses.
+
+     Reglas de UX que este cableado implementa, en orden de importancia:
+      1. La máscara corre mientras teclean → el número inválido no se puede
+         escribir. Es prevención, no rechazo: cero fricción.
+      2. Se avisa al SALIR del campo, nunca mientras escriben por primera vez
+         (nadie quiere ver rojo antes de terminar de tipear).
+      3. Una vez que un campo mostró error, el aviso se limpia solo mientras
+         lo corrigen.
+      4. El correo NUNCA se bloquea: se ofrece la corrección y un tap la aplica.
+
+     Idempotente: si se llama dos veces sobre el mismo input, no duplica
+     listeners (el paso 4 se re-renderiza en algunos flujos). */
+  function cablearValidacionContacto(cfg, ids) {
+    if (typeof document === 'undefined') return;
+    const opt = ids || {};
+    const $ = id => document.getElementById(id);
+    const tel      = $(opt.telefono     || 'clientPhone');
+    const correo   = $(opt.correo       || 'clientEmail');
+    const telHint  = $(opt.telefonoHint || 'clientPhoneHint');
+    const mailHint = $(opt.correoHint   || 'clientEmailHint');
+
+    const texto = (el, txt) => {
+      if (!el) return;
+      el.textContent = txt || '';
+      el.classList.toggle('hidden', !txt);
+    };
+
+    /* ── Teléfono: máscara + aviso inline ── */
+    if (tel && !tel.dataset.validacionCableada) {
+      tel.dataset.validacionCableada = '1';
+      let yaAviso = false;
+
+      // Solo reformatea con el cursor al final (tipeo normal y pegado). Si
+      // están editando al medio, tocar .value les saltaría el cursor al final
+      // y es un bug de mask clásico — preferimos dejar el valor crudo y
+      // ordenarlo al salir del campo.
+      const formatear = (forzar) => {
+        const antes = tel.value;
+        const alFinal = tel.selectionStart == null || tel.selectionStart === antes.length;
+        if (!forzar && !alFinal) return;
+        const despues = formatearTelefonoLive(antes);
+        if (despues !== antes) tel.value = despues;
+      };
+
+      tel.addEventListener('input', () => {
+        formatear(false);
+        if (yaAviso) {
+          const r = validarTelefono(tel.value, cfg);
+          texto(telHint, r.ok ? '' : r.motivo);
+        }
+      });
+      tel.addEventListener('blur', () => {
+        formatear(true);
+        // Campo vacío al salir no se reta: puede estar recorriendo el form.
+        // De eso se encarga el submit.
+        if (!tel.value.trim()) { texto(telHint, ''); return; }
+        const r = validarTelefono(tel.value, cfg);
+        yaAviso = !r.ok;
+        texto(telHint, r.ok ? '' : r.motivo);
+      });
+    }
+
+    /* ── Correo: chip "¿quisiste decir …?" ── */
+    if (correo && mailHint && !correo.dataset.validacionCableada) {
+      correo.dataset.validacionCableada = '1';
+
+      const revisar = () => {
+        const v = correo.value.trim();
+        if (!v) return texto(mailHint, '');
+        const s = sugerirCorreo(v);
+        if (!s) return texto(mailHint, '');
+        if (!s.sugerencia) {
+          return texto(mailHint, 'Revisa tu correo: ese dominio no parece existir.');
+        }
+        // DOM en vez de innerHTML: la parte local del correo la escribe el
+        // usuario y concatenarla en un template sería un XSS de manual.
+        mailHint.textContent = '';
+        mailHint.classList.remove('hidden');
+        mailHint.appendChild(document.createTextNode('¿Quisiste decir '));
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.textContent = s.sugerencia;
+        chip.style.cssText = 'font-weight:700;text-decoration:underline;color:#fbbf24;'
+          + 'background:none;border:0;padding:0;cursor:pointer;font-size:inherit;font-family:inherit;';
+        chip.addEventListener('click', () => {
+          correo.value = s.sugerencia;
+          texto(mailHint, '');
+          correo.dispatchEvent(new Event('change'));
+        });
+        mailHint.appendChild(chip);
+        mailHint.appendChild(document.createTextNode('?'));
+      };
+
+      correo.addEventListener('blur', revisar);
+      // Mientras corrigen, el aviso se va solo.
+      correo.addEventListener('input', () => {
+        if (!mailHint.classList.contains('hidden')) texto(mailHint, '');
+      });
+    }
+  }
+
   /* ── Días en que el servicio se puede reservar ───────────────
      `diasDisponibles` es un array de días (0=Dom … 6=Sáb). El
      catálogo los muestra TODOS a propósito; quien manda es el paso
@@ -2609,6 +2864,11 @@ window.ReservaCore = (function () {
     waOptInMarcado,
     correoObligatorio,
     validarCorreo,
+    validacionEstricta,
+    formatearTelefonoLive,
+    validarTelefono,
+    sugerirCorreo,
+    cablearValidacionContacto,
     diaPermitido,
     nombresDiasServicio,
     puedeReservar,
