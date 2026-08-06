@@ -313,6 +313,12 @@ export default function Gastos() {
   // Mes que se está mirando (día 1). El rango de la consulta y el rótulo salen
   // de acá, así que no pueden desincronizarse.
   const [mesVisto, setMesVisto] = useState(mesActual);
+  // 'todos' | 'operacion' | 'liquidacion' + categoría opcional.
+  const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  // Al cambiar de mes se limpia la categoría: la del mes anterior puede no
+  // existir en el nuevo y dejaría la tabla vacía sin motivo aparente.
+  useEffect(() => { setFiltroCategoria(''); }, [mesVisto]);
   const esMesActual = mesVisto.getTime() === mesActual().getTime();
   const irAMes = (delta) => setMesVisto(m => {
     const siguiente = new Date(m.getFullYear(), m.getMonth() + delta, 1);
@@ -359,11 +365,40 @@ export default function Gastos() {
     }
   };
 
-  /* Summary stats */
-  const total   = gastos.reduce((s, g) => s + (g.monto || 0), 0);
+  /* ── Filtros ────────────────────────────────────────────────────────
+     Las liquidaciones de sueldo son gastos, pero de otra naturaleza: no son
+     decisiones de compra del local sino plata que ya se debía por trabajo
+     hecho. Mezcladas con el arriendo y los insumos tapaban el gasto operativo
+     real —una sola liquidación puede pesar más que todo el resto del mes— y
+     dejaban la "categoría principal" siempre en Sueldos. Se separan. */
+  const esLiquidacion = (g) => g.tipo === 'liquidacion';
+  const grupos = useMemo(() => ({
+    todos:       gastos,
+    operacion:   gastos.filter(g => !esLiquidacion(g)),
+    liquidacion: gastos.filter(esLiquidacion),
+  }), [gastos]);
+
+  const sumaDe = (arr) => arr.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+
+  const gastosVisibles = useMemo(() => {
+    const base = grupos[filtroTipo] || gastos;
+    return filtroCategoria ? base.filter(g => g.categoria === filtroCategoria) : base;
+  }, [grupos, filtroTipo, filtroCategoria, gastos]);
+
+  // Categorías realmente presentes: un desplegable con siete opciones de las
+  // que cinco no existen este mes es ruido.
+  const categoriasPresentes = useMemo(() => {
+    const base = grupos[filtroTipo] || gastos;
+    return [...new Set(base.map(g => g.categoria).filter(Boolean))].sort();
+  }, [grupos, filtroTipo, gastos]);
+
+  /* Summary stats — sobre lo que se está VIENDO, para que los KPI y la tabla
+     nunca cuenten cosas distintas. */
+  const total   = sumaDe(gastosVisibles);
   const catMap  = {};
-  gastos.forEach(g => { catMap[g.categoria] = (catMap[g.categoria] || 0) + g.monto; });
+  gastosVisibles.forEach(g => { catMap[g.categoria] = (catMap[g.categoria] || 0) + g.monto; });
   const topCat  = Object.entries(catMap).sort((a, b) => b[1] - a[1])[0];
+  const filtrando = filtroTipo !== 'todos' || !!filtroCategoria;
 
   const fmt = v => `$${Number(v).toLocaleString('es-CL')}`;
   const fmtDate = ts => {
@@ -419,15 +454,70 @@ export default function Gastos() {
         </button>
       </div>
 
+      {/* ── Filtros ──────────────────────────────────────────────────────
+          Separar liquidaciones del gasto operativo: cada chip muestra su
+          monto, así se ve el peso de cada bolsa sin tener que filtrar. */}
+      {gastos.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center gap-2">
+          {[
+            { id: 'todos',       label: 'Todos',         arr: grupos.todos },
+            { id: 'operacion',   label: 'Operación',     arr: grupos.operacion },
+            { id: 'liquidacion', label: 'Liquidaciones', arr: grupos.liquidacion },
+          ].map(({ id, label, arr }) => {
+            // "Todos" siempre visible para poder volver; los otros dos solo si
+            // tienen algo, para no ofrecer un filtro que deja la tabla vacía.
+            if (id !== 'todos' && !arr.length) return null;
+            const activo = filtroTipo === id;
+            return (
+              <button
+                key={id}
+                onClick={() => { setFiltroTipo(id); setFiltroCategoria(''); }}
+                className={`px-3 py-1.5 rounded-full border text-[13px] font-semibold transition-all ${
+                  activo
+                    ? id === 'liquidacion'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                      : 'bg-slate-700 text-primary border-slate-500'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-primary hover:border-slate-600'
+                }`}
+              >
+                {label}
+                <span className="ml-1.5 text-[11.5px] opacity-70 tabular-nums">
+                  {arr.length} · {fmt(sumaDe(arr))}
+                </span>
+              </button>
+            );
+          })}
+
+          <div className="flex-1" />
+
+          {categoriasPresentes.length > 1 && (
+            <select
+              value={filtroCategoria}
+              onChange={e => setFiltroCategoria(e.target.value)}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[13px] text-slate-300 focus:border-emerald-500 focus:outline-none"
+            >
+              <option value="">Todas las categorías</option>
+              {categoriasPresentes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KpiCard label="Total Gastos del Mes" value={fmt(total)} sub={`${gastos.length} registros`} color="red" />
+        <KpiCard
+          label={filtroTipo === 'liquidacion' ? 'Total Liquidaciones'
+               : filtroTipo === 'operacion'   ? 'Total Operación'
+               : 'Total Gastos del Mes'}
+          value={fmt(total)}
+          sub={`${gastosVisibles.length} registro${gastosVisibles.length === 1 ? '' : 's'}${filtrando ? ' · filtrado' : ''}`}
+          color="red" />
         <KpiCard label="Categoría Principal"
           value={topCat ? topCat[0] : '—'}
           sub={topCat ? fmt(topCat[1]) : 'Sin datos'}
           color="amber" />
         <KpiCard label="Promedio por Gasto"
-          value={gastos.length ? fmt(Math.round(total / gastos.length)) : '$0'}
+          value={gastosVisibles.length ? fmt(Math.round(total / gastosVisibles.length)) : '$0'}
           sub={esMesActual ? 'Este mes' : mesVisto.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
           color="purple" />
       </div>
@@ -436,7 +526,20 @@ export default function Gastos() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center gap-2">
           <TrendingDown size={15} className="text-red-400" />
-          <h2 className="text-sm font-semibold text-primary">Registros del Mes</h2>
+          <h2 className="text-sm font-semibold text-primary">
+            {filtroTipo === 'liquidacion' ? 'Liquidaciones del Mes'
+             : filtroTipo === 'operacion' ? 'Gastos de Operación'
+             : 'Registros del Mes'}
+            {filtroCategoria && <span className="text-slate-500 font-normal"> · {filtroCategoria}</span>}
+          </h2>
+          {filtrando && (
+            <button
+              onClick={() => { setFiltroTipo('todos'); setFiltroCategoria(''); }}
+              className="ml-auto text-[11.5px] font-semibold text-slate-400 hover:text-primary transition-colors"
+            >
+              Quitar filtros
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -450,6 +553,17 @@ export default function Gastos() {
             <button onClick={() => setModal(true)}
               className="mt-2 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors">
               Registrar el primero
+            </button>
+          </div>
+        ) : gastosVisibles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-2">
+            <Tag size={28} className="text-slate-700" />
+            <p className="text-sm text-slate-600">Ningún gasto calza con este filtro.</p>
+            <button
+              onClick={() => { setFiltroTipo('todos'); setFiltroCategoria(''); }}
+              className="mt-1 text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors"
+            >
+              Quitar filtros
             </button>
           </div>
         ) : (
@@ -466,9 +580,9 @@ export default function Gastos() {
                 </tr>
               </thead>
               <tbody>
-                {gastos.map((g, i) => (
+                {gastosVisibles.map((g, i) => (
                   <tr key={g.id}
-                    className={`border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors ${i === gastos.length - 1 ? 'border-0' : ''}`}>
+                    className={`border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors ${i === gastosVisibles.length - 1 ? 'border-0' : ''}`}>
                     <td className="px-5 py-3.5 text-slate-400 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Calendar size={12} className="text-slate-600" />
