@@ -254,6 +254,87 @@ exports.instagramWebhook = onRequest({
   }
 });
 
+/* ─────────────── ¿Cliente que pide soporte o lead nuevo? ───────────────
+   Un local que YA paga y escribe con un problema no puede recibir un pitch de
+   ventas: es la peor cara posible. Pero tampoco quiero apagar el bot para
+   todos, porque entonces vuelve el agujero que costó $124.548.
+
+   Se resuelve con dos listas:
+     · AUTOMÁTICA — los @ de los locales que ya son clientes, derivados de los
+       tenants y de las cuentas de Instagram conectadas. Se calcula sola, así
+       que un cliente nuevo queda protegido sin que nadie haga nada.
+     · MANUAL — `_system/instagram_plataforma.soporte[]`, para los barberos que
+       escriben desde su cuenta PERSONAL, que es lo que la automática no puede
+       adivinar. Se llena desde ops con un clic.
+
+   Ante la duda contesta el bot: perder un lead cuesta más que un pitch de más
+   a alguien que después se marca como soporte y no se repite nunca. */
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let _cacheClientes = null;
+let _cacheClientesAt = 0;
+
+async function handlesDeClientes() {
+  if (_cacheClientes && (Date.now() - _cacheClientesAt) < CACHE_TTL_MS) return _cacheClientes;
+
+  const norm = (h) => String(h || '').replace(/^@+/, '').trim().toLowerCase();
+  const set = new Set();
+
+  // De los docs de tenant (el @ que declararon al darse de alta).
+  const refs = await db.collection('tenants').listDocuments();
+  await Promise.all(refs.map(async (r) => {
+    const v = (await r.get()).data() || {};
+    if (v.instagram) set.add(norm(v.instagram));
+  }));
+
+  // De las cuentas realmente conectadas: la fuente más fiable.
+  const sys = await db.collection('_system').listDocuments();
+  await Promise.all(sys
+    .filter((r) => r.id.startsWith('instagram_') &&
+      !['instagram_app', 'instagram_plataforma', `instagram_${CUENTA}`].includes(r.id))
+    .map(async (r) => {
+      const v = (await r.get()).data() || {};
+      if (v.instagramUsername) set.add(norm(v.instagramUsername));
+    }));
+
+  // Varios tenants conectaron usando la propia cuenta de SynapTech: si quedara
+  // en la lista, cualquier mensaje se leería como "cliente" y el bot enmudecería.
+  set.delete('synaptechspa');
+  set.delete('');
+
+  _cacheClientes = set;
+  _cacheClientesAt = Date.now();
+  return set;
+}
+
+/**
+ * Decide si el bot contesta o si el mensaje es para Ignacio.
+ * @returns {{esSoporte:boolean, motivo:string|null, username:string, nombre:string}}
+ */
+async function clasificarRemitente(con, cfg, igsid, guardado) {
+  // El @ se resuelve una vez y queda cacheado en la conversación: pedirlo en
+  // cada mensaje es una llamada de más por cada línea que escriben.
+  let username = guardado?.username || '';
+  let nombre   = guardado?.nombre || '';
+  if (!username) {
+    const p = await ig.perfilDeUsuario(con.token, igsid).catch(() => null);
+    username = String(p?.username || '').toLowerCase();
+    nombre   = String(p?.name || '');
+  }
+
+  const manual = (cfg.soporte || []).map((h) => String(h).replace(/^@+/, '').toLowerCase());
+  if (username && manual.includes(username)) {
+    return { esSoporte: true, motivo: 'marcado como soporte', username, nombre };
+  }
+  if (guardado?.esSoporte === true) {
+    return { esSoporte: true, motivo: 'marcado como soporte', username, nombre };
+  }
+  if (username && (await handlesDeClientes()).has(username)) {
+    return { esSoporte: true, motivo: 'es un local cliente', username, nombre };
+  }
+  return { esSoporte: false, motivo: null, username, nombre };
+}
+
 /* ───────────────────── DM → el cerebro de ventas ─────────────────────
    No se duplica el bot: se reusa `evolution/ventas.js` entero — su prompt, su
    tool de registrar reuniones, sus topes de gasto, el opt-out y el silencio
@@ -275,13 +356,39 @@ async function manejarDM(evento, con, cfg) {
   if (!texto && !(msg.attachments || []).length) return;
   if (cfg.botDM === false) { logger.info('[ig-dm] bot de DM apagado — lo maneja Ignacio'); return; }
 
+  const convRef = db.doc(`ig_conversaciones/${remitente}`);
+  const guardado = (await convRef.get()).data() || null;
+  const quien = await clasificarRemitente(con, cfg, remitente, guardado);
+
   // La ventana de 24 h se cuenta desde ESTE mensaje, así que queda registrada
   // para saber si más tarde todavía se le puede escribir.
-  await db.doc(`ig_conversaciones/${remitente}`).set({
+  await convRef.set({
     igsid: remitente, cuenta: propio || con.igUserId,
+    username: quien.username || null, nombre: quien.nombre || null,
+    esSoporte: quien.esSoporte,
     ultimoMensajeEn: Timestamp.now(), ultimoTexto: texto.slice(0, 400),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
+
+  // Cliente pidiendo soporte: el bot se calla y se le avisa a Ignacio. Meterle
+  // un pitch de ventas a alguien que ya paga es la peor cara posible.
+  if (quien.esSoporte) {
+    logger.info(`[ig-dm] @${quien.username} → soporte (${quien.motivo}); el bot no contesta`);
+    const evoReal = require('./evolution/client').crearCliente({
+      baseUrl: EVOLUTION_API_URL.value(), apiKey: EVOLUTION_API_KEY.value(),
+    });
+    await evoReal.enviarTexto('instance_plat_ventas', '56983568212', [
+      '🛟 *Soporte por Instagram*',
+      '',
+      `De: @${quien.username}${quien.nombre ? ` (${quien.nombre})` : ''}`,
+      `Motivo: ${quien.motivo}`,
+      '',
+      `💬 "${texto.slice(0, 300)}"`,
+      '',
+      'El bot NO contestó — te toca a ti.',
+    ].join('\n')).catch((e) => logger.warn('[ig-dm] aviso soporte:', e.message));
+    return;
+  }
 
   const { procesarMensajeVentas } = require('./evolution/ventas');
   const { crearCliente }          = require('./evolution/client');
@@ -375,6 +482,60 @@ async function manejarComentario(valor, con, cfg) {
   }
 }
 
+/* ─────────────────── Marcar quién va a soporte ─────────────────── */
+
+exports.instagramMarcarSoporte = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const igsid   = String(req.data?.igsid || '');
+  const soporte = req.data?.soporte !== false;
+  if (!igsid) throw new HttpsError('invalid-argument', 'Falta el igsid.');
+
+  const ref = db.doc(`ig_conversaciones/${igsid}`);
+  const conv = (await ref.get()).data() || {};
+  await ref.set({ esSoporte: soporte, marcadoEn: FieldValue.serverTimestamp() }, { merge: true });
+
+  // También al doc de config: así la marca sobrevive aunque la conversación se
+  // borre, y sirve si la misma persona escribe desde otro hilo.
+  const usuario = String(conv.username || req.data?.username || '').replace(/^@+/, '').toLowerCase();
+  if (usuario) {
+    await CFG_REF().set({
+      soporte: soporte ? FieldValue.arrayUnion(usuario) : FieldValue.arrayRemove(usuario),
+    }, { merge: true });
+  }
+
+  // El bot ya activó esa conversación en su propia colección; hay que soltarla
+  // o seguiría contestando aunque acá diga soporte.
+  if (soporte) {
+    await db.doc(`wa_ventas_conversaciones/ig_${igsid}`)
+      .set({ activado: false }, { merge: true }).catch(() => {});
+  }
+
+  logger.info(`[ig] @${usuario || igsid} ${soporte ? '→ soporte (el bot se calla)' : '→ el bot vuelve a contestarle'}`);
+  return { ok: true, igsid, username: usuario, soporte };
+});
+
+exports.instagramConversaciones = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const snap = await db.collection('ig_conversaciones')
+    .orderBy('ultimoMensajeEn', 'desc').limit(30).get();
+  return {
+    ok: true,
+    items: snap.docs.map((d) => {
+      const v = d.data();
+      return {
+        igsid: d.id, username: v.username || null, nombre: v.nombre || null,
+        esSoporte: v.esSoporte === true,
+        ultimoTexto: v.ultimoTexto || '',
+        ultimoMensajeEn: v.ultimoMensajeEn?.toMillis?.() || null,
+      };
+    }),
+  };
+});
+
 /* ───────────────────────────── Publicar ───────────────────────────── */
 
 exports.instagramPublicar = onCall({
@@ -446,6 +607,19 @@ async function resumenInstagram() {
       visitasPerfil7d: ins?.visitasAlPerfil ?? null,
       alcanceSerie: ins?.alcanceSerie || [],
       dm7d:        dms ? dms.docs.filter((d) => ms(d.data().ultimoMensajeEn) >= hace7).length : null,
+      // Últimos hilos con su clasificación, para poder corregirla desde ops.
+      conversaciones: dms ? dms.docs
+        .sort((a, b) => ms(b.data().ultimoMensajeEn) - ms(a.data().ultimoMensajeEn))
+        .slice(0, 12)
+        .map((d) => {
+          const v = d.data();
+          return {
+            igsid: d.id, username: v.username || null, nombre: v.nombre || null,
+            esSoporte: v.esSoporte === true,
+            texto: String(v.ultimoTexto || '').slice(0, 90),
+            cuando: ms(v.ultimoMensajeEn),
+          };
+        }) : [],
       comentarios7d: coments ? coments.docs.filter((d) => ms(d.data().recibidoEn) >= hace7).length : null,
       cupoPublicacion: cupo,
       // Si esto se cae, el bot deja de recibir DMs sin ningún otro síntoma.
@@ -459,6 +633,8 @@ async function resumenInstagram() {
   }
 }
 
-exports._resumenInstagram = resumenInstagram;
+exports._resumenInstagram   = resumenInstagram;
+exports._handlesDeClientes  = handlesDeClientes;
+exports._clasificarRemitente = clasificarRemitente;
 exports._PERMISOS = PERMISOS;
 exports._CUENTA = CUENTA;

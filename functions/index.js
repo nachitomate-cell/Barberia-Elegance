@@ -1846,6 +1846,10 @@ exports.instagramPlataformaLink   = igPlataforma.instagramPlataformaLink;
 exports.instagramPlataformaEstado = igPlataforma.instagramPlataformaEstado;
 exports.instagramWebhook          = igPlataforma.instagramWebhook;
 exports.instagramPublicar         = igPlataforma.instagramPublicar;
+// Filtro cliente/lead: los locales que ya pagan escriben para pedir soporte y
+// no pueden recibir un pitch de ventas.
+exports.instagramMarcarSoporte    = igPlataforma.instagramMarcarSoporte;
+exports.instagramConversaciones   = igPlataforma.instagramConversaciones;
 
 // Creativos programados: la cola de publicaciones y el cron que las saca.
 const igProgramador = require('./instagram-programador');

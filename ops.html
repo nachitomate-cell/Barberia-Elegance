@@ -941,7 +941,29 @@
           </div>
         </div>
 
+        ${conversacionesHtml(i.conversaciones)}
         ${colaHtml(i.programadas)}`;
+    }
+
+    /* Quién habla por DM y quién le contesta. El bot atiende a los desconocidos
+       (son leads); los locales que ya son clientes se detectan solos por su @ y
+       quedan para Ignacio. Los barberos que escriben desde su cuenta PERSONAL
+       no hay forma de adivinarlos: para esos está el botón. */
+    function conversacionesHtml(cs){
+      if(!cs || !cs.length) return '';
+      const hace = (ms) => { if(!ms) return ''; const m = Math.round((Date.now()-ms)/60000);
+        return m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m/60)} h` : `hace ${Math.round(m/1440)} d`; };
+      return `<div class="panel" style="margin-top:14px">
+        <h3>💬 Quién te escribe por DM</h3>
+        <p class="hint">Los locales que ya son clientes se reconocen solos por su @ y el bot no les contesta — te avisa a ti por WhatsApp. Si un barbero te escribe desde su cuenta personal, márcalo acá y el bot no vuelve a responderle nunca.</p>
+        ${cs.map(c => `<div class="loc">
+          <span class="dot ${c.esSoporte ? 'off' : 'on'}"></span>
+          <span style="flex:1">@${c.username || c.igsid}${c.nombre ? ` <span class="muted">· ${c.nombre}</span>` : ''}</span>
+          <span class="tag ${c.esSoporte ? '' : 'g'}">${c.esSoporte ? '🛟 soporte tuyo' : '🤖 contesta el bot'}</span>
+          <button class="mini" data-igsop="${c.igsid}" data-val="${c.esSoporte ? '0' : '1'}">${c.esSoporte ? 'que conteste el bot' : 'es cliente, lo atiendo yo'}</button>
+          <span class="sub2">${String(c.texto || '').replace(/</g,'&lt;')} <span class="muted">· ${hace(c.cuando)}</span></span>
+        </div>`).join('')}
+      </div>`;
     }
 
     /* La cola no es decoración: un creativo programado que falló en silencio es
@@ -1063,7 +1085,14 @@
       if (el) { el.innerHTML = seccionInstagram(); bindInstagram(); }
     }
 
+    async function igSoporte(igsid, soporte){
+      try { await _fn('instagramMarcarSoporte')({ igsid, soporte }); await refrescarInstagram(); }
+      catch(e){ alert('No se pudo cambiar: ' + (e.message || e)); }
+    }
+
     function bindInstagram(){
+      document.querySelectorAll('[data-igsop]').forEach(b =>
+        b.onclick = () => igSoporte(b.dataset.igsop, b.dataset.val === '1'));
       const c = document.getElementById('igConectar');   if (c) c.onclick = () => igConectar(c);
       const p = document.getElementById('igPublicar');   if (p) p.onclick = () => igPublicar(p);
       const g = document.getElementById('igProgramar');  if (g) g.onclick = () => igProgramar(g);

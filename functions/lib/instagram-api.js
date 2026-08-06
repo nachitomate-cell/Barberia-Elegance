@@ -130,6 +130,18 @@ function dentroDeVentana(ultimoMensajeMs) {
   return !!ultimoMensajeMs && (Date.now() - ultimoMensajeMs) < VENTANA_MS;
 }
 
+/**
+ * Quién es el que escribe. El webhook solo trae el IGSID (un número opaco);
+ * el @usuario hay que pedirlo. Es lo que permite distinguir a un cliente que
+ * viene a pedir soporte de un desconocido que viene a preguntar precios.
+ * `is_user_follow_business` de yapa: quien ya te sigue rara vez es un lead frío.
+ */
+async function perfilDeUsuario(token, igsid) {
+  return llamar('GET', String(igsid), {
+    token, params: { fields: 'name,username,follower_count,is_user_follow_business' },
+  });
+}
+
 /* ─────────────────────────────── Comentarios ─────────────────────────────── */
 
 /** Responde el comentario EN PÚBLICO, colgando de ese mismo hilo. */
@@ -218,7 +230,7 @@ async function cupoPublicacion(token, igUserId) {
 
 module.exports = {
   llamar, perfil, insights,
-  enviarDM, responderComentarioEnPrivado, dentroDeVentana, VENTANA_MS,
+  enviarDM, responderComentarioEnPrivado, dentroDeVentana, VENTANA_MS, perfilDeUsuario,
   responderComentario, ocultarComentario,
   publicar, cupoPublicacion,
 };
