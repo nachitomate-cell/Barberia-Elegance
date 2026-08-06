@@ -97,6 +97,17 @@
   @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
   .panel{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
 
+  /* ── Logos de marca ──────────────────────────────────────────────────
+     Los emoji 📣📸📱 se leían como decoración y cambian de dibujo según el
+     sistema operativo. La marca real se reconoce antes de leer la palabra.
+     `vertical-align` y no flex: van dentro de botones y de <h3> que ya
+     tienen su propio layout, y así no hay que tocar ninguno. */
+  .brand{ width:18px; height:18px; vertical-align:-4px; margin-right:2px; border-radius:4px; }
+  /* Los logos vienen en su color de marca sobre fondo blanco recortado. Un
+     punto de brillo los despega del navy sin desaturarlos. */
+  .tabs button .brand{ filter:saturate(1.05); }
+  .panel h3 .brand{ vertical-align:-4px; }
+
   /* ── Explicaciones ───────────────────────────────────────────────────
      Un tablero interno se lee a las 3 de la mañana y con sueño. Cada panel
      dice en una línea qué pregunta responde, y todo dato abreviado lleva su
@@ -224,6 +235,20 @@
     const clp = n => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
     const usd = n => 'US$' + (Number(n)||0).toFixed(2);
     const num = n => (Number(n)||0).toLocaleString('es-CL');
+
+
+    /* ── Logos de marca ───────────────────────────────────────────────
+       PNG reales incrustados como data URI, no enlazados desde internet:
+       ops es una herramienta interna que tiene que abrir aunque la red
+       esté mala, y un logo hotlinkeado es una petición externa que además
+       filtra a terceros cuándo y desde dónde se abre el panel.
+       96px de origen para 18px de render: nítidos también en pantalla retina. */
+    const LOGO = {
+      instagram: 'data:image/png;base64,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',
+      whatsapp:  'data:image/png;base64,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',
+      meta:      'data:image/png;base64,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',
+    };
+    const marca = (k, alt) => `<img class="brand" src="${LOGO[k]}" alt="${alt}" width="18" height="18">`;
 
     /** Envuelve un texto con su explicación al pasar el mouse. El subrayado
      *  punteado es la parte importante: avisa que hay algo que leer. */
@@ -721,7 +746,7 @@
     function metaAdsPanel(m){
       if(!m) return '<p class="muted">Sin snapshot de Meta Ads todavía. Pulsa «Refrescar ads».</p>';
       if(m.metaError){
-        return `<div class="panel"><h3>📣 Meta Ads</h3>
+        return `<div class="panel"><h3>${marca('meta','Meta')} Meta Ads</h3>
           <div class="alerta ${m.metaEsAuth ? 'rojo' : 'ambar'}"><span>${m.metaEsAuth ? '🔴' : '🟡'}</span><span>
             ${m.metaEsAuth ? 'El token de Meta venció o perdió permisos. Genera uno nuevo con ads_read y actualiza el secret META_ADS_TOKEN.' : m.metaError}
           </span></div>
@@ -833,7 +858,7 @@
     function instagramPanel(i){
       if(!i || !i.conectado){
         return `<div class="panel">
-          <h3>📸 Instagram</h3>
+          <h3>${marca('instagram','Instagram')} Instagram</h3>
           <p class="hint">La cuenta de SynapTech todavía no está conectada. Conectarla habilita cuatro cosas: que el bot responda los DM, la automatización de comentarios, las métricas de acá abajo y publicar desde el panel.</p>
           ${i && i.error ? `<div class="alerta ambar"><span>🟡</span><span>${i.error}</span></div>` : ''}
           <button class="primary" id="igConectar">Conectar @synaptechspa</button>
@@ -1271,12 +1296,12 @@
         </header>
         <nav class="tabs">
           <button data-tab="resumen">📊 Resumen</button>
-          <button data-tab="ads">📣 Meta Ads</button>
-          <button data-tab="instagram">📸 Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
+          <button data-tab="ads">${marca('meta','Meta')} Meta Ads</button>
+          <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
           <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
           <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
           <button data-tab="locales">💈 Locales</button>
-          <button data-tab="whatsapp">📱 WhatsApp</button>
+          <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
           <button data-tab="email">✉️ Email</button>
           <button data-tab="sushi">🍣 SushiPro</button>
           <button data-tab="probar">🧪 Probar IA</button>
