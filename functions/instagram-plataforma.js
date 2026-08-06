@@ -121,7 +121,11 @@ exports.instagramPlataformaLink = onCall({ region: 'us-central1', cors: true }, 
   const appId = ((await db.doc('_system/instagram_app').get()).data() || {}).appId;
   if (!appId) throw new HttpsError('failed-precondition', 'Falta _system/instagram_app.appId');
 
-  // El callback existente valida el `state` como `${cuenta}|${origenB64}`.
+  // Con `tenantId` el mismo link sirve para conectar la cuenta de un LOCAL con
+  // los permisos completos. Es lo que necesita un piloto: los locales que ya
+  // tienen Instagram lo conectaron solo con `basic` (para el lookbook), así que
+  // para que su bot atienda DMs hay que volver a autorizar pidiendo los cinco.
+  const cuenta = String(req.data?.tenantId || CUENTA).trim() || CUENTA;
   const origen = String(req.data?.origen || 'https://ops.synaptechspa.cl');
   const b64 = Buffer.from(origen, 'utf-8').toString('base64')
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -131,9 +135,9 @@ exports.instagramPlataformaLink = onCall({ region: 'us-central1', cors: true }, 
     redirect_uri:  CALLBACK_URL,
     response_type: 'code',
     scope:         PERMISOS.join(','),
-    state:         `${CUENTA}|${b64}`,
+    state:         `${cuenta}|${b64}`,
   });
-  return { ok: true, url: `https://www.instagram.com/oauth/authorize?${p}`, permisos: PERMISOS };
+  return { ok: true, cuenta, url: `https://www.instagram.com/oauth/authorize?${p}`, permisos: PERMISOS };
 });
 
 exports.instagramPlataformaEstado = onCall({ region: 'us-central1', cors: true }, async (req) => {
