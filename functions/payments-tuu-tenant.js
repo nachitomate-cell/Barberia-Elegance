@@ -231,6 +231,23 @@ function resolverSerial(sys, sucursalId) {
   throw new HttpsError('failed-precondition', 'No hay nº de serie de POS configurado.');
 }
 
+// El barbero solo opera SUS citas — pero las citas guardan `barberoId` con el
+// id del doc CANÓNICO del barbero ('oren-diego'), no su uid de Auth, y
+// `barberoAuthUid` suele venir null. Comparar solo contra request.auth.uid
+// rebotaba a TODOS los barberos (Diego, oren, 06-08): hay que resolver el
+// doc-espejo barberos/{uid} y aceptar también su _mainDocId.
+async function assertBarberoDuenoDeCita(request, tenantId, cita, verbo) {
+  const claims = request.auth?.token || {};
+  if (claims.role !== 'barbero') return; // admin/recepcion operan cualquier cita del tenant
+  const uid = request.auth.uid;
+  if (cita.barberoId === uid || cita.barberoAuthUid === uid) return;
+  const espejo = await db().collection('tenants').doc(tenantId)
+    .collection('barberos').doc(uid).get().catch(() => null);
+  const mainDocId = (espejo && espejo.exists && espejo.data()._mainDocId) || null;
+  if (mainDocId && cita.barberoId === mainDocId) return;
+  throw new HttpsError('permission-denied', `Solo puedes ${verbo} tus propias citas.`);
+}
+
 // TUU acepta enteros en pesos. Rechaza <= 0.
 function calcularMontoCobrable(cita) {
   const cand = [cita.precioFinal, cita.precio, cita.total, cita.monto].find(
@@ -319,20 +336,28 @@ exports.tuuCobrarCita = onCall(
     const cita = citaSnap.data();
 
     // El barbero solo puede cobrar SU cita; el admin puede cobrar cualquiera del tenant.
-    const claims = request.auth?.token || {};
-    if (claims.role === 'barbero') {
-      const uid = request.auth.uid;
-      const owns = cita.barberoId === uid || cita.barberoAuthUid === uid;
-      if (!owns) throw new HttpsError('permission-denied', 'Solo puedes cobrar tus propias citas.');
-    }
+    await assertBarberoDuenoDeCita(request, tenantId, cita, 'cobrar');
+
     const { apiKey, sys } = await leerConfigTuu(tenantId);
-    const serial = resolverSerial(sys, cita.sucursalId);
+
+    // Las citas creadas desde agenda.html no traían sucursalId — y sin sede,
+    // con serialsPorSucursal no hay cómo elegir POS. Fallback: la sede vive
+    // en el doc del barbero (el canónico y el espejo la tienen).
+    let sucursalId = cita.sucursalId || null;
+    if (!sucursalId && sys.serialsPorSucursal && cita.barberoId) {
+      const bSnap = await db().collection('tenants').doc(tenantId)
+        .collection('barberos').doc(String(cita.barberoId)).get().catch(() => null);
+      sucursalId = (bSnap && bSnap.exists && bSnap.data().sucursalId) || null;
+    }
+    const serial = resolverSerial(sys, sucursalId);
     const amount = calcularMontoCobrable(cita);
 
-    // idempotencyKey único por intento de cobro. Formato: cita-<citaId>-<ts>.
-    // Si el 1er intento fue Failed/Canceled, el reintento genera una nueva key
-    // (TUU rechaza reutilizar keys ya consumidas).
-    const idempotencyKey = `cita-${String(citaId).slice(0, 32)}-${Date.now()}`;
+    // idempotencyKey único por intento de cobro (si el 1er intento fue
+    // Failed/Canceled, el reintento genera una key nueva — TUU rechaza
+    // reutilizar keys ya consumidas). TUU exige 1-36 chars (error RP-001):
+    // con Date.now() decimal medía 39 y TODO cobro moría con HTTP 400, así
+    // que el timestamp va en base36 (9 chars): 5 + 20 + 1 + 9 = 35.
+    const idempotencyKey = `cita-${String(citaId).slice(0, 20)}-${Date.now().toString(36)}`;
 
     const body = {
       idempotencyKey,
@@ -398,12 +423,7 @@ exports.tuuConsultarCobro = onCall(
     if (!citaSnap.exists) throw new HttpsError('not-found', 'Cita no encontrada.');
     const cita = citaSnap.data();
 
-    const claims = request.auth?.token || {};
-    if (claims.role === 'barbero') {
-      const uid = request.auth.uid;
-      const owns = cita.barberoId === uid || cita.barberoAuthUid === uid;
-      if (!owns) throw new HttpsError('permission-denied', 'Solo puedes consultar tus propias citas.');
-    }
+    await assertBarberoDuenoDeCita(request, tenantId, cita, 'consultar');
 
     const tuuMeta = cita._tuu || null;
     if (!tuuMeta || !tuuMeta.idempotencyKey) {
