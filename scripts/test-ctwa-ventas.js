@@ -167,7 +167,44 @@ ok('sin referido, ese texto NO matchea ningún activador (bug original)',
 ok('con referido de anuncio, el MISMO texto sí entra (el arreglo)',
   abrePuerta({}, ctwaTexto.message), 'el arreglo no está funcionando');
 
+/* ── Ráfaga: una respuesta por tanda, no una por mensaje ─────────────────────
+   06-08-2026: un lead escribió "Hola Ignacio tengo una barbería" y enseguida
+   "¿Cuáles son los valores?". Recibió DOS respuestas que preguntaban lo mismo.
+   Más adelante dijo "En Ñuñoa" y el bot le contestó "¿en qué comuna está?", y
+   preguntó el rubro tres veces seguidas. Cada mensaje disparaba su propia
+   invocación y ninguna veía a la otra.
+
+   El cerebro de los locales ya lo resolvía; ventas.js nació sin ello. Se fija
+   en los DOS para que no vuelva a quedar cojo uno solo. */
+console.log('\n📨 Una respuesta por tanda (los dos bots)');
+const fs = require('fs');
+const path = require('path');
+for (const rel of ['functions/evolution/ventas.js', 'functions/evolution/cerebro.js']) {
+  const src = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+  const nombre = path.basename(rel);
+  ok(`${nombre} reclama turno de ráfaga`, /rafagaTurno/.test(src),
+    'sin turno, dos mensajes seguidos generan dos respuestas');
+  ok(`${nombre} acumula en cola`, /rafagaCola/.test(src) && /arrayUnion/.test(src),
+    'sin cola, la respuesta solo ve el último mensaje y se pierde el resto');
+  ok(`${nombre} espera antes de contestar`, /ESPERA_RAFAGA_MS/.test(src) && /setTimeout/.test(src),
+    'sin espera no hay ventana donde juntar la tanda');
+  ok(`${nombre} se retira si otro tomó el turno`,
+    /rafagaTurno\s*!==\s*miTurno/.test(src),
+    'sin esta salida contestan todas las invocaciones de la ráfaga');
+  ok(`${nombre} descarta cola vencida`, /VIGENCIA_RAFAGA_MS/.test(src),
+    'una corrida que murió a medias dejaría mensajes viejos pegados a la próxima');
+}
+// El texto unido tiene que ser el que ve el modelo: juntar la cola y después
+// mandarle solo el último mensaje sería peor que no juntar nada.
+const ventasSrc = fs.readFileSync(path.join(__dirname, '..', 'functions/evolution/ventas.js'), 'utf8');
+ok('ventas.js le manda al modelo el texto UNIDO',
+  /content:\s*textoRafaga/.test(ventasSrc),
+  'arma la cola pero le pasa otro texto al modelo');
+ok('ventas.js guarda en el historial el texto UNIDO',
+  (ventasSrc.match(/textoRafaga/g) || []).length >= 3,
+  'el historial guardaría solo uno de los mensajes de la tanda');
+
 console.log(fallos === 0
-  ? '\n✅ CTWA: el tráfico de anuncios entra al bot y los chats personales siguen protegidos.\n'
+  ? '\n✅ CTWA: el tráfico de anuncios entra al bot, los chats personales siguen protegidos y cada tanda recibe UNA respuesta.\n'
   : `\n❌ ${fallos} fallo(s) — hay tráfico de anuncios que quedaría sin respuesta.\n`);
 process.exit(fallos ? 1 : 0);

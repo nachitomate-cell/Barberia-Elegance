@@ -56,6 +56,17 @@ const SILENCIO_MS  = 4 * 60 * 60 * 1000;  // Ignacio tomó el chat → bot mudo 
 
 // Topes anti-troll / anti-bucle. El presupuesto en USD (ai-presupuesto, vendor
 // 'ventas') es el cinturón; estos son los tirantes en unidades de mensaje.
+/* ── Ráfaga ────────────────────────────────────────────────────────────────
+   En WhatsApp nadie escribe un párrafo: manda "Hola, tengo una barbería" y
+   acto seguido "¿Cuáles son los valores?". Sin esto cada mensaje disparaba su
+   propia respuesta y ninguna veía a la otra, así que el bot preguntaba lo
+   mismo dos y tres veces. Un lead real (06-08-2026) recibió "¿en qué comuna
+   está?" justo después de decir "En Ñuñoa", y "¿qué rubro es?" tres veces
+   seguidas. Los mismos números que usa el cerebro conversacional. */
+const ESPERA_RAFAGA_MS   = 7000;          // ventana para que llegue el siguiente
+const VIGENCIA_RAFAGA_MS = 3 * 60 * 1000; // cola vieja = corrida que murió a medias
+const MAX_COLA_RAFAGA    = 8;
+
 const MAX_RESP_CHAT_DIA = 12;   // por chat
 const MAX_RESP_CHIP_DIA = 150;  // por chip — un solo número no conversa más que esto en un día sano
 
@@ -403,6 +414,45 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
     return;
   }
 
+  /* ── Ráfaga: junta los mensajes seguidos y contesta UNA vez ───────────
+     Cada mensaje reclama el turno con un token propio y deja su texto en la
+     cola del chat. Después espera: si en esa ventana llegó otro, el token dejó
+     de ser mío y me retiro en silencio — el último se lleva la cola entera y
+     responde por todos. El estado vive en el doc del chat porque entre dos
+     webhooks no hay proceso compartido.
+
+     Va DESPUÉS de los topes y del presupuesto: el que se retira no debe haber
+     gastado nada, y el que responde ya pasó todos los controles. */
+  const miTurno = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await ref.set({
+    rafagaTurno: miTurno,
+    // Objeto y no string: arrayUnion deduplica por igualdad y dos "sí"
+    // seguidos del mismo lead se colapsarían en uno.
+    rafagaCola:  FieldValue.arrayUnion({ txt: textoClaude, at: Date.now(), id: String(msgId || miTurno) }),
+  }, { merge: true }).catch(() => {});
+
+  await new Promise(r => setTimeout(r, ESPERA_RAFAGA_MS));
+
+  const trasEspera = (await ref.get().catch(() => null))?.data() || {};
+  if (trasEspera.rafagaTurno && trasEspera.rafagaTurno !== miTurno) {
+    logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)}: llegó otro mensaje, contesta esa corrida`);
+    return;
+  }
+  const ahoraMs = Date.now();
+  const crudo = Array.isArray(trasEspera.rafagaCola) ? trasEspera.rafagaCola : [];
+  const cola = crudo
+    .map(x => (typeof x === 'string' ? { txt: x, at: ahoraMs } : x))
+    .filter(x => x && typeof x.txt === 'string' && (ahoraMs - Number(x.at || 0)) < VIGENCIA_RAFAGA_MS)
+    .sort((a, b) => Number(a.at || 0) - Number(b.at || 0))
+    .slice(-MAX_COLA_RAFAGA)
+    .map(x => x.txt);
+  if (!cola.length) cola.push(textoClaude);
+  await ref.set({ rafagaCola: [] }, { merge: true }).catch(() => {});
+  const textoRafaga = cola.join('\n');
+  if (cola.length > 1) {
+    logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)}: ${cola.length} mensajes juntados en una respuesta`);
+  }
+
   // ── Claude (loop con tool use: registrar_reunion) ──
   // `historiaCompleta` es el archivo (se vuelve a guardar entero); al modelo
   // solo van los últimos turnos. Antes se recortaba al leer y el recorte se
@@ -413,7 +463,7 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   let respuesta = '';
   let motivoCorte = null;   // stop_reason, para poder diagnosticar un vacío
   try {
-    const messages = [...historia, { role: 'user', content: textoClaude }];
+    const messages = [...historia, { role: 'user', content: textoRafaga }];
     // Mismo esquema de caché que el cerebro: prefijo fijo a 1 h — acá el
     // pitch es corto, pero el TTL largo cubre el ritmo lento de WhatsApp.
     const system = [
@@ -482,7 +532,7 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
   await ref.set({
     messages: [
       ...historiaCompleta,
-      { role: 'user', content: texto || textoClaude },
+      { role: 'user', content: textoRafaga },
       { role: 'assistant', content: respuesta },
     ].slice(-MAX_ARCHIVO),
     respDia:   { fecha: hoy, n: respHoy + 1 },
