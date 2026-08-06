@@ -41,18 +41,53 @@
   header .acts{ display:flex; gap:8px; }
   /* Pestañas: el muro único de paneles no dejaba pensar — una pantalla,
      una pregunta. El estado de la pestaña sobrevive al refresh (localStorage). */
-  .tabs{ display:flex; gap:6px; padding:12px 22px 0; max-width:1040px; margin:0 auto; overflow-x:auto; }
+  .tabs{ display:flex; gap:6px; padding:12px 22px 0; max-width:var(--maxw); margin:0 auto; overflow-x:auto; }
   .tabs button{ border-radius:10px; font-size:12.5px; padding:8px 14px; white-space:nowrap; color:var(--soft); border-color:transparent; background:transparent; }
   .tabs button.on{ background:var(--glass-hover); color:#fff; font-weight:600; border-color:var(--glass-border); }
   .sec{ display:none; } .sec.on{ display:block; }
+
+  /* ── Ancho útil ──────────────────────────────────────────────────────
+     El panel vivía clavado a 1040px: en un monitor grande eso dejaba dos
+     franjas muertas a los lados y estiraba cada fila hasta que la etiqueta
+     y su número quedaban en extremos opuestos de la pantalla.
+     El ancho ahora crece con la ventana, pero con tope: pasado cierto
+     punto, más ancho no es más información, es más recorrido de ojo. */
+  :root{ --maxw:1040px; }
+  @media (min-width:1280px){ :root{ --maxw:1240px; } }
+  @media (min-width:1600px){ :root{ --maxw:1560px; } }
+  @media (min-width:2000px){ :root{ --maxw:1840px; } }
+
+  /* Desde 1280px los paneles dejan de apilarse y fluyen en columnas de
+     ~480px, que es el ancho donde una fila "etiqueta … valor" todavía se
+     lee de un vistazo. `auto-fill` decide cuántas caben; los bloques que
+     ya traen su propia grilla (.cols, .kpis) ocupan la fila completa. */
+  @media (min-width:1280px){
+    .sec.on{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+      gap:14px; align-items:start;
+    }
+    .sec.on > .panel{ margin-top:0 !important; }
+    .sec.on > .kpis, .sec.on > .cols, .sec.on > .alerta,
+    .sec.on > table, .sec.on > .full{ grid-column:1 / -1; }
+    .sec.on > .cols{ margin-top:0; }
+  }
+  /* Con mucho ancho, los pares de .cols pasan a tres. */
+  @media (min-width:1900px){ .cols{ grid-template-columns:repeat(3,1fr); } }
   button{ font:inherit; cursor:pointer; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); border-radius:9999px; padding:7px 14px; font-size:13px; font-weight:500; transition:background .2s ease, color .2s ease, border-color .2s ease; }
   button:hover{ background:var(--glass-hover); }
   button.primary{ background:var(--accent); border-color:transparent; color:#04101f; }
-  .wrap{ max-width:1040px; margin:0 auto; padding:22px; }
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:22px; }
+  /* El header es full-bleed pero su contenido se alinea con el resto: sin
+     esto, en pantalla ancha el título y los botones quedaban pegados a los
+     bordes y desalineados de las pestañas y las tarjetas. */
+  header{ padding-left:calc(max(22px, (100vw - var(--maxw)) / 2 + 22px)); padding-right:calc(max(22px, (100vw - var(--maxw)) / 2 + 22px)); }
   .login{ max-width:340px; margin:14vh auto; text-align:center; }
   .login h2{ font-size:20px; font-weight:600; letter-spacing:-.01em; }
   .login p{ color:var(--soft); font-size:14px; }
-  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  /* auto-fit y no un número fijo: las tarjetas se reparten el ancho que
+     haya sin dejar huecos ni estirarse hasta quedar vacías por dentro. */
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
   @media(max-width:720px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
   .kpi{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; transition:background .2s ease, border-color .2s ease; }
   .kpi:hover{ background:var(--surface-2); border-color:rgba(156,204,60,.24); }
@@ -1042,11 +1077,7 @@
           </section>
 
           <section class="sec" data-sec="ads">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <span class="muted" style="font-size:12px">Cuenta ${(ESTADO.metaAds && ESTADO.metaAds.adAccountId) || '—'}</span>
-              <button id="adsRefresh">↻ Refrescar ads</button>
-            </div>
-            ${metaAdsPanel(ESTADO.metaAds)}
+            ${seccionAds()}
           </section>
 
           <section class="sec" data-sec="ventas">
@@ -1315,6 +1346,15 @@
       if (!ESTADO.cobranza) return '<p class="muted">Cargando cobranza…</p>';
       return cobranzaPanel(ESTADO.cobranza);
     }
+    /* `full` para que la barra de cuenta + botón ocupe la fila completa: desde
+       1280px la sección es una grilla y sin eso el botón queda encerrado en la
+       primera columna, lejos del borde derecho. */
+    function seccionAds(){
+      return `<div class="full" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span class="muted" style="font-size:12px">Cuenta ${(ESTADO.metaAds && ESTADO.metaAds.adAccountId) || '—'}</span>
+          <button id="adsRefresh">↻ Refrescar ads</button>
+        </div>${metaAdsPanel(ESTADO.metaAds)}`;
+    }
 
     /** Repinta UNA sección sin tocar el resto del DOM: conserva la pestaña
      *  activa, el scroll y cualquier cosa que el operador tenga abierta. */
@@ -1380,10 +1420,7 @@
         ESTADO.metaAds = (r.data && r.data.metaAds) || ESTADO.metaAds;
         const el = document.querySelector('.sec[data-sec="ads"]');
         if (el) {
-          el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <span class="muted" style="font-size:12px">Cuenta ${(ESTADO.metaAds && ESTADO.metaAds.adAccountId) || '—'}</span>
-              <button id="adsRefresh">↻ Refrescar ads</button>
-            </div>${metaAdsPanel(ESTADO.metaAds)}`;
+          el.innerHTML = seccionAds();
           const b = document.getElementById('adsRefresh');
           if (b) b.onclick = () => refrescarAds(b);
         }

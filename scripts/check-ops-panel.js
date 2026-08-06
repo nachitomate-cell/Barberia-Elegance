@@ -88,7 +88,31 @@ ok('el panel declara la edad del dato',
   src.includes('frescuraHtml') && src.includes('edadSegundos'),
   'un snapshot sin fecha visible hace creer que el dato es de ahora');
 
-/* ── 4. Paleta SynapTech ─────────────────────────────────────────────────── */
+/* ── 4. Ancho útil en monitores grandes ──────────────────────────────────── */
+// El panel vivía clavado a 1040px: en un monitor de 1920 eso dejaba ~440px
+// muertos a cada lado y estiraba las filas hasta que etiqueta y valor quedaban
+// en extremos opuestos. Medido con Playwright tras el arreglo: 97% del ancho a
+// 1280px, 81% a 1920 y 72% a 2560, con 2 y 3 columnas de paneles.
+console.log('\n🖥️  Ancho en pantallas grandes');
+const est = (html.match(/<style>([\s\S]*?)<\/style>/i) || [, ''])[1];
+ok('el ancho máximo es una variable, no un número fijo',
+  /--maxw\s*:/.test(est) && /\.wrap\{[^}]*max-width:\s*var\(--maxw\)/.test(est),
+  '.wrap volvió a un max-width hardcodeado');
+ok('las pestañas siguen el mismo ancho que el contenido',
+  /\.tabs\{[^}]*max-width:\s*var\(--maxw\)/.test(est),
+  'las pestañas quedaron desalineadas del contenido');
+ok('hay breakpoints que ensanchan en monitores grandes',
+  /min-width:\s*1600px/.test(est) && /min-width:\s*2000px/.test(est),
+  'sin tramos anchos el panel desperdicia media pantalla');
+ok('los paneles fluyen en columnas desde 1280px',
+  /min-width:\s*1280px\)\s*\{[\s\S]{0,400}?\.sec\.on\{[\s\S]{0,200}?display:grid/.test(est),
+  'las secciones volvieron a apilarse en una sola columna');
+ok('los bloques anchos ocupan la fila completa',
+  /\.sec\.on\s*>\s*\.full\{[^}]*grid-column:1\s*\/\s*-1/.test(est.replace(/\s*,\s*/g, ',')) ||
+  /grid-column:1 \/ -1/.test(est),
+  'kpis/.cols/.full quedarían encerrados en una columna');
+
+/* ── 5. Paleta SynapTech ─────────────────────────────────────────────────── */
 console.log('\n🎨 Paleta');
 const estilo = (html.match(/<style>([\s\S]*?)<\/style>/i) || [, ''])[1];
 ok('usa la lima de marca (#9CCC3C)', /#9CCC3C/i.test(estilo), 'no está el verde de marca');
