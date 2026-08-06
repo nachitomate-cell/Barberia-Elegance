@@ -71,6 +71,19 @@ exports.cobranzaConfig = onCall({ region: 'us-central1', cors: true }, async (re
     const due  = fechaYmd(b.fechaProximoPago);
     const diasAtraso = (due && due < hoy)
       ? Math.round((Date.parse(hoy) - Date.parse(due)) / 86400000) : 0;
+    // Stats de avisos — poblados por recordatorio-cobro.js con FieldValue.increment.
+    // Un tenant sin ninguna corrida aún devuelve todos los contadores en 0 (no
+    // ausentes) para que la UI no tenga que defenderse de undefined.
+    const st = b.avisosStats || {};
+    const avisos = {
+      total:       Number(st.total || 0),
+      fallidos:    Number(st.fallidos || 0),
+      costoClp:    Math.round(Number(st.costoClp || 0)),
+      porCanal:    st.porCanal || {},
+      ultimoCanal: st.ultimoCanal || null,
+      ultimoOk:    st.ultimoOk === undefined ? null : !!st.ultimoOk,
+      ultimoAt:    fechaYmd(st.ultimoAt),
+    };
     return {
       tid:            d.id,
       nombre:         await nombreDe(d.id),
@@ -83,8 +96,20 @@ exports.cobranzaConfig = onCall({ region: 'us-central1', cors: true }, async (re
       tieneEmail:     !!(b.emailCobro),
       autopay:        b.suscripcionMp?.status || null,
       ultimoWa:       b.ultimoRecordatorioWa || null,
+      avisos,
     };
   }));
+
+  // Totales globales para la barra resumen (todos los tenants sumados).
+  const totales = rows.reduce((acc, r) => {
+    acc.total    += r.avisos.total;
+    acc.fallidos += r.avisos.fallidos;
+    acc.costoClp += r.avisos.costoClp;
+    for (const [c, n] of Object.entries(r.avisos.porCanal || {})) {
+      acc.porCanal[c] = (acc.porCanal[c] || 0) + Number(n || 0);
+    }
+    return acc;
+  }, { total: 0, fallidos: 0, costoClp: 0, porCanal: {} });
 
   // Atrasados primero (más días arriba), luego por vencimiento más próximo.
   rows.sort((a, b) => {
@@ -92,7 +117,7 @@ exports.cobranzaConfig = onCall({ region: 'us-central1', cors: true }, async (re
     if (a.diasAtraso !== b.diasAtraso) return b.diasAtraso - a.diasAtraso;
     return String(a.vence || '9999').localeCompare(String(b.vence || '9999'));
   });
-  return { ok: true, rows };
+  return { ok: true, rows, totales };
 });
 
 exports.cobranzaConfigSet = onCall({ region: 'us-central1', cors: true }, async (req) => {

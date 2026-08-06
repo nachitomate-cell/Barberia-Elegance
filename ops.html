@@ -874,28 +874,81 @@
        (_billing.whatsappCobro). Local sin número = sigue por push/email. */
     function cobranzaPanel(v){
       const rows = (v && v.rows) || [];
+      const totales = (v && v.totales) || { total: 0, fallidos: 0, costoClp: 0, porCanal: {} };
       const conWa = rows.filter(r => r.whatsappCobro).length;
       const fmtTel = t => t ? ('+' + String(t).replace(/^(56)(9)(\d{4})(\d{4})$/, '$1 $2 $3 $4')) : null;
+      // Ícono compacto del canal usado en el último aviso (para no comerse ancho).
+      const glyphCanal = c => ({ oficial: '📲', evolution: '💬', push: '🔔', email: '✉️' })[c] || '·';
+      const nombreCanal = c => ({ oficial: 'WhatsApp oficial', evolution: 'WhatsApp chip', push: 'Push', email: 'Email' })[c] || c;
+
+      // Resumen agregado del panel: total enviados, costo, mix por canal y
+      // tasa de fallos. El "% ok" mide entrega neta de la escalera.
+      const canales = totales.porCanal || {};
+      const canalMix = Object.entries(canales).map(([k, n]) =>
+        `<span style="font-size:11px;color:var(--muted)">${glyphCanal(k)} ${n}</span>`).join(' · ') || '<span class="muted" style="font-size:11px">—</span>';
+      const pctOk = totales.total > 0
+        ? Math.round(100 * (totales.total - totales.fallidos) / totales.total)
+        : null;
+
       return `<div class="panel" style="margin-top:14px">
         <h3>💰 Cobranza · números de cobro
           <span class="tag ${conWa ? 'g' : ''}">${conWa}/${rows.length} con WhatsApp</span>
           <span class="muted" style="margin-left:auto;font-size:11px;text-transform:none;letter-spacing:0">el aviso sale de TU número · sin número = push/email</span>
         </h3>
-        ${rows.length ? rows.map(r => `
-          <div class="loc">
+
+        <!-- Barra resumen: totales de la escalera desde el primer día. -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px;margin-bottom:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px">
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:3px">Avisos enviados</div>
+            <div style="font-size:20px;font-weight:800;color:var(--green)">${totales.total}</div>
+            ${totales.fallidos > 0 ? `<div style="font-size:11px;color:var(--red)">${totales.fallidos} sin canal</div>` : ''}
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:3px">Costo total</div>
+            <div style="font-size:20px;font-weight:800">${clp(totales.costoClp || 0)}</div>
+            <div style="font-size:11px;color:var(--muted)">CLP · estimado</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:3px">Entrega</div>
+            <div style="font-size:20px;font-weight:800;color:${pctOk === null ? 'var(--muted)' : pctOk >= 90 ? 'var(--green)' : pctOk >= 70 ? 'var(--amber, #fbbf24)' : 'var(--red)'}">${pctOk === null ? '—' : pctOk + '%'}</div>
+            <div style="font-size:11px;color:var(--muted)">canal ok</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:3px">Mix de canales</div>
+            <div style="font-size:14px;font-weight:600;line-height:1.5">${canalMix}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">📲 oficial · 💬 chip · 🔔 push · ✉️ email</div>
+          </div>
+        </div>
+
+        ${rows.length ? rows.map(r => {
+          // Chip de "último aviso": verde ✓ / rojo ⛔ / gris "sin envíos".
+          const a = r.avisos || {};
+          const chipUltimo = (() => {
+            if (!a.ultimoCanal && a.total === 0) return `<span class="muted" style="font-size:11px">sin envíos</span>`;
+            if (a.ultimoOk === false) return `<span style="font-size:11px;color:var(--red);font-weight:700">⛔ falló ${a.ultimoAt || ''}</span>`;
+            return `<span style="font-size:11px;color:var(--green);font-weight:700">✓ ${glyphCanal(a.ultimoCanal)} ${a.ultimoAt || ''}</span>`;
+          })();
+          const contadores = a.total > 0
+            ? `<span class="muted" style="font-size:11px">${a.total} envío${a.total === 1 ? '' : 's'}${a.costoClp ? ' · ' + clp(a.costoClp) : ''}</span>`
+            : '';
+          return `
+          <div class="loc" style="flex-wrap:wrap;row-gap:4px">
             <span class="dot ${r.diasAtraso > 0 ? 'warn' : (r.whatsappCobro ? 'on' : 'off')}"></span>
             <strong>${r.nombre}</strong>
             <span class="muted">${clp(r.montoConIva)} c/IVA · ${r.diasAtraso > 0
               ? '<span style="color:var(--red)">venció hace ' + r.diasAtraso + ' d</span>'
               : 'vence ' + (r.vence || '—')}${r.autopay ? ' · autopay: ' + r.autopay : ''}</span>
-            <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              ${chipUltimo}
+              ${contadores}
               ${r.whatsappCobro
                 ? `<span style="font-size:12px;color:var(--green)">📱 ${fmtTel(r.whatsappCobro)}</span>`
                 : '<span class="muted" style="font-size:11px">sin número</span>'}
               <button class="mini" onclick="opsCobroNum('${r.tid}','${r.whatsappCobro || ''}')">${r.whatsappCobro ? 'editar' : '+ número'}</button>
               ${r.whatsappCobro ? `<button class="mini danger" onclick="opsCobroQuitar('${r.tid}')">quitar</button>` : ''}
             </span>
-          </div>`).join('') : '<p class="muted">Sin locales en _billing.</p>'}
+          </div>`;
+        }).join('') : '<p class="muted">Sin locales en _billing.</p>'}
       </div>`;
     }
     async function opsCobroNum(tid, actual){

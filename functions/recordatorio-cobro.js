@@ -101,6 +101,13 @@ function mensajeWaCobro({ dias, monto, nombreLocal, sinCorte, transf, linkAuto, 
   ].filter(l => l !== null && l !== undefined).join('\n');
 }
 
+// Costo referencial por CANAL para reportar a ops. Estimaciones CLP netas
+// (2026-08): la plantilla utility de Meta en Chile ~$50, Evolution es chip
+// propio hospedado (variable = 0), push FCM gratis y Brevo transaccional
+// se acerca a los $5/CLP por email al tipo de cambio actual. Editable sin
+// deploy vía _system/cobranza.costos = { oficial, evolution, push, email }.
+const COSTO_DEFAULT_CLP = { oficial: 50, evolution: 0, push: 0, email: 5 };
+
 // Días respecto al vencimiento en los que se envía recordatorio.
 // Negativo = antes de vencer; 0 = vence hoy; positivo = atrasado.
 const DIAS_RECORDATORIO = new Set([-3, -1, 0, 1, 3, 8, 15]);
@@ -265,6 +272,8 @@ exports.recordatorioCobro = onSchedule(
     const canalOficialOn  = cobCfg.canalOficial === true;
     const plantilla       = String(cobCfg.plantillaOficial || 'cobranza_mensualidad');
     const plantillaLang   = String(cobCfg.plantillaLang || 'es');
+    // Costos por canal — usa override de _system/cobranza.costos si existe.
+    const COSTOS = { ...COSTO_DEFAULT_CLP, ...(cobCfg.costos || {}) };
 
     const totales  = { oficial: 0, evolution: 0, push: 0, email: 0 };
     const sinCanal = [];   // locales donde NINGÚN canal funcionó
@@ -412,10 +421,35 @@ exports.recordatorioCobro = onSchedule(
 
       if (canalUsado) {
         totales[canalUsado]++;
+        const costoEvento = Number(COSTOS[canalUsado]) || 0;
+        // Log detallado del envío (subcolección) — cada tirada del cron deja
+        // un doc consultable por ops sin depender de _billing.avisosStats.
+        // ID = fecha para que idempotencia natural: si el cron se dispara dos
+        // veces (raro pero pasa), el doc no se duplica.
+        await doc.ref.collection('avisosCobro').doc(todayStr).set({
+          fecha:       todayStr,
+          canal:       canalUsado,
+          canalPlan,
+          dias,
+          monto:       montoConIva,
+          ok:          true,
+          costoClp:    costoEvento,
+          creadoEn:    admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+        // Agregados en _billing/{tid}.avisosStats para pintar chips rápidos.
+        // Incrementos atómicos: no se pierde nada si dos avisos caen el mismo día.
         await doc.ref.update({
           ultimoAvisoCobro: todayStr,
           ultimoAvisoCanal: canalUsado,
           ultimoAvisoDias:  dias,
+          ultimoAvisoOk:    true,
+          ultimoAvisoAt:    admin.firestore.FieldValue.serverTimestamp(),
+          'avisosStats.total':        admin.firestore.FieldValue.increment(1),
+          [`avisosStats.porCanal.${canalUsado}`]: admin.firestore.FieldValue.increment(1),
+          'avisosStats.costoClp':     admin.firestore.FieldValue.increment(costoEvento),
+          'avisosStats.ultimoAt':     admin.firestore.FieldValue.serverTimestamp(),
+          'avisosStats.ultimoCanal':  canalUsado,
+          'avisosStats.ultimoOk':     true,
           // Compat: ops y la idempotencia antigua leen estas marcas.
           ...(canalUsado === 'push'
             ? { ultimoRecordatorioPush: todayStr, sinTokensDesde: admin.firestore.FieldValue.delete() } : {}),
@@ -423,10 +457,27 @@ exports.recordatorioCobro = onSchedule(
           ...(canalUsado === 'oficial' || canalUsado === 'evolution'
             ? { ultimoRecordatorioWa: todayStr } : {}),
         }).catch(() => {});
-        logger.info(`[Cobro] ✓ ${tid} (dias=${dias}, plan=${canalPlan}) → ${canalUsado}`);
+        logger.info(`[Cobro] ✓ ${tid} (dias=${dias}, plan=${canalPlan}) → ${canalUsado} · $${costoEvento} CLP`);
       } else {
-        // Ningún canal disponible: rastro + alerta al superadmin (una por corrida).
-        await doc.ref.update({ sinTokensDesde: d.sinTokensDesde || todayStr }).catch(() => {});
+        // Ningún canal disponible: log de fallo + rastro + alerta al superadmin.
+        await doc.ref.collection('avisosCobro').doc(todayStr).set({
+          fecha:       todayStr,
+          canal:       'ninguno',
+          canalPlan,
+          dias,
+          monto:       montoConIva,
+          ok:          false,
+          costoClp:    0,
+          creadoEn:    admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+        await doc.ref.update({
+          sinTokensDesde: d.sinTokensDesde || todayStr,
+          ultimoAvisoOk:  false,
+          ultimoAvisoAt:  admin.firestore.FieldValue.serverTimestamp(),
+          'avisosStats.fallidos': admin.firestore.FieldValue.increment(1),
+          'avisosStats.ultimoAt': admin.firestore.FieldValue.serverTimestamp(),
+          'avisosStats.ultimoOk': false,
+        }).catch(() => {});
         if (d.ultimaAlertaSuperadmin !== todayStr) {
           sinCanal.push({ tid, dias, ref: doc.ref });
         }
