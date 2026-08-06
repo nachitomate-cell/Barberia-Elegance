@@ -98,9 +98,19 @@ const est = (html.match(/<style>([\s\S]*?)<\/style>/i) || [, ''])[1];
 ok('el ancho máximo es una variable, no un número fijo',
   /--maxw\s*:/.test(est) && /\.wrap\{[^}]*max-width:\s*var\(--maxw\)/.test(est),
   '.wrap volvió a un max-width hardcodeado');
-ok('las pestañas siguen el mismo ancho que el contenido',
-  /\.tabs\{[^}]*max-width:\s*var\(--maxw\)/.test(est),
-  'las pestañas quedaron desalineadas del contenido');
+// Las secciones pasaron de una fila de pestañas a una barra lateral fija
+// (layout de la consola de Claude): con diez entradas, en horizontal se iba
+// de ancho y había que hacer scroll lateral para llegar a la última.
+ok('la navegación es una barra lateral que no se va de alto',
+  /\.side\{[\s\S]*?position:sticky[\s\S]*?height:100vh/.test(est) &&
+  /\.tabs\{[^}]*flex-direction:column/.test(est),
+  'la lateral dejó de ser fija o las pestañas volvieron a fila');
+ok('el encabezado se alinea con el contenido',
+  /\.main > header\{[^}]*max-width:\s*var\(--maxw\)/.test(est),
+  'el saludo y los botones quedan desalineados de las tarjetas');
+ok('bajo 1000px la lateral vuelve a ser una tira horizontal',
+  /max-width:\s*1000px\)\s*\{[\s\S]{0,600}?\.tabs\{[^}]*flex-direction:row/.test(est),
+  'en pantalla angosta la lateral se comería el contenido');
 ok('hay breakpoints que ensanchan en monitores grandes',
   /min-width:\s*1600px/.test(est) && /min-width:\s*2000px/.test(est),
   'sin tramos anchos el panel desperdicia media pantalla');

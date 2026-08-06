@@ -13,14 +13,21 @@
        para el dato que manda de cada tarjeta y para el foco — nunca como
        fondo ni en bloques grandes (regla de los dos verdes).
        El fondo va un punto más profundo que el navy para que las tarjetas
-       se despeguen sin necesitar bordes duros. */
+       se despeguen sin necesitar bordes duros.
+
+       El LAYOUT está copiado de la consola de Claude (sidebar, saludo en
+       serif, tarjeta con la etiqueta arriba y el número grande abajo,
+       píldoras de estado). Los COLORES no: ahí manda la marca. */
     --bg:#0A1420;
     --surface:#0F1A2B;
     --surface-2:#13233A;
     --glass:rgba(255,255,255,0.025);
     --glass-hover:rgba(255,255,255,0.055);
-    --glass-border:rgba(156,204,60,0.12);
-    --hairline:rgba(255,255,255,0.06);
+    /* Bordes neutros y no limosos: la consola separa las tarjetas con una
+       línea de pelo incolora y deja que el color lo ponga el dato. Un borde
+       teñido en cada caja convertía el verde de marca en ruido de fondo. */
+    --glass-border:rgba(255,255,255,0.09);
+    --hairline:rgba(255,255,255,0.07);
     --ink:#E8EFF6;
     --soft:#8FA3B8;
     --lima:#9CCC3C;
@@ -31,19 +38,44 @@
     --amber:#FFCF6C;
     --red:#FF7B72;
     --accent:#9CCC3C;
+    /* La serif es para el saludo y para las cifras grandes — nada más. Es
+       lo que le da el aire de la consola: el número se lee como una cifra
+       de estado de cuenta y no como un dato de tabla. Va con fuentes del
+       sistema a propósito: el panel no carga una sola cosa de la red. */
+    --serif:ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --side:248px;
+    --r:12px;
   }
   *{ box-sizing:border-box; }
   body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
   .tnum{ font-variant-numeric:tabular-nums; }
-  header{ display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--glass-border); position:sticky; top:0; background:var(--bg); z-index:5; }
-  header h1{ font-size:16px; margin:0; font-weight:600; letter-spacing:-.01em; }
-  header .sub{ font-size:11px; color:var(--soft); }
-  header .acts{ display:flex; gap:8px; }
+
+  /* ── Armazón: barra lateral fija + contenido ─────────────────────────
+     Antes las diez secciones vivían en una fila de pestañas que se iba de
+     ancho y obligaba a hacer scroll horizontal para llegar a "Probar IA".
+     En vertical caben todas de una vez y cada una puede llevar su señal
+     (⚠️, un contador) sin pelear por el espacio. */
+  .shell{ display:flex; min-height:100vh; }
+  .side{
+    width:var(--side); flex:0 0 var(--side); position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; gap:3px; padding:16px 12px 12px;
+    border-right:1px solid var(--hairline); background:var(--bg); overflow-y:auto; z-index:6;
+  }
+  .side .marca{ font-family:var(--serif); font-size:17px; color:#fff; padding:2px 10px 12px; letter-spacing:-.01em; }
+  .side .sfoot{ margin-top:auto; padding:12px 10px 2px; border-top:1px solid var(--hairline); font-size:11.5px; color:var(--soft); }
+  .side .sfoot b{ display:block; color:var(--ink); font-weight:500; font-size:12.5px; margin-bottom:2px; }
+  .main{ flex:1; min-width:0; }
+
   /* Pestañas: el muro único de paneles no dejaba pensar — una pantalla,
      una pregunta. El estado de la pestaña sobrevive al refresh (localStorage). */
-  .tabs{ display:flex; gap:6px; padding:12px 22px 0; max-width:var(--maxw); margin:0 auto; overflow-x:auto; }
-  .tabs button{ border-radius:10px; font-size:12.5px; padding:8px 14px; white-space:nowrap; color:var(--soft); border-color:transparent; background:transparent; }
-  .tabs button.on{ background:var(--glass-hover); color:#fff; font-weight:600; border-color:var(--glass-border); }
+  .tabs{ display:flex; flex-direction:column; gap:2px; }
+  .tabs button{
+    display:flex; align-items:center; gap:9px; width:100%; justify-content:flex-start; text-align:left;
+    border-radius:9px; font-size:13.5px; padding:9px 11px; white-space:nowrap;
+    color:var(--soft); border:1px solid transparent; background:transparent; font-weight:400;
+  }
+  .tabs button:hover{ background:var(--glass); color:var(--ink); }
+  .tabs button.on{ background:var(--glass-hover); color:#fff; font-weight:600; }
   .sec{ display:none; } .sec.on{ display:block; }
 
   /* ── Ancho útil ──────────────────────────────────────────────────────
@@ -56,6 +88,20 @@
   @media (min-width:1280px){ :root{ --maxw:1240px; } }
   @media (min-width:1600px){ :root{ --maxw:1560px; } }
   @media (min-width:2000px){ :root{ --maxw:1840px; } }
+
+  /* Bajo ~1000px la lateral no cabe sin comerse el contenido: vuelve a ser
+     una tira horizontal arriba, que es como funcionaba antes. */
+  @media (max-width:1000px){
+    .shell{ display:block; }
+    .side{
+      width:auto; flex:none; height:auto; position:sticky; top:0;
+      flex-direction:row; align-items:center; gap:6px; overflow-x:auto;
+      border-right:0; border-bottom:1px solid var(--hairline); padding:10px 14px;
+    }
+    .side .marca, .side .sfoot{ display:none; }
+    .tabs{ flex-direction:row; gap:6px; }
+    .tabs button{ width:auto; font-size:12.5px; padding:8px 13px; }
+  }
 
   /* Desde 1280px los paneles dejan de apilarse y fluyen en columnas de
      ~480px, que es el ancho donde una fila "etiqueta … valor" todavía se
@@ -74,28 +120,67 @@
   }
   /* Con mucho ancho, los pares de .cols pasan a tres. */
   @media (min-width:1900px){ .cols{ grid-template-columns:repeat(3,1fr); } }
-  button{ font:inherit; cursor:pointer; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); border-radius:9999px; padding:7px 14px; font-size:13px; font-weight:500; transition:background .2s ease, color .2s ease, border-color .2s ease; }
+  /* Los botones de la consola son rectángulos redondeados, no píldoras: la
+     píldora se lee como etiqueta de estado y acá hay que distinguir de un
+     vistazo lo que se puede pulsar de lo que solo informa. Las píldoras
+     quedan reservadas para .tag y .fresh, que efectivamente son estados. */
+  button{ font:inherit; cursor:pointer; border:1px solid var(--glass-border); background:var(--glass); color:var(--ink); border-radius:9px; padding:7px 14px; font-size:13px; font-weight:500; transition:background .2s ease, color .2s ease, border-color .2s ease; }
   button:hover{ background:var(--glass-hover); }
   button.primary{ background:var(--accent); border-color:transparent; color:#04101f; }
-  .wrap{ max-width:var(--maxw); margin:0 auto; padding:22px; }
-  /* El header es full-bleed pero su contenido se alinea con el resto: sin
-     esto, en pantalla ancha el título y los botones quedaban pegados a los
-     bordes y desalineados de las pestañas y las tarjetas. */
-  header{ padding-left:calc(max(22px, (100vw - var(--maxw)) / 2 + 22px)); padding-right:calc(max(22px, (100vw - var(--maxw)) / 2 + 22px)); }
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 22px 26px; }
+
+  /* ── Saludo ──────────────────────────────────────────────────────────
+     "Operaciones · SynapTech" en 16px negrita era un título de documento.
+     El saludo en serif grande hace de portada: dice de quién es el tablero
+     y a qué hora se está mirando, y baja el ruido del resto. */
+  .main > header{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:18px;
+    max-width:var(--maxw); margin:0 auto; padding:30px 22px 18px; background:transparent; border:0;
+  }
+  header h1{ font-family:var(--serif); font-size:31px; margin:0; font-weight:400; letter-spacing:-.015em; color:#fff; line-height:1.15; }
+  header .sub{ font-size:12px; color:var(--soft); margin-top:7px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  header .acts{ display:flex; gap:8px; flex-shrink:0; }
+  /* En teléfono el saludo se partía en tres líneas y los botones se le venían
+     encima: acá manda la acción, no la portada. */
+  @media (max-width:640px){
+    .main > header{ flex-direction:column; align-items:stretch; gap:12px; padding:18px 16px 14px; }
+    header h1{ font-size:22px; }
+    header .acts{ flex-wrap:wrap; }
+    .wrap{ padding:0 16px 22px; }
+  }
   .login{ max-width:340px; margin:14vh auto; text-align:center; }
-  .login h2{ font-size:20px; font-weight:600; letter-spacing:-.01em; }
+  .login h2{ font-family:var(--serif); font-size:26px; font-weight:400; letter-spacing:-.01em; }
   .login p{ color:var(--soft); font-size:14px; }
   /* auto-fit y no un número fijo: las tarjetas se reparten el ancho que
      haya sin dejar huecos ni estirarse hasta quedar vacías por dentro. */
-  .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(215px, 1fr)); gap:12px; }
   @media(max-width:720px){ .kpis{ grid-template-columns:repeat(2,1fr); } }
-  .kpi{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; transition:background .2s ease, border-color .2s ease; }
-  .kpi:hover{ background:var(--surface-2); border-color:rgba(156,204,60,.24); }
-  .kpi .n{ font-size:28px; font-weight:600; letter-spacing:-.02em; color:#fff; }
-  .kpi .k{ font-size:11px; color:var(--soft); margin-top:4px; text-transform:uppercase; letter-spacing:.08em; font-weight:500; }
+
+  /* Anatomía de tarjeta de la consola: etiqueta arriba en texto corriente,
+     cifra grande debajo en serif, y lo que sobre al final. Se consigue con
+     `order` y no tocando el marcado de las veinte tarjetas que ya existen —
+     el HTML sigue trayendo el número primero, que es como se leería sin
+     estilos. Con `column-reverse` la tarjeta de tres líneas (el hero de Meta
+     Ads, que lleva el benchmark abajo) quedaba leída al revés. */
+  .kpi{ background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r); padding:18px 20px; display:flex; flex-direction:column; transition:background .2s ease, border-color .2s ease; }
+  .kpi > *{ order:3; }
+  .kpi > .k{ order:1; }
+  .kpi > .n{ order:2; }
+  .kpi:hover{ border-color:rgba(255,255,255,.16); }
+  .kpi .n{ font-family:var(--serif); font-size:36px; font-weight:400; letter-spacing:-.02em; color:#fff; line-height:1.05; }
+  .kpi .k{ font-size:13px; color:var(--soft); margin:0 0 11px; text-transform:none; letter-spacing:0; font-weight:400; line-height:1.35; }
+  .kpi .costo{ margin-top:8px; }
+  /* Tira del día: las mismas cifras en serif que las tarjetas, pero dentro
+     de un panel ancho — es la fila que se lee al abrir el tablero. */
+  .hoy-tira{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:16px 24px; padding:2px 0 16px; }
+  .hoy-dato .k{ font-size:12.5px; color:var(--soft); margin-bottom:5px; }
+  .hoy-dato .n{ font-family:var(--serif); font-size:27px; font-weight:400; color:#fff; line-height:1.05; letter-spacing:-.02em; }
+  /* El ⓘ de la consola: la etiqueta avisa que hay algo que leer sin tener
+     que subrayar media pantalla. Solo en las tarjetas, no en cada fila. */
+  .kpi .k .tip::after{ content:'ⓘ'; font-size:10px; margin-left:5px; opacity:.45; vertical-align:1px; }
   .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
   @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
-  .panel{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
+  .panel{ background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r); padding:18px 20px; }
 
   /* ── Logos de marca ──────────────────────────────────────────────────
      Los emoji 📣📸📱 se leían como decoración y cambian de dibujo según el
@@ -146,7 +231,7 @@
      El panel se sirve de un doc precalculado, así que SIEMPRE dice de
      cuándo es el dato. Fingir que es de este instante sería mentir sobre
      la única cosa que un operador necesita saber para confiar en él. */
-  .fresh{ display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--soft); border:1px solid var(--glass-border); border-radius:9999px; padding:4px 10px; }
+  .fresh{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--soft); background:var(--glass); border:1px solid var(--hairline); border-radius:9999px; padding:4px 11px; }
   .fresh .p{ width:6px; height:6px; border-radius:50%; background:var(--lima); }
   .fresh.viejo .p{ background:var(--amber); }
   .fresh.cargando .p{ background:var(--neon); animation:pulso 1s ease-in-out infinite; }
@@ -157,7 +242,7 @@
      acento por tarjeta, si no deja de ser acento. */
   .kpi.hero{ background:linear-gradient(160deg, var(--surface-2), var(--surface)); border-color:rgba(198,249,78,.22); }
   .kpi.hero .n{ color:var(--neon); }
-  .delta{ font-size:11px; font-weight:600; margin-left:6px; }
+  .delta{ font-size:11px; font-weight:600; margin-left:6px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   .delta.bien{ color:var(--lima); } .delta.mal{ color:var(--red); }
 
   /* ── Embudo ─────────────────────────────────────────────────────────
@@ -186,7 +271,10 @@
   .tb tr:last-child td{ border-bottom:0; }
   .tb .nom{ color:#fff; font-weight:500; }
   .tb .num{ text-align:right; }
-  .panel h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--soft); display:flex; align-items:center; gap:8px; font-weight:500; }
+  /* Título de tarjeta en caja normal, como en la consola. La versaleta
+     espaciada obligaba a deletrear cada encabezado; en un tablero con once
+     paneles eso es leer once veces algo que debería reconocerse de golpe. */
+  .panel h3{ margin:0 0 12px; font-size:14.5px; text-transform:none; letter-spacing:-.005em; color:var(--ink); display:flex; align-items:center; gap:8px; font-weight:500; }
   /* Efecto ticket: sin divisorias, solo espacio en blanco. */
   .row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; font-size:14px; }
   .row span:first-child{ color:var(--soft); }
@@ -208,7 +296,7 @@
   .warn{ background:rgba(255,207,108,.08); border:1px solid var(--glass-border); color:var(--amber); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:14px; }
   #err{ color:var(--red); font-size:13px; margin-top:10px; }
   /* Botones mini (ver chats / apagar) — píldoras translúcidas sin borde. */
-  button.mini{ padding:3px 10px; font-size:11px; border-radius:9999px; border:none; background:rgba(255,255,255,.05); color:var(--ink); }
+  button.mini{ padding:4px 10px; font-size:11px; border-radius:7px; border:none; background:rgba(255,255,255,.05); color:var(--ink); }
   button.mini:hover{ background:rgba(255,255,255,.09); }
   button.mini.danger{ color:#ffbcb5; background:rgba(255,123,114,.1); }
   button.mini.danger:hover{ background:rgba(255,123,114,.18); }
@@ -1469,15 +1557,26 @@
       }
     }
 
+    /** Saludo del encabezado. Va en hora de Chile y no la del navegador: el
+     *  panel se mira desde donde sea, pero la operación pasa acá. */
+    function saludo(){
+      const h = Number(new Intl.DateTimeFormat('es-CL', {
+        timeZone: 'America/Santiago', hour: '2-digit', hour12: false,
+      }).format(new Date()));
+      const momento = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+      const u = firebase.auth().currentUser;
+      const nombre = ((u && u.email) || '').split('@')[0].split(/[._]/)[0];
+      return nombre ? `${momento}, ${nombre.charAt(0).toUpperCase()}${nombre.slice(1)}` : momento;
+    }
+
     /** La tira de números del día. Vive en la ola 1, así que el panel "Hoy"
      *  siempre tiene algo que mostrar aunque el bot y los chips todavía no
      *  hayan contestado (antes el recuadro salía con el título y nada más). */
     function hoyHtml(h){
       if (!h) return '';
       const dato = (v, etiqueta, ayuda) =>
-        `<div style="flex:1 1 120px"><div class="tnum" style="font-size:20px;font-weight:600">${v}</div>
-         <div class="k" style="margin-top:2px">${tip(etiqueta, ayuda)}</div></div>`;
-      return `<div style="display:flex;flex-wrap:wrap;gap:14px 20px;padding:4px 0 12px">
+        `<div class="hoy-dato"><div class="k">${tip(etiqueta, ayuda)}</div><div class="n tnum">${v}</div></div>`;
+      return `<div class="hoy-tira">
         ${dato(num(h.mensajes), 'Mensajes enviados',
           'Mensajes de WhatsApp que salieron hoy desde la plataforma: recordatorios, confirmaciones y respuestas del bot.')}
         ${dato(usd(h.costoUsd), 'Costo de IA',
@@ -1527,25 +1626,31 @@
       const leadsPend = ventasData ? (ventasData.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
 
       app.innerHTML = `
+        <div class="shell">
+        <aside class="side">
+          <div class="marca">Operaciones</div>
+          <nav class="tabs">
+            <button data-tab="resumen">📊 Resumen</button>
+            <button data-tab="ads">${marca('meta','Meta')} Meta Ads</button>
+            <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
+            <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
+            <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
+            <button data-tab="locales">💈 Locales</button>
+            <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
+            <button data-tab="email">✉️ Email</button>
+            <button data-tab="sushi">🍣 SushiPro</button>
+            <button data-tab="probar">🧪 Probar IA</button>
+          </nav>
+          <div class="sfoot"><b>SynapTech</b>${((firebase.auth().currentUser || {}).email) || ''}</div>
+        </aside>
+        <main class="main">
         <header>
           <div>
-            <h1>Operaciones · SynapTech</h1>
-            <div class="sub">últimos 30 días · <span id="frescura">${frescuraHtml()}</span> · <span class="muted" style="font-size:10.5px">pasa el mouse sobre cualquier dato para ver qué mide</span></div>
+            <h1>${saludo()}</h1>
+            <div class="sub">últimos 30 días <span id="frescura">${frescuraHtml()}</span> <span class="muted" style="font-size:10.5px">pasa el mouse sobre cualquier dato para ver qué mide</span></div>
           </div>
           <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh" title="Recalcula todo desde cero (tarda unos segundos)">Actualizar</button><button id="out">Salir</button></div>
         </header>
-        <nav class="tabs">
-          <button data-tab="resumen">📊 Resumen</button>
-          <button data-tab="ads">${marca('meta','Meta')} Meta Ads</button>
-          <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
-          <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
-          <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
-          <button data-tab="locales">💈 Locales</button>
-          <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
-          <button data-tab="email">✉️ Email</button>
-          <button data-tab="sushi">🍣 SushiPro</button>
-          <button data-tab="probar">🧪 Probar IA</button>
-        </nav>
         <div class="wrap">
           ${alertasHtml ? `<div style="margin-bottom:16px">${alertasHtml}</div>` : ''}
 
@@ -1556,7 +1661,7 @@
               <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">${tip('Costo de IA que pagas (30d)', 'Lo que le cobra Anthropic a SynapTech por los bots. Es costo tuyo, no del local.')}</div></div>
               <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">${tip('Llamadas a la IA (30d)', 'Veces que se le preguntó algo al modelo. Un mensaje de cliente puede gatillar más de una.')}</div></div>
             </div>
-            <div class="panel" id="panel-hoy" style="margin-top:14px">${panelHoy()}</div>
+            <div class="panel full" id="panel-hoy" style="margin-top:14px">${panelHoy()}</div>
           </section>
 
           <section class="sec" data-sec="ads">
@@ -1639,6 +1744,8 @@
               </form>
             </div>
           </section>
+        </div>
+        </main>
         </div>`;
       // ── Pestañas: recordar dónde estaba (sobrevive al Actualizar) ──
       const setTab = (n) => {
