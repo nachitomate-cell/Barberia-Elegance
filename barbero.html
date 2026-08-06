@@ -1018,11 +1018,17 @@
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Nombre completo</label>
-          <input type="text" id="clientName" placeholder="Ej. Ignacio Mateluna" class="booking-input">
+          <!-- autocomplete: el navegador rellena al cliente que vuelve. Sube
+               conversión y elimina typos antes de que existan. -->
+          <input type="text" id="clientName" placeholder="Ej. Ignacio Mateluna" autocomplete="name" class="booking-input">
         </div>
         <div>
           <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Teléfono móvil</label>
-          <input type="tel" id="clientPhone" placeholder="+56 9 XXXX XXXX" inputmode="numeric" class="booking-input">
+          <input type="tel" id="clientPhone" placeholder="+56 9 XXXX XXXX" inputmode="numeric" autocomplete="tel" class="booking-input">
+          <!-- Aviso inline al salir del campo (no toast en el submit). Estilos
+               inline: la hoja de Tailwind está precompilada y los valores
+               arbitrarios nuevos no existen en el CSS. -->
+          <p id="clientPhoneHint" class="hidden" style="margin-top:.5rem;font-size:.75rem;line-height:1.4;color:#fbbf24;"></p>
         </div>
         <div>
           <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
@@ -1032,7 +1038,9 @@
                  y nace oculto porque el default es exigirlo. -->
             <span id="correoOpcionalHint" class="hidden normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
           </label>
-          <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" class="booking-input">
+          <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" autocomplete="email" class="booking-input">
+          <!-- Chip "¿quisiste decir …?": un tap corrige el dominio. Nunca bloquea. -->
+          <div id="clientEmailHint" class="hidden" style="margin-top:.5rem;font-size:.75rem;line-height:1.4;color:#fbbf24;"></div>
         </div>
 
         <!-- Doble opt-in de WhatsApp. Oculto salvo que el local tenga algún
@@ -2236,8 +2244,13 @@
 
     if (!nombre)    return showToast('Por favor, ingresa tu nombre.');
     if (!telefono)  return showToast('Por favor, ingresa tu teléfono.');
-    if (telefono.replace(/\D/g,'').length < 8)
-      return showToast('Ingresa un teléfono válido.');
+    // Acá el piso era 8 dígitos mientras index.html pedía 9: la misma reserva
+    // del mismo cliente con dos reglas distintas, exactamente el bug que ya se
+    // corrigió con el correo. Ahora la regla vive una sola vez en
+    // ReservaCore.validarTelefono() y se endurece por tenant con
+    // configuracion/main.validacionContactoEstricta.
+    const _tel_v = ReservaCore.validarTelefono(telefono, _fsConfig);
+    if (!_tel_v.ok) return showToast(_tel_v.motivo);
     // Acá el correo era opcional SIEMPRE, mientras index.html lo exigía
     // siempre: la misma reserva del mismo cliente, con dos reglas distintas.
     // Ahora manda configuracion/main.correoObligatorio (encendido por defecto)
@@ -2422,7 +2435,7 @@
         banner.classList.remove('hidden');
       }
       setTimeout(() => {
-        showClubModal('postReserva', {
+        showClubModal({
           nombre:   clienteNombre,
           telefono: clienteTelefono,
           email,
@@ -2491,6 +2504,10 @@
 
           const hint = document.getElementById('correoOpcionalHint');
           if (hint && !ReservaCore.correoObligatorio(cfg)) hint.classList.remove('hidden');
+
+          // Mismo cableado que index.html, misma función: máscara de teléfono
+          // + chip de sugerencia de correo.
+          ReservaCore.cablearValidacionContacto(cfg);
         } catch (_) {}
       })();
 
@@ -2636,8 +2653,11 @@
       // conexión, no un barbero inexistente: mostramos el estado con reintento.
       document.getElementById('connErrorState').classList.remove('hidden');
     });
-    // Welcome del Club (tras 1.8s, una vez por cada 24h por tenant)
-    setTimeout(maybeShowClubWelcome, 1800);
+    // Antes acá se disparaba un modal de bienvenida al Club a los 1.8s de
+    // cargar la página. Se sacó: interrumpía a alguien que venía a reservar,
+    // antes de que hiciera nada, y encima pidiéndole registrarse. La invitación
+    // vive donde tiene sentido — después de confirmar la reserva, cuando ya hay
+    // una visita que puede sumar su primer sello (ver showClubModal más abajo).
   });
 
   // Liberar listeners de Firestore al cerrar/ocultar la página (evita memory leaks
@@ -2654,11 +2674,15 @@
   });
 
   /* ═══════ INVITACIÓN AL CLUB DE FIDELIDAD ═══════ */
-  /* Un solo modal reutilizable con dos modos:
-       - 'welcome'    → al cargar la página, si no es miembro y no se mostró en 24h
-       - 'postReserva' → después de confirmar, con prefill al registro */
+  /* Se muestra UNA sola vez y en un solo momento: después de confirmar la
+     reserva, con los datos del cliente ya prellenados al registro.
 
-  let _clubModalMode = 'welcome';
+     Tenía un segundo modo 'welcome' que saltaba al abrir la página. Se eliminó:
+     recibir una ventana pidiendo registro antes de haber hecho nada es la forma
+     más rápida de perder a alguien que venía a agendar. Ahora el pedido llega
+     cuando ya reservó, que es cuando el Club significa algo concreto para él
+     ("tu próxima visita suma tu primer sello"). */
+
   let _postReservaPrefill = null;
 
   function alreadyClubMember() {
@@ -2669,43 +2693,11 @@
     } catch (_) { return false; }
   }
 
-  function clubWelcomeCooldownKey() {
-    return `${window.CURRENT_TENANT_ID || 'elegance'}_club_welcome_dismissed`;
-  }
-
-  function maybeShowClubWelcome() {
-    const decide = () => {
-      if (alreadyClubMember()) return;
-      const key = clubWelcomeCooldownKey();
-      const lastTs = Number(localStorage.getItem(key) || 0);
-      if (Date.now() - lastTs < 24 * 60 * 60 * 1000) return; // cooldown 24h
-      showClubModal('welcome');
-    };
-    // Esperar al menos un evento de auth para que `currentUser` esté restaurado
-    // (de sesión persistente). Timeout de seguridad: 2s y procedemos.
-    try {
-      if (window.firebase && firebase.auth) {
-        let decided = false;
-        const unsub = firebase.auth().onAuthStateChanged(() => {
-          if (decided) return;
-          decided = true;
-          unsub();
-          decide();
-        });
-        setTimeout(() => { if (!decided) { decided = true; try { unsub(); } catch(_){} decide(); } }, 2000);
-      } else {
-        decide();
-      }
-    } catch (_) { decide(); }
-  }
-
-  function showClubModal(mode, prefill) {
+  function showClubModal(prefill) {
     // Club de fidelidad oculto para este tenant (flag `clubOculto` en config.js).
     if (window.SHOP && window.SHOP.clubOculto) return;
-    _clubModalMode = mode;
     _postReservaPrefill = prefill || null;
 
-    const shopClub = (typeof SHOP !== 'undefined' && SHOP.club) ? SHOP.club : 'Club de Fidelidad';
     const eyebrow  = document.getElementById('clubModalEyebrow');
     const title    = document.getElementById('clubModalTitle');
     const body     = document.getElementById('clubModalBody');
@@ -2714,21 +2706,12 @@
     const cta      = document.getElementById('clubModalCTA');
     const icon     = document.getElementById('clubModalIcon');
 
-    if (mode === 'postReserva') {
-      icon.className     = 'ph-fill ph-confetti text-3xl';
-      eyebrow.textContent = '¡Reserva confirmada!';
-      title.textContent   = 'Ahora, ¿activamos tu Club?';
-      body.innerHTML      = `Tu próxima visita ya puede sumar tu <strong class="text-white">primer sello</strong> automáticamente. Demora 1 minuto.`;
-      ctaLabel.textContent = 'Crear mi cuenta del Club';
-      skipLbl.textContent  = 'Más tarde, gracias';
-    } else {
-      icon.className     = 'ph-fill ph-medal text-3xl';
-      eyebrow.textContent = shopClub;
-      title.textContent   = '¿Quieres cortes gratis?';
-      body.innerHTML      = `Súmate al Club de <span class="text-white font-semibold">${shopClub}</span>. Es gratis y por cada visita acumulas un sello para canjear premios 🎁`;
-      ctaLabel.textContent = 'Unirme al Club gratis';
-      skipLbl.textContent  = 'Quizás después';
-    }
+    icon.className       = 'ph-fill ph-confetti text-3xl';
+    eyebrow.textContent  = '¡Reserva confirmada!';
+    title.textContent    = 'Ahora, ¿activamos tu Club?';
+    body.innerHTML       = `Tu próxima visita ya puede sumar tu <strong class="text-white">primer sello</strong> automáticamente. Demora 1 minuto.`;
+    ctaLabel.textContent = 'Crear mi cuenta del Club';
+    skipLbl.textContent  = 'Más tarde, gracias';
 
     // Prefill CTA si hay datos del cliente
     let href = '/registro.html';
@@ -2747,9 +2730,8 @@
 
   function dismissClubModal() {
     document.getElementById('clubInviteModal').classList.add('hidden');
-    if (_clubModalMode === 'welcome') {
-      try { localStorage.setItem(clubWelcomeCooldownKey(), String(Date.now())); } catch (_) {}
-    }
+    // Sin cooldown que recordar: el modal ya solo aparece al terminar una
+    // reserva, así que no puede volver a molestar en la misma visita.
   }
 
   function onClubModalBackdrop(e) {
