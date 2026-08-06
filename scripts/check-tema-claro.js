@@ -78,6 +78,63 @@ for (const { html, css } of PARES) {
   }
 }
 
+/* ── Pantalla de confirmación de index.html ──────────────────────────────────
+   El guard de arriba solo mira fondos por CLASE, y solo en dashboard/barbero/
+   registro. La caída del 06-08-2026 en Aura se coló por las dos rendijas: fue
+   en index.html —que no estaba en la lista— y con el fondo oscuro puesto en un
+   `style` INLINE, que ningún override por clase alcanza (a un inline solo se
+   le gana con !important y un selector de id o de atributo).
+
+   Se ve negro sobre blanco justo donde el cliente tiene que copiar el código
+   de su cita. Es la pantalla con más tráfico de la plataforma y la única que
+   no tiene vuelta atrás: si no se lee, el cliente ya reservó y se queda sin
+   forma de cancelar solo.
+
+   Se revisa acotado a #success-state: es un bloque delimitado, y ahí sí se
+   puede exigir cobertura completa sin ahogarse en falsos positivos. */
+try {
+  const idx = leer('index.html');
+  const ini = idx.indexOf('id="success-state"');
+  const fin = idx.indexOf('<!-- CLUB BANNER -->', ini);   // el club cuelga fuera
+  if (ini > 0 && fin > ini) {
+    const bloque = idx.slice(ini, fin);
+    const hojas  = [...idx.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n');
+    // Se exige `theme-light`, NO un `.tenant-x` suelto. La diferencia es el
+    // corazón del bug: #successCodigoWrap SÍ estaba arreglado… para alfamen y
+    // clinicalglow nada más. Los otros siete tenants claros —aura incluido—
+    // seguían con el bloque negro. Un arreglo por tenant se lee como resuelto
+    // y deja rotos a los que vengan después; `theme-light` la pone config.js
+    // en todos los de _lightTenants, incluidos los de self-service.
+    const selectoresClaros = hojas.split('}')
+      .map(b => b.split('{')[0])
+      .filter(s => /theme-light/.test(s))
+      .join(' | ');
+
+    const pendientes = [];
+    const cubiertoPorId = (id) => id && new RegExp(`#${id}\\b`).test(selectoresClaros);
+    // Cada punto lleva el id del elemento que lo porta; si el elemento no tiene
+    // id no hay forma de apuntarlo desde CSS y eso YA es el problema.
+    const idPropio = (i) => (bloque.slice(bloque.lastIndexOf('<', i), i + 500).match(/\bid="([\w-]+)"/) || [])[1];
+
+    for (const m of bloque.matchAll(/style="[^"]*background\s*:\s*#(?:0|1|2)[0-9a-f]{5}[^"]*"/gi)) {
+      const id = idPropio(m.index);
+      if (!cubiertoPorId(id)) pendientes.push(`fondo oscuro inline en ${id ? '#' + id : 'un elemento SIN id (no hay cómo apuntarlo)'}`);
+    }
+    for (const m of bloque.matchAll(/style="[^"]*border[^"]*rgba\(255,\s*255,\s*255[^"]*"/gi)) {
+      const id = idPropio(m.index);
+      if (!cubiertoPorId(id)) pendientes.push(`borde blanco inline en ${id ? '#' + id : 'un elemento SIN id'}`);
+    }
+    // Los textos blancos se cubren en bloque con [class*="text-white/"].
+    if (/\btext-white\/\d+/.test(bloque) &&
+        !/theme-light[^{}]*#success-state[^{}]*text-white\//.test(hojas)) {
+      pendientes.push('textos text-white/NN sin override (se ven blancos sobre blanco)');
+    }
+    if (pendientes.length) {
+      fallos.push(`index.html #success-state: ${pendientes.length} punto(s) que asumen fondo negro:\n     · ${[...new Set(pendientes)].join('\n     · ')}`);
+    }
+  }
+} catch { /* index.html cambió de forma: lo cubren los otros guards */ }
+
 if (fallos.length) {
   console.error('\n❌ Modo claro incompleto:\n');
   fallos.forEach(f => console.error('  ' + f + '\n'));

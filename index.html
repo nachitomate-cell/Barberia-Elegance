@@ -9824,6 +9824,59 @@
       html.tenant-selfservice .service-option.border-neon::after,
       html.tenant-selfservice .barber-option.border-neon::after { display: none !important; }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PANTALLA DE CONFIRMACIÓN EN TENANTS CLAROS
+       ═══════════════════════════════════════════════════════════════════
+       Los overrides de modo claro de esta página se hicieron por CLASE
+       (`.bg-[#0a0a0d]`), pero tres bloques de la confirmación traen el fondo
+       oscuro en un `style` INLINE, y a un inline solo se le gana con
+       `!important` y un selector de atributo. Resultado en Aura: el código de
+       gestión y la tarjeta de Wallet quedaban negros sobre la página blanca,
+       con el código de la cita ilegible — justo la pantalla donde el cliente
+       tiene que copiarlo.
+
+       Va por `html.theme-light` y NO por `.tenant-x`: config.js pone esa clase
+       a todos los de _lightTenants, incluidos los de self-service que se
+       agregan en caliente, así que un local claro nuevo lo hereda solo. Es la
+       regla de la casa: en modo claro se mapean TODOS los fondos o ninguno.
+
+       Los tres puntos que se veían negros venían acompañados de otros ocho que
+       solo se notan una vez que el fondo es blanco: textos `text-white/NN`,
+       bordes blancos translúcidos y un botón blanco sobre tarjeta blanca. */
+
+    /* Fondos oscuros inline → blanco. (El banner del Club también trae uno,
+       pero cuelga FUERA de #success-state y ya lo resuelve su propia regla.) */
+    html.theme-light #success-state #successCodigoWrap,
+    html.theme-light #success-state #successWalletCard {
+      background: #FFFFFF !important;
+      border-color: rgba(156,163,175,0.35) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
+    }
+
+    /* Textos que asumían fondo negro. `text-white/40` sobre blanco no se ve:
+       el atributo los toma a todos (30, 40, 50, 70) sin tener que escapar la
+       barra como haría un selector de clase. */
+    html.theme-light #success-state [class*="text-white/"] {
+      color: #6B7280 !important;
+    }
+    html.theme-light #success-state #successCodigoWrap .text-brand-text,
+    html.theme-light #success-state #successWalletCard .text-brand-text {
+      color: #18181B !important;
+    }
+
+    /* Bordes blancos translúcidos → gris visible. */
+    html.theme-light #success-state #btnCompartirAgenda[style],
+    html.theme-light #success-state #reviewsCtaBtn[style] {
+      border-color: rgba(156,163,175,0.40) !important;
+    }
+
+    /* El botón de la Wallet es blanco con texto negro: sobre la tarjeta ya
+       blanca desaparecía por completo. Se invierte a oscuro. */
+    html.theme-light #success-state #successWalletBtn[style] {
+      background: #18181B !important;
+      color: #FFFFFF !important;
+    }
   </style>
 </head>
 
