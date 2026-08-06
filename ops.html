@@ -262,6 +262,11 @@
   .spark{ display:flex; align-items:flex-end; gap:2px; height:44px; margin-top:8px; }
   .spark i{ flex:1; background:rgba(156,204,60,.35); border-radius:2px 2px 0 0; min-height:2px; transition:background .15s ease; }
   .spark i.hoy{ background:var(--neon); }
+  /* El día en curso va rayado: se ve que existe pero que todavía no cierra,
+     así nadie lo compara de reojo contra los días completos de al lado. */
+  .spark i.parcial{
+    background:repeating-linear-gradient(45deg, rgba(198,249,78,.55) 0 3px, rgba(198,249,78,.15) 3px 6px);
+  }
   .spark i:hover{ background:var(--neon); }
 
   /* ── Tabla compacta (anuncios) ──────────────────────────────────────── */
@@ -348,6 +353,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <!-- Storage: subir el creativo desde el panel. Instagram descarga la media
+       desde SUS servidores, así que necesita una URL https pública — antes eso
+       obligaba a subir la foto a otro lado primero y pegar el link a mano. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
@@ -1037,13 +1046,64 @@
             <h3>📈 Actividad · 7 días</h3>
             <p class="hint">Lo que hizo la cuenta esta semana. El alcance viene de Instagram; los DM y comentarios los cuenta la plataforma.</p>
             ${i.alcanceSerie && i.alcanceSerie.length ? (() => {
-              const d = i.alcanceSerie, tope = Math.max(...d.map(x => x.valor), 1);
-              return `<div class="spark">${d.map((x,k) =>
-                `<i class="${k===d.length-1?'hoy':''}" style="height:${Math.max(2,Math.round(100*x.valor/tope))}%" title="${x.fecha}: ${num(x.valor)} cuentas"></i>`).join('')}</div>
+              // El último día es HOY y va a medias: escalarlo contra días
+              // completos lo pinta como una caída (o como un récord, según la
+              // hora) que no existe. Se dibuja aparte, translúcido, y NO entra
+              // en el máximo ni en la comparación.
+              const d = i.alcanceSerie;
+              const hoyISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+              const parcial = d.length && d[d.length-1].fecha === hoyISO;
+              const completos = parcial ? d.slice(0, -1) : d;
+              const tope = Math.max(...completos.map(x => x.valor), 1);
+              // Caída: últimos 3 días completos contra los 3 anteriores. Un
+              // desplome de alcance es la señal más temprana de que algo pasó
+              // con la cuenta, y el gráfico solo lo dibujaba sin decirlo.
+              let aviso = '';
+              if (completos.length >= 4) {
+                const med = a => a.reduce((s,x)=>s+x.valor,0) / Math.max(1,a.length);
+                const rec = med(completos.slice(-3)), ant = med(completos.slice(-6,-3));
+                const cambio = ant > 0 ? Math.round(100*(rec-ant)/ant) : 0;
+                if (cambio <= -40) aviso = `<div class="alerta ambar" style="margin:8px 0 0"><span>🟡</span><span>
+                  El alcance cayó <b>${Math.abs(cambio)}%</b> respecto de los tres días anteriores (${num(Math.round(rec))} vs ${num(Math.round(ant))} cuentas/día).</span></div>`;
+                else if (cambio >= 60) aviso = `<div class="alerta info" style="margin:8px 0 0"><span>🔵</span><span>
+                  El alcance subió <b>${cambio}%</b> respecto de los tres días anteriores. Mira qué publicaste.</span></div>`;
+              }
+              return `<div class="spark">${d.map((x,k) => {
+                const esHoy = parcial && k === d.length-1;
+                const alto = Math.max(2, Math.round(100*x.valor/tope));
+                return `<i class="${esHoy?'hoy parcial':''}" style="height:${Math.min(100,alto)}%" title="${esc(`${x.fecha}: ${num(x.valor)} cuentas${esHoy?' — el día va en curso, este número todavía sube':''}`)}"></i>`;
+              }).join('')}</div>
                 <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--soft);margin-top:4px">
-                  <span>${d[0].fecha}</span><span>alcance diario</span><span>${d[d.length-1].fecha}</span></div>`;
+                  <span>${d[0].fecha}</span><span>alcance diario${parcial?' · hoy va a medias':''}</span><span>${d[d.length-1].fecha}</span></div>
+                ${aviso}`;
             })() : '<p class="muted">Instagram todavía no devuelve serie de alcance para esta cuenta.</p>'}
             <div class="row"><span>${tip('Interacciones', 'Likes, comentarios, guardados y compartidos sumados.')}</span><span class="v tnum">${n(i.interacciones7d)}</span></div>
+            ${(() => {
+              // Lo único que paga: DM que terminaron en reunión pedida. Sin
+              // esta fila la pestaña medía alcance y likes, que no son plata,
+              // y no se podía saber si Instagram trae negocio o solo ruido.
+              if (!i.leads) return '';
+              const conv = i.dm7d ? Math.round(100 * i.leads.semana / i.dm7d) : null;
+              return `<div class="row"><span>${tip('DM que pidieron reunión (7d)',
+                'De los DM que entraron esta semana, cuántos terminaron con el lead aceptando una reunión. Es lo único de esta pestaña que se convierte en plata; el resto es alcance.')}</span>
+                <span class="v tnum">${num(i.leads.semana)}${conv !== null ? ` <span class="muted" style="font-weight:400">· ${conv}% de los DM</span>` : ''}</span></div>
+              <div class="row"><span>${tip('Leads de Instagram (histórico)',
+                'Total acumulado de reuniones pedidas que entraron por DM de Instagram, desde que se conectó la cuenta.')}</span>
+                <span class="v tnum">${num(i.leads.total)}</span></div>`;
+            })()}
+            ${(() => {
+              // "0 comentarios" es ambiguo: ¿no hubo, o dejaron de llegar? La
+              // fecha del último lo resuelve y solo cuesta 1 lectura.
+              const hace = (ms) => { if (!ms) return null; const d = Math.round((Date.now()-ms)/86400000);
+                return d < 1 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`; };
+              const filas = [];
+              if (!i.comentarios7d) filas.push(['Último comentario recibido', hace(i.ultimoComentarioEn),
+                'Con 0 comentarios en la semana no se distingue "no hubo" de "dejaron de llegar". Si acá dice «nunca» y la automatización está encendida, el problema es la suscripción al webhook, no la cuenta.']);
+              if (!i.dm7d) filas.push(['Último DM recibido', hace(i.ultimoDmEn),
+                'Lo mismo para los mensajes directos: un 0 en la semana con «nunca» acá significa que no está entrando nada.']);
+              return filas.map(([et, val, ayuda]) => `<div class="row"><span>${tip(et, ayuda)}</span>
+                <span class="v" style="color:${val ? 'var(--ink)' : 'var(--amber)'}">${val || 'nunca'}</span></div>`).join('');
+            })()}
             <div class="row"><span>${tip('Visitas al perfil', 'Gente que entró a mirar tu perfil. Es la señal más cercana a intención de compra que da Instagram gratis.')}</span><span class="v tnum">${n(i.visitasPerfil7d)}</span></div>
             <div class="row"><span>${tip('Publicaciones', 'Total de posts en la cuenta.')}</span><span class="v tnum">${n(i.publicaciones)}</span></div>
             <div class="row"><span>${tip('Webhook suscrito', 'Meta solo entrega DMs y comentarios si la cuenta está suscrita por API — configurar la URL en el panel de desarrolladores no alcanza. Si esto dice que no, el bot está sordo.')}</span>${
@@ -1058,7 +1118,7 @@
 
           <div class="panel">
             <h3>✍️ Publicar</h3>
-            <p class="hint">Sube una foto o un reel a @${i.username} sin abrir la app. La media tiene que estar en una URL <b>https pública</b>: Instagram la descarga desde sus servidores, así que un archivo de tu computador no sirve.</p>
+            <p class="hint">Sube una foto o un reel a @${i.username} sin abrir la app. Elige el archivo con el botón y queda alojado solo; si ya tienes la media en internet, pega su URL <b>https pública</b> (Instagram la descarga desde sus servidores, así que tiene que abrirse sin contraseña).</p>
             ${i.cupoPublicacion ? `<div class="row"><span>${tip('Cupo de hoy', 'Publicaciones usadas hoy contra el tope que reporta Instagram para esta cuenta en las últimas 24 horas. El tope lo fija Meta y lo trae la API, no está escrito a mano acá.')}</span><span class="v tnum">${i.cupoPublicacion.usado}/${i.cupoPublicacion.tope}</span></div>` : ''}
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
               <select id="igTipo" class="inp">
@@ -1067,7 +1127,12 @@
                 <option value="STORIES">Historia</option>
                 <option value="CAROUSEL">Carrusel (varias URLs, una por línea)</option>
               </select>
-              <textarea id="igUrl" rows="1" class="inp" placeholder="https://… URL pública de la imagen o video"></textarea>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="igArchivo" type="file" accept="image/*,video/*" multiple style="display:none">
+                <button class="mini" id="igSubir" style="flex:0 0 auto">📎 Subir desde el computador</button>
+                <span class="muted" id="igSubirMsg" style="font-size:11px;flex:1"></span>
+              </div>
+              <textarea id="igUrl" rows="1" class="inp" placeholder="https://… URL pública, o usa el botón de arriba"></textarea>
               <textarea id="igCaption" rows="3" class="inp" placeholder="Texto del post" style="resize:vertical"></textarea>
               <label style="font-size:11.5px;color:var(--soft)">Cuándo publicar
                 <input id="igCuando" type="datetime-local" class="inp" style="margin-top:4px">
@@ -1101,6 +1166,9 @@
           <span class="dot ${c.esSoporte ? 'off' : 'on'}"></span>
           <span style="flex:1">@${c.username || c.igsid}${c.nombre ? ` <span class="muted">· ${c.nombre}</span>` : ''}</span>
           <span class="tag ${c.esSoporte ? '' : 'g'}">${c.esSoporte ? '🛟 soporte tuyo' : '🤖 contesta el bot'}</span>
+          ${c.username ? `<a class="mini" href="https://ig.me/m/${encodeURIComponent(c.username)}" target="_blank" rel="noopener"
+             style="text-decoration:none;display:inline-flex;align-items:center"
+             title="Abre este chat en Instagram. Los que marcas como tuyos los tienes que contestar a mano, y buscarlos uno por uno era el paso lento.">abrir chat ↗</a>` : ''}
           <button class="mini" data-igsop="${c.igsid}" data-val="${c.esSoporte ? '0' : '1'}">${c.esSoporte ? 'que conteste el bot' : 'es cliente, lo atiendo yo'}</button>
           <span class="sub2">${String(c.texto || '').replace(/</g,'&lt;')} <span class="muted">· ${hace(c.cuando)}</span></span>
         </div>`).join('')}
@@ -1143,6 +1211,8 @@
           const atrasada = x.publicarEn && x.publicarEn < Date.now() - 15*60*1000;
           return `<div class="loc">
           <span class="dot ${atrasada ? 'warn' : 'on'}"></span>
+          ${x.vistaPrevia ? `<img src="${esc(x.vistaPrevia)}" alt="" loading="lazy"
+             style="width:34px;height:34px;border-radius:7px;object-fit:cover;flex:0 0 auto;border:1px solid var(--hairline)">` : ''}
           <span style="flex:1">${x.tipo}${x.caption ? ' · <span class="muted">' + String(x.caption).replace(/</g,'&lt;') + '…</span>' : ''}</span>
           <span class="tnum" style="font-size:12px;color:${atrasada ? 'var(--red)' : '#fff'}">${atrasada ? '⚠️ ' : ''}${cuando(x.publicarEn)}</span>
           <button class="mini danger" data-igdel="${x.id}">cancelar</button>
@@ -1191,6 +1261,33 @@
       document.getElementById('igCuando').value = '';
     }
 
+    /* Sube el creativo a Storage y deja su URL pública en el campo.
+       Instagram descarga la media desde SUS servidores: por eso tiene que ser
+       https y accesible sin credenciales, y por eso un archivo del computador
+       no servía. Antes había que subirlo a otro lado y pegar el link a mano —
+       el paso que hacía que "publicar desde el panel" no se usara. */
+    async function igSubirArchivos(files){
+      const msg = document.getElementById('igSubirMsg');
+      const campo = document.getElementById('igUrl');
+      const urls = [];
+      const storage = firebase.app().storage();
+      for (let k = 0; k < files.length; k++) {
+        const f = files[k];
+        if (f.size > 15 * 1024 * 1024) { alert(`"${f.name}" pesa más de 15 MB.`); return; }
+        msg.textContent = `Subiendo ${k + 1}/${files.length}: ${f.name}…`;
+        // Nombre único: dos creativos con el mismo nombre no se pisan, y la
+        // cola puede tardar días en publicarlos.
+        const limpio = f.name.replace(/[^\w.\-]/g, '_').slice(-60);
+        const ref = storage.ref(`instagram_creativos/${Date.now()}_${k}_${limpio}`);
+        const snap = await ref.put(f, { contentType: f.type });
+        urls.push(await snap.ref.getDownloadURL());
+      }
+      // Se AÑADE a lo que ya haya: un carrusel se arma en varias tandas.
+      const previo = campo.value.trim();
+      campo.value = (previo ? previo + '\n' : '') + urls.join('\n');
+      msg.textContent = `✅ ${urls.length} archivo(s) listo(s)`;
+    }
+
     async function igPublicar(btn){
       const f = igFormulario(); if (!f) return;
       if (!confirm(`Publicar ${f.tipo} en Instagram AHORA. Es público e irreversible. ¿Confirmas?`)) return;
@@ -1214,7 +1311,7 @@
       const txt = btn.textContent;
       btn.textContent = 'Programando…'; btn.disabled = true;
       try {
-        await _fn('instagramProgramar')({ tipo: f.tipo, urls: f.urls, caption: f.caption, publicarEn: iso });
+        await _fn('instagramProgramar')({ tipo: f.tipo, urls: f.urls, caption: f.caption, publicarEn: iso, vistaPrevia: f.urls[0] });
         igLimpiar(); await refrescarInstagram();
       } catch(e){ alert('No se pudo programar: ' + (e.message || e)); }
       btn.textContent = txt; btn.disabled = false;
@@ -1258,19 +1355,19 @@
               <span>${m.fecha}${m.tipo === 'VIDEO' ? ' · video' : ''}</span>
             </button>`).join('')}</div>`;
         cont.querySelectorAll('[data-igpost]').forEach(b =>
-          b.onclick = () => igResubir(b.dataset.igpost, b.dataset.tipo));
+          b.onclick = () => igResubir(b.dataset.igpost, b.dataset.tipo, b.querySelector('img') && b.querySelector('img').src));
       } catch(e){
         cont.innerHTML = `<p style="color:var(--red);font-size:12px">${e.message || e}</p>`;
       }
     }
 
-    async function igResubir(mediaId, tipo){
+    async function igResubir(mediaId, tipo, miniatura){
       const cuando = document.getElementById('igCuando').value;
       if (!cuando) { alert('Primero elige la fecha y hora arriba, después la publicación.'); return; }
       if (!confirm(`Programar esta publicación como HISTORIA para el ${new Date(cuando).toLocaleString('es-CL')}?`)) return;
       try {
         await _fn('instagramProgramar')({
-          tipo: 'STORIES', origenMediaId: mediaId,
+          tipo: 'STORIES', origenMediaId: mediaId, vistaPrevia: miniatura || '',
           publicarEn: new Date(cuando).toISOString(),
         });
         document.getElementById('igGaleria').innerHTML = '';
@@ -1287,6 +1384,21 @@
       document.querySelectorAll('[data-igsop]').forEach(b =>
         b.onclick = () => igSoporte(b.dataset.igsop, b.dataset.val === '1'));
       const c = document.getElementById('igConectar');   if (c) c.onclick = () => igConectar(c);
+      const fi = document.getElementById('igArchivo');
+      const sb = document.getElementById('igSubir');
+      if (sb && fi) {
+        sb.onclick = () => fi.click();
+        fi.onchange = async () => {
+          if (!fi.files || !fi.files.length) return;
+          sb.disabled = true;
+          try { await igSubirArchivos(fi.files); }
+          catch(e){
+            document.getElementById('igSubirMsg').textContent = '';
+            alert('No se pudo subir: ' + (e.message || e));
+          }
+          sb.disabled = false; fi.value = '';
+        };
+      }
       const p = document.getElementById('igPublicar');   if (p) p.onclick = () => igPublicar(p);
       const g = document.getElementById('igProgramar');  if (g) g.onclick = () => igProgramar(g);
       const vp = document.getElementById('igVerPosts');  if (vp) vp.onclick = () => igVerPosts(vp);

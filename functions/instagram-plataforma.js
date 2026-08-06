@@ -674,11 +674,30 @@ async function resumenInstagram() {
     const porFecha = (col, campo) =>
       db.collection(col).where(campo, '>=', tsHace7).orderBy(campo, 'desc').get()
         .catch(() => db.collection(col).get().catch(() => null));
-    const [dms, coments, programadas] = await Promise.all([
+    // "0 comentarios en 7 días" es ambiguo: puede ser que no hubo, o que la
+    // automatización dejó de recibir. Una consulta de 1 lectura por colección
+    // responde cuál de las dos: cuándo llegó el último, sin ventana.
+    const ultimo = (col, campo) =>
+      db.collection(col).orderBy(campo, 'desc').limit(1).get()
+        .then((s) => (s.empty ? null : s.docs[0].data()?.[campo]?.toMillis?.() || null))
+        .catch(() => null);
+
+    const [dms, coments, programadas, ultimoDm, ultimoComentario, leadsIg] = await Promise.all([
       porFecha('ig_conversaciones', 'ultimoMensajeEn'),
       porFecha('ig_comentarios', 'recibidoEn'),
       _resumenProgramadas().catch(() => null),
+      ultimo('ig_conversaciones', 'ultimoMensajeEn'),
+      ultimo('ig_comentarios', 'recibidoEn'),
+      // Conversión real del canal: los DM que el bot convirtió en reunión. El
+      // adaptador de Instagram entra al cerebro de ventas con chipId
+      // 'instagram', así que el lead queda marcado solo. Sin esto la pestaña
+      // mide alcance y likes —cosas que no pagan— y nunca se sabe si Instagram
+      // trae negocio.
+      db.collection('wa_ventas_leads').where('chipId', '==', 'instagram').get()
+        .then((s) => s.docs.map((d) => d.data()))
+        .catch(() => null),
     ]);
+    const ms7 = (v) => (v?.toMillis?.() || 0) >= hace7;
     const ms = (v) => v?.toMillis?.() || 0;
     return {
       conectado: true,
@@ -705,6 +724,14 @@ async function resumenInstagram() {
           };
         }) : [],
       comentarios7d: coments ? coments.docs.filter((d) => ms(d.data().recibidoEn) >= hace7).length : null,
+      // Sin ventana: para leer un 0 hay que saber si alguna vez llegó algo.
+      ultimoDmEn: ultimoDm,
+      ultimoComentarioEn: ultimoComentario,
+      // Embudo del canal: cuántos de esos DM terminaron en reunión pedida.
+      leads: leadsIg ? {
+        total:  leadsIg.length,
+        semana: leadsIg.filter((l) => ms7(l.creadoEn || l.updatedAt)).length,
+      } : null,
       cupoPublicacion: cupo,
       // Si esto se cae, el bot deja de recibir DMs sin ningún otro síntoma.
       //

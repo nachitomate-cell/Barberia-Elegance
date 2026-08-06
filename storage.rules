@@ -94,6 +94,24 @@ service firebase.storage {
       allow write: if esStaff('elegance') && isImage() && isUnder5MB();
     }
 
+    // Creativos del Instagram DE LA PLATAFORMA (@synaptechspa).
+    //
+    // No es de ningún tenant: es la cuenta de SynapTech, así que el permiso es
+    // el del operador de plataforma y no el staff de un local.
+    //
+    // `read: if true` es OBLIGATORIO y no un descuido: Instagram descarga la
+    // media desde SUS servidores, sin credenciales nuestras. Una URL privada
+    // hace que la publicación falle con un error que no dice esto.
+    // 15 MB porque acá también entran reels, que pesan bastante más que una
+    // foto; el resto de las rutas son solo imágenes.
+    match /instagram_creativos/{fileName} {
+      allow read: if true;
+      allow write: if esBootstrap()
+                   && request.resource.size < 15 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType.matches('video/.*'));
+    }
+
     // ── Multi-tenant ─────────────────────────────────────────────────────
     match /tenants/{tenantId}/barberos/{imageId} {
       allow read: if true;
