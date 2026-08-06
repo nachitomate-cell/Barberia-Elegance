@@ -836,6 +836,24 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
       });
     }
 
+    // CLÍNICAS · Preguntas frecuentes. Se render en la agenda pública
+    // (index.html #faqSection lee tenants/{tid}/faqs) — el ítem se agrega
+    // solo cuando `tenant.tipo === 'clinica'`. Va en Crecimiento porque es
+    // contenido de captación (previene consultas repetidas). Cuando otro
+    // tipo lo necesite, sacar la condición de tipo.
+    if (tenant.tipo === 'clinica') {
+      base = base.map(group => {
+        if (group.id !== 'crecimiento') return group;
+        return {
+          ...group,
+          items: [
+            ...group.items,
+            { to: 'faqs', label: 'Preguntas frecuentes', Icon: HelpCircle, adminOnly: true },
+          ],
+        };
+      });
+    }
+
     // AURA · Módulo exclusivo. Aparece como primer item de Administración
     // para máxima visibilidad. Solo este tenant lo ve.
     if (tenant.id === 'aura') {

@@ -44,6 +44,7 @@ const Marketing = lazy(() => import('./views/Marketing'));
 const Anuncios = lazy(() => import('./views/Anuncios'));
 const Aura = lazy(() => import('./views/Aura'));
 const Ayuda = lazy(() => import('./views/Ayuda'));
+const Faqs = lazy(() => import('./views/Faqs'));
 const ServicioFavorito = lazy(() => import('./views/ServicioFavorito'));
 const LoginPage = lazy(() => import('./views/LoginPage'));
 const BarberTV = lazy(() => import('./views/BarberTV'));
@@ -297,6 +298,7 @@ function ProtectedApp() {
             <Route path="anuncios"        element={<BillingGate><Anuncios /></BillingGate>} />
             <Route path="aura"            element={<BillingGate><Aura /></BillingGate>} />
             <Route path="ayuda/*"         element={<Ayuda />} />
+            <Route path="faqs"            element={<Faqs />} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="consultas"       element={<Consultas />} />
             <Route path="membresias"      element={<Membresias />} />

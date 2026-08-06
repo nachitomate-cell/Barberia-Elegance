@@ -43,8 +43,10 @@ export const TENANT_META = {
   // (mismo criterio que Omega). Banner = wordmark oficial.
   alfamen:            { name: 'Alfa Men', accent: 'zinc', emoji: '💈', logo: '/alfamen/logo.png', banner: '/alfamen/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Estética Masculina' } },
   // Clinical Glow · Clínica estética facial Viña del Mar (2026-08-06). Primer
-  // tenant no-barbería del schema; acento amber por la paleta dorado/nude.
-  clinicalglow:       { name: 'Clinical Glow', accent: 'amber', emoji: '💉', logo: '/clinicalglow/logo.png', banner: '/clinicalglow/banner.webp', brand: { hex: '#d4a574', sede: 'Viña del Mar', tagline: 'Clínica Estética' } },
+  // tenant tipo 'clinica' (nuevo type paralelo a 'restaurante'): copy y sidebar
+  // no deben mencionar barberos/cortes/barbería — las vistas que dependan de
+  // esos textos tienen que ramificar por `tenant.tipo === 'clinica'`.
+  clinicalglow:       { name: 'Clinical Glow', accent: 'amber', emoji: '💉', logo: '/clinicalglow/logo.png', banner: '/clinicalglow/banner.webp', tipo: 'clinica', brand: { hex: '#d4a574', sede: 'Viña del Mar', tagline: 'Clínica Estética' } },
 };
 
 const TenantContext = createContext(null);
