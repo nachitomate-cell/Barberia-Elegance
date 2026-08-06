@@ -1851,6 +1851,8 @@ exports.instagramPublicar         = igPlataforma.instagramPublicar;
 exports.instagramMarcarSoporte    = igPlataforma.instagramMarcarSoporte;
 exports.instagramConversaciones   = igPlataforma.instagramConversaciones;
 exports.instagramMisPublicaciones = igPlataforma.instagramMisPublicaciones;
+// Borrado de datos que pide Meta al quitar la app (requisito de App Review).
+exports.metaDataDeletion          = require('./meta-data-deletion').metaDataDeletion;
 
 // Creativos programados: la cola de publicaciones y el cron que las saca.
 const igProgramador = require('./instagram-programador');
