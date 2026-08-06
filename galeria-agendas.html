@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0a">
 <title>Galería de agendas · Locales reales con SynapTech</title>
-<meta name="description" content="13 barberías, peluquerías y estéticas usando la agenda de SynapTech en vivo. Elige tu favorita y activa una parecida en 2 minutos con 14 días gratis.">
+<meta name="description" content="8 barberías y peluquerías usando la agenda de SynapTech en vivo. Elige tu favorita y activa una parecida en 2 minutos con 14 días gratis.">
 <link rel="canonical" href="https://crea.synaptechspa.cl/galeria-agendas.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Galería de agendas · Locales reales con SynapTech">
-<meta property="og:description" content="13 barberías, peluquerías y estéticas usando la agenda de SynapTech. Diseños reales, en vivo, listos para inspirarte.">
+<meta property="og:description" content="8 barberías y peluquerías usando la agenda de SynapTech. Diseños reales, en vivo, listos para inspirarte.">
 <meta property="og:image" content="https://crea.synaptechspa.cl/galeria-agendas/kronnos.jpeg">
 <meta property="og:url" content="https://crea.synaptechspa.cl/galeria-agendas.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -278,7 +278,7 @@
 </header>
 
 <section class="hero">
-  <span class="kicker">13 locales reales · en vivo</span>
+  <span class="kicker">8 locales reales · en vivo</span>
   <h1>Así se ve tu agenda <em>cuando la haces con nosotros</em>.</h1>
   <p>Cada tarjeta es la agenda REAL de un local en producción. Toca cualquiera para ver en vivo cómo reservan sus clientes. Luego copia el estilo que te guste — en 2 minutos tienes la tuya andando.</p>
 </section>
@@ -287,7 +287,6 @@
   <button data-rubro="all" class="active">Todos</button>
   <button data-rubro="barberia">Barberías</button>
   <button data-rubro="peluqueria">Peluquerías · Salones</button>
-  <button data-rubro="estetica">Estética · Nails</button>
 </div>
 
 <div class="gallery" id="gallery"></div>
@@ -311,17 +310,12 @@
   const AGENDAS = [
     { slug: 'kronnos',      nombre: 'Kronnos Studio',     tag: 'Premium · rojo/dorado sobre oscuro',   rubro: 'barberia',   ciudad: 'Peñablanca',   host: 'kronnospenablanca.synaptechspa.cl', tag2: 'PREMIUM' },
     { slug: 'elegance',     nombre: 'Barbería Elegance',  tag: 'Clásico · agenda robusta',              rubro: 'barberia',   ciudad: 'Santiago',     host: 'barberiaelegance.synaptechspa.cl',  tag2: 'FUNDADOR' },
-    { slug: 'alfamen',      nombre: 'Alfa Men',           tag: 'Claro · blanco y negro',                rubro: 'barberia',   ciudad: 'Santiago',     host: 'alfamen.synaptechspa.cl' },
-    { slug: 'bloodhabib',   nombre: 'Blood Habib',        tag: 'Editorial · plata sobre negro',         rubro: 'barberia',   ciudad: 'Viña del Mar', host: 'bloodhabib.synaptechspa.cl' },
     { slug: 'sion',         nombre: 'Sion Barbería',      tag: 'Nike · blanco/negro',                   rubro: 'barberia',   ciudad: 'Viña del Mar', host: 'sion.synaptechspa.cl' },
     { slug: 'delnero',      nombre: 'Del Nero Barber',    tag: 'Verde bosque · sobrio',                 rubro: 'barberia',   ciudad: 'Santiago',     host: 'delnerobarber.synaptechspa.cl' },
-    { slug: 'machos',       nombre: "Macho's Barbershop", tag: 'Urbano · tono chill',                   rubro: 'barberia',   ciudad: 'Santiago',     host: 'machos.synaptechspa.cl' },
-    { slug: 'mapu',         nombre: 'Mapu Barber Shop',   tag: 'Étnico · tierras',                       rubro: 'barberia',   ciudad: 'Santiago',     host: 'mapubarbershop.synaptechspa.cl' },
     { slug: 'oren',         nombre: 'Oren Barber',        tag: 'Multi-sucursal · pulido',                rubro: 'barberia',   ciudad: 'Reñaca',       host: 'orenbarber.synaptechspa.cl',       tag2: 'MULTI-SEDE' },
     { slug: 'renacer',      nombre: 'Renacer',            tag: 'Peluquería + barbería · unisex',        rubro: 'peluqueria', ciudad: 'Santiago',     host: 'renacer.synaptechspa.cl' },
     { slug: 'aura',         nombre: 'Aura Salón',         tag: 'Femenino · elegante',                    rubro: 'peluqueria', ciudad: 'Santiago',     host: 'aurasalon.synaptechspa.cl' },
     { slug: 'kronnoswoman', nombre: 'Kronnos Woman',      tag: 'Femenino premium · rojo/negro',          rubro: 'peluqueria', ciudad: 'Quilpué',      host: 'kronnoswoman.synaptechspa.cl' },
-    { slug: 'gitana',       nombre: 'Gitana Nails',       tag: 'Nails · femenino · fresh',               rubro: 'estetica',   ciudad: 'Santiago',     host: 'gitananails.synaptechspa.cl' },
   ];
 
   const gallery = document.getElementById('gallery');
@@ -364,7 +358,7 @@
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": "Galería de agendas · Locales reales con SynapTech",
-    "description": "13 barberías, peluquerías y estéticas usando la agenda de SynapTech en vivo.",
+    "description": "8 barberías y peluquerías usando la agenda de SynapTech en vivo.",
     "url": "https://crea.synaptechspa.cl/galeria-agendas.html",
     "mainEntity": {
       "@type": "ItemList",
