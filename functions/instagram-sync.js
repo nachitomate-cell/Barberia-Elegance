@@ -35,6 +35,9 @@ const db = admin.firestore();
 
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
+// La cuenta propia de SynapTech reusa este OAuth pero no es un local.
+const CUENTA_PLATAFORMA = 'synaptech';
+
 // Enumera tenants dinámicamente vía listDocuments() (los docs padre en
 // `tenants/` no existen — un .get() los omite; ver memoria "listDocuments()").
 // Cache in-process 5 min: en Fluid Compute los contenedores se reutilizan, así
@@ -52,6 +55,11 @@ async function listAllTenants() {
   // no vive bajo tenants/elegance/. Se agrega manual para que la CF siga
   // sincronizando su Instagram histórico.
   if (!ids.includes('elegance')) ids.push('elegance');
+  // 'synaptech' es la cuenta de la PLATAFORMA (@synaptechspa), no un local:
+  // no tiene doc en tenants/, pero comparte esta cañería de OAuth y refresco
+  // de token. Ver instagram-plataforma.js. Se excluye del sync de lookbook
+  // más abajo — SynapTech no tiene catálogo de cortes que importar.
+  if (!ids.includes(CUENTA_PLATAFORMA)) ids.push(CUENTA_PLATAFORMA);
   _tenantsCache    = ids;
   _tenantsCachedAt = now;
   return ids;
@@ -281,6 +289,13 @@ exports.instagramOAuthCallback = onRequest(
       // vino o quedó fuera de la allow-list, usamos el mapa del tenant. El
       // path relativo anterior resolvía contra el host de Cloud Functions y
       // rompía con 404. Con URL absoluta el browser cae en el panel real.
+      // La cuenta de la plataforma se administra desde ops, no desde el panel
+      // de un local: mandarla a /gestion-interna la dejaría en una pantalla
+      // que no le corresponde.
+      if (tenantId === CUENTA_PLATAFORMA) {
+        res.redirect(302, `${clientOrigin || 'https://ops.synaptechspa.cl'}/?instagram=connected`);
+        return;
+      }
       const baseUrl = clientOrigin || TENANT_PANEL_URL[tenantId] || TENANT_PANEL_URL.elegance;
       res.redirect(302, `${baseUrl}/gestion-interna/?instagram=connected`);
     } catch (err) {
@@ -292,6 +307,10 @@ exports.instagramOAuthCallback = onRequest(
 
 // ── Core: sincronizar posts de un tenant ───────────────────────────
 async function syncTenant(tenantId) {
+  // La cuenta de la plataforma comparte el OAuth pero no tiene lookbook: si se
+  // sincronizara, los posts de @synaptechspa terminarían en un catálogo de
+  // cortes que no existe.
+  if (tenantId === CUENTA_PLATAFORMA) return { tenantId, skipped: true, motivo: 'cuenta-plataforma' };
   const snap = await igConfigRef(tenantId).get();
   if (!snap.exists) return { tenantId, skipped: true };
 

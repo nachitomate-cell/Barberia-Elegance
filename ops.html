@@ -821,6 +821,117 @@
         </div>` : ''}`;
     }
 
+    /* ═══════════════════════════════════════════════════════════════════
+       📸 INSTAGRAM — la cuenta propia (@synaptechspa), no la de los locales.
+
+       Existe por una razón concreta: de los $124.548 gastados en Meta Ads,
+       $50.671 se fueron en Instagram feed. Quien veía el anuncio y mandaba
+       un DM al perfil no recibía respuesta de nadie. Ahora el mismo cerebro
+       que atiende el WhatsApp comercial atiende también los DM, y este panel
+       muestra si eso está pasando de verdad.
+       ═══════════════════════════════════════════════════════════════════ */
+    function instagramPanel(i){
+      if(!i || !i.conectado){
+        return `<div class="panel">
+          <h3>📸 Instagram</h3>
+          <p class="hint">La cuenta de SynapTech todavía no está conectada. Conectarla habilita cuatro cosas: que el bot responda los DM, la automatización de comentarios, las métricas de acá abajo y publicar desde el panel.</p>
+          ${i && i.error ? `<div class="alerta ambar"><span>🟡</span><span>${i.error}</span></div>` : ''}
+          <button class="primary" id="igConectar">Conectar @synaptechspa</button>
+          <p class="muted" style="font-size:11.5px;margin-top:10px">Se abre Instagram para que autorices. Los permisos que pide son mensajes, comentarios, publicación y estadísticas.</p>
+        </div>`;
+      }
+      const n = (v) => v === null || v === undefined ? '—' : num(v);
+      const venc = i.venceEnDias;
+      return `
+        <div class="kpis" style="margin-bottom:14px">
+          <div class="kpi hero">
+            <div class="n tnum">${n(i.seguidores)}</div>
+            <div class="k">${tip('Seguidores', 'Total de la cuenta ahora mismo.')}</div>
+            <div class="costo" style="margin-top:4px">@${i.username}</div>
+          </div>
+          <div class="kpi"><div class="n tnum">${n(i.alcance7d)}</div><div class="k">${tip('Alcance (7d)', 'Cuentas distintas que vieron algo tuyo en la semana. No son impresiones: una persona que vio 5 posts cuenta una vez.')}</div></div>
+          <div class="kpi"><div class="n tnum">${n(i.dm7d)}</div><div class="k">${tip('DM recibidos (7d)', 'Conversaciones por mensaje directo que entraron esta semana. Estos son los que antes no contestaba nadie.')}</div></div>
+          <div class="kpi"><div class="n tnum">${n(i.comentarios7d)}</div><div class="k">${tip('Comentarios (7d)', 'Comentarios registrados. Los que traen una palabra clave reciben respuesta pública y un mensaje privado.')}</div></div>
+        </div>
+
+        ${venc !== null && venc <= 10 ? `<div class="alerta ${venc <= 3 ? 'rojo' : 'ambar'}"><span>${venc <= 3 ? '🔴' : '🟡'}</span><span>
+          El permiso de Instagram vence en <b>${venc} día(s)</b>. Se renueva solo mientras la cuenta siga activa; si vence, el bot deja de responder los DM.
+        </span></div>` : ''}
+
+        <div class="cols" style="margin-top:0">
+          <div class="panel">
+            <h3>📈 Actividad · 7 días</h3>
+            <p class="hint">Lo que hizo la cuenta esta semana. El alcance viene de Instagram; los DM y comentarios los cuenta la plataforma.</p>
+            ${i.alcanceSerie && i.alcanceSerie.length ? (() => {
+              const d = i.alcanceSerie, tope = Math.max(...d.map(x => x.valor), 1);
+              return `<div class="spark">${d.map((x,k) =>
+                `<i class="${k===d.length-1?'hoy':''}" style="height:${Math.max(2,Math.round(100*x.valor/tope))}%" title="${x.fecha}: ${num(x.valor)} cuentas"></i>`).join('')}</div>
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--soft);margin-top:4px">
+                  <span>${d[0].fecha}</span><span>alcance diario</span><span>${d[d.length-1].fecha}</span></div>`;
+            })() : '<p class="muted">Instagram todavía no devuelve serie de alcance para esta cuenta.</p>'}
+            <div class="row"><span>${tip('Interacciones', 'Likes, comentarios, guardados y compartidos sumados.')}</span><span class="v tnum">${n(i.interacciones7d)}</span></div>
+            <div class="row"><span>${tip('Visitas al perfil', 'Gente que entró a mirar tu perfil. Es la señal más cercana a intención de compra que da Instagram gratis.')}</span><span class="v tnum">${n(i.visitasPerfil7d)}</span></div>
+            <div class="row"><span>${tip('Publicaciones', 'Total de posts en la cuenta.')}</span><span class="v tnum">${n(i.publicaciones)}</span></div>
+          </div>
+
+          <div class="panel">
+            <h3>✍️ Publicar</h3>
+            <p class="hint">Sube una foto o un reel a @${i.username} sin abrir la app. La media tiene que estar en una URL <b>https pública</b>: Instagram la descarga desde sus servidores, así que un archivo de tu computador no sirve.</p>
+            ${i.cupoPublicacion ? `<div class="row"><span>${tip('Cupo de hoy', 'Instagram permite 50 publicaciones por cuenta cada 24 horas.')}</span><span class="v tnum">${i.cupoPublicacion.usado}/${i.cupoPublicacion.tope}</span></div>` : ''}
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+              <select id="igTipo" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px">
+                <option value="IMAGE">Foto en el feed</option>
+                <option value="REELS">Reel</option>
+                <option value="STORIES">Historia</option>
+              </select>
+              <input id="igUrl" placeholder="https://… URL pública de la imagen o video" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px">
+              <textarea id="igCaption" rows="3" placeholder="Texto del post" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px;resize:vertical"></textarea>
+              <button class="primary" id="igPublicar">Publicar ahora</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function seccionInstagram(){
+      return `<div class="full" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span class="muted" style="font-size:12px">${ESTADO.instagram && ESTADO.instagram.conectado ? '@' + ESTADO.instagram.username : 'sin conectar'}</span>
+        </div>${instagramPanel(ESTADO.instagram)}`;
+    }
+
+    /** Abre el flujo de autorización de Instagram en una pestaña nueva. */
+    async function igConectar(btn){
+      if (btn) { btn.textContent = 'Preparando…'; btn.disabled = true; }
+      try {
+        const r = await _fn('instagramPlataformaLink')({ origen: location.origin });
+        // window.open y no location.href: si el operador cancela en Instagram,
+        // vuelve a encontrar el panel donde lo dejó en vez de una pantalla vacía.
+        window.open(r.data.url, '_blank', 'noopener');
+        if (btn) { btn.textContent = 'Autoriza en la pestaña nueva y vuelve'; }
+      } catch(e){
+        alert('No pude generar el link: ' + (e.message || e));
+        if (btn) { btn.textContent = 'Conectar @synaptechspa'; btn.disabled = false; }
+      }
+    }
+
+    async function igPublicar(btn){
+      const tipo = document.getElementById('igTipo').value;
+      const url  = document.getElementById('igUrl').value.trim();
+      const caption = document.getElementById('igCaption').value;
+      if (!/^https:\/\//i.test(url)) { alert('La URL tiene que ser https y pública.'); return; }
+      if (!confirm(`Publicar en Instagram como ${tipo}. Esto es público e inmediato. ¿Confirmas?`)) return;
+      const txt = btn.textContent;
+      btn.textContent = 'Publicando…'; btn.disabled = true;
+      try {
+        const r = await _fn('instagramPublicar')({ tipo, url, caption });
+        alert('Publicado ✅ id ' + r.data.id);
+        document.getElementById('igUrl').value = '';
+        document.getElementById('igCaption').value = '';
+      } catch(e){
+        alert('No se pudo publicar: ' + (e.message || e));
+      }
+      btn.textContent = txt; btn.disabled = false;
+    }
+
     const LEAD_ESTADOS = {
       reunion_solicitada: { t:'⏳ Reunión solicitada', c:'var(--amber)'  },
       confirmada:         { t:'📅 Hora confirmada',    c:'var(--accent)' },
@@ -1161,6 +1272,7 @@
         <nav class="tabs">
           <button data-tab="resumen">📊 Resumen</button>
           <button data-tab="ads">📣 Meta Ads</button>
+          <button data-tab="instagram">📸 Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
           <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
           <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
           <button data-tab="locales">💈 Locales</button>
@@ -1197,6 +1309,10 @@
 
           <section class="sec" data-sec="ads">
             ${seccionAds()}
+          </section>
+
+          <section class="sec" data-sec="instagram">
+            ${seccionInstagram()}
           </section>
 
           <section class="sec" data-sec="ventas">
@@ -1290,6 +1406,10 @@
       document.getElementById('out').onclick = () => firebase.auth().signOut();
       const bAds = document.getElementById('adsRefresh');
       if (bAds) bAds.onclick = () => refrescarAds(bAds);
+      const bIgC = document.getElementById('igConectar');
+      if (bIgC) bIgC.onclick = () => igConectar(bIgC);
+      const bIgP = document.getElementById('igPublicar');
+      if (bIgP) bIgP.onclick = () => igPublicar(bIgP);
 
       // ── Kill switch ──
       // Solo apaga, nunca enciende: encender es una decisión deliberada que
@@ -1440,7 +1560,7 @@
        sección. Ver `repintar()`.
        ═══════════════════════════════════════════════════════════════════ */
     const ESTADO = {
-      metrics:null, metaAds:null, chips:null,
+      metrics:null, metaAds:null, instagram:null, chips:null,
       ventas:null, botCfg:null, cobranza:null,
       edadSegundos:0, parcial:false, cargando:false,
     };
@@ -1580,8 +1700,9 @@
 
       try {
         const r = (await _fn('opsSnapshot')({ fresco: !!fresco })).data || {};
-        ESTADO.metrics      = r.metrics || ESTADO.metrics;
-        ESTADO.metaAds      = r.metaAds || ESTADO.metaAds;
+        ESTADO.metrics      = r.metrics   || ESTADO.metrics;
+        ESTADO.metaAds      = r.metaAds   || ESTADO.metaAds;
+        ESTADO.instagram    = r.instagram || ESTADO.instagram;
         ESTADO.edadSegundos = r.edadSegundos || 0;
         ESTADO.parcial      = !!r.parcial;
         ESTADO.cargando     = false;

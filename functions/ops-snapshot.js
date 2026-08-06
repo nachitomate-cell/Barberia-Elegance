@@ -39,6 +39,7 @@ const { FieldValue }         = require('firebase-admin/firestore');
 const { esOperadorReq }         = require('./lib/operadores');
 const { _calcularMetricas }     = require('./ops-metrics');
 const { refrescarSnapshotMetaAds, leerSnapshotMetaAds } = require('./meta-ads-panel');
+const { _resumenInstagram }     = require('./instagram-plataforma');
 
 const db = admin.firestore();
 
@@ -59,16 +60,18 @@ const SNAP_REF = () => db.doc('_metrics/ops_snapshot');
  */
 async function refrescar() {
   const t0 = Date.now();
-  const [metrics, metaAds] = await Promise.all([
+  const [metrics, metaAds, instagram] = await Promise.all([
     _calcularMetricas().catch((e) => { logger.error('[ops-snapshot] métricas:', e.message); return null; }),
     refrescarSnapshotMetaAds(META_ADS_TOKEN.value())
       .catch((e) => { logger.warn('[ops-snapshot] meta ads:', e.message); return null; }),
+    _resumenInstagram().catch((e) => { logger.warn('[ops-snapshot] instagram:', e.message); return null; }),
   ]);
   const ms = Date.now() - t0;
 
   const doc = {
     metrics,
     metaAds,
+    instagram,
     generadoEn:  Date.now(),
     tardoMs:     ms,
     // Qué mitad quedó vieja, para que el panel avise en vez de mentir.
@@ -86,8 +89,9 @@ function paraCliente(doc, fresco) {
   const edadSegundos = Math.max(0, Math.round((Date.now() - (doc.generadoEn || 0)) / 1000));
   return {
     ok: true,
-    metrics:  doc.metrics  || null,
-    metaAds:  doc.metaAds  || null,
+    metrics:   doc.metrics   || null,
+    metaAds:   doc.metaAds   || null,
+    instagram: doc.instagram || null,
     generadoEn: doc.generadoEn || null,
     edadSegundos,
     parcial: !!doc.parcial,

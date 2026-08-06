@@ -1838,6 +1838,15 @@ exports.opsVigilancia    = opsMetricsModule.opsVigilancia;
 
 // Snapshot precalculado del panel: el cron hace las ~600 lecturas cada 5 min y
 // abrir ops cuesta UNA. `opsMetrics` sigue existiendo como camino "de verdad".
+// Instagram de la plataforma (@synaptechspa): DMs al bot de ventas, comentarios,
+// publicación y métricas. Distinto de instagram-sync.js, que solo importa fotos
+// al lookbook de cada local.
+const igPlataforma = require('./instagram-plataforma');
+exports.instagramPlataformaLink   = igPlataforma.instagramPlataformaLink;
+exports.instagramPlataformaEstado = igPlataforma.instagramPlataformaEstado;
+exports.instagramWebhook          = igPlataforma.instagramWebhook;
+exports.instagramPublicar         = igPlataforma.instagramPublicar;
+
 const opsSnapshotModule = require('./ops-snapshot');
 exports.opsSnapshotCron     = opsSnapshotModule.opsSnapshotCron;
 exports.opsSnapshot         = opsSnapshotModule.opsSnapshot;
