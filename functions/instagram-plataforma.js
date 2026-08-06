@@ -82,6 +82,36 @@ async function leerCfg() {
   return (await CFG_REF().get()).data() || {};
 }
 
+/**
+ * Suscribe la app a los webhooks de la cuenta, si no lo está ya.
+ *
+ * Configurar la URL del webhook en el panel de Meta NO basta: eso solo define
+ * a dónde entregar. Falta además suscribir la CUENTA, que es una llamada a la
+ * API aparte y que nadie hace porque la interfaz no la pide. Sin ella
+ * `subscribed_apps` queda vacío y no llega ni un DM — pasó exactamente eso el
+ * 06-08-2026: todo se veía configurado y no entregaba nada.
+ *
+ * Se llama al leer el estado, así que abrir el panel la auto-sana (mismo
+ * patrón que asegurarSlot en slotlocks). Nunca lanza.
+ */
+async function asegurarSuscripcion(con) {
+  try {
+    const actual = await ig.llamar('GET', `${con.igUserId}/subscribed_apps`, { token: con.token });
+    const campos = actual?.data?.[0]?.subscribed_fields || [];
+    const faltan = ['messages', 'comments'].filter((f) => !campos.includes(f));
+    if (!faltan.length) return { ok: true, campos, yaEstaba: true };
+
+    await ig.llamar('POST', `${con.igUserId}/subscribed_apps`, {
+      token: con.token, params: { subscribed_fields: 'messages,comments' },
+    });
+    logger.info(`[ig] suscripción creada/reparada (faltaban: ${faltan.join(', ')})`);
+    return { ok: true, campos: ['messages', 'comments'], reparada: true };
+  } catch (e) {
+    logger.warn('[ig] no pude asegurar la suscripción:', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
 /* ───────────────────────── Link de autorización ───────────────────────── */
 
 exports.instagramPlataformaLink = onCall({ region: 'us-central1', cors: true }, async (req) => {
@@ -113,10 +143,14 @@ exports.instagramPlataformaEstado = onCall({ region: 'us-central1', cors: true }
   const con = await leerConexion();
   if (!con) return { ok: true, conectado: false, permisos: PERMISOS };
   const cfg = await leerCfg();
-  const perfil = await ig.perfil(con.token).catch((e) => ({ _err: e.message }));
+  const [perfil, suscripcion] = await Promise.all([
+    ig.perfil(con.token).catch((e) => ({ _err: e.message })),
+    asegurarSuscripcion(con),
+  ]);
   return {
     ok: true, conectado: true, username: con.username, igUserId: con.igUserId,
     venceEn: con.venceEn ? con.venceEn.toISOString() : null,
+    suscripcion,
     perfil: perfil._err ? null : perfil, error: perfil._err || null,
     cfg: {
       botDM: cfg.botDM !== false, autoComentarios: cfg.autoComentarios !== false,
@@ -361,10 +395,13 @@ async function resumenInstagram() {
   try {
     const con = await leerConexion();
     if (!con) return { conectado: false };
-    const [perfil, ins, cupo] = await Promise.all([
+    const [perfil, ins, cupo, susc] = await Promise.all([
       ig.perfil(con.token).catch(() => null),
       ig.insights(con.token, con.igUserId, 7).catch(() => null),
       ig.cupoPublicacion(con.token, con.igUserId).catch(() => null),
+      // El snapshot corre cada 5 min: es el mejor momento para auto-sanar la
+      // suscripción, porque si se cae nadie se entera hasta que faltan leads.
+      asegurarSuscripcion(con),
     ]);
     const hace7 = Date.now() - 7 * 86400e3;
     const [dms, coments] = await Promise.all([
@@ -385,6 +422,9 @@ async function resumenInstagram() {
       dm7d:        dms ? dms.docs.filter((d) => ms(d.data().ultimoMensajeEn) >= hace7).length : null,
       comentarios7d: coments ? coments.docs.filter((d) => ms(d.data().recibidoEn) >= hace7).length : null,
       cupoPublicacion: cupo,
+      // Si esto se cae, el bot deja de recibir DMs sin ningún otro síntoma.
+      suscripcionOk: !!susc?.ok,
+      suscripcionCampos: susc?.campos || [],
     };
   } catch (e) {
     logger.warn('[ig-resumen]', e.message);

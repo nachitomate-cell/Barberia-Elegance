@@ -879,6 +879,11 @@
           <div class="kpi"><div class="n tnum">${n(i.comentarios7d)}</div><div class="k">${tip('Comentarios (7d)', 'Comentarios registrados. Los que traen una palabra clave reciben respuesta pública y un mensaje privado.')}</div></div>
         </div>
 
+        ${i.suscripcionOk === false ? `<div class="alerta rojo"><span>🔴</span><span>
+          <b>La suscripción al webhook se cayó.</b> Configurar la URL en Meta no basta: la cuenta tiene que estar suscrita por API, y ahora no lo está.
+          Mientras siga así <b>no llega ni un DM ni un comentario</b>. El panel intenta repararla sola cada 5 minutos.
+        </span></div>` : ''}
+
         ${venc !== null && venc <= 10 ? `<div class="alerta ${venc <= 3 ? 'rojo' : 'ambar'}"><span>${venc <= 3 ? '🔴' : '🟡'}</span><span>
           El permiso de Instagram vence en <b>${venc} día(s)</b>. Se renueva solo mientras la cuenta siga activa; si vence, el bot deja de responder los DM.
         </span></div>` : ''}
@@ -897,6 +902,7 @@
             <div class="row"><span>${tip('Interacciones', 'Likes, comentarios, guardados y compartidos sumados.')}</span><span class="v tnum">${n(i.interacciones7d)}</span></div>
             <div class="row"><span>${tip('Visitas al perfil', 'Gente que entró a mirar tu perfil. Es la señal más cercana a intención de compra que da Instagram gratis.')}</span><span class="v tnum">${n(i.visitasPerfil7d)}</span></div>
             <div class="row"><span>${tip('Publicaciones', 'Total de posts en la cuenta.')}</span><span class="v tnum">${n(i.publicaciones)}</span></div>
+            <div class="row"><span>${tip('Webhook suscrito', 'Meta solo entrega DMs y comentarios si la cuenta está suscrita por API — configurar la URL en el panel de desarrolladores no alcanza. Si esto dice que no, el bot está sordo.')}</span><span class="v" style="color:${i.suscripcionOk ? 'var(--green)' : 'var(--red)'}">${i.suscripcionOk ? (i.suscripcionCampos || []).join(' + ') || 'sí' : 'NO'}</span></div>
           </div>
 
           <div class="panel">
