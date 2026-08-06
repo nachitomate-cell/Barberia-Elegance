@@ -3268,6 +3268,20 @@ export default function Caja() {
             <div className="flex justify-between"><span className="text-slate-400">Apertura</span><span className="text-primary font-semibold">{fmtCurrency(kpis.apertura)}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">+ Servicios (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.serviciosEfectivo)}</span></div>
             <div className="flex justify-between"><span className="text-slate-400">+ Productos (efectivo)</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.productosEfectivo)}</span></div>
+            {/* Este panel sigue SOLO la plata física, así que un producto
+                cobrado con tarjeta deja la línea de arriba en $0 y parece que
+                la venta se perdió. Preguntado dos veces por el mismo caso: se
+                dice explícitamente dónde quedó en vez de esperar que se deduzca. */}
+            {(kpis.productosTarjeta > 0 || kpis.productosTransf > 0) && (
+              <p className="text-[11px] text-slate-500 leading-relaxed -mt-1 pl-3">
+                {fmtCurrency((kpis.productosTarjeta || 0) + (kpis.productosTransf || 0))} en productos
+                se cobraron con {[
+                  kpis.productosTarjeta > 0 ? 'tarjeta' : null,
+                  kpis.productosTransf > 0 ? 'transferencia' : null,
+                ].filter(Boolean).join(' y ')} — no entran a la caja física, están en{' '}
+                <span className="text-slate-400 font-medium">Otros Métodos</span>.
+              </p>
+            )}
             {kpis.propinasEfectivo > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Propinas efectivo <span className="text-[10px] text-amber-400">(para equipo)</span></span><span className="text-amber-400 font-semibold">+{fmtCurrency(kpis.propinasEfectivo)}</span></div>}
             {kpis.ingManuales > 0 && <div className="flex justify-between"><span className="text-slate-400">+ Ingresos manuales</span><span className="text-emerald-400 font-semibold">+{fmtCurrency(kpis.ingManuales)}</span></div>}
             <div className="flex justify-between"><span className="text-slate-400">− Gastos (efectivo)</span><span className="text-rose-400 font-semibold">-{fmtCurrency(kpis.gastosEfectivo)}</span></div>
