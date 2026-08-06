@@ -303,6 +303,33 @@
   /* "Apagar todo" — destructivo premium, sin outline agresivo. */
   button.panic{ background:rgba(255,0,0,.1); border:none; color:#ff9088; font-weight:600; }
   button.panic:hover{ background:rgba(255,0,0,.15); color:#ffb3ae; }
+  /* ── Pilas de cuota ──────────────────────────────────────────────────
+     Se leen como la batería del teléfono: llena es sano, vacía es que ese
+     número ya no manda nada hasta mañana. El terminal de la derecha y el
+     borde fino son lo que hace que se reconozca como pila antes de leer
+     el número — sin eso vuelve a ser una barra de progreso cualquiera. */
+  .pilas{ display:flex; align-items:center; gap:10px 18px; flex-wrap:wrap; font-size:11.5px; }
+  /* Ancho mínimo para que la segunda pila caiga en la misma columna en todos
+     los locales: sin esto cada fila la corre según lo largo que sea su
+     número ("38 de 40" contra "116 de 120") y la lista se ve desalineada. */
+  .pila{ display:inline-flex; align-items:center; gap:8px; cursor:help; min-width:172px; }
+  .pila b{ color:#fff; font-weight:600; }
+  .pila .l{ color:var(--soft); }
+  .bat{
+    position:relative; flex:0 0 auto; width:42px; height:18px; padding:2px;
+    border:1.5px solid rgba(255,255,255,.26); border-radius:5.5px; background:rgba(255,255,255,.03);
+  }
+  .bat::after{
+    content:''; position:absolute; right:-4px; top:50%; transform:translateY(-50%);
+    width:2.5px; height:6px; border-radius:0 2px 2px 0; background:rgba(255,255,255,.26);
+  }
+  /* La transición es la que da la sensación de que la pila se descarga en
+     vez de aparecer ya medida — se nota al repintar tras "Actualizar". */
+  .bat i{ display:block; height:100%; border-radius:3px; transition:width .5s cubic-bezier(.22,1,.36,1); }
+  .bat.vacia{ border-color:rgba(255,123,114,.55); }
+  .bat.vacia::after{ background:rgba(255,123,114,.55); }
+  .pila-fallo{ color:var(--red); cursor:help; }
+
   /* Barras de progreso más prominentes y suaves. */
   .bar{ flex:1; height:6px; border-radius:9999px; background:rgba(255,255,255,.05); overflow:hidden; min-width:60px; }
   .bar i{ display:block; height:100%; border-radius:9999px; transition:width .3s ease; }
@@ -376,20 +403,36 @@
       if(l.salud==='caida') return 'warn';
       return 'off';
     }
-    // Barra de cuota: verde <60% · ámbar 60-85% · rojo sobre 85%.
-    // Es la lectura anti-ban de un vistazo — cuánto habló hoy este número
-    // contra lo que puede hablar según su madurez.
+    /**
+     * Pila de cuota: lo que le QUEDA hoy a un número, no lo que ya gastó.
+     *
+     * La barra anterior se llenaba con lo consumido y tenía el sentido al
+     * revés: una barra llena se lee como "vamos bien", cuando acá significa
+     * que al local no le queda nada y el número está a un paso del bloqueo
+     * de Meta. La pila se descarga durante el día como la del teléfono —
+     * llena es sano, vacía es que ya no sale ni un mensaje más— y vuelve a
+     * cargarse sola a medianoche.
+     *
+     * Los umbrales van sobre lo restante y son los mismos de antes vistos
+     * del otro lado: rojo bajo 15% (era 85% gastado), ámbar bajo 40%.
+     */
+    function pila(restante, cap, etiqueta, ayuda){
+      const queda = Math.max(0, restante);
+      const p = cap > 0 ? Math.max(0, Math.min(100, Math.round(100 * queda / cap))) : 0;
+      const color = p <= 15 ? 'var(--red)' : p <= 40 ? 'var(--amber)' : 'var(--lima)';
+      return `<span class="pila" title="${esc(ayuda)}">
+        <span class="bat${p <= 15 ? ' vacia' : ''}"><i style="width:${p}%;background:${color}"></i></span>
+        <span><b class="tnum"${p <= 40 ? ` style="color:${color}"` : ''}>${queda}</b> <span class="l">de ${cap} ${etiqueta}</span></span>
+      </span>`;
+    }
     function cuotaBar(c){
       if(!c || !c.capTotal) return '';
-      const pct = Math.min(100, c.pct||0);
-      // Gradiente sutil sobre el color base para dar volumen premium.
-      const base = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
-      const fill = `linear-gradient(90deg, ${base} 0%, ${base} 100%)`;
-      return `<span class="sub2" style="display:flex;align-items:center;gap:10px">
-        <span class="tip" style="flex:0 0 auto;color:var(--soft)" title="${esc('Mensajes que salieron hoy desde este número contra su tope diario. El tope es anti-ban y sube con la antigüedad del chip: pasarse es arriesgar que Meta lo bloquee. Verde bajo 60%, ámbar hasta 85%, rojo sobre eso.')}">salientes hoy</span>
-        <span class="bar"><i style="width:${pct}%;background:${fill}"></i></span>
-        <span class="tnum" style="flex:0 0 auto;color:#fff;font-weight:500">${c.salientes}/${c.capTotal}</span>
-        <span style="color:var(--soft)">· <span class="tip" title="${esc('Recordatorios de cita enviados hoy contra su propio tope, aparte del general.')}">confirm ${c.confirmaciones}/${c.capConfirm}</span>${c.fallos?` · <span class="tip" title="${esc('Mensajes que WhatsApp rechazó hoy. Varios seguidos suelen anticipar un bloqueo del número.')}" style="color:var(--red)">${c.fallos} fallo(s)</span>`:''}</span>
+      return `<span class="sub2 pilas">
+        ${pila(c.capTotal - c.salientes, c.capTotal, 'mensajes',
+          'Mensajes que este número todavía puede mandar hoy. El tope es anti-ban y sube con la antigüedad del chip: pasarse es arriesgar que Meta lo bloquee. Se recarga sola a medianoche.')}
+        ${c.capConfirm ? pila(c.capConfirm - c.confirmaciones, c.capConfirm, 'recordatorios',
+          'Recordatorios de cita que le quedan hoy. Tienen su propio tope, aparte del general.') : ''}
+        ${c.fallos ? `<span class="pila-fallo" title="${esc('Mensajes que WhatsApp rechazó hoy. Varios seguidos suelen anticipar un bloqueo del número.')}">${c.fallos} fallo(s)</span>` : ''}
       </span>`;
     }
     function locRow(l){
@@ -466,8 +509,8 @@
         <dt>caché</dt><dd>Porcentaje del prompt que se reusó en vez de reprocesarse. Bajo 60% el costo del mismo tráfico se duplica: se rompió el prefijo cacheado.</dd>
         <dt>msj en bolsa</dt><dd>Mensajes que le quedan al local en su bolsa del canal oficial de Meta. En cero, sus confirmaciones se detienen hasta que recargue.</dd>
         <dt>agendada(s)</dt><dd>Citas creadas y anuladas en el mes, contando las de todos los canales, no solo las del bot.</dd>
-        <dt>salientes hoy</dt><dd>Mensajes que salieron hoy desde ese número contra su tope diario. El tope es anti-ban y depende de la antigüedad del chip: pasarse es arriesgar que Meta lo bloquee. Verde bajo 60%, ámbar hasta 85%, rojo sobre eso.</dd>
-        <dt>confirm 0/60</dt><dd>Lo mismo pero solo para recordatorios de cita, que tienen su propio tope aparte.</dd>
+        <dt>🔋 mensajes</dt><dd>Lo que le QUEDA a ese número para hoy, no lo que gastó: se descarga durante el día y se recarga sola a medianoche. El tope es anti-ban y depende de la antigüedad del chip — pasarse es arriesgar que Meta lo bloquee. Ámbar bajo el 40% restante, rojo bajo el 15%.</dd>
+        <dt>🔋 recordatorios</dt><dd>La misma pila pero solo para recordatorios de cita, que tienen su propio tope aparte del general.</dd>
         <dt>chip de N días</dt><dd>Antigüedad del número de WhatsApp. Mientras más nuevo, más bajo su tope diario: los chips recién creados que mandan mucho son los que Meta banea.</dd>
         <dt>en pausa</dt><dd>Chats donde alguien del local escribió a mano, así que el bot se calló para no pisarlo.</dd>
         <dt>baja(s)</dt><dd>Clientes que pidieron no recibir más mensajes. Van a la lista de opt-out y no se les vuelve a escribir.</dd>
