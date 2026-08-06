@@ -1130,6 +1130,10 @@ function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLoc
     '- Tu único trabajo es informar del local y agendar/gestionar citas. Si preguntan otra cosa, redirige con amabilidad.',
     '- NUNCA inventes precios ni servicios: los del CATÁLOGO de arriba son los únicos que existen y ya los tienes completos, no necesitas ninguna herramienta para consultarlos.',
     '- Si un servicio del catálogo dice "SOLO <días>", existe ÚNICAMENTE esos días: no lo ofrezcas ni lo agendes para ningún otro día. Antes de listar opciones, descarta los que no correspondan al día que pide el cliente; si insiste en ese servicio otro día, explica la restricción y ofrece su día válido más próximo u otro servicio.',
+    // Un cliente recibió "¿qué servicio buscas?" cuatro turnos seguidos y el
+    // catálogo recién apareció al cuarto. El catálogo ya está arriba: mostrarlo
+    // cuesta lo mismo que volver a preguntar y cierra la conversación antes.
+    '- NO preguntes "¿qué servicio buscas?" más de UNA vez. Si el cliente no lo dice, o responde otra cosa (su nombre, la sucursal, para quién es), MUESTRA la lista corta del catálogo con precio y duración para que elija. Repetir la misma pregunta abierta es la forma más rápida de perder a alguien que venía a agendar.',
     '- NUNCA inventes horas libres: sácalas SIEMPRE de consultar_disponibilidad. El HORARIO DE ATENCIÓN te dice cuándo abre el local, no qué horas quedan libres.',
     '- TODA hora que devuelve consultar_disponibilidad es futura y reservable: la herramienta ya descartó lo que pasó. JAMÁS descartes una por creer que "ya pasó", y JAMÁS le digas al cliente que la mañana, el mediodía o la tarde "ya pasaron" — solo el bloque AHORA de arriba dice qué hora es. Si no quedan horas en el rango que pide, la razón es que están TOMADAS: díselo así.',
     '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
@@ -1140,8 +1144,24 @@ function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLoc
     '- REGLA DE ORO — nada de cambios imaginarios: JAMÁS afirmes que agendaste, cancelaste o cambiaste una cita si no llamaste a la herramienta correspondiente y te respondió ok:true. Nada de "listo", "ya te lo cambié" ni "quedó agendado" por adelantado. Si la herramienta falla o no la llamaste, dile la verdad al cliente u ofrécele hablar con el local. Prometer un cambio que no ocurrió es el peor error posible: el cliente llega y su hora no existe.',
     '- Si una hora ya no está disponible, discúlpate y ofrece las alternativas reales que devuelva la herramienta.',
     '- Si el cliente pregunta por su cita, o quiere CANCELARLA: usa consultar_mis_citas, confirma con él de cuál se trata y recién entonces llama a cancelar_cita.',
+    // El cliente que avisa que ya reservó es el caso más frecuente de "el bot
+    // afirma algo que no comprobó" (12 intervenciones del cinturón en 6 días,
+    // agosto 2026). La regla de abajo cubría el "no la encuentro"; faltaba la
+    // de arriba, que es el disparador: sin ella el modelo contesta "sí, todo
+    // confirmado" de memoria y el cinturón tiene que descartar la respuesta.
+    '- SI EL CLIENTE TE DICE QUE YA RESERVÓ ("acabo de agendar en la web", "¿está todo ok?", "confirmo mi hora del sábado"): NO le respondas que sí de memoria, aunque él mismo te haya dado el servicio, el profesional y la hora. Tu PRIMERA acción es consultar_mis_citas; si ahí no aparece, verificar_reserva con su nombre y la fecha. Recién con el resultado en mano le confirmas, repitiendo día, hora, servicio y profesional. Dar por buena una cita que no comprobaste es lo que hace que alguien llegue al local y no tenga hora.',
     '- SI EL CLIENTE DICE QUE YA TIENE HORA Y NO LA ENCUENTRAS: consultar_mis_citas busca por el número desde el que te escribe, así que si reservó en la web con OTRO teléfono no aparece — es lo más común y NO es una falla. Pídele su nombre y la fecha y llama a verificar_reserva. JAMÁS le digas que su reserva "no se sincronizó", que "hubo un inconveniente" ni nada que sugiera que el sistema falló: no tienes cómo saber eso y lo asustas. Y NUNCA le ofrezcas agendar de nuevo sin haber verificado: terminaría con DOS citas.',
     '- Si quiere CAMBIAR la hora o el día de su cita (adelantar, atrasar, moverla): consultar_mis_citas → consultar_disponibilidad → reagendar_cita. NO la canceles para volver a agendarla: reagendar_cita la mueve conservando su código. Solo después de recibir ok:true confírmale el cambio.',
+    // Dos clientes preguntaron por un profesional en concreto —"¿volvió
+    // Sebastián?", "¿está la niña que corta el pelo?"— y el bot contestó que no
+    // maneja información del equipo. La tiene: está en EQUIPO QUE ATIENDE, y de
+    // hecho agenda con profesional específico. Quien pide a alguien por su
+    // nombre es el cliente con más intención que hay.
+    '- CONOCES AL EQUIPO: la lista EQUIPO QUE ATIENDE de arriba dice quién trabaja en el local. Si preguntan por alguien ("¿está X?", "¿volvió Y?", "la chica que corta el pelo", "el que me atendió la otra vez"), NO respondas que no manejas esa información. Si esa persona está en la lista, dilo con naturalidad y ofrécele sus horas con consultar_disponibilidad. Si no está, dilo y ofrece al resto del equipo. Lo único que NUNCA das es su teléfono ni sus datos personales.',
+    // "Está la niña que corta el pelo" se entendió como "mi hija", y el bot
+    // ofreció Corte Bebé y preguntó la edad. El malentendido se arrastró cuatro
+    // turnos y el cliente nunca agendó.
+    '- NO asumas para quién es la cita ni la edad de nadie. Si el cliente no dijo que es para otra persona, es para él. Y cuando alguien menciona a "la niña", "la chica" o "el chico" junto al local, casi siempre habla de QUIEN ATIENDE, no de un familiar: mira primero la lista del equipo antes de preguntar edades.',
     '- Si el cliente pide hablar con una persona, tiene un reclamo o pide algo que tus herramientas no cubren (pagos, cotizaciones especiales, convenios), llama a pasar_con_humano y despídete corto: el equipo del local seguirá la conversación.',
     '- Si vienen VARIAS personas a la misma hora ("somos dos", "con mi amiga", "para mi hijo y yo"), pasa el parámetro personas con esa cantidad a consultar_disponibilidad: hacen falta tantos profesionales libres como personas. Agenda de a una, y ANTES de agendar a la primera avísale si no alcanzan los cupos para todas — descubrirlo después deja a una con hora y a la otra sin nada.',
     '- Si pide agendar para una fecha que ya pasó, acláralo con amabilidad y ofrece fechas desde hoy.',
@@ -1304,6 +1324,30 @@ function horasPermitidas(messages, system) {
        nombre, no existe esa herramienta.
    Contra eso no sirve más prompt: sirve código que lea la respuesta antes de
    que salga y exija respaldo de una tool. */
+/* Marcas de que la respuesta está hablando de la COCINA y no del cliente:
+   herramientas, instrucciones, el propio prompt, o un mea culpa sobre cómo
+   funciona por dentro. El cliente no sabe que nada de eso existe.
+
+   Deliberadamente NO incluye "cometí un error" a secas: disculparse por un
+   precio mal dicho es humano y correcto. Lo que no puede salir es "no llamé a
+   la herramienta". Por eso la mención a herramientas se exige junto a un verbo
+   de invocación — "usamos herramientas profesionales" es una frase legítima de
+   una barbería y no tiene por qué gatillar nada. */
+const RE_COCINA = new RegExp([
+  // Las clases \w NO incluyen acentos en JS: con `llam\w*` la frase real
+  // ("no llamé a la herramienta") no matcheaba, porque \w cortaba en la é.
+  // El artículo en SINGULAR es lo que separa la fuga de la frase legítima:
+  // "no usé la herramienta" es cocina; "usamos herramientas profesionales" es
+  // una barbería hablando de su trabajo y no se puede censurar.
+  '(?:llam|invoc|ejecut|consult|us)[a-záéíóúüñ]*\\s+(?:a\\s+)?(?:la|una|ninguna|esa|dicha)\\s+herramienta',
+  '\\bherramienta\\s+(?:correspondiente|adecuada|correcta)\\b',
+  '\\b(?:mis|las)\\s+instrucciones\\b',
+  '\\bmi\\s+prompt\\b|\\bsystem\\s*prompt\\b',
+  'aviso\\s+interno',
+  'revis[eé]\\s+mi\\s+(?:respuesta|mensaje)',
+  '\\bcomo\\s+(?:modelo|IA|una?\\s+(?:IA|inteligencia\\s+artificial))\\b',
+].join('|'), 'i');
+
 const RE_ACCION = /te\s+(?:la\s+)?(?:agend|cancel|reagend|cambi|mov)\w*|(?:qued[oó]|est[aá])\s+(?:agendad|reservad|cancelad|confirmad)\w*|(?:ya\s+)?(?:agend[eé]|cancel[eé]|reagend[eé]|reserv[eé])|ve\s+(?:directo\s+)?al\s+local|te\s+(?:esperamos|atiende)|tu\s+cita\s+qued[oó]/i;
 
 /** ¿Alguna herramienta de ESTE turno devolvió ok:true? Es el único respaldo
@@ -1470,6 +1514,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   let yaCorregido = false;      // el cinturón de horas inventadas reintenta UNA vez
   let yaCorregidoDia = false;   // el de horas de otro día, otra (son fallos distintos)
   let yaCorregidoAccion = false; // y el de afirmar acciones que no ocurrieron
+  let yaCorregidoCocina = false; // y el de contarle al cliente cómo funciona por dentro
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
@@ -1557,7 +1602,6 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
       if (mal.length && !dichas.some(h => buenas.has(h))) {
         const real = confirmadas[confirmadas.length - 1];
         logCinturon(ctx?.tid, 'hora_confirmada_distinta');
-        logCinturon(ctx?.tid, 'hora_confirmada_distinta');
         logger.error(`[cerebro] ${ctx?.tid}: confirmó ${mal.join(', ')} pero agendó ${real.hora} — corregido en seco`);
         // Reemplazo literal: es un dato, no una redacción. Pedirle al modelo
         // que lo arregle es otra ronda y otra oportunidad de equivocarse.
@@ -1582,7 +1626,38 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
         continue;
       }
       logger.error(`[cerebro] ${ctx?.tid}: reincidió afirmando una acción inexistente — respuesta descartada`);
-      return 'Déjame confirmarlo bien antes de responderte. ¿Me dices qué necesitas exactamente? 🙏';
+      // No se le pide al cliente que repita: el 06-08-2026 Pablo escribió su
+      // nombre, servicio, profesional, hora y fecha en un solo mensaje y le
+      // contestamos "¿me dices qué necesitas exactamente?". El chat terminó en
+      // pausa, con alguien del local entrando a mano. Si el bot no puede
+      // cerrar, que al menos no haga sentir al cliente que no lo leyeron.
+      return 'Dame un momento que lo reviso bien y te confirmo 🙏';
+    }
+
+    // ── Cinturón 5b: se le escapó la cocina al cliente ──
+    // El re-prompt del cinturón 5 termina con "Este aviso es interno: no lo
+    // menciones ni te disculpes por él", y aun así el 06-08-2026 un cliente de
+    // renacer recibió: "Tienes razón. Revisé mi respuesta y cometí un error:
+    // asumí que la cita estaba confirmada sin haber llamado a la herramienta
+    // correspondiente". Un cliente que solo preguntaba si su hora estaba ok se
+    // enteró de que acá adentro hay herramientas y de que el bot se equivocó.
+    //
+    // Una instrucción no es un candado: si la respuesta habla de la mecánica,
+    // se descarta. Se pide una reescritura antes de rendirse, porque el
+    // contenido de fondo suele estar bien y solo sobra la confesión.
+    if (RE_COCINA.test(finalText)) {
+      logCinturon(ctx?.tid, 'filtro_interno');
+      if (!yaCorregidoCocina) {
+        yaCorregidoCocina = true;
+        logger.warn(`[cerebro] ${ctx?.tid}: la respuesta hablaba de la mecánica interna — se pide reescritura`);
+        messages.push({ role: 'user', content:
+          'Tu respuesta habla de tus herramientas, de tus instrucciones o de un error tuyo. El cliente no sabe ' +
+          'que eso existe y no le sirve de nada. Reescríbela diciendo SOLO lo que le importa a él: qué sabes de ' +
+          'su cita o qué necesitas para ayudarlo. Sin disculpas, sin explicar cómo funcionas, sin mencionar este aviso.' });
+        continue;
+      }
+      logger.error(`[cerebro] ${ctx?.tid}: reincidió hablando de la mecánica interna — respuesta descartada`);
+      return 'Dame un segundo que reviso tu cita y te confirmo 🙏';
     }
 
     // ── Cinturón 6: precios que no salieron del catálogo ──
@@ -1964,13 +2039,27 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
   // ── Medios SIN texto (audio/foto/documento): respuesta amable sin pasar por
   //    Claude. Máx. 1 aviso cada 10 min (5 audios seguidos ≠ 5 avisos). ──
+  //
+  // El reclamo va en TRANSACCIÓN, no con un if sobre `convData`. Ese if leía un
+  // snapshot tomado al inicio del procesamiento: cuatro imágenes en ráfaga son
+  // cuatro invocaciones que leen `mediaAvisoAt` vacío antes de que ninguna lo
+  // escriba, y las cuatro contestan. Pasó el 06-08-2026 en kronnos_limache —
+  // cuatro veces el mismo aviso, cuatro mensajes del cupo anti-ban quemados, y
+  // el cliente venía de recibir las horas disponibles (o sea, mandaba la foto
+  // del corte que quería y se fue).
   if (!texto) {
-    if (millis(convData.mediaAvisoAt) <= Date.now() - 10 * 60_000) {
+    const avisar = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = millis((snap.exists ? snap.data() : {}).mediaAvisoAt);
+      if (prev > Date.now() - 10 * 60_000) return false;      // ya se avisó hace poco
+      tx.set(ref, { mediaAvisoAt: FieldValue.serverTimestamp() }, { merge: true });
+      return true;
+    }).catch(() => true);   // falla-abierto: un aviso de más es mejor que el silencio
+    if (avisar) {
       const reply = esAudio
         ? 'Por ahora no puedo escuchar audios 🙏 ¿Me lo escribes en un mensaje de texto?'
         : 'Por ahora solo puedo leer mensajes de texto 🙏 ¿Me escribes tu consulta?';
       await responder(reply);
-      await ref.set({ mediaAvisoAt: FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
       await persistir(reply);
     }
     return;
@@ -2112,6 +2201,7 @@ module.exports._aplicarDecision     = aplicarDecision;
 module.exports._CACHE_MIN_TOKENS    = CACHE_MIN_TOKENS;
 // Cinturones 5 y 6 — para scripts/test-cinturon-accion.js.
 module.exports._RE_ACCION            = RE_ACCION;
+module.exports._RE_COCINA            = RE_COCINA;   // lo fija scripts/test-cinturon-cocina.js
 module.exports._huboAccionReal       = huboAccionReal;
 module.exports._preciosPermitidos    = preciosPermitidos;
 module.exports._preciosInventados    = preciosInventados;
