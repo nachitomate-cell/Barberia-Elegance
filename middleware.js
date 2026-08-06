@@ -59,6 +59,9 @@ const DOMAIN_MAP = {
   // Blood Habib · Viña del Mar (nuevo 2026-08-03, recreado desde Weibook).
   'bloodhabib.synaptechspa.cl':        'bloodhabib',
   'blood-habib.synaptechspa.cl':       'bloodhabib',
+  // Clinical Glow · Clínica estética Viña del Mar — 1er tenant no-barbería
+  // en rubro estética facial (schemaType BeautySalon). Instagram @clinical___glow.
+  'clinicalglow.synaptechspa.cl':      'clinicalglow',
   // elegance vivía del fallback implícito "host desconocido → elegance"; con el
   // 404 de plataforma ese fallback ya no existe para *.synaptechspa.cl y su
   // subdominio necesita entrada explícita como todos los demás.
@@ -1422,6 +1425,66 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=alfamen',
       icons: [
         { src: '/alfamen/logo.png',            sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  // Clinical Glow · Clínica estética facial · Viña del Mar (nuevo 2026-08-06).
+  // 1er tenant no-barbería en rubro estético — schemaType BeautySalon (no HairSalon).
+  clinicalglow: {
+    booking: {
+      title:       'Clinical Glow · Clínica Estética | Agenda tu hora',
+      description: 'Reserva tu hora en Clinical Glow, clínica estética facial y corporal en Viña del Mar. Botox, ácido hialurónico, ojeras, bioestimuladores, capilar y PRP con exosomas.',
+      ogTitle:     'Agendar Hora | Clinical Glow',
+      ogDesc:      'Enfermera estética +8 años. Resultados naturales y visibles en Viña del Mar.',
+    },
+    dashboard: {
+      title:       'Mi Club | Clinical Glow',
+      description: 'Tu panel personal en Clinical Glow. Revisa tus sesiones, sellos y beneficios.',
+      ogTitle:     'Mi Club | Clinical Glow',
+      ogDesc:      'Club Clinical Glow. Acumula sesiones y accede a beneficios exclusivos.',
+    },
+    registro: {
+      title:       'Únete al Club Clinical Glow',
+      description: 'Crea tu cuenta en Clinical Glow y accede a beneficios de estética facial y corporal en Viña del Mar.',
+      ogTitle:     'Únete al Club Clinical Glow',
+      ogDesc:      'Regístrate y disfruta beneficios exclusivos de estética.',
+    },
+    siteName:    'Clinical Glow · Clínica Estética',
+    ogImage:     '/clinicalglow/og.png',
+    themeColor:  '#fdf7f4',
+    appTitle:    'Clinical Glow',
+    icon:        '/clinicalglow/logo.png',
+    iconPwa192:  '/icons/pwa/clinicalglow-192.png',
+    iconPwa512:  '/icons/pwa/clinicalglow-512.png',
+    local: {
+      telephone:       '+56949244594',
+      streetAddress:   '',
+      addressLocality: 'Viña del Mar',
+      // Rubro estético médico — Google reconoce BeautySalon para clínicas de
+      // estética no invasiva (botox, hialurónico, bioestimuladores). Si
+      // registran licencia médica formal se puede escalar a MedicalBusiness.
+      schemaType:      'BeautySalon',
+      instagram:       'https://www.instagram.com/clinical___glow/',
+      ratingGeneral:   0,
+      totalReviews:    0,
+    },
+    manifest: {
+      name:             'Clinical Glow · Clínica Estética',
+      short_name:       'Clinical Glow',
+      theme_color:      '#fdf7f4',
+      background_color: '#fdf7f4',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Clinical Glow',
+      short_name:       'Clinical Glow',
+      description:      'Panel de administración — Clinical Glow',
+      theme_color:      '#d4a574',
+      background_color: '#fdf7f4',
+      start_url:        '/gestion-interna/?local=clinicalglow',
+      icons: [
+        { src: '/clinicalglow/logo.png',       sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

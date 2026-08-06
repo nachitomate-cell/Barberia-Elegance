@@ -42,6 +42,9 @@ export const TENANT_META = {
   // Alfa Men (Viña del Mar). Acento zinc: identidad B&N tinta sobre blanco
   // (mismo criterio que Omega). Banner = wordmark oficial.
   alfamen:            { name: 'Alfa Men', accent: 'zinc', emoji: '💈', logo: '/alfamen/logo.png', banner: '/alfamen/banner.webp', brand: { sede: 'Viña del Mar', tagline: 'Estética Masculina' } },
+  // Clinical Glow · Clínica estética facial Viña del Mar (2026-08-06). Primer
+  // tenant no-barbería del schema; acento amber por la paleta dorado/nude.
+  clinicalglow:       { name: 'Clinical Glow', accent: 'amber', emoji: '💉', logo: '/clinicalglow/logo.png', banner: '/clinicalglow/banner.webp', brand: { hex: '#d4a574', sede: 'Viña del Mar', tagline: 'Clínica Estética' } },
 };
 
 const TenantContext = createContext(null);

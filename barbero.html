@@ -512,6 +512,27 @@
     .tenant-alfamen #barberHero #barberEspecialidad { color: rgba(17,17,17,0.72) !important; }
     .tenant-alfamen #barberPhotoWrap { background: #F3F4F6 !important; }
 
+    /* Clinical Glow — hero de la ficha profesional: fondo nude con halo dorado
+       + rosa, marca de agua del logo cálida. Espejo del hero claro del index. */
+    .tenant-clinicalglow #barberHero {
+      background:
+        radial-gradient(ellipse at 30% -10%, rgba(212,165,116,0.14), transparent 55%),
+        radial-gradient(ellipse at 70% 110%, rgba(201,137,155,0.10), transparent 60%),
+        #fdf7f4 !important;
+      border-bottom: 1px solid rgba(212,165,116,0.14);
+    }
+    .tenant-clinicalglow #barberHeroImg {
+      object-fit: contain !important;
+      object-position: center !important;
+      padding: 26px 40px;
+      opacity: 0.08;
+    }
+    .tenant-clinicalglow #barberHero::before { background: none !important; }
+    .tenant-clinicalglow #barberHero #shopNameLabel      { color: rgba(61,47,43,0.55) !important; }
+    .tenant-clinicalglow #barberHero #barberName         { color: #3d2f2b !important; text-shadow: none !important; }
+    .tenant-clinicalglow #barberHero #barberEspecialidad { color: rgba(61,47,43,0.72) !important; }
+    .tenant-clinicalglow #barberPhotoWrap { background: #ffffff !important; border: 1px solid rgba(212,165,116,0.18) !important; }
+
     /* Barra de progreso */
     :is(.tenant-aura,.tenant-latincaribe,.theme-light,.tenant-infinity,.tenant-renacer) #progressTrack { background: #E5E7EB !important; }
     :is(.tenant-aura,.tenant-latincaribe,.theme-light,.tenant-infinity,.tenant-renacer) #progressPercentage { color: #6B7280 !important; }
@@ -2477,6 +2498,7 @@
         lumen:         { r:212, g:175, b:55  },  // #D4AF37
         omega:         { r:17,  g:17,  b:17  },  // #111111 negro de marca (igual al index)
         alfamen:       { r:17,  g:17,  b:17  },  // #111111 tinta sobre blanco (igual al index)
+        clinicalglow:  { r:212, g:165, b:116 },  // #d4a574 dorado suave sobre nude (igual al index)
         memphis:       { r:217, g:220, b:225 },  // #D9DCE1
         elbarberomoderno: { r:192, g:192, b:192 }, // #C0C0C0
         marcelo_hairdressing: { r:255, g:255, b:255 }, // #ffffff

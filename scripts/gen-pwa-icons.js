@@ -69,6 +69,10 @@ const TENANTS = {
   // Alfa Men: perfil B&N en círculo blanco (AgendaPro). Fondo blanco de marca
   // — matchea el theme_color #ffffff del manifest (tenant claro).
   alfamen:              { src: 'alfamen/logo.png',                bg: '#ffffff' },
+  // Clinical Glow: monograma "CG" dorado sobre nude (placeholder generado
+  // por scripts/gen-clinicalglow-placeholders.js). Fondo #fdf7f4 matchea
+  // el theme_color del manifest. Reemplazar cuando llegue el logo oficial.
+  clinicalglow:         { src: 'clinicalglow/logo.png',           bg: '#fdf7f4' },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
   // pinta un halo distinto entre splash y app.

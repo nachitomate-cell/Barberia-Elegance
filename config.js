@@ -65,6 +65,10 @@
     // guion y el cliente lo tiene repartido en su Instagram.
     'bloodhabib.synaptechspa.cl':         'bloodhabib',
     'blood-habib.synaptechspa.cl':        'bloodhabib',
+    // Clinical Glow · Clínica estética Viña del Mar — 1er tenant no-barbería
+    // en rubro estética facial (schemaType BeautySalon). Tema CLARO propio
+    // (rosa/nude/dorado — sin themeAlias). Instagram @clinical___glow.
+    'clinicalglow.synaptechspa.cl':       'clinicalglow',
   };
 
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
@@ -97,6 +101,10 @@
     // y su wordmark oficiales son tinta negra sobre blanco. Va también en
     // _lightTenants.
     alfamen:      'aura',
+    // Clinical Glow reutiliza el tema CLARO de Aura como scaffolding y le
+    // sobrepone su paleta clínica premium (dorado suave + rosa palo + nude)
+    // vía .tenant-clinicalglow.tenant-aura. Va también en _lightTenants.
+    clinicalglow: 'aura',
   };
 
   // ── Modo de tema por tenant: claro u oscuro ─────────────────────────
@@ -105,7 +113,7 @@
   // reciben `theme-light`. Las vistas usan esas clases para CSS condicional
   // por modo (ej: el buscador de servicios en index.html / barbero.html).
   // ⚠ Un tenant nuevo con tema claro DEBE sumarse aquí (checklist tenant nuevo).
-  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega', 'sion', 'alfamen'];
+  const _lightTenants = ['aura', 'latincaribe', 'infinity', 'renacer', 'oren', 'omega', 'sion', 'alfamen', 'clinicalglow'];
 
   const _tenants = {
     // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
@@ -1029,6 +1037,38 @@
         { nombre: 'Ziggy',             foto: '/alfamen/equipo/ziggy.webp',             disponible: true },
         { nombre: 'Sebastián Ignacio', foto: '/alfamen/equipo/sebastian-ignacio.webp', disponible: true },
         { nombre: 'Pablo Silva',       foto: '/alfamen/equipo/pablo-silva.webp',       disponible: true },
+      ],
+    },
+    // ── CLINICAL GLOW — Clínica estética facial · Viña del Mar ──
+    // Acceso: ?local=clinicalglow  o  clinicalglow.synaptechspa.cl
+    // Tema CLARO propio (rosa/nude/dorado) — capa .tenant-clinicalglow en
+    // index.html/barbero.html/agenda.html. NO usa themeAlias.
+    // ⚠️ Datos placeholder — reemplazar con reales cuando la profesional los pase.
+    clinicalglow: {
+      categoriasServicio: ['Facial', 'Corporal', 'Capilar', 'Otros'],
+      nombre:          'Clinical Glow',
+      nombreCorto:     'Clinical Glow',
+      pageTitle:       'Clinical Glow · Clínica Estética | Agenda tu hora',
+      slogan:          'Resultados naturales y visibles',
+      sobreNosotros:   'Clinical Glow es una clínica de estética facial y corporal en Viña del Mar liderada por una enfermera estética con más de 8 años de experiencia.<br><br>Nos especializamos en tratamientos como toxina botulínica, ácido hialurónico, bioestimuladores, rejuvenecimiento de ojeras, tratamiento capilar, PRP con exosomas y protocolos corporales.<br><br>Nuestro enfoque es entregar resultados naturales, seguros y visibles, con la calidez de una atención personalizada.',
+      logo:            '/clinicalglow/logo.png',
+      heroBanner:      '/clinicalglow/banner.webp',
+      direccion:       '📍 Viña del Mar',
+      horario:         '🕒 Lun–Vie: 10–19h · Sáb: 10–14h · Dom: cerrado',
+      telefono:        '+56949244594',
+      club:            'Club Clinical Glow',
+      heroLine1:       'Resultados',
+      heroLine2:       'que se sienten.',
+      headerInlineText:'CLINICAL GLOW',
+      instagram:       'https://www.instagram.com/clinical___glow/',
+      instagramHandle: '@clinical___glow',
+      waEmoji:         '💉',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos: [
+        { nombre: 'Enfermera Estética', foto: null, disponible: true },
       ],
     },
     memphis: {
