@@ -4009,6 +4009,44 @@
                 if (nuevoEstado === 'Completada' && !yaCompletada) {
                     payload.pendingGoogleReview = true;
                 }
+
+                // ── Gate POS TUU ────────────────────────────────────
+                // Si el tenant tiene POS TUU activo, este atajo no puede
+                // cerrar la cita sin registrar cómo se pagó. Abrimos el
+                // modal en modo 'ask': el barbero elige POS/Efectivo/
+                // Transferencia/Cortesía. Aprobado en POS o elección de
+                // otro medio → seguimos; cancelado/rechazado → abortamos.
+                if (nuevoEstado === 'Completada'
+                    && !yaCompletada
+                    && !cita.cortesia
+                    && typeof window.tuuActivoAgenda === 'function'
+                    && window.tuuActivoAgenda()) {
+                    const _monto = Number(cita.precioTotal || cita.precio || 0);
+                    const _res = await window.tuuAgendaCobro({
+                        tenantId:  window.CURRENT_TENANT_ID || 'elegance',
+                        citaId:    id,
+                        cliente:   cita.clienteNombre || '',
+                        servicio:  cita.servicioNombre || '',
+                        monto:     _monto,
+                        mode:      'ask',
+                        showManualFallback: window.tuuPermitirManualAgenda(),
+                    });
+                    if (_res === 'canceled') return;
+                    if (_res === 'manual_fallback') {
+                        payload.metodoPago = 'Tarjeta (manual)';
+                    } else if (_res && _res.tipo === 'aprobado') {
+                        payload.metodoPago = 'Tarjeta (POS)';
+                    } else if (_res && _res.tipo === 'otroMedio') {
+                        payload.metodoPago = _res.medio;
+                        if (_res.medio === 'Cortesía') {
+                            payload.cortesia = true;
+                            payload.precio   = 0;
+                        }
+                    } else {
+                        return; // rechazado / timeout / error
+                    }
+                }
+
                 // Al cancelar snapshottea el slotLock antes de borrar para
                 // poder recrearlo exactamente en el undo (misma id + data).
                 let slotLockSnapshot = null;
@@ -4630,6 +4668,41 @@
                 if (nuevoEstado === 'Completada' && !yaCompletada) {
                     payload.pendingGoogleReview = true;
                 }
+
+                // ── Gate POS TUU (bottom sheet) ─────────────────────
+                // Igual que cambiarEstadoCita: si TUU está activo, no
+                // dejamos cerrar la cita sin registrar cómo se pagó.
+                if (nuevoEstado === 'Completada'
+                    && !yaCompletada
+                    && cita && !cita.cortesia
+                    && typeof window.tuuActivoAgenda === 'function'
+                    && window.tuuActivoAgenda()) {
+                    const _monto = Number(cita.precioTotal || cita.precio || 0);
+                    const _res = await window.tuuAgendaCobro({
+                        tenantId:  window.CURRENT_TENANT_ID || 'elegance',
+                        citaId:    id,
+                        cliente:   cita.clienteNombre || '',
+                        servicio:  cita.servicioNombre || '',
+                        monto:     _monto,
+                        mode:      'ask',
+                        showManualFallback: window.tuuPermitirManualAgenda(),
+                    });
+                    if (_res === 'canceled') return;
+                    if (_res === 'manual_fallback') {
+                        payload.metodoPago = 'Tarjeta (manual)';
+                    } else if (_res && _res.tipo === 'aprobado') {
+                        payload.metodoPago = 'Tarjeta (POS)';
+                    } else if (_res && _res.tipo === 'otroMedio') {
+                        payload.metodoPago = _res.medio;
+                        if (_res.medio === 'Cortesía') {
+                            payload.cortesia = true;
+                            payload.precio   = 0;
+                        }
+                    } else {
+                        return;
+                    }
+                }
+
                 if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
                     const batch = db.batch();
                     batch.update(tenantCol('citas').doc(id), payload);
@@ -7247,7 +7320,37 @@
 
         const estadoInicial = opts.forceEstado || cita.estado || 'Confirmada';
         document.getElementById('ecEstado').value      = estadoInicial;
-        document.getElementById('ecMetodoPago').value  = cita.metodoPago || 'Efectivo';
+
+        // Método de pago: si el tenant tiene POS TUU activo, ofrecemos el set
+        // "Efectivo / Tarjeta (POS) / Transferencia" (y Tarjeta manual si el
+        // admin permitió el fallback). Sin TUU, mantenemos las opciones
+        // clásicas. Rebuild dinámico para no cachear el HTML del select.
+        (function _rebuildMetodoPago() {
+          var sel = document.getElementById('ecMetodoPago');
+          if (!sel) return;
+          var tuuOn = typeof window.tuuActivoAgenda === 'function' && window.tuuActivoAgenda();
+          var permitirManual = tuuOn && typeof window.tuuPermitirManualAgenda === 'function' && window.tuuPermitirManualAgenda();
+          var opts = tuuOn
+            ? ['Efectivo', 'Tarjeta (POS)', 'Transferencia'].concat(permitirManual ? ['Tarjeta (manual)'] : []).concat(['Cortesía'])
+            : ['Efectivo', 'Débito', 'Crédito', 'Transferencia', 'Cortesía'];
+          sel.innerHTML = opts.map(function (v) {
+            return '<option value="' + v + '" style="background:#111">' + v + '</option>';
+          }).join('');
+        })();
+
+        // Mapear valores viejos al set nuevo (una cita histórica podría tener
+        // "Débito"/"Crédito" y con TUU on eso ya no existe en el select).
+        (function _seleccionarMetodo() {
+          var sel  = document.getElementById('ecMetodoPago');
+          var prev = cita.metodoPago || 'Efectivo';
+          var vals = Array.prototype.map.call(sel.options, function (o) { return o.value; });
+          if (vals.indexOf(prev) !== -1) { sel.value = prev; return; }
+          if (prev === 'Débito' || prev === 'Crédito') {
+            sel.value = vals.indexOf('Tarjeta (POS)') !== -1 ? 'Tarjeta (POS)' : vals[0];
+          } else {
+            sel.value = vals[0];
+          }
+        })();
         document.getElementById('ecPropina').value     = cita.propina != null ? Number(cita.propina) : '';
         document.getElementById('ecNota').value        = cita.nota || '';
 
@@ -7507,7 +7610,7 @@
         const hora     = document.getElementById('ecHora').value;
         const duracion = Math.max(5, Number(document.getElementById('ecDuracion').value) || 30);
         const estado   = document.getElementById('ecEstado').value;
-        const metodo   = document.getElementById('ecMetodoPago').value;
+        let   metodo   = document.getElementById('ecMetodoPago').value;
         const propina  = document.getElementById('ecPropina').value;
         const nota     = document.getElementById('ecNota').value.trim();
 
@@ -7533,6 +7636,34 @@
             && !(await _cajaAbierta(_ecCita.sucursalId || null))) {
             _avisoCajaCerrada();
             return;
+        }
+
+        // ── Gate POS TUU (modo 'direct') ─────────────────────────────
+        // El barbero eligió "Tarjeta (POS)" en el select y va a cerrar
+        // la cita. Cobramos primero; sin aprobación no se guarda como
+        // Completada. Con permitirTarjetaManual on, el usuario puede
+        // caer al fallback manual desde el modal (POS caído, etc).
+        if (estado === 'Completada'
+            && _ecCita.estado !== 'Completada'
+            && !_ecCortesia
+            && metodo === 'Tarjeta (POS)'
+            && typeof window.tuuActivoAgenda === 'function'
+            && window.tuuActivoAgenda()) {
+            const _res = await window.tuuAgendaCobro({
+                tenantId:  window.CURRENT_TENANT_ID || 'elegance',
+                citaId:    _ecCita.id,
+                cliente:   nombre,
+                servicio:  svcNom,
+                monto:     precioFinal,
+                mode:      'direct',
+                showManualFallback: window.tuuPermitirManualAgenda(),
+            });
+            if (_res === 'canceled') return;
+            if (_res === 'manual_fallback') {
+                metodo = 'Tarjeta (manual)';
+            } else if (!(_res && _res.tipo === 'aprobado')) {
+                return; // rechazado / timeout / error / otroMedio (no aplica en 'direct')
+            }
         }
 
         btn.disabled = true;
@@ -8676,6 +8807,337 @@
         btn.classList.toggle('visible', mainVisible && isDia && hasNow);
       };
       function syncBtnAhoraVisibility() { window.syncBtnAhoraVisibility(); }
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       POS TUU — cobro presencial desde la vista del barbero.
+       Espeja el flujo del panel admin (Agenda.jsx → TuuCobroHost)
+       para que marcar Completada desde aquí NO pueda saltarse el
+       cobro por POS cuando el tenant tiene TUU activo.
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="tuuAgendaOverlay" class="hidden fixed inset-0 z-[400] flex items-center justify-center p-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+    <div class="relative w-full max-w-sm overflow-hidden rounded-3xl border border-yellow-400/30 shadow-2xl" style="background:linear-gradient(160deg,#0f0d08 0%,#000 65%);">
+      <div class="relative flex flex-col items-center pt-8 pb-3">
+        <div class="pointer-events-none absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-yellow-400/15 blur-3xl"></div>
+        <div class="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-400/10 ring-1 ring-yellow-400/40">
+          <i class="ph-bold ph-credit-card text-yellow-300 text-2xl"></i>
+        </div>
+      </div>
+      <div class="px-6 pb-3 text-center">
+        <div class="text-[11px] uppercase tracking-widest text-slate-500">Cobro en POS TUU</div>
+        <div id="tuuCliente" class="mt-1 text-base font-semibold text-white">—</div>
+        <div id="tuuServicio" class="text-xs text-slate-400"></div>
+        <div id="tuuMonto" class="mt-2 text-3xl font-black text-yellow-300">$0</div>
+      </div>
+
+      <!-- Selector (modo 'ask') -->
+      <div id="tuuStepSelector" class="hidden px-5 pb-2 space-y-2.5">
+        <div class="text-[11px] uppercase tracking-widest text-center pb-1 text-slate-400">¿Cómo pagó el cliente?</div>
+        <button type="button" onclick="_tuuElegirPOS()" class="w-full flex items-center gap-3 rounded-xl border border-yellow-400/40 bg-yellow-400/10 hover:bg-yellow-400/15 py-3 px-4 text-sm font-semibold text-yellow-300 active:scale-[0.98]">
+          <i class="ph-bold ph-credit-card text-lg"></i><span>Cobrar en POS TUU</span>
+          <span class="ml-auto text-[10px] uppercase tracking-widest opacity-70">Recomendado</span>
+        </button>
+        <button type="button" onclick="_tuuElegirOtro('Efectivo')" class="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-3 px-4 text-sm font-semibold text-slate-200 active:scale-[0.98]">
+          <i class="ph-bold ph-money text-lg"></i>Efectivo
+        </button>
+        <button type="button" onclick="_tuuElegirOtro('Transferencia')" class="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-3 px-4 text-sm font-semibold text-slate-200 active:scale-[0.98]">
+          <i class="ph-bold ph-arrows-left-right text-lg"></i>Transferencia
+        </button>
+        <button type="button" onclick="_tuuElegirOtro('Cortesía')" class="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-3 px-4 text-sm font-semibold text-slate-200 active:scale-[0.98]">
+          <i class="ph-bold ph-gift text-lg"></i>Cortesía / otro
+        </button>
+        <button type="button" onclick="_tuuFinish('canceled')" class="w-full text-center text-[11px] py-2 hover:underline text-slate-500">Volver a la cita</button>
+      </div>
+
+      <div id="tuuStepIniciando" class="hidden px-5 pb-4">
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4 flex items-center gap-3">
+          <i class="ph-bold ph-circle-notch text-yellow-300 text-xl animate-spin"></i>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-white">Enviando al POS…</div>
+            <div class="text-xs text-slate-400">Preparando el cobro</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tuuStepEsperando" class="hidden px-5 pb-3 space-y-3">
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4 flex items-center gap-3">
+          <i class="ph-bold ph-circle-notch text-yellow-300 text-xl animate-spin"></i>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-white">Esperando al POS</div>
+            <div class="text-xs text-slate-400">Pedile al cliente que pase la tarjeta</div>
+          </div>
+          <div id="tuuTimer" class="ml-auto text-xs font-mono tabular-nums text-yellow-300">00:00</div>
+        </div>
+        <div class="flex items-center justify-end">
+          <button type="button" onclick="_tuuFinish('canceled')" class="text-[11px] hover:underline text-slate-400">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="tuuStepAprobado" class="hidden px-5 pb-4">
+        <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/40 p-5 flex flex-col items-center">
+          <i class="ph-fill ph-check-circle text-emerald-400 text-5xl"></i>
+          <div class="mt-3 text-base font-bold text-white">Cobro aprobado</div>
+          <div id="tuuAprobadoMonto" class="text-xs text-emerald-200"></div>
+        </div>
+      </div>
+
+      <div id="tuuStepRechazado" class="hidden px-5 pb-4 space-y-3">
+        <div class="rounded-xl bg-red-500/10 border border-red-500/40 p-5 flex flex-col items-center">
+          <i class="ph-fill ph-x-circle text-red-400 text-4xl"></i>
+          <div class="mt-2 text-base font-bold text-white">Cobro rechazado</div>
+          <div id="tuuRechazadoDetalle" class="text-xs text-center mt-1 text-red-200">Fondos insuficientes, tarjeta bloqueada o cancelado por el cliente.</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="_tuuFinish('canceled')" class="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-sm font-semibold py-2.5 text-slate-200">Cancelar</button>
+          <button type="button" onclick="_tuuReintentar()" class="rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-sm font-bold py-2.5 active:scale-95 inline-flex items-center justify-center gap-1.5">
+            <i class="ph-bold ph-arrow-clockwise"></i> Reintentar
+          </button>
+        </div>
+      </div>
+
+      <div id="tuuStepTimeout" class="hidden px-5 pb-4 space-y-3">
+        <div class="rounded-xl bg-amber-500/10 border border-amber-500/40 p-5 flex flex-col items-center">
+          <i class="ph-fill ph-warning text-amber-400 text-4xl"></i>
+          <div class="mt-2 text-base font-bold text-white">El POS no confirmó</div>
+          <div class="text-xs text-center mt-1 text-amber-200">Revisa físicamente si la tarjeta pasó. Puede estar apagado, sin internet o con Modo Integración desactivado.</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="_tuuFinish('canceled')" class="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-sm font-semibold py-2.5 text-slate-200">Cancelar</button>
+          <button type="button" onclick="_tuuReintentar()" class="rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-sm font-bold py-2.5 active:scale-95 inline-flex items-center justify-center gap-1.5">
+            <i class="ph-bold ph-arrow-clockwise"></i> Reintentar
+          </button>
+        </div>
+        <button id="tuuManualBtn" type="button" onclick="_tuuFinish('manual_fallback')" class="hidden w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold py-2.5">
+          Marcar pagado igual (fallback manual)
+        </button>
+      </div>
+
+      <div id="tuuStepError" class="hidden px-5 pb-4 space-y-3">
+        <div class="rounded-xl bg-red-500/10 border border-red-500/40 p-5 flex flex-col items-center">
+          <i class="ph-fill ph-x-circle text-red-400 text-4xl"></i>
+          <div class="mt-2 text-base font-bold text-white">No se pudo iniciar el cobro</div>
+          <div id="tuuErrorMsg" class="text-xs text-center mt-1 text-red-200 break-words">Error</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="_tuuFinish('canceled')" class="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-sm font-semibold py-2.5 text-slate-200">Cancelar</button>
+          <button type="button" onclick="_tuuReintentar()" class="rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-sm font-bold py-2.5 active:scale-95 inline-flex items-center justify-center gap-1.5">
+            <i class="ph-bold ph-arrow-clockwise"></i> Reintentar
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-1.5 border-t border-white/5 py-2.5">
+        <span class="text-[10px] font-medium uppercase tracking-widest text-slate-500">TUU · Cobro presencial</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Estado TUU cacheado + API pública para los 3 puntos de entrada
+    //    a "Completada": botón ✓ + swipe (cambiarEstadoCita), bottom
+    //    sheet (cambiarEstadoDesdeDetalle) y formulario editar
+    //    (guardarEdicionCita). Sin este gate, el barbero podía cerrar
+    //    en efectivo/tarjeta-manual y saltarse el POS — justo el
+    //    agujero anti-fraude que Oren pidió cerrar.
+    (function () {
+      var _cfg = null;
+      var _cfgReady = false;
+      var _resolveActual = null;
+      var _optsActual = null;
+      var _polling = null;
+      var _tickTimer = null;
+      var _elapsed = 0;
+
+      var POLL_INTERVAL_MS = 2000;
+      var TIMEOUT_MS = 180000;
+
+      window.tuuActivoAgenda = function () {
+        return !!(_cfg && _cfg.configured === true && _cfg.enabled === true);
+      };
+      window.tuuPermitirManualAgenda = function () {
+        return !!(_cfg && _cfg.permitirTarjetaManual === true);
+      };
+      window.tuuGetConfigAgenda = function () { return _cfg; };
+
+      function _iniciarConfig() {
+        if (_cfgReady) return;
+        if (typeof db === 'undefined' || !db) return;
+        var tid = window.CURRENT_TENANT_ID || 'elegance';
+        try {
+          db.collection('_system').doc('tuu_' + tid).onSnapshot(
+            function (snap) { _cfg = snap.exists ? snap.data() : null; },
+            function () { _cfg = null; }
+          );
+          _cfgReady = true;
+        } catch (e) { console.warn('[TUU] no se pudo suscribir', e); }
+      }
+      // Poll hasta que Firebase compat + tenantId estén listos.
+      var _bootId = setInterval(function () {
+        _iniciarConfig();
+        if (_cfgReady) clearInterval(_bootId);
+      }, 400);
+
+      function _fmtMonto(n) {
+        try {
+          return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(n) || 0);
+        } catch (_) { return '$' + (Number(n) || 0).toLocaleString('es-CL'); }
+      }
+
+      function _mostrarStep(step) {
+        ['Selector', 'Iniciando', 'Esperando', 'Aprobado', 'Rechazado', 'Timeout', 'Error'].forEach(function (s) {
+          var el = document.getElementById('tuuStep' + s);
+          if (el) el.classList.toggle('hidden', s !== step);
+        });
+      }
+
+      function _pararTimers() {
+        if (_tickTimer) { clearInterval(_tickTimer); _tickTimer = null; }
+        if (_polling)   { clearInterval(_polling);   _polling = null; }
+      }
+
+      function _updateManualBtn() {
+        var btn = document.getElementById('tuuManualBtn');
+        if (btn) btn.classList.toggle('hidden', !_optsActual || !_optsActual.showManualFallback);
+      }
+
+      window._tuuFinish = function (value) {
+        _pararTimers();
+        var overlay = document.getElementById('tuuAgendaOverlay');
+        if (overlay) overlay.classList.add('hidden');
+        var r = _resolveActual;
+        _resolveActual = null;
+        _optsActual = null;
+        if (r) r(value);
+      };
+
+      window._tuuElegirPOS = function () { _iniciarCobroPOS(); };
+      window._tuuElegirOtro = function (medio) {
+        window._tuuFinish({ tipo: 'otroMedio', medio: medio });
+      };
+      window._tuuReintentar = function () { _iniciarCobroPOS(); };
+
+      async function _iniciarCobroPOS() {
+        if (!_optsActual) return;
+        _pararTimers();
+        _elapsed = 0;
+        _mostrarStep('Iniciando');
+        try {
+          if (typeof _ensureFunctionsSDK === 'function') await _ensureFunctionsSDK();
+          var fn = firebase.functions().httpsCallable('tuuCobrarCita');
+          var res = await fn({ tenantId: _optsActual.tenantId, citaId: _optsActual.citaId });
+          var data = (res && res.data) || {};
+          if (data.status === 'Completed') { _mostrarAprobado(); return; }
+          if (data.status === 'Failed' || data.status === 'Canceled') { _mostrarRechazado(''); return; }
+          _mostrarStep('Esperando');
+          _iniciarTimer();
+          _iniciarPolling();
+        } catch (err) {
+          _mostrarError((err && err.message) || 'No se pudo iniciar el cobro en el POS.');
+        }
+      }
+
+      function _iniciarTimer() {
+        var timerEl = document.getElementById('tuuTimer');
+        var render = function () {
+          var min = String(Math.floor(_elapsed / 60)).padStart(2, '0');
+          var sec = String(_elapsed % 60).padStart(2, '0');
+          if (timerEl) timerEl.textContent = min + ':' + sec;
+        };
+        render();
+        _tickTimer = setInterval(function () {
+          _elapsed++;
+          render();
+          if (_elapsed * 1000 >= TIMEOUT_MS) {
+            _pararTimers();
+            _mostrarStep('Timeout');
+            _updateManualBtn();
+          }
+        }, 1000);
+      }
+
+      function _iniciarPolling() {
+        var inFlight = false;
+        var tick = async function () {
+          if (inFlight) return;
+          inFlight = true;
+          try {
+            var fn = firebase.functions().httpsCallable('tuuConsultarCobro');
+            var res = await fn({ tenantId: _optsActual.tenantId, citaId: _optsActual.citaId });
+            var status = res && res.data && res.data.status;
+            if (status === 'Completed') { _mostrarAprobado(); return; }
+            if (status === 'Failed')    { _mostrarRechazado(_pickRejectMsg(res && res.data && res.data.raw)); return; }
+            if (status === 'Canceled')  { _mostrarRechazado('El cliente canceló en el POS.'); return; }
+          } catch (_) { /* red mala: el timeout global manda */ }
+          finally { inFlight = false; }
+        };
+        tick();
+        _polling = setInterval(tick, POLL_INTERVAL_MS);
+      }
+
+      function _pickRejectMsg(raw) {
+        if (!raw || typeof raw !== 'object') return 'El POS rechazó la tarjeta.';
+        var msg = raw.message || raw.error || raw.rejectReason
+              || (raw.data && (raw.data.message || raw.data.error));
+        return msg ? String(msg) : 'El POS rechazó la tarjeta.';
+      }
+
+      function _mostrarAprobado() {
+        _pararTimers();
+        var el = document.getElementById('tuuAprobadoMonto');
+        if (el && _optsActual) el.textContent = _fmtMonto(_optsActual.monto) + ' · TUU';
+        _mostrarStep('Aprobado');
+        setTimeout(function () { window._tuuFinish({ tipo: 'aprobado' }); }, 1500);
+      }
+      function _mostrarRechazado(detalle) {
+        _pararTimers();
+        var el = document.getElementById('tuuRechazadoDetalle');
+        if (el) el.textContent = detalle || 'Fondos insuficientes, tarjeta bloqueada o cancelado por el cliente.';
+        _mostrarStep('Rechazado');
+      }
+      function _mostrarError(msg) {
+        _pararTimers();
+        var el = document.getElementById('tuuErrorMsg');
+        if (el) el.textContent = msg || 'Error desconocido.';
+        _mostrarStep('Error');
+      }
+
+      /**
+       * Abre el modal. Devuelve Promise que resuelve con:
+       *   { tipo: 'aprobado' }                       — TUU confirmó Completed
+       *   { tipo: 'otroMedio', medio: 'Efectivo'|'Transferencia'|'Cortesía' }
+       *   'manual_fallback'                          — timeout + admin permitió
+       *   'canceled'                                 — usuario canceló / cerró / rechazado / error
+       * opts: { tenantId, citaId, cliente, servicio, monto, mode, showManualFallback }
+       *   mode: 'ask'    — mostrar selector primero (botón/swipe rápido)
+       *         'direct' — ir directo a cobrar POS (venía elegido del formulario)
+       */
+      window.tuuAgendaCobro = function (opts) {
+        return new Promise(function (resolve) {
+          if (_resolveActual) { try { _resolveActual('canceled'); } catch (_) {} }
+          _resolveActual = resolve;
+          _optsActual = opts || {};
+          var overlay = document.getElementById('tuuAgendaOverlay');
+          if (!overlay) { console.warn('[TUU] modal no encontrado'); resolve('canceled'); return; }
+          var cli = document.getElementById('tuuCliente'); if (cli) cli.textContent = opts.cliente || 'Cliente';
+          var svc = document.getElementById('tuuServicio'); if (svc) svc.textContent = opts.servicio || '';
+          var mon = document.getElementById('tuuMonto'); if (mon) mon.textContent = _fmtMonto(opts.monto);
+          _updateManualBtn();
+          overlay.classList.remove('hidden');
+          if (opts.mode === 'ask') _mostrarStep('Selector');
+          else                     _iniciarCobroPOS();
+        });
+      };
+
+      // Escape cierra (excepto Aprobado que auto-cierra).
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var overlay = document.getElementById('tuuAgendaOverlay');
+        if (!overlay || overlay.classList.contains('hidden')) return;
+        var aprobado = document.getElementById('tuuStepAprobado');
+        if (aprobado && !aprobado.classList.contains('hidden')) return;
+        window._tuuFinish('canceled');
+      });
     })();
   </script>
 </body>
