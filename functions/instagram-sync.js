@@ -30,6 +30,7 @@ const admin                             = require('firebase-admin');
 const https                             = require('https');
 const { URLSearchParams }               = require('url');
 const { FieldValue, Timestamp }         = require('firebase-admin/firestore');
+const ig                                = require('./lib/instagram-api');
 
 const db = admin.firestore();
 
@@ -157,6 +158,19 @@ function httpsPost(urlStr, data) {
   });
 }
 
+/**
+ * Los permisos otorgados, siempre como array de strings.
+ *
+ * Instagram los devuelve de tres formas según el día y el endpoint: array,
+ * string separado por comas, o directamente ausente. Un `.includes()` sobre la
+ * forma equivocada no falla — devuelve algo distinto en silencio, que es peor.
+ */
+function normalizarPermisos(p) {
+  if (Array.isArray(p)) return p.map((x) => String(x).trim()).filter(Boolean);
+  if (typeof p === 'string') return p.split(',').map((x) => x.trim()).filter(Boolean);
+  return [];
+}
+
 // ── Mapeo de hashtags a categorías del lookbook ────────────────────
 function extractCategoria(caption = '') {
   const l = (caption || '').toLowerCase();
@@ -271,12 +285,21 @@ exports.instagramOAuthCallback = onRequest(
 
       const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
+      // Qué permisos otorgó DE VERDAD. Se pidieron cinco, pero el dueño de la
+      // cuenta puede destildar los que quiera en la pantalla de Instagram, y la
+      // app no se entera por ningún otro lado. Guardarlo es lo que después
+      // permite decir "el asistente no contesta porque no dio permiso de
+      // mensajes" en vez de mirar un silencio sin explicación.
+      const permisos = normalizarPermisos(shortRes.permissions);
+      const igUserId = String(shortRes.user_id || meRes.id || '');
+
       await igConfigRef(tenantId).set({
         tenantId,
         accessToken:       token,
         tokenExpiresAt:    Timestamp.fromDate(expiresAt),
-        instagramUserId:   String(shortRes.user_id || meRes.id || ''),
+        instagramUserId:   igUserId,
         instagramUsername: meRes.username || '',
+        permisos,
         enabled:           true,
         connectedAt:       Timestamp.now(),
         lastSync:          null,
@@ -284,7 +307,23 @@ exports.instagramOAuthCallback = onRequest(
         errorMsg:          FieldValue.delete(),
       }, { merge: true });
 
-      logger.info(`[Instagram] Conectado tenant=${tenantId} @${meRes.username}`);
+      logger.info(`[Instagram] Conectado tenant=${tenantId} @${meRes.username} permisos=[${permisos.join(', ')}]`);
+
+      /* Suscribir la cuenta a los webhooks de mensajes, acá y no después.
+         Es el paso invisible: tener el permiso NO hace que Meta entregue nada,
+         hay que suscribir la cuenta con una llamada aparte. Si se deja para
+         cuando alguien "active el asistente", queda un local con todo
+         autorizado, el bot encendido y cero DMs entrando — que fue exactamente
+         lo que pasó con la cuenta de la plataforma el 06-08-2026.
+         La cuenta de SynapTech se salta esto: la suscribe instagram-plataforma
+         con `comments` incluido, y pisarla acá le quitaría los comentarios. */
+      if (tenantId !== CUENTA_PLATAFORMA && permisos.includes('instagram_business_manage_messages')) {
+        const s = await ig.asegurarSuscripcion(token, igUserId, ['messages']);
+        await igConfigRef(tenantId).set({
+          suscripcion: { ok: !!s.ok, campos: s.campos || [], error: s.error || null, en: Timestamp.now() },
+        }, { merge: true }).catch(() => {});
+        logger.info(`[Instagram] ${tenantId}: suscripción a mensajes → ${s.ok ? (s.campos || []).join(',') : `falló (${s.error})`}`);
+      }
       // Redirect ABSOLUTO: preferimos el origen del cliente (validado); si no
       // vino o quedó fuera de la allow-list, usamos el mapa del tenant. El
       // path relativo anterior resolvía contra el host de Cloud Functions y

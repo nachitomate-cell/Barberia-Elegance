@@ -1225,7 +1225,100 @@
     function seccionInstagram(){
       return `<div class="full" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <span class="muted" style="font-size:12px">${ESTADO.instagram && ESTADO.instagram.conectado ? '@' + ESTADO.instagram.username : 'sin conectar'}</span>
-        </div>${instagramPanel(ESTADO.instagram)}`;
+        </div>${instagramPanel(ESTADO.instagram)}${asistenteLocalesHtml()}`;
+    }
+
+    /* ── Asistente de reservas en la cuenta de cada LOCAL ──
+       Nada que ver con el bot de arriba: ese atiende @synaptechspa y vende.
+       Este contesta los DM que le llegan a la barbería y agenda cortes.
+
+       No se carga con el resto del panel a propósito: verificar la suscripción
+       es una llamada a la API de Meta POR LOCAL, y hacerlas todas cada vez que
+       alguien abre ops es caro para algo que se mira una vez al mes. */
+    function asistenteLocalesHtml(){
+      return `<div class="panel" style="margin-top:14px">
+        <h3>🤖 Asistente de reservas en los locales</h3>
+        <p class="hint">El bot que contesta los mensajes directos <b>de la barbería</b> y agenda con su disponibilidad real. Encenderlo hace las tres cosas que hacen falta: habilita el permiso, suscribe la cuenta a los avisos de Meta y lo deja activo en su panel.</p>
+        <button class="mini" id="igLocCargar">Ver estado de los locales</button>
+        <div id="igLocales"></div>
+      </div>`;
+    }
+
+    async function igLocalesCargar(btn){
+      const cont = document.getElementById('igLocales');
+      if (cont.innerHTML) { cont.innerHTML = ''; btn.textContent = 'Ver estado de los locales'; return; }
+      cont.innerHTML = '<p class="muted" style="font-size:12px;margin-top:10px">Consultando a Meta local por local…</p>';
+      btn.disabled = true;
+      try {
+        const r = await _fn('instagramAsistenteEstado')({});
+        const ls = r.data.locales || [];
+        if (!ls.length) { cont.innerHTML = '<p class="muted" style="margin-top:10px">Ningún local tiene Instagram conectado todavía.</p>'; return; }
+        cont.innerHTML = ls.map(l => {
+          /* El motivo del silencio, con nombre. Las tres condiciones fallan
+             igual de calladas desde afuera, así que se dicen en el orden en que
+             hay que resolverlas: primero autorizar, después habilitar. */
+          let estado, punto;
+          if (l.error)                    { estado = 'error: ' + l.error;                          punto = 'warn'; }
+          else if (l.cuentaPrestada)      { estado = 'usa la cuenta de SynapTech, no la suya';     punto = ''; }
+          else if (!l.entitlement)        { estado = 'no habilitado';                              punto = ''; }
+          else if (l.desconectada)        { estado = 'desconectó su Instagram';                    punto = 'warn'; }
+          else if (!l.conectado)          { estado = 'habilitado pero sin cuenta conectada';       punto = 'warn'; }
+          else if (l.permisos.length && !l.permisoMensajes)
+                                          { estado = 'autorizó sin permiso de mensajes';           punto = 'warn'; }
+          else if (l.suscripcion && !l.suscripcion.ok)
+                                          { estado = 'no suscrita: ' + (l.suscripcion.error || ''); punto = 'warn'; }
+          else if (!l.encendidoPorElLocal) { estado = 'el local lo apagó';                          punto = 'warn'; }
+          else                            { estado = 'contestando';                                punto = 'on'; }
+          return `<div class="loc">
+            <span class="dot ${punto}"></span>
+            <span style="flex:1">${esc(l.tenantId)}${l.username ? ` <span class="muted">· @${esc(l.username)}</span>` : ''}</span>
+            <span class="tag ${l.operativo ? 'g' : ''}">${estado}</span>
+            <button class="mini" data-igauth="${esc(l.tenantId)}" title="Abre Instagram para que el local autorice los 5 permisos. Es el link que hay que mandarle al dueño.">link de permisos</button>
+            <button class="mini${l.entitlement ? ' danger' : ''}" data-igbot="${esc(l.tenantId)}" data-val="${l.entitlement ? '0' : '1'}">${l.entitlement ? 'apagar' : 'encender'}</button>
+            ${l.cuentaPrestada ? '<span class="sub2">Conectó el lookbook con @synaptechspa antes de tener cuenta propia. Hasta que autorice la suya, el asistente no puede encenderse acá.</span>'
+              : l.permisosDesconocidos ? '<span class="sub2">Se conectó antes de que se guardaran los permisos: si no contesta, hay que reautorizar con el link.</span>' : ''}
+          </div>`;
+        }).join('');
+        cont.querySelectorAll('[data-igbot]').forEach(b =>
+          b.onclick = () => igLocalActivar(b.dataset.igbot, b.dataset.val === '1', b));
+        cont.querySelectorAll('[data-igauth]').forEach(b =>
+          b.onclick = () => igLinkLocal(b.dataset.igauth, b));
+        btn.textContent = 'Ocultar';
+      } catch(e){
+        cont.innerHTML = `<p style="color:var(--red);font-size:12px;margin-top:10px">${esc(e.message || e)}</p>`;
+      } finally { btn.disabled = false; }
+    }
+
+    async function igLocalActivar(tenantId, activo, btn){
+      if (activo && !confirm(`Encender el asistente de reservas en ${tenantId}. Desde ese momento contesta solo los DM que le lleguen a su Instagram. ¿Confirmas?`)) return;
+      btn.disabled = true;
+      try {
+        const r = await _fn('instagramAsistenteActivar')({ tenantId, activo });
+        const av = (r.data && r.data.advertencias) || [];
+        if (av.length) alert('Quedó guardado, pero:\n\n· ' + av.join('\n· '));
+        const cargar = document.getElementById('igLocCargar');
+        document.getElementById('igLocales').innerHTML = '';
+        await igLocalesCargar(cargar);
+      } catch(e){ alert('No se pudo: ' + (e.message || e)); }
+      finally { btn.disabled = false; }
+    }
+
+    /* El link con los 5 permisos para UN local. Se copia en vez de abrirse:
+       lo tiene que autorizar el dueño de la cuenta desde su propio Instagram,
+       no el operador desde la sesión de acá. */
+    async function igLinkLocal(tenantId, btn){
+      const antes = btn.textContent;
+      btn.disabled = true; btn.textContent = 'generando…';
+      try {
+        const r = await _fn('instagramPlataformaLink')({ tenantId, origen: location.origin });
+        await navigator.clipboard.writeText(r.data.url);
+        btn.textContent = '✓ copiado, mándaselo';
+        setTimeout(() => { btn.textContent = antes; }, 4000);
+      } catch(e){
+        btn.textContent = antes;
+        prompt('Cópialo a mano y mándaselo al local:', (e && e.url) || '');
+        alert('No pude copiarlo solo: ' + (e.message || e));
+      } finally { btn.disabled = false; }
     }
 
     /** Abre el flujo de autorización de Instagram en una pestaña nueva. */
@@ -1384,6 +1477,7 @@
       document.querySelectorAll('[data-igsop]').forEach(b =>
         b.onclick = () => igSoporte(b.dataset.igsop, b.dataset.val === '1'));
       const c = document.getElementById('igConectar');   if (c) c.onclick = () => igConectar(c);
+      const lc = document.getElementById('igLocCargar'); if (lc) lc.onclick = () => igLocalesCargar(lc);
       const fi = document.getElementById('igArchivo');
       const sb = document.getElementById('igSubir');
       if (sb && fi) {

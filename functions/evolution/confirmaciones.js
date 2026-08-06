@@ -228,7 +228,8 @@ async function procesarConfirmacionesTenant({ tid, cfg, evoClient, nombreLocal }
       if (cita.waNumeroInvalido === true) continue;
       // Agendada por el propio cliente en el chat hace <2h: acaba de pedirla —
       // preguntarle "¿confirmas?" al tiro es ruido. Un ciclo posterior la toma.
-      if (cita.origen === 'wa_bot' && cita.creadoEn && typeof cita.creadoEn.toMillis === 'function'
+      if ((cita.origen === 'wa_bot' || cita.origen === 'ig_bot')
+          && cita.creadoEn && typeof cita.creadoEn.toMillis === 'function'
           && Date.now() - cita.creadoEn.toMillis() < 2 * 3600e3) continue;
       if (typeof cita.hora !== 'string' || !cita.hora.includes(':')) continue;
       const tel = normalizeCl(cita.clienteTelefono);

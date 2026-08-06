@@ -57,6 +57,14 @@ function finDeMes(mes) {
   return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 }
 
+/* El mismo asistente atiende por dos canales y las dos marcas cuentan igual.
+   `wa_bot` es lo que escribía cuando WhatsApp era el único; `ig_bot` apareció
+   con los mensajes directos de Instagram. Si esta lista se queda corta, lo que
+   agenda el bot por el canal nuevo NO aparece en la tarjeta de valor del local
+   —o sea, se lo cobramos y no se lo mostramos. */
+const CANALES_BOT = ['wa_bot', 'ig_bot'];
+const esDelBot = (v) => CANALES_BOT.includes(v);
+
 const VACIO_MES = {
   agendadas: 0, agendadasVivas: 0, reubicadas: 0, canceladas: 0,
   confSi: 0, confNo: 0, dineroAgendado: 0, dineroSalvado: 0,
@@ -85,12 +93,12 @@ async function negocioDelMes(tid, mes) {
     snap.forEach((d) => {
       const c = d.data() || {};
       const muerta = caida(c);
-      const delBot = c.origen === 'wa_bot';
-      const movida = c.reagendadaVia === 'wa_bot';
+      const delBot = esDelBot(c.origen);
+      const movida = esDelBot(c.reagendadaVia);
 
       if (delBot) { r.agendadas++; if (!muerta) r.agendadasVivas++; }
       if (movida) r.reubicadas++;
-      if (c.canceladaVia === 'wa_bot') r.canceladas++;
+      if (esDelBot(c.canceladaVia)) r.canceladas++;
       if (c.waClienteConfirmoEn) r.confSi++;
       if (c.waClienteCanceloEn)  r.confNo++;
 
@@ -122,10 +130,12 @@ async function negocioDelMes(tid, mes) {
  */
 async function negocioHistorico(tid) {
   const col = citasCol(tid);
+  // `in` y no `==`: el asistente marca `wa_bot` o `ig_bot` según por dónde le
+  // hablaron, y las dos son él. Sigue siendo un índice de un solo campo.
   const consultas = [
-    ['agendadas',  col.where('origen', '==', 'wa_bot')],
-    ['reubicadas', col.where('reagendadaVia', '==', 'wa_bot')],
-    ['canceladas', col.where('canceladaVia', '==', 'wa_bot')],
+    ['agendadas',  col.where('origen', 'in', CANALES_BOT)],
+    ['reubicadas', col.where('reagendadaVia', 'in', CANALES_BOT)],
+    ['canceladas', col.where('canceladaVia', 'in', CANALES_BOT)],
     ['confSi',     col.orderBy('waClienteConfirmoEn')],
     ['confNo',     col.orderBy('waClienteCanceloEn')],
   ];

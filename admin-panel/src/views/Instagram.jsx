@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, deleteField } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import {
   RefreshCw, Link2Off, CheckCircle2, AlertCircle, Camera, Images, ArrowRight,
+  MessageCircle,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -13,6 +14,9 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import Spinner from '../components/ui/Spinner';
 
 const CALLBACK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
+
+// `elegance` es el tenant legacy y su configuración cuelga de la raíz.
+const cfgIgPath = (tid) => (tid === 'elegance' ? 'configuracion/instagram' : `tenants/${tid}/configuracion/instagram`);
 
 function IgIcon({ size = 20, className = '' }) {
   return (
@@ -37,6 +41,11 @@ export default function InstagramPage() {
   const [msg,      setMsg]      = useState(null);
   const [sincronizado, setSincronizado] = useState(null);   // {added} tras sincronizar
 
+  // Asistente de reservas por DM: entitlement de SynapTech + interruptor del local.
+  const [tieneAsistente, setTieneAsistente] = useState(false);
+  const [botEnabled,     setBotEnabled]     = useState(true);
+  const [guardandoBot,   setGuardandoBot]   = useState(false);
+
   useEffect(() => {
     const unsubCfg = onSnapshot(
       doc(db, '_system', `instagram_${tenantId}`),
@@ -48,8 +57,32 @@ export default function InstagramPage() {
       snap => { if (snap.exists()) setAppId(snap.data().appId || null); },
       ()   => {},
     );
-    return () => { unsubCfg(); unsubApp(); };
+    const unsubSys = onSnapshot(
+      doc(db, '_system', tenantId),
+      snap => setTieneAsistente(snap.exists() && snap.data().igAsistente === true),
+      ()   => setTieneAsistente(false),
+    );
+    const unsubBot = onSnapshot(
+      doc(db, cfgIgPath(tenantId)),
+      // Default encendido: si SynapTech lo habilitó, el local no tiene que ir a
+      // prenderlo. Mismo criterio que aplica el backend.
+      snap => setBotEnabled(!snap.exists() || snap.data().botEnabled !== false),
+      ()   => {},
+    );
+    return () => { unsubCfg(); unsubApp(); unsubSys(); unsubBot(); };
   }, [tenantId]);
+
+  async function toggleBot(valor) {
+    setGuardandoBot(true);
+    try {
+      await setDoc(doc(db, cfgIgPath(tenantId)), { botEnabled: valor }, { merge: true });
+      setMsg({ ok: true, text: valor ? 'El asistente vuelve a responder los mensajes directos.' : 'El asistente dejó de responder. Los mensajes te llegan igual a Instagram.' });
+    } catch (e) {
+      setMsg({ ok: false, text: `No se pudo guardar: ${e?.message || 'error desconocido'}` });
+    } finally {
+      setGuardandoBot(false);
+    }
+  }
 
   function buildOAuthUrl() {
     if (!appId) return null;
@@ -238,6 +271,55 @@ export default function InstagramPage() {
         }`}>
           {msg.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
           {msg.text}
+        </div>
+      )}
+
+      {/* ── Asistente de reservas por mensaje directo ──
+          Solo se muestra si SynapTech lo habilitó: ofrecer un interruptor que
+          no hace nada es peor que no mostrarlo. El switch de acá es una
+          preferencia (apagarlo un feriado), no la contratación. */}
+      {tieneAsistente && (
+        <div className="bg-slate-800 rounded-2xl p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${botEnabled && connected ? 'bg-emerald-500/15' : 'bg-slate-700'}`}>
+              <MessageCircle size={19} className={botEnabled && connected ? 'text-emerald-400' : 'text-slate-500'} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-primary">Asistente de reservas por mensaje directo</p>
+              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                Cuando alguien te escribe por Instagram preguntando por horas o precios, el asistente
+                responde con tu disponibilidad real y le agenda la cita. Los mismos servicios, horarios
+                y profesionales que ya tienes cargados.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={botEnabled}
+              aria-label="Activar el asistente de reservas por mensaje directo"
+              disabled={guardandoBot}
+              onClick={() => toggleBot(!botEnabled)}
+              className={`shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors disabled:opacity-50 ${botEnabled ? 'bg-emerald-600' : 'bg-slate-600'}`}
+            >
+              <span className={`block w-5 h-5 bg-white rounded-full transition-transform ${botEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {/* Sin cuenta conectada el interruptor no tiene sobre qué actuar, y
+              eso hay que decirlo acá: si no, se ve "activo" y no contesta nada. */}
+          {!connected && (
+            <div className="flex items-start gap-2 p-3 bg-amber-950/30 border border-amber-800/30 rounded-xl">
+              <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-300">
+                Conecta tu cuenta de Instagram más arriba para que el asistente pueda leer y responder tus mensajes.
+              </p>
+            </div>
+          )}
+
+          <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-700 pt-3">
+            Si contestas tú por Instagram no pasa nada: el asistente solo responde lo que le llega.
+            Apágalo cuando prefieras atender todo a mano.
+          </p>
         </div>
       )}
 

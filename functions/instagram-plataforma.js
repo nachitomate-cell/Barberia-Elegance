@@ -84,33 +84,72 @@ async function leerCfg() {
 }
 
 /**
- * Suscribe la app a los webhooks de la cuenta, si no lo está ya.
+ * ¿De quién es esta cuenta de Instagram? Devuelve el tenant dueño, o null si
+ * es la de la plataforma o una desconocida.
  *
- * Configurar la URL del webhook en el panel de Meta NO basta: eso solo define
- * a dónde entregar. Falta además suscribir la CUENTA, que es una llamada a la
- * API aparte y que nadie hace porque la interfaz no la pide. Sin ella
- * `subscribed_apps` queda vacío y no llega ni un DM — pasó exactamente eso el
- * 06-08-2026: todo se veía configurado y no entregaba nada.
+ * Hace falta porque el webhook es UNO SOLO para todas las cuentas conectadas:
+ * lo que distingue un DM de venta de una consulta de reserva es a QUIÉN se lo
+ * mandaron. Antes se asumía que todo llegaba a @synaptechspa, lo cual era
+ * cierto solo mientras fuera la única cuenta suscrita.
+ *
+ * Un `instagramUserId` NO identifica un solo tenant, y eso no es hipotético:
+ * hoy hay cinco docs con el id de @synaptechspa (delnero, elegance, ferraza y
+ * renacer conectaron su lookbook usando la cuenta de SynapTech antes de tener
+ * la propia). Por eso:
+ *   · se comparan los ids contra el de la plataforma en vez de confiar en que
+ *     el doc `instagram_synaptech` aparezca entre los resultados —con un
+ *     `limit` bajo podía no salir nunca, y entonces un DM de SynapTech se
+ *     habría contestado con el cerebro de reservas de delnero;
+ *   · una cuenta desconectada no corta la búsqueda, solo se salta: cortar en
+ *     la primera dejaba el resultado a merced del orden de Firestore.
+ *
+ * Una igualdad simple sobre un campo — Firestore la indexa sola, sin índice
+ * compuesto. Los docs de `_system` que no son de Instagram no tienen
+ * `instagramUserId`, así que no pueden aparecer.
+ */
+async function tenantDeCuenta(igUserId) {
+  const id = String(igUserId || '');
+  if (!id) return null;
+  try {
+    // El id de la plataforma manda: si el DM le llegó a @synaptechspa, no hay
+    // local que valga por más docs que compartan ese id.
+    const plat = await leerConexion().catch(() => null);
+    if (plat && plat.igUserId && plat.igUserId === id) return null;
+
+    const s = await db.collection('_system').where('instagramUserId', '==', id).limit(10).get();
+    for (const d of s.docs) {
+      if (!d.id.startsWith('instagram_')) continue;
+      const tid = d.id.slice('instagram_'.length);
+      if (tid === CUENTA) return null;            // es la cuenta de la plataforma
+      const c = d.data() || {};
+      if (!c.accessToken || c.enabled === false) continue;   // desconectada: sigue buscando
+      return {
+        tid,
+        con: {
+          token:    c.accessToken,
+          igUserId: String(c.instagramUserId || ''),
+          username: c.instagramUsername || '',
+        },
+      };
+    }
+  } catch (e) {
+    logger.warn('[ig] no pude resolver el tenant de la cuenta:', e.message);
+  }
+  return null;
+}
+
+/**
+ * Suscribe la app a los webhooks de la cuenta de la PLATAFORMA.
+ *
+ * La mecánica vive en lib/instagram-api porque también la necesita cada local
+ * que enciende el asistente de reservas; acá solo se fija QUÉ se suscribe:
+ * mensajes y comentarios, que es lo que este archivo sabe atender.
  *
  * Se llama al leer el estado, así que abrir el panel la auto-sana (mismo
  * patrón que asegurarSlot en slotlocks). Nunca lanza.
  */
 async function asegurarSuscripcion(con) {
-  try {
-    const actual = await ig.llamar('GET', `${con.igUserId}/subscribed_apps`, { token: con.token });
-    const campos = actual?.data?.[0]?.subscribed_fields || [];
-    const faltan = ['messages', 'comments'].filter((f) => !campos.includes(f));
-    if (!faltan.length) return { ok: true, campos, yaEstaba: true };
-
-    await ig.llamar('POST', `${con.igUserId}/subscribed_apps`, {
-      token: con.token, params: { subscribed_fields: 'messages,comments' },
-    });
-    logger.info(`[ig] suscripción creada/reparada (faltaban: ${faltan.join(', ')})`);
-    return { ok: true, campos: ['messages', 'comments'], reparada: true };
-  } catch (e) {
-    logger.warn('[ig] no pude asegurar la suscripción:', e.message);
-    return { ok: false, error: e.message };
-  }
+  return ig.asegurarSuscripcion(con.token, con.igUserId, ['messages', 'comments']);
 }
 
 /* ───────────────────────── Link de autorización ───────────────────────── */
@@ -163,6 +202,168 @@ exports.instagramPlataformaEstado = onCall({ region: 'us-central1', cors: true }
     },
   };
 });
+
+/* ───────────── Asistente de reservas por Instagram, por local ─────────────
+   Encenderlo tiene tres condiciones que se cumplen en momentos distintos y en
+   sitios distintos, y por eso se juntan acá en un solo botón:
+
+     1. el local autorizó su cuenta CON permiso de mensajes  (pantalla de Meta)
+     2. su cuenta está suscrita a los webhooks                (llamada a la API)
+     3. SynapTech le habilitó el entitlement                  (_system/{tid})
+
+   Faltando cualquiera de las tres el bot calla, y los tres silencios se ven
+   idénticos desde afuera. El estado devuelve las tres por separado justamente
+   para que "no contesta" tenga siempre una causa con nombre. */
+
+/** Lee la conexión de Instagram de un local (o de la plataforma). */
+async function leerConexionDe(tid) {
+  const s = await db.doc(`_system/instagram_${tid}`).get();
+  if (!s.exists) return null;
+  const c = s.data() || {};
+  if (!c.accessToken) return null;
+  return {
+    token:    c.accessToken,
+    igUserId: String(c.instagramUserId || ''),
+    username: c.instagramUsername || '',
+    permisos: Array.isArray(c.permisos) ? c.permisos : [],
+    habilitada: c.enabled !== false,
+    venceEn:  c.tokenExpiresAt?.toDate?.() || null,
+  };
+}
+
+/** Diagnóstico completo de un local: qué está listo y qué falta. */
+async function diagnosticoLocal(tid) {
+  const [con, plat, sysSnap, cfgSnap] = await Promise.all([
+    leerConexionDe(tid),
+    leerConexion().catch(() => null),
+    db.doc(`_system/${tid}`).get().catch(() => null),
+    // `elegance` es el tenant legacy: su configuración cuelga de la raíz.
+    db.doc(tid === 'elegance' ? 'configuracion/instagram' : `tenants/${tid}/configuracion/instagram`)
+      .get().catch(() => null),
+  ]);
+  const sys = sysSnap?.data() || {};
+  const cfg = cfgSnap?.data() || {};
+
+  /* Cuatro locales conectaron su lookbook con la cuenta de SynapTech, no con la
+     suya (delnero, elegance, ferraza, renacer). Ahí el asistente no puede
+     encenderse: contestaría los DM de @synaptechspa como si fuera esa barbería.
+     Se dice acá y no en un comentario, porque desde ops se ve un local con
+     Instagram "conectado" y no hay forma de adivinar que la cuenta es prestada. */
+  const cuentaPrestada = !!con && !!plat?.igUserId && con.igUserId === plat.igUserId;
+
+  const d = {
+    tenantId:   tid,
+    conectado:  !!con && !cuentaPrestada,
+    cuentaPrestada,
+    desconectada: !!con && !con.habilitada,
+    username:   con?.username || null,
+    igUserId:   con?.igUserId || null,
+    venceEn:    con?.venceEn ? con.venceEn.toISOString() : null,
+    // `permisos` solo existe en las cuentas reconectadas después del 06-08-2026.
+    // Vacío no significa "no dio permiso", significa "se conectó antes de que
+    // esto se guardara" — y eso se dice tal cual en vez de inventar un no.
+    permisos:   con?.permisos || [],
+    permisoMensajes: (con?.permisos || []).includes('instagram_business_manage_messages'),
+    permisosDesconocidos: !!con && !(con.permisos || []).length,
+    entitlement: sys.igAsistente === true,
+    encendidoPorElLocal: cfg.botEnabled !== false,
+    suscripcion: null,
+  };
+  if (d.conectado && con.habilitada && d.entitlement) {
+    // Solo se toca la API si el local ya está habilitado: preguntar por los
+    // 15 que no lo están sería una llamada por local cada vez que se abre ops.
+    d.suscripcion = await ig.asegurarSuscripcion(con.token, con.igUserId, ['messages']);
+  }
+  d.operativo = d.conectado && !d.desconectada && d.entitlement &&
+                d.encendidoPorElLocal && (d.suscripcion?.ok === true);
+  return d;
+}
+
+/** Estado del asistente en todos los locales con Instagram conectado. */
+exports.instagramAsistenteEstado = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const refs = await db.collection('_system').listDocuments();
+  const tids = refs
+    .filter((r) => r.id.startsWith('instagram_') &&
+      !['instagram_app', 'instagram_plataforma'].includes(r.id))
+    .map((r) => r.id.slice('instagram_'.length))
+    .filter((t) => t !== CUENTA);
+
+  const locales = await Promise.all(tids.map((t) => diagnosticoLocal(t).catch((e) => ({
+    tenantId: t, error: e.message,
+  }))));
+  locales.sort((a, b) => String(a.tenantId).localeCompare(String(b.tenantId)));
+  return { ok: true, locales };
+});
+
+/**
+ * Enciende (o apaga) el asistente de reservas de un local.
+ *
+ * Al encender hace además el paso invisible: suscribir la cuenta. Sin eso el
+ * entitlement queda en true, el panel del local dice "activo" y no llega
+ * jamás un DM.
+ */
+exports.instagramAsistenteActivar = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid    = String(req.data?.tenantId || '').trim();
+  const activo = req.data?.activo !== false;
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tenantId.');
+  if (tid === CUENTA) throw new HttpsError('invalid-argument', 'La cuenta de la plataforma no usa el asistente de reservas.');
+
+  if (!activo) {
+    await db.doc(`_system/${tid}`).set({ igAsistente: false }, { merge: true });
+    logger.info(`[ig-asistente] ${tid}: apagado por el operador`);
+    return { ok: true, activo: false, diagnostico: await diagnosticoLocal(tid) };
+  }
+
+  const con = await leerConexionDe(tid);
+  if (!con) {
+    throw new HttpsError('failed-precondition',
+      `${tid} no tiene Instagram conectado. Genera el link de autorización primero.`);
+  }
+  // La cuenta prestada es el caso que más se parece a "está todo listo" sin
+  // estarlo: el local figura conectado, pero la cuenta es @synaptechspa.
+  const plat = await leerConexion().catch(() => null);
+  if (plat?.igUserId && con.igUserId === plat.igUserId) {
+    throw new HttpsError('failed-precondition',
+      `${tid} tiene conectada la cuenta de SynapTech (@${plat.username}), no la suya. ` +
+      'Tiene que autorizar SU propio Instagram con el link de permisos antes de encender el asistente.');
+  }
+  if (!con.habilitada) {
+    throw new HttpsError('failed-precondition',
+      `${tid} desconectó su Instagram. Tiene que volver a autorizar con el link de permisos.`);
+  }
+  // Se avisa, pero no se bloquea: las cuentas conectadas antes del 06-08-2026
+  // no guardaron permisos, y negarles el encendido por falta de un dato que
+  // nunca se pidió obligaría a reconectar a ciegas. Si de verdad falta el
+  // permiso, la suscripción de abajo falla y ahí sí se ve el motivo real.
+  const advertencias = [];
+  if (con.permisos.length && !con.permisos.includes('instagram_business_manage_messages')) {
+    advertencias.push('La cuenta se autorizó SIN permiso de mensajes: hay que volver a autorizar con el link de los 5 permisos.');
+  }
+
+  const s = await ig.asegurarSuscripcion(con.token, con.igUserId, ['messages']);
+  if (!s.ok) {
+    advertencias.push(`No se pudo suscribir la cuenta a los webhooks: ${s.error}`);
+  }
+  await db.doc(`_system/${tid}`).set({ igAsistente: true }, { merge: true });
+  await db.doc(`_system/instagram_${tid}`).set({
+    suscripcion: { ok: !!s.ok, campos: s.campos || [], error: s.error || null, en: Timestamp.now() },
+  }, { merge: true }).catch(() => {});
+
+  logger.info(`[ig-asistente] ${tid}: encendido (suscripción ${s.ok ? 'ok' : 'FALLÓ'})`);
+  return { ok: true, activo: true, advertencias, diagnostico: await diagnosticoLocal(tid) };
+});
+
+// Expuestos para scripts/test-ig-reservas.js: el ruteo y el diagnóstico son la
+// parte que decide QUIÉN contesta, y probarla a ojo es cómo se llega a que un
+// cliente reciba el pitch de ventas preguntando por una hora.
+exports._tenantDeCuenta   = tenantDeCuenta;
+exports._diagnosticoLocal = diagnosticoLocal;
 
 /* ─────────────────────────────── Webhook ───────────────────────────────
    Meta manda acá los DMs y comentarios. Dos cosas no negociables:
@@ -245,10 +446,36 @@ exports.instagramWebhook = onRequest({
     for (const entrada of (body.entry || [])) {
       // DMs: vienen en `messaging`.
       for (const m of (entrada.messaging || [])) {
-        await manejarDM(m, con, cfg);
+        /* A QUIÉN se lo mandaron decide qué cerebro contesta. El webhook es uno
+           solo para todas las cuentas conectadas, así que sin este ruteo un
+           cliente preguntando por una hora en la cuenta de su barbería recibía
+           el pitch comercial de SynapTech. */
+        const destino = String(m.recipient?.id || entrada.id || '');
+        const local   = destino && destino !== con.igUserId
+          ? await tenantDeCuenta(destino)
+          : null;
+
+        if (local) {
+          await manejarDMReserva(m, local);
+        } else {
+          await manejarDM(m, con, cfg);
+        }
       }
       // Comentarios y menciones: vienen en `changes`.
+      // Por ahora solo los de la cuenta de la plataforma: la respuesta pública
+      // + privada es una jugada comercial de SynapTech, no algo que un local
+      // quiera automatizado sin pedirlo.
+      //
+      // El `entrada.id` decide, y no es paranoia: los locales del asistente de
+      // reservas se suscriben SOLO a `messages` justamente por esto, pero si a
+      // alguno le quedara `comments` de antes, sin esta guarda su comentario se
+      // contestaría con el pitch de SynapTech y con el token equivocado.
+      const esPlataforma = !entrada.id || String(entrada.id) === con.igUserId;
       for (const c of (entrada.changes || [])) {
+        if (!esPlataforma) {
+          logger.info(`[ig-webhook] comentario en la cuenta ${entrada.id} (no es la plataforma) — ignorado`);
+          continue;
+        }
         if (c.field === 'comments') await manejarComentario(c.value, con, cfg);
       }
     }
@@ -346,6 +573,45 @@ async function clasificarRemitente(con, cfg, igsid, guardado) {
    cuando Ignacio contesta a mano. Lo único que cambia es por dónde entra y
    sale el texto, así que se le pasa un cliente con la misma forma que el de
    Evolution pero que habla Instagram. */
+
+/**
+ * DM dirigido a la cuenta de un LOCAL → asistente de reservas.
+ *
+ * Se queda en el filtrado de la cáscara (ecos, adjuntos, reacciones) y delega
+ * el resto a instagram-reservas.js, que reusa el cerebro de agendamiento. La
+ * conversación se guarda dentro de `tenants/{tid}/`, no en la raíz: los DMs de
+ * un local son datos de ese local y no pueden quedar mezclados con los de otro.
+ */
+async function manejarDMReserva(evento, local) {
+  const remitente = String(evento.sender?.id || '');
+  const msg       = evento.message || {};
+
+  if (!remitente || remitente === local.con.igUserId) return;   // eco propio
+  if (msg.is_echo) return;
+  if (evento.read || evento.reaction || evento.delivery) return;
+
+  const texto = String(msg.text || '').trim();
+  if (!texto) {
+    // Foto, audio o sticker: el cerebro solo lee texto. Se avisa una vez y se
+    // sigue — quedarse mudo se lee como que el local no contesta.
+    if ((msg.attachments || []).length) {
+      await ig.enviarDM(local.con.token, local.con.igUserId, remitente,
+        'Por ahora solo puedo leer mensajes de texto 🙏 ¿Me escribes tu consulta?')
+        .catch((e) => logger.warn('[ig-reservas] aviso de adjunto:', e.message));
+    }
+    return;
+  }
+
+  const { procesarDMReserva } = require('./instagram-reservas');
+  await procesarDMReserva({
+    tid:          local.tid,
+    igsid:        remitente,
+    texto,
+    mid:          String(msg.mid || ''),
+    con:          local.con,
+    anthropicKey: ANTHROPIC_API_KEY.value(),
+  }).catch((e) => logger.error(`[ig-reservas] ${local.tid}:`, e.message));
+}
 
 async function manejarDM(evento, con, cfg) {
   const remitente = String(evento.sender?.id || '');

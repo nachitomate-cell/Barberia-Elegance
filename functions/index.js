@@ -17,6 +17,7 @@ const { onCall, HttpsError }   = require('firebase-functions/v2/https');
 const { setGlobalOptions }     = require('firebase-functions/v2');
 const { logger }               = require('firebase-functions');
 const admin                    = require('firebase-admin');
+const { esCuentaProtegida, MENSAJE_PROTEGIDA } = require('./lib/cuentas-protegidas');
 
 admin.initializeApp();
 const db        = admin.firestore();
@@ -364,6 +365,10 @@ exports.cambiarPasswordStaff = onCall({ region: 'us-central1', cors: true }, asy
   if (!tenantId || typeof tenantId !== 'string') {
     throw new HttpsError('invalid-argument', 'tenantId requerido.');
   }
+  // Cuentas de sistema: solo se administran desde el servidor.
+  if (esCuentaProtegida(email)) {
+    throw new HttpsError('permission-denied', MENSAJE_PROTEGIDA);
+  }
 
   // Autorización: superadmin global, admin de marca, o admin del tenant al que
   // se le cambia la clave (ver ./brand-admins).
@@ -409,10 +414,13 @@ const ROLES_PANEL = new Set(['admin', 'jefe', 'recepcion']);
 function copyCitaNueva({ origen, cliente, servicio, barbero, fecha, hora }) {
   const cuando = `${hora}${fecha ? ' · ' + fecha : ''}`.trim();
   const conQuien = barbero ? ` · con ${barbero}` : '';
-  if (origen === 'wa_bot') {
+  if (origen === 'wa_bot' || origen === 'ig_bot') {
+    // Se nombra el canal: "la tomó por Instagram" es justamente la noticia
+    // cuando el local acaba de encender ese canal y todavía no se lo cree.
+    const canal = origen === 'ig_bot' ? 'Instagram' : 'WhatsApp';
     return {
       title: `🤖 Tu asistente agendó una reserva — ${cuando}`,
-      body:  `${cliente} · ${servicio}${conQuien}. La tomó por WhatsApp, sin que nadie contestara.`,
+      body:  `${cliente} · ${servicio}${conQuien}. La tomó por ${canal}, sin que nadie contestara.`,
     };
   }
   return {
@@ -981,6 +989,10 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
   if (!email && !barberoId) {
     throw new HttpsError('invalid-argument', 'Se requiere email o barberoId.');
   }
+  // Cuentas de sistema: solo se administran desde el servidor.
+  if (esCuentaProtegida(email)) {
+    throw new HttpsError('permission-denied', MENSAJE_PROTEGIDA);
+  }
 
   let targetUid = null;
 
@@ -1017,6 +1029,19 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
 
   if (!targetUid) {
     throw new HttpsError('not-found', `No se encontró ningún usuario de Firebase Auth con el email "${email}". Verifica que el correo sea correcto.`);
+  }
+
+  // Segundo candado: acá se puede llegar por `barberoId` sin pasar email, así
+  // que el chequeo de arriba no alcanza. Recién con el uid resuelto sabemos a
+  // qué correo le vamos a pisar la clave.
+  try {
+    const destino = await admin.auth().getUser(targetUid);
+    if (esCuentaProtegida(destino.email)) {
+      throw new HttpsError('permission-denied', MENSAJE_PROTEGIDA);
+    }
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    // Si no se pudo leer el user, seguimos: el updateUser de abajo falla solo.
   }
 
   try {
@@ -1851,6 +1876,10 @@ exports.instagramPublicar         = igPlataforma.instagramPublicar;
 exports.instagramMarcarSoporte    = igPlataforma.instagramMarcarSoporte;
 exports.instagramConversaciones   = igPlataforma.instagramConversaciones;
 exports.instagramMisPublicaciones = igPlataforma.instagramMisPublicaciones;
+// Asistente de RESERVAS por DM en la cuenta de cada local (distinto del bot de
+// ventas de arriba, que atiende @synaptechspa). Ver instagram-reservas.js.
+exports.instagramAsistenteEstado  = igPlataforma.instagramAsistenteEstado;
+exports.instagramAsistenteActivar = igPlataforma.instagramAsistenteActivar;
 // Los tokens de Instagram duran 60 días y NO se renuevan solos: sin este cron
 // la cuenta de plataforma moría el ~04-oct-2026 y el bot quedaba sordo a los DM.
 exports.instagramTokenCron        = igPlataforma.instagramTokenCron;

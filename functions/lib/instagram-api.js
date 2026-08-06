@@ -142,6 +142,47 @@ async function perfilDeUsuario(token, igsid) {
   });
 }
 
+/* ────────────────────────────── Suscripción ────────────────────────────── */
+
+/**
+ * Suscribe la app a los webhooks de UNA cuenta, si no lo está ya.
+ *
+ * Configurar la URL del webhook en el panel de Meta NO basta: eso solo define
+ * a dónde entregar. Falta suscribir cada CUENTA, que es esta llamada aparte y
+ * que nadie hace porque la interfaz no la pide. Sin ella `subscribed_apps`
+ * queda vacío y no llega ni un DM — pasó exactamente eso el 06-08-2026 con la
+ * cuenta de la plataforma: todo se veía configurado y no entregaba nada.
+ *
+ * Vive acá y no en instagram-plataforma.js porque ahora hay dos clases de
+ * cuenta que suscribir: la de SynapTech (mensajes + comentarios) y la de cada
+ * local que active el asistente de reservas (solo mensajes — los comentarios
+ * de un local no los contesta nadie todavía, y suscribirlos entregaría eventos
+ * que el webhook no sabe atender).
+ *
+ * Nunca lanza: es una reparación oportunista, no un requisito de la llamada
+ * que la dispara.
+ */
+async function asegurarSuscripcion(token, igUserId, campos = ['messages']) {
+  try {
+    const actual = await llamar('GET', `${igUserId}/subscribed_apps`, { token });
+    const yaTiene = actual?.data?.[0]?.subscribed_fields || [];
+    const faltan  = campos.filter((f) => !yaTiene.includes(f));
+    if (!faltan.length) return { ok: true, campos: yaTiene, yaEstaba: true };
+
+    // Meta reemplaza la lista completa, no la suma: hay que mandar los que ya
+    // estaban junto con los nuevos o se pierden los primeros.
+    const union = [...new Set([...yaTiene, ...campos])];
+    await llamar('POST', `${igUserId}/subscribed_apps`, {
+      token, params: { subscribed_fields: union.join(',') },
+    });
+    logger.info(`[ig-api] suscripción creada/reparada en ${igUserId} (faltaban: ${faltan.join(', ')})`);
+    return { ok: true, campos: union, reparada: true };
+  } catch (e) {
+    logger.warn(`[ig-api] no pude asegurar la suscripción de ${igUserId}:`, e.message);
+    return { ok: false, error: e.message, esAuth: !!e.esAuth };
+  }
+}
+
 /* ─────────────────────────────── Comentarios ─────────────────────────────── */
 
 /** Responde el comentario EN PÚBLICO, colgando de ese mismo hilo. */
@@ -295,7 +336,7 @@ async function refrescarToken(token) {
 }
 
 module.exports = {
-  llamar, perfil, insights, refrescarToken,
+  llamar, perfil, insights, refrescarToken, asegurarSuscripcion,
   enviarDM, responderComentarioEnPrivado, dentroDeVentana, VENTANA_MS, perfilDeUsuario,
   responderComentario, ocultarComentario,
   publicar, cupoPublicacion, misPublicaciones, urlDePublicacion,

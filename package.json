@@ -55,7 +55,8 @@
     "test:borrado": "node scripts/test-data-deletion.js",
     "check:reservacore": "node scripts/check-reservacore.js",
     "test:cocina": "node scripts/test-cinturon-cocina.js",
-    "check:ig-token": "node scripts/check-instagram-token.js"
+    "check:ig-token": "node scripts/check-instagram-token.js",
+    "test:ig-reservas": "node scripts/test-ig-reservas.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",

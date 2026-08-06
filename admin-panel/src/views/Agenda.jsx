@@ -779,6 +779,9 @@ export function origenDeCita(cita) {
   const o = String(cita?.origen || '').trim();
   if (!o)                          return { tipo: 'desconocido', Icon: HelpCircle,  color: 'text-slate-500', label: 'Sin registro de origen (cita anterior a esta función)' };
   if (o === 'wa_bot')              return { tipo: 'bot',         Icon: Bot,         color: 'text-violet-300', label: 'La agendó el asistente de WhatsApp' };
+  // El mismo asistente, otro canal. Se distingue el canal en el texto porque es
+  // lo que responde "¿de dónde me está llegando la gente?".
+  if (o === 'ig_bot')              return { tipo: 'bot',         Icon: Bot,         color: 'text-pink-300',   label: 'La agendó el asistente por mensaje directo de Instagram' };
   if (ORIGEN_CLIENTE.includes(o))  return { tipo: 'cliente',     Icon: Globe,       color: 'text-sky-300',    label: 'La reservó el cliente por la web' };
   if (ORIGEN_MANUAL.includes(o))   return { tipo: 'manual',      Icon: PencilLine,  color: 'text-amber-300',  label: 'Agendada a mano desde el panel' };
   return { tipo: 'otro', Icon: HelpCircle, color: 'text-slate-500', label: `Origen: ${o}` };

@@ -272,6 +272,10 @@ const TOOLS = [
         fecha:           { type: 'string', description: 'Fecha de la cita en formato YYYY-MM-DD.' },
         hora:            { type: 'string', description: 'Hora de la cita en formato HH:MM (24h).' },
         cliente_nombre:  { type: 'string', description: 'Nombre del cliente.' },
+        // Solo lo usa el canal que no trae el número con el mensaje (Instagram).
+        // Por WhatsApp se ignora: ahí manda el número desde el que escribe, y
+        // aceptar otro dejaría la cita a nombre de un teléfono que nadie usó.
+        cliente_telefono: { type: 'string', description: 'Teléfono del cliente. Pásalo SOLO si el cliente te escribió su número en el chat (pasa por Instagram, donde no llega con el mensaje). Por WhatsApp no lo pases: el sistema usa el número desde el que escribe.' },
         permitir_segunda: { type: 'boolean', description: 'Solo true si el cliente YA tiene una cita futura y confirmó que quiere OTRA aparte (no cambiarla). Para mover una cita existente usa reagendar_cita, no esto.' },
         profesional:     { type: 'string', description: 'Profesional que pidió el cliente, tal como aparece en EQUIPO QUE ATIENDE. Si no lo pidió, no lo pases: el sistema asigna a quien esté libre.' },
       },
@@ -358,9 +362,44 @@ async function aplicarDecision(tid, chatId, citaId, decision) {
   logBotNegocio(tid, decision === 'confirmar' ? 'conf_si' : 'conf_no').catch(() => {}); // ratio para ops
 }
 
+/* El canal por el que llegó el mensaje. Cambia dos cosas y ninguna es cosmética:
+
+     · el ORIGEN que queda en la cita. Todo lo agendado por bot decía `wa_bot`,
+       también lo que entró por Instagram, así que no había forma de saber qué
+       canal trae reservas. Sin eso no se puede decidir dónde poner la plata.
+     · el TELÉFONO. En WhatsApp viene con el mensaje; en Instagram no existe
+       hasta que el cliente lo escriba. Las herramientas que buscan "sus citas"
+       buscan por número: con el número vacío, `where('clienteTelefonoSuf9','==','')`
+       devuelve las citas de CUALQUIERA que se haya reservado sin teléfono. Por
+       eso acá no se asume que siempre hay número: se comprueba. */
+/* Un teléfono chileno en el MISMO formato que escribe WhatsApp (569XXXXXXXX).
+   Se reusa el normalizador de confirmaciones en vez de escribir otro: es el que
+   decide a qué números se les manda un recordatorio, y dos reglas distintas
+   para el mismo número terminan en una cita cuyo recordatorio nunca sale.
+   Devuelve '' —no un número inventado— si no cuadra: adivinar produce un
+   teléfono válido pero de otra persona.
+   El require es perezoso porque confirmaciones.js registra triggers al cargar;
+   arriba encadenaría este módulo a ese costo por nada. */
+function normalizarTelCl(v) {
+  const { _normalizeCl } = require('./confirmaciones');
+  return _normalizeCl(v) || '';
+}
+
+const canalDe   = (ctx) => (ctx?.canal === 'instagram' ? 'instagram' : 'whatsapp');
+const origenDe  = (ctx) => (canalDe(ctx) === 'instagram' ? 'ig_bot' : 'wa_bot');
+const SIN_TELEFONO = {
+  ok: false,
+  motivo: 'No tengo el número del cliente (te escribe por Instagram, no por WhatsApp). '
+        + 'Pídeselo en el chat y vuelve a intentarlo. NO inventes ni supongas un número.',
+};
+
 /** Ejecuta la tool que pidió el modelo. Devuelve un objeto (se serializa a JSON). */
 async function ejecutarTool(name, input, ctx) {
   const { tid, telefono } = ctx;
+  const ORIGEN = origenDe(ctx);
+  // 8 dígitos = el largo mínimo de un móvil chileno sin código de país. Menos
+  // que eso es un dato roto, y con un dato roto es mejor volver a preguntar.
+  const hayTelefono = String(telefono || '').replace(/\D/g, '').length >= 8;
 
   if (name === 'gestionar_confirmacion') {
     const dec = input?.decision === 'cancelar' ? 'cancelar' : (input?.decision === 'confirmar' ? 'confirmar' : null);
@@ -371,6 +410,9 @@ async function ejecutarTool(name, input, ctx) {
   }
 
   if (name === 'consultar_mis_citas') {
+    // Sin número no hay a quién buscar, y buscar con '' devolvería las citas de
+    // todos los que reservaron sin teléfono. Es una fuga de datos, no un vacío.
+    if (!hayTelefono) return SIN_TELEFONO;
     const suf9 = String(telefono).slice(-9);
     const hoyC = ahoraChile();
     // Dos consultas: por sufijo-9 (flujo público) y por teléfono completo (citas del bot).
@@ -449,6 +491,9 @@ async function ejecutarTool(name, input, ctx) {
   if (name === 'cancelar_cita') {
     const id = String(input?.cita_id || '').trim();
     if (!id) return { ok: false, motivo: 'Falta cita_id (llama antes a consultar_mis_citas).' };
+    // El dueño de la cita se comprueba por teléfono. Sin teléfono la
+    // comprobación de "es suya" pasa sola y se cancelan citas ajenas.
+    if (!hayTelefono) return SIN_TELEFONO;
     const snap = await citasCol(tid).doc(id).get();
     if (!snap.exists) return { ok: false, motivo: 'No encontré esa cita.' };
     const x = snap.data();
@@ -479,7 +524,7 @@ async function ejecutarTool(name, input, ctx) {
     await citasCol(tid).doc(id).update({
       estado: 'Cancelada',
       canceladaPor: 'cliente',
-      canceladaVia: 'wa_bot',
+      canceladaVia: ORIGEN,
       updatedAt: FieldValue.serverTimestamp(),
     });
     // Si era la cita del flujo de confirmación de ESTE chat, limpiar el
@@ -499,6 +544,8 @@ async function ejecutarTool(name, input, ctx) {
     if (!id) return { ok: false, motivo: 'Falta cita_id (llama antes a consultar_mis_citas).' };
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, motivo: 'Fecha inválida (usa YYYY-MM-DD).' };
     if (!/^\d{2}:\d{2}$/.test(hora))        return { ok: false, motivo: 'Hora inválida (usa HH:MM).' };
+    // Mismo motivo que en cancelar: sin teléfono, "es suya" se cumple sola.
+    if (!hayTelefono) return SIN_TELEFONO;
 
     const citaRef = citasCol(tid).doc(id);
     const snap    = await citaRef.get();
@@ -589,7 +636,7 @@ async function ejecutarTool(name, input, ctx) {
         }
         tx.set(lockRef, {
           citaId: id, fecha, hora, barberoId: barb.id,
-          duracion: dur, origen: 'wa_bot', creadoEn: FieldValue.serverTimestamp(),
+          duracion: dur, origen: ORIGEN, creadoEn: FieldValue.serverTimestamp(),
         });
         // Soltar el cupo viejo. asegurarSlot solo CREA el candado del horario
         // actual: si no lo borramos acá, el horario viejo queda ocupado para
@@ -610,7 +657,7 @@ async function ejecutarTool(name, input, ctx) {
           // el recordatorio salga con la hora nueva ('false' = pendiente de envío).
           recordatorio24hEnviado: false,
           recordatorio1hEnviado:  false,
-          reagendadaVia:   'wa_bot',
+          reagendadaVia:   ORIGEN,
           reagendadaEn:    FieldValue.serverTimestamp(),
           reagendadaDesde: { fecha: x.fecha || '', hora: x.hora || '', barberoId: x.barberoId || '', barbero: x.barbero || '' },
           updatedAt:       FieldValue.serverTimestamp(),
@@ -760,6 +807,35 @@ async function ejecutarTool(name, input, ctx) {
     if (!/^\d{2}:\d{2}$/.test(hora))        return { ok: false, motivo: 'Hora inválida (usa HH:MM).' };
     if (!nombre)                            return { ok: false, motivo: 'Falta el nombre del cliente.' };
 
+    /* El número: del chat si vino con el mensaje (WhatsApp), y si no, el que el
+       cliente escribió (Instagram). Sin número NO se agenda, y esto no es
+       burocracia: es la cita que el local no puede avisar si se atrasa, la que
+       el cliente no puede consultar ni cambiar después, y la que no cruza con
+       su ficha. Vale más volver a preguntar que dejarla coja. */
+    const telCliente = hayTelefono
+      ? String(telefono)
+      // Se guarda en el MISMO formato que escribe WhatsApp (dígitos, con el 56
+      // adelante): el cliente lo tipea como quiere —"+56 9 1111 2222"— y si eso
+      // se guardara tal cual, la misma persona quedaría como dos según por
+      // dónde reservó, y los enlaces "abrir WhatsApp" del panel saldrían rotos.
+      : normalizarTelCl(input?.cliente_telefono);
+    const telDigitos = telCliente.replace(/\D/g, '');
+    if (telDigitos.length < 8) {
+      // Se distinguen los dos casos: no lo dio, o lo dio mal. Con un solo
+      // mensaje el modelo vuelve a pedirlo igual que la vez anterior y el
+      // cliente repite el mismo número mal escrito hasta que se aburre.
+      const intento = String(input?.cliente_telefono || '').trim();
+      return {
+        ok: false,
+        motivo: intento
+          ? `"${intento}" no es un celular chileno válido (van 9 dígitos partiendo en 9, con o sin +56). `
+            + 'Pídele que te lo repita y vuelve a llamar a agendar_cita con `cliente_telefono`.'
+          : 'Falta el número de teléfono del cliente. Pídeselo en el chat antes de agendar '
+            + '(le sirve para que el local lo contacte y para que él pueda consultar o cambiar su hora después). '
+            + 'Vuelve a llamar a agendar_cita pasándolo en `cliente_telefono`.',
+      };
+    }
+
     // Cinturón de seguridad: jamás agendar en el pasado (aunque el modelo se
     // confunda con "el lunes" del mes anterior, etc.).
     const hoyC = ahoraChile();
@@ -779,10 +855,10 @@ async function ejecutarTool(name, input, ctx) {
     // día, otro servicio) el modelo insiste pasando permitir_segunda=true. Lo
     // que se corta es el caso por defecto, que es el que rompe agendas.
     if (input?.permitir_segunda !== true) {
-      const suf9Nuevo = String(telefono).replace(/\D/g, '').slice(-9);
+      const suf9Nuevo = telDigitos.slice(-9);
       const [qa, qb] = await Promise.all([
         citasCol(tid).where('clienteTelefonoSuf9', '==', suf9Nuevo).get().catch(() => ({ docs: [] })),
-        citasCol(tid).where('clienteTelefono', '==', String(telefono)).get().catch(() => ({ docs: [] })),
+        citasCol(tid).where('clienteTelefono', '==', telCliente).get().catch(() => ({ docs: [] })),
       ]);
       const vistos = new Set();
       const futuras = [];
@@ -878,19 +954,20 @@ async function ejecutarTool(name, input, ctx) {
         tenantId: tid,
         nombre,
         email:    '',
-        telefono, // el bot siempre tiene el tel del cliente WhatsApp
+        // El del chat en WhatsApp; el que escribió el cliente en Instagram.
+        telefono: telCliente,
       });
       clienteUidBot = res?.uid || null;
     } catch (e) {
-      logger.warn(`[cerebro] upsertCliente falló para ${nombre}/${telefono} (fallback rescate):`, e?.message || e);
+      logger.warn(`[cerebro] upsertCliente falló para ${nombre}/${telCliente} (fallback rescate):`, e?.message || e);
     }
 
     const citaData = {
       fecha,
       hora,
       clienteNombre:    nombre,
-      clienteTelefono:  telefono,
-      clienteTelefonoSuf9: String(telefono).replace(/\D/g, '').slice(-9), // para consultar_mis_citas + agenda
+      clienteTelefono:  telCliente,
+      clienteTelefonoSuf9: telDigitos.slice(-9), // para consultar_mis_citas + agenda
       clienteEmail:     '',
       ...(clienteUidBot ? { clienteUid: clienteUidBot, userId: clienteUidBot } : {}),
       servicioNombre:   svc.nombre,
@@ -907,10 +984,16 @@ async function ejecutarTool(name, input, ctx) {
       // "¿confirmas?" absurdo minutos después de reservar).
       estado:           (ctx.confirmacionesEnabled && faltanMin > 12 * 60) ? 'Pendiente' : 'Confirmada',
       nota:             '',
-      origen:           'wa_bot',
+      origen:           ORIGEN,
       codigoCita:       codigo,
       slotLockId:       lockId,
+      /* En WhatsApp el consentimiento es la conversación misma: escribió al
+         número del local. En Instagram no: el número lo entregó a propósito
+         para esta reserva, así que queda registrado de dónde salió. Sin esta
+         marca, dentro de un año no habría cómo responder "¿de dónde sacaron mi
+         teléfono?" — y esa pregunta tiene ley detrás (21.719). */
       waOptIn:          true,
+      waOptInFuente:    ORIGEN,
       creadoEn:         FieldValue.serverTimestamp(),
     };
 
@@ -920,7 +1003,7 @@ async function ejecutarTool(name, input, ctx) {
         if (ls.exists) { const e = new Error('slot-taken'); e.code = 'slot-taken'; throw e; }
         tx.set(lockRef, {
           citaId: citaRef.id, fecha, hora, barberoId: barb.id,
-          duracion: svc.duracion, origen: 'wa_bot', creadoEn: FieldValue.serverTimestamp(),
+          duracion: svc.duracion, origen: ORIGEN, creadoEn: FieldValue.serverTimestamp(),
         });
         tx.set(citaRef, citaData);
       });
