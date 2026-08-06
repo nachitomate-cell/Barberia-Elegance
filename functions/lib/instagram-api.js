@@ -267,8 +267,35 @@ async function cupoPublicacion(token, igUserId) {
   return d ? { usado: d.quota_usage ?? 0, tope: d.config?.quota_total ?? 50 } : null;
 }
 
+/**
+ * Renueva un token de larga duración por otros 60 días.
+ *
+ * Instagram NO renueva solo: si el token vence, la cuenta deja de entregar
+ * webhooks y el bot queda sordo sin ningún otro síntoma. Solo se puede
+ * refrescar un token con más de 24 h de vida y que no haya vencido — pasado el
+ * vencimiento hay que volver a autorizar a mano.
+ *
+ * Devuelve { token, venceEn } o null si la API lo rechaza.
+ */
+async function refrescarToken(token) {
+  const url = new URL('https://graph.instagram.com/refresh_access_token');
+  url.searchParams.set('grant_type', 'ig_refresh_token');
+  url.searchParams.set('access_token', token);
+  const res  = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error || !data.access_token) {
+    const e = data.error || {};
+    throw new Error(`IG refresh_access_token: ${e.message || res.status}`);
+  }
+  return {
+    token:   data.access_token,
+    // expires_in viene en segundos; el default de Instagram son 60 días.
+    venceEn: new Date(Date.now() + (Number(data.expires_in) || 5183944) * 1000),
+  };
+}
+
 module.exports = {
-  llamar, perfil, insights,
+  llamar, perfil, insights, refrescarToken,
   enviarDM, responderComentarioEnPrivado, dentroDeVentana, VENTANA_MS, perfilDeUsuario,
   responderComentario, ocultarComentario,
   publicar, cupoPublicacion, misPublicaciones, urlDePublicacion,

@@ -1851,6 +1851,9 @@ exports.instagramPublicar         = igPlataforma.instagramPublicar;
 exports.instagramMarcarSoporte    = igPlataforma.instagramMarcarSoporte;
 exports.instagramConversaciones   = igPlataforma.instagramConversaciones;
 exports.instagramMisPublicaciones = igPlataforma.instagramMisPublicaciones;
+// Los tokens de Instagram duran 60 días y NO se renuevan solos: sin este cron
+// la cuenta de plataforma moría el ~04-oct-2026 y el bot quedaba sordo a los DM.
+exports.instagramTokenCron        = igPlataforma.instagramTokenCron;
 // Borrado de datos que pide Meta al quitar la app (requisito de App Review).
 exports.metaDataDeletion          = require('./meta-data-deletion').metaDataDeletion;
 

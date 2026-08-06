@@ -68,6 +68,17 @@ async function refrescar() {
   ]);
   const ms = Date.now() - t0;
 
+  // Las señales de Instagram se suman a la barra de alertas del panel, que es
+  // la que sale en TODAS las pestañas y la que lee el cron de vigilancia por
+  // correo. Vivían solo dentro de la pestaña de Instagram: el webhook caído
+  // —que deja al bot sordo— no se enteraba nadie que no entrara ahí.
+  // El orden lo rehace ops.html (rojo → ámbar → info) al pintar.
+  if (metrics && Array.isArray(instagram?.alertas) && instagram.alertas.length) {
+    const peso = { rojo: 0, ambar: 1, info: 2 };
+    metrics.alertas = [...(metrics.alertas || []), ...instagram.alertas]
+      .sort((a, b) => (peso[a.nivel] ?? 9) - (peso[b.nivel] ?? 9));
+  }
+
   const doc = {
     metrics,
     metaAds,

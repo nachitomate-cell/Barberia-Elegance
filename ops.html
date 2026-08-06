@@ -1029,7 +1029,7 @@
         </span></div>` : ''}
 
         ${venc !== null && venc <= 10 ? `<div class="alerta ${venc <= 3 ? 'rojo' : 'ambar'}"><span>${venc <= 3 ? '🔴' : '🟡'}</span><span>
-          El permiso de Instagram vence en <b>${venc} día(s)</b>. Se renueva solo mientras la cuenta siga activa; si vence, el bot deja de responder los DM.
+          El permiso de Instagram vence en <b>${venc} día(s)</b>. Un cron lo renueva a diario cuando bajan de 20; si esto sigue acá es que la renovación está fallando —revisa los logs de <code>instagramTokenCron</code>—. Si llega a vencer hay que <b>reautorizar la cuenta a mano</b> y, hasta entonces, el bot no responde ningún DM.
         </span></div>` : ''}
 
         <div class="cols" style="margin-top:0">
@@ -1059,7 +1059,7 @@
           <div class="panel">
             <h3>✍️ Publicar</h3>
             <p class="hint">Sube una foto o un reel a @${i.username} sin abrir la app. La media tiene que estar en una URL <b>https pública</b>: Instagram la descarga desde sus servidores, así que un archivo de tu computador no sirve.</p>
-            ${i.cupoPublicacion ? `<div class="row"><span>${tip('Cupo de hoy', 'Instagram permite 50 publicaciones por cuenta cada 24 horas.')}</span><span class="v tnum">${i.cupoPublicacion.usado}/${i.cupoPublicacion.tope}</span></div>` : ''}
+            ${i.cupoPublicacion ? `<div class="row"><span>${tip('Cupo de hoy', 'Publicaciones usadas hoy contra el tope que reporta Instagram para esta cuenta en las últimas 24 horas. El tope lo fija Meta y lo trae la API, no está escrito a mano acá.')}</span><span class="v tnum">${i.cupoPublicacion.usado}/${i.cupoPublicacion.tope}</span></div>` : ''}
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
               <select id="igTipo" class="inp">
                 <option value="IMAGE">Foto en el feed</option>
@@ -1133,12 +1133,22 @@
           <button class="mini danger" data-igdel="${e.id}">quitar</button>
           <span class="sub2" style="color:var(--red)">${String(e.error).replace(/</g,'&lt;').slice(0,160)}</span>
         </div>`).join('')}
-        ${pend.map(x => `<div class="loc">
-          <span class="dot on"></span>
+        ${pend.map(x => {
+          // Una programada que pasó su hora y sigue pendiente es una que NO
+          // salió. Antes se pintaba con el punto verde y un "(vencida)" en
+          // texto plano: se veía igual de sana que una programada para mañana,
+          // que es justo lo que este panel dice querer evitar.
+          // El margen de 15 min evita el falso positivo del snapshot: el cron
+          // publica cada 5 min y el panel puede traer datos de hace un rato.
+          const atrasada = x.publicarEn && x.publicarEn < Date.now() - 15*60*1000;
+          return `<div class="loc">
+          <span class="dot ${atrasada ? 'warn' : 'on'}"></span>
           <span style="flex:1">${x.tipo}${x.caption ? ' · <span class="muted">' + String(x.caption).replace(/</g,'&lt;') + '…</span>' : ''}</span>
-          <span class="tnum" style="color:#fff;font-size:12px">${cuando(x.publicarEn)}</span>
+          <span class="tnum" style="font-size:12px;color:${atrasada ? 'var(--red)' : '#fff'}">${atrasada ? '⚠️ ' : ''}${cuando(x.publicarEn)}</span>
           <button class="mini danger" data-igdel="${x.id}">cancelar</button>
-        </div>`).join('')}
+          ${atrasada ? '<span class="sub2" style="color:var(--red)">Pasó su hora y no salió. El cron corre cada 5 min: si sigue así, algo está trabado.</span>' : ''}
+        </div>`;
+        }).join('')}
       </div>`;
     }
 

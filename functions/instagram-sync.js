@@ -324,8 +324,15 @@ async function syncTenant(tenantId) {
   const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   if (expiresAt < sevenDays) {
     try {
+      // `ig_refresh_token`, con guion bajo. Decía `ig_refreshtoken` y la API
+      // responde 400 "grant type not supported": el refresco de los tokens de
+      // TODOS los tenants llevaba fallando en silencio, tapado por el catch de
+      // abajo que solo deja un warn. Cada lookbook se apagaba a los 60 días de
+      // conectado y había que reautorizar a mano sin saber por qué.
+      // Verificado el 06-08-2026 contra la API real: la forma con guion bajo
+      // devuelve 200 y 59 días; la otra, 400.
       const refreshed = await httpsGet(
-        `https://graph.instagram.com/refresh_access_token?grant_type=ig_refreshtoken&access_token=${token}`
+        `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${token}`
       );
       if (refreshed.access_token) {
         token = refreshed.access_token;

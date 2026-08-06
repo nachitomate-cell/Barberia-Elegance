@@ -25,6 +25,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule }                    = require('firebase-functions/v2/scheduler');
 const { defineSecret }                  = require('firebase-functions/params');
 const { logger }                        = require('firebase-functions');
 const admin                             = require('firebase-admin');
@@ -597,6 +598,46 @@ exports.instagramMisPublicaciones = onCall({ region: 'us-central1', cors: true }
 
 /* ───────────────── Métricas para el snapshot de ops ───────────────── */
 
+/**
+ * Señales de Instagram para la BARRA de alertas del panel.
+ *
+ * Hasta ahora Instagram no aportaba ni una. Todo lo demás —WhatsApp, correo,
+ * trials, chips— empuja a `data.alertas`, que sale arriba en TODAS las
+ * pestañas y alimenta el cron de vigilancia por correo. Instagram no: el
+ * webhook caído, que deja al bot sordo a los DM sin ningún otro síntoma, solo
+ * se veía si alguien entraba a la pestaña de Instagram. Es exactamente el "no
+ * dependas de que alguien esté mirando la pantalla correcta" que motivó esa
+ * barra.
+ */
+function alertasInstagram({ con, susc, programadas }) {
+  const out = [];
+  // `susc === null` es "no se pudo consultar", no "está caída": no se alerta
+  // por un timeout, que es como se fabrican las alarmas que nadie mira.
+  if (susc && !susc.ok) {
+    out.push({ nivel: 'rojo', texto:
+      'Instagram: la suscripción al webhook está CAÍDA — no llega ni un DM ni un comentario. Se intenta reparar sola cada 5 min.' });
+  }
+  const dias = con?.venceEn ? Math.round((con.venceEn - Date.now()) / 86400000) : null;
+  if (dias !== null && dias <= 10) {
+    out.push({ nivel: dias <= 3 ? 'rojo' : 'ambar', texto:
+      `Instagram: el permiso vence en ${dias} día(s). Si vence, hay que reautorizar la cuenta a mano.` });
+  }
+  const conError = (programadas?.conError || []).length;
+  if (conError) {
+    out.push({ nivel: 'ambar', texto:
+      `Instagram: ${conError} publicación(es) programada(s) detenida(s) tras 3 intentos.` });
+  }
+  // Una publicación que venció y sigue pendiente es una que NO salió: el cron
+  // corre cada 5 min, así que pasados 15 hay algo trabado.
+  const atrasadas = (programadas?.pendientes || [])
+    .filter((p) => p.publicarEn && p.publicarEn < Date.now() - 15 * 60_000).length;
+  if (atrasadas) {
+    out.push({ nivel: 'rojo', texto:
+      `Instagram: ${atrasadas} publicación(es) programada(s) pasaron su hora y siguen sin salir.` });
+  }
+  return out;
+}
+
 /** Resumen para el panel. Nunca lanza: sin Instagram el panel sigue vivo. */
 async function resumenInstagram() {
   try {
@@ -608,13 +649,34 @@ async function resumenInstagram() {
       ig.cupoPublicacion(con.token, con.igUserId).catch(() => null),
       // El snapshot corre cada 5 min: es el mejor momento para auto-sanar la
       // suscripción, porque si se cae nadie se entera hasta que faltan leads.
-      asegurarSuscripcion(con),
+      //
+      // El .catch() NO es decorativo: era la única de las cuatro llamadas sin
+      // él, y si fallaba se caía TODO el Promise.all → el catch de abajo
+      // devolvía {conectado:false} → el panel mostraba "la cuenta todavía no
+      // está conectada" con el botón de conectar, estando perfecta. Un hipo de
+      // red no puede parecerse a una cuenta desvinculada.
+      asegurarSuscripcion(con).catch((e) => {
+        logger.warn('[ig-resumen] no se pudo verificar la suscripción:', e.message);
+        return null;   // null = "no se pudo saber", distinto de "no está suscrita"
+      }),
     ]);
     const hace7 = Date.now() - 7 * 86400e3;
+    const tsHace7 = Timestamp.fromMillis(hace7);
     const { _resumenProgramadas } = require('./instagram-programador');
+    // Se filtra EN LA CONSULTA, no en memoria. Antes se traían las dos
+    // colecciones enteras cada 5 minutos para quedarse con 7 días: con una
+    // conversación no duele, con 500 son ~144.000 lecturas al día. Es el mismo
+    // patrón que ya costó caro en este panel (603 lecturas → 1).
+    //
+    // `where` + `orderBy` sobre el mismo campo no necesita índice compuesto.
+    // Si la consulta falla igual (índice recién creado, por ejemplo), se cae
+    // al barrido completo: es caro, pero el panel no se queda sin dato.
+    const porFecha = (col, campo) =>
+      db.collection(col).where(campo, '>=', tsHace7).orderBy(campo, 'desc').get()
+        .catch(() => db.collection(col).get().catch(() => null));
     const [dms, coments, programadas] = await Promise.all([
-      db.collection('ig_conversaciones').get().catch(() => null),
-      db.collection('ig_comentarios').get().catch(() => null),
+      porFecha('ig_conversaciones', 'ultimoMensajeEn'),
+      porFecha('ig_comentarios', 'recibidoEn'),
       _resumenProgramadas().catch(() => null),
     ]);
     const ms = (v) => v?.toMillis?.() || 0;
@@ -645,15 +707,68 @@ async function resumenInstagram() {
       comentarios7d: coments ? coments.docs.filter((d) => ms(d.data().recibidoEn) >= hace7).length : null,
       cupoPublicacion: cupo,
       // Si esto se cae, el bot deja de recibir DMs sin ningún otro síntoma.
-      suscripcionOk: !!susc?.ok,
+      //
+      // TRES estados, no dos. `!!susc?.ok` convertía en un rotundo "NO" tanto
+      // la suscripción caída como el simple "no se pudo consultar", y el panel
+      // pintaba la alerta roja de "no llega ni un DM" por un timeout. El front
+      // ya sabía manejar el campo ausente como "sin dato aún" (ops.html), pero
+      // el back nunca se lo entregaba.
+      //
+      // Se OMITE la clave en vez de mandar `undefined`: este objeto termina
+      // dentro del doc del snapshot y Firestore rechaza `undefined` (no está
+      // activado ignoreUndefinedProperties), así que un undefined explícito
+      // habría reventado la escritura del panel completo.
+      ...(susc === null ? {} : { suscripcionOk: !!susc.ok }),
       suscripcionCampos: susc?.campos || [],
       programadas,
+      // Lo que tiene que salir en la barra de alertas del panel, no solo
+      // dentro de esta pestaña. Ver alertasInstagram().
+      alertas: alertasInstagram({ con, susc, programadas }),
     };
   } catch (e) {
     logger.warn('[ig-resumen]', e.message);
     return { conectado: false, error: e.message };
   }
 }
+
+/* ───────────────── Renovación del token ─────────────────
+   Instagram entrega tokens de 60 días y NO los renueva solo. instagram-sync.js
+   renueva los de los TENANTS (el lookbook de cada local); el de la cuenta de
+   plataforma vive en otro doc y no lo tocaba nadie: el 06-08-2026 le quedaban
+   59 días y ningún cron lo iba a salvar. Cuando venciera, la cuenta deja de
+   entregar webhooks —el bot queda sordo a los DM— y el panel se apaga, sin
+   ningún otro síntoma. Peor: el panel decía "se renueva solo mientras la
+   cuenta siga activa", o sea que la única señal que existía tranquilizaba.
+
+   Corre a diario y renueva cuando falten menos de 20 días. Ese margen no es
+   decorativo: un token solo se puede refrescar mientras siga VIVO, así que si
+   el cron se cae hay tres semanas para notarlo antes de tener que reautorizar
+   a mano. */
+exports.instagramTokenCron = onSchedule({
+  schedule: '17 4 * * *', timeZone: 'America/Santiago', region: 'us-central1',
+}, async () => {
+  const con = await leerConexion();
+  if (!con) { logger.info('[ig-token] no hay cuenta conectada'); return; }
+  const dias = con.venceEn ? Math.round((con.venceEn - Date.now()) / 86400000) : null;
+  if (dias !== null && dias > 20) {
+    logger.info(`[ig-token] quedan ${dias} días; no toca renovar`);
+    return;
+  }
+  try {
+    const r = await ig.refrescarToken(con.token);
+    await CONEX_REF().set({
+      accessToken:    r.token,
+      tokenExpiresAt: Timestamp.fromDate(r.venceEn),
+      tokenRenovadoEn: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    logger.info(`[ig-token] renovado — ahora vence ${r.venceEn.toISOString().slice(0, 10)}`);
+  } catch (e) {
+    // Que grite: si esto falla y nadie lo ve, el token muere en silencio y
+    // recuperarlo obliga a rehacer el OAuth a mano.
+    logger.error(`[ig-token] NO se pudo renovar (quedan ${dias} días): ${e.message}`);
+    throw e;
+  }
+});
 
 exports._resumenInstagram   = resumenInstagram;
 exports._handlesDeClientes  = handlesDeClientes;
