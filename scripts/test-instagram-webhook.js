@@ -101,6 +101,35 @@ console.log('\n⏱️  Reglas de la API');
 ok('conoce la ventana de 24 h', /VENTANA_MS/.test(SRC_API), 'se enviarían DMs que Meta rechaza');
 ok('distingue el token vencido', /esAuth/.test(SRC_API), 'reintentaría para siempre un token muerto');
 
+
+/* ── Creativos programados ───────────────────────────────────────────────── */
+const SRC_PROG = fs.readFileSync(path.join(__dirname, '..', 'functions', 'instagram-programador.js'), 'utf8');
+console.log('\n🗓️  Publicaciones programadas');
+ok('reclama el item en una transacción antes de publicar',
+  /runTransaction/.test(SRC_PROG) && /estado: 'publicando'/.test(SRC_PROG),
+  'dos corridas del cron solapadas publicarían el MISMO post dos veces, y eso no se deshace');
+ok('solo reclama lo que está pendiente',
+  /v\.estado !== 'pendiente'\) return false/.test(SRC_PROG),
+  'reclamaría algo ya publicado');
+ok('tiene tope de reintentos',
+  /MAX_INTENTOS/.test(SRC_PROG) && /rendirse/.test(SRC_PROG),
+  'una URL rota reintentaría para siempre');
+ok('al agotar intentos avisa por WhatsApp',
+  /no se pudo publicar/.test(SRC_PROG),
+  'una publicación caída en silencio no la echa de menos nadie');
+ok('cancelar respeta lo ya reclamado',
+  /Ya está en estado/.test(SRC_PROG),
+  'cancelaría algo que ya va camino a publicarse');
+ok('exige que la hora sea futura',
+  /al menos 1 minuto en el futuro/.test(SRC_PROG),
+  'un error de zona horaria dispararía el post al instante');
+ok('valida las URLs antes de encolar',
+  /validarUrls/.test(SRC_PROG),
+  'el error saldría recién en el cron, horas después');
+ok('el cron da tiempo a que procese el video',
+  /timeoutSeconds: 540/.test(SRC_PROG),
+  'un reel largo cortaría a mitad de subida');
+
 console.log(fallos === 0
   ? '\n✅ Webhook de Instagram: firma verificada, sin bucles y con apagado.\n'
   : `\n❌ ${fallos} problema(s) en la integración de Instagram.\n`);

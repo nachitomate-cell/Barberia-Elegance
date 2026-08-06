@@ -404,9 +404,11 @@ async function resumenInstagram() {
       asegurarSuscripcion(con),
     ]);
     const hace7 = Date.now() - 7 * 86400e3;
-    const [dms, coments] = await Promise.all([
+    const { _resumenProgramadas } = require('./instagram-programador');
+    const [dms, coments, programadas] = await Promise.all([
       db.collection('ig_conversaciones').get().catch(() => null),
       db.collection('ig_comentarios').get().catch(() => null),
+      _resumenProgramadas().catch(() => null),
     ]);
     const ms = (v) => v?.toMillis?.() || 0;
     return {
@@ -425,6 +427,7 @@ async function resumenInstagram() {
       // Si esto se cae, el bot deja de recibir DMs sin ningún otro síntoma.
       suscripcionOk: !!susc?.ok,
       suscripcionCampos: susc?.campos || [],
+      programadas,
     };
   } catch (e) {
     logger.warn('[ig-resumen]', e.message);

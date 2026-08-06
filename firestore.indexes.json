@@ -216,44 +216,86 @@
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "clienteUid", "order": "ASCENDING" },
-        { "fieldPath": "estado",     "order": "ASCENDING" },
-        { "fieldPath": "fecha",      "order": "DESCENDING" }
+        {
+          "fieldPath": "clienteUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "clienteUid", "order": "ASCENDING" },
-        { "fieldPath": "estado",     "order": "ASCENDING" },
-        { "fieldPath": "fecha",      "order": "ASCENDING" }
+        {
+          "fieldPath": "clienteUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
-        { "fieldPath": "estado",          "order": "ASCENDING" },
-        { "fieldPath": "fecha",           "order": "ASCENDING" }
+        {
+          "fieldPath": "clienteTelefono",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "citas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
-        { "fieldPath": "estado",          "order": "ASCENDING" },
-        { "fieldPath": "fecha",           "order": "DESCENDING" }
+        {
+          "fieldPath": "clienteTelefono",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "notificacionesActivas", "order": "ASCENDING" },
-        { "fieldPath": "nextSuggestionDate",    "order": "ASCENDING" }
+        {
+          "fieldPath": "notificacionesActivas",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nextSuggestionDate",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
@@ -323,6 +365,20 @@
         },
         {
           "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ig_programadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publicarEn",
           "order": "ASCENDING"
         }
       ]

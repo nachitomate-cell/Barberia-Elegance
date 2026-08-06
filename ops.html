@@ -103,6 +103,11 @@
      `vertical-align` y no flex: van dentro de botones y de <h3> que ya
      tienen su propio layout, y así no hay que tocar ninguno. */
   .brand{ width:18px; height:18px; vertical-align:-4px; margin-right:2px; border-radius:4px; }
+  /* Campos de formulario del panel: un solo estilo en vez de repetir el inline
+     en cada input, que era donde se colaban las diferencias. */
+  .inp{ background:var(--surface-2); color:var(--ink); border:1px solid var(--glass-border);
+        border-radius:9px; padding:8px; font:inherit; font-size:13px; width:100%; }
+  .inp:focus{ outline:none; border-color:var(--lima); }
   /* Los logos vienen en su color de marca sobre fondo blanco recortado. Un
      punto de brillo los despega del navy sin desaturarlos. */
   .tabs button .brand{ filter:saturate(1.05); }
@@ -902,7 +907,14 @@
             <div class="row"><span>${tip('Interacciones', 'Likes, comentarios, guardados y compartidos sumados.')}</span><span class="v tnum">${n(i.interacciones7d)}</span></div>
             <div class="row"><span>${tip('Visitas al perfil', 'Gente que entró a mirar tu perfil. Es la señal más cercana a intención de compra que da Instagram gratis.')}</span><span class="v tnum">${n(i.visitasPerfil7d)}</span></div>
             <div class="row"><span>${tip('Publicaciones', 'Total de posts en la cuenta.')}</span><span class="v tnum">${n(i.publicaciones)}</span></div>
-            <div class="row"><span>${tip('Webhook suscrito', 'Meta solo entrega DMs y comentarios si la cuenta está suscrita por API — configurar la URL en el panel de desarrolladores no alcanza. Si esto dice que no, el bot está sordo.')}</span><span class="v" style="color:${i.suscripcionOk ? 'var(--green)' : 'var(--red)'}">${i.suscripcionOk ? (i.suscripcionCampos || []).join(' + ') || 'sí' : 'NO'}</span></div>
+            <div class="row"><span>${tip('Webhook suscrito', 'Meta solo entrega DMs y comentarios si la cuenta está suscrita por API — configurar la URL en el panel de desarrolladores no alcanza. Si esto dice que no, el bot está sordo.')}</span>${
+              // Tres estados, no dos: `undefined` es un snapshot viejo que
+              // todavía no traía el campo. Pintarlo de rojo como si estuviera
+              // caído es una falsa alarma, justo lo que un panel no puede hacer.
+              i.suscripcionOk === undefined
+                ? '<span class="v muted">sin dato aún</span>'
+                : `<span class="v" style="color:${i.suscripcionOk ? 'var(--green)' : 'var(--red)'}">${i.suscripcionOk ? ((i.suscripcionCampos || []).join(' + ') || 'sí') : 'NO'}</span>`
+            }</div>
           </div>
 
           <div class="panel">
@@ -910,17 +922,61 @@
             <p class="hint">Sube una foto o un reel a @${i.username} sin abrir la app. La media tiene que estar en una URL <b>https pública</b>: Instagram la descarga desde sus servidores, así que un archivo de tu computador no sirve.</p>
             ${i.cupoPublicacion ? `<div class="row"><span>${tip('Cupo de hoy', 'Instagram permite 50 publicaciones por cuenta cada 24 horas.')}</span><span class="v tnum">${i.cupoPublicacion.usado}/${i.cupoPublicacion.tope}</span></div>` : ''}
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-              <select id="igTipo" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px">
+              <select id="igTipo" class="inp">
                 <option value="IMAGE">Foto en el feed</option>
                 <option value="REELS">Reel</option>
                 <option value="STORIES">Historia</option>
+                <option value="CAROUSEL">Carrusel (varias URLs, una por línea)</option>
               </select>
-              <input id="igUrl" placeholder="https://… URL pública de la imagen o video" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px">
-              <textarea id="igCaption" rows="3" placeholder="Texto del post" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--glass-border);border-radius:9px;padding:8px;resize:vertical"></textarea>
-              <button class="primary" id="igPublicar">Publicar ahora</button>
+              <textarea id="igUrl" rows="1" class="inp" placeholder="https://… URL pública de la imagen o video"></textarea>
+              <textarea id="igCaption" rows="3" class="inp" placeholder="Texto del post" style="resize:vertical"></textarea>
+              <label style="font-size:11.5px;color:var(--soft)">Cuándo publicar
+                <input id="igCuando" type="datetime-local" class="inp" style="margin-top:4px">
+              </label>
+              <div style="display:flex;gap:8px">
+                <button class="primary" id="igProgramar" style="flex:1">Programar</button>
+                <button id="igPublicar" title="Salta la cola y publica en este instante">Publicar ahora</button>
+              </div>
             </div>
           </div>
-        </div>`;
+        </div>
+
+        ${colaHtml(i.programadas)}`;
+    }
+
+    /* La cola no es decoración: un creativo programado que falló en silencio es
+       una publicación que nunca salió y que nadie echa de menos hasta que
+       revisa. Por eso los errores van primero y en rojo. */
+    function colaHtml(p){
+      if(!p) return '';
+      const cuando = (ms) => {
+        if(!ms) return '—';
+        const d = new Date(ms), falta = Math.round((ms - Date.now())/60000);
+        const txt = d.toLocaleString('es-CL', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+        return falta < 0 ? `${txt} (vencida)` : falta < 60 ? `${txt} · en ${falta} min`
+             : falta < 1440 ? `${txt} · en ${Math.round(falta/60)} h` : `${txt} · en ${Math.round(falta/1440)} d`;
+      };
+      const pend = p.pendientes || [], err = p.conError || [];
+      if(!pend.length && !err.length) {
+        return `<div class="panel" style="margin-top:14px"><h3>🗓️ Cola de publicación</h3>
+          <p class="muted">Nada programado. Carga los creativos de la semana y salen solos.</p></div>`;
+      }
+      return `<div class="panel" style="margin-top:14px">
+        <h3>🗓️ Cola de publicación</h3>
+        <p class="hint">El cron revisa cada 5 minutos y publica lo que venció. Si algo falla, reintenta 3 veces y después te avisa por WhatsApp.</p>
+        ${err.map(e => `<div class="loc">
+          <span class="dot warn"></span>
+          <span style="flex:1">${e.tipo} · <span style="color:var(--red)">detenida tras 3 intentos</span></span>
+          <button class="mini danger" data-igdel="${e.id}">quitar</button>
+          <span class="sub2" style="color:var(--red)">${String(e.error).replace(/</g,'&lt;').slice(0,160)}</span>
+        </div>`).join('')}
+        ${pend.map(x => `<div class="loc">
+          <span class="dot on"></span>
+          <span style="flex:1">${x.tipo}${x.caption ? ' · <span class="muted">' + String(x.caption).replace(/</g,'&lt;') + '…</span>' : ''}</span>
+          <span class="tnum" style="color:#fff;font-size:12px">${cuando(x.publicarEn)}</span>
+          <button class="mini danger" data-igdel="${x.id}">cancelar</button>
+        </div>`).join('')}
+      </div>`;
     }
 
     function seccionInstagram(){
@@ -944,23 +1000,74 @@
       }
     }
 
-    async function igPublicar(btn){
+    /** Datos comunes del formulario de publicación. */
+    function igFormulario(){
       const tipo = document.getElementById('igTipo').value;
-      const url  = document.getElementById('igUrl').value.trim();
+      const urls = document.getElementById('igUrl').value.split('\n').map(s => s.trim()).filter(Boolean);
       const caption = document.getElementById('igCaption').value;
-      if (!/^https:\/\//i.test(url)) { alert('La URL tiene que ser https y pública.'); return; }
-      if (!confirm(`Publicar en Instagram como ${tipo}. Esto es público e inmediato. ¿Confirmas?`)) return;
+      if (!urls.length || urls.some(u => !/^https:\/\//i.test(u))) {
+        alert('Cada URL tiene que ser https y pública. Instagram descarga la media desde sus servidores.');
+        return null;
+      }
+      if (tipo !== 'CAROUSEL' && urls.length > 1) { alert('Solo el carrusel admite varias URLs.'); return null; }
+      return { tipo, urls, caption };
+    }
+    function igLimpiar(){
+      document.getElementById('igUrl').value = '';
+      document.getElementById('igCaption').value = '';
+      document.getElementById('igCuando').value = '';
+    }
+
+    async function igPublicar(btn){
+      const f = igFormulario(); if (!f) return;
+      if (!confirm(`Publicar ${f.tipo} en Instagram AHORA. Es público e irreversible. ¿Confirmas?`)) return;
       const txt = btn.textContent;
       btn.textContent = 'Publicando…'; btn.disabled = true;
       try {
-        const r = await _fn('instagramPublicar')({ tipo, url, caption });
+        const r = await _fn('instagramPublicar')({ tipo: f.tipo, urls: f.urls, caption: f.caption });
         alert('Publicado ✅ id ' + r.data.id);
-        document.getElementById('igUrl').value = '';
-        document.getElementById('igCaption').value = '';
-      } catch(e){
-        alert('No se pudo publicar: ' + (e.message || e));
-      }
+        igLimpiar(); await refrescarInstagram();
+      } catch(e){ alert('No se pudo publicar: ' + (e.message || e)); }
       btn.textContent = txt; btn.disabled = false;
+    }
+
+    async function igProgramar(btn){
+      const f = igFormulario(); if (!f) return;
+      const cuando = document.getElementById('igCuando').value;
+      if (!cuando) { alert('Elige fecha y hora.'); return; }
+      // El input datetime-local entrega hora LOCAL sin zona; se convierte a ISO
+      // real para que el backend no la interprete como UTC y publique 4 h antes.
+      const iso = new Date(cuando).toISOString();
+      const txt = btn.textContent;
+      btn.textContent = 'Programando…'; btn.disabled = true;
+      try {
+        await _fn('instagramProgramar')({ tipo: f.tipo, urls: f.urls, caption: f.caption, publicarEn: iso });
+        igLimpiar(); await refrescarInstagram();
+      } catch(e){ alert('No se pudo programar: ' + (e.message || e)); }
+      btn.textContent = txt; btn.disabled = false;
+    }
+
+    async function igCancelar(id){
+      if (!confirm('¿Sacar esta publicación de la cola?')) return;
+      try { await _fn('instagramCancelarProgramada')({ id }); await refrescarInstagram(); }
+      catch(e){ alert('No se pudo cancelar: ' + (e.message || e)); }
+    }
+
+    /** Vuelve a leer solo Instagram y repinta esa sección. */
+    async function refrescarInstagram(){
+      try {
+        const r = await _fn('opsSnapshot')({});
+        if (r.data && r.data.instagram) ESTADO.instagram = r.data.instagram;
+      } catch(_) {}
+      const el = document.querySelector('.sec[data-sec="instagram"]');
+      if (el) { el.innerHTML = seccionInstagram(); bindInstagram(); }
+    }
+
+    function bindInstagram(){
+      const c = document.getElementById('igConectar');   if (c) c.onclick = () => igConectar(c);
+      const p = document.getElementById('igPublicar');   if (p) p.onclick = () => igPublicar(p);
+      const g = document.getElementById('igProgramar');  if (g) g.onclick = () => igProgramar(g);
+      document.querySelectorAll('[data-igdel]').forEach(b => b.onclick = () => igCancelar(b.dataset.igdel));
     }
 
     const LEAD_ESTADOS = {
@@ -1437,10 +1544,7 @@
       document.getElementById('out').onclick = () => firebase.auth().signOut();
       const bAds = document.getElementById('adsRefresh');
       if (bAds) bAds.onclick = () => refrescarAds(bAds);
-      const bIgC = document.getElementById('igConectar');
-      if (bIgC) bIgC.onclick = () => igConectar(bIgC);
-      const bIgP = document.getElementById('igPublicar');
-      if (bIgP) bIgP.onclick = () => igPublicar(bIgP);
+      bindInstagram();
 
       // ── Kill switch ──
       // Solo apaga, nunca enciende: encender es una decisión deliberada que

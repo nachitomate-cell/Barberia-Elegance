@@ -1847,6 +1847,13 @@ exports.instagramPlataformaEstado = igPlataforma.instagramPlataformaEstado;
 exports.instagramWebhook          = igPlataforma.instagramWebhook;
 exports.instagramPublicar         = igPlataforma.instagramPublicar;
 
+// Creativos programados: la cola de publicaciones y el cron que las saca.
+const igProgramador = require('./instagram-programador');
+exports.instagramProgramar            = igProgramador.instagramProgramar;
+exports.instagramProgramadas          = igProgramador.instagramProgramadas;
+exports.instagramCancelarProgramada   = igProgramador.instagramCancelarProgramada;
+exports.instagramProgramadasCron      = igProgramador.instagramProgramadasCron;
+
 const opsSnapshotModule = require('./ops-snapshot');
 exports.opsSnapshotCron     = opsSnapshotModule.opsSnapshotCron;
 exports.opsSnapshot         = opsSnapshotModule.opsSnapshot;
