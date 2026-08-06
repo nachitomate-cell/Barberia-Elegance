@@ -26,6 +26,7 @@ const { logger }    = require('firebase-functions');
 const admin         = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const Anthropic     = require('@anthropic-ai/sdk');
+const { logAiUsage } = require('./lib/metrics');
 
 const db = admin.firestore();
 
@@ -112,6 +113,9 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
       tools: toolsBase,
       messages,
     });
+    // Sin esto el gasto de este bot no aparece en ninguna métrica: el canal
+    // oficial consumía tokens que el panel de ops nunca vio.
+    logAiUsage(cerebro._MODEL, r.usage || {}, tid).catch(() => {});
     const toolUses = r.content.filter(b => b.type === 'tool_use');
     const textos   = r.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
     if (!toolUses.length) { finalText = textos; break; }

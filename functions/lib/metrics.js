@@ -6,14 +6,45 @@
 
 const admin = require('firebase-admin');
 const { FieldValue } = require('firebase-admin/firestore');
+const { logger } = require('firebase-functions');
 
 const db = admin.firestore();
 
 // Precio aprox. por millón de tokens (USD) para estimar costo de Claude.
+// Precios oficiales por millón de tokens. Cualquier modelo que se empiece a
+// usar TIENE que estar acá: lo que falta cae al precio por defecto y el gasto
+// que muestra ops queda por debajo del real (pasó con claude-sonnet-5, que
+// costaba 3x lo que se estaba contando).
 const PRICE = {
-  'claude-haiku-4-5-20251001': { in: 1.0, out: 5.0 },
-  'claude-sonnet-4-6':        { in: 3.0, out: 15.0 },
+  'claude-haiku-4-5-20251001': { in: 1.0,  out: 5.0  },
+  'claude-haiku-4-5':          { in: 1.0,  out: 5.0  },
+  'claude-sonnet-4-6':         { in: 3.0,  out: 15.0 },
+  'claude-sonnet-5':           { in: 3.0,  out: 15.0, intro: { in: 2.0, out: 10.0, hasta: '2026-08-31' } },
+  'claude-opus-4-8':           { in: 5.0,  out: 25.0 },
+  'claude-opus-5':             { in: 5.0,  out: 25.0 },
 };
+
+// El más caro de la tabla. Es el default a propósito: si aparece un modelo
+// desconocido preferimos SOBREestimar el gasto — una alarma de más se revisa,
+// un gasto invisible no se revisa nunca.
+const PRECIO_DESCONOCIDO = { in: 5.0, out: 25.0 };
+
+/**
+ * Precio vigente de un modelo. Contempla las tarifas de lanzamiento, que
+ * vencen en una fecha concreta: dejarlas fijas subcontaría desde ese día sin
+ * que nadie se entere.
+ */
+function precioDe(model, hoyISO) {
+  const p = PRICE[model];
+  if (!p) {
+    logger.warn(`[metrics] modelo sin precio en la tabla: "${model}" — se cobra al máximo conocido para no subcontar`);
+    return PRECIO_DESCONOCIDO;
+  }
+  if (p.intro && (hoyISO || new Date().toISOString().slice(0, 10)) <= p.intro.hasta) {
+    return { in: p.intro.in, out: p.intro.out };
+  }
+  return { in: p.in, out: p.out };
+}
 
 /* Día y mes en hora de CHILE, no UTC.
    Con toISOString() el contador cortaba a las 20:00 de Chile (medianoche UTC),
@@ -61,7 +92,7 @@ async function logWaSend(tid, tipo, ok) {
 // usa 1h. La API desglosa ambos en usage.cache_creation; si ese desglose no
 // viene, asumimos 1h (el TTL que usamos) para no subcontar el costo real.
 async function logAiUsage(model, usage = {}, tid = null) {
-  const p = PRICE[model] || { in: 1, out: 5 };
+  const p = precioDe(model, hoy());
   const inputTokens     = usage.input_tokens || 0;
   const outputTokens    = usage.output_tokens || 0;
   const cacheReadTokens = usage.cache_read_input_tokens || 0;

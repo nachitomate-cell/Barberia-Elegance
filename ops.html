@@ -1469,17 +1469,62 @@
       }
     }
 
+    /** La tira de números del día. Vive en la ola 1, así que el panel "Hoy"
+     *  siempre tiene algo que mostrar aunque el bot y los chips todavía no
+     *  hayan contestado (antes el recuadro salía con el título y nada más). */
+    function hoyHtml(h){
+      if (!h) return '';
+      const dato = (v, etiqueta, ayuda) =>
+        `<div style="flex:1 1 120px"><div class="tnum" style="font-size:20px;font-weight:600">${v}</div>
+         <div class="k" style="margin-top:2px">${tip(etiqueta, ayuda)}</div></div>`;
+      return `<div style="display:flex;flex-wrap:wrap;gap:14px 20px;padding:4px 0 12px">
+        ${dato(num(h.mensajes), 'Mensajes enviados',
+          'Mensajes de WhatsApp que salieron hoy desde la plataforma: recordatorios, confirmaciones y respuestas del bot.')}
+        ${dato(usd(h.costoUsd), 'Costo de IA',
+          'Lo que llevan gastado hoy los bots en Anthropic. Es costo de SynapTech, no del local.')}
+        ${dato(num(h.llamadas), 'Llamadas al modelo',
+          'Veces que se le preguntó algo a Claude hoy. Un mensaje de cliente puede gatillar varias.')}
+        ${dato(num(h.localesActivosHoy), 'Locales con bot activo',
+          'Locales cuyo bot respondió al menos una vez hoy. Si está muy por debajo de los conectados, hay canales encendidos que nadie usa.')}
+      </div>`;
+    }
+
+    /** Contenido del recuadro "Hoy". Lee de ESTADO y no de los argumentos de
+     *  render() a propósito: así el mismo HTML sirve para el primer pintado y
+     *  para el repintado de la ola 2, sin dos versiones que se desincronicen. */
+    function panelHoy(){
+      const t   = (ESTADO.metrics && ESTADO.metrics.total) || {};
+      const bc  = ESTADO.botCfg, ch = ESTADO.chips;
+      const on  = bc && bc.ventasBot === true;
+      const ses = bc && bc.estadoConexion === 'connected';
+      const pend = ESTADO.ventas ? (ESTADO.ventas.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
+      const chOn = ch ? (ch.chips||[]).filter(c => c.estadoConexion === 'connected').length : null;
+      const chTot = ch ? (ch.chips||[]).length : null;
+      const esperando = txt => `<div class="loc"><span class="dot warn"></span><span class="muted">${txt} · consultando…</span></div>`;
+      return `<h3>🧭 Hoy</h3>
+        ${hoyHtml(t.hoy)}
+        ${bc ? `<div class="loc">
+          <span class="dot ${on && ses ? 'on' : 'warn'}"></span>
+          Agente de ventas ${on ? 'encendido' : 'APAGADO'} · sesión ${ses ? 'abierta' : 'caída'}
+          ${pend ? `· <strong>${pend} lead(s) esperando tu confirmación</strong>` : ''}
+          <span style="margin-left:auto"><button class="mini" onclick="_setTab('ventas')">ir a Ventas</button></span>
+        </div>` : esperando('Agente de ventas')}
+        ${chTot != null ? `<div class="loc">
+          <span class="dot ${chOn ? 'on' : 'off'}"></span>
+          Chips WhatsApp: ${chOn}/${chTot} conectados
+          <span style="margin-left:auto"><button class="mini" onclick="_setTab('whatsapp')">ir a WhatsApp</button></span>
+        </div>` : esperando('Chips WhatsApp')}`;
+    }
+
     function render(data, chipsData, ventasData, botCfgData, cobranzaData){
       const t = data.total || {};
       const ic = { rojo:'🔴', ambar:'🟡', info:'🔵' };
       const alertasHtml = (data.alertas||[]).map(a =>
         `<div class="alerta ${a.nivel}"><span>${ic[a.nivel]||'•'}</span><span>${a.texto}</span></div>`).join('');
       // Estado del día para el Resumen (se calcula de lo ya cargado, sin viajes extra)
-      const botOn     = botCfgData && botCfgData.ventasBot === true;
-      const botSes    = botCfgData && botCfgData.estadoConexion === 'connected';
+      // El estado del bot y de los chips lo arma `panelHoy()`, que lee de
+      // ESTADO para servir igual al primer pintado y al repintado de la ola 2.
       const leadsPend = ventasData ? (ventasData.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
-      const chipsOn   = chipsData ? (chipsData.chips||[]).filter(c => c.estadoConexion === 'connected').length : null;
-      const chipsTot  = chipsData ? (chipsData.chips||[]).length : null;
 
       app.innerHTML = `
         <header>
@@ -1511,20 +1556,7 @@
               <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">${tip('Costo de IA que pagas (30d)', 'Lo que le cobra Anthropic a SynapTech por los bots. Es costo tuyo, no del local.')}</div></div>
               <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">${tip('Llamadas a la IA (30d)', 'Veces que se le preguntó algo al modelo. Un mensaje de cliente puede gatillar más de una.')}</div></div>
             </div>
-            <div class="panel" style="margin-top:14px">
-              <h3>🧭 Hoy</h3>
-              ${botCfgData ? `<div class="loc">
-                <span class="dot ${botOn && botSes ? 'on' : 'warn'}"></span>
-                Agente de ventas ${botOn ? 'encendido' : 'APAGADO'} · sesión ${botSes ? 'abierta' : 'caída'}
-                ${leadsPend ? `· <strong>${leadsPend} lead(s) esperando tu confirmación</strong>` : ''}
-                <span style="margin-left:auto"><button class="mini" onclick="_setTab('ventas')">ir a Ventas</button></span>
-              </div>` : ''}
-              ${chipsTot != null ? `<div class="loc">
-                <span class="dot ${chipsOn ? 'on' : 'off'}"></span>
-                Chips WhatsApp: ${chipsOn}/${chipsTot} conectados
-                <span style="margin-left:auto"><button class="mini" onclick="_setTab('whatsapp')">ir a WhatsApp</button></span>
-              </div>` : ''}
-            </div>
+            <div class="panel" id="panel-hoy" style="margin-top:14px">${panelHoy()}</div>
           </section>
 
           <section class="sec" data-sec="ads">
@@ -1821,6 +1853,11 @@
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();
+      // El recuadro "Hoy" del Resumen depende de datos de la ola 2 (bot de
+      // ventas, leads y chips) y `repintar` no lo tocaba: quedaba en
+      // "consultando…" para siempre porque el resumen se dibuja una sola vez.
+      const ph = document.getElementById('panel-hoy');
+      if (ph) ph.innerHTML = panelHoy();
       pintarBadges();
     }
 
@@ -1901,6 +1938,7 @@
             + ((ESTADO.metrics.barberia && ESTADO.metrics.barberia.chips) || []).map(chipPanel).join('')
             + metaWaPanel(ESTADO.metrics.metaWhatsApp);
         }
+        repintar('resumen');   // el contador de chips vive también en "Hoy"
       }).catch(() => {});
     }
 

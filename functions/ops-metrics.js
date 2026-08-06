@@ -684,10 +684,23 @@ async function calcularMetricas() {
 
   const localesActivos = locales.filter((l) => l.estado === 'connected').length;
 
+  // El día de hoy aparte del acumulado de 30. El panel "Hoy" del resumen se
+  // dibujaba solo con datos de la ola 2 (bot de ventas y chips) y por eso salía
+  // vacío en la primera carga; con esto trae siempre lo que pasó en el día, que
+  // ya está leído acá y no cuesta ninguna lectura extra.
+  const dHoy   = aiSnaps[0]?.data() || {};
+  const dHoyWa = waSnaps[0]?.data() || {};
+  const hoyBarberia = {
+    mensajes: Number(dHoyWa.total) || 0,
+    costoUsd: Number(dHoy.costUsd) || 0,
+    llamadas: Number(dHoy.llamadas) || 0,
+  };
+
   const barberia = {
     proyecto: 'barberia', localesActivos, locales,
     mensajes: { total: mensajes, ok: mensajesOk, porDia },
     claude: { costoUsd, tokensIn, tokensOut, llamadas },
+    hoy: hoyBarberia,
     negocio: negocioTotal,          // mes en curso
     chip,     // el principal — compat con la vista actual de ops
     chips,    // todos, para el panel por chip
@@ -763,6 +776,17 @@ async function calcularMetricas() {
     mensajes:       barberia.mensajes.total + (sushipro?.mensajes?.total || 0),
     costoUsd:       barberia.claude.costoUsd + (sushipro?.claude?.costoUsd || 0),
     llamadasIA:     barberia.claude.llamadas + (sushipro?.claude?.llamadas || 0),
+    // conexion/SushiPro todavía no expone su día; suma 0 mientras tanto en vez
+    // de dejar el bloque sin número.
+    hoy: {
+      mensajes: hoyBarberia.mensajes + (sushipro?.hoy?.mensajes || 0),
+      costoUsd: hoyBarberia.costoUsd + (sushipro?.hoy?.costoUsd || 0),
+      llamadas: hoyBarberia.llamadas + (sushipro?.hoy?.llamadas || 0),
+      // Locales cuyo bot habló hoy. El negocio del bot (citas agendadas) solo
+      // se guarda por mes, así que no hay un "citas de hoy" que mostrar sin
+      // inventarlo: este número sí es real y sale de datos ya leídos.
+      localesActivosHoy: locales.filter((l) => (l.ia?.llamadasHoy || 0) > 0).length,
+    },
   };
 
   return { total, barberia, sushipro, sushiError, alertas, trials, email: usoEmail, metaWhatsApp, mesActual, generadoEn: Date.now() };

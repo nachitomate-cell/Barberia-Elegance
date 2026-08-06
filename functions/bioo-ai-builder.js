@@ -27,6 +27,7 @@ const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { FieldValue }         = require('firebase-admin/firestore');
 const Anthropic              = require('@anthropic-ai/sdk');
+const { logAiUsage }         = require('./lib/metrics');
 
 const db = admin.firestore();
 
@@ -298,6 +299,9 @@ exports.biooAiGenerate = onCall(
         tool_choice: { type: 'tool', name: 'generate_bio' },
         messages: [{ role: 'user', content: buildUserPrompt(prompt, niche) }],
       });
+      // Vendor propio: el constructor de bios no es un local, así que su gasto
+      // se agrupa aparte en vez de ensuciar el costo de algún tenant.
+      logAiUsage(MODEL, msg.usage || {}, 'bioo').catch(() => {});
       // El último content block debería ser el tool_use con la respuesta.
       const toolBlock = (msg.content || []).find((c) => c.type === 'tool_use' && c.name === 'generate_bio');
       if (!toolBlock) {
