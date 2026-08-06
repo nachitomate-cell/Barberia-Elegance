@@ -97,6 +97,27 @@
   @media(max-width:720px){ .cols{ grid-template-columns:1fr; } }
   .panel{ background:var(--surface); border:1px solid var(--glass-border); border-radius:16px; padding:16px; }
 
+  /* ── Explicaciones ───────────────────────────────────────────────────
+     Un tablero interno se lee a las 3 de la mañana y con sueño. Cada panel
+     dice en una línea qué pregunta responde, y todo dato abreviado lleva su
+     traducción a mano. El subrayado punteado existe para que se vea que hay
+     algo que leer: un `title` sin pista visual no lo descubre nadie. */
+  .hint{ margin:-4px 0 12px; font-size:11.5px; line-height:1.5; color:var(--soft); }
+  /* La pista tiene que existir sin gritar: con el punteado al 55% cada fila
+     del panel quedaba subrayada y la vista se volvía un campo de rayas. Al
+     22% se lee como textura, y al pasar el mouse se enciende. */
+  .tip{ border-bottom:1px dotted rgba(143,163,184,.22); cursor:help; }
+  .tip:hover{ border-bottom-color:var(--lima); color:#fff; }
+  .glosario{ margin-top:14px; border-top:1px solid var(--hairline); padding-top:10px; }
+  .glosario summary{ cursor:pointer; font-size:11.5px; color:var(--soft); list-style:none; user-select:none; }
+  .glosario summary::-webkit-details-marker{ display:none; }
+  .glosario summary:before{ content:'▸ '; }
+  .glosario[open] summary:before{ content:'▾ '; }
+  .glosario summary:hover{ color:var(--lima); }
+  .glosario dl{ margin:10px 0 0; display:grid; grid-template-columns:auto 1fr; gap:7px 12px; font-size:11.5px; }
+  .glosario dt{ color:#fff; font-weight:600; white-space:nowrap; }
+  .glosario dd{ margin:0; color:var(--soft); line-height:1.5; }
+
   /* ── Frescura del snapshot ───────────────────────────────────────────
      El panel se sirve de un doc precalculado, así que SIEMPRE dice de
      cuándo es el dato. Fingir que es de este instante sería mentir sobre
@@ -204,6 +225,11 @@
     const usd = n => 'US$' + (Number(n)||0).toFixed(2);
     const num = n => (Number(n)||0).toLocaleString('es-CL');
 
+    /** Envuelve un texto con su explicación al pasar el mouse. El subrayado
+     *  punteado es la parte importante: avisa que hay algo que leer. */
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const tip = (texto, explicacion) => `<span class="tip" title="${esc(explicacion)}">${texto}</span>`;
+
     function loginView(msg){
       app.innerHTML = `<div class="login">
         <h2>Operaciones · SynapTech</h2>
@@ -234,10 +260,10 @@
       const base = pct>=85 ? 'var(--red)' : (pct>=60 ? 'var(--amber)' : 'var(--green)');
       const fill = `linear-gradient(90deg, ${base} 0%, ${base} 100%)`;
       return `<span class="sub2" style="display:flex;align-items:center;gap:10px">
-        <span style="flex:0 0 90px;color:var(--soft)">salientes hoy</span>
+        <span class="tip" style="flex:0 0 auto;color:var(--soft)" title="${esc('Mensajes que salieron hoy desde este número contra su tope diario. El tope es anti-ban y sube con la antigüedad del chip: pasarse es arriesgar que Meta lo bloquee. Verde bajo 60%, ámbar hasta 85%, rojo sobre eso.')}">salientes hoy</span>
         <span class="bar"><i style="width:${pct}%;background:${fill}"></i></span>
         <span class="tnum" style="flex:0 0 auto;color:#fff;font-weight:500">${c.salientes}/${c.capTotal}</span>
-        <span style="color:var(--soft)">· confirm ${c.confirmaciones}/${c.capConfirm}${c.fallos?` · <span style="color:var(--red)">${c.fallos} fallo(s)</span>`:''}</span>
+        <span style="color:var(--soft)">· <span class="tip" title="${esc('Recordatorios de cita enviados hoy contra su propio tope, aparte del general.')}">confirm ${c.confirmaciones}/${c.capConfirm}</span>${c.fallos?` · <span class="tip" title="${esc('Mensajes que WhatsApp rechazó hoy. Varios seguidos suelen anticipar un bloqueo del número.')}" style="color:var(--red)">${c.fallos} fallo(s)</span>`:''}</span>
       </span>`;
     }
     function locRow(l){
@@ -247,25 +273,26 @@
       // aunque vaya en cero. Escondiéndolo cuando no hay consumo, un local que
       // dejó de gastar (bot mudo, sesión caída) se ve idéntico a uno que nunca
       // gastó — y esa es justamente la diferencia que hay que notar.
-      if(l.bot || ia.costoHoy || ia.llamadasHoy) partes.push(`IA hoy ${usd(ia.costoHoy)} · ${num(ia.llamadasHoy)} llam.`);
-      if(l.bot || ia.costoUsd) partes.push(`mes ${usd(ia.costoUsd)}`);
+      if(l.bot || ia.costoHoy || ia.llamadasHoy) partes.push(tip(`IA hoy ${usd(ia.costoHoy)} · ${num(ia.llamadasHoy)} llam.`, 'Lo que le costó hoy a SynapTech el bot de este local, y cuántas veces se llamó al modelo. No se le cobra al local.'));
+      if(l.bot || ia.costoUsd) partes.push(tip(`mes ${usd(ia.costoUsd)}`, 'Acumulado del mes en curso para este local.'));
       if(ia.cacheHit!=null){
         const hp = Math.round(ia.cacheHit*100);
-        partes.push(`<span style="color:${hp<60?'var(--red)':'var(--green)'}">caché ${hp}%</span>`);
+        partes.push(`<span class="tip" title="${esc('Porcentaje del prompt que se reusó en vez de reprocesarse. Bajo 60% el mismo tráfico cuesta el doble: se rompió el prefijo cacheado. Se revisa con npm run check:bot-prompt.')}" style="color:${hp<60?'var(--red)':'var(--green)'}">caché ${hp}%</span>`);
       }
       // Saldo de la bolsa del canal oficial. Solo para quien tiene ese canal
       // contratado: en los demás sería un cero que no significa nada.
       const of = l.oficial || {};
       if(of.planCliente || of.planRecordatorio){
         const s = Number(of.saldo)||0;
-        partes.push(`<span style="color:${s===0?'var(--red)':s<=10?'var(--amber)':'var(--soft)'}">📩 ${num(s)} msj en bolsa</span>`);
+        partes.push(`<span class="tip" title="${esc('Mensajes que le quedan al local en su bolsa del canal oficial de Meta. En cero, sus confirmaciones se detienen hasta que recargue.')}" style="color:${s===0?'var(--red)':s<=10?'var(--amber)':'var(--soft)'}">📩 ${num(s)} msj en bolsa</span>`);
       }
-      if(l.negocio && (l.negocio.agendadas || l.negocio.canceladas)) partes.push(`✂️ ${num(l.negocio.agendadas)} agendada(s) · ${num(l.negocio.canceladas)} cancelada(s)`);
-      if(l.negocio && (l.negocio.confSi || l.negocio.confNo)) partes.push(`confirm ✓${num(l.negocio.confSi)} ✗${num(l.negocio.confNo)}`);
-      if(l.negocio && l.negocio.optout) partes.push(`<span style="color:var(--red)">🚫 ${num(l.negocio.optout)} baja(s)</span>`);
-      if(l.silenciados) partes.push(`🔇 ${l.silenciados} chat(s) en pausa`);
+      if(l.negocio && (l.negocio.agendadas || l.negocio.canceladas)) partes.push(tip(`✂️ ${num(l.negocio.agendadas)} agendada(s) · ${num(l.negocio.canceladas)} cancelada(s)`, 'Citas creadas y anuladas en el mes por TODOS los canales (bot, web y a mano), no solo por el bot.'));
+      if(l.negocio && (l.negocio.confSi || l.negocio.confNo)) partes.push(tip(`confirm ✓${num(l.negocio.confSi)} ✗${num(l.negocio.confNo)}`, 'Respuestas de los clientes al recordatorio: cuántos confirmaron que venían y cuántos avisaron que no.'));
+      if(l.negocio && l.negocio.optout) partes.push(`<span class="tip" title="${esc('Clientes que pidieron no recibir más mensajes. Quedan en la lista de opt-out y no se les vuelve a escribir.')}" style="color:var(--red)">🚫 ${num(l.negocio.optout)} baja(s)</span>`);
+      if(l.silenciados) partes.push(tip(`🔇 ${l.silenciados} chat(s) en pausa`, 'Chats donde alguien del local escribió a mano, así que el bot se calló ahí para no pisarlo.'));
       if(l.salud==='caida' && l.minCaida) partes.push(`⚠ caída hace ${l.minCaida>=60?Math.floor(l.minCaida/60)+' h':l.minCaida+' min'}`);
-      if(l.edadDias!=null) partes.push(`nº de ${l.edadDias} día(s)`);
+      // "nº de 14 día(s)" no lo entiende nadie que no haya escrito el código.
+      if(l.edadDias!=null) partes.push(tip(`chip de ${l.edadDias} día(s)`, 'Antigüedad del número de WhatsApp. Mientras más nuevo, más bajo su tope diario de mensajes: los chips recién creados que mandan mucho son los que Meta bloquea.'));
       const activo = l.bot || l.conf;
       return `<div class="loc">
         <span class="dot ${dotClass(l)}"></span>
@@ -283,18 +310,43 @@
       const locs = (d.locales||[]).map(locRow).join('') || '<p class="muted">Sin locales con canal.</p>';
       const neg = d.negocio;
       const negRows = neg ? `
-        <div class="row"><span>Citas agendadas por bot (mes)</span><span class="v tnum">${num(neg.agendadas)}</span></div>
-        <div class="row"><span>Confirmaciones ✓ / ✗ (mes)</span><span class="v tnum">${num(neg.confSi)} / ${num(neg.confNo)}</span></div>` : '';
+        <div class="row"><span>${tip('Citas que agendó el bot', 'Reservas creadas por el asistente de IA conversando por WhatsApp, sin que nadie del local las tocara. Mes en curso.')} <span class="muted">(mes)</span></span><span class="v tnum">${num(neg.agendadas)}</span></div>
+        <div class="row"><span>${tip('Clientes que confirmaron / cancelaron', 'Respuestas de los clientes al recordatorio automático: cuántos dijeron que sí venían y cuántos avisaron que no. Mes en curso.')} <span class="muted">(mes)</span></span><span class="v tnum">${num(neg.confSi)} / ${num(neg.confNo)}</span></div>` : '';
       return `<div class="panel">
         <h3>${nombre}</h3>
-        <div class="row"><span>Locales activos</span><span class="v tnum">${d.localesActivos||0}</span></div>
-        <div class="row"><span>Mensajes (30d)</span><span class="v tnum">${num(d.mensajes?.total)}</span></div>
-        <div class="row"><span>Costo Claude (30d)</span><span class="v tnum">${usd(d.claude?.costoUsd)}</span></div>
-        <div class="row"><span>Llamadas IA</span><span class="v tnum">${num(d.claude?.llamadas)}</span></div>
+        <p class="hint">Los locales que tienen un número de WhatsApp vinculado a la plataforma. Los que no lo tienen no aparecen acá aunque sean clientes.</p>
+        <div class="row"><span>${tip('Locales con WhatsApp conectado', 'Locales cuya sesión de WhatsApp está viva ahora mismo. No es la cantidad de clientes que pagan: un local puede pagar y tener el canal apagado.')}</span><span class="v tnum">${d.localesActivos||0}</span></div>
+        <div class="row"><span>${tip('Mensajes que envió la plataforma', 'Total de mensajes de WhatsApp que salieron desde SynapTech en los últimos 30 días, sumando todos los locales: recordatorios, confirmaciones y respuestas del bot.')} <span class="muted">(30d)</span></span><span class="v tnum">${num(d.mensajes?.total)}</span></div>
+        <div class="row"><span>${tip('Costo de IA que paga SynapTech', 'Lo que le cobra Anthropic a SynapTech por el bot, en dólares. NO se le cobra al local: si un local se dispara, el margen lo absorbes tú.')} <span class="muted">(30d)</span></span><span class="v tnum">${usd(d.claude?.costoUsd)}</span></div>
+        <div class="row"><span>${tip('Llamadas a la IA', 'Cuántas veces se le preguntó algo al modelo en 30 días. Cada mensaje de un cliente puede gatillar más de una.')} <span class="muted">(30d)</span></span><span class="v tnum">${num(d.claude?.llamadas)}</span></div>
         ${negRows}
         <div style="margin-top:12px">${locs}</div>
+        ${GLOSARIO_LOCAL}
       </div>`;
     }
+
+    /* El detalle de cada local va comprimido a una línea por necesidad — con
+       cuatro locales cabe todo, con veinte no. La compresión tiene precio:
+       "nº de 14 día(s)" no significa nada para quien no escribió el código.
+       Este glosario es ese precio pagado, y va plegado para no robarle
+       espacio a quien ya lo sabe. */
+    const GLOSARIO_LOCAL = `<details class="glosario">
+      <summary>¿Qué significa cada dato de la línea de un local?</summary>
+      <dl>
+        <dt>🟢 / 🔴 / ⚪</dt><dd>Verde: WhatsApp conectado. Rojo: se cayó y hay módulos activos, o sea el local está mudo ahora mismo. Gris: vinculado pero con bot y confirmaciones apagados.</dd>
+        <dt>bot</dt><dd>El asistente de IA responde y agenda por ese número.</dd>
+        <dt>confirm / react</dt><dd>El local manda recordatorios automáticos de cita (o mensajes de reactivación a clientes dormidos).</dd>
+        <dt>IA hoy</dt><dd>Dólares que le costó a SynapTech el bot de ese local en el día, y cuántas veces se llamó al modelo.</dd>
+        <dt>caché</dt><dd>Porcentaje del prompt que se reusó en vez de reprocesarse. Bajo 60% el costo del mismo tráfico se duplica: se rompió el prefijo cacheado.</dd>
+        <dt>msj en bolsa</dt><dd>Mensajes que le quedan al local en su bolsa del canal oficial de Meta. En cero, sus confirmaciones se detienen hasta que recargue.</dd>
+        <dt>agendada(s)</dt><dd>Citas creadas y anuladas en el mes, contando las de todos los canales, no solo las del bot.</dd>
+        <dt>salientes hoy</dt><dd>Mensajes que salieron hoy desde ese número contra su tope diario. El tope es anti-ban y depende de la antigüedad del chip: pasarse es arriesgar que Meta lo bloquee. Verde bajo 60%, ámbar hasta 85%, rojo sobre eso.</dd>
+        <dt>confirm 0/60</dt><dd>Lo mismo pero solo para recordatorios de cita, que tienen su propio tope aparte.</dd>
+        <dt>chip de N días</dt><dd>Antigüedad del número de WhatsApp. Mientras más nuevo, más bajo su tope diario: los chips recién creados que mandan mucho son los que Meta banea.</dd>
+        <dt>en pausa</dt><dd>Chats donde alguien del local escribió a mano, así que el bot se calló para no pisarlo.</dd>
+        <dt>baja(s)</dt><dd>Clientes que pidieron no recibir más mensajes. Van a la lista de opt-out y no se les vuelve a escribir.</dd>
+      </dl>
+    </details>`;
 
     /* ── Gasto de Claude por local ──────────────────────────────────────
        El costo de IA es el único insumo del bot que escala con el uso y NO
@@ -340,13 +392,14 @@
 
       return `<div class="panel" style="margin-top:14px">
         <h3>🧠 Gasto de Claude por local · bot IA</h3>
-        <div class="row"><span>Hoy, sumando locales</span><span class="v tnum">${usd(totalHoy)}</span></div>
-        <div class="row"><span>Mes en curso</span><span class="v tnum">${usd(totalMes)}</span></div>
-        <div class="row"><span>Proyección de cierre</span><span class="v tnum" style="color:${proy>20?'var(--amber)':'inherit'}">${usd(proy)}</span></div>
+        <p class="hint">Cuánto te cuesta a ti el bot de cada local. Es el único insumo que crece con el uso y que <b>no</b> se le cobra al local: si uno se dispara, el margen lo pagas tú. Ordenado por el que más gasta en el mes.</p>
+        <div class="row"><span>${tip('Hoy, sumando locales', 'Lo que va del día de hoy, todos los locales juntos.')}</span><span class="v tnum">${usd(totalHoy)}</span></div>
+        <div class="row"><span>${tip('Mes en curso', 'Acumulado desde el día 1 del mes hasta ahora.')}</span><span class="v tnum">${usd(totalMes)}</span></div>
+        <div class="row"><span>${tip('Proyección de cierre', 'Si el ritmo del mes se mantiene igual, esto es lo que se facturaría al terminar el mes. Es una regla de tres simple sobre los días transcurridos, no un pronóstico fino.')}</span><span class="v tnum" style="color:${proy>20?'var(--amber)':'inherit'}">${usd(proy)}</span></div>
         <div style="margin-top:12px">${ordenados.map(fila).join('')}</div>
         <div class="muted" style="margin-top:8px">
-          Es costo de tokens de Anthropic, no lo que paga el local. Para acotarlo se baja el
-          <b>tope de conversaciones/día</b> de ese local desde /admin. Un caché bajo 60% duplica el costo del mismo tráfico.
+          Si un local se dispara, se le baja el <b>tope de conversaciones/día</b> desde /admin. La barra morada compara
+          a cada local contra el que más gasta. Un caché bajo 60% duplica el costo del mismo tráfico.
         </div>
       </div>`;
     }
@@ -430,7 +483,10 @@
         const estado = t.diasRestantes < 0 ? `VENCIDO hace ${Math.abs(t.diasRestantes)} día(s)` : `${t.diasRestantes} día(s) restantes`;
         return `<div class="row"><span>${t.tid}${t.tipo?` <span class="muted">· ${t.tipo}</span>`:''}</span><span class="v tnum ${cls}">${t.fin} · ${estado}</span></div>`;
       }).join('');
-      return `<div class="panel" style="margin-top:14px"><h3>⏳ Trials activos</h3>${rows}</div>`;
+      return `<div class="panel" style="margin-top:14px">
+        <h3>⏳ Trials activos</h3>
+        <p class="hint">Locales con periodo de prueba o tarifa especial vigente. La fecha es <b>cuándo se les acaba</b>: ámbar cuando faltan 7 días o menos, rojo si ya venció y sigue usando la plataforma gratis.</p>
+        ${rows}</div>`;
     }
 
     /* ── Salud del chip compartido de SynapTech ──────────────────────────
@@ -692,12 +748,12 @@
         <div class="kpis" style="margin-bottom:14px">
           <div class="kpi hero">
             <div class="n tnum">${clpOpt(cpc)}</div>
-            <div class="k">Costo / conversación ${delta(vsBench, true)}</div>
+            <div class="k">${tip('Costo / conversación', 'Cuánto cuesta que un dueño de local abra una conversación de WhatsApp desde el anuncio. Es el precio de entrada al embudo, no de un cliente.')} ${delta(vsBench, true)}</div>
             <div class="costo" style="margin-top:4px">benchmark ${clpOpt(bench)}${vsPrev !== null ? ` · vs semana previa ${delta(vsPrev, true)}` : ''}</div>
           </div>
-          <div class="kpi"><div class="n tnum">${clpOpt(r.gasto)}</div><div class="k">Gasto 7 días</div></div>
-          <div class="kpi"><div class="n tnum">${r.conversaciones ?? 0}</div><div class="k">Conversaciones</div></div>
-          <div class="kpi"><div class="n tnum">${m.embudo ? m.embudo.trials7d : '—'}</div><div class="k">Trials creados (7d)</div></div>
+          <div class="kpi"><div class="n tnum">${clpOpt(r.gasto)}</div><div class="k">${tip('Gasto 7 días', 'Plata gastada en Meta en los últimos 7 días con actividad, todas las campañas juntas.')}</div></div>
+          <div class="kpi"><div class="n tnum">${r.conversaciones ?? 0}</div><div class="k">${tip('Conversaciones', 'Personas que abrieron un chat de WhatsApp desde un anuncio, según Meta. Que abran no significa que hayan dicho algo útil.')}</div></div>
+          <div class="kpi"><div class="n tnum">${m.embudo ? m.embudo.trials7d : '—'}</div><div class="k">${tip('Trials creados (7d)', 'Locales que crearon su agenda en /crea en la semana. Es el resultado que de verdad importa: sin píxel todavía no se puede saber cuáles vinieron del anuncio.')}</div></div>
         </div>
 
         ${activas === 0 ? `<div class="alerta ambar"><span>⏸️</span><span>
@@ -707,6 +763,7 @@
         <div class="cols" style="margin-top:0">
           <div class="panel">
             <h3>🔻 Embudo real · 7 días</h3>
+            <p class="hint">Cada escalón es cuánta gente sobrevivió al anterior, y a la derecha lo que costó cada una. <b>El escalón donde el precio se dispara es el que hay que arreglar</b> — no el de más arriba.</p>
             ${embudoHtml(m.embudo)}
             ${m.embudo && m.embudo.chatsConAnuncio7d === 0 && m.embudo.chatsTotales7d > 0 ? `
               <p class="muted" style="font-size:11.5px;margin-top:10px">
@@ -725,8 +782,17 @@
 
         <div class="panel" style="margin-top:14px">
           <h3>🎬 Por anuncio · 7 días</h3>
+          <p class="hint">$/conv en verde va bajo tu benchmark de ${clpOpt(bench)}, ámbar lo pasa y rojo lo triplica (ahí se mata el anuncio). Pasa el mouse sobre cada columna para ver qué mide.</p>
           ${anuncios.length ? `<table class="tb">
-            <thead><tr><th>Anuncio</th><th class="num">Gasto</th><th class="num">Conv</th><th class="num">$/conv</th><th class="num">CTR</th><th class="num">Freq</th><th class="num">Leads</th></tr></thead>
+            <thead><tr>
+              <th>Anuncio</th>
+              <th class="num">${tip('Gasto', 'Plata que consumió este anuncio en los últimos 7 días.')}</th>
+              <th class="num">${tip('Conv', 'Conversaciones de WhatsApp que abrió este anuncio.')}</th>
+              <th class="num">${tip('$/conv', 'Gasto dividido por conversaciones. Verde bajo el benchmark, ámbar encima, rojo si lo triplica.')}</th>
+              <th class="num">${tip('CTR', 'De cada 100 personas que vieron el anuncio, cuántas hicieron clic. Ojo: un CTR alto con pocas conversaciones significa que atrae curiosos, no compradores.')}</th>
+              <th class="num">${tip('Freq', 'Cuántas veces vio el anuncio la misma persona, en promedio. Sobre 3 el público se está quemando y hay que renovar el creativo.')}</th>
+              <th class="num">${tip('Leads', 'Personas de este anuncio que llegaron a pedir una reunión. Se cuenta con el referido que Meta adjunta al chat, así que solo aparece con campañas corriendo.')}</th>
+            </tr></thead>
             <tbody>${anuncios.map(a => {
               const at = porAnuncio[a.id] || {};
               // Semáforo del anuncio: el benchmark manda. Sobre 3x se mata.
@@ -1088,7 +1154,7 @@
         <header>
           <div>
             <h1>Operaciones · SynapTech</h1>
-            <div class="sub">últimos 30 días · <span id="frescura">${frescuraHtml()}</span></div>
+            <div class="sub">últimos 30 días · <span id="frescura">${frescuraHtml()}</span> · <span class="muted" style="font-size:10.5px">pasa el mouse sobre cualquier dato para ver qué mide</span></div>
           </div>
           <div class="acts"><button id="panic" class="panic" title="Apaga bot y confirmaciones en TODOS los locales">🛑 Apagar todo</button><button id="refresh" title="Recalcula todo desde cero (tarda unos segundos)">Actualizar</button><button id="out">Salir</button></div>
         </header>
@@ -1108,10 +1174,10 @@
 
           <section class="sec" data-sec="resumen">
             <div class="kpis">
-              <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">Locales activos</div></div>
-              <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">Mensajes WhatsApp (30d)</div></div>
-              <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">Costo Claude (30d)</div></div>
-              <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">Llamadas a la IA</div></div>
+              <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">${tip('Locales con WhatsApp conectado', 'Locales con la sesión de WhatsApp viva ahora mismo, sumando barbería y SushiPro. No es la cantidad de clientes que pagan.')}</div></div>
+              <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">${tip('Mensajes enviados (30d)', 'Mensajes de WhatsApp que salieron desde la plataforma en 30 días: recordatorios, confirmaciones y respuestas del bot.')}</div></div>
+              <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">${tip('Costo de IA que pagas (30d)', 'Lo que le cobra Anthropic a SynapTech por los bots. Es costo tuyo, no del local.')}</div></div>
+              <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">${tip('Llamadas a la IA (30d)', 'Veces que se le preguntó algo al modelo. Un mensaje de cliente puede gatillar más de una.')}</div></div>
             </div>
             <div class="panel" style="margin-top:14px">
               <h3>🧭 Hoy</h3>

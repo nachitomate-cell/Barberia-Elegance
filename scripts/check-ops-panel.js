@@ -112,7 +112,33 @@ ok('los bloques anchos ocupan la fila completa',
   /grid-column:1 \/ -1/.test(est),
   'kpis/.cols/.full quedarían encerrados en una columna');
 
-/* ── 5. Paleta SynapTech ─────────────────────────────────────────────────── */
+/* ── 5. Que cada dato se explique ────────────────────────────────────────── */
+// Un tablero interno se lee con sueño y a las 3 de la mañana. Cifras sin
+// unidad ni contexto ("Locales activos: 4" — ¿activos en qué sentido?) obligan
+// a ir al código para interpretarlas, que es justo lo que un panel evita.
+console.log('\n📖 Claridad de los datos');
+ok('existe el helper de tooltips', src.includes('const tip = ('), 'se perdió tip(texto, explicacion)');
+ok('los tooltips escapan el texto', /const esc\s*=/.test(src) && /esc\(explicacion\)/.test(src),
+  'una explicación con comillas rompería el atributo title');
+const nTips = (src.match(/\btip\(/g) || []).length;
+ok(`hay explicaciones repartidas (${nTips})`, nTips >= 20, `solo ${nTips}: faltan datos por explicar`);
+const nHints = (src.match(/class="hint"/g) || []).length;
+ok(`los paneles dicen qué responden (${nHints} subtítulos)`, nHints >= 5, `solo ${nHints}`);
+ok('el glosario de la línea de local existe',
+  src.includes('GLOSARIO_LOCAL') && /<details class="glosario">/.test(src),
+  'sin él, la línea comprimida de cada local es indescifrable');
+ok('el header avisa que los datos son explorables',
+  /pasa el mouse sobre cualquier dato/i.test(src),
+  'nadie descubre un tooltip que no se anuncia');
+
+// Regresiones concretas de jerga que ya se tradujo una vez.
+ok('no volvió el críptico "nº de N día(s)"', !/nº de \$\{l\.edadDias\}/.test(src),
+  'debe decir "chip de N días", que es lo que significa');
+ok('"Locales activos" dice de qué están activos',
+  !/>Locales activos</.test(src),
+  'ambiguo: no es la cantidad de clientes que pagan');
+
+/* ── 6. Paleta SynapTech ─────────────────────────────────────────────────── */
 console.log('\n🎨 Paleta');
 const estilo = (html.match(/<style>([\s\S]*?)<\/style>/i) || [, ''])[1];
 ok('usa la lima de marca (#9CCC3C)', /#9CCC3C/i.test(estilo), 'no está el verde de marca');
