@@ -4734,10 +4734,12 @@
           <h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:800;">Tarifas SynapTech</h3>
           <button onclick="document.getElementById('tarifas-modal').remove()" style="background:none;border:none;color:#64748b;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
         </div>
-        <!-- Lista OFICIAL unificada 2026-08-07: Básico/Pro/Anual, IVA incluido
-             (la misma de crea.html y TrialGate). Multi-local = cotización. -->
-        ${card('Plan Básico', '1 profesional · agenda + club + panel', '29.900', 'IVA incluido', false)}
-        ${card('Plan Pro', 'Equipo ilimitado · IA + Wallet · caja y métricas', '49.900', 'IVA incluido', true)}
+        <!-- Lista OFICIAL unificada 2026-08-07: Básico/Pro/Full/Anual, IVA
+             incluido (la misma de crea.html y TrialGate). Caja/comisiones/
+             métricas van en TODOS. Multi-local = cotización. -->
+        ${card('Plan Básico', 'Profesionales ilimitados · panel completo con caja y métricas', '29.900', 'IVA incluido', false)}
+        ${card('Plan Pro', 'Todo lo del Básico · IA WhatsApp · Wallet', '49.900', 'IVA incluido', true)}
+        ${card('Plan Full', 'Todo el Pro · IA también en Instagram · Reactivación', '69.900', 'IVA incluido', false)}
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div><p style="margin:0;color:#fff;font-weight:700;font-size:0.9rem;">Plan Anual</p><p style="margin:0;color:#64748b;font-size:0.72rem;">Todo el Pro · un pago (equivale a 9 meses)</p></div>
@@ -8463,9 +8465,10 @@
           <p class="wz-sec">3 · Mensualidad</p>
           <!-- Presets = lista oficial 2026-08-07. El monto va NETO (el cobro
                aplica IVA): 25.126→$29.900 público · 41.933→$49.900 público. -->
-          <div style="display:flex; gap:0.5rem; margin-bottom:0.625rem;">
-            <button type="button" class="wz-preset" onclick="wzPlan('Básico · 1 profesional',25126)">Básico $29.900</button>
-            <button type="button" class="wz-preset" onclick="wzPlan('Pro · IA + Wallet',41933)">Pro $49.900</button>
+          <div style="display:flex; gap:0.5rem; margin-bottom:0.625rem; flex-wrap:wrap;">
+            <button type="button" class="wz-preset" onclick="wzPlan('Básico',25126)">Básico $29.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('Pro · IA WhatsApp + Wallet',41933)">Pro $49.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('Full · IA WA+IG + Reactivación',58739)">Full $69.900</button>
             <button type="button" class="wz-preset" onclick="wzPlan('',0)">Gratis/después</button>
           </div>
           <div class="wz-grid2">

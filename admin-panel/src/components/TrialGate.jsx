@@ -31,6 +31,9 @@ const WA_SYNAPTECH = '56983568212';
 const BANNER_DESDE_DIAS = 4;   // días 11-14 de un trial de 14
 const REGION = 'us-central1';
 
+// Caja, comisiones y métricas van en TODOS los planes: nunca estuvieron
+// bloqueadas por plan en el producto, así que venderlas como exclusivas
+// del Pro era mentirle al Básico (pedido de Ignacio, 07-08).
 const PLANES = [
   {
     id: 'basico',
@@ -39,9 +42,9 @@ const PLANES = [
     para: 'Para partir sin complicaciones',
     bullets: [
       'Agenda online con reservas ilimitadas',
+      'Profesionales ilimitados en la agenda',
       'Club de fidelidad con sellos y premios',
-      'Panel completo desde el celular',
-      'Un profesional en la agenda',
+      'Caja, comisiones y métricas del negocio',
     ],
   },
   {
@@ -52,10 +55,21 @@ const PLANES = [
     destacado: true,
     badge: 'IA + Wallet',
     bullets: [
-      'Todo lo del Básico + equipo ilimitado',
-      'Bot de WhatsApp con IA 24/7',
+      'Todo lo del Básico incluido',
+      'Bot de WhatsApp con IA 24/7, sin tope',
       'Google & Apple Wallet para tus clientes',
-      'Caja, comisiones y métricas del negocio',
+    ],
+  },
+  {
+    id: 'full',
+    nombre: 'Plan Full',
+    precio: '$69.900',
+    para: 'La IA en todos tus canales',
+    badge: 'WhatsApp + Instagram',
+    bullets: [
+      'Todo lo del Pro incluido',
+      'El bot también contesta tus DM de Instagram',
+      'Reactivación IA de clientes perdidos incluida',
     ],
   },
   {
@@ -68,7 +82,6 @@ const PLANES = [
       'Todo lo del Pro incluido',
       'Un solo pago, cero recordatorios',
       'Ahorras vs. pagar mes a mes',
-      'Ideal para locales establecidos',
     ],
   },
 ];
@@ -238,6 +251,11 @@ function PlanCard({ plan, tenant }) {
           <Sparkles size={11} /> {plan.badge || 'Recomendado'}
         </span>
       )}
+      {plan.id === 'full' && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-violet-500 text-ink-950 text-[11px] font-bold whitespace-nowrap">
+          <MessageCircle size={11} /> {plan.badge}
+        </span>
+      )}
       {plan.id === 'anual' && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500 text-ink-950 text-[11px] font-bold whitespace-nowrap">
           🔥 Ahorras 3 meses
@@ -307,7 +325,7 @@ function SelectorPlanes({ tenant, titulo, subtitulo, onCerrar, puedeExtender }) 
           <h1 className="text-2xl font-extrabold text-primary tracking-tight mb-2">{titulo}</h1>
           <p className="text-sm text-neutral-400 leading-relaxed mb-8 max-w-md mx-auto">{subtitulo}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 text-left">
             {PLANES.map(p => <PlanCard key={p.id} plan={p} tenant={tenant} />)}
           </div>
 

@@ -815,7 +815,7 @@ function UpgradesSection({ tenantName }) {
                   Start: hasta 10 conversaciones al día · citas ilimitadas sin cobro por reserva
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
-                  Max $29.900: conversaciones ilimitadas · Incluido en los planes Pro y Anual
+                  Max $29.900: conversaciones ilimitadas · Incluido en los planes Pro, Full y Anual
                 </p>
               </div>
               <a
@@ -833,13 +833,14 @@ function UpgradesSection({ tenantName }) {
 
       </div>
 
-      {/* ── Hint plan Pro: los dos módulos IA vienen incluidos ──── */}
+      {/* ── Hint planes: dónde vienen incluidos los módulos IA ──── */}
       <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 flex items-start gap-3">
         <Sparkles size={14} className="text-amber-300 shrink-0 mt-0.5" />
         <p className="text-[12px] text-amber-100/80 leading-relaxed">
           <b className="text-amber-200">¿Te interesan los dos?</b> El plan
-          Pro ($49.900/mes, IVA incluido) trae el asistente IA y Wallet
-          incluidos, además de equipo ilimitado, caja y métricas.
+          Pro ($49.900/mes, IVA incluido) trae el asistente de WhatsApp y
+          Wallet incluidos; el plan Full ($69.900/mes) suma la
+          Reactivación IA y el bot también en tus DM de Instagram.
         </p>
       </div>
     </section>

@@ -40,21 +40,32 @@ export function sufijoIva(iva) {
 // equivalente: 25.126 / 41.933 / 335.294). La lista anterior (Individual
 // $14.900 / Local $29.900 netos) dejó de ofrecerse: los tenants con
 // tarifa pactada la conservan en su _billing, que manda sobre esto.
+// Caja/comisiones/métricas y PROFESIONALES ILIMITADOS van en TODOS los
+// planes (pedido de Ignacio, 07-08): nunca estuvieron bloqueados por plan
+// en el producto y venderlos como exclusivos del Pro era mentirle al
+// Básico. El Pro se diferencia SOLO por IA WhatsApp + Wallet.
 export const PLANES = [
   {
     id: 'basico',
     nombre: 'Plan Básico',
-    sub: '1 profesional · agenda + club + panel',
+    sub: 'Profesionales ilimitados · panel completo con caja y métricas',
     mes: 29900,
     iva: 'incluido',
   },
   {
     id: 'pro',
     nombre: 'Plan Pro',
-    sub: 'Equipo ilimitado · IA + Wallet · caja y métricas',
+    sub: 'Todo lo del Básico · asistente IA por WhatsApp · Wallet',
     mes: 49900,
     iva: 'incluido',
     popular: true,
+  },
+  {
+    id: 'full',
+    nombre: 'Plan Full',
+    sub: 'Todo el Pro · IA también en Instagram · Reactivación incluida',
+    mes: 69900,
+    iva: 'incluido',
   },
   {
     id: 'anual',

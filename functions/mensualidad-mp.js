@@ -80,7 +80,10 @@ const MONTO_MINIMO = 1000;
 const PRECIOS_SELF_SERVICE_NETO = {
   basico:     25126,   // ≈ $29.900 con IVA (público) mensual
   pro:        41933,   // ≈ $49.900 con IVA (público) mensual
-  anual:     335294,   // ≈ $399.000 con IVA (público) UNA VEZ al año
+  // $69.900 público no tiene neto entero exacto: 58.739 cobra $69.899 —
+  // un peso A FAVOR del cliente, nunca un peso de más en la tarjeta.
+  full:       58739,   // ≈ $69.900 con IVA (público) mensual · IA en WA+IG + Reactivación
+  anual:     335294,   // ≈ $399.000 con IVA (público) UNA VEZ al año (nivel Pro)
   // aliases legacy
   individual: 25126,
   local:      41933,

@@ -380,10 +380,11 @@
   @media(max-width:520px){ .social-pills span{font-size:12px;padding:7px 12px;} }
 
   /* ── Precios ─────────────────────────────────────────────────── */
-  .price-wrap{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;max-width:1080px;margin-left:auto;margin-right:auto;}
+  .price-wrap{display:grid;grid-template-columns:1fr;gap:14px;margin-top:38px;max-width:1240px;margin-left:auto;margin-right:auto;}
   @media(min-width:720px){.price-wrap{grid-template-columns:1fr 1fr;}}
-  @media(min-width:1020px){.price-wrap{grid-template-columns:1fr 1fr 1fr;}}
+  @media(min-width:1020px){.price-wrap{grid-template-columns:1fr 1fr 1fr 1fr;}}
   .price.anual{border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.05);}
+  .price.full{border-color:rgba(56,189,248,.42);background:rgba(56,189,248,.05);}
   .price{
     position:relative;background:var(--surface);border:1px solid var(--line);
     border-radius:22px;padding:28px 26px;
@@ -772,13 +773,13 @@
         <div class="price">
           <p class="pname">Básico</p>
           <p class="pnum">$29.900 <small>/ mes</small></p>
-          <p class="pdesc">Para partir sin complicaciones. Ideal si atiendes solo.</p>
+          <p class="pdesc">Para partir sin complicaciones, con todo el panel.</p>
           <ul>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 1 profesional activo</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Profesionales ilimitados</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Reservas ilimitadas 24/7</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Club de fidelidad con sellos</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Tu propio subdominio</li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Panel completo desde el celular</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Caja, comisiones y métricas del negocio</li>
           </ul>
         </div>
         <div class="price pop">
@@ -787,11 +788,22 @@
           <p class="pnum">$49.900 <small>/ mes</small></p>
           <p class="pdesc">Lo que usan los mejores. IA que atiende WhatsApp por ti + tarjetas Wallet.</p>
           <ul>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Todo lo del Básico + equipo ilimitado</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Todo lo del Básico incluido</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Bot de WhatsApp con IA 24/7</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Google & Apple Wallet para tus clientes <a href="/galeria-wallets.html" target="_blank" rel="noopener" style="color:#f59e0b;font-weight:700;text-decoration:underline;text-underline-offset:2px;font-size:12px;margin-left:4px;">Ver 14 diseños →</a></li>
-            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Caja, comisiones y métricas del negocio</li>
             <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Soporte prioritario por WhatsApp</li>
+          </ul>
+        </div>
+        <div class="price full">
+          <span class="tag" style="background:linear-gradient(135deg,#7dd3fc,#38bdf8);color:#08222e;">WhatsApp + Instagram</span>
+          <p class="pname">Full</p>
+          <p class="pnum">$69.900 <small>/ mes</small></p>
+          <p class="pdesc">La IA en todos tus canales. Nadie te escribe sin respuesta.</p>
+          <ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Todo lo del Pro incluido</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> El bot también contesta tus DM de Instagram</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Reactivación IA de clientes perdidos incluida</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> El canal Instagram es exclusivo de este plan</li>
           </ul>
         </div>
         <div class="price anual">
@@ -1074,7 +1086,7 @@
       <div class="faq rv">
         <details>
           <summary>¿Cuánto cuesta después del trial? <span class="plus">+</span></summary>
-          <p class="a"><b>$29.900/mes</b> el plan Básico (1 profesional), <b>$49.900/mes</b> el plan Pro (equipo + IA + Wallet) o <b>$399.000/año</b> el plan Anual (todo el Pro con ahorro de 3 meses). Sin permanencia en los mensuales, cancelas cuando quieras. Si al terminar los 14 días no activas un plan, tu agenda se pausa pero <b>no se borra nada</b>: tus datos, clientes y configuración te esperan.</p>
+          <p class="a"><b>$29.900/mes</b> el plan Básico (profesionales ilimitados, panel completo con caja y métricas), <b>$49.900/mes</b> el plan Pro (+ IA en WhatsApp + Wallet), <b>$69.900/mes</b> el plan Full (la IA también en Instagram + Reactivación incluida) o <b>$399.000/año</b> el plan Anual (todo el Pro con ahorro de 3 meses). Sin permanencia en los mensuales, cancelas cuando quieras. Si al terminar los 14 días no activas un plan, tu agenda se pausa pero <b>no se borra nada</b>: tus datos, clientes y configuración te esperan.</p>
         </details>
         <details>
           <summary>¿Cobran comisión por cada reserva? <span class="plus">+</span></summary>

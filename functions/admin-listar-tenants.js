@@ -116,10 +116,11 @@ exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async
 //  desde el UI.
 // ─────────────────────────────────────────────────────────────────
 
-// Aceptamos los 3 planes públicos + aliases legacy (individual→basico, local→pro).
+// Aceptamos los 4 planes públicos + aliases legacy (individual→basico, local→pro).
 const PRECIOS_NETOS = {
   basico:     25126,
   pro:        41933,
+  full:       58739,   // ≈ $69.900 público — IA en WA+IG + Reactivación
   anual:     335294,
   // aliases legacy
   individual: 25126,
@@ -136,7 +137,7 @@ exports.adminActivarPlanTenant = onCall({ region: 'us-central1', cors: true }, a
   let plan     = String(req.data?.plan || '').trim().toLowerCase();
   plan         = NORMALIZAR_PLAN[plan] || plan;
   if (!tid)                          throw new HttpsError('invalid-argument', 'Falta tenantId.');
-  if (!PRECIOS_NETOS[plan])          throw new HttpsError('invalid-argument', 'Plan inválido (basico|pro|anual).');
+  if (!PRECIOS_NETOS[plan])          throw new HttpsError('invalid-argument', 'Plan inválido (basico|pro|full|anual).');
 
   const esAnual = plan === 'anual';
   const patchTenant = {

@@ -129,7 +129,7 @@ exports.activarSelfServicePostPago = onDocumentUpdated(
     const urlPanel    = `https://${tid}.synaptechspa.cl/gestion-interna/`;
     const plan        = String(after.plan || t.plan || 'individual');
 
-    const planLabel = ({ basico: 'Básico', pro: 'Pro', anual: 'Anual', individual: 'Básico', local: 'Pro' })[plan] || 'Básico';
+    const planLabel = ({ basico: 'Básico', pro: 'Pro', full: 'Full', anual: 'Anual', individual: 'Básico', local: 'Pro' })[plan] || 'Básico';
     if (emailDueno && emailDueno.includes('@')) {
       try {
         await enviarEmail({
