@@ -2262,6 +2262,8 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
             value={form.servicioId}
             onChange={onServicioChange}
             placeholder={servicios.length ? '— elegir —' : 'Sin servicios'}
+            searchable
+            searchPlaceholder="Buscar servicio…"
             options={servicios.map(s => ({
               value: s.id,
               label: s.nombre,
@@ -2298,6 +2300,8 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
                     value={newServicioId}
                     onChange={setNewServicioId}
                     placeholder="— elegir servicio —"
+                    searchable
+                    searchPlaceholder="Buscar servicio…"
                     options={servicios
                       .filter(s => s.id !== form.servicioId)
                       .map(s => ({ value: s.id, label: `${s.nombre} · $${(Number(s.precio) || 0).toLocaleString('es-CL')}` }))}

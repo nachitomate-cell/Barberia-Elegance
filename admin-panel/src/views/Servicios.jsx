@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Tag, Sparkles, Package, AlertTriangle } from 'lucide-react';
+import { Plus, Tag, Sparkles, Package, AlertTriangle, Search, X } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch,
   serverTimestamp, orderBy, getDocs, query, limit,
@@ -104,6 +104,24 @@ const EMPTY = {
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
+/** Minúsculas + sin acentos: "Diseño" y "diseno" tienen que encontrarse. */
+const normalizar = s => (s || '').toString().toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/**
+ * Filtra el catálogo por lo que se escribe en el buscador. Se comparan
+ * palabras sueltas contra nombre + categoría + descripción: así "barba pack"
+ * encuentra el "Pack Corte + Barba" sin tener que escribirlo literal.
+ */
+function filtrarServicios(servicios, query) {
+  const palabras = normalizar(query).split(/\s+/).filter(Boolean);
+  if (!palabras.length) return servicios;
+  return servicios.filter(s => {
+    const txt = normalizar(`${s.nombre || ''} ${s.categoria || ''} ${s.descripcion || ''}`);
+    return palabras.every(w => txt.includes(w));
+  });
+}
+
 async function compressImage(file, maxPx = 800, quality = 0.82) {
   return new Promise(resolve => {
     const img = new Image();
@@ -206,6 +224,10 @@ export default function Servicios() {
 
   const [slide,     setSlide]     = useState(false);
   const [showHelp,  setShowHelp]  = useState(false);
+  // Buscador del catálogo. Con búsqueda activa la lista se muestra filtrada y
+  // SIN arrastre: reordenar sobre una lista incompleta guardaría un orden que
+  // no es el que el usuario está viendo.
+  const [busqueda,  setBusqueda]  = useState('');
   const [editing,   setEditing]   = useState(null);
   // ¿El servicio que se está editando ERA un pack al abrir el form? Sirve para
   // avisar que la conversión a servicio normal está pendiente de guardar: una
@@ -555,6 +577,9 @@ export default function Servicios() {
 
   const previewSrc = imagePreview || form.imagen;
 
+  const buscando   = busqueda.trim().length > 0;
+  const filtrados  = useMemo(() => filtrarServicios(servicios, busqueda), [servicios, busqueda]);
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start">
 
@@ -580,6 +605,36 @@ export default function Servicios() {
           </div>
         </div>
 
+        {/* ── Buscador del catálogo ──
+            Aparece recién con varios servicios: con 4 en pantalla, el campo
+            ocupa más de lo que ahorra. Con una búsqueda escrita se queda
+            visible aunque la lista baje del umbral (si no, la vista quedaría
+            filtrada y sin dónde limpiarla). */}
+        {!loading && (servicios.length >= 6 || buscando) && (
+          <div className="relative mb-3 w-full">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" strokeWidth={1.75} />
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Buscar por nombre, categoría o descripción…"
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              onKeyDown={e => e.key === 'Escape' && setBusqueda('')}
+              className="w-full pl-9 pr-9 py-2.5 bg-white/[0.02] rounded-xl text-sm text-primary placeholder-slate-500 focus:outline-none transition-all duration-200 ease-in-out focus:bg-white/[0.04]"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+            />
+            {buscando && (
+              <button
+                onClick={() => setBusqueda('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <SkeletonList count={6} />
         ) : servicios.length === 0 ? (
@@ -587,6 +642,39 @@ export default function Servicios() {
             <Tag size={32} className="mb-3" />
             <p className="text-sm">No hay servicios creados.</p>
           </div>
+        ) : buscando ? (
+          /* Resultados de búsqueda: lista plana, sin arrastre. */
+          <>
+            <p className="text-[11px] text-slate-500 mb-2 px-1">
+              {filtrados.length === 0
+                ? 'Sin resultados'
+                : `${filtrados.length} de ${servicios.length} servicio${servicios.length === 1 ? '' : 's'} · limpia la búsqueda para reordenar`}
+            </p>
+            {filtrados.length === 0 ? (
+              <div className="flex flex-col items-center py-14 text-slate-600">
+                <Search size={28} className="mb-3" />
+                <p className="text-sm">Ningún servicio coincide con “{busqueda.trim()}”.</p>
+                <button
+                  onClick={() => setBusqueda('')}
+                  className="mt-3 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {filtrados.map(s => (
+                  <ServicioCard
+                    key={s.id}
+                    s={s}
+                    topServicio={topServicio}
+                    openEdit={openEdit}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <>
             <DndContext
@@ -1609,6 +1697,7 @@ export default function Servicios() {
           <p>En <strong className="text-primary">Servicios</strong> defines los cortes y tratamientos que ofrece el local.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>Crea servicios con nombre, categoría, <span className="text-primary">precio</span> y <span className="text-primary">duración</span> en minutos.</li>
+            <li>Con varios servicios aparece el <span className="text-primary">buscador</span> arriba de la lista: filtra por nombre, categoría o descripción. Mientras buscas no se puede arrastrar — limpia la búsqueda para volver a reordenar.</li>
             <li><span className="text-primary">Mantén presionado el ícono de puntos</span> y arrastra para reordenar (en móvil requiere long-press de ~¼ seg).</li>
             <li>Agrega <span className="text-primary">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
             <li>Sube una <span className="text-primary">imagen</span> a cada servicio para que aparezca en el portal VIP del cliente.</li>
@@ -1736,8 +1825,15 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
       </button>
 
       <ServicioCardBody s={s} topServicio={topServicio} />
+      <ServicioCardAcciones s={s} openEdit={openEdit} handleDelete={handleDelete} />
+    </div>
+  );
+}
 
-      {/* Chevron sutil en móvil, ghost buttons en desktop */}
+/* ── Acciones de la fila (chevron en móvil, ghost buttons en desktop) ── */
+function ServicioCardAcciones({ s, openEdit, handleDelete }) {
+  return (
+    <>
       <svg
         className="md:hidden text-slate-600 w-5 flex-shrink-0"
         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -1764,6 +1860,22 @@ function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         </button>
       </div>
+    </>
+  );
+}
+
+/* ── Card estática (resultados del buscador) ──────────────────────
+    Misma fila, sin handle de arrastre: durante la búsqueda la lista está
+    incompleta y reordenarla escribiría un orden que no corresponde al que
+    se ve en pantalla. */
+function ServicioCard({ s, topServicio, openEdit, handleDelete }) {
+  return (
+    <div
+      onClick={() => openEdit(s)}
+      className="group flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-all duration-200 ease-in-out bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.1]"
+    >
+      <ServicioCardBody s={s} topServicio={topServicio} />
+      <ServicioCardAcciones s={s} openEdit={openEdit} handleDelete={handleDelete} />
     </div>
   );
 }

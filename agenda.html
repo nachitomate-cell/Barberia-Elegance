@@ -6677,10 +6677,24 @@
           </div>
         </div>
 
-        <!-- Servicio -->
+        <!-- Servicio.
+             El buscador filtra las opciones del desplegable (solo aparece si el
+             local tiene varios servicios). El servicio ya elegido nunca se
+             filtra: si desapareciera de la lista, el <select> cambiaría solo de
+             valor y la cita terminaría guardada con otro servicio. -->
         <div>
           <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
+          <div id="ecServicioBuscarWrap" class="hidden relative mb-1.5">
+            <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-[13px] pointer-events-none"></i>
+            <input type="text" id="ecServicioBuscar" autocomplete="off" spellcheck="false" placeholder="Buscar servicio…"
+                   oninput="_onEcServicioBuscar()"
+                   class="w-full rounded-xl pl-9 pr-9 py-2 text-sm text-white outline-none" style="background:rgba(255,255,255,0.04);border:1px solid var(--elev-border);">
+            <button type="button" id="ecServicioBuscarClear" onclick="_limpiarEcServicioBuscar()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/70" aria-label="Limpiar búsqueda">
+              <i class="ph-bold ph-x text-[13px]"></i>
+            </button>
+          </div>
           <select id="ecServicio" onchange="_onEcServicioChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid var(--elev-border);"></select>
+          <p id="ecServicioBuscarInfo" class="hidden text-[10.5px] text-white/35 mt-1"></p>
         </div>
         <div class="grid grid-cols-2 gap-2.5">
           <div>
@@ -7293,10 +7307,6 @@
         document.getElementById('ecEmail').value  = cita.clienteEmail || '';
 
         // Servicio: poblar select y seleccionar
-        const svcSel = document.getElementById('ecServicio');
-        svcSel.innerHTML = (_servicios || []).map(s =>
-            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" data-recargo="${Number(s.recargoSobrecupoDefault)||0}" style="background:#111">${s.nombre}${s.soloStaff ? ' · 🔒 interno' : ''}</option>`
-        ).join('');
         // Match por id O por nombre (fix de Agenda.jsx para citas viejas sin serviceId)
         let matched = (_servicios || []).find(s => s.id === cita.servicioId);
         if (!matched && cita.servicioNombre) {
@@ -7304,7 +7314,8 @@
             matched = (_servicios || []).find(s => (s.nombre || '').toLowerCase().trim() === n)
                    || (_servicios || []).find(s => (s.nombre || '').toLowerCase().includes(n) || n.includes((s.nombre || '').toLowerCase()));
         }
-        if (matched) svcSel.value = matched.id;
+        _ecServicioBuscadorReset();
+        _renderEcServicioOpciones(matched ? matched.id : '');
 
         // Sobrecupo: si la cita ya lo tenía, el campo de precio muestra la BASE
         // (no el total), y se pre-carga el recargo. Si no, ecPrecio = precio normal.
@@ -7371,6 +7382,80 @@
         _ecCita = null;
         _ecTicketPrev = [];
         _ecTicketNuevos = [];
+    }
+
+    /* ═══════ Buscador de servicios (modal Editar cita) ═══════
+       En un local con 20 servicios, encontrar el correcto en el desplegable es
+       scrollear a ciegas. El input filtra las <option> del <select> nativo — se
+       mantiene el <select> porque toda la lógica de la cita (precio, duración y
+       recargo por sobrecupo) se lee de sus data-attributes. */
+    let _ecSvcQuery = '';
+
+    /**
+     * Pinta las opciones del <select> filtradas por `_ecSvcQuery`.
+     * El servicio seleccionado SIEMPRE va en la lista aunque no coincida: si
+     * desapareciera, el <select> saltaría solo a otro valor y la cita se
+     * guardaría con un servicio que nadie eligió.
+     */
+    function _renderEcServicioOpciones(selectedId) {
+        const sel = document.getElementById('ecServicio');
+        if (!sel) return;
+        const actual = selectedId != null ? selectedId : sel.value;
+        const todos = _servicios || [];
+        const palabras = _normStr(_ecSvcQuery).split(/\s+/).filter(Boolean);
+        const coincide = s => palabras.every(w => _normStr(`${s.nombre || ''} ${s.categoria || ''}`).includes(w));
+
+        const lista = palabras.length
+            ? todos.filter(s => s.id === actual || coincide(s))
+            : todos;
+
+        sel.innerHTML = lista.map(s =>
+            `<option value="${_escHtml(s.id)}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" data-recargo="${Number(s.recargoSobrecupoDefault)||0}" style="background:#111">${_escHtml(s.nombre)}${s.soloStaff ? ' · 🔒 interno' : ''}</option>`
+        ).join('');
+        if (actual && lista.some(s => s.id === actual)) sel.value = actual;
+
+        // Contador: sin él, un filtro que deja 1 resultado se ve igual que un
+        // catálogo de 1 servicio.
+        const info = document.getElementById('ecServicioBuscarInfo');
+        if (info) {
+            const coinciden = palabras.length ? lista.filter(coincide).length : lista.length;
+            if (!palabras.length) {
+                info.classList.add('hidden');
+            } else {
+                info.classList.remove('hidden');
+                info.textContent = coinciden === 0
+                    ? `Sin resultados para "${_ecSvcQuery.trim()}" — se muestra solo el servicio actual.`
+                    : `${coinciden} de ${todos.length} servicios`;
+            }
+        }
+        const clear = document.getElementById('ecServicioBuscarClear');
+        if (clear) clear.classList.toggle('hidden', !_ecSvcQuery.trim());
+    }
+
+    /** Deja el buscador en blanco y decide si se muestra (solo con lista larga). */
+    function _ecServicioBuscadorReset() {
+        _ecSvcQuery = '';
+        const input = document.getElementById('ecServicioBuscar');
+        if (input) input.value = '';
+        const wrap = document.getElementById('ecServicioBuscarWrap');
+        // Con 5 servicios o menos el desplegable ya se ve entero de una.
+        if (wrap) wrap.classList.toggle('hidden', (_servicios || []).length < 6);
+        const info = document.getElementById('ecServicioBuscarInfo');
+        if (info) info.classList.add('hidden');
+        const clear = document.getElementById('ecServicioBuscarClear');
+        if (clear) clear.classList.add('hidden');
+    }
+
+    function _onEcServicioBuscar() {
+        _ecSvcQuery = document.getElementById('ecServicioBuscar')?.value || '';
+        _renderEcServicioOpciones(document.getElementById('ecServicio')?.value || '');
+    }
+
+    function _limpiarEcServicioBuscar() {
+        const input = document.getElementById('ecServicioBuscar');
+        if (input) { input.value = ''; input.focus(); }
+        _ecSvcQuery = '';
+        _renderEcServicioOpciones(document.getElementById('ecServicio')?.value || '');
     }
 
     function _onEcServicioChange() {
@@ -7604,7 +7689,10 @@
         const svcSel   = document.getElementById('ecServicio');
         const svcId    = svcSel.value;
         const svcOpt   = svcSel.options[svcSel.selectedIndex];
-        const svcNom   = svcOpt?.text || '';
+        // El nombre sale del catálogo, no del texto de la <option>: esa lleva
+        // pegado el " · 🔒 interno" de los servicios de staff y terminaba
+        // guardado en la cita como si fuera parte del nombre.
+        const svcNom   = (_servicios || []).find(s => s.id === svcId)?.nombre || svcOpt?.text || '';
         const precio   = Number(document.getElementById('ecPrecio').value) || 0;   // BASE (sin recargo)
         const desc     = Math.max(0, Math.min(100, Number(document.getElementById('ecDesc').value) || 0));
         const hora     = document.getElementById('ecHora').value;

@@ -1665,6 +1665,42 @@ html.light .app-tooltip-titulo { color: #0f172a; }
 .app-select-op.is-off     { opacity: 0.4; cursor: not-allowed; }
 .app-select-op.is-off.is-marcada { background-color: transparent; }
 
+/* Desplegable con buscador (`searchable`): el input queda fijo arriba y solo
+   scrollean las filas — si scrolleara todo junto, el campo donde se escribe se
+   iría de pantalla al segundo resultado. */
+.app-select-lista--buscar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;                /* el scroll vive en .app-select-scroll */
+}
+.app-select-scroll {
+  flex: 1 1 auto;
+  min-height: 0;                   /* sin esto el hijo no scrollea dentro del flex */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app-select-buscador {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 7px 9px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background-color: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.app-select-buscador input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 13.5px;
+  color: #f8fafc;
+}
+.app-select-buscador input::placeholder { color: #64748b; }
+
 html.light .app-select-lista {
   background-color: #ffffff;
   border-color: #cbd5e1;
@@ -1673,6 +1709,12 @@ html.light .app-select-lista {
 html.light .app-select-op          { color: #334155; }
 html.light .app-select-op.is-marcada { background-color: #f1f5f9; color: #0f172a; }
 html.light .app-select-op.is-activa  { color: #4f46e5; }
+html.light .app-select-buscador {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+html.light .app-select-buscador input             { color: #0f172a; }
+html.light .app-select-buscador input::placeholder { color: #94a3b8; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MODO CLARO — módulos nuevos de WhatsApp
