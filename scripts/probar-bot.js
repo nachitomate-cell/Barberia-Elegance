@@ -142,7 +142,17 @@ function analizar({ textos, horasOfrecidas, catalogo, escribiOk, pidioProfesiona
   }
 
   const preciosOk = new Set(catalogo.map(s => s.precio));
-  const preciosMal = [...new Set(textos.flatMap(preciosDeTexto))].filter(p => !preciosOk.has(p));
+  // MISMO criterio que el cinturón 6 del cerebro: los totales de grupo
+  // (múltiplos ×2..×6 y suma de dos precios del catálogo) son legítimos.
+  const esTotalDeGrupo = (n) => {
+    for (const p of preciosOk) {
+      if (n > p && n % p === 0 && n / p <= 6) return true;
+      for (const q of preciosOk) if (p + q === n) return true;
+    }
+    return false;
+  };
+  const preciosMal = [...new Set(textos.flatMap(preciosDeTexto))]
+    .filter(p => !preciosOk.has(p) && !esTotalDeGrupo(p));
   if (preciosMal.length) {
     banderas.push({ tipo: 'precio_inventado', detalle: `$${preciosMal.join(', $')} no están en el catálogo` });
   }

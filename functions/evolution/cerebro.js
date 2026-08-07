@@ -1484,11 +1484,27 @@ function preciosPermitidos(messages, system) {
 
 function preciosInventados(texto, permitidos) {
   const out = [];
+  // Totales de GRUPO: "$25.980 por los dos" es 2 × $12.990 del catálogo —
+  // aritmética correcta que este cinturón descartaba, dejando al bot en loop
+  // ("¿qué servicio te interesa?" con el servicio ya dicho; sandbox 07-08,
+  // destapado por el fix de grupo+profesional). Se aceptan múltiplos chicos
+  // (×2..×6, el tope de personas de reservas en grupo) y la suma de DOS
+  // precios permitidos (adulto y niño con servicios distintos). Cualquier
+  // otro número sigue siendo inventado.
+  const nums = [...permitidos].map(Number).filter(n => n >= 1000);
+  const esTotalDeGrupo = (n) => {
+    for (const p of nums) {
+      if (n > p && n % p === 0 && n / p <= 6) return true;
+      for (const q of nums) if (p + q === n) return true;
+    }
+    return false;
+  };
   for (const m of String(texto || '').matchAll(RE_PRECIO)) {
     const v = normPrecio(m[1]);
     // Bajo 1.000 son minutos, cantidades o vueltos, no precios de catálogo.
     if (Number(v) < 1000) continue;
-    if (!permitidos.has(v) && !out.includes(m[0])) out.push(m[0]);
+    if (permitidos.has(v) || esTotalDeGrupo(Number(v))) continue;
+    if (!out.includes(m[0])) out.push(m[0]);
   }
   return out;
 }
