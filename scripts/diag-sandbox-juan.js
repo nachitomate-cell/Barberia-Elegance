@@ -63,6 +63,7 @@ const TURNOS = [
     const ctx = { tid: TID, telefono: '56900000001', chatId: `PRUEBA-${Date.now()}`, simulado: true, traza: [] };
     const respuesta = await cerebro._pensarYResponder({
       anthropicKey: KEY, systemFijo: base.systemFijo, systemVariable,
+      presentacion: base.presentacion,
       historia: [...historia], texto: turno, ctx, tools: base.toolsBase,
     });
     for (const t of ctx.traza) {

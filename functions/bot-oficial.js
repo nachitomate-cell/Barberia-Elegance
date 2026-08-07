@@ -85,7 +85,7 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
   // un local que eligió "chileno" hablaba neutro por este canal y cercano por el
   // propio, o sea dos personalidades para el mismo negocio según por dónde le
   // escribieran. Mismo dato, misma fuente.
-  const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, {
+  const { systemFijo, toolsBase, presentacion } = await cerebro._armarContextoLocal(tid, {
     estiloChileno: cfgWa.estiloChileno === true,
     nombreAgente:  cfgWa.nombreAgente,
   });
@@ -131,6 +131,8 @@ async function botOficialProcesar({ fono, texto, anthropicKey, enviarTexto }) {
     if (i === MAX_LOOPS - 1) finalText = textos || 'Dame un segundo y te confirmo 🙏';
   }
   if (!finalText) finalText = 'Perdona, ¿me repites eso? 🙏';
+  // Cinturón 7 del cerebro: presentarse en el primer mensaje del chat.
+  if (presentacion && !historia.length) finalText = cerebro._asegurarPresentacion(finalText, presentacion);
 
   await enviarTexto(fono, finalText);
   await ref.set({

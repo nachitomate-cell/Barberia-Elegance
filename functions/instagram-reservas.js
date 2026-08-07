@@ -124,7 +124,7 @@ async function procesarDMReserva({ tid, igsid, texto, mid, con, anthropicKey }) 
   // ── Contexto del local: el MISMO que usa WhatsApp ──
   const cerebro = require('./evolution/cerebro');
   const cfgWa = (await db.doc(raiz(tid, 'configuracion/whatsapp')).get().catch(() => null))?.data() || {};
-  const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, {
+  const { systemFijo, toolsBase, presentacion } = await cerebro._armarContextoLocal(tid, {
     // El estilo y el nombre del asistente los eligió el local una vez; no tiene
     // por qué configurarlos de nuevo por cada canal. Si se leyeran distinto,
     // el mismo negocio tendría dos personalidades según por dónde le escriban.
@@ -187,6 +187,8 @@ async function procesarDMReserva({ tid, igsid, texto, mid, con, anthropicKey }) 
     if (i === MAX_LOOPS - 1) finalText = textos || 'Dame un segundo y te confirmo 🙏';
   }
   if (!finalText) finalText = 'Perdona, ¿me repites eso? 🙏';
+  // Cinturón 7 del cerebro: presentarse en el primer mensaje del chat.
+  if (presentacion && !historia.length) finalText = cerebro._asegurarPresentacion(finalText, presentacion);
 
   await ig.enviarDM(con.token, con.igUserId, igsid, finalText);
 

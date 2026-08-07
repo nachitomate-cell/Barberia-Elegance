@@ -219,7 +219,7 @@ function analizar({ textos, horasOfrecidas, catalogo, escribiOk, pidioProfesiona
 
 // ── Una conversación ────────────────────────────────────────────────────────
 async function correr(tid, ctxLocal, escenario) {
-  const { systemFijo, toolsBase, servicios, equipo } = ctxLocal;
+  const { systemFijo, toolsBase, servicios, equipo, presentacion } = ctxLocal;
   const now = ahoraChile();
   const systemVariable = [
     ...lineasCalendario(now.fecha, now.hhmm),
@@ -253,7 +253,7 @@ async function correr(tid, ctxLocal, escenario) {
     let respuesta;
     try {
       respuesta = await cerebro._pensarYResponder({
-        anthropicKey: KEY, systemFijo, systemVariable,
+        anthropicKey: KEY, systemFijo, systemVariable, presentacion,
         historia: [...historia], texto: turno, ctx, tools: toolsBase,
       });
     } catch (e) {

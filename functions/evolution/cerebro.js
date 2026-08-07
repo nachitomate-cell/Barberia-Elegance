@@ -1344,9 +1344,10 @@ async function armarContextoLocal(tid, { estiloChileno = false, nombreAgente = '
     return choca ? '' : n;
   })();
 
+  const nombreLocal = tdoc.nombre || tdoc.nombreCorto || tid;
   const systemFijo = construirSystemFijo({
     nombreAgente: agente,
-    nombreLocal: tdoc.nombre || tdoc.nombreCorto || tid,
+    nombreLocal,
     // Dirección y teléfono a veces viven en el doc del tenant y a veces en
     // configuracion/main (sion los tenía SOLO en conf y el bot no los sabía).
     direccion:     tdoc.direccion || conf.direccion || '',
@@ -1363,7 +1364,13 @@ async function armarContextoLocal(tid, { estiloChileno = false, nombreAgente = '
   // mantiene como red de seguridad si el catálogo no se pudo cargar.
   const toolsBase = servicios.length ? TOOLS.filter(t => t.name !== 'consultar_servicios') : TOOLS;
 
-  return { systemFijo, toolsBase, servicios, equipo };
+  return {
+    systemFijo, toolsBase, servicios, equipo,
+    // Para el cinturón 7 (presentación del primer mensaje): el mismo nombre y
+    // local que ya viajan en el system, como dato aparte para que el candado
+    // no tenga que parsear su propio prompt.
+    presentacion: agente ? { agente, local: nombreLocal } : null,
+  };
 }
 
 // Bloque variable: cambia por día y por cliente — queda FUERA del caché.
@@ -1559,6 +1566,24 @@ function preciosInventados(texto, permitidos) {
   return out;
 }
 
+/* ── Cinturón 7: presentarse en el primer mensaje ─────────────────────
+   El prompt lo pide ("preséntate SOLO en tu primer mensaje"), pero una
+   instrucción no es un candado: el bot saludó "Hola Juan" pelado y el cliente
+   no supo que hablaba con un asistente (reclamo Kronnos 07-08, casos Juan y
+   Germán). Si el chat parte de cero y la respuesta no nombra al agente, la
+   presentación entra en seco: tras el saludo del modelo si lo hubo (se
+   conserva el nombre del cliente), o encabezando la respuesta si no. */
+function asegurarPresentacion(texto, presentacion) {
+  const { agente, local } = presentacion || {};
+  if (!agente) return texto;
+  const t = String(texto || '');
+  if (t.toLowerCase().includes(String(agente).toLowerCase())) return t;
+  const linea = `Soy *${agente}*, el asistente de citas de ${local} 🤖`;
+  const saludo = t.match(/^\s*[¡]?\s*(hola|buenas|buen día|buenos días|buenas tardes|buenas noches)[^\n]{0,60}\n+/i);
+  if (saludo) return `${saludo[0].trimEnd()}\n${linea}\n\n${t.slice(saludo[0].length)}`;
+  return `¡Hola! ${linea}\n\n${t}`;
+}
+
 /** Horas que quedaron REALMENTE agendadas o movidas en este turno.
  *  Se leen del resultado de la tool, que es el único que sabe la verdad. */
 function horasConfirmadas(messages) {
@@ -1650,7 +1675,7 @@ function horasDeOtroDiaSinAclarar(texto, { hoy, otroDia, otras, cuando }) {
 
 /* ─────────────────────────── Loop agéntico ─────────────────────────── */
 
-async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, historia, texto, ctx, tools }) {
+async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, historia, texto, ctx, tools, presentacion = null }) {
   const client = new Anthropic({ apiKey: anthropicKey });
   const messages = [...historia, { role: 'user', content: texto }];
 
@@ -1828,7 +1853,14 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
     }
     break;
   }
-  return finalText || 'Perdona, ¿me repites eso? 🙏';
+  let out = finalText || 'Perdona, ¿me repites eso? 🙏';
+  // Cinturón 7: solo en el PRIMER turno del chat (historia vacía) — después
+  // el propio historial le recuerda al modelo que ya se presentó.
+  if (presentacion && !historia.length) {
+    const con = asegurarPresentacion(out, presentacion);
+    if (con !== out) { logCinturon(ctx?.tid, 'presentacion'); out = con; }
+  }
+  return out;
 }
 
 /* ─────────────────────────── Entrada pública ─────────────────────────── */
@@ -2226,7 +2258,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
   // ── Contexto del local (una sola función, compartida con el guard
   //    scripts/check-bot-prompt.js para que lo que medimos sea lo que se envía) ──
-  const { systemFijo, toolsBase } = await armarContextoLocal(tid, {
+  const { systemFijo, toolsBase, presentacion } = await armarContextoLocal(tid, {
     estiloChileno: waCfg.estiloChileno === true,
     nombreAgente:  waCfg.nombreAgente,
   });
@@ -2310,7 +2342,7 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   let respuesta;
   try {
     respuesta = await pensarYResponder({
-      anthropicKey, systemFijo, systemVariable,
+      anthropicKey, systemFijo, systemVariable, presentacion,
       // Al modelo solo los últimos turnos: el archivo es más largo (auditoría).
       historia: historia.slice(-MAX_HISTORIA),
       texto: textoRafaga, tools,
@@ -2364,3 +2396,7 @@ module.exports._RE_COCINA            = RE_COCINA;   // lo fija scripts/test-cint
 module.exports._huboAccionReal       = huboAccionReal;
 module.exports._preciosPermitidos    = preciosPermitidos;
 module.exports._preciosInventados    = preciosInventados;
+// Cinturón 7 — lo aplican también los loops propios del canal oficial de Meta
+// (bot-oficial.js) e Instagram (instagram-reservas.js): un solo asistente,
+// misma presentación por donde sea que escriba el cliente.
+module.exports._asegurarPresentacion = asegurarPresentacion;

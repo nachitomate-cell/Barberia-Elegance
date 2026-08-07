@@ -77,6 +77,7 @@ const TELEFONO = process.argv[2] || '56942074619';
     const ctx = { tid: TID, telefono: TELEFONO, chatId: `PRUEBA-${Date.now()}`, simulado: true, traza: [] };
     const respuesta = await cerebro._pensarYResponder({
       anthropicKey: KEY, systemFijo: base.systemFijo, systemVariable,
+      presentacion: base.presentacion,
       historia: [...historia], texto: turno, ctx, tools: base.toolsBase,
     });
     for (const t of ctx.traza) {

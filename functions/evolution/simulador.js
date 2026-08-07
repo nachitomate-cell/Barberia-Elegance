@@ -108,7 +108,7 @@ exports.waSimularBot = onCall(
 
     const cerebro = require('./cerebro');
     const cfgWa = (await db.doc(`tenants/${tid}/configuracion/whatsapp`).get()).data() || {};
-    const { systemFijo, toolsBase } = await cerebro._armarContextoLocal(tid, {
+    const { systemFijo, toolsBase, presentacion } = await cerebro._armarContextoLocal(tid, {
       estiloChileno: cfgWa.estiloChileno === true,
       nombreAgente:  cfgWa.nombreAgente,
     });
@@ -134,7 +134,7 @@ exports.waSimularBot = onCall(
     };
     const respuesta = await cerebro._pensarYResponder({
       anthropicKey: ANTHROPIC_API_KEY.value(),
-      systemFijo, systemVariable: systemVar,
+      systemFijo, systemVariable: systemVar, presentacion,
       historia: previos, texto, ctx, tools: toolsBase,
     });
     const usadas = ctx.traza.map(t => t.name);
