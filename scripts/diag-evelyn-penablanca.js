@@ -79,6 +79,21 @@ async function main() {
         || null;
   };
 
+  // Reproducción del caso Juan Montero (07-08): profesional fijado + 2 personas
+  for (const b of evelyns.filter(x => !x._mainDocId)) {
+    const svcM = matchServicio('corte masculino');
+    const r2 = await buscarDisponibilidad(TID, ahora.fecha, {
+      durMin: svcM?.duracion || null, barberoId: b.id, servicioId: svcM?.id || null, personas: 2,
+    });
+    console.log(`\nbuscarDisponibilidad(${b.nombre}, Corte Masculino, personas=2):`);
+    console.log(`  → fecha: ${r2.fecha}  slots: ${JSON.stringify(r2.slots)}`);
+    const r3 = await buscarDisponibilidad(TID, ahora.fecha, {
+      durMin: svcM?.duracion || null, servicioId: svcM?.id || null, personas: 2,
+    });
+    console.log(`buscarDisponibilidad(SIN profesional, Corte Masculino, personas=2):`);
+    console.log(`  → fecha: ${r3.fecha}  slots: ${JSON.stringify(r3.slots)}`);
+  }
+
   for (const b of evelyns.filter(x => !x._mainDocId)) {
     for (const pedirSvc of ['corte de cabello', null]) {
       const svc = pedirSvc ? matchServicio(pedirSvc) : null;

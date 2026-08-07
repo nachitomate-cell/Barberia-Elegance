@@ -746,6 +746,16 @@ async function ejecutarTool(name, input, ctx) {
     });
 
     if (!r.slots.length) {
+      const nPers = Math.max(1, Number(input?.personas) || 1);
+      if (prof && nPers > 1) {
+        // La causa es la CAPACIDAD del grupo, no la agenda del profesional:
+        // decir "Evelyn no tiene cupos" con su agenda abierta es mentirle al
+        // cliente (Juan Montero, kronnos_penablanca, 07-08).
+        return {
+          hay_cupos: false, profesional: prof.nombre, personas: nPers,
+          mensaje: `No hay ninguna hora con ${nPers} profesionales libres A LA VEZ donde uno sea ${prof.nombre}. OJO: eso NO significa que ${prof.nombre} esté sin cupos — no digas eso. Ofrécele: (1) horas seguidas con ${prof.nombre} atendiendo a las ${nPers} personas una tras otra (consulta con personas=1 y profesional="${prof.nombre}"), o (2) la misma hora con otros profesionales para el resto (consulta con personas=${nPers} sin profesional).`,
+        };
+      }
       if (prof) {
         return {
           hay_cupos: false, profesional: prof.nombre,

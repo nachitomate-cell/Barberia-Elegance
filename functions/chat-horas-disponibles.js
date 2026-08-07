@@ -246,15 +246,25 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
     : null;
 
   // ── Barberos elegibles (misma regla que la reserva pública) ──
+  const nPersonas = Math.max(1, Number(personas) || 1);
   const barbSnap = await c.barberos.get();
   const barberos = [];
   barbSnap.forEach(d => {
     const b = d.data();
     if (!esElegible(b, tenantId, servicioId)) return;
-    if (barberoId && d.id !== barberoId) return;
+    // Con profesional pedido Y VARIAS personas, el resto del equipo se queda
+    // en la lista: "con Evelyn, para adulto y niño" necesita a Evelyn libre Y
+    // a un segundo profesional libre a la misma hora. Filtrar aquí dejaba la
+    // lista en 1 y `nLibres >= 2` era imposible por construcción: el bot
+    // respondió "Evelyn no tiene cupos en los próximos días" con su agenda
+    // abierta y las 16:00 libres (kronnos_penablanca, 07-08).
+    if (barberoId && nPersonas <= 1 && d.id !== barberoId) return;
     barberos.push({ id: d.id, docHorario: b.horario || null });
   });
   if (!barberos.length) return [];
+  // El profesional pedido no realiza este servicio (o no es elegible): mismo
+  // resultado que antes del filtro por grupo — ningún slot es suyo.
+  if (barberoId && !barberos.some(b => b.id === barberoId)) return [];
 
   // ── Ocupación del día ──
   const [citasSnap, locksSnap, bloqueosSnap] = await Promise.all([
@@ -329,8 +339,12 @@ async function horasParaFecha(tenantId, fechaStr, minMinuto = 0, durMin = null, 
     // slot donde solo cabe una y descubrirlo al agendar es lo que dejó a Ceci
     // y su amiga sin hora en kronnos_woman (05-08): el bot agendó a la primera,
     // eso consumió el único cupo, y le dijo a la segunda que ya estaba tomado.
-    const nLibres = barberos.filter(b => libreBarbero(b.id, t, t + dur)).length;
-    if (nLibres >= Math.max(1, Number(personas) || 1)) libres.push(toHHMM(t));
+    // Y si el cliente nombró a alguien, esa persona tiene que estar entre los
+    // libres: N ajenos no sirven para "con Evelyn somos dos".
+    const libresAhora = barberos.filter(b => libreBarbero(b.id, t, t + dur));
+    if (libresAhora.length < nPersonas) continue;
+    if (barberoId && !libresAhora.some(b => b.id === barberoId)) continue;
+    libres.push(toHHMM(t));
   }
   if (libres.length <= MAX_SLOTS) return libres;
 
@@ -354,6 +368,11 @@ exports.chatHorasDisponibles = onCall({ cors: true }, async (req) => {
 
   const ahora = ahoraChile();
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(req.data?.fecha || '')) ? req.data.fecha : ahora.fecha;
+  // Estas dos se referenciaban sin existir en este scope: TODA llamada al
+  // callable moría en ReferenceError y el chat público respondía "No se pudo
+  // calcular la disponibilidad" (detectado 07-08 al auditar el caso Evelyn).
+  const servicioId = String(req.data?.servicioId || '').trim() || null;
+  const personas   = Math.max(1, Number(req.data?.personas) || 1);
 
   try {
     // El chat pregunta "¿tienes hora?" antes de saber el servicio: se asume la
