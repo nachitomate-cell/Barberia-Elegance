@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
   signInWithCustomToken,
+  signInWithPopup,
+  GoogleAuthProvider,
+  browserPopupRedirectResolver,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -86,6 +89,8 @@ function authErrorMessage(err) {
       return 'Demasiados intentos fallidos. Espera unos minutos antes de volver a intentar.';
     case 'auth/network-request-failed':
       return 'Sin conexión a internet. Revisa tu red e inténtalo de nuevo.';
+    case 'auth/popup-blocked':
+      return 'Tu navegador bloqueó la ventana de Google. Permite ventanas emergentes e inténtalo de nuevo.';
     default:
       return 'No pudimos iniciar sesión. Inténtalo nuevamente.';
   }
@@ -204,6 +209,31 @@ export default function LoginPage() {
       setError(authErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  /* Login con Google. Puerta de emergencia ante una clave pisada (incidente
+     06-ago-2026: el superadmin quedó fuera de TODO el panel): la cuenta de Auth
+     es la misma, solo cambia el proveedor. initializeAuth no registra el
+     resolver de popups, por eso se pasa browserPopupRedirectResolver acá. */
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const loginGoogle = async () => {
+    setError('');
+    setResetSent(false);
+    setGoogleLoading(true);
+    try {
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : browserSessionPersistence
+      ).catch(() => {});
+      await signInWithPopup(auth, new GoogleAuthProvider(), browserPopupRedirectResolver);
+    } catch (err) {
+      const code = err?.code || '';
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        setError(authErrorMessage(err));
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -388,6 +418,28 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <div className="flex items-center gap-3 my-5" aria-hidden="true">
+            <span className="h-px flex-1 bg-neutral-800" />
+            <span className="text-[11px] text-neutral-600 uppercase tracking-wider">o</span>
+            <span className="h-px flex-1 bg-neutral-800" />
+          </div>
+
+          <button
+            type="button"
+            onClick={loginGoogle}
+            disabled={googleLoading}
+            aria-busy={googleLoading}
+            className="w-full bg-neutral-900/50 hover:bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-primary font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {googleLoading ? (
+              <span className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <GoogleIcon /> Continuar con Google
+              </>
+            )}
+          </button>
+
           {/* Ayuda por WhatsApp — siempre visible, no solo cuando falla */}
           <a
             href={whatsappHelpHref({ tenantName: tenant.name, tenantId: tenant.id, email: email.trim() })}
@@ -536,6 +588,16 @@ function WhatsappIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.157 5.335 5.494 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.512 5.26l-.999 3.648 3.985-1.207zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+    </svg>
+  );
+}
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
     </svg>
   );
 }

@@ -30,6 +30,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { FieldValue }         = require('firebase-admin/firestore');
+const { esCuentaProtegida, MENSAJE_PROTEGIDA } = require('./lib/cuentas-protegidas');
 
 const db = admin.firestore();
 const SUPERADMINS = ['ignaciiio.mate@gmail.com'];
@@ -58,6 +59,11 @@ exports.superadminCrearStaff = onCall({ region: 'us-central1', cors: true }, asy
   }
   if (!['admin', 'barbero', 'recepcion'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', 'Rol inválido.');
+  }
+  // Reusar un correo existente acá RESETEA su clave (ver el catch de más
+  // abajo). Sobre una cuenta de sistema eso deja el panel inaccesible.
+  if (esCuentaProtegida(email)) {
+    throw new HttpsError('permission-denied', MENSAJE_PROTEGIDA);
   }
 
   // ── 1) Crear o vincular la cuenta Auth ───────────────────────
