@@ -297,6 +297,17 @@
   .trial-ok{ color:var(--green); } .trial-pronto{ color:var(--amber); } .trial-vencido{ color:var(--red); }
   .tag{ font-size:10px; padding:2px 8px; border-radius:9999px; background:var(--glass-hover); color:var(--soft); font-weight:500; }
   .tag.g{ color:var(--green); background:rgba(156,204,60,.15); }
+  /* Agenda de ventas: bloques de la grilla por día. La reunión es lima (dato
+     que importa), el bloqueo gris tachado, lo pasado apenas se ve. */
+  .agchip{ font-size:10.5px; padding:3px 7px; border-radius:7px; border:1px solid var(--glass-border); background:transparent; color:var(--soft); cursor:pointer; font-variant-numeric:tabular-nums; }
+  .agchip:hover{ border-color:var(--lima); color:#fff; }
+  .agchip.reunion{ background:rgba(156,204,60,.18); border-color:rgba(156,204,60,.5); color:var(--lima); font-weight:700; }
+  .agchip.bloq{ background:rgba(255,255,255,.05); color:var(--muted); text-decoration:line-through; }
+  .agchip.pasada{ opacity:.35; cursor:default; }
+  .agdia{ display:flex; align-items:flex-start; gap:10px; padding:9px 0; }
+  .agdia + .agdia{ border-top:1px solid var(--hairline); }
+  .agdia > b{ flex:0 0 118px; font-size:12px; padding-top:3px; }
+  .agdia .chips{ display:flex; flex-wrap:wrap; gap:5px; flex:1; }
   .muted{ color:var(--soft); font-size:12px; }
   .warn{ background:rgba(255,207,108,.08); border:1px solid var(--glass-border); color:var(--amber); border-radius:12px; padding:10px 14px; font-size:13px; margin-top:14px; }
   #err{ color:var(--red); font-size:13px; margin-top:10px; }
@@ -1499,6 +1510,117 @@
       document.querySelectorAll('[data-igdel]').forEach(b => b.onclick = () => igCancelar(b.dataset.igdel));
     }
 
+    /* ── 📅 Tu agenda: la que leen los bots de WhatsApp e Instagram ──────
+       No es una vista bonita de los leads: es la agenda REAL. Cada bloque
+       lima es una reunión con candado transaccional (ventas_agenda_locks);
+       bloquear una hora acá hace que el bot deje de ofrecerla al instante. */
+    let _agVentas = null;
+    const AG_DIAS = ['dom','lun','mar','mié','jue','vie','sáb'];
+    function agendaVentasPanel(v){
+      _agVentas = v;
+      const cfg = v.cfg || {};
+      const canalG = c => c === 'instagram' ? '📸' : '💬';
+      const horarioTags = AG_DIAS.map((n, d) => {
+        const r = (cfg.horario || {})[d];
+        return `<span class="tag" style="margin:2px;cursor:pointer" onclick="opsAgendaHorario(${d})" title="${esc('Clic para cambiar la jornada del ' + n)}">${n} ${r ? r[0] + '–' + r[1] : 'libre'}</span>`;
+      }).join(' ');
+      const grilla = (v.dias || []).map(d => {
+        const libres = d.slots.filter(s => s.estado === 'libre').length;
+        const cerrado = !d.slots.length;
+        return `<div class="agdia">
+          <b>${d.hablada.replace(' de ', ' ')}</b>
+          <span class="chips">${cerrado ? '<span class="muted" style="font-size:11px;padding-top:3px">día libre</span>'
+            : d.slots.map(s => {
+              if (s.estado === 'reunion') return `<button class="agchip reunion" title="${esc((s.nombre || s.contacto) + (s.negocio ? ' · ' + s.negocio : '') + ' — clic para gestionar')}" onclick="opsAgendaSlot('${d.fecha}','${s.hora}','reunion','${s.contacto}')">${s.hora} ${canalG(s.canal)} ${s.nombre ? s.nombre.split(' ')[0] : ''}</button>`;
+              if (s.estado === 'bloqueado') return `<button class="agchip bloq" title="Bloqueada por ti — clic para liberarla" onclick="opsAgendaSlot('${d.fecha}','${s.hora}','bloqueado','')">${s.hora}</button>`;
+              if (s.estado === 'pasada') return `<span class="agchip pasada">${s.hora}</span>`;
+              return `<button class="agchip" title="Libre: el bot puede ofrecerla — clic para bloquearla" onclick="opsAgendaSlot('${d.fecha}','${s.hora}','libre','')">${s.hora}</button>`;
+            }).join('')}
+          </span>
+          ${cerrado ? '' : (libres ? `<button class="mini" onclick="opsAgendaDia('${d.fecha}', true)" title="Bloquear todas las horas libres del día">cerrar día</button>` : `<button class="mini" onclick="opsAgendaDia('${d.fecha}', false)" title="Quitar los bloqueos del día (las reuniones no se tocan)">abrir día</button>`)}
+        </div>`;
+      }).join('');
+      return `<div class="panel">
+        <h3>📅 Tu agenda · reuniones con leads
+          <span class="tag ${cfg.activo ? 'g' : ''}" ${cfg.activo ? '' : 'style="color:var(--red)"'}>${cfg.activo ? 'ABIERTA' : 'PAUSADA'}</span>
+          <span class="tag">${cfg.duracionMin} min por reunión</span>
+          <span style="margin-left:auto"></span>
+          <button class="mini ${cfg.activo ? 'danger' : ''}" onclick="opsAgendaToggle()">${cfg.activo ? 'Pausar agenda' : 'Abrir agenda'}</button>
+        </h3>
+        <p class="hint" style="margin:0 0 8px">Esta es la agenda real que consultan los bots de WhatsApp e Instagram: solo ofrecen los bloques libres y cada reunión toma un candado (nadie más puede quedar a esa hora). Clic en una hora libre la bloquea; en una bloqueada, la libera; en una reunión, la gestiona.</p>
+        <div class="row" style="align-items:flex-start"><span>${tip('Jornada', 'Horario en que el bot puede ofrecer reuniones, por día de la semana. Clic en un día para cambiarlo; vacío lo deja libre.')}</span>
+          <span style="text-align:right;max-width:72%">${horarioTags}</span></div>
+        <div class="row"><span>${tip('Antelación mínima', 'El bot no ofrece horas que empiecen antes de este margen desde ahora: te protege de reuniones que aparecen encima.')}</span>
+          <span class="v">${cfg.antelacionMin} min <button class="mini" onclick="opsAgendaNum('antelacionMin')">cambiar</button>
+          · ${tip('duración', 'Largo de cada bloque de reunión. Cambiarlo re-dibuja la grilla; los candados ya tomados no se mueven.')} ${cfg.duracionMin} min <button class="mini" onclick="opsAgendaNum('duracionMin')">cambiar</button></span></div>
+        <div style="border-top:1px solid var(--hairline);margin-top:6px;padding-top:4px">${grilla}</div>
+        ${(v.reuniones || []).length ? `<div style="border-top:1px solid var(--hairline);margin-top:6px;padding-top:8px">
+          <p class="muted" style="margin:0 0 4px">Próximas reuniones</p>
+          ${v.reuniones.map(r => `<div class="loc">
+            <span class="dot on"></span>
+            <strong>${r.nombre || '···' + String(r.contacto).slice(-4)}</strong>
+            <span class="muted">${[r.negocio, r.rubro, r.comuna].filter(Boolean).join(' · ') || 'sin datos'} · ${canalG(r.canal)} ${r.canal === 'instagram' ? 'Instagram' : 'WhatsApp'}</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--lima);font-weight:700">🗓 ${r.hablada} · ${r.hora}</span>
+            <span class="sub2">${r.notas ? '📝 ' + r.notas + ' · ' : ''}
+              ${/^\d+$/.test(String(r.contacto)) ? `<a href="https://wa.me/${r.contacto}" target="_blank" style="color:var(--accent);text-decoration:none">abrir chat ↗</a> · ` : ''}
+              <button class="mini" onclick="opsAgendaReunion('${r.contacto}','realizada')">reunión hecha</button>
+              <button class="mini danger" onclick="opsAgendaReunion('${r.contacto}','cancelar')">cancelar</button>
+            </span>
+          </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }
+    async function _agSet(fn, payload, confirmMsg){
+      if (confirmMsg && !confirm(confirmMsg)) return;
+      try { await _fn(fn)(payload); await refrescarVentas(); }
+      catch(e){ alert('Error: ' + (e.message || e)); }
+    }
+    function opsAgendaSlot(fecha, hora, estado, contacto){
+      if (estado === 'libre') return _agSet('ventasAgendaBloquear', { fecha, hora, bloquear: true },
+        `¿Bloquear el ${fecha} a las ${hora}?\nEl bot dejará de ofrecer esa hora al instante.`);
+      if (estado === 'bloqueado') return _agSet('ventasAgendaBloquear', { fecha, hora, bloquear: false },
+        `¿Liberar el ${fecha} a las ${hora}?\nEl bot podrá volver a ofrecerla.`);
+      if (estado === 'reunion') {
+        const r = ((_agVentas && _agVentas.reuniones) || []).find(x => x.contacto === contacto) || {};
+        return _agSet('ventasAgendaReunionEstado', { contacto, accion: 'cancelar' },
+          `Reunión: ${r.nombre || contacto}${r.negocio ? ' · ' + r.negocio : ''}\n${r.hablada || fecha} a las ${hora}.\n\n¿CANCELARLA y liberar la hora? (al lead no se le avisa solo: escríbele tú)`);
+      }
+    }
+    function opsAgendaDia(fecha, bloquear){
+      _agSet('ventasAgendaBloquear', { fecha, bloquear }, bloquear
+        ? `¿Cerrar TODO el ${fecha}? Se bloquean las horas libres; las reuniones ya tomadas no se tocan.`
+        : `¿Reabrir el ${fecha}? Se quitan tus bloqueos de ese día.`);
+    }
+    function opsAgendaReunion(contacto, accion){
+      _agSet('ventasAgendaReunionEstado', { contacto, accion }, accion === 'cancelar'
+        ? '¿Cancelar la reunión y liberar la hora? (al lead no se le avisa solo: escríbele tú)'
+        : '¿Marcar la reunión como realizada?');
+    }
+    function opsAgendaToggle(){
+      const on = _agVentas && _agVentas.cfg && _agVentas.cfg.activo;
+      _agSet('ventasAgendaConfigSet', { activo: !on }, on
+        ? 'Pausar la agenda: el bot deja de ofrecer horas y vuelve a solo registrar el interés. ¿Confirmas?'
+        : 'Abrir la agenda: el bot vuelve a ofrecer y reservar horas reales. ¿Confirmas?');
+    }
+    function opsAgendaNum(campo){
+      const actual = (_agVentas && _agVentas.cfg && _agVentas.cfg[campo]) || '';
+      const raw = prompt(campo === 'duracionMin'
+        ? 'Duración de cada reunión en minutos (15–120):'
+        : 'Antelación mínima en minutos (0–1440): el bot no ofrece horas más encima que esto.', actual);
+      if (raw === null || !String(raw).trim()) return;
+      _agSet('ventasAgendaConfigSet', { [campo]: Number(raw) });
+    }
+    function opsAgendaHorario(d){
+      const r = (_agVentas && _agVentas.cfg && _agVentas.cfg.horario && _agVentas.cfg.horario[d]) || null;
+      const raw = prompt(`Jornada del ${AG_DIAS[d]} (formato HH:MM-HH:MM, vacío = día libre):`, r ? `${r[0]}-${r[1]}` : '');
+      if (raw === null) return;
+      const t = String(raw).trim();
+      if (!t) return _agSet('ventasAgendaConfigSet', { horario: { [String(d)]: null } });
+      const m = t.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+      if (!m) { alert('Formato inválido: usa HH:MM-HH:MM (ej: 10:00-19:00) o deja vacío.'); return; }
+      _agSet('ventasAgendaConfigSet', { horario: { [String(d)]: [m[1].padStart(5, '0'), m[2].padStart(5, '0')] } });
+    }
+
     const LEAD_ESTADOS = {
       reunion_solicitada: { t:'⏳ Reunión solicitada', c:'var(--amber)'  },
       confirmada:         { t:'📅 Hora confirmada',    c:'var(--accent)' },
@@ -1522,7 +1644,9 @@
             <strong>${l.nombre || '(sin nombre)'}</strong>
             <span class="muted">${[l.negocio, l.rubro, l.comuna].filter(Boolean).join(' · ') || 'sin datos aún'}</span>
             <span style="margin-left:auto;font-size:11px;font-weight:600;color:${e.c}">${e.t}</span>
-            <span class="sub2">📅 ${[l.diaPreferido, l.franja].filter(Boolean).join(' · ') || 'sin preferencia'}${l.notas ? ' · 📝 ' + l.notas : ''} · hace ${hace(l.actualizado)} ·
+            <span class="sub2">${l.reunionFecha
+              ? `<span style="color:var(--lima);font-weight:700">🗓 ${l.reunionFecha} · ${l.reunionHora} (reservada en tu agenda)</span>`
+              : '📅 ' + ([l.diaPreferido, l.franja].filter(Boolean).join(' · ') || 'sin preferencia')}${l.notas ? ' · 📝 ' + l.notas : ''} · hace ${hace(l.actualizado)} ·
               <a href="https://wa.me/${l.telefono}" target="_blank" style="color:var(--accent);text-decoration:none">abrir chat ↗</a>
               ${l.estado==='reunion_solicitada' ? `· <button class="mini" onclick="opsLeadEstado('${l.telefono}','confirmada')">confirmé hora</button>` : ''}
               ${l.estado==='confirmada' ? `· <button class="mini" onclick="opsLeadEstado('${l.telefono}','realizada')">reunión hecha</button>` : ''}
@@ -2192,8 +2316,9 @@
     }
 
     function seccionVentas(){
-      if (!ESTADO.ventas && !ESTADO.botCfg) return '<p class="muted">Cargando leads…</p>';
-      return (ESTADO.ventas ? leadsPanel(ESTADO.ventas) : '<p class="muted">No se pudo cargar el módulo de leads.</p>')
+      if (!ESTADO.ventas && !ESTADO.botCfg && !ESTADO.agendaVentas) return '<p class="muted">Cargando leads…</p>';
+      return (ESTADO.agendaVentas ? agendaVentasPanel(ESTADO.agendaVentas) : '<p class="muted">Cargando tu agenda…</p>')
+           + (ESTADO.ventas ? leadsPanel(ESTADO.ventas) : '<p class="muted">No se pudo cargar el módulo de leads.</p>')
            + (ESTADO.botCfg ? botVentasPanel(ESTADO.botCfg) : '');
     }
     function seccionCobranza(){
@@ -2244,12 +2369,14 @@
     /** Refresca solo los datos de ventas (3 lecturas) y repinta esa sección.
      *  Reemplaza al `cargar()` que disparaban las acciones de leads/bot. */
     async function refrescarVentas(){
-      const [rv, rb] = await Promise.all([
+      const [rv, rb, ra] = await Promise.all([
         _fn('ventasLeads')({}).catch(() => null),
         _fn('ventasBotConfig')({}).catch(() => null),
+        _fn('ventasAgendaVer')({}).catch(() => null),
       ]);
       if (rv) ESTADO.ventas = rv.data;
       if (rb) ESTADO.botCfg = rb.data;
+      if (ra) ESTADO.agendaVentas = ra.data;
       repintar('ventas');
     }
     async function refrescarCobranza(){
@@ -2293,6 +2420,7 @@
     function cargarLivianos(){
       _fn('ventasLeads')({}).then(r => { ESTADO.ventas = r.data; repintar('ventas'); }).catch(() => {});
       _fn('ventasBotConfig')({}).then(r => { ESTADO.botCfg = r.data; repintar('ventas'); }).catch(() => {});
+      _fn('ventasAgendaVer')({}).then(r => { ESTADO.agendaVentas = r.data; repintar('ventas'); }).catch(() => {});
       _fn('cobranzaConfig')({}).then(r => { ESTADO.cobranza = r.data; repintar('cobranza'); }).catch(() => {});
       // Los chips viven dentro del render grande (pestaña WhatsApp); si llegan
       // después del primer pintado se dibujan en el siguiente repintado global.

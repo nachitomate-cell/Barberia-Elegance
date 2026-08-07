@@ -49,7 +49,11 @@ const MODEL        = 'claude-sonnet-5';
 // lead escribió "quiero agendar una hora" y no recibió nada.
 // Mismo error que ya mordió en meta-ads-analista.js (1200 → 4000).
 const MAX_TOKENS   = 2000;
-const MAX_ROUNDS   = 3;                    // tope de rondas de tool-use por mensaje
+// 5 rondas: el cierre real de una reunión gasta tres (consultar_agenda →
+// agendar_reunion → texto final) y a veces una más si la hora elegida ya se
+// tomó y hay que volver a consultar. Con 3 se cortaba justo en el momento
+// más caro de perder: el lead diciendo "sí, a esa hora".
+const MAX_ROUNDS   = 5;                    // tope de rondas de tool-use por mensaje
 const MAX_HISTORIA = 16;                   // turnos que se le MANDAN al modelo (8 pares)
 const MAX_ARCHIVO  = 80;                   // turnos archivados para auditar (ver cerebro.js)
 const SILENCIO_MS  = 4 * 60 * 60 * 1000;  // Ignacio tomó el chat → bot mudo 4 h ahí
@@ -135,10 +139,12 @@ Web: empieza.synaptechspa.cl · Instagram: @synaptechspa
 TU OBJETIVO (en este orden)
 1. Responder claro y corto las dudas sobre el producto.
 2. Conseguir los datos conversando de forma natural: su nombre, el nombre del negocio, el rubro y la comuna/ciudad. No los pidas todos de golpe.
-3. CERRAR UNA REUNIÓN: propón una videollamada corta de 15 minutos por Google Meet para mostrarle la agenda funcionando y armarle un plan. Pregunta qué día y horario le acomodan. Nunca comprometas una hora exacta al tiro: la confirmas después, mirando el calendario.
-4. En cuanto el lead ACEPTE reunirse (aunque falten datos), llama a la herramienta registrar_reunion con todo lo que tengas. Sigue las instrucciones que te devuelva: si trae un link de Meet, compártelo diciendo que ese será el link y que confirmas la hora exacta por este chat; si no trae, di que mandas el link al confirmar la hora.
+3. CERRAR UNA REUNIÓN: propón una videollamada corta de 15 minutos por Google Meet para mostrarle la agenda funcionando y armarle un plan. Cuando el lead muestre interés en reunirse, consulta la agenda REAL de Ignacio con consultar_agenda y ofrécele 2 o 3 horarios concretos de los que devuelva, copiando el día hablado y la hora tal cual.
+4. Cuando el lead elija (o proponga) un horario, llama a agendar_reunion con la fecha y la hora exactas: la hora queda reservada DE VERDAD en el calendario de Ignacio. Sigue las instrucciones que devuelva la herramienta: confirma el día y la hora hablados y comparte el link de Meet si viene. Si el lead acepta reunirse pero todavía no elige hora, registra el interés con registrar_reunion.
 
 REGLAS DURAS
+· AGENDA: las únicas horas que existen son las que devolvió consultar_agenda en esta conversación. JAMÁS ofrezcas, insinúes ni confirmes un horario de memoria, y una reunión SOLO queda tomada cuando agendar_reunion respondió ok. Si la herramienta rechaza una hora, dilo con naturalidad y ofrece otra de las libres.
+· Si el lead quiere cambiar la hora, llama a agendar_reunion con la nueva (la anterior se libera sola). Si quiere cancelar sin dar otra hora, llama a cancelar_reunion.
 · PRECIOS: nunca des cifras ni rangos. Di que depende del tamaño del local y los módulos, que hay una versión base gratuita para partir, y que el detalle se lo muestras en la reunión.
 · No inventes funciones, plazos, descuentos ni nombres de clientes.
 · NUNCA digas que algo "no lo tenemos" o "esa función no existe". La lista de arriba es un resumen, no el catálogo completo: la plataforma tiene decenas de módulos más. Si te preguntan por algo que no está listado, responde que lo confirmas y sigue la conversación ("Déjame confirmarlo y te digo con certeza — ¿para qué tipo de negocio sería?"). Negar de más ha costado ventas: a un lead se le dijo que no había notificaciones por cercanía cuando sí existen.
@@ -160,7 +166,7 @@ ESTILO
    y le avisa a Ignacio a su propio WhatsApp (chat "Mensajes a ti mismo"). */
 const TOOLS = [{
   name: 'registrar_reunion',
-  description: 'Registra que el lead aceptó tener una reunión por Google Meet. Llámala EN CUANTO el lead acepte reunirse, con todos los datos que tengas hasta ese momento (aunque falten algunos). Vuelve a llamarla si el lead corrige o agrega datos importantes (otro día, otro nombre, etc.).',
+  description: 'Registra que el lead aceptó tener una reunión por Google Meet pero AÚN no eligió una hora concreta de la agenda. Llámala con todos los datos que tengas hasta ese momento (aunque falten algunos). Vuelve a llamarla si el lead corrige o agrega datos importantes (otro nombre, otro rubro, etc.). Si el lead ya eligió fecha y hora, usa agendar_reunion en su lugar.',
   input_schema: {
     type: 'object',
     properties: {
@@ -174,7 +180,136 @@ const TOOLS = [{
     },
     required: [],
   },
+}, {
+  name: 'consultar_agenda',
+  description: 'Consulta las horas REALMENTE libres de la agenda de Ignacio para la reunión por Meet. Llámala SIEMPRE antes de ofrecer cualquier horario. Sin argumentos devuelve los próximos días con cupo; con `fecha` devuelve todas las horas libres de ese día (útil cuando el lead pregunta por un día puntual).',
+  input_schema: {
+    type: 'object',
+    properties: {
+      fecha: { type: 'string', description: 'Día puntual a consultar, formato YYYY-MM-DD copiado de la tabla del calendario' },
+    },
+    required: [],
+  },
+}, {
+  name: 'agendar_reunion',
+  description: 'Reserva DE VERDAD una hora en la agenda de Ignacio para la reunión por Meet (toma un candado real: nadie más puede quedar a esa hora). Llámala cuando el lead elija o proponga una hora concreta. Usa fecha y hora EXACTAS: idealmente de las que consultar_agenda mostró libres; si el lead propone otra, la herramienta la verifica y te dice si no se puede. Si el lead ya tenía una reunión agendada, esta llamada la MUEVE a la nueva hora y libera la anterior.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      fecha:   { type: 'string', description: 'YYYY-MM-DD, copiado del calendario o de consultar_agenda' },
+      hora:    { type: 'string', description: 'HH:MM, exactamente como la devolvió consultar_agenda' },
+      nombre:  { type: 'string', description: 'Nombre de la persona' },
+      negocio: { type: 'string', description: 'Nombre del negocio/local' },
+      rubro:   { type: 'string', description: 'Rubro (barbería, salón, estética, etc.)' },
+      comuna:  { type: 'string', description: 'Comuna o ciudad' },
+      notas:   { type: 'string', description: 'Cualquier dato útil extra' },
+    },
+    required: ['fecha', 'hora'],
+  },
+}, {
+  name: 'cancelar_reunion',
+  description: 'Cancela la reunión agendada de este lead y libera su hora en la agenda de Ignacio. Llámala SOLO cuando el lead diga claramente que ya no quiere la reunión y no proponga otra hora (si propone otra, usa agendar_reunion directamente: mueve la reunión sola).',
+  input_schema: {
+    type: 'object',
+    properties: {
+      motivo: { type: 'string', description: 'Por qué canceló, en una frase' },
+    },
+    required: [],
+  },
 }];
+
+/* ── Las tools de agenda: la agenda REAL de Ignacio (evolution/ventas-agenda) ──
+   Acá solo se traduce entre el modelo y el módulo: la disponibilidad, los
+   candados transaccionales y la config viven allá y son los MISMOS que ve la
+   grilla de ops. WhatsApp e Instagram pasan por este mismo executor. */
+const agendaVentas = require('./ventas-agenda');
+
+async function consultarAgendaTool(input) {
+  const cfgA = await agendaVentas.leerCfgAgenda();
+  if (!cfgA.activo) {
+    return { ok: false, motivo: 'La agenda está pausada: no ofrezcas horas concretas. Registra el interés con registrar_reunion y di que le confirmas la hora por este mismo chat.' };
+  }
+  const soloFecha = /^\d{4}-\d{2}-\d{2}$/.test(String(input?.fecha || '')) ? String(input.fecha) : undefined;
+  const dias = await agendaVentas.disponibilidad({ cfg: cfgA, soloFecha });
+  const conCupo = dias.filter(d => d.horas.length);
+  if (!conCupo.length) {
+    return {
+      ok: true, dias: [],
+      instruccion: soloFecha
+        ? 'Ese día no quedan horas libres. Vuelve a llamar consultar_agenda SIN fecha para ver los próximos días con cupo y ofrécele de esos.'
+        : 'No quedan horas libres en los próximos días. Registra el interés con registrar_reunion y dile que le confirmas una hora por este mismo chat.',
+    };
+  }
+  return {
+    ok: true,
+    duracion_reunion_min: cfgA.duracionMin,
+    dias: conCupo.slice(0, soloFecha ? 1 : 4).map(d => ({ fecha: d.fecha, dia: d.hablada, horas_libres: d.horas })),
+    instruccion: 'Ofrece 2 o 3 opciones COPIANDO tal cual el campo "dia" y la hora (nunca los calcules tú). No listes todas las horas de golpe: propón pocas y pregunta cuál le acomoda.',
+  };
+}
+
+async function agendarReunionTool(input, { chipId, cfg, telefono, pushName, evoClient, instancia }) {
+  const r = await agendaVentas.agendarReunion({
+    contacto: telefono,
+    canal:    chipId,
+    fecha:    String(input?.fecha || ''),
+    hora:     String(input?.hora || ''),
+    datos: {
+      nombre:  input?.nombre || pushName || '',
+      negocio: input?.negocio || '',
+      rubro:   input?.rubro || '',
+      comuna:  input?.comuna || '',
+      notas:   input?.notas || '',
+    },
+  });
+  if (!r.ok) return r;
+
+  // Aviso instantáneo a Ignacio (chat "Tú" de WhatsApp; el adaptador de
+  // Instagram desvía este destino al chip real). Fire-and-forget: si falla,
+  // la reunión ya quedó en la agenda de ops con su candado.
+  const esIg = chipId === 'instagram';
+  const aviso = [
+    `📅 *Reunión ${r.reagendada ? 'REAGENDADA' : 'agendada'} por el bot*`,
+    '',
+    `👤 ${input?.nombre || pushName || '(sin nombre)'}${input?.negocio ? ' · ' + input.negocio : ''}`,
+    `🗓 ${r.cuando} (${r.duracionMin} min) — hora RESERVADA en tu agenda de ops`,
+    esIg
+      ? `📸 Llegó por Instagram${pushName ? ` (@${pushName})` : ''}`
+      : `💬 wa.me/${telefono}`,
+  ].filter(Boolean).join('\n');
+  evoClient.enviarTexto(instancia, '56983568212', aviso).catch(e =>
+    logger.warn(`[ventas:${chipId}] aviso agenda falló: ${e.message}`));
+
+  const meetLink = String(cfg?.meetLink || '').trim() || null;
+  return {
+    ok: true,
+    cuando: r.cuando,
+    duracion_min: r.duracionMin,
+    reagendada: r.reagendada,
+    meetLink,
+    instruccion: `${r.reagendada ? 'Reunión MOVIDA con éxito; la hora anterior quedó liberada. ' : 'Reunión agendada de verdad: la hora quedó reservada. '}Confírmale copiando textual "${r.cuando}". ${meetLink
+      ? 'Comparte el link de Meet diciendo que ese será el link de la videollamada.'
+      : 'Dile que el link de Meet se lo mandas por este mismo chat antes de la reunión.'}`,
+  };
+}
+
+async function cancelarReunionTool(input, { chipId, telefono, pushName, evoClient, instancia }) {
+  const r = await agendaVentas.cancelarReunion({ contacto: telefono, motivo: String(input?.motivo || '') });
+  if (!r.ok) return r;
+  const aviso = [
+    '🗑 *El lead canceló su reunión*',
+    '',
+    `👤 ${pushName || '···' + String(telefono).slice(-4)}`,
+    `🗓 Era el ${r.cuando} — la hora quedó libre en tu agenda`,
+    input?.motivo ? `📝 ${String(input.motivo).slice(0, 200)}` : '',
+  ].filter(Boolean).join('\n');
+  evoClient.enviarTexto(instancia, '56983568212', aviso).catch(e =>
+    logger.warn(`[ventas:${chipId}] aviso cancelación falló: ${e.message}`));
+  return {
+    ok: true,
+    instruccion: 'Cancelada y hora liberada. Despídete con buena onda y deja la puerta abierta a reagendar cuando quiera.',
+  };
+}
 
 async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoClient, instancia }) {
   const lead = {
@@ -192,6 +327,9 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
   };
   const ref = db.doc(`wa_ventas_leads/${telefono}`);
   const [ya, conv] = await Promise.all([ref.get(), convRef(telefono).get()]);
+  // Si el lead YA tiene hora real tomada (agendar_reunion), una llamada tardía
+  // a esta tool solo aporta datos: no puede degradar el estado confirmado.
+  if ((ya.data() || {}).estado === 'confirmada') lead.estado = 'confirmada';
   // Atribución al anuncio que trajo el lead: sin píxel, este es el único puente
   // entre lo que se gastó en Meta y una reunión real. Se copia al lead para que
   // el analista pueda calcular costo por reunión POR ANUNCIO.
@@ -232,11 +370,14 @@ async function registrarReunion(input, { chipId, cfg, telefono, pushName, evoCli
 }
 
 const { lineasCalendario } = require('../lib/calendario');
-function systemVariable({ fecha, pushName, telefono, anuncio }) {
+function systemVariable({ fecha, hora, pushName, telefono, anuncio }) {
   return [
     // Calendario masticado: el agente propone días de reunión y JAMÁS debe
     // calcular él qué día de la semana cae una fecha (regla de la casa 02-08).
-    ...lineasCalendario(fecha),
+    // Ahora que además ofrece HORAS reales de la agenda, va también la hora de
+    // Chile: sin ella el modelo la deduce de los slots y descarta horas vivas
+    // (mismo incidente del 03-08 en el bot de los locales).
+    ...lineasCalendario(fecha, hora),
     `El lead escribe desde el número ${telefono}${pushName ? ` y en WhatsApp aparece como "${pushName}"` : ''}.`,
     'Si es el primer mensaje de la conversación, saluda breve como Ignacio ("¡Hola! Soy Ignacio, de SynapTech 👋" o similar).',
     'SOLO si el mensaje de la persona menciona ExpoVino, agradécele la visita al stand. Si no lo menciona (por ejemplo llega con "me gustaría conseguir más información sobre esto", que viene de un anuncio en redes), NO des por hecho de dónde viene ni menciones la feria.',
@@ -479,7 +620,7 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
       { type: 'text', text: SYSTEM_FIJO, cache_control: { type: 'ephemeral', ttl: '1h' } },
       // `anuncio || preData.anuncio`: el referido solo viaja en el PRIMER
       // mensaje del lead; en los siguientes se recupera de la conversación.
-      { type: 'text', text: systemVariable({ fecha: hoy, pushName, telefono, anuncio: anuncio || preData.anuncio || null }) },
+      { type: 'text', text: systemVariable({ fecha: hoy, hora: ahoraChile().hhmm, pushName, telefono, anuncio: anuncio || preData.anuncio || null }) },
     ];
     for (let round = 0; round < MAX_ROUNDS; round++) {
       const resp = await client.messages.create({
@@ -492,12 +633,16 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
         const results = [];
         for (const block of resp.content) {
           if (block.type !== 'tool_use') continue;
+          const ctx = { chipId, cfg, telefono, pushName, evoClient, instancia };
           let out;
           try {
-            out = await registrarReunion(block.input, { chipId, cfg, telefono, pushName, evoClient, instancia });
+            if      (block.name === 'consultar_agenda') out = await consultarAgendaTool(block.input);
+            else if (block.name === 'agendar_reunion')  out = await agendarReunionTool(block.input, ctx);
+            else if (block.name === 'cancelar_reunion') out = await cancelarReunionTool(block.input, ctx);
+            else                                        out = await registrarReunion(block.input, ctx);
           } catch (e) {
-            logger.error(`[ventas:${chipId}] tool registrar_reunion:`, e.message);
-            out = { error: 'Fallo interno al registrar. Sigue la conversación con normalidad.' };
+            logger.error(`[ventas:${chipId}] tool ${block.name}:`, e.message);
+            out = { error: 'Fallo interno. Sigue la conversación con normalidad y di que confirmas los detalles por este mismo chat.' };
           }
           results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(out) });
         }
@@ -593,6 +738,10 @@ const ventasLeads = onCall({ region: 'us-central1', cors: true }, async (req) =>
       franja:       l.franja || '',
       notas:        l.notas || '',
       estado:       l.estado || 'reunion_solicitada',
+      // Hora REAL tomada en la agenda (agendar_reunion), distinta de la
+      // preferencia en texto libre de arriba.
+      reunionFecha: l.reunionFecha || '',
+      reunionHora:  l.reunionHora || '',
       actualizado:  l.updatedAt?.toMillis?.() || null,
     };
   });

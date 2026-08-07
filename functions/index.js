@@ -1782,6 +1782,15 @@ exports.ventasLeadEstado    = evolutionVentas.ventasLeadEstado;
 exports.ventasBotConfig     = evolutionVentas.ventasBotConfig;
 exports.ventasBotConfigSet  = evolutionVentas.ventasBotConfigSet;
 
+// Agenda propia de Ignacio: la que consultan y reservan (con candados reales)
+// los asistentes de ventas de WhatsApp e Instagram. Grilla y gestión en ops.
+// Ver evolution/ventas-agenda.js.
+const ventasAgenda = require('./evolution/ventas-agenda');
+exports.ventasAgendaVer           = ventasAgenda.ventasAgendaVer;
+exports.ventasAgendaConfigSet     = ventasAgenda.ventasAgendaConfigSet;
+exports.ventasAgendaBloquear      = ventasAgenda.ventasAgendaBloquear;
+exports.ventasAgendaReunionEstado = ventasAgenda.ventasAgendaReunionEstado;
+
 // Agente analista de Meta Ads: reporte diario por WhatsApp cruzando la
 // Marketing API con el funnel real del bot de ventas. Ver meta-ads-analista.js.
 const metaAds = require('./meta-ads-analista');
