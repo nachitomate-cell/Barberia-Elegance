@@ -1427,6 +1427,76 @@
     } catch (_) {}
   }
 
+  // ── Self-service vía ?local= FUERA de su subdominio ──────────────────
+  // La app de las tiendas (app.synaptechspa.cl) redirige al staff a
+  // agenda.html?local=<slug>. En ese host el middleware NO inyecta
+  // __TENANT_CONFIG__ (solo lo hace por subdominio), así que un slug
+  // self-service no estaba en _tenants y el pipeline caía a Elegance:
+  // marca de OTRO local y —peor— colecciones de otro tenant, con lo que el
+  // barbero real "no existía" (bug 07-08). Registramos el slug con branding
+  // neutro SynapTech (los QUERIES van al tenant correcto desde el primer
+  // momento) y el branding real se hidrata async desde el doc raíz público
+  // tenants/{slug} — el mismo que lee el middleware, con el mismo contrato.
+  if (tenantId && !_tenants[tenantId] && /^[a-z0-9][a-z0-9_-]{1,40}$/.test(tenantId)) {
+    (function (_slugDyn) {
+      _tenants[_slugDyn] = {
+        categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+        nombre:          'Mi Local',
+        nombreCorto:     'Agenda',
+        slogan:          '',
+        logo:            '/syn-192.png',
+        direccion:       '',
+        horario:         '¡Reserva tu hora online!',
+        telefono:        '',
+        club:            'Mi Club',
+        instagram:       '',
+        instagramHandle: '',
+        waEmoji:         '✂️',
+        googleReviewUrl: '',
+        ratingGeneral:   0,
+        totalReviews:    0,
+        reviews:         [],
+        accentColor:     null,
+        bannerUrl:       null,
+        barberos:        [],
+      };
+      document.documentElement.classList.add('tenant-selfservice');
+      try {
+        var _dynUrl = 'https://firestore.googleapis.com/v1/projects/barberia-elegance/databases/(default)/documents/tenants/' + encodeURIComponent(_slugDyn);
+        fetch(_dynUrl).then(function (res) {
+          return res.ok ? res.json() : null;
+        }).then(function (json) {
+          if (!json) return;
+          var f = json.fields || {};
+          var s = function (k) { return (f[k] && f[k].stringValue) || null; };
+          // Mismo contrato que el middleware: solo tenants dinámicos vivos.
+          var origen = s('origen');
+          if (origen !== 'self-service' && origen !== 'admin-express') return;
+          if (s('estado') === 'suspendido') return;
+          var t = _tenants[_slugDyn];
+          var nombre = s('nombre');
+          if (nombre) {
+            t.nombre      = nombre;
+            t.nombreCorto = s('nombreCorto') || nombre.split(' ')[0];
+            t.club        = 'Club ' + t.nombreCorto;
+          }
+          if (s('slogan'))    t.slogan      = s('slogan');
+          if (s('logoUrl'))   t.logo        = s('logoUrl');
+          if (s('direccion')) t.direccion   = '📍 ' + s('direccion');
+          if (s('telefono'))  t.telefono    = s('telefono');
+          if (s('color'))     t.accentColor = s('color');
+          if (s('bannerUrl')) t.bannerUrl   = s('bannerUrl');
+          if (s('instagram')) {
+            t.instagram       = 'https://instagram.com/' + s('instagram');
+            t.instagramHandle = '@' + s('instagram');
+          }
+          // Re-pintar la marca si la página expone su aplicador (agenda.html).
+          try { if (typeof window._aplicarBranding === 'function') window._aplicarBranding(); } catch (_) {}
+        }).catch(function () { /* branding neutro se queda — los datos ya van bien */ });
+      } catch (_) {}
+    })(tenantId);
+  }
+
   // Si llega por URL, persistir en sessionStorage para esta pestaña
   if (tenantId && _tenants[tenantId]) {
     try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
