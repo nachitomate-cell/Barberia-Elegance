@@ -312,13 +312,14 @@ const TOOLS = [
   },
   {
     name: 'reagendar_cita',
-    description: 'Mueve una cita YA EXISTENTE del cliente a otra fecha/hora, conservando su servicio y su código de reserva. Úsala siempre que quiera adelantar, atrasar o cambiar el día de su cita. Flujo: consultar_mis_citas (para saber cuál) → consultar_disponibilidad (para la hora nueva) → reagendar_cita. NUNCA le digas al cliente que le cambiaste la hora sin haber llamado a esta herramienta y recibido ok:true.',
+    description: 'Mueve una cita YA EXISTENTE del cliente a otra fecha/hora Y/O la cambia de profesional, conservando su servicio y su código de reserva. Úsala siempre que quiera adelantar, atrasar, cambiar el día o que lo atienda otra persona del equipo. Flujo: consultar_mis_citas (para saber cuál) → consultar_disponibilidad (para la hora nueva) → reagendar_cita. Para cambiar SOLO el profesional, repite la fecha y hora actuales de la cita y pasa el campo profesional. NUNCA le digas al cliente que le cambiaste algo sin haber llamado a esta herramienta y recibido ok:true.',
     input_schema: {
       type: 'object',
       properties: {
         cita_id: { type: 'string', description: 'El cita_id de la cita a mover, devuelto por consultar_mis_citas.' },
-        fecha:   { type: 'string', description: 'Nueva fecha en formato YYYY-MM-DD.' },
-        hora:    { type: 'string', description: 'Nueva hora en formato HH:MM (24h). Debe haber salido de consultar_disponibilidad.' },
+        fecha:   { type: 'string', description: 'Nueva fecha en formato YYYY-MM-DD (la misma de la cita si solo cambia el profesional).' },
+        hora:    { type: 'string', description: 'Nueva hora en formato HH:MM (24h). Debe haber salido de consultar_disponibilidad, o ser la hora actual de la cita si solo cambia el profesional.' },
+        profesional: { type: 'string', description: 'SOLO si el cliente pidió cambiarse a (o quedarse con) un profesional específico. La cita queda con esa persona o la herramienta falla: nunca cae en otra.' },
       },
       required: ['cita_id', 'fecha', 'hora'],
     },
@@ -565,8 +566,33 @@ async function ejecutarTool(name, input, ctx) {
     if (x.sobrecupo === true) {
       return { ok: false, motivo: 'Esa cita la gestionó el local a mano: indícale que se comunique directo con el local para cambiarla.' };
     }
-    if (x.fecha === fecha && x.hora === hora) {
-      return { ok: true, sin_cambios: true, fecha, hora, codigo: x.codigoCita || '', nota: 'La cita ya estaba a esa misma fecha y hora: no había nada que cambiar.' };
+
+    // Profesional pedido: CANDADO hasta la escritura (misma doctrina que
+    // agendar_cita). Antes este campo no existía y "la misma hora pero con
+    // Evelyn" caía en sin_cambios: el bot concluía "el sistema no me permite
+    // cambiar el profesional" y hasta se despidió con el nombre equivocado
+    // (Alonso Uribe, kronnos_penablanca, 07-08).
+    let exigir = null;
+    if (input?.profesional) {
+      const equipo = await cargarEquipo(tid).catch(() => []);
+      exigir = matchProfesional(equipo, input.profesional);
+      if (!exigir) {
+        return { ok: false, motivo: `"${input.profesional}" no corresponde a nadie del equipo (o hay más de uno que calza). El equipo es: ${equipo.map(b => b.nombre).join(', ')}. Pregúntale al cliente cuál quiere.` };
+      }
+    }
+    if (x.fecha === fecha && x.hora === hora && (!exigir || exigir.id === x.barberoId)) {
+      return { ok: true, sin_cambios: true, fecha, hora, codigo: x.codigoCita || '', nota: 'La cita ya estaba así (misma fecha, hora y profesional): no había nada que cambiar.' };
+    }
+    // ¿El profesional pedido realiza el servicio de la cita? Distinguirlo de
+    // "no está libre" evita que el bot dé un motivo falso (clase de error
+    // kronnos_woman 05-08: agendar con quien no hace el servicio).
+    if (exigir && x.servicioId) {
+      const bd = (await (esE(tid) ? db.collection('barberos') : db.collection(`tenants/${tid}/barberos`))
+        .doc(exigir.id).get().catch(() => null))?.data() || {};
+      const idsSvc = Array.isArray(bd.serviciosIds) ? bd.serviciosIds.map(String) : [];
+      if (idsSvc.length && !idsSvc.includes(String(x.servicioId))) {
+        return { ok: false, motivo: `${exigir.nombre} no realiza "${x.servicioNombre || 'ese servicio'}". Díselo al cliente y ofrécele mantener su profesional actual o elegir a otro del equipo que sí lo haga.` };
+      }
     }
 
     // Cinturón: nunca mover al pasado (igual que agendar_cita).
@@ -603,11 +629,14 @@ async function ejecutarTool(name, input, ctx) {
     // excluye esta cita del cálculo: su propio cupo actual no puede bloquear el
     // traslado (mordía al mover a un horario solapado, ej. 13:00 → 12:45).
     const barb = await barberoLibreParaSlot(tid, fecha, hora, dur, {
-      preferirBarberoId: x.barberoId || null,
+      preferirBarberoId: exigir ? null : (x.barberoId || null),
+      exigirBarberoId:   exigir?.id || null,
       excluirCitaId:     id,
       servicioId:        x.servicioId || null,
     });
-    if (!barb) return { ok: false, motivo: 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
+    if (!barb) return { ok: false, motivo: exigir
+      ? `${exigir.nombre} no está libre ${fechaHablada(fecha, hoyC.fecha)} a las ${hora}. Consulta su disponibilidad (consultar_disponibilidad con profesional="${exigir.nombre}") y ofrécele una hora suya, o pregúntale si prefiere dejar su cita como está.`
+      : 'Esa hora ya no está disponible. Vuelve a consultar disponibilidad y ofrece otra.' };
 
     if (ctx.simulado) {
       return {
@@ -681,8 +710,12 @@ async function ejecutarTool(name, input, ctx) {
       servicio: x.servicioNombre || '',
       precio:   Number(x.precio) || 0,
       profesional: barb.nombre,
+      ...(cambioProfesional ? { profesional_antes: x.barbero || '' } : {}),
       cambio_profesional: cambioProfesional,
-      ...(cambioProfesional ? { nota: `A esa hora no estaba ${x.barbero || 'su profesional habitual'}: la cita queda con ${barb.nombre}. AVÍSASELO al cliente.` } : {}),
+      // Con `exigir` el cambio de persona fue PEDIDO: la nota de advertencia
+      // solo aplica cuando el motor cambió al profesional por su cuenta.
+      ...(cambioProfesional && !exigir ? { nota: `A esa hora no estaba ${x.barbero || 'su profesional habitual'}: la cita queda con ${barb.nombre}. AVÍSASELO al cliente.` } : {}),
+      ...(cambioProfesional && exigir ? { nota: `Cambio de profesional confirmado: la cita ya no es con ${x.barbero || 'el profesional anterior'}, queda con ${barb.nombre}.` } : {}),
     };
   }
 
@@ -1142,7 +1175,7 @@ FECHAS Y AMBIGÜEDADES:
 DESPUÉS DE AGENDAR:
 - Entrega el código de la reserva, el día, la hora y el servicio en un mensaje corto.
 - No sigas ofreciendo servicios ni intentes vender más. La conversación terminó bien: cierra cálido y corto.
-- Si después pide cambiar la hora o el día, usa el flujo de reagendar (consultar_mis_citas → consultar_disponibilidad → reagendar_cita). No la canceles para volver a agendarla.
+- Si después pide cambiar la hora o el día, usa el flujo de reagendar (consultar_mis_citas → consultar_disponibilidad → reagendar_cita). No la canceles para volver a agendarla. Si lo que quiere es cambiar de PROFESIONAL manteniendo su hora, reagendar_cita con la MISMA fecha y hora y el campo profesional.
 
 SI ALGO FALLA:
 - Si una herramienta devuelve un error o no encuentra lo que buscabas, NO se lo expliques con términos técnicos al cliente y no muestres mensajes de sistema.
@@ -1245,6 +1278,7 @@ function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLoc
     '- SI EL CLIENTE TE DICE QUE YA RESERVÓ ("acabo de agendar en la web", "¿está todo ok?", "confirmo mi hora del sábado"): NO le respondas que sí de memoria, aunque él mismo te haya dado el servicio, el profesional y la hora. Tu PRIMERA acción es consultar_mis_citas; si ahí no aparece, verificar_reserva con su nombre y la fecha. Recién con el resultado en mano le confirmas, repitiendo día, hora, servicio y profesional. Dar por buena una cita que no comprobaste es lo que hace que alguien llegue al local y no tenga hora.',
     '- SI EL CLIENTE DICE QUE YA TIENE HORA Y NO LA ENCUENTRAS: consultar_mis_citas busca por el número desde el que te escribe, así que si reservó en la web con OTRO teléfono no aparece — es lo más común y NO es una falla. Pídele su nombre y la fecha y llama a verificar_reserva. JAMÁS le digas que su reserva "no se sincronizó", que "hubo un inconveniente" ni nada que sugiera que el sistema falló: no tienes cómo saber eso y lo asustas. Y NUNCA le ofrezcas agendar de nuevo sin haber verificado: terminaría con DOS citas.',
     '- Si quiere CAMBIAR la hora o el día de su cita (adelantar, atrasar, moverla): consultar_mis_citas → consultar_disponibilidad → reagendar_cita. NO la canceles para volver a agendarla: reagendar_cita la mueve conservando su código. Solo después de recibir ok:true confírmale el cambio.',
+    '- Si quiere CAMBIAR DE PROFESIONAL manteniendo su cita ("que me atienda X mejor", "prefiero con la otra persona"): reagendar_cita con la MISMA fecha y hora de la cita y el campo profesional con el nombre pedido. SÍ puedes hacerlo — jamás digas que el sistema no te lo permite, y jamás confirmes el cambio (ni te despidas nombrando al nuevo profesional) sin haber recibido ok:true.',
     // Dos clientes preguntaron por un profesional en concreto —"¿volvió
     // Sebastián?", "¿está la niña que corta el pelo?"— y el bot contestó que no
     // maneja información del equipo. La tiene: está en EQUIPO QUE ATIENDE, y de
