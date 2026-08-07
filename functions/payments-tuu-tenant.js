@@ -367,21 +367,32 @@ exports.tuuCobrarCita = onCall(
 
     // Anti cola-llena / anti doble-cobro: la cola del POS es chica y NO hay
     // endpoint para cancelarla (solo se cancela EN el aparato). Si la cita ya
-    // tiene una solicitud viva, la consultamos antes de encolar otra:
+    // tiene una solicitud viva O pagada, la consultamos antes de encolar otra:
     //   · Completed → el cliente YA pagó; devolvemos eso en vez de recobrar.
+    //     (Incluye _tuu.status ya Completed: pasó con alonso 07-08 — modal
+    //     cancelado, tarjeta pasada después → cita sin cerrar con pago hecho.)
     //   · Pending/Sent/Processing con el mismo monto → la reusamos y el
     //     front solo sigue polleando (3 taps del barbero = 3 solicitudes
     //     encoladas hasta el MR-180, mordió el 07-08 con Georgio).
-    //   · Failed/Canceled o monto distinto → sí creamos una nueva.
+    //   · Failed/Canceled → sí creamos una nueva.
+    //   · Monto distinto al ya cobrado/encolado → se corta con instrucción
+    //     (nunca recobramos solos un monto diferente).
     const tuuPrev = cita._tuu || null;
     if (tuuPrev && tuuPrev.idempotencyKey
-        && ['Pending', 'Sent', 'Processing'].includes(tuuPrev.status)) {
+        && ['Pending', 'Sent', 'Processing', 'Completed'].includes(tuuPrev.status)) {
       const chk = await tuuHttp('GET',
         `/GetPaymentRequest/${encodeURIComponent(tuuPrev.idempotencyKey)}`, apiKey)
         .catch(() => null);
       if (chk && chk.ok) {
         const est = extraerEstado(chk.json);
         if (est === 'Completed') {
+          // Si el nuevo total difiere del ya pagado, NO decidimos solos:
+          // ni recobrar (doble cargo) ni dar por pagado un monto distinto.
+          if (Number(tuuPrev.amount) !== amount) {
+            throw new HttpsError('failed-precondition',
+              `Esta cita ya tiene un pago aprobado por $${Number(tuuPrev.amount).toLocaleString('es-CL')} `
+              + 'en el POS. Verifica con el cliente antes de cobrar un monto distinto.');
+          }
           await citaRef.set({
             _tuu: {
               ...tuuPrev,
