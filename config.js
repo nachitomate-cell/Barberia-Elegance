@@ -1427,7 +1427,22 @@
     } catch (_) {}
   }
 
-  // ── Self-service vía ?local= FUERA de su subdominio ──────────────────
+  // Si llega por URL, persistir en sessionStorage para esta pestaña
+  if (tenantId && _tenants[tenantId]) {
+    try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
+  }
+
+  // Fallback: dominio configurado
+  if (!tenantId || !_tenants[tenantId]) {
+    tenantId = _domainMap[window.location.hostname.toLowerCase()] || '';
+  }
+
+  // Fallback: sessionStorage (navegar entre páginas del panel sin perder el tenant)
+  if (!tenantId || !_tenants[tenantId]) {
+    try { tenantId = sessionStorage.getItem('saas_current_tenant') || ''; } catch (_) {}
+  }
+
+  // ── Self-service FUERA de su subdominio (último eslabón, pre-Elegance) ──
   // La app de las tiendas (app.synaptechspa.cl) redirige al staff a
   // agenda.html?local=<slug>. En ese host el middleware NO inyecta
   // __TENANT_CONFIG__ (solo lo hace por subdominio), así que un slug
@@ -1437,6 +1452,10 @@
   // neutro SynapTech (los QUERIES van al tenant correcto desde el primer
   // momento) y el branding real se hidrata async desde el doc raíz público
   // tenants/{slug} — el mismo que lee el middleware, con el mismo contrato.
+  // Va DESPUÉS de todos los fallbacks: la redirección interna de agenda.html
+  // a /agenda/{barberoId} pierde el ?local= y el slug reaparece recién desde
+  // sessionStorage — si esto corriera solo para el query param, la segunda
+  // carga caía a Elegance igual.
   if (tenantId && !_tenants[tenantId] && /^[a-z0-9][a-z0-9_-]{1,40}$/.test(tenantId)) {
     (function (_slugDyn) {
       _tenants[_slugDyn] = {
@@ -1497,19 +1516,11 @@
     })(tenantId);
   }
 
-  // Si llega por URL, persistir en sessionStorage para esta pestaña
+  // Persistir la elección — incluye el slug dinámico recién registrado, así
+  // la redirección interna a /agenda/{barberoId} (que pierde el ?local=) lo
+  // recupera desde sessionStorage y vuelve a caer en este mismo registro.
   if (tenantId && _tenants[tenantId]) {
     try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
-  }
-
-  // Fallback: dominio configurado
-  if (!tenantId || !_tenants[tenantId]) {
-    tenantId = _domainMap[window.location.hostname.toLowerCase()] || '';
-  }
-
-  // Fallback: sessionStorage (navegar entre páginas del panel sin perder el tenant)
-  if (!tenantId || !_tenants[tenantId]) {
-    try { tenantId = sessionStorage.getItem('saas_current_tenant') || ''; } catch (_) {}
   }
 
   if (!_tenants[tenantId]) tenantId = 'elegance';
