@@ -2649,20 +2649,20 @@
 
     _allServices = rawServices.filter(s => s.activo !== false);
 
-    // Filtrar por los servicios que realiza este barbero (igual que index.html).
-    // Sin serviciosIds o vacío = realiza todos (regla del panel "Servicios que realiza").
-    if (Array.isArray(_barber.serviciosIds) && _barber.serviciosIds.length) {
-      const _svc = new Set(_barber.serviciosIds.map(String));
-      _allServices = _allServices.filter(s => _svc.has(String(s.id)));
-    }
-
-    // Filtro inverso: si el servicio está restringido a ciertos barberos
-    // (`barberosDisponibles` no vacío), solo aparece si este barbero está
-    // en la lista. Sin campo o vacío = disponible para todos (backward-compat).
+    // Semántica UNIFICADA servicio↔profesional (igual que index.html): si el
+    // servicio restringe ("Solo lo realizan ciertos barberos" →
+    // `barberosDisponibles` no vacío), esa lista manda — aparece en el perfil
+    // aunque no esté en los `serviciosIds` del barbero, y desaparece si él no
+    // está en ella. Si no restringe, rige la lista del barbero ("Servicios
+    // que realiza"): vacía o ausente = realiza todos. Antes esto era un AND
+    // de ambos filtros y un servicio marcado solo desde el editor de
+    // servicios no aparecía en el perfil (pregunta de Kronnos, 07-08).
     const _bid = String(_barber.id);
+    const _svc = new Set((Array.isArray(_barber.serviciosIds) ? _barber.serviciosIds : []).map(String));
     _allServices = _allServices.filter(s => {
-      if (!Array.isArray(s.barberosDisponibles) || s.barberosDisponibles.length === 0) return true;
-      return s.barberosDisponibles.map(String).includes(_bid);
+      const restr = Array.isArray(s.barberosDisponibles) ? s.barberosDisponibles.map(String) : [];
+      if (restr.length) return restr.includes(_bid);
+      return _svc.size === 0 || _svc.has(String(s.id));
     });
 
     renderCategories(_allServices);

@@ -11312,8 +11312,14 @@
     // que el upsell: la cita ya concatena nombres y suma precio/duración).
     let _multiSel = [];
 
-    // ¿Quiénes hacen TODOS los servicios elegidos? Regla del panel
-    // ("Servicios que realiza"): lista vacía = los hace todos.
+    // ¿Quiénes hacen TODOS los servicios elegidos? Semántica UNIFICADA de los
+    // dos lados del panel (pregunta de Kronnos, 07-08 — basta configurar UNO):
+    //   1. Si el SERVICIO restringe ("Solo lo realizan ciertos barberos" →
+    //      `barberosDisponibles` no vacío), esa lista manda y la del
+    //      profesional se ignora: es la promesa de exclusividad del editor
+    //      de servicios.
+    //   2. Si no, rige la lista del PROFESIONAL ("Servicios que realiza" →
+    //      `serviciosIds`): vacía o ausente = los hace todos.
     //
     // Vive acá arriba porque la usan TRES lugares y antes solo la aplicaba
     // uno —el selector de profesional—. La grilla de horas y la
@@ -11322,14 +11328,16 @@
     // servicio. Pasó en renacer el 04-08: Kimberly reservó "Corte de
     // Cabello Femenino" sin preferencia y le tocó Yender, que tiene 8
     // servicios habilitados y todos son masculinos.
+    function _haceElServicio(b, s) {
+      const restr = Array.isArray(s.barberosDisponibles) ? s.barberosDisponibles.map(String) : [];
+      if (restr.length) return restr.includes(String(b.id));
+      if (!b.serviciosIds || !b.serviciosIds.length) return true;
+      return b.serviciosIds.map(String).includes(String(s.id));
+    }
     function _barberosQueHacen(lista, seleccionados) {
-      const ids = (seleccionados || []).map(x => String(x.id));
-      if (!ids.length) return lista || [];
-      return (lista || []).filter(b => {
-        if (!b.serviciosIds || !b.serviciosIds.length) return true;
-        const suyos = b.serviciosIds.map(String);
-        return ids.every(sid => suyos.includes(sid));
-      });
+      const sel = (seleccionados || []).filter(Boolean);
+      if (!sel.length) return lista || [];
+      return (lista || []).filter(b => sel.every(s => _haceElServicio(b, s)));
     }
     window._upsellShowed = false;
 
@@ -14534,14 +14542,12 @@
       window._unselAllServiceCards = () =>
         document.querySelectorAll('.service-option').forEach(_setUnsel);
 
-      // Filtrar barberos compatibles con TODOS los servicios elegidos (intersección).
+      // Filtrar barberos compatibles con TODOS los servicios elegidos —
+      // la MISMA semántica unificada de _barberosQueHacen (el servicio
+      // restringido manda; si no, la lista del profesional). Antes esto era
+      // una copia local que solo miraba serviciosIds y se desfasaba.
       const _base = (_activeBarberos.length ? _activeBarberos : _fsBarberos) || [];
-      const _allIds = _multiSel.map(s => String(s.id));
-      const barberosParaServicio = _base.filter(b => {
-        if (!b.serviciosIds || b.serviciosIds.length === 0) return true;
-        const bIds = b.serviciosIds.map(String);
-        return _allIds.every(sid => bIds.includes(sid));
-      });
+      const barberosParaServicio = _barberosQueHacen(_base, _multiSel);
       // Si el barbero seleccionado ya no es compatible, resetear selección.
       if (window._selectedBarberId && window._selectedBarberId !== 'any') {
         const aun = barberosParaServicio.find(b => b.id === window._selectedBarberId);

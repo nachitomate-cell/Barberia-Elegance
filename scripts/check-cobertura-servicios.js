@@ -14,7 +14,9 @@
  * Réplica EXACTA del filtro público de getBarberos() (firebaseUtils.js):
  * disponible !== false, activo !== false, sin _mainDocId, y admins fuera
  * salvo mostrarEnAgenda === true o tenant delnero. Compatibilidad igual al
- * wizard: serviciosIds ausente o vacío = atiende todo el catálogo.
+ * wizard (_haceElServicio en index.html, semántica unificada del 07-08):
+ * si el servicio restringe (`barberosDisponibles` no vacío) esa lista manda;
+ * si no, rige `serviciosIds` del profesional (ausente o vacío = atiende todo).
  *
  * Uso:
  *   npm run check:cobertura                              # todos los tenants
@@ -70,8 +72,14 @@ function esPublico(b, tid) {
       continue;
     }
 
-    const huerfanos = servicios.filter(d =>
-      !equipo.some(b => !Array.isArray(b.serviciosIds) || !b.serviciosIds.length || b.serviciosIds.includes(d.id)));
+    // Espejo de _haceElServicio (index.html): restricción del servicio manda;
+    // sin ella, la lista del profesional. OJO: una restricción que solo apunta
+    // a gente no-pública (desactivada, borrada) deja al servicio huérfano igual.
+    const huerfanos = servicios.filter(d => {
+      const restr = Array.isArray(d.data().barberosDisponibles) ? d.data().barberosDisponibles.map(String) : [];
+      if (restr.length) return !equipo.some(b => restr.includes(String(b.id)));
+      return !equipo.some(b => !Array.isArray(b.serviciosIds) || !b.serviciosIds.length || b.serviciosIds.includes(d.id));
+    });
 
     if (huerfanos.length) {
       fallas++;
