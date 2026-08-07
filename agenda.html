@@ -4021,7 +4021,12 @@
                     && !cita.cortesia
                     && typeof window.tuuActivoAgenda === 'function'
                     && window.tuuActivoAgenda()) {
-                    const _monto = Number(cita.precioTotal || cita.precio || 0);
+                    // precioTotal ya trae el recargo de sobrecupo/horario
+                    // especial; los productos del ticket viven aparte y
+                    // también se pagan al cerrar la cita.
+                    const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
+                        .reduce((s, p) => s + (Number(p.precio) || 0), 0);
+                    const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                         citaId:    id,
@@ -4677,7 +4682,12 @@
                     && cita && !cita.cortesia
                     && typeof window.tuuActivoAgenda === 'function'
                     && window.tuuActivoAgenda()) {
-                    const _monto = Number(cita.precioTotal || cita.precio || 0);
+                    // precioTotal ya trae el recargo de sobrecupo/horario
+                    // especial; los productos del ticket viven aparte y
+                    // también se pagan al cerrar la cita.
+                    const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
+                        .reduce((s, p) => s + (Number(p.precio) || 0), 0);
+                    const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                         citaId:    id,
@@ -7737,12 +7747,17 @@
             && metodo === 'Tarjeta (POS)'
             && typeof window.tuuActivoAgenda === 'function'
             && window.tuuActivoAgenda()) {
+            // El POS cobra el ticket completo que ve el barbero (mismo total
+            // del formulario): servicio editado + recargo + productos
+            // guardados y recién agregados — todos heredan el método POS.
+            const _sumProdPrev   = _ecTicketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+            const _sumProdNuevos = _ecTicketNuevos.reduce((s, p) => s + (Number(p.totalLinea) || 0), 0);
             const _res = await window.tuuAgendaCobro({
                 tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                 citaId:    _ecCita.id,
                 cliente:   nombre,
                 servicio:  svcNom,
-                monto:     precioFinal,
+                monto:     precioFinal + _sumProdPrev + _sumProdNuevos,
                 mode:      'direct',
                 showManualFallback: window.tuuPermitirManualAgenda(),
             });
@@ -9117,7 +9132,9 @@
         try {
           if (typeof _ensureFunctionsSDK === 'function') await _ensureFunctionsSDK();
           var fn = firebase.functions().httpsCallable('tuuCobrarCita');
-          var res = await fn({ tenantId: _optsActual.tenantId, citaId: _optsActual.citaId });
+          // monto = total vigente del formulario (puede diferir del precio
+          // guardado en la cita si hubo descuento/recargo sin persistir).
+          var res = await fn({ tenantId: _optsActual.tenantId, citaId: _optsActual.citaId, monto: Number(_optsActual.monto) || 0 });
           var data = (res && res.data) || {};
           if (data.status === 'Completed') { _mostrarAprobado(); return; }
           if (data.status === 'Failed' || data.status === 'Canceled') { _mostrarRechazado(''); return; }

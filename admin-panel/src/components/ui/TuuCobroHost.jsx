@@ -55,7 +55,7 @@ export default function TuuCobroHost() {
   // Arrancar el flujo cada vez que se abre el modal.
   const iniciarCobro = useCallback(async () => {
     if (!st) return;
-    const { tenantId, citaId } = st.opts;
+    const { tenantId, citaId, monto } = st.opts;
     setStep('iniciando');
     setElapsed(0);
     setErrorMsg('');
@@ -64,7 +64,9 @@ export default function TuuCobroHost() {
 
     try {
       const fn = httpsCallable(getFunctions(getApp(), REGION), 'tuuCobrarCita');
-      const res = await fn({ tenantId, citaId });
+      // monto = total del formulario (descuento aún sin guardar); la CF lo
+      // usa en vez del precio viejo persistido en la cita.
+      const res = await fn({ tenantId, citaId, monto: Number(monto) || 0 });
       const data = res?.data || {};
       idempotencyKeyRef.current = data.idempotencyKey || null;
 

@@ -20,7 +20,10 @@
 //  Doc TUU: https://developers.tuu.cl/docs/pago-remoto
 //    · POST integrations.payment.haulmer.com/RemotePayment/v2/Create
 //      Body: { idempotencyKey, amount, device, dteType, description }
-//    · GET  integrations.payment.haulmer.com/RemotePayment/v2/GetPaymentReques/:idempotencyKey
+//    · GET  integrations.payment.haulmer.com/RemotePayment/v2/GetPaymentRequest/:idempotencyKey
+//      (OJO: la doc publica "GetPaymentReques" — typo. El endpoint real lleva
+//       la "t" final; con el path de la doc TUU devuelve 404 con body vacío.
+//       Verificado en vivo 2026-08-07 contra un cobro Completed real.)
 //    · Auth: header X-API-Key
 //    · Estados: Pending / Sent / Processing / Completed / Failed / Canceled
 //    · dteType 0 = comprobante afecto (default, correcto para barbería con IVA)
@@ -317,7 +320,10 @@ function extraerEstado(json) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  COBRAR — envía el pago al POS TUU y persiste la referencia en la cita.
-//  Payload: { tenantId, citaId }
+//  Payload: { tenantId, citaId, monto? }
+//    monto: total vigente en el FORMULARIO (descuento/sobrecupo aún no
+//    guardado — el save ocurre después de aprobar el pago, así que la cita
+//    en Firestore trae el precio viejo). Sin monto → precio de la cita.
 //  Return : { idempotencyKey, status } (status inicial devuelto por TUU)
 // ════════════════════════════════════════════════════════════════════════════
 exports.tuuCobrarCita = onCall(
@@ -350,7 +356,14 @@ exports.tuuCobrarCita = onCall(
       sucursalId = (bSnap && bSnap.exists && bSnap.data().sucursalId) || null;
     }
     const serial = resolverSerial(sys, sucursalId);
-    const amount = calcularMontoCobrable(cita);
+
+    // El front manda el total del formulario (puede traer descuento o
+    // recargo que todavía NO está guardado en la cita). Solo si no viene
+    // un monto válido caemos al precio persistido.
+    const montoForm = Number(data.monto);
+    const amount = (Number.isFinite(montoForm) && montoForm > 0)
+      ? Math.round(montoForm)
+      : calcularMontoCobrable(cita);
 
     // idempotencyKey único por intento de cobro (si el 1er intento fue
     // Failed/Canceled, el reintento genera una key nueva — TUU rechaza
@@ -432,7 +445,7 @@ exports.tuuConsultarCobro = onCall(
 
     const { apiKey } = await leerConfigTuu(tenantId);
     const key = encodeURIComponent(tuuMeta.idempotencyKey);
-    const resp = await tuuHttp('GET', `/GetPaymentReques/${key}`, apiKey);
+    const resp = await tuuHttp('GET', `/GetPaymentRequest/${key}`, apiKey);
 
     if (!resp.ok) {
       logger.warn('[tuuConsultarCobro] TUU respondió error al GET', {

@@ -1686,7 +1686,23 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
         && form.metodoPago === 'Tarjeta (POS)') {
       const svcTuu   = servicios.find(s => s.id === form.servicioId)
                     || servicios.find(s => (s.nombre || '') === form.servicioNombre);
-      const montoTuu = Number(form.precio) || Number(svcTuu?.precio) || 0;
+      // Total REAL a pasar al POS: el precio del FORMULARIO (el descuento
+      // editado aún no está guardado — el save ocurre después de aprobar),
+      // + recargo de sobrecupo + servicios extra + productos del ticket que
+      // se pagan con la cita (heredan método o eligieron Tarjeta (POS)).
+      // Las líneas con otro método explícito (la pomada en efectivo) quedan
+      // fuera del cobro POS.
+      const productosPos = [...ticketPrev, ...ticketNuevos].reduce((s, p) => {
+        const m = p.metodoPago || null;
+        if (m && m !== 'Tarjeta (POS)') return s;
+        return s + (Number(p.totalLinea ?? p.precio) || 0);
+      }, 0);
+      const montoTuu = Math.max(0, Math.round(
+        (Number(form.precio) || Number(svcTuu?.precio) || 0)
+        + (sobrecupoActivo ? recargoNum : 0)
+        + totalExtrasNum
+        + productosPos
+      ));
       const result   = await tuuCobroDialog({
         tenantId,
         citaId:   cita.id,
