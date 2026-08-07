@@ -118,21 +118,35 @@ export const ADDONS = [
   },
 ];
 
-// ── Asistente IA · modelo HÍBRIDO (decisión de Ignacio, 2026-08-02) ──
-// Base baja + comisión por cita que el bot agenda SOLO. El local paga poco
-// fijo y el resto únicamente cuando el bot le trajo reservas de verdad; para
-// un local activo (≈30 citas/mes) termina sobre el add-on plano, y para uno
-// chico es más barato que la tarifa fija. Las citas se cuentan de
-// `_metrics/bot_{tid}_{YYYY-MM}.agendada` (ya se registraba, no hubo que
-// instrumentar nada). Sustituye al `ia-asistente` plano en las cotizaciones
-// nuevas; los tenants con tarifa pactada mantienen la suya.
-export const ASISTENTE_HIBRIDO = {
-  id: 'ia-asistente-hibrido',
-  nombre: 'Asistente 24/7 · pago por uso',
-  base: 4900,        // neto al mes
-  porCita: 500,      // neto por cita agendada por el bot
-  iva: 'mas',
-};
+// ── Asistente IA WhatsApp · tiers por conversaciones (2026-08-07) ────
+// Reemplaza al híbrido $4.900 + $500/cita, que quedó demasiado barato.
+// Se cobra por CONVERSACIÓN (ventana de 24 h por chat — la unidad ya
+// instrumentada en functions/lib/wa-uso.js, costo real ~$10 CLP c/u),
+// nunca por reserva: la cita es el resultado que presumimos y cobrarla
+// castiga el éxito y ensucia la boleta. Citas agendadas ILIMITADAS en
+// ambos tiers. Al tope diario del Start el bot deriva a humano y avisa
+// al dueño con CTA de upgrade — sin cobros sorpresa por exceso.
+// Decoy a propósito: Básico + Start ($49.800) ≈ Pro ($49.900), que trae
+// el asistente incluido más Wallet, equipo, caja y métricas.
+// Instagram entrará después como otro canal con el mismo esquema.
+export const ASISTENTE_WA = [
+  {
+    id: 'ia-asistente-start',
+    nombre: 'Asistente IA · Start',
+    mes: 19900,
+    iva: 'incluido',
+    conversacionesDia: 10,
+    desc: 'Hasta 10 conversaciones al día · citas ilimitadas',
+  },
+  {
+    id: 'ia-asistente-max',
+    nombre: 'Asistente IA · Max',
+    mes: 29900,
+    iva: 'incluido',
+    conversacionesDia: null,   // ilimitadas (rige solo el tope anti-ban)
+    desc: 'Conversaciones ilimitadas · citas ilimitadas',
+  },
+];
 
 // El bundle IA ($19.900 por reactivación + asistente plano) se retiró el
 // 2026-08-07: su rol lo cumple el plan Pro, que trae ambos módulos.

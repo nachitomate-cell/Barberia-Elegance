@@ -809,13 +809,13 @@ function UpgradesSection({ tenantName }) {
                   Inversión mensual
                 </p>
                 <p className="text-2xl font-black text-primary leading-tight">
-                  $4.900 <span className="text-[12px] font-medium text-emerald-200/60">+ IVA / mes</span>
+                  $19.900 <span className="text-[12px] font-medium text-emerald-200/60">/ mes · IVA incluido</span>
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
-                  + $500 por cita que el bot agende — pagas por resultados
+                  Start: hasta 10 conversaciones al día · citas ilimitadas sin cobro por reserva
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
-                  Incluido en los planes Pro y Anual
+                  Max $29.900: conversaciones ilimitadas · Incluido en los planes Pro y Anual
                 </p>
               </div>
               <a
