@@ -72,11 +72,15 @@ const TENANTS = {
   // Clinical Glow: monograma "CG" dorado sobre nude (placeholder generado
   // por scripts/gen-clinicalglow-placeholders.js). Fondo #fdf7f4 matchea
   // el theme_color del manifest. Reemplazar cuando llegue el logo oficial.
-  clinicalglow:         { src: 'clinicalglow/logo.png',           bg: '#fdf7f4' },
+  // Clinical Glow: placa rectangular dorada+gris con wordmark "CLINICAL GLOW".
+  // Trim para recortar cualquier borde transparente y bg nude que combine con el
+  // theme_color del manifest — así el ícono en Android no muestra un halo.
+  clinicalglow:         { src: 'clinicalglow/logo.png',           bg: '#faf5f0', trim: true },
   // SynapTech Studio: ícono del TWA (app.synaptechspa.cl → Google Play).
   // Bg matchea theme_color del manifest hub (middleware.js) — sin esto Android
-  // pinta un halo distinto entre splash y app.
-  synaptech:            { src: 'synaptech/ig.png',                bg: '#0f172a' },
+  // pinta un halo distinto entre splash y app. logo-agenda.png es EL logo
+  // SynapTech (rebrand 2026-08-07); ig.png quedó como firma de marca.
+  synaptech:            { src: 'synaptech/logo-agenda.png',       bg: '#0f172a' },
   // Local de práctica del equipo comercial. El logo lo genera
   // scripts/gen-practica-brand.js (monograma champán sobre negro), así que no
   // depende de ningún archivo subido a mano: si se borra, se vuelve a generar.

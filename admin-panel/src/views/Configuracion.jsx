@@ -4,7 +4,7 @@ import {
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
   Package, Tag, PenLine, Award, Bell, Mail, Users, SlidersHorizontal,
   MessageCircle, Lock, Gift, ChevronRight, CalendarClock,
-  Wrench, LifeBuoy, ShieldCheck, Eye, EyeOff, Wallet,
+  Wrench, LifeBuoy, ShieldCheck, Eye, EyeOff, Wallet, CreditCard,
 } from 'lucide-react';
 import { sha256Hex } from '../lib/reopenGate';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -806,6 +806,11 @@ export default function Configuracion() {
     // de oficio le bloquearía el día a todo tenant que hoy no usa el módulo de
     // caja, que son la mayoría.
     exigirCajaAbierta:   false,
+    // Opt-in: dejar completar citas sin elegir método de pago (la agenda del
+    // panel deja de exigirlo). La cita queda "sin método": Caja la lista en la
+    // alerta accionable y NO la suma al esperado del arqueo. Para locales que
+    // no llevan caja y solo quieren marcar la cita como hecha, rápido.
+    metodoPagoOpcional:  false,
     // Whitelist de barberos que ven el teléfono aunque el toggle global esté
     // apagado o el tenant tenga hardcode de privacidad (sionbarberia, lumen,
     // chameleon). Array vacío = sin excepciones (comportamiento previo).
@@ -918,6 +923,7 @@ export default function Configuracion() {
             bloqueoHorarios:     typeof cd.opcionesAvanzadas.bloqueoHorarios     === 'boolean' ? cd.opcionesAvanzadas.bloqueoHorarios     : prev.bloqueoHorarios,
             serviciosCortesia:   typeof cd.opcionesAvanzadas.serviciosCortesia   === 'boolean' ? cd.opcionesAvanzadas.serviciosCortesia   : prev.serviciosCortesia,
             exigirCajaAbierta:   typeof cd.opcionesAvanzadas.exigirCajaAbierta   === 'boolean' ? cd.opcionesAvanzadas.exigirCajaAbierta   : prev.exigirCajaAbierta,
+            metodoPagoOpcional:  typeof cd.opcionesAvanzadas.metodoPagoOpcional  === 'boolean' ? cd.opcionesAvanzadas.metodoPagoOpcional  : prev.metodoPagoOpcional,
             verWhatsAppBarberos: Array.isArray(cd.opcionesAvanzadas.verWhatsAppBarberos) ? cd.opcionesAvanzadas.verWhatsAppBarberos : prev.verWhatsAppBarberos,
           }));
         }
@@ -1107,6 +1113,7 @@ export default function Configuracion() {
             bloqueoHorarios:     !!opcAvanzadas.bloqueoHorarios,
             serviciosCortesia:   !!opcAvanzadas.serviciosCortesia,
             exigirCajaAbierta:   !!opcAvanzadas.exigirCajaAbierta,
+            metodoPagoOpcional:  !!opcAvanzadas.metodoPagoOpcional,
             // Saneamos: solo strings no vacías y sin duplicados. Vacío = sin
             // excepciones (comportamiento por default del tenant).
             verWhatsAppBarberos: Array.from(new Set(
@@ -2236,6 +2243,25 @@ export default function Configuracion() {
             <button type="button" onClick={() => { setOpcAvanzadas(o => ({ ...o, exigirCajaAbierta: !o.exigirCajaAbierta })); setDirty(true); }}
               className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${opcAvanzadas.exigirCajaAbierta ? 'bg-emerald-500' : 'bg-slate-700'}`}>
               <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.exigirCajaAbierta ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Método de pago opcional al completar citas */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <CreditCard size={15} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-primary block truncate">Método de pago opcional al completar citas</span>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Permite marcar una cita como Completada sin elegir con qué pagó el cliente. Ojo: esas citas quedan "sin método de pago" y no entran al esperado del cierre de caja — Caja las lista aparte para completarlas después. Actívalo solo si el local no lleva el arqueo por método.
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setOpcAvanzadas(o => ({ ...o, metodoPagoOpcional: !o.metodoPagoOpcional })); setDirty(true); }}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${opcAvanzadas.metodoPagoOpcional ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${opcAvanzadas.metodoPagoOpcional ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>
           </div>
         </div>

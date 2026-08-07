@@ -809,6 +809,10 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
   // Guard opt-in: no dejar completar citas con la caja cerrada (Configuración →
   // opciones avanzadas). Apagado por defecto — ver useCajaAbierta.
   const exigirCajaAbierta = mainConfig?.opcionesAvanzadas?.exigirCajaAbierta === true;
+  // Opt-out por tenant: completar citas SIN elegir método de pago (Configuración
+  // → opciones avanzadas). La cita queda "sin método" y Caja ya la trata así:
+  // bucket "Sin especificar" + alerta accionable, fuera del esperado del arqueo.
+  const metodoPagoOpcional = mainConfig?.opcionesAvanzadas?.metodoPagoOpcional === true;
   const { hayCajaAbierta } = useCajaAbierta();
   // Cuando el usuario intenta guardar y aplica el gate, guardamos aquí el
   // "trabajo pendiente" — el modal de contraseña llama a onOk() para continuar.
@@ -1554,7 +1558,7 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
       return;
     }
 
-    if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago && !isSplit) {
+    if (form.estado === 'Completada' && !form.cortesia && !form.metodoPago && !isSplit && !metodoPagoOpcional) {
       setErrorMetodoPago(true);
       await confirmDialog({
         title: 'Falta el método de pago',

@@ -1453,7 +1453,7 @@ const TENANT_META = {
     },
     siteName:    'Clinical Glow · Clínica Estética',
     ogImage:     '/clinicalglow/og.png',
-    themeColor:  '#fdf7f4',
+    themeColor:  '#faf5f0',
     appTitle:    'Clinical Glow',
     icon:        '/clinicalglow/logo.png',
     iconPwa192:  '/icons/pwa/clinicalglow-192.png',
@@ -1473,15 +1473,15 @@ const TENANT_META = {
     manifest: {
       name:             'Clinical Glow · Clínica Estética',
       short_name:       'Clinical Glow',
-      theme_color:      '#fdf7f4',
-      background_color: '#fdf7f4',
+      theme_color:      '#faf5f0',
+      background_color: '#faf5f0',
     },
     adminManifest: {
       name:             'Panel Admin · Clinical Glow',
       short_name:       'Clinical Glow',
       description:      'Panel de administración — Clinical Glow',
-      theme_color:      '#d4a574',
-      background_color: '#fdf7f4',
+      theme_color:      '#c5a677',
+      background_color: '#faf5f0',
       start_url:        '/gestion-interna/?local=clinicalglow',
       icons: [
         { src: '/clinicalglow/logo.png',       sizes: 'any',     type: 'image/png' },

@@ -110,9 +110,49 @@ function whatsappHelpHref({ tenantName, tenantId, email } = {}) {
   return `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(parts)}`;
 }
 
+/* ── Hub SynapTech Studio (la app de App Store / Play Store) ───────
+   La pantalla de bienvenida con "Crear mi local" SOLO existe en el hub
+   app.synaptechspa.cl. En los subdominios de los locales el panel es
+   white-label: su equipo jamás debe ver una invitación a crear otro local.
+   En dev (localhost) se emula el hub cuando el tenant simulado es `sandbox`,
+   que es exactamente como el hub abre pre-login (DOMAIN_MAP). */
+const HUB_HOST         = 'app.synaptechspa.cl';
+const WELCOME_SEEN_KEY = '_hub_welcome_done';
+function esHubApp(tenantId) {
+  try {
+    const h = window.location.hostname;
+    if (h === HUB_HOST) return true;
+    return (h === 'localhost' || h === '127.0.0.1') && tenantId === 'sandbox';
+  } catch { return false; }
+}
+
+/* Google OAuth NO funciona en webviews embebidas (wrapper iOS de PWABuilder,
+   TWA de Android, in-app browsers de Instagram/FB): Google lo bloquea con
+   `disallowed_useragent`. Ahí el botón se OCULTA — un botón que no hace nada
+   frente al revisor de Apple es rechazo casi seguro (Guideline 2.1). */
+function esWebviewEmbebido() {
+  try {
+    const ua = navigator.userAgent || '';
+    const iosWebview     = /iPhone|iPad|iPod/i.test(ua) && !/Safari\//i.test(ua);
+    const androidWebview = /Android/i.test(ua) && /; wv\)/i.test(ua);
+    return iosWebview || androidWebview;
+  } catch { return false; }
+}
+
+/* Último correo que ingresó con éxito — el panel corre en el iPad/PC
+   compartido del local, prellenarlo ahorra teclear a diario. La contraseña
+   JAMÁS se guarda. */
+const LAST_EMAIL_KEY = 'sy_gi_last_email';
+function readLastEmail() {
+  try { return localStorage.getItem(LAST_EMAIL_KEY) || ''; } catch { return ''; }
+}
+function saveLastEmail(mail) {
+  try { if (mail) localStorage.setItem(LAST_EMAIL_KEY, mail); } catch { /* ignore */ }
+}
+
 export default function LoginPage() {
   const tenant = useTenant();
-  const [email,      setEmail]      = useState('');
+  const [email,      setEmail]      = useState(readLastEmail);
   const [password,   setPassword]   = useState('');
   const [rememberMe, setRememberMe] = useState(readRememberMe);
   const [error,      setError]      = useState('');
@@ -126,6 +166,47 @@ export default function LoginPage() {
   const [handoff, setHandoff] = useState(() => {
     try { return /[#&]ct=/.test(window.location.hash); } catch { return false; }
   });
+
+  /* Bienvenida del hub: se muestra UNA vez por sesión antes del login. Al
+     elegir "Ya tengo una cuenta" queda marcada en sessionStorage para que un
+     reload (o un intento fallido) no devuelva al usuario a la portada. */
+  const esHub = esHubApp(tenant.id);
+  const [vista, setVista] = useState(() => {
+    try {
+      if (esHubApp(tenant.id) && !sessionStorage.getItem(WELCOME_SEEN_KEY)) return 'welcome';
+    } catch { /* ignore */ }
+    return 'login';
+  });
+  const irALogin = () => {
+    try { sessionStorage.setItem(WELCOME_SEEN_KEY, '1'); } catch { /* ignore */ }
+    setVista('login');
+  };
+  const volverABienvenida = () => {
+    try { sessionStorage.removeItem(WELCOME_SEEN_KEY); } catch { /* ignore */ }
+    setVista('welcome');
+  };
+
+  /* Aviso proactivo de red caída (el wifi de los locales es inestable): mejor
+     un banner antes de intentar que un error genérico tras el timeout. */
+  const [online, setOnline] = useState(() => {
+    try { return navigator.onLine !== false; } catch { return true; }
+  });
+  useEffect(() => {
+    const on  = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
+  /* En webviews embebidas Google OAuth está bloqueado por Google — se oculta. */
+  const sinGoogle = esWebviewEmbebido();
+
+  /* Nombre visible pre-login: el hub jamás muestra el tenant técnico sandbox. */
+  const nombreLocal = esHubApp(tenant.id) ? 'SynapTech Studio' : tenant.name;
 
   /* Carrusel del manifiesto de marca (panel izquierdo). */
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -195,6 +276,7 @@ export default function LoginPage() {
     const mail = email.trim();
     if (!validateEmail(mail)) return;
     if (!password) return setError('Ingresa tu contraseña.');
+    if (!online) return setError('Sin conexión a internet. Revisa tu red e inténtalo de nuevo.');
 
     setLoading(true);
     try {
@@ -205,6 +287,7 @@ export default function LoginPage() {
         rememberMe ? browserLocalPersistence : browserSessionPersistence
       ).catch(() => {});
       await signInWithEmailAndPassword(auth, mail, password);
+      saveLastEmail(mail);
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -220,13 +303,15 @@ export default function LoginPage() {
   const loginGoogle = async () => {
     setError('');
     setResetSent(false);
+    if (!online) return setError('Sin conexión a internet. Revisa tu red e inténtalo de nuevo.');
     setGoogleLoading(true);
     try {
       await setPersistence(
         auth,
         rememberMe ? browserLocalPersistence : browserSessionPersistence
       ).catch(() => {});
-      await signInWithPopup(auth, new GoogleAuthProvider(), browserPopupRedirectResolver);
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider(), browserPopupRedirectResolver);
+      saveLastEmail(cred?.user?.email || '');
     } catch (err) {
       const code = err?.code || '';
       if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
@@ -266,6 +351,11 @@ export default function LoginPage() {
         <p className="text-neutral-300 text-sm font-medium">Entrando a tu panel…</p>
       </div>
     );
+  }
+
+  /* Portada del hub (solo app.synaptechspa.cl): crear un local o ingresar. */
+  if (esHub && vista === 'welcome') {
+    return <HubWelcome onIngresar={irALogin} />;
   }
 
   /* ── Diseño propio: Memphis Salón ──────────────────────────────── */
@@ -336,8 +426,18 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── PANEL DERECHO — formulario (full bleed en mobile) ─────── */}
-      <div className="flex flex-col h-[100dvh] relative bg-[#050505] lg:bg-[#09090b]">
+      {/* ── PANEL DERECHO — formulario (full bleed en mobile) ───────
+          min-h (no h fija): si el formulario supera el alto de la pantalla
+          (teléfonos cortos), el fondo negro acompaña el scroll — con h fija
+          el desborde se pintaba sobre el azul del body y se veía cortado. */}
+      <div className="flex flex-col min-h-[100dvh] relative bg-[#050505] lg:bg-[#09090b]">
+
+        {/* Entrada suave del formulario (se apaga con reduce-motion) */}
+        <style>{`
+          @keyframes lgUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+          .lg-up { opacity: 0; animation: lgUp .55s ease .05s forwards; }
+          @media (prefers-reduced-motion: reduce) { .lg-up { animation: none; opacity: 1; transform: none; } }
+        `}</style>
 
         {/* Ambient glow — resplandor sutil detrás del formulario */}
         <div
@@ -345,9 +445,44 @@ export default function LoginPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md aspect-square bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none z-0"
         />
 
-        <div className="flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 relative z-10">
+        {/* En el hub, permite volver a la portada (crear local / ingresar).
+            El top respeta el notch del iPhone (viewport-fit=cover). */}
+        {esHub && (
+          <button
+            type="button"
+            onClick={volverABienvenida}
+            className="absolute left-5 z-20 inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-200 transition-colors"
+            style={{ top: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
+          >
+            <ChevronLeftIcon /> Volver
+          </button>
+        )}
 
-          <TenantLogo logo={tenant.logo} name={tenant.name} />
+        {/* py-14 despeja el botón "Volver" (absoluto) cuando la pantalla es baja */}
+        <div className="lg-up flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 py-14 relative z-10">
+
+          {/* En el hub NUNCA se muestra el tenant técnico `sandbox`: la cara
+              pre-login de la app es SynapTech Studio. En subdominios de
+              locales sí va su logo y nombre (white-label). */}
+          <div className="flex items-center gap-3.5 mb-8">
+            {esHub ? (
+              <img
+                src="/synaptech/logo-agenda.png"
+                alt="SynapTech Studio"
+                className="h-12 w-12 shrink-0 object-contain rounded-full ring-1 ring-white/10"
+              />
+            ) : (
+              <TenantLogo logo={tenant.logo} name={tenant.name} className="h-12 w-12" />
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-primary truncate">
+                {esHub ? 'SynapTech Studio' : tenant.name}
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                Panel de gestión
+              </p>
+            </div>
+          </div>
 
           <h1 className="text-3xl font-extrabold text-primary tracking-tight mb-2">
             Bienvenido de vuelta.
@@ -356,24 +491,46 @@ export default function LoginPage() {
             Gestiona tu agenda, clientes y caja en un solo lugar.
           </p>
 
-          <form onSubmit={loginEmail} noValidate className="space-y-4">
-            <input
-              type="email"
-              inputMode="email"
-              placeholder="Correo electrónico"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              autoFocus
-              className={inputClass}
-              aria-label="Correo electrónico"
-            />
+          {!online && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mb-5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-3 flex items-center gap-2.5"
+            >
+              <span aria-hidden className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <p className="text-xs text-amber-200 font-medium leading-relaxed">
+                Sin conexión a internet. Revisa el wifi o los datos del equipo.
+              </p>
+            </div>
+          )}
 
+          <form onSubmit={loginEmail} noValidate className="space-y-4">
+            <div>
+              <label htmlFor="login-email" className="block text-xs font-medium text-neutral-400 mb-1.5">
+                Correo electrónico
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                inputMode="email"
+                placeholder="nombre@correo.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                autoFocus={!email}
+                className={inputClass}
+                aria-label="Correo electrónico"
+              />
+            </div>
+
+            {/* Con el correo prellenado, el foco arranca en la contraseña */}
             <PasswordField
               value={password}
               onChange={e => setPassword(e.target.value)}
               inputClass={inputClass}
               accent="emerald"
+              label="Contraseña"
+              autoFocus={!!email}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
@@ -400,7 +557,7 @@ export default function LoginPage() {
               error={error}
               resetSent={resetSent}
               email={email.trim()}
-              tenantName={tenant.name}
+              tenantName={nombreLocal}
               tenantId={tenant.id}
             />
 
@@ -408,7 +565,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-ink-950 font-bold rounded-xl py-3.5 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-ink-950 font-bold rounded-xl py-3.5 shadow-[0_10px_28px_-10px_rgba(16,185,129,0.55)] flex items-center justify-center transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -418,31 +575,47 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-5" aria-hidden="true">
-            <span className="h-px flex-1 bg-neutral-800" />
-            <span className="text-[11px] text-neutral-600 uppercase tracking-wider">o</span>
-            <span className="h-px flex-1 bg-neutral-800" />
-          </div>
+          {/* Google OAuth no corre en webviews embebidas (Google lo bloquea):
+              dentro del wrapper iOS/TWA el botón no se muestra. */}
+          {!sinGoogle && (
+            <>
+              <div className="flex items-center gap-3 my-5" aria-hidden="true">
+                <span className="h-px flex-1 bg-neutral-800" />
+                <span className="text-[11px] text-neutral-600 uppercase tracking-wider">o continúa con</span>
+                <span className="h-px flex-1 bg-neutral-800" />
+              </div>
 
-          <button
-            type="button"
-            onClick={loginGoogle}
-            disabled={googleLoading}
-            aria-busy={googleLoading}
-            className="w-full bg-neutral-900/50 hover:bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-primary font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {googleLoading ? (
-              <span className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <GoogleIcon /> Continuar con Google
-              </>
-            )}
-          </button>
+              <button
+                type="button"
+                onClick={loginGoogle}
+                disabled={googleLoading}
+                aria-busy={googleLoading}
+                className="w-full bg-neutral-900/50 hover:bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-primary font-semibold rounded-xl py-3.5 flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {googleLoading ? (
+                  <span className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <GoogleIcon /> Google
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* Alta self-service — SOLO en el hub (white-label intacto en tenants) */}
+          {esHub && (
+            <p className="mt-5 text-center text-sm text-neutral-400">
+              ¿Aún no tienes cuenta?{' '}
+              <a href="/crea" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+                Crea tu local gratis
+              </a>
+            </p>
+          )}
 
           {/* Ayuda por WhatsApp — siempre visible, no solo cuando falla */}
           <a
-            href={whatsappHelpHref({ tenantName: tenant.name, tenantId: tenant.id, email: email.trim() })}
+            href={whatsappHelpHref({ tenantName: nombreLocal, tenantId: tenant.id, email: email.trim() })}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-6 inline-flex items-center justify-center gap-1.5 text-xs text-neutral-500 hover:text-emerald-300 transition-colors"
@@ -451,7 +624,10 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <p className="shrink-0 pb-8 text-center text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap relative z-10">
+        <p
+          className="shrink-0 text-center text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap relative z-10"
+          style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <img
             src="/synaptech/ig.png"
             alt="SynapTech Icon"
@@ -474,7 +650,7 @@ function tenantInitials(name) {
   return (letters || String(name || '?').trim()[0] || '?').toUpperCase();
 }
 
-function TenantLogo({ logo, name }) {
+function TenantLogo({ logo, name, className = 'h-14 w-14 mb-8' }) {
   const [failed, setFailed] = useState(false);
   if (logo && !failed) {
     return (
@@ -482,7 +658,7 @@ function TenantLogo({ logo, name }) {
         src={logo}
         alt={name}
         onError={() => setFailed(true)}
-        className="h-14 w-14 object-contain rounded-full mb-8 bg-neutral-900/40 ring-1 ring-white/10"
+        className={`${className} shrink-0 object-contain rounded-full bg-neutral-900/40 ring-1 ring-white/10`}
       />
     );
   }
@@ -490,7 +666,7 @@ function TenantLogo({ logo, name }) {
     <div
       role="img"
       aria-label={name}
-      className="h-14 w-14 rounded-full mb-8 flex items-center justify-center bg-neutral-800 text-amber-500 font-bold text-xl select-none ring-1 ring-white/10"
+      className={`${className} shrink-0 rounded-full flex items-center justify-center bg-neutral-800 text-amber-500 font-bold text-xl select-none ring-1 ring-white/10`}
     >
       {tenantInitials(name)}
     </div>
@@ -533,7 +709,7 @@ function LoginError({ error, resetSent, email, tenantName, tenantId }) {
 }
 
 /* ── Campo de contraseña con toggle mostrar/ocultar + Bloq Mayús ──── */
-function PasswordField({ value, onChange, inputClass, accent = 'emerald' }) {
+function PasswordField({ value, onChange, inputClass, accent = 'emerald', label, autoFocus = false }) {
   const [show, setShow] = useState(false);
   const [caps, setCaps] = useState(false);
 
@@ -547,10 +723,17 @@ function PasswordField({ value, onChange, inputClass, accent = 'emerald' }) {
 
   return (
     <div>
+      {label && (
+        <label htmlFor="login-password" className="block text-xs font-medium text-neutral-400 mb-1.5">
+          {label}
+        </label>
+      )}
       <div className="relative">
         <input
+          id={label ? 'login-password' : undefined}
           type={show ? 'text' : 'password'}
           placeholder="Contraseña"
+          autoFocus={autoFocus}
           value={value}
           onChange={onChange}
           onKeyDown={detectCaps}
@@ -622,6 +805,156 @@ function CapsLockIcon() {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3l8 9h-4v6H8v-6H4l8-9z" />
     </svg>
+  );
+}
+function ChevronLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HubWelcome — portada de SynapTech Studio (solo app.synaptechspa.cl).
+   Es lo primero que ve quien instala la app desde App Store / Play Store:
+   presenta el producto y ofrece crear un local (self-service /crea) o
+   ingresar. Paleta SynapTech: fondo #0D1522 (el mismo del splash, para que
+   la transición sea continua) y neón #C6F94E solo como acento sobre oscuro.
+   ═══════════════════════════════════════════════════════════════════ */
+const HUB_FEATURES = [
+  {
+    titulo: 'Agenda online 24/7',
+    detalle: 'Tus clientes reservan solos desde el celular, a cualquier hora.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="3" />
+        <path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Caja y métricas en tiempo real',
+    detalle: 'Sabes cuánto entra hoy, esta semana y este mes, sin planillas.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 3v18h18" />
+        <path d="M7 15l4-4 3 3 5-6" />
+      </svg>
+    ),
+  },
+  {
+    titulo: 'Asistente con IA por WhatsApp',
+    detalle: 'Confirma citas y responde a tus clientes por ti, todos los días.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 12a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.9-.37-4.14-1.02L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z" />
+        <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" strokeWidth="2.4" />
+      </svg>
+    ),
+  },
+];
+
+function HubWelcome({ onIngresar }) {
+  return (
+    <div
+      className="min-h-[100dvh] w-full relative overflow-hidden flex flex-col bg-[#0D1522]"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+
+      <style>{`
+        @keyframes hwUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        .hw-up { opacity: 0; animation: hwUp .6s ease forwards; }
+        @media (prefers-reduced-motion: reduce) { .hw-up { animation: none !important; opacity: 1; transform: none; } }
+      `}</style>
+
+      {/* Resplandores de ambiente — neón SynapTech sobre fondo oscuro */}
+      <div aria-hidden className="absolute -top-32 -right-24 w-96 h-96 rounded-full blur-[110px] opacity-[0.14] pointer-events-none bg-[#C6F94E]" />
+      <div aria-hidden className="absolute -bottom-40 -left-28 w-[28rem] h-[28rem] rounded-full blur-[120px] opacity-[0.1] pointer-events-none bg-emerald-500" />
+
+      <div className="flex-1 flex flex-col justify-center w-full max-w-sm mx-auto px-6 py-10 relative z-10">
+
+        {/* Marca — logo-agenda.png es EL logo SynapTech (insignia circular) */}
+        <div className="hw-up flex flex-col items-center text-center mb-9" style={{ animationDelay: '0.05s' }}>
+          <div className="relative w-[88px] h-[88px] mb-4">
+            <div aria-hidden className="absolute inset-0 rounded-full blur-xl opacity-35 bg-[#C6F94E]" />
+            <img
+              src="/synaptech/logo-agenda.png"
+              alt="SynapTech Studio"
+              className="relative w-full h-full object-contain rounded-full ring-1 ring-white/10"
+            />
+          </div>
+          <p className="text-primary font-extrabold text-lg tracking-tight">
+            SynapTech <span className="text-[#C6F94E]">Studio</span>
+          </p>
+        </div>
+
+        {/* Mensaje */}
+        <div className="hw-up text-center mb-9" style={{ animationDelay: '0.15s' }}>
+          <h1 className="text-[28px] leading-tight font-extrabold text-primary tracking-tight mb-3">
+            Tu local, en piloto automático.
+          </h1>
+          <p className="text-neutral-400 text-sm leading-relaxed">
+            Agenda, caja, clientes y marketing con IA — todo en una sola app.
+          </p>
+        </div>
+
+        {/* Features */}
+        <ul className="space-y-3.5 mb-10">
+          {HUB_FEATURES.map((f, i) => (
+            <li
+              key={f.titulo}
+              className="hw-up flex items-start gap-3.5"
+              style={{ animationDelay: `${0.25 + i * 0.08}s` }}
+            >
+              <span className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.04] ring-1 ring-white/10 text-[#C6F94E]">
+                {f.icon}
+              </span>
+              <span className="min-w-0 pt-0.5">
+                <span className="block text-sm font-semibold text-primary">{f.titulo}</span>
+                <span className="block text-xs text-neutral-500 leading-relaxed mt-0.5">{f.detalle}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Acciones */}
+        <div className="hw-up space-y-3" style={{ animationDelay: '0.55s' }}>
+          <a
+            href="/crea"
+            className="block w-full text-center bg-[#C6F94E] hover:brightness-105 text-[#0D1522] font-bold rounded-xl py-4 shadow-[0_12px_32px_-10px_rgba(198,249,78,0.45)] transition-all active:scale-[0.99]"
+          >
+            Crear mi local gratis
+          </a>
+          <p className="text-center text-[11px] text-neutral-500">
+            14 días de prueba · No necesitas tarjeta
+          </p>
+          <button
+            type="button"
+            onClick={onIngresar}
+            className="w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 text-primary font-semibold rounded-xl py-3.5 transition-all"
+          >
+            Ya tengo una cuenta
+          </button>
+        </div>
+
+        {/* Promo discreta de bioo — solo existe en el hub (white-label intacto) */}
+        <a
+          href="https://bioo.cl"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hw-up mt-7 text-center text-xs text-neutral-500 hover:text-[#C6F94E] transition-colors"
+          style={{ animationDelay: '0.62s' }}
+        >
+          ¿Vendes por redes sociales? Conoce <span className="font-semibold">bioo</span> — el link-in-bio de SynapTech →
+        </a>
+      </div>
+
+      <p className="hw-up shrink-0 pb-7 text-center text-xs text-neutral-600 flex items-center justify-center relative z-10" style={{ animationDelay: '0.65s' }}>
+        <img src="/synaptech/ig.png" alt="" aria-hidden="true" className="h-4 w-auto inline-block mr-1.5 opacity-90" />
+        Powered by SynapTech
+      </p>
+    </div>
   );
 }
 

@@ -28,20 +28,28 @@
 //  Vite — es solo data.
 //
 //  USO:
-//    node scripts/seed-practica.js                    → crea o actualiza
+//    node scripts/seed-practica.js                    → crea o actualiza, y
+//                                                       SIEMPRE deja el acceso
+//                                                       practica@synaptechspa.cl
+//                                                       / Practica7912 andando
 //    node scripts/seed-practica.js --reset            → borra el movimiento
 //                                                       (citas/clientes/ventas)
 //                                                       y vuelve a sembrar
-//    node scripts/seed-practica.js --owner=ella@x.cl  → le da acceso admin
-//    node scripts/seed-practica.js --owner=ella@x.cl --pass=Practica7912
-//                                                     → fija/repone la clave
+//    node scripts/seed-practica.js --owner=ella@x.cl  → además, acceso admin
+//                                                       para otra persona
+//    node scripts/seed-practica.js --pass=OtraClave1  → cambia la clave fija
+//
+//  Este es el comando de rescate: si el panel de práctica no deja entrar,
+//  córrelo sin argumentos y verifica solo que el login quedó funcionando
+//  (sale con código 1 si no). No hay que anotar nada de la consola.
 //
 //  Panel:  https://practica.synaptechspa.cl/gestion-interna/?local=practica
 //  Agenda: https://practica.synaptechspa.cl
 // ─────────────────────────────────────────────────────────────────────────────
 
-const path = require('path');
-const fs   = require('fs');
+const path  = require('path');
+const fs    = require('fs');
+const https = require('https');
 
 const RAIZ  = path.join(__dirname, '..');
 const admin = require(path.join(RAIZ, 'functions/node_modules/firebase-admin'));
@@ -61,10 +69,25 @@ const { FieldValue } = admin.firestore;
 
 const TID    = 'practica';
 const NOMBRE = 'Barbería Práctica';
+
+// ── Acceso FIJO del local de práctica ────────────────────────────────────────
+//  Este es un entorno desechable con data inventada: acá la contraseña
+//  determinista vale más que la secreta. Antes se generaba al azar
+//  (`Practica`+4 dígitos) y se imprimía UNA vez; al cerrar la terminal se
+//  perdía, y como el seed no repone claves de cuentas existentes, la única
+//  salida era borrar el usuario. Eso dejó a Ignacio fuera dos veces (04 y
+//  06-ago-2026). Ahora: correr el seed SIEMPRE deja este acceso funcionando.
+//  Si cambias estos valores, actualiza también el cheatsheet del equipo.
+const OWNER_FIJO = 'practica@synaptechspa.cl';
+const PASS_FIJA  = 'Practica7912';
+// apiKey pública del proyecto (la misma que sirve el panel) — solo se usa para
+// verificar al final que el login REALMENTE funciona.
+const API_KEY = 'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q';
+
 const args   = process.argv.slice(2);
 const RESET  = args.includes('--reset');
-const OWNER  = (args.find(a => a.startsWith('--owner=')) || '').split('=')[1] || null;
-const PASS   = (args.find(a => a.startsWith('--pass=')) || '').split('=')[1] || null;
+const OWNER  = (args.find(a => a.startsWith('--owner=')) || '').split('=')[1] || OWNER_FIJO;
+const PASS   = (args.find(a => a.startsWith('--pass=')) || '').split('=')[1] || PASS_FIJA;
 
 const T  = (p) => db.collection(`tenants/${TID}/${p}`);
 const TS = FieldValue.serverTimestamp();
@@ -322,35 +345,71 @@ async function sembrar() {
 }
 
 // ── Acceso de la vendedora ───────────────────────────────────────────────────
+//  SIEMPRE deja la contraseña en un valor conocido. Ya no existe la rama que
+//  "no toca la clave si la cuenta existe": esa era justamente la que dejaba el
+//  panel inaccesible sin decir nada.
 async function darAcceso(email, pass) {
   let user;
-  let vigente = null;   // solo se conoce si la fijamos en esta corrida
   try {
     user = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(user.uid, { password: pass });
     console.log(`  cuenta existente: ${email}`);
-    // Con la cuenta ya creada el seed NO tocaba la contraseña, así que la
-    // única que servía era la aleatoria del primer run — impresa una vez en
-    // consola y perdida apenas se cerraba la terminal. Pasando --pass se
-    // repone sin tener que borrar el usuario.
-    if (pass) {
-      await admin.auth().updateUser(user.uid, { password: pass });
-      vigente = pass;
-      console.log('  contraseña repuesta con --pass');
-    } else {
-      console.log('  contraseña: sin cambios (usa --pass=… para reponerla)');
-    }
+    console.log('  contraseña repuesta');
   } catch (_) {
-    vigente = pass || ('Practica' + Math.floor(1000 + Math.random() * 9000));
-    user = await admin.auth().createUser({ email, password: vigente, displayName: 'Equipo comercial' });
+    user = await admin.auth().createUser({ email, password: pass, displayName: 'Equipo comercial' });
     console.log(`  cuenta creada: ${email}`);
   }
-  if (vigente) console.log(`  contraseña: ${vigente}   ← anótala, no queda guardada`);
+  console.log(`  contraseña: ${pass}`);
   await admin.auth().setCustomUserClaims(user.uid, { role: 'admin', tenantId: TID });
   await T('barberos').doc(user.uid).set({
     _mainDocId: 'practica-b1', uid: user.uid, email,
     nombre: 'Equipo comercial', rol: 'admin', activo: true,
   }, { merge: true });
   console.log(`  claims: role=admin tenantId=${TID}`);
+}
+
+// Verificación real del login. El Admin SDK puede reportar éxito y aun así
+// dejar el panel inaccesible (claims viejos, cuenta deshabilitada, clave
+// pisada por otra corrida). La ÚNICA prueba que vale es pedirle un idToken a
+// Identity Toolkit igual que lo hace el navegador. `getUserByEmail` no sirve:
+// no devuelve passwordHash.
+async function verificarLogin(email, pass) {
+  // `https` nativo con `agent: false` en vez de fetch(): undici deja el socket
+  // en un pool que sigue vivo, y el process.exit() del final aborta con
+  // "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)" (libuv, Windows).
+  // Eso no solo ensucia la salida: el abort pisa el exit code con 127 y mata
+  // la señal de "el login no quedó funcionando" que este script existe para dar.
+  const j = await new Promise((resolve) => {
+    const body = JSON.stringify({ email, password: pass, returnSecureToken: true });
+    const req = https.request({
+      hostname: 'identitytoolkit.googleapis.com',
+      path:     `/v1/accounts:signInWithPassword?key=${API_KEY}`,
+      method:   'POST',
+      agent:    false,
+      headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, (res) => {
+      let raw = '';
+      res.on('data', (c) => { raw += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(raw)); }
+        catch { resolve({ error: { message: `respuesta ilegible (HTTP ${res.statusCode})` } }); }
+      });
+    });
+    req.on('error', (e) => resolve({ error: { message: `sin red: ${e.message}` } }));
+    req.end(body);
+  });
+  if (j.idToken) {
+    console.log(`  ✅ login verificado contra Firebase Auth (uid ${j.localId})`);
+    return true;
+  }
+  const code = (j.error && j.error.message) || 'desconocido';
+  console.error(`  ❌ EL LOGIN NO FUNCIONA: ${code}`);
+  if (code === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+    console.error('     Firebase bloqueó esta IP por intentos fallidos. La clave quedó');
+    console.error('     bien puesta; espera unos minutos y entra al panel igual.');
+    return true;   // la clave sí se fijó — no es una falla del seed
+  }
+  return false;
 }
 
 (async () => {
@@ -371,13 +430,12 @@ async function darAcceso(email, pass) {
   console.log(`  ${r.nCitas} citas entre ${masDias(r.hoy, -7)} y ${masDias(r.hoy, 7)}`);
   console.log(`  ~$${r.ingresos.toLocaleString('es-CL')} en citas completadas de la semana pasada`);
 
-  if (OWNER) {
-    console.log('\nAcceso:');
-    await darAcceso(OWNER, PASS);
-  }
+  console.log('\nAcceso:');
+  await darAcceso(OWNER, PASS);
+  const ok = await verificarLogin(OWNER, PASS);
 
   console.log('\n  Panel:  https://practica.synaptechspa.cl/gestion-interna/?local=practica');
   console.log('  Agenda: https://practica.synaptechspa.cl');
   console.log('\n  Para dejarlo como nuevo:  node scripts/seed-practica.js --reset\n');
-  process.exit(0);
+  process.exit(ok ? 0 : 1);
 })().catch(e => { console.error('FALLÓ:', e); process.exit(1); });

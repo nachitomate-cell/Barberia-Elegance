@@ -24,10 +24,10 @@ const ROOT = path.resolve(__dirname, '..');
 const OUT  = path.join(ROOT, 'clinicalglow');
 fs.mkdirSync(OUT, { recursive: true });
 
-const NUDE   = '#fdf7f4';
-const GOLD   = '#d4a574';
-const ROSE   = '#c9899b';
-const CHOCO  = '#3d2f2b';
+const NUDE   = '#faf5f0';
+const GOLD   = '#c5a677';
+const ROSE   = '#d8b4bd';
+const CHOCO  = '#2b2019';
 
 // ── logo.png (1024×1024 · monograma CG en dorado sobre nude) ─────────
 const logoSvg = `

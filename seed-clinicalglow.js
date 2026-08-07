@@ -152,6 +152,49 @@ const BARBEROS = [
   },
 ];
 
+// ── Preguntas frecuentes ─────────────────────────────────────────────────────
+// Se rendrean en la agenda pública (sección "Preguntas frecuentes" bajo los
+// servicios) y se gestionan desde /gestion-interna/faqs. Muestras placeholder
+// pensadas para clínica estética — la dueña las edita cuando quiera.
+const FAQS = [
+  {
+    id: 'faq-cg-01',
+    pregunta: '¿Necesito una consulta previa antes de un tratamiento?',
+    respuesta: 'Sí. Antes de cualquier procedimiento inyectable (botox, ácido hialurónico, bioestimuladores, ojeras) hacemos una evaluación breve para revisar tu piel, tus objetivos y descartar contraindicaciones. La consulta viene incluida en la sesión.',
+    orden: 1, activa: true,
+  },
+  {
+    id: 'faq-cg-02',
+    pregunta: '¿Cuánto duran los resultados?',
+    respuesta: 'Depende del tratamiento. Botox: entre 4 y 6 meses. Ácido hialurónico en labios y ojeras: 6 a 9 meses. Bioestimuladores: 12 a 18 meses. En la consulta te contamos con más detalle según tu caso.',
+    orden: 2, activa: true,
+  },
+  {
+    id: 'faq-cg-03',
+    pregunta: '¿Los tratamientos duelen?',
+    respuesta: 'Usamos anestesia tópica (crema) en todos los procedimientos inyectables. La molestia es mínima: la mayoría de las pacientes lo describen como una picada muy leve.',
+    orden: 3, activa: true,
+  },
+  {
+    id: 'faq-cg-04',
+    pregunta: '¿Puedo hacer vida normal después?',
+    respuesta: 'Sí. Los tratamientos son ambulatorios: sales caminando y puedes retomar tu día. Solo pedimos evitar ejercicio intenso, sauna y exposición solar directa durante 24-48 horas. En la sesión te entregamos indicaciones específicas.',
+    orden: 4, activa: true,
+  },
+  {
+    id: 'faq-cg-05',
+    pregunta: '¿Con cuánto tiempo debo llegar antes de mi hora?',
+    respuesta: 'Con 10 minutos de anticipación es suficiente. Nos permite recibirte, revisar tu ficha y responder cualquier duda antes de comenzar.',
+    orden: 5, activa: true,
+  },
+  {
+    id: 'faq-cg-06',
+    pregunta: '¿Qué formas de pago aceptan?',
+    respuesta: 'Efectivo, transferencia y todas las tarjetas de débito y crédito. También puedes coordinar el pago por adelantado si prefieres.',
+    orden: 6, activa: true,
+  },
+];
+
 // ── Premios del club ─────────────────────────────────────────────────────────
 // Placeholder — la dueña puede reemplazarlos desde el panel.
 const PREMIOS = [
@@ -212,6 +255,18 @@ async function seedPremios() {
   console.log(`✅ ${PREMIOS.length} premios creados.`);
 }
 
+async function seedFaqs() {
+  separador('PREGUNTAS FRECUENTES');
+  const batch = db.batch();
+  for (const f of FAQS) {
+    const { id, ...data } = f;
+    batch.set(col('faqs').doc(id), { ...data, updatedAt: TS() }, { merge: true });
+    console.log(`  → ${data.pregunta.slice(0, 60)}${data.pregunta.length > 60 ? '…' : ''}`);
+  }
+  await batch.commit();
+  console.log(`✅ ${FAQS.length} FAQs creadas.`);
+}
+
 async function seedProfile() {
   separador('PERFIL & TEMA');
   await tenantRef.set({
@@ -238,17 +293,17 @@ async function seedProfile() {
   }, { merge: true });
 
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#fdf7f4',
+    colorBg:            '#faf5f0',
     colorSurface:       '#ffffff',
-    colorSurfaceAlt:    '#f7ede7',
-    colorPrimary:       '#d4a574',
-    colorAccent:        '#c9899b',
-    colorText:          '#3d2f2b',
-    colorMuted:         '#8a7570',
-    colorBorder:        'rgba(212,165,116,0.18)',
-    colorGlow:          'rgba(201,137,155,0.10)',
+    colorSurfaceAlt:    '#fdfaf5',
+    colorPrimary:       '#c5a677',
+    colorAccent:        '#d8b4bd',
+    colorText:          '#2b2019',
+    colorMuted:         '#78706c',
+    colorBorder:        'rgba(43,32,25,0.06)',
+    colorGlow:          'rgba(197,166,119,0.14)',
     colorButtonText:    '#ffffff',
-    colorProgressTrack: 'rgba(212,165,116,0.14)',
+    colorProgressTrack: 'rgba(43,32,25,0.06)',
     updatedAt:          TS(),
   }, { merge: true });
 
@@ -310,6 +365,7 @@ async function seed() {
   await seedBarberos();
   await seedConfiguracion();
   await seedPremios();
+  await seedFaqs();
   await seedProfile();
   await seedPlataforma();
 

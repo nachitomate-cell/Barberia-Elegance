@@ -1041,10 +1041,14 @@
     },
     // ── CLINICAL GLOW — Clínica estética facial · Viña del Mar ──
     // Acceso: ?local=clinicalglow  o  clinicalglow.synaptechspa.cl
-    // Tema CLARO propio (rosa/nude/dorado) — capa .tenant-clinicalglow en
-    // index.html/barbero.html/agenda.html. NO usa themeAlias.
+    // Tema CLARO propio (rosa/nude/dorado) — capa .tenant-clinicalglow.tenant-aura
+    // en index.html/barbero.html (reusa scaffolding de Aura vía _themeAlias).
+    // Tipo 'clinica': nuevo type paralelo a 'restaurante' (restodemo). Copy
+    // del sitio y del panel no debe decir "barbero"/"corte"/"barbería" —
+    // ramificar en vistas por `window.SHOP?.tipo === 'clinica'`.
     // ⚠️ Datos placeholder — reemplazar con reales cuando la profesional los pase.
     clinicalglow: {
+      tipo:            'clinica',
       categoriasServicio: ['Facial', 'Corporal', 'Capilar', 'Otros'],
       nombre:          'Clinical Glow',
       nombreCorto:     'Clinical Glow',

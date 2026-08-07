@@ -512,14 +512,14 @@
     .tenant-alfamen #barberHero #barberEspecialidad { color: rgba(17,17,17,0.72) !important; }
     .tenant-alfamen #barberPhotoWrap { background: #F3F4F6 !important; }
 
-    /* Clinical Glow — hero de la ficha profesional: fondo nude con halo dorado
-       + rosa, marca de agua del logo cálida. Espejo del hero claro del index. */
+    /* Clinical Glow — ficha profesional en paleta clínica premium (mismo
+       lenguaje que el hero del index: nude cálido + halos, wordmark serif). */
     .tenant-clinicalglow #barberHero {
       background:
-        radial-gradient(ellipse at 30% -10%, rgba(212,165,116,0.14), transparent 55%),
-        radial-gradient(ellipse at 70% 110%, rgba(201,137,155,0.10), transparent 60%),
-        #fdf7f4 !important;
-      border-bottom: 1px solid rgba(212,165,116,0.14);
+        radial-gradient(ellipse 60% 45% at 20% -10%, rgba(197,166,119,0.18), transparent 70%),
+        radial-gradient(ellipse 55% 50% at 85% 110%, rgba(216,180,189,0.14), transparent 70%),
+        linear-gradient(180deg, #fdfaf5 0%, #faf5f0 100%) !important;
+      border-bottom: 1px solid rgba(43,32,25,0.06);
     }
     .tenant-clinicalglow #barberHeroImg {
       object-fit: contain !important;
@@ -528,10 +528,30 @@
       opacity: 0.08;
     }
     .tenant-clinicalglow #barberHero::before { background: none !important; }
-    .tenant-clinicalglow #barberHero #shopNameLabel      { color: rgba(61,47,43,0.55) !important; }
-    .tenant-clinicalglow #barberHero #barberName         { color: #3d2f2b !important; text-shadow: none !important; }
-    .tenant-clinicalglow #barberHero #barberEspecialidad { color: rgba(61,47,43,0.72) !important; }
-    .tenant-clinicalglow #barberPhotoWrap { background: #ffffff !important; border: 1px solid rgba(212,165,116,0.18) !important; }
+    .tenant-clinicalglow #barberHero #shopNameLabel {
+      color: rgba(43,32,25,0.55) !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.68rem !important;
+      letter-spacing: 0.28em !important;
+      text-transform: uppercase !important;
+    }
+    .tenant-clinicalglow #barberHero #barberName {
+      color: #2b2019 !important;
+      text-shadow: none !important;
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.015em !important;
+    }
+    .tenant-clinicalglow #barberHero #barberEspecialidad {
+      color: rgba(43,32,25,0.68) !important;
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-style: italic !important;
+    }
+    .tenant-clinicalglow #barberPhotoWrap {
+      background: #ffffff !important;
+      border: 2px solid #ffffff !important;
+      box-shadow: 0 0 0 1px rgba(197,166,119,0.24), 0 8px 24px -6px rgba(43,32,25,0.10) !important;
+    }
 
     /* Barra de progreso */
     :is(.tenant-aura,.tenant-latincaribe,.theme-light,.tenant-infinity,.tenant-renacer) #progressTrack { background: #E5E7EB !important; }
@@ -1501,7 +1521,7 @@
           <div class="flex-1 min-w-0 text-left">
             <p class="text-sm font-semibold text-white truncate">${s.nombre}</p>
             <p class="text-xs text-neutral-400 flex items-center gap-1 mt-0.5"><i class="ph ph-clock text-[11px]"></i>${formatDuration(s.duracion)}</p>
-            ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
+            ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 leading-snug mt-1 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-neutral-300 hover:underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
           </div>
           <div class="text-right flex items-center gap-3 shrink-0">
             <span class="text-sm font-bold text-amber-500">${formatPrice(_precioSvc(s))}</span>
@@ -2370,7 +2390,6 @@
               // Doble opt-in: sale de la casilla real. Sin casilla → false → sin WhatsApp.
           waOptIn:        ReservaCore.waOptInMarcado(),
         }),
-        estado: 'Confirmada',
         ...(_auraOrigen ? { origenAdquisicion: _auraOrigen } : {}),
         // Modelo B: si eligió un pack multi-servicio con "servicio de hoy",
         // pasamos activaPackId para que la CF pack-automatico active el pack
@@ -2409,7 +2428,7 @@
     ss.style.display = 'flex';
 
     document.getElementById('successSvc').textContent =
-      `${_selectedService.nombre} con ${_barberoNombre}`;
+      `${_nombreServicioCompleto()} con ${_barberoNombre}`;
 
     const [y,m,d] = _selectedDate.split('-');
     const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -2422,7 +2441,7 @@
     const waNum  = (shop.telefono || '').replace(/\D/g,'');
     const waMsg  = encodeURIComponent(
       `Hola ${_barberoNombre}, confirmé mi reserva en la app:\n` +
-      `📅 ${d}/${m} a las ${_selectedTime}\n✂️ ${_selectedService.nombre}\n👤 ${clienteNombre}`
+      `📅 ${d}/${m} a las ${_selectedTime}\n✂️ ${_nombreServicioCompleto()}\n👤 ${clienteNombre}`
     );
     const waBtn = document.getElementById('waBtnLink');
     if (waNum) {
@@ -2498,7 +2517,7 @@
         lumen:         { r:212, g:175, b:55  },  // #D4AF37
         omega:         { r:17,  g:17,  b:17  },  // #111111 negro de marca (igual al index)
         alfamen:       { r:17,  g:17,  b:17  },  // #111111 tinta sobre blanco (igual al index)
-        clinicalglow:  { r:212, g:165, b:116 },  // #d4a574 dorado suave sobre nude (igual al index)
+        clinicalglow:  { r:197, g:166, b:119 },  // #c5a677 dorado sofisticado sobre nude (igual al index)
         memphis:       { r:217, g:220, b:225 },  // #D9DCE1
         elbarberomoderno: { r:192, g:192, b:192 }, // #C0C0C0
         marcelo_hairdressing: { r:255, g:255, b:255 }, // #ffffff

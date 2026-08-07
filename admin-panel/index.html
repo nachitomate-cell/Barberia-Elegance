@@ -18,6 +18,30 @@
     } catch (_) {}
   </script>
 
+  <!-- DEV sin cache TOTAL (espejo de _devserver.py): en localhost el service
+       worker del build anterior sirve un index.html precacheado que apunta a
+       chunks que ya no existen tras cada rebuild → pantalla blanca con error
+       de MIME. Aqui se desregistra todo SW y se purgan sus caches. En
+       produccion (hostname real) no corre jamas. -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      if (h !== 'localhost' && h !== '127.0.0.1') return;
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (rs) {
+            rs.forEach(function (r) { r.unregister(); });
+          }).catch(function () {});
+        }
+        if (window.caches && caches.keys) {
+          caches.keys().then(function (ks) {
+            ks.forEach(function (k) { caches.delete(k); });
+          }).catch(function () {});
+        }
+      } catch (_) {}
+    })();
+  </script>
+
   <!-- PWA -->
   <meta name="theme-color" content="#0f172a" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -118,7 +142,13 @@
   <script>
     (function(){
       // Solo la app SynapTech Studio (hub). En tenants NO (white-label intacto).
-      if (location.hostname !== 'app.synaptechspa.cl') return;
+      // En dev (localhost) se emula el hub con ?local=sandbox — igual que el
+      // DOMAIN_MAP resuelve el hub pre-login — para poder revisar el flujo
+      // completo de la app de las tiendas sin desplegar.
+      var _h = location.hostname;
+      var _esHub = _h === 'app.synaptechspa.cl' ||
+        ((_h === 'localhost' || _h === '127.0.0.1') && /[?&]local=sandbox(?:&|$)/.test(location.search));
+      if (!_esHub) return;
       // Una sola vez por sesión: evita mostrarlo de nuevo en el reload que hace
       // el selector de tenant (HubTenantGate) tras el login.
       try { if (sessionStorage.getItem('_splash_shown')) return; sessionStorage.setItem('_splash_shown', '1'); } catch (_) {}

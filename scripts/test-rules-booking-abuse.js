@@ -64,6 +64,33 @@ const citaOK = () => ({
     ['nota gigante se RECHAZA',
       () => setDoc(ref('junk5'), { ...citaOK(), nota: 'B'.repeat(9000) }), false],
 
+    // ── Piso de contacto (2026-08-05) ──────────────────────────────────
+    // Basura estructural fuera…
+    ['teléfono con letras se RECHAZA',
+      () => setDoc(ref('tel1'), { ...citaOK(), clienteTelefono: 'no te importa' }), false],
+    ['teléfono muy corto se RECHAZA',
+      () => setDoc(ref('tel2'), { ...citaOK(), clienteTelefono: '123' }), false],
+    ['correo sin @ se RECHAZA',
+      () => setDoc(ref('mail1'), { ...citaOK(), clienteEmail: 'asdf' }), false],
+    ['correo sin punto se RECHAZA',
+      () => setDoc(ref('mail2'), { ...citaOK(), clienteEmail: 'yaite@' }), false],
+
+    // …pero el piso NO puede castigar a clientes reales que se equivocaron.
+    // Estos son datos textuales de producción: si alguno cae en deny, el
+    // endurecimiento está mal calibrado y hay que aflojarlo, no "arreglar" el test.
+    ['teléfono real mal tipeado (+5664748862) SÍ pasa',
+      () => setDoc(ref('tel3'), { ...citaOK(), clienteTelefono: '+5664748862' }), true],
+    ['teléfono con formato bonito SÍ pasa',
+      () => setDoc(ref('tel4'), { ...citaOK(), clienteTelefono: '+56 9 1234 5678' }), true],
+    ['teléfono vacío SÍ pasa (correo puede ser el único canal)',
+      () => setDoc(ref('tel5'), { ...citaOK(), clienteTelefono: '' }), true],
+    ['correo con TLD raro pero bien formado SÍ pasa (lo corrige el chip, no la regla)',
+      () => setDoc(ref('mail3'), { ...citaOK(), clienteEmail: 'trefghut@mhhh.cpm' }), true],
+    ['correo vacío SÍ pasa (correoObligatorio puede estar apagado)',
+      () => setDoc(ref('mail4'), { ...citaOK(), clienteEmail: '' }), true],
+    ['correo extranjero SÍ pasa',
+      () => setDoc(ref('mail5'), { ...citaOK(), clienteEmail: 'karim.drozd@gmx.de' }), true],
+
     // Estos YA los cubría la regla original (regresión, deben seguir en deny).
     ['inyección de rol se RECHAZA',
       () => setDoc(ref('junk6'), { ...citaOK(), role: 'admin' }), false],

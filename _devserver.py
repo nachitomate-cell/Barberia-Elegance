@@ -47,6 +47,13 @@ class RewriteHandler(http.server.SimpleHTTPRequestHandler):
         candidate = os.path.normpath(os.path.join(ROOT, path.lstrip("/")))
         if candidate.startswith(ROOT) and os.path.isfile(candidate):
             return
+        # Rutas con extension (assets: .js/.css/.png/.webmanifest...) que NO
+        # existen deben dar 404 REAL, no index.html. Sin esto, un chunk viejo
+        # pedido por un service worker con cache envenenado recibia HTML y el
+        # browser mostraba "Expected a JavaScript module... MIME text/html"
+        # — un error que despista, cuando la verdad es simplemente un 404.
+        if re.search(r"\.[A-Za-z0-9]+$", path):
+            return
         for pattern, target in REWRITES:
             if pattern.match(path):
                 self.path = urlunsplit(("", "", target, parts.query, parts.fragment))
@@ -61,9 +68,17 @@ class RewriteHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_HEAD()
 
     def end_headers(self):
-        # Match Vercel: no-cache for HTML so live edits show up.
-        if self.path.endswith(".html") or self.path.endswith("/"):
-            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        # Servidor de DEV: no-cache TOTAL (no solo HTML). Antes solo el HTML
+        # llevaba no-cache, así que un config.js/CSS/JSON viejo se quedaba en
+        # el disco del browser: al abrir `?local=<tenant-nuevo>` la versión
+        # cacheada de config.js no conocía al tenant, `_tenants[tid]` daba
+        # undefined y la resolución caía al fallback → siempre se mostraba
+        # Elegance. Esta clase de bug se disfraza de "el tenant no funciona"
+        # y desperdicia iteraciones. En prod Vercel maneja el caching real;
+        # acá solo servimos dev, así que el caché aporta cero y hace daño.
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         super().end_headers()
 
 

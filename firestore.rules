@@ -218,12 +218,25 @@ service cloud.firestore {
           && request.resource.data.clienteNombre.size() >= 1
           && request.resource.data.clienteNombre.size() <= 80
           // Contacto y nota opcionales; si vienen, string y acotados.
+          //
+          // PISO, NO TECHO (2026-08-05). La validación de formato de verdad vive
+          // en ReservaCore.validarTelefono/validarCorreo, del lado del cliente y
+          // endurecible por tenant. Acá solo se corta la basura estructural
+          // (letras en el teléfono, correo sin @) porque las reglas son globales
+          // y un regex estricto acá rechaza clientes REALES que se equivocaron
+          // al tipear: en kronnos_limache hay una cita Completada, pagada, con
+          // el teléfono guardado como '+5664748862'. Perder esa reserva para
+          // frenar a un troll es un pésimo negocio.
           && (!('clienteTelefono' in request.resource.data)
               || (request.resource.data.clienteTelefono is string
-                  && request.resource.data.clienteTelefono.size() <= 30))
+                  && request.resource.data.clienteTelefono.size() <= 30
+                  && (request.resource.data.clienteTelefono == ''
+                      || request.resource.data.clienteTelefono.matches('^[+0-9][0-9 ()+-]{7,29}$'))))
           && (!('clienteEmail' in request.resource.data)
               || (request.resource.data.clienteEmail is string
-                  && request.resource.data.clienteEmail.size() <= 120))
+                  && request.resource.data.clienteEmail.size() <= 120
+                  && (request.resource.data.clienteEmail == ''
+                      || request.resource.data.clienteEmail.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$'))))
           && (!('nota' in request.resource.data)
               || (request.resource.data.nota is string
                   && request.resource.data.nota.size() <= 500))

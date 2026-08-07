@@ -4216,135 +4216,394 @@
     }
     .tenant-alfamen.tenant-aura #successCodigoCita { color: #111111 !important; }
 
-    /* ── CLINICAL GLOW — clínica estética facial · Viña del Mar ──
-       Paleta clínica premium sobre la base clara de Aura: blanco piel
-       (#fdf7f4), dorado suave primary, rosa palo acento secundario y
-       chocolate cálido para texto. La capa va con doble clase por el empate
-       de especificidad con la regla `is()` de Aura (mismo patrón que
-       Alfa Men y Omega). */
-    .tenant-clinicalglow {
-      --accent:    #d4a574;
-      --accent-r:  212; --accent-g: 165; --accent-b: 116;
-      --body-bg:   #fdf7f4;
-    }
-    .tenant-clinicalglow body { background-color: #fdf7f4 !important; }
+    /* ══════════════════════════════════════════════════════════════════
+       CLINICAL GLOW — clínica estética premium (estilo editorial Apple)
+       ══════════════════════════════════════════════════════════════════
+       Paleta: nude cálido + dorado sofisticado + chocolate profundo. Tipografía
+       dual: Cormorant Garamond (editorial serif, ya cargada globalmente) para
+       display + system-ui/Inter para UI. Fuera de la capa `.tenant-aura` está
+       el fallback ligero para tenants con doble clase. */
 
-    /* Hero sin foto: halo dorado arriba + halo rosa abajo sobre nude. Cuando
-       el cliente entregue un banner real, sumar `background-image: url(...)`
-       en /clinicalglow/banner.webp (y la entrada quedará detectada por
-       check-tema-tenants.js contra `heroBanner` de config.js). */
+    .tenant-clinicalglow {
+      --accent:    #c5a677;
+      --accent-r:  197; --accent-g: 166; --accent-b: 119;
+      --body-bg:   #faf5f0;
+    }
+    .tenant-clinicalglow body { background-color: #faf5f0 !important; }
+
+    /* ── HERO ────────────────────────────────────────────────────────
+       Sin foto: halos dorado (arriba-izq) + rosé (abajo-der) sobre nude
+       cálido. Micro-noise sutil para textura de papel premium. Cuando llegue
+       banner real, sumar `background-image: url()`; el guard lo detectará. */
     .tenant-clinicalglow.tenant-aura .booking-hero,
     .tenant-clinicalglow .booking-hero {
       background:
-        radial-gradient(ellipse at 30% -10%, rgba(212,165,116,0.14), transparent 55%),
-        radial-gradient(ellipse at 70% 110%, rgba(201,137,155,0.10), transparent 60%),
-        #fdf7f4 !important;
+        radial-gradient(ellipse 60% 45% at 20% -10%, rgba(197,166,119,0.18), transparent 70%),
+        radial-gradient(ellipse 55% 50% at 85% 110%, rgba(216,180,189,0.14), transparent 70%),
+        linear-gradient(180deg, #fdfaf5 0%, #faf5f0 100%) !important;
       position: relative;
       overflow: hidden;
+      padding-top: 32px !important;
+      padding-bottom: 40px !important;
     }
     .tenant-clinicalglow.tenant-aura .booking-hero-overlay,
     .tenant-clinicalglow .booking-hero-overlay { background: none !important; }
     .tenant-clinicalglow.tenant-aura .booking-hero::after { display: none !important; }
 
-    /* Kicker vertical editorial — "ESTÉTICA · VIÑA DEL MAR" */
+    /* Kicker vertical editorial (borde derecho, oculto en mobile chico) */
     .tenant-clinicalglow.tenant-aura .booking-hero::before {
       content: 'ESTÉTICA · VIÑA DEL MAR';
       display: block !important;
       position: absolute;
-      top: 50%;
-      right: 14px;
+      top: 50%; right: 16px;
       transform: rotate(180deg) translateY(-50%);
       writing-mode: vertical-rl;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 0.55rem;
-      letter-spacing: 0.35em;
-      color: rgba(61,47,43,0.32);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-size: 0.56rem;
+      font-weight: 500;
+      letter-spacing: 0.42em;
+      color: rgba(43,32,25,0.28);
       pointer-events: none;
       user-select: none;
       z-index: 2;
     }
+    @media (max-width: 380px) {
+      .tenant-clinicalglow.tenant-aura .booking-hero::before { display: none !important; }
+    }
 
-    /* Anillo del logo — círculo blanco cálido con halo dorado sutil */
+    /* Logo — placa rectangular dorada con wordmark. Se rompe el círculo del
+       hero-logo-ring genérico para respetar la forma horizontal del plaqué
+       y se le agrega drop-shadow suave. Como la placa TRAE el wordmark, el
+       #shopNombre de texto se oculta (ver más abajo). */
     .tenant-clinicalglow.tenant-aura .hero-logo-ring,
     .tenant-clinicalglow .hero-logo-ring {
-      background: #ffffff !important;
-      border: 1px solid rgba(212,165,116,0.28) !important;
-      box-shadow:
-        0 4px 20px -8px rgba(212,165,116,0.28),
-        0 0 0 6px rgba(255,255,255,0.60) !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      width: auto !important;
+      height: auto !important;
+      padding: 0 !important;
       animation: none !important;
+      overflow: visible !important;
     }
+    .tenant-clinicalglow.tenant-aura .hero-logo-ring img,
+    .tenant-clinicalglow.tenant-aura #shopLogo {
+      border-radius: 12px !important;
+      object-fit: contain !important;
+      width: 260px !important;
+      height: auto !important;
+      max-height: 160px !important;
+      background: transparent !important;
+      filter: drop-shadow(0 12px 32px rgba(43,32,25,0.18)) drop-shadow(0 2px 6px rgba(43,32,25,0.08)) !important;
+    }
+    @media (max-width: 380px) {
+      .tenant-clinicalglow.tenant-aura .hero-logo-ring img,
+      .tenant-clinicalglow.tenant-aura #shopLogo { width: 210px !important; max-height: 130px !important; }
+    }
+
+    /* Badge Google Reviews en el hero — nude con halo dorado, no glass oscuro */
     .tenant-clinicalglow.tenant-aura #heroGoogleBadge {
-      background: #ffffff !important;
-      border: 1px solid rgba(212,165,116,0.22) !important;
-      box-shadow: 0 2px 10px -3px rgba(212,165,116,0.16) !important;
-      backdrop-filter: none !important;
+      background: rgba(255,255,255,0.85) !important;
+      border: 1px solid rgba(197,166,119,0.22) !important;
+      box-shadow: 0 2px 10px -3px rgba(197,166,119,0.14) !important;
+      backdrop-filter: blur(8px) saturate(1.2);
     }
-    .tenant-clinicalglow.tenant-aura #progressBar { background: #d4a574 !important; }
+    .tenant-clinicalglow.tenant-aura #heroBadgeRating { color: #c5a677 !important; font-family: 'Cormorant Garamond', Georgia, serif !important; font-weight: 600 !important; }
+    .tenant-clinicalglow.tenant-aura #heroBadgeCount  { color: #78706c !important; }
 
-    /* Wordmark CLINICAL GLOW — tipografía clínica premium, chocolate cálido */
+    /* WORDMARK — oculto: el logo plaqué ya trae "CLINICAL GLOW" grabado en
+       gold sobre gris. Duplicarlo en texto abajo se veía redundante. */
     .tenant-clinicalglow.tenant-aura #shopNombre {
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
-      color: #3d2f2b !important;
-      font-size: 1.65rem !important;
-      letter-spacing: 0.32em !important;
-      font-weight: 500 !important;
-      text-transform: uppercase !important;
-      text-shadow: none !important;
-      animation: none !important;
+      display: none !important;
     }
 
+    /* Divider dorado hairline — más largo y elegante */
     .tenant-clinicalglow.tenant-aura .gold-divider,
     .tenant-clinicalglow .gold-divider {
-      background: linear-gradient(90deg, transparent, #d4a574, transparent) !important;
-      background-image: linear-gradient(90deg, transparent, #d4a574, transparent) !important;
-      width: 60px !important;
+      background: linear-gradient(90deg, transparent, #c5a677 50%, transparent) !important;
+      background-image: linear-gradient(90deg, transparent, #c5a677 50%, transparent) !important;
+      width: 96px !important;
       height: 1px !important;
+      opacity: 0.85 !important;
     }
 
+    /* SLOGAN — italic serif, tono cálido */
     .tenant-clinicalglow.tenant-aura #shopSlogan {
-      color: rgba(61,47,43,0.68) !important;
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif !important;
+      color: rgba(43,32,25,0.68) !important;
       text-shadow: none !important;
       animation: none !important;
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
       font-style: italic !important;
-      font-size: 0.82rem !important;
-      letter-spacing: 0.02em !important;
+      font-size: 1.05rem !important;
+      letter-spacing: 0.015em !important;
+      font-weight: 400 !important;
     }
+    /* Texto del hero (dirección, horario, tagline) — deepear a chocolate
+       cálido con peso 500 para que se lea NÍTIDO sobre nude. #78706c era muy
+       claro (contraste ~3.2:1). Ahora ~7:1. */
     .tenant-clinicalglow.tenant-aura .booking-hero p,
     .tenant-clinicalglow.tenant-aura .booking-hero span {
-      color: #6b5850 !important;
+      color: #3d332a !important;
       text-shadow: none !important;
       animation: none !important;
+      font-weight: 500 !important;
     }
-    .tenant-clinicalglow.tenant-aura #heroBadgeRating { color: #d4a574 !important; }
-    .tenant-clinicalglow.tenant-aura #heroBadgeCount  { color: #8a7570 !important; }
     .tenant-clinicalglow.tenant-aura .booking-hero .text-white,
     .tenant-clinicalglow.tenant-aura .booking-hero .text-white\/70,
-    .tenant-clinicalglow.tenant-aura .booking-hero .text-white\/50 { color: #6b5850 !important; }
+    .tenant-clinicalglow.tenant-aura .booking-hero .text-white\/50 { color: #3d332a !important; }
     .tenant-clinicalglow.tenant-aura .booking-hero button[onclick="goBack()"] {
-      background: #ffffff !important;
-      border: 1px solid rgba(212,165,116,0.22) !important;
-      box-shadow: none !important;
+      background: rgba(255,255,255,0.85) !important;
+      border: 1px solid rgba(43,32,25,0.10) !important;
+      box-shadow: 0 1px 2px rgba(43,32,25,0.04) !important;
+      backdrop-filter: blur(8px);
     }
 
-    /* Info-strip en chocolate sobre nude — separador cálido entre hero y cuerpo */
+    /* ── INFO-STRIP · glass sobre nude ────────────────────────────────
+       Reemplaza la barra chocolate por card traslúcida — más ligera y Apple.
+       Texto en chocolate profundo (#2b2019) con font-weight 500 y tracking
+       ligero para nitidez. Ícoños en dorado (glyph, no texto).
+       Contraste text/bg ~11:1 (WCAG AAA). */
     .tenant-clinicalglow.tenant-aura .info-strip,
     .tenant-clinicalglow.tenant-aura .info-strip[style] {
-      background: #3d2f2b !important;
-      border-bottom-color: rgba(255,255,255,0.08) !important;
+      background: rgba(255,255,255,0.92) !important;
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid rgba(43,32,25,0.08) !important;
+      color: #2b2019 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .info-strip *,
+    .tenant-clinicalglow.tenant-aura .info-strip a,
+    .tenant-clinicalglow.tenant-aura .info-strip span,
+    .tenant-clinicalglow.tenant-aura .info-strip p,
+    .tenant-clinicalglow.tenant-aura .info-strip[style] * {
+      color: #2b2019 !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.005em !important;
     }
     .tenant-clinicalglow.tenant-aura .info-strip i,
-    .tenant-clinicalglow.tenant-aura .info-strip i[style] { color: #d4a574 !important; }
+    .tenant-clinicalglow.tenant-aura .info-strip i[style] { color: #c5a677 !important; font-weight: 400 !important; }
+    .tenant-clinicalglow.tenant-aura .info-strip a:hover { color: #c5a677 !important; }
     .tenant-clinicalglow.tenant-aura #aura-sobre-wrap { display: none !important; }
 
-    /* Success-state — CTAs y summary en la misma paleta cálida */
+    /* Barra de progreso — hairline dorado sobre nude */
+    .tenant-clinicalglow.tenant-aura #progressTrack { background: rgba(43,32,25,0.06) !important; height: 2px !important; }
+    .tenant-clinicalglow.tenant-aura #progressBar {
+      background: linear-gradient(90deg, #c5a677, #d8b4bd) !important;
+      height: 2px !important;
+      box-shadow: 0 0 8px rgba(197,166,119,0.35);
+    }
+    .tenant-clinicalglow.tenant-aura #progressPercentage {
+      color: #78706c !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.72rem !important;
+      letter-spacing: 0.05em !important;
+    }
+
+    /* ── CATEGORY PILLS (Facial · Corporal · Capilar · Otros) ──
+       Estilo hairline con underline dorado al activar — no pill relleno. */
+    .tenant-clinicalglow.tenant-aura .category-pill {
+      background: transparent !important;
+      color: #78706c !important;
+      border: none !important;
+      border-radius: 0 !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.72rem !important;
+      letter-spacing: 0.22em !important;
+      text-transform: uppercase !important;
+      font-weight: 500 !important;
+      padding: 8px 2px !important;
+      margin: 0 12px !important;
+      position: relative;
+      transition: color 0.24s ease !important;
+    }
+    .tenant-clinicalglow.tenant-aura .category-pill:hover { color: #2b2019 !important; }
+    .tenant-clinicalglow.tenant-aura .category-pill.active {
+      color: #2b2019 !important;
+      background: transparent !important;
+    }
+    .tenant-clinicalglow.tenant-aura .category-pill.active::after {
+      content: '';
+      position: absolute;
+      left: 2px; right: 2px; bottom: 0;
+      height: 1px;
+      background: #c5a677;
+    }
+
+    /* Título de categoría — serif grande editorial */
+    .tenant-clinicalglow.tenant-aura .cat-title {
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif !important;
+      color: #2b2019 !important;
+      font-size: 1.75rem !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.005em !important;
+      text-transform: none !important;
+      margin-top: 1.5rem !important;
+    }
+
+    /* ── SERVICE CARDS (fila premium) ────────────────────────────────
+       Blanco sobre nude con hairline muy sutil. Hover eleva 1px con sombra
+       dorada. Estado seleccionado: gradiente cremoso + borde dorado + halo. */
+    .tenant-clinicalglow.tenant-aura .service-option {
+      background: #ffffff !important;
+      border: 1px solid rgba(43,32,25,0.06) !important;
+      border-radius: 18px !important;
+      padding: 18px 20px !important;
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-shadow: 0 1px 2px rgba(43,32,25,0.02) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .service-option:hover {
+      border-color: rgba(197,166,119,0.34) !important;
+      box-shadow: 0 6px 24px -10px rgba(43,32,25,0.10) !important;
+      transform: translateY(-1px);
+    }
+    /* Estado seleccionado — pisando el border-neon/bg-neon que aplica selectService */
+    .tenant-clinicalglow.tenant-aura .service-option.border-neon,
+    .tenant-clinicalglow.tenant-aura .service-option.bg-brand-neon\/10 {
+      border-color: #c5a677 !important;
+      background: linear-gradient(135deg, #fdfaf5 0%, #ffffff 60%) !important;
+      box-shadow: 0 8px 32px -10px rgba(197,166,119,0.30) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .svc-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.98rem !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.005em !important;
+      color: #2b2019 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .svc-desc {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.82rem !important;
+      color: #78706c !important;
+      line-height: 1.55 !important;
+    }
+    /* Precio en serif dorado — el gesto que sube el nivel al tiro */
+    .tenant-clinicalglow.tenant-aura .svc-price,
+    .tenant-clinicalglow.tenant-aura .service-option [data-price],
+    .tenant-clinicalglow.tenant-aura .service-option .text-neon {
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      color: #c5a677 !important;
+      font-weight: 600 !important;
+      font-size: 1.15rem !important;
+      letter-spacing: 0 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .svc-duration,
+    .tenant-clinicalglow.tenant-aura .service-option .text-brand-muted { color: #a8a19c !important; font-size: 0.78rem !important; }
+
+    /* Íconos de servicio (thumbnails circulares) — halo dorado sutil */
+    .tenant-clinicalglow.tenant-aura .service-option img,
+    .tenant-clinicalglow.tenant-aura .service-option .svc-icon-wrap {
+      background: #faf5f0 !important;
+      border: 1px solid rgba(197,166,119,0.16) !important;
+    }
+
+    /* ── PROFESIONAL CARDS ───────────────────────────────────────────
+       Mismo lenguaje que services: fila premium, nombre en serif. */
+    .tenant-clinicalglow.tenant-aura .barber-option {
+      background: #ffffff !important;
+      border: 1px solid rgba(43,32,25,0.06) !important;
+      border-radius: 18px !important;
+      padding: 18px 20px !important;
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-shadow: 0 1px 2px rgba(43,32,25,0.02) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .barber-option:hover {
+      border-color: rgba(197,166,119,0.34) !important;
+      box-shadow: 0 6px 24px -10px rgba(43,32,25,0.10) !important;
+      transform: translateY(-1px);
+    }
+    .tenant-clinicalglow.tenant-aura .barber-option.border-neon,
+    .tenant-clinicalglow.tenant-aura .barber-option.bg-brand-neon\/10 {
+      border-color: #c5a677 !important;
+      background: linear-gradient(135deg, #fdfaf5 0%, #ffffff 60%) !important;
+      box-shadow: 0 8px 32px -10px rgba(197,166,119,0.30) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .barber-name {
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif !important;
+      font-size: 1.4rem !important;
+      font-weight: 500 !important;
+      color: #2b2019 !important;
+      letter-spacing: 0.015em !important;
+    }
+    /* Foto/avatar del profesional — nude ring dorado */
+    .tenant-clinicalglow.tenant-aura .barber-option img {
+      border: 2px solid #ffffff !important;
+      box-shadow: 0 0 0 1px rgba(197,166,119,0.24), 0 4px 12px -4px rgba(43,32,25,0.10) !important;
+    }
+
+    /* ── BOTONES PRIMARIOS (Continuar / Confirmar) ───────────────────
+       Pill negro chocolate con lift al hover — el CTA principal del flow. */
+    .tenant-clinicalglow.tenant-aura #btnContinue,
+    .tenant-clinicalglow.tenant-aura #btnConfirmarReserva,
+    .tenant-clinicalglow.tenant-aura button[data-cta="primary"],
+    .tenant-clinicalglow.tenant-aura .cta-continuar,
+    .tenant-clinicalglow.tenant-aura button.bg-brand-neon {
+      background: #2b2019 !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 999px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.95rem !important;
+      letter-spacing: 0.02em !important;
+      padding: 14px 28px !important;
+      box-shadow: 0 4px 16px rgba(43,32,25,0.18) !important;
+      transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      text-transform: none !important;
+    }
+    .tenant-clinicalglow.tenant-aura #btnContinue:hover,
+    .tenant-clinicalglow.tenant-aura #btnConfirmarReserva:hover,
+    .tenant-clinicalglow.tenant-aura button[data-cta="primary"]:hover,
+    .tenant-clinicalglow.tenant-aura .cta-continuar:hover,
+    .tenant-clinicalglow.tenant-aura button.bg-brand-neon:hover {
+      background: #1a120d !important;
+      box-shadow: 0 8px 24px rgba(43,32,25,0.24) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Botones secundarios (Atrás, etc.) */
+    .tenant-clinicalglow.tenant-aura button.bg-brand-surface,
+    .tenant-clinicalglow.tenant-aura button.border-brand-accent\/20 {
+      background: #ffffff !important;
+      border: 1px solid rgba(43,32,25,0.10) !important;
+      color: #2b2019 !important;
+      border-radius: 999px !important;
+      font-weight: 500 !important;
+    }
+
+    /* ── SLOT PICKER (horas disponibles) ─────────────────────────────
+       Píldoras nude con hover dorado y estado seleccionado chocolate. */
+    .tenant-clinicalglow.tenant-aura .slot-option,
+    .tenant-clinicalglow.tenant-aura [data-slot] {
+      background: #ffffff !important;
+      border: 1px solid rgba(43,32,25,0.08) !important;
+      color: #2b2019 !important;
+      border-radius: 12px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-weight: 500 !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .slot-option:hover,
+    .tenant-clinicalglow.tenant-aura [data-slot]:hover {
+      border-color: #c5a677 !important;
+      color: #c5a677 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .slot-option.selected,
+    .tenant-clinicalglow.tenant-aura [data-slot].selected {
+      background: #2b2019 !important;
+      color: #ffffff !important;
+      border-color: #2b2019 !important;
+      box-shadow: 0 4px 12px rgba(43,32,25,0.18) !important;
+    }
+
+    /* ── SUCCESS STATE (post-reserva) ─────────────────────────────── */
     .tenant-clinicalglow.tenant-aura #waBtnLink,
     .tenant-clinicalglow.tenant-aura #success-state a#waBtnLink {
-      background: #3d2f2b !important;
-      border-color: #3d2f2b !important;
+      background: #2b2019 !important;
+      border-color: #2b2019 !important;
       color: #ffffff !important;
-      box-shadow: 0 6px 18px rgba(61,47,43,0.14) !important;
+      border-radius: 999px !important;
+      box-shadow: 0 4px 16px rgba(43,32,25,0.18) !important;
     }
     .tenant-clinicalglow.tenant-aura #waBtnLink i {
       color: #25D366 !important;
@@ -4353,23 +4612,114 @@
     }
     .tenant-clinicalglow.tenant-aura #successGCalBtn {
       background: #ffffff !important;
-      border: 1px solid rgba(212,165,116,0.30) !important;
-      color: #3d2f2b !important;
+      border: 1px solid rgba(197,166,119,0.30) !important;
+      color: #2b2019 !important;
+      border-radius: 999px !important;
     }
-    .tenant-clinicalglow.tenant-aura #successGCalBtn i { color: #d4a574 !important; }
+    .tenant-clinicalglow.tenant-aura #successGCalBtn i { color: #c5a677 !important; }
     .tenant-clinicalglow.tenant-aura #success-state .bg-\[\#0a0a0d\] {
       background: #ffffff !important;
-      border: 1px solid rgba(212,165,116,0.22) !important;
+      border: 1px solid rgba(197,166,119,0.20) !important;
+      border-radius: 20px !important;
+      box-shadow: 0 1px 2px rgba(43,32,25,0.03), 0 12px 32px -12px rgba(43,32,25,0.08) !important;
     }
-    .tenant-clinicalglow.tenant-aura #successSummaryService { color: #3d2f2b !important; }
+    .tenant-clinicalglow.tenant-aura #successSummaryService {
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-size: 1.35rem !important;
+      color: #2b2019 !important;
+    }
     .tenant-clinicalglow.tenant-aura #successSummaryDate,
-    .tenant-clinicalglow.tenant-aura #successSummaryDate span { color: #6b5850 !important; }
-    .tenant-clinicalglow.tenant-aura #successSummaryExtras { color: #8a7570 !important; border-top-color: rgba(212,165,116,0.14) !important; }
+    .tenant-clinicalglow.tenant-aura #successSummaryDate span { color: #58524e !important; }
+    .tenant-clinicalglow.tenant-aura #successSummaryExtras { color: #78706c !important; border-top-color: rgba(197,166,119,0.14) !important; }
     .tenant-clinicalglow.tenant-aura #successCodigoWrap {
-      background: #ffffff !important;
-      border-color: rgba(212,165,116,0.28) !important;
+      background: linear-gradient(135deg, #fdfaf5, #ffffff) !important;
+      border: 1px solid rgba(197,166,119,0.28) !important;
+      border-radius: 14px !important;
     }
-    .tenant-clinicalglow.tenant-aura #successCodigoCita { color: #3d2f2b !important; }
+    .tenant-clinicalglow.tenant-aura #successCodigoCita {
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      color: #c5a677 !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.05em !important;
+    }
+
+    /* ── PREGUNTAS FRECUENTES · acordeón editorial ───────────────
+       Cards white con hairline. Al abrir: borde dorado + sombra suave y el
+       "+" gira 45° para volverse "×". Todo native <details>/<summary> sin
+       JS extra. */
+    .tenant-clinicalglow.tenant-aura #faqSection h2 {
+      font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif !important;
+      font-size: 1.85rem !important;
+      font-weight: 500 !important;
+      color: #2b2019 !important;
+      letter-spacing: 0.005em !important;
+      margin-bottom: 26px !important;
+    }
+    .tenant-clinicalglow.tenant-aura #faqSection h2::after {
+      content: '';
+      display: block;
+      width: 60px; height: 1px;
+      background: linear-gradient(90deg, transparent, #c5a677, transparent);
+      margin: 12px auto 0;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-item {
+      background: #ffffff !important;
+      border: 1px solid rgba(43,32,25,0.06) !important;
+      border-radius: 16px !important;
+      overflow: hidden !important;
+      box-shadow: 0 1px 2px rgba(43,32,25,0.02) !important;
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-item[open] {
+      border-color: rgba(197,166,119,0.28) !important;
+      box-shadow: 0 6px 20px -8px rgba(43,32,25,0.08) !important;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-summary {
+      padding: 18px 20px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 14px !important;
+      list-style: none !important;
+      user-select: none !important;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-summary::-webkit-details-marker,
+    .tenant-clinicalglow.tenant-aura .faq-summary::marker { display: none !important; content: ''; }
+    .tenant-clinicalglow.tenant-aura .faq-question {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.98rem !important;
+      font-weight: 500 !important;
+      color: #2b2019 !important;
+      letter-spacing: -0.005em !important;
+      line-height: 1.4 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-icon {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 1.5rem !important;
+      color: #c5a677 !important;
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      flex-shrink: 0 !important;
+      line-height: 1 !important;
+      font-weight: 300 !important;
+    }
+    .tenant-clinicalglow.tenant-aura .faq-item[open] .faq-icon { transform: rotate(45deg); }
+    .tenant-clinicalglow.tenant-aura .faq-answer {
+      padding: 0 20px 20px 20px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+      font-size: 0.9rem !important;
+      color: #58524e !important;
+      line-height: 1.65 !important;
+    }
+
+    /* ── SCROLLBAR (webkit) — hairline dorado sobre nude ─────────── */
+    .tenant-clinicalglow.tenant-aura ::-webkit-scrollbar { width: 8px; height: 8px; }
+    .tenant-clinicalglow.tenant-aura ::-webkit-scrollbar-track { background: transparent; }
+    .tenant-clinicalglow.tenant-aura ::-webkit-scrollbar-thumb {
+      background: rgba(197,166,119,0.28);
+      border-radius: 999px;
+    }
+    .tenant-clinicalglow.tenant-aura ::-webkit-scrollbar-thumb:hover { background: rgba(197,166,119,0.48); }
 
     /* La card de pie (Ubicación + Horario + IG + Chat) también varía por sede:
        se oculta en CUALQUIER tenant multi-sucursal hasta que se elige el local.
@@ -9664,9 +10014,34 @@
     /* Progress: barra degradado cian→rosa, % en rosa */
     .tenant-latincaribe #progressBar { background: linear-gradient(90deg, #35DDE6, #F35BA6) !important; }
     .tenant-latincaribe #progressPercentage { color: #F35BA6 !important; }
-    /* "Quiénes Somos" / "Información": ocultar Información (imágenes de Aura) y dejar el otro a ancho completo */
-    .tenant-latincaribe #aura-info-btn { display: none !important; }
-    .tenant-latincaribe #aura-sobre-wrap .grid { grid-template-columns: 1fr !important; }
+    /* "Quiénes Somos" / "Información" heredados de Aura se ocultan completos:
+       el local usa el "Quiénes somos" del panel (qs-btn), que duplicaba a este.
+       El wrap queda en el DOM (display:none): sigue siendo el ancla del banner
+       del club re-ubicado. */
+    .tenant-latincaribe #aura-sobre-wrap { display: none !important; }
+    /* qs-btn: el estilo base es texto claro para fondo oscuro y en el tema
+       claro quedaba casi invisible. Card blanca a juego con el banner del
+       club, texto oscuro e ícono cian de la marca. */
+    .tenant-latincaribe .qs-btn {
+      width: calc(100% - 48px);
+      margin: 14px 24px 0;
+      padding: 13px 16px;
+      border-radius: 14px;
+      background: #FFFFFF;
+      border: 1px solid #D4D4D8;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      color: #18181B;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .tenant-latincaribe .qs-btn:active { background: #F4F4F5; }
+    .tenant-latincaribe .qs-btn i { color: #0FB4BD; font-size: 15px; }
+    /* Banner del club re-ubicado arriba (bajo "Quiénes Somos") vía JS: en los
+       pasos 2-4 se esconde igual que el hero/info-strip, para que el checkout
+       quede limpio. */
+    .tenant-latincaribe body:is([data-step="2"],[data-step="3"],[data-step="4"]) #clubBanner { display: none !important; }
 
     /* ── Decoración caribeña: palmeras azules + bola 8 de pool ── */
     .lc-decor { display: none; }
@@ -10783,6 +11158,52 @@
         <div id="extrasGrid" class="grid grid-cols-1 gap-3 sm:grid-cols-2"></div>
       </div>
 
+      <!-- ── PREGUNTAS FRECUENTES ─────────────────────────────────────────
+           Multi-tenant: el section aparece SOLO si hay `tenants/{tid}/faqs`
+           con `activa !== false`. Data-driven — cualquier tenant que quiera
+           mostrar FAQs pobla la colección y este bloque las renderiza sin
+           CSS específico (el estilo por-tenant vive en cada capa). Gestión
+           desde /gestion-interna/faqs (view: admin-panel/src/views/Faqs.jsx). -->
+      <section id="faqSection" hidden class="mt-10 px-4 md:px-6 max-w-2xl mx-auto animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+        <h2 id="faqTitle" class="font-display text-center mb-6" style="font-size:1.5rem;letter-spacing:0.02em;color:#e5e7eb;">Preguntas frecuentes</h2>
+        <div id="faqList" class="space-y-2"></div>
+      </section>
+      <script>
+      // Loader de FAQs — fetch simple a tenants/{tid}/faqs. Se muestra la
+      // sección solo si hay al menos una faq con activa !== false. El escape
+      // del contenido es OBLIGATORIO porque `pregunta`/`respuesta` los edita
+      // la dueña desde el panel (input arbitrario).
+      (async function loadFaqs() {
+        try {
+          const tid = window.CURRENT_TENANT_ID;
+          if (!tid || !window.firebase?.firestore) return;
+          const path = tid === 'elegance' ? 'faqs' : `tenants/${tid}/faqs`;
+          const snap = await firebase.firestore().collection(path).get();
+          const faqs = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(f => f.activa !== false && (f.pregunta || '').trim())
+            .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+          if (!faqs.length) return;
+          const esc = (s) => String(s == null ? '' : s).replace(/[<>&"']/g, c => (
+            { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]
+          ));
+          const list = document.getElementById('faqList');
+          const section = document.getElementById('faqSection');
+          if (!list || !section) return;
+          list.innerHTML = faqs.map((f, i) => `
+            <details class="faq-item" ${i === 0 ? 'open' : ''}>
+              <summary class="faq-summary">
+                <span class="faq-question">${esc(f.pregunta)}</span>
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </summary>
+              <div class="faq-answer">${esc(f.respuesta || '').replace(/\n/g, '<br>')}</div>
+            </details>
+          `).join('');
+          section.hidden = false;
+        } catch (e) { console.warn('[faqs] no se pudo cargar:', e?.message || e); }
+      })();
+      </script>
+
       <!-- Footer Contact Info -->
       <div id="footerContact" class="mt-10 pb-6 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
@@ -11576,6 +11997,7 @@
       const _isBMSvc        = window.CURRENT_TENANT_ID === 'elbarberomoderno';
       const _isInfSvc       = window.CURRENT_TENANT_ID === 'infinity';
       const _isBcSvc        = window.CURRENT_TENANT_ID === 'barbersclub';
+      const _isClinicalGlowSvc = window.CURRENT_TENANT_ID === 'clinicalglow';
       // ESTÁNDAR de la plataforma: la tarjeta en FILA (miniatura circular a la
       // izquierda, datos al centro, selector circular a la derecha) es la que
       // usan Kronnos y la mayoría, y es la que debe traer TODO local nuevo.
@@ -11584,7 +12006,7 @@
       // lista es justo el tipo de espejo que se desincroniza y deja al cliente
       // recién creado con un layout distinto al del resto.
       const _esDinamicoSvc  = document.documentElement.classList.contains('tenant-selfservice');
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc || _isBcSvc || _esDinamicoSvc;
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc || _isBcSvc || _isClinicalGlowSvc || _esDinamicoSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -12885,6 +13307,22 @@
         }
       } catch (e) {}
 
+      // The Latin Caribe: el banner "Únete al club" sube desde el pie de la
+      // página al bloque "Quiénes Somos" (pedido del local, 07-08-2026): al
+      // final del scroll ningún cliente lo veía. En pasos 2-4 lo oculta el
+      // CSS junto con el hero/info-strip para no ensuciar el checkout.
+      try {
+        if (window.CURRENT_TENANT_ID === 'latincaribe') {
+          const _cb   = document.getElementById('clubBanner');
+          const _wrap = document.getElementById('aura-sobre-wrap');
+          if (_cb && _wrap && _cb.previousElementSibling !== _wrap) {
+            _wrap.insertAdjacentElement('afterend', _cb);
+            _cb.classList.remove('mt-10');
+            _cb.classList.add('px-6', 'mt-3');
+          }
+        }
+      } catch (e) {}
+
       // ── PINTAR YA ────────────────────────────────────────────────
       // El paso 1 solo necesita servicios + barberos + config, que ya están.
       // Antes el render esperaba (hasta 7 s) tres lecturas de enriquecimiento
@@ -13981,6 +14419,7 @@
         || window.CURRENT_TENANT_ID === 'yugen'
         || window.CURRENT_TENANT_ID === 'bloodhabib'
         || window.CURRENT_TENANT_ID === 'alfamen'
+        || window.CURRENT_TENANT_ID === 'clinicalglow'
         // Mismo estándar que en la selección de servicio: los tenants dinámicos
         // (self-service y alta express) nacen con la ficha en FILA —foto
         // circular, días de atención, selector a la derecha—, derivado de la

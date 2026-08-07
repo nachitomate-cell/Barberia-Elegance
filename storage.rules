@@ -31,7 +31,21 @@ service firebase.storage {
           : firestore.exists(/databases/(default)/documents/tenants/$(tid)/barberos/$(request.auth.uid))
       );
     }
-    function esStaff(tid) { return esStaffClaim(tid) || esBootstrap() || esBarberoFS(tid); }
+    // Espejo de esKronnosBrandAdmin de firestore.rules: los dueños de la marca
+    // administran las 4 sedes con claims de UNA sola (kronnos_limache). Sin
+    // este espejo, Firestore los deja editar un barbero de otra sede pero
+    // Storage les niega la foto (storage/unauthorized). Pasó con Claudio
+    // subiendo la foto de Kelly (kronnos_woman) el 07-08-2026.
+    function esKronnosBrandAdmin(tid) {
+      return isAuth() && 'email' in request.auth.token
+          && request.auth.token.email in [
+               'administracionkronnos@gmail.com',
+               'claudio.burgos91@gmail.com',
+               'grupo.kratos.spa@gmail.com'
+             ]
+          && tid in ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+    }
+    function esStaff(tid) { return esStaffClaim(tid) || esBootstrap() || esKronnosBrandAdmin(tid) || esBarberoFS(tid); }
 
     // ═══ Rutas de USUARIO — cada quien sube lo suyo ═══════════════════════
 
