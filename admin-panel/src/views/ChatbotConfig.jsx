@@ -809,10 +809,13 @@ function UpgradesSection({ tenantName }) {
                   Inversión mensual
                 </p>
                 <p className="text-2xl font-black text-primary leading-tight">
-                  $14.900 <span className="text-[12px] font-medium text-emerald-200/60">+ IVA / mes</span>
+                  $4.900 <span className="text-[12px] font-medium text-emerald-200/60">+ IVA / mes</span>
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
-                  Incluido en plan anual · primer mes gratis
+                  + $500 por cita que el bot agende — pagas por resultados
+                </p>
+                <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
+                  Incluido en los planes Pro y Anual
                 </p>
               </div>
               <a
@@ -830,13 +833,13 @@ function UpgradesSection({ tenantName }) {
 
       </div>
 
-      {/* ── Bundle hint ─────────────────────────────────────────── */}
+      {/* ── Hint plan Pro: los dos módulos IA vienen incluidos ──── */}
       <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 flex items-start gap-3">
         <Sparkles size={14} className="text-amber-300 shrink-0 mt-0.5" />
         <p className="text-[12px] text-amber-100/80 leading-relaxed">
-          <b className="text-amber-200">¿Te interesan los dos?</b> Activá ambos
-          módulos juntos por <b className="text-amber-200">$19.900 + IVA / mes</b> (en
-          vez de $24.800). Descuento del 20% sólo aplicable al bundle.
+          <b className="text-amber-200">¿Te interesan los dos?</b> El plan
+          Pro ($49.900/mes, IVA incluido) trae el asistente IA y Wallet
+          incluidos, además de equipo ilimitado, caja y métricas.
         </p>
       </div>
     </section>

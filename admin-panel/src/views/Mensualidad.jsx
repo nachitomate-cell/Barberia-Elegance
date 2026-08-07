@@ -4,7 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
-import { PLANES, CADENA, PROMOS, fmtCLP, conIva } from '../lib/precios';
+import { PLANES, PROMOS, fmtCLP, conIva } from '../lib/precios';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
@@ -70,8 +70,7 @@ function mesLabel(mes) {
 /* ════════════════════════════════════════════════════════════════
    PLANES Y TARIFAS MODAL
    ════════════════════════════════════════════════════════════════ */
-function PlanCard({ nombre, sub, mes, anual, pop }) {
-  const ahorroPct = anual ? Math.round((1 - anual / mes) * 100) : 0;
+function PlanCard({ nombre, sub, mes, anio, pop }) {
   return (
     // pt-5 deja aire para el badge, que va DENTRO del flujo. Antes iba con
     // -top-2.5 sobre una tarjeta con overflow-hidden, así que la propia
@@ -95,19 +94,10 @@ function PlanCard({ nombre, sub, mes, anual, pop }) {
         </div>
         <div className="shrink-0 text-right">
           <p className={`text-lg font-black leading-none ${pop ? 'text-lime-300' : 'text-primary'}`}>
-            {fmtCLP(mes)}<span className="text-[11px] font-medium text-slate-500">/mes + IVA</span>
+            {fmtCLP(mes ?? anio)}
+            <span className="text-[11px] font-medium text-slate-500">{mes ? '/mes' : '/año'}</span>
           </p>
-          <p className="mt-0.5 text-[10px] leading-tight text-slate-500">
-            = {fmtCLP(conIva(mes))} IVA incluido
-          </p>
-          {anual > 0 && (
-            <p className="mt-1 text-[10px] leading-tight text-slate-500">
-              {fmtCLP(anual)} + IVA/mes pagando el año
-              {ahorroPct > 0 && (
-                <span className="ml-1 font-bold text-lime-400">−{ahorroPct}%</span>
-              )}
-            </p>
-          )}
+          <p className="mt-0.5 text-[10px] leading-tight text-slate-500">IVA incluido</p>
         </div>
       </div>
     </div>
@@ -144,34 +134,18 @@ function TarifasModal({ onClose }) {
         </div>
         <div className="max-h-[78vh] space-y-3 overflow-y-auto p-5 pt-6">
           {PLANES.map(p => (
-            <PlanCard key={p.id} nombre={p.nombre} sub={p.sub} mes={p.mes} anual={p.anual} pop={p.popular} />
+            <PlanCard key={p.id} nombre={p.nombre} sub={p.sub} mes={p.mes} anio={p.anio} pop={p.popular} />
           ))}
 
-          {/* Cadena: antes el primer tramo decía "1 local · $29.900 c/u", que
-              es exactamente el plan Local de arriba. Repetirlo hacía dudar si
-              eran cosas distintas. Ahora la tabla parte donde empieza el
-              descuento real. */}
+          {/* Multi-local ya no lleva tramos publicados: se cotiza caso a caso. */}
           <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
             <p className="text-sm font-bold text-primary">
-              Cadena <span className="text-[11px] font-medium text-slate-500">· 2 o más locales</span>
+              ¿2 o más locales? <span className="text-[11px] font-medium text-slate-500">· cotización a medida</span>
             </p>
-            <p className="mb-2 text-[11px] text-slate-500">Mientras más locales, menos pagas por cada uno.</p>
-            <div className="space-y-1">
-              {CADENA.map(t => {
-                const label = t.desde === t.hasta ? `${t.desde} locales` : `${t.desde} a ${t.hasta} locales`;
-                const off = Math.round((1 - t.porLocal / PLANES[1].mes) * 100);
-                return (
-                  <div key={t.desde} className="flex items-center justify-between gap-2 text-[13px] text-slate-300">
-                    <span>{label}</span>
-                    <span className="flex items-baseline gap-1.5">
-                      <b className="text-primary">{fmtCLP(t.porLocal)}</b>
-                      <span className="text-[10px] text-slate-500">c/u + IVA</span>
-                      {off > 0 && <span className="text-[10px] font-bold text-lime-400">−{off}%</span>}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="text-[11px] leading-snug text-slate-500">
+              Las cadenas tienen precio por local según tamaño y módulos. Escríbenos por
+              WhatsApp y armamos la propuesta para tu caso.
+            </p>
           </div>
 
           {/* Promos: en lista, no en un párrafo corrido separado por puntos. */}
@@ -185,7 +159,7 @@ function TarifasModal({ onClose }) {
           </ul>
 
           <p className="text-center text-[10px] text-slate-500">
-            Valores netos en pesos chilenos + IVA (19%) · emitimos boleta o factura según corresponda.
+            Valores en pesos chilenos con IVA incluido · emitimos boleta o factura según corresponda.
             Si tu local tiene giro, el IVA de la factura lo recuperas como crédito fiscal.
           </p>
         </div>
@@ -443,7 +417,7 @@ export default function Mensualidad() {
                 </span>
                 <span>
                   <p className="text-sm font-bold text-primary">Ver planes y tarifas</p>
-                  <p className="text-[11px] text-slate-500">Compara Individual, Local y Cadena.</p>
+                  <p className="text-[11px] text-slate-500">Compara Básico, Pro y Anual.</p>
                 </span>
               </span>
               <ChevronRight size={16} className="text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-violet-300" />

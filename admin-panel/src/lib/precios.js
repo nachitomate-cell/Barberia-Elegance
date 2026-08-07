@@ -34,39 +34,49 @@ export function sufijoIva(iva) {
 }
 
 // ── Planes base (mensualidad del local) ──────────────────────────
-// Criterio comercial 2026-07-20 (pedido de Ignacio): los planes son NETOS y
-// el IVA (19%) se agrega al cobrar — ej: Local $29.900 + IVA = $35.581.
-// `_billing.montoPendiente` también se guarda NETO; la UI y el cobro
-// automático (mpMensualidadCrearLink) aplican conIva().
+// Lista OFICIAL unificada (decisión Ignacio 2026-08-07): Básico / Pro /
+// Anual, en precio PÚBLICO con IVA incluido — la misma que publica
+// crea.html, TrialGate y el cobro MP (mensualidad-mp.js guarda el neto
+// equivalente: 25.126 / 41.933 / 335.294). La lista anterior (Individual
+// $14.900 / Local $29.900 netos) dejó de ofrecerse: los tenants con
+// tarifa pactada la conservan en su _billing, que manda sobre esto.
 export const PLANES = [
   {
-    id: 'individual',
-    nombre: 'Individual',
-    sub: '1 barbero · trabajas solo',
-    mes: 14900,
-    anual: 11900,       // precio por mes, pagando el año
-    iva: 'mas',
+    id: 'basico',
+    nombre: 'Plan Básico',
+    sub: '1 profesional · agenda + club + panel',
+    mes: 29900,
+    iva: 'incluido',
   },
   {
-    id: 'local',
-    nombre: 'Local',
-    sub: 'Barberos ilimitados · un local',
-    mes: 29900,
-    anual: 24900,
-    iva: 'mas',
+    id: 'pro',
+    nombre: 'Plan Pro',
+    sub: 'Equipo ilimitado · IA + Wallet · caja y métricas',
+    mes: 49900,
+    iva: 'incluido',
     popular: true,
+  },
+  {
+    id: 'anual',
+    nombre: 'Plan Anual',
+    sub: 'Todo el Pro · un solo pago al año (equivale a 9 meses)',
+    anio: 399000,
+    iva: 'incluido',
   },
 ];
 
-// ── Cadena: precio POR LOCAL según cuántos tenga ─────────────────
-// El tramo de 1 local es exactamente el plan Local, así que la UI no
-// lo repite: la cadena parte en 2.
-export const CADENA = [
-  { desde: 2, hasta: 2, porLocal: 25900 },
-  { desde: 3, hasta: 5, porLocal: 22900 },
-];
+// Aliases legacy: _billing.plan de tenants antiguos puede decir
+// 'individual'/'local'; el backend ya los mapea igual (mensualidad-mp.js).
+export const PLAN_ALIAS = { individual: 'basico', local: 'pro' };
+
+// Multi-local (2+ locales) ya NO tiene tramos publicados: se cotiza a
+// medida caso a caso, como Kronnos (decisión 2026-08-07; antes existía
+// CADENA con $25.900/$22.900 por local).
 
 // ── Add-ons (se suman a la mensualidad) ──────────────────────────
+// Decisión 2026-08-07: los add-ons son upsell SOLO del plan Básico — el
+// Pro ya incluye IA + Wallet en su precio. Los acuerdos pactados por
+// tenant (asistente plano $14.900, etc.) se mantienen tal cual.
 export const ADDONS = [
   {
     id: 'wallets',
@@ -97,11 +107,14 @@ export const ADDONS = [
     iva: 'mas',
   },
   {
+    // LEGACY: superado por ASISTENTE_HIBRIDO en toda cotización nueva.
+    // Queda solo como referencia de los acuerdos pactados que lo pagan.
     id: 'ia-asistente',
     nombre: 'Asistente 24/7',
     desc: 'Bot de WhatsApp que responde y agenda',
     mes: 14900,
     iva: 'mas',
+    legacy: true,
   },
 ];
 
@@ -121,18 +134,8 @@ export const ASISTENTE_HIBRIDO = {
   iva: 'mas',
 };
 
-// Bundle de los dos módulos de IA (20% off sobre la suma).
-export const BUNDLE_IA = {
-  id: 'ia-bundle',
-  incluye: ['ia-reactivacion', 'ia-asistente'],
-  mes: 19900,
-  iva: 'mas',
-  get listado() {
-    return ADDONS
-      .filter(a => this.incluye.includes(a.id))
-      .reduce((s, a) => s + a.mes, 0);   // 24.800
-  },
-};
+// El bundle IA ($19.900 por reactivación + asistente plano) se retiró el
+// 2026-08-07: su rol lo cumple el plan Pro, que trae ambos módulos.
 
 // ── Promociones vigentes ─────────────────────────────────────────
 export const PROMOS = [

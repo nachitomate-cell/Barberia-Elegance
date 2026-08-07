@@ -4717,12 +4717,12 @@
     // ── Modal de Tarifas (referencia de precios reales) ───────────
     function showTarifas() {
       const ex = document.getElementById('tarifas-modal'); if (ex) ex.remove();
-      const card = (nombre, sub, mes, anual, pop) => `
+      const card = (nombre, sub, mes, nota, pop) => `
         <div style="background:${pop ? '#000' : 'rgba(255,255,255,0.03)'};border:1px solid ${pop ? '#84cc16' : 'rgba(255,255,255,0.08)'};border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;position:relative;">
           ${pop ? '<span style="position:absolute;top:-9px;left:12px;background:#84cc16;color:#000;font-size:0.6rem;font-weight:800;padding:2px 8px;border-radius:99px;">MÁS POPULAR</span>' : ''}
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div><p style="margin:0;color:#fff;font-weight:700;font-size:0.9rem;">${nombre}</p><p style="margin:0;color:#64748b;font-size:0.72rem;">${sub}</p></div>
-            <div style="text-align:right;"><p style="margin:0;color:${pop ? '#a3e635' : '#fff'};font-weight:800;font-size:1.05rem;">$${mes}<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/mes</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">anual $${anual}/mes</p></div>
+            <div style="text-align:right;"><p style="margin:0;color:${pop ? '#a3e635' : '#fff'};font-weight:800;font-size:1.05rem;">$${mes}<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/mes</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">${nota}</p></div>
           </div>
         </div>`;
       const m = document.createElement('div');
@@ -4734,15 +4734,18 @@
           <h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:800;">Tarifas SynapTech</h3>
           <button onclick="document.getElementById('tarifas-modal').remove()" style="background:none;border:none;color:#64748b;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
         </div>
-        ${card('Individual', '1 barbero · trabajas solo', '14.900', '11.900', false)}
-        ${card('Local', 'Barberos ilimitados · por local', '29.900', '24.900', true)}
+        <!-- Lista OFICIAL unificada 2026-08-07: Básico/Pro/Anual, IVA incluido
+             (la misma de crea.html y TrialGate). Multi-local = cotización. -->
+        ${card('Plan Básico', '1 profesional · agenda + club + panel', '29.900', 'IVA incluido', false)}
+        ${card('Plan Pro', 'Equipo ilimitado · IA + Wallet · caja y métricas', '49.900', 'IVA incluido', true)}
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;">
-          <p style="margin:0 0 0.5rem;color:#fff;font-weight:700;font-size:0.9rem;">Cadena <span style="color:#64748b;font-weight:500;font-size:0.72rem;">· 3 o más locales</span></p>
-          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#cbd5e1;padding:3px 0;"><span>1 local</span><b style="color:#fff;">$29.900 c/u</b></div>
-          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#cbd5e1;padding:3px 0;"><span>2 locales</span><b style="color:#fff;">$25.900 c/u</b></div>
-          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#a3e635;padding:3px 0;"><span>3 a 5 locales</span><b>$22.900 c/u</b></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><p style="margin:0;color:#fff;font-weight:700;font-size:0.9rem;">Plan Anual</p><p style="margin:0;color:#64748b;font-size:0.72rem;">Todo el Pro · un pago (equivale a 9 meses)</p></div>
+            <div style="text-align:right;"><p style="margin:0;color:#fff;font-weight:800;font-size:1.05rem;">$399.000<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/año</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">IVA incluido</p></div>
+          </div>
         </div>
-        <p style="margin:0.75rem 0 0;font-size:0.72rem;color:#64748b;line-height:1.55;text-align:center;">Primer mes gratis · sin instalación · migración gratis<br/>2° local: 50% off los primeros 3 meses</p>
+        <p style="margin:0 0 0.625rem;font-size:0.74rem;color:#94a3b8;text-align:center;">2 o más locales → cotización a medida (tipo Kronnos)</p>
+        <p style="margin:0.75rem 0 0;font-size:0.72rem;color:#64748b;line-height:1.55;text-align:center;">Primer mes gratis · sin instalación · migración gratis<br/>2° local: 50% off los primeros 3 meses · add-ons solo sobre el Básico (el Pro ya trae IA + Wallet)</p>
       </div>`;
       document.body.appendChild(m);
     }
@@ -8458,9 +8461,11 @@
         <!-- Billing -->
         <div>
           <p class="wz-sec">3 · Mensualidad</p>
+          <!-- Presets = lista oficial 2026-08-07. El monto va NETO (el cobro
+               aplica IVA): 25.126→$29.900 público · 41.933→$49.900 público. -->
           <div style="display:flex; gap:0.5rem; margin-bottom:0.625rem;">
-            <button type="button" class="wz-preset" onclick="wzPlan('Individual · 1 barbero',14900)">Individual $14.900</button>
-            <button type="button" class="wz-preset" onclick="wzPlan('Local · ilimitado',29900)">Local $29.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('Básico · 1 profesional',25126)">Básico $29.900</button>
+            <button type="button" class="wz-preset" onclick="wzPlan('Pro · IA + Wallet',41933)">Pro $49.900</button>
             <button type="button" class="wz-preset" onclick="wzPlan('',0)">Gratis/después</button>
           </div>
           <div class="wz-grid2">
