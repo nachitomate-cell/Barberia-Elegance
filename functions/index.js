@@ -1918,6 +1918,21 @@ exports.opsSnapshotCron     = opsSnapshotModule.opsSnapshotCron;
 exports.opsSnapshot         = opsSnapshotModule.opsSnapshot;
 exports.opsMetaAdsRefrescar = opsSnapshotModule.opsMetaAdsRefrescar;
 
+// Prospección saliente: el agente de ventas deja de esperar. Rescate de
+// conversaciones tibias (WA+IG), secuencia de email frío en borrador, cola de
+// DMs redactados para envío humano y reactivación de leads propios. Todo se
+// opera desde ops → Prospección; los switches viven en _system/prospeccion.
+// Ver functions/prospeccion.js.
+const prospeccionModule = require('./prospeccion');
+exports.prospeccionEstado             = prospeccionModule.prospeccionEstado;
+exports.prospeccionAccion             = prospeccionModule.prospeccionAccion;
+exports.prospeccionOptOut             = prospeccionModule.prospeccionOptOut;
+exports.prospeccionRescateCron        = prospeccionModule.prospeccionRescateCron;
+exports.prospeccionEmailCron          = prospeccionModule.prospeccionEmailCron;
+exports.prospeccionReactivacionCron   = prospeccionModule.prospeccionReactivacionCron;
+exports.prospeccionSenalConversacion  = prospeccionModule.prospeccionSenalConversacion;
+exports.prospeccionSenalLead          = prospeccionModule.prospeccionSenalLead;
+
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;

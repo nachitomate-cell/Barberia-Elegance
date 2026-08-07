@@ -58,7 +58,9 @@
     "check:reservacore": "node scripts/check-reservacore.js",
     "test:cocina": "node scripts/test-cinturon-cocina.js",
     "check:ig-token": "node scripts/check-instagram-token.js",
-    "test:ig-reservas": "node scripts/test-ig-reservas.js"
+    "test:ig-reservas": "node scripts/test-ig-reservas.js",
+    "test:prospeccion": "node scripts/test-prospeccion.js",
+    "seed:prospectos": "node scripts/seed-prospectos-massiel.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",

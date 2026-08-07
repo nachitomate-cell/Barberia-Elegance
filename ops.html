@@ -2017,6 +2017,7 @@
             <button data-tab="ads">${marca('meta','Meta')} Meta Ads</button>
             <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
             <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
+            <button data-tab="prospeccion">🚀 Prospección${prosPendientes() ? ' · ' + prosPendientes() : ''}</button>
             <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
             <button data-tab="locales">💈 Locales</button>
             <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
@@ -2057,6 +2058,10 @@
 
           <section class="sec" data-sec="ventas">
             ${seccionVentas()}
+          </section>
+
+          <section class="sec" data-sec="prospeccion">
+            ${seccionProspeccion()}
           </section>
 
           <section class="sec" data-sec="cobranza">
@@ -2300,7 +2305,7 @@
        ═══════════════════════════════════════════════════════════════════ */
     const ESTADO = {
       metrics:null, metaAds:null, instagram:null, chips:null,
-      ventas:null, botCfg:null, cobranza:null,
+      ventas:null, botCfg:null, cobranza:null, prospeccion:null,
       edadSegundos:0, parcial:false, cargando:false,
     };
 
@@ -2325,6 +2330,202 @@
       if (!ESTADO.cobranza) return '<p class="muted">Cargando cobranza…</p>';
       return cobranzaPanel(ESTADO.cobranza);
     }
+
+    /* ═══ Prospección: el agente sale a buscar (ver functions/prospeccion.js) ═══ */
+
+    /** Cuántas cosas esperan un OK humano (borradores de correo + DMs listos). */
+    function prosPendientes(){
+      const P = ESTADO.prospeccion;
+      if (!P) return 0;
+      return (P.prospectos||[]).filter(x => x.emailBorrador || x.dmBorrador).length;
+    }
+    function seccionProspeccion(){
+      if (!ESTADO.prospeccion) return '<p class="muted">Cargando prospección…</p>';
+      return prospeccionPanel(ESTADO.prospeccion);
+    }
+
+    const PROS_ESTADOS = {
+      frio:'🧊 frío', contactado:'📨 contactado', respondio:'💬 respondió',
+      reunion:'🤝 reunión', sin_respuesta:'😴 sin respuesta', cliente:'⭐ cliente',
+      optout:'🔕 opt-out', descartado:'🗑 descartado',
+    };
+
+    function prospeccionPanel(P){
+      const cfg = P.cfg || {}, f = P.funnel || {}, cuota = P.cuotaHoy || {};
+      const prospectos = P.prospectos || [];
+      const colaDM     = prospectos.filter(p => p.dmBorrador && !['optout','descartado'].includes(p.estado));
+      const borradores = prospectos.filter(p => p.emailBorrador && !['optout','descartado'].includes(p.estado));
+      const sw = (campo, on, txt, explica) => `<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" ${on ? 'checked' : ''} onclick="prosToggle('${campo}', this.checked)">
+          ${tip(txt, explica)}</label>`;
+
+      const kpis = `<div class="kpis">
+          <div class="kpi"><div class="n tnum">${(f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Prospectos en cartera', 'Negocios en la base de prospección, sin contar descartados ni opt-out. Se cargan desde el kit de Massiel, a mano, o quedan solos cuando alguien escribe.')}</div></div>
+          <div class="kpi"><div class="n tnum">${(f.contactado||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Contactados', 'Ya recibieron al menos un toque: correo de la secuencia o DM enviado a mano desde la cola.')}</div></div>
+          <div class="kpi"><div class="n tnum">${f.respondio||0}</div><div class="k">${tip('Respondieron', 'Contestaron por WhatsApp o Instagram después de un toque. El bot de ventas ya los está atendiendo; el estado avanza solo.')}</div></div>
+          <div class="kpi"><div class="n tnum">${f.reunion||0}</div><div class="k">${tip('Reuniones', 'Llegaron a reunión agendada o solicitada en tu agenda real. Es la meta de todo el embudo.')}</div></div>
+        </div>`;
+
+      const controles = `<div class="panel full" style="margin-top:14px">
+          <h3>🎛 Motores <span class="muted" style="font-weight:400;font-size:11.5px">· hoy: ${cuota.rescates||0} rescates · ${cuota.emails||0} correos · ${cuota.reactivaciones||0} reactivaciones</span></h3>
+          <p class="hint">El agente contacta solo por canales que no arriesgan las cuentas: rescata conversaciones propias, manda correos (con tu OK mientras el envío automático esté apagado) y te deja los DMs listos para pegar. Instagram no permite iniciar DMs por API — eso se envía a mano desde la cola.</p>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 12px">
+            ${sw('rescateAuto', cfg.rescateAuto, 'Rescate de tibios', 'Cada hora busca conversaciones reales (WhatsApp e Instagram) que se enfriaron hace 18–26 horas sin reunión y les manda UN follow-up. Solo gente que ya te escribió; en Instagram respeta la ventana de 24 h de Meta.')}
+            ${sw('emailAuto', cfg.emailAuto, 'Correos automáticos', 'APAGADO: la secuencia deja borradores y tú los apruebas uno a uno. ENCENDIDO: salen solos cada día hábil a las 10:30 (tope diario configurable). Enciéndelo recién cuando exista un dominio de envío separado del transaccional.')}
+            ${sw('reactivacionAuto', cfg.reactivacionAuto, 'Reactivación WA', 'Martes y jueves 11:00 les escribe UNA vez a leads propios inactivos 7–30 días (nunca números fríos scrapeados: eso es baneo seguro). Abajo puedes ver a quién tocaría antes de encenderla.')}
+            ${sw('emailPrefijoPublicidad', cfg.emailPrefijoPublicidad, 'Prefijo PUBLICIDAD', 'Ley 19.496 art. 28B: el correo comercial no solicitado debe identificarse como publicidad. Bajarlo mejora la apertura pero es decisión tuya.')}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="mini" id="pros-gen-dm" onclick="prosGenerarDMs()">✍️ Redactar 5 DMs</button>
+            <button class="mini" id="pros-gen-em" onclick="prosGenerarEmails()">📧 Redactar correos pendientes</button>
+            <button class="mini" onclick="prosRescatarAhora()">🌡 Rescatar tibios ahora</button>
+            <button class="mini" onclick="prosTestEmail()">🧪 Probar correo (te llega a ti)</button>
+          </div>
+        </div>`;
+
+      const colaHtml = `<div class="panel" style="margin-top:14px">
+          <h3>📋 Cola de DMs ${colaDM.length ? `<span style="color:var(--brand)">· ${colaDM.length} listos</span>` : ''}</h3>
+          <p class="hint">Redactados por el agente con los datos de cada negocio. Copia, pégalo en Instagram desde @synaptechspa y marca "Enviado": cuando el prospecto conteste, el bot lo atiende y acá pasa solo a "respondió".</p>
+          ${colaDM.length ? colaDM.map(p => `<div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+                <b>${esc(p.negocio)}</b>
+                <span class="muted" style="font-size:11.5px">${p.instagram ? '@' + esc(p.instagram) : ''} ${p.comuna ? '· ' + esc(p.comuna) : ''}</span>
+              </div>
+              <div style="font-size:12.5px;white-space:pre-wrap;margin:8px 0;color:var(--soft)">${esc(p.dmBorrador.texto)}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                ${p.instagram ? `<a class="mini" style="text-decoration:none" href="https://ig.me/m/${esc(p.instagram)}" target="_blank" rel="noopener">📸 Abrir chat</a>` : ''}
+                <button class="mini" id="cpdm-${p.id}" onclick="prosCopiarDM('${p.id}')">📋 Copiar</button>
+                <button class="mini" onclick="prosAccion('dmEnviado','${p.id}')">✅ Ya lo envié</button>
+                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}')">🗑</button>
+              </div>
+            </div>`).join('') : '<p class="muted" style="font-size:12px">No hay DMs en cola. "Redactar 5 DMs" toma prospectos fríos con Instagram y les escribe un mensaje a cada uno.</p>'}
+        </div>`;
+
+      const borradoresHtml = `<div class="panel" style="margin-top:14px">
+          <h3>✉️ Correos esperando tu OK ${borradores.length ? `<span style="color:var(--brand)">· ${borradores.length}</span>` : ''}</h3>
+          <p class="hint">La secuencia es de 3 correos (día 0, +3 y +7) y se detiene sola si responden o piden no recibir más. Cada envío lleva pie legal con enlace de baja.</p>
+          ${borradores.length ? borradores.map(p => `<details style="border:1px solid var(--glass-border);border-radius:10px;padding:8px 12px;margin-bottom:8px">
+              <summary style="cursor:pointer;font-size:13px"><b>${esc(p.negocio)}</b> <span class="muted" style="font-size:11.5px">· correo ${p.emailBorrador.secuencia||1} de 3 · ${esc(p.email||'')}</span><br><span style="font-size:12.5px">${esc(p.emailBorrador.asunto)}</span></summary>
+              <div style="background:#fff;color:#151515;border-radius:8px;padding:14px;margin:10px 0;font-size:13px;line-height:1.5">${p.emailBorrador.html}</div>
+              <div style="display:flex;gap:6px">
+                <button class="mini" onclick="prosAccion('aprobarEmail','${p.id}')">✉️ Aprobar y enviar</button>
+                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}')">🗑 Descartar borrador</button>
+              </div>
+            </details>`).join('') : '<p class="muted" style="font-size:12px">Nada pendiente. "Redactar correos pendientes" prepara el siguiente toque de cada prospecto con email.</p>'}
+        </div>`;
+
+      const reactivablesHtml = `<div class="panel" style="margin-top:14px">
+          <h3>♻️ Leads propios reactivables <span class="muted" style="font-weight:400;font-size:11.5px">· ${(P.reactivables||[]).length} candidatos</span></h3>
+          <p class="hint">Conversaciones de tu chip de ventas sin actividad hace 7–30 días y sin reunión. Con el motor apagado solo se listan; al encenderlo reciben un único toque (máx ${cfg.maxReactivacionesDia || 10} por día, martes y jueves).</p>
+          ${(P.reactivables||[]).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${(P.reactivables||[]).map(c =>
+            `<span style="border:1px solid var(--glass-border);border-radius:999px;padding:3px 10px;font-size:11.5px">${esc(c.nombre || 'sin nombre')} · ***${String(c.telefono).slice(-4)}</span>`).join('')}</div>`
+          : '<p class="muted" style="font-size:12px">Ninguno en la ventana de 7–30 días ahora mismo.</p>'}
+        </div>`;
+
+      const tabla = `<div class="panel full" style="margin-top:14px">
+          <h3>🗂 Cartera de prospectos</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px">
+            <input id="pros-negocio" placeholder="Negocio *" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:150px">
+            <input id="pros-instagram" placeholder="@instagram" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:130px">
+            <input id="pros-email" placeholder="email" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:170px">
+            <input id="pros-telefono" placeholder="teléfono 569…" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:120px">
+            <input id="pros-comuna" placeholder="comuna" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
+            <input id="pros-rubro" placeholder="rubro" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
+            <button class="mini" onclick="prosAgregar()">＋ Agregar</button>
+          </div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Negocio</th><th>${tip('Canales', 'Por dónde se le puede llegar: 📧 correo, 📸 Instagram (DM manual), 💬 teléfono.')}</th><th>Comuna</th><th>Rubro</th><th>Estado</th><th>Toques</th><th></th></tr></thead>
+            <tbody>${prospectos.length ? prospectos.map(p => `<tr>
+                <td><b>${esc(p.negocio)}</b>${p.notas ? `<br><span class="muted" style="font-size:10.5px">${esc(String(p.notas).slice(0,80))}</span>` : ''}</td>
+                <td>${p.email ? '📧' : ''}${p.instagram ? '📸' : ''}${p.telefono ? '💬' : ''}${!p.email && !p.instagram && !p.telefono ? '<span class="muted">visita</span>' : ''}</td>
+                <td>${esc(p.comuna||'')}</td><td>${esc(p.rubro||'')}</td>
+                <td>${PROS_ESTADOS[p.estado] || esc(p.estado)}</td>
+                <td class="tnum">${(p.toques||[]).length}${p.emailsEnviados ? ` <span class="muted" style="font-size:10px">(${p.emailsEnviados}✉️)</span>` : ''}</td>
+                <td style="white-space:nowrap">${['descartado','optout'].includes(p.estado)
+                  ? (p.estado === 'descartado' ? `<button class="mini" onclick="prosAccion('reactivar','${p.id}')">↩︎</button>` : '')
+                  : `<button class="mini" title="Descartar: el agente no lo contacta más" onclick="prosAccion('descartar','${p.id}')">🗑</button>`}</td>
+              </tr>`).join('') : '<tr><td colspan="7" class="muted">Sin prospectos todavía. Corre el seed del kit Massiel o agrega uno arriba.</td></tr>'}</tbody>
+          </table></div>
+        </div>`;
+
+      return kpis + controles + colaHtml + borradoresHtml + reactivablesHtml + tabla;
+    }
+
+    async function refrescarProspeccion(){
+      const r = await _fn('prospeccionEstado')({}).catch(() => null);
+      if (r) ESTADO.prospeccion = r.data;
+      repintar('prospeccion');
+    }
+    /** Mutación genérica de la pestaña: acción → refresco parcial (jamás cargar()). */
+    async function prosAccion(accion, id){
+      if (accion === 'descartar' && !confirm('¿Descartar este prospecto? El agente no lo contactará más.')) return;
+      try { await _fn('prospeccionAccion')({ accion, id }); await refrescarProspeccion(); }
+      catch(e){ alert('Error: ' + (e.message || e)); }
+    }
+    async function prosToggle(campo, valor){
+      try { await _fn('prospeccionAccion')({ accion: 'config', patch: { [campo]: !!valor } }); await refrescarProspeccion(); }
+      catch(e){ alert('Error: ' + (e.message || e)); await refrescarProspeccion(); }
+    }
+    function prosCopiarDM(id){
+      const P = ESTADO.prospeccion;
+      const p = P && (P.prospectos||[]).find(x => x.id === id);
+      if (!p || !p.dmBorrador) return;
+      navigator.clipboard.writeText(p.dmBorrador.texto).then(() => {
+        const b = document.getElementById('cpdm-' + id);
+        if (b) { b.textContent = '✅ Copiado'; setTimeout(() => { b.textContent = '📋 Copiar'; }, 1600); }
+      }).catch(() => alert('No pude copiar al portapapeles. Selecciona el texto a mano.'));
+    }
+    async function prosGenerarDMs(){
+      const b = document.getElementById('pros-gen-dm');
+      if (b) { b.textContent = 'Redactando…'; b.disabled = true; }
+      try {
+        const r = await _fn('prospeccionAccion')({ accion: 'generarDMs', cantidad: 5 });
+        await refrescarProspeccion();
+        if (!(r.data && r.data.generados)) alert('No había prospectos fríos con Instagram sin DM redactado.');
+      } catch(e){ alert('Error: ' + (e.message || e)); if (b) { b.textContent = '✍️ Redactar 5 DMs'; b.disabled = false; } }
+    }
+    async function prosGenerarEmails(){
+      const b = document.getElementById('pros-gen-em');
+      if (b) { b.textContent = 'Redactando…'; b.disabled = true; }
+      try {
+        const r = await _fn('prospeccionAccion')({ accion: 'generarEmails', cantidad: 10 });
+        await refrescarProspeccion();
+        const d = (r.data || {});
+        if (!d.redactados) alert('Nadie tenía un correo pendiente que redactar (sin email, ya con borrador, o esperando su día de la secuencia).');
+      } catch(e){ alert('Error: ' + (e.message || e)); if (b) { b.textContent = '📧 Redactar correos pendientes'; b.disabled = false; } }
+    }
+    async function prosTestEmail(){
+      if (!confirm('Redacta un correo de prueba con el agente y te lo manda a tu Gmail. ¿Dale?')) return;
+      try {
+        const r = await _fn('prospeccionAccion')({ accion: 'testEmail' });
+        alert('Enviado a tu correo ✅  Asunto: ' + ((r.data||{}).asunto || ''));
+      } catch(e){ alert('Error: ' + (e.message || e)); }
+    }
+    async function prosRescatarAhora(){
+      if (!confirm('Esto manda follow-ups REALES (máx 5) a conversaciones que se enfriaron hace 18–26 h. ¿Seguir?')) return;
+      try {
+        const r = await _fn('prospeccionAccion')({ accion: 'rescatarAhora', limite: 5 });
+        const rs = ((r.data||{}).resultados||[]).filter(x => x.enviado).length;
+        alert(rs ? `Listo: ${rs} follow-up(s) enviados.` : 'No había conversaciones tibias en la ventana de 18–26 h.');
+        await refrescarProspeccion();
+      } catch(e){ alert('Error: ' + (e.message || e)); }
+    }
+    async function prosAgregar(){
+      const v = (i) => (document.getElementById(i) || {}).value || '';
+      const datos = {
+        negocio: v('pros-negocio'), instagram: v('pros-instagram'), email: v('pros-email'),
+        telefono: v('pros-telefono'), comuna: v('pros-comuna'), rubro: v('pros-rubro'),
+      };
+      if (!datos.negocio.trim()) { alert('El negocio necesita nombre.'); return; }
+      try { await _fn('prospeccionAccion')({ accion: 'agregar', datos }); await refrescarProspeccion(); }
+      catch(e){ alert('Error: ' + (e.message || e)); }
+    }
+    // Los handlers van en onclick de HTML re-generado: se cuelgan de window
+    // para sobrevivir a cualquier scope y para el guard de check-ops-panel.
+    window.prosAccion = prosAccion; window.prosToggle = prosToggle;
+    window.prosCopiarDM = prosCopiarDM; window.prosGenerarDMs = prosGenerarDMs;
+    window.prosGenerarEmails = prosGenerarEmails; window.prosTestEmail = prosTestEmail;
+    window.prosRescatarAhora = prosRescatarAhora; window.prosAgregar = prosAgregar;
     /* `full` para que la barra de cuenta + botón ocupe la fila completa: desde
        1280px la sección es una grilla y sin eso el botón queda encerrado en la
        primera columna, lejos del borde derecho. */
@@ -2341,6 +2542,7 @@
       const el = document.querySelector(`.sec[data-sec="${sec}"]`);
       if (!el) return;
       if (sec === 'ventas')   el.innerHTML = seccionVentas();
+      if (sec === 'prospeccion') el.innerHTML = seccionProspeccion();
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();
@@ -2362,6 +2564,8 @@
       };
       const pend = ESTADO.ventas ? (ESTADO.ventas.leads||[]).filter(l => l.estado === 'reunion_solicitada').length : 0;
       set('ventas', `🎯 Ventas${pend ? ' · ' + pend : ''}`);
+      const prosPend = prosPendientes();
+      set('prospeccion', `🚀 Prospección${prosPend ? ' · ' + prosPend : ''}`);
       const atrasado = ESTADO.cobranza && (ESTADO.cobranza.rows||[]).some(r => r.diasAtraso > 0);
       set('cobranza', `💰 Cobranza${atrasado ? ' · 🔴' : ''}`);
     }
@@ -2422,6 +2626,7 @@
       _fn('ventasBotConfig')({}).then(r => { ESTADO.botCfg = r.data; repintar('ventas'); }).catch(() => {});
       _fn('ventasAgendaVer')({}).then(r => { ESTADO.agendaVentas = r.data; repintar('ventas'); }).catch(() => {});
       _fn('cobranzaConfig')({}).then(r => { ESTADO.cobranza = r.data; repintar('cobranza'); }).catch(() => {});
+      _fn('prospeccionEstado')({}).then(r => { ESTADO.prospeccion = r.data; repintar('prospeccion'); }).catch(() => {});
       // Los chips viven dentro del render grande (pestaña WhatsApp); si llegan
       // después del primer pintado se dibujan en el siguiente repintado global.
       _fn('plataformaChips')({}).then(r => {
