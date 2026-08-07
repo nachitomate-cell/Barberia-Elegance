@@ -123,19 +123,39 @@ async function salientesHoy(tid) {
    piensa el costo de IA y la que se le vende al local ("hasta N conversaciones
    al día"). Vive en el mismo doc del día para no sumar otra lectura.
 
-   El límite efectivo = min(elección del local, techo de SynapTech):
+   El límite efectivo = min(tier del plan, techo de SynapTech, elección del local):
+     · tier    → _system/{tid}.iaAsistenteTier ('start' = 10/día; 'max' = sin tope)
      · techo   → _system/{tid}.botMaxConversaciones     (solo SynapTech)
      · elegido → configuracion/whatsapp.botLimiteConversaciones (el dueño)
-   0 / ausente en ambos = sin límite (comportamiento histórico). */
-function limiteConversaciones(sys, waCfg) {
-  const techo   = Number(sys?.botMaxConversaciones);
+   0 / ausente en todos = sin límite (Pro, pactados, legacy). */
+
+// Tiers comerciales del asistente WhatsApp (pricing 2026-08-07): Start
+// $19.900 = hasta 10 conversaciones/día; Max $29.900 = sin tope de tier.
+// El tier lo setea SynapTech al vender el add-on; sin campo no hay tope,
+// así que ningún tenant existente cambia de comportamiento.
+const TIER_CONVS_DIA = { start: 10 };
+
+/**
+ * Límite efectivo + de dónde salió ('tier' | 'techo' | 'local' | null).
+ * El origen importa para el copy del aviso al dueño: un tope que viene del
+ * plan Start invita a subir a Max; uno que el propio dueño configuró, no.
+ */
+function limiteConversacionesDetalle(sys, waCfg) {
+  const tier = String(sys?.iaAsistenteTier || '').toLowerCase();
+  const candidatos = [];
+  const deTier = Number(TIER_CONVS_DIA[tier]) || 0;
+  if (deTier > 0) candidatos.push({ limite: deTier, origen: 'tier' });
+  const techo = Number(sys?.botMaxConversaciones);
+  if (Number.isFinite(techo) && techo > 0) candidatos.push({ limite: techo, origen: 'techo' });
   const elegido = Number(waCfg?.botLimiteConversaciones);
-  const hayTecho   = Number.isFinite(techo)   && techo   > 0;
-  const hayElegido = Number.isFinite(elegido) && elegido > 0;
-  if (hayTecho && hayElegido) return Math.min(techo, elegido);
-  if (hayTecho)   return techo;
-  if (hayElegido) return elegido;
-  return 0;   // sin límite
+  if (Number.isFinite(elegido) && elegido > 0) candidatos.push({ limite: elegido, origen: 'local' });
+  if (!candidatos.length) return { limite: 0, origen: null, tier: tier || null };
+  const min = candidatos.reduce((a, b) => (b.limite < a.limite ? b : a));
+  return { ...min, tier: tier || null };
+}
+
+function limiteConversaciones(sys, waCfg) {
+  return limiteConversacionesDetalle(sys, waCfg).limite;
 }
 
 /** Conversaciones distintas que el bot ya abrió hoy. Falla-abierto (0). */
@@ -181,6 +201,28 @@ async function caidasHoy(tid) {
   } catch (_) { return 0; }
 }
 
+/** Reclama el aviso-al-dueño del tope de conversaciones (UNO por día).
+ *  Transaccional sobre el doc del día: dos webhooks simultáneos de chats
+ *  distintos no generan dos push. Falla-cerrado (false): un push de menos
+ *  es mejor que spamear al dueño en cada mensaje rechazado. */
+async function claimAvisoTopeConvs(tid) {
+  if (!tid) return false;
+  const fecha = ahoraChile().fecha;
+  try {
+    return await db.runTransaction(async (tx) => {
+      const ref = cuotaRef(tid, fecha);
+      const s = await tx.get(ref);
+      if (s.exists && s.data().avisoTopeConvs) return false;
+      tx.set(ref, {
+        fecha,
+        avisoTopeConvs: true,
+        actualizado: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return true;
+    });
+  } catch (_) { return false; }
+}
+
 /** Suma 1 al contador de conversaciones del día (solo en la PRIMERA respuesta
  *  del bot a ese chat en el día). Nunca lanza. */
 async function registrarConversacion(tid) {
@@ -204,6 +246,8 @@ module.exports = {
   salientesHoy,
   resumenHoy,
   limiteConversaciones,
+  limiteConversacionesDetalle,
+  claimAvisoTopeConvs,
   conversacionesHoy,
   registrarConversacion,
   registrarCaida,

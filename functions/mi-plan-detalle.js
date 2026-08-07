@@ -100,10 +100,12 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
   const bots = incluyeBot(sys);
   const recs = incluyeRecordatorios(sys);
   const conectado = wa.estadoConexion === 'connected';
-  const techoConv = Number(sys.botMaxConversaciones) || 0;
-  const elegidoConv = Number(wa.botLimiteConversaciones) || 0;
-  const limiteConv = (techoConv && elegidoConv) ? Math.min(techoConv, elegidoConv)
-    : (techoConv || elegidoConv || 0);
+  // MISMA función que aplica el cerebro (evolution/cuota.js): tier del add-on
+  // + techo SynapTech + elección del local. Antes esto era una copia del min()
+  // y al nacer los tiers habría quedado mintiendo (regla de listas espejo).
+  const { limiteConversacionesDetalle } = require('./evolution/cuota');
+  const detalleConv = limiteConversacionesDetalle(sys, wa);
+  const limiteConv = detalleConv.limite;
 
   // `agendadasVivas` = sin las canceladas ni las que no llegaron. Cobrar
   // comisión por una reserva que el propio bot canceló después es indefendible
@@ -123,6 +125,7 @@ exports.miPlanDetalle = onCall({ region: 'us-central1', cors: true }, async (req
     botEncendido: wa.botEnabled === true && bots,
     confirmacionesEncendidas: wa.confirmacionesEnabled === true && recs,
     limiteConversacionesDia: limiteConv,   // 0 = sin límite
+    tierAsistente: detalleConv.tier,       // 'start' | 'max' | null (pactados)
     usoMes: {
       citasAgendadas: citasBot, citasReubicadas: reubicadas, confirmadas,
       // Conversaciones del mes: la unidad del plan. Una conversación = una

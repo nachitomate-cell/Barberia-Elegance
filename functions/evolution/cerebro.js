@@ -49,13 +49,42 @@ const { _upsertClienteCore: upsertClienteCore } = require('../upsert-cliente');
 const {
   detectarStop, detectarReactivar, registrarOptOut, registrarOptIn,
 } = require('../lib/wa-consent');
-const { registrarSaliente, limiteConversaciones, conversacionesHoy, registrarConversacion,
+const { registrarSaliente, limiteConversacionesDetalle, claimAvisoTopeConvs,
+        conversacionesHoy, registrarConversacion,
         capDiario, salientesHoy } = require('./cuota');
 const { abrirConversacion, ventanaAbierta, registrarMensajes,
         registrarRechazo } = require('../lib/wa-uso');
+const { tokensAdmins, enviarPushStaff, rootDe } = require('../lib/push-staff');
+const { writeNotifLog } = require('../lib/notif-log');
 const { pareceIlegible, MAX_ILEGIBLES } = require('../lib/texto-ilegible');
 
 const db = admin.firestore();
+
+/* Push al dueño cuando el bot dejó chats sin atender por el tope de
+   conversaciones del día. UNA vez por día (claim transaccional en cuota.js).
+   El copy distingue el ORIGEN del tope: si viene del plan Start es la señal
+   de upgrade a Max; si lo configuró el propio local, solo se informa. */
+async function avisarTopeConversaciones(tid, { limite, origen }) {
+  if (!(await claimAvisoTopeConvs(tid))) return;
+  const tokens = await tokensAdmins(rootDe(tid));
+  if (!tokens.length) return;
+  const esTier = origen === 'tier';
+  const r = await enviarPushStaff({
+    tokens,
+    title: '🤖 Tu asistente llegó a su tope de hoy',
+    body: esTier
+      ? `Ya atendió las ${limite} conversaciones diarias del plan Start. Los próximos chats te quedan para responder en Mensajes — con el plan Max no hay tope.`
+      : `Ya atendió las ${limite} conversaciones diarias configuradas. Los próximos chats te quedan para responder en Mensajes.`,
+    link: '/gestion-interna/mensajes',
+    tag:  `tope-convs-${tid}`,
+  });
+  await writeNotifLog(db, {
+    tenantId: tid, type: 'push_tope_conversaciones', channel: 'push',
+    status: r.successCount ? 'sent' : 'failed',
+    meta: { limite: String(limite), origen: String(origen || '') },
+  });
+  logger.info(`[cerebro] ${tid}: aviso de tope de conversaciones al dueño (${r.successCount}/${tokens.length} push)`);
+}
 
 const MODEL       = 'claude-haiku-4-5-20251001'; // el más barato + rápido, ideal para agendar (subir a 'claude-sonnet-5' si falta calidad)
 // El largo de la respuesta lo manda el PROMPT, no este número: `max_tokens` es
@@ -2180,8 +2209,9 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
 
   // ── Tope de CONVERSACIONES del día para TODO el local ──
   // El tope de arriba es por chat (anti-troll); este es del local completo y
-  // es comercial: acota el gasto de IA y es lo que se le vende ("hasta N
-  // conversaciones al día"). Cuenta chats, no mensajes: una conversación que
+  // es comercial: es lo que se vende en el tier Start ("hasta 10
+  // conversaciones al día") y también cubre el techo de SynapTech y el límite
+  // que elija el dueño. Cuenta chats, no mensajes: una conversación que
   // ya empezó sigue atendiéndose hasta el final aunque se toque el tope —
   // cortar a mitad de un agendamiento sería peor que no haber contestado.
   //
@@ -2190,12 +2220,37 @@ async function procesarMensajeEntrante({ tid, body, evoClient, anthropicKey }) {
   // su hora a las 00:10 cuenta —y se le cobra al local— como dos.
   const convNueva = !ventanaAbierta(convData);
   if (convNueva) {
-    const limiteConv = limiteConversaciones(sys, waCfg);
+    const { limite: limiteConv, origen: origenLimite } = limiteConversacionesDetalle(sys, waCfg);
     if (limiteConv > 0 && (await conversacionesHoy(tid)) >= limiteConv) {
-      logger.warn(`[cerebro] ${tid}: tope de ${limiteConv} conversaciones del día alcanzado; chat=${chatId} sin atender`);
+      logger.warn(`[cerebro] ${tid}: tope de ${limiteConv} conversaciones del día (${origenLimite}) alcanzado; chat=${chatId} derivado a humano`);
       // Se anota QUÉ no se atendió y por qué: un local con rechazos es un local
       // que necesita un plan más grande, y eso vivía solo en este log.
       registrarRechazo(tid, 'tope_conversaciones', chatId).catch(() => {});
+
+      /* El cliente NO queda hablando solo (regla de la casa: mudo sin aviso
+         = ticket irreproducible). Aviso una vez cada 12 h por chat, con
+         reclamo transaccional — una ráfaga son webhooks concurrentes que
+         leerían el mismo snapshot viejo y avisarían todos (mismo patrón que
+         el aviso de medios). Se responde SIN persistir() a propósito:
+         persistir abre la ventana de 24 h del chat y el siguiente mensaje
+         entraría como conversación "ya empezada", saltándose el tope. Mismo
+         criterio que el aviso del tope de gasto de IA. */
+      if (!silenciado) {
+        const avisar = await db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const prev = millis((snap.exists ? snap.data() : {}).convTopeAvisoAt);
+          if (prev > Date.now() - 12 * 3600e3) return false;   // ya se avisó hace poco
+          tx.set(ref, { convTopeAvisoAt: FieldValue.serverTimestamp() }, { merge: true });
+          return true;
+        }).catch(() => true);   // falla-abierto: un aviso de más es mejor que el silencio
+        if (avisar) {
+          await responder('Gracias por escribir 🙌 En este momento no puedo responderte automáticamente, pero tu mensaje quedó registrado y el equipo del local te contesta a la brevedad.');
+        }
+      }
+
+      // Al dueño, UNA vez al día: sus chats están quedando sin atender.
+      avisarTopeConversaciones(tid, { limite: limiteConv, origen: origenLimite }).catch(e =>
+        logger.warn(`[cerebro] ${tid}: aviso de tope al dueño falló: ${e.message}`));
       return;
     }
   }
