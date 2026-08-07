@@ -32,6 +32,13 @@ const MIN_BUSCADOR = 6;
 const normalizar = s => (s || '').toString().toLowerCase()
   .normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Pantalla táctil: el teclado en pantalla dispara `resize` y scrollea la página
+// para destapar el input recién enfocado; con los listeners de escritorio eso
+// CERRABA la lista apenas aparecía el teclado (reportado 07-08 en teléfono:
+// "al abrirlo se cierra"). En táctil esos eventos reposicionan en vez de
+// cerrar, y el foco no salta solo al buscador.
+const esTactil = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+
 export default function Select({
   value,
   onChange,
@@ -74,7 +81,10 @@ export default function Select({
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const abajo  = window.innerHeight - r.bottom - 8;
+    // Alto útil real: con el teclado en pantalla abierto, innerHeight miente
+    // en iOS (solo visualViewport se achica).
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const abajo  = vh - r.bottom - 8;
     const arriba = r.top - 8;
     // Se abre hacia arriba solo si abajo no cabe Y arriba hay más espacio: en
     // un modal bajo, abrir siempre hacia abajo deja la lista fuera de pantalla.
@@ -125,17 +135,28 @@ export default function Select({
     const scroll = (e) => {
       const lista = listaRef.current;
       if (lista && (e.target === lista || lista.contains(e.target))) return;
+      // En táctil el scroll suele ser el navegador destapando el buscador
+      // recién enfocado (teclado en pantalla): se reposiciona y se sigue.
+      if (esTactil) { medir(); return; }
       cerrar();
     };
+    const resize = () => (esTactil ? medir() : cerrar());
     document.addEventListener('mousedown', fuera, true);
     document.addEventListener('scroll', scroll, true);
-    window.addEventListener('resize', cerrar);
+    window.addEventListener('resize', resize);
+    // El teclado en pantalla no siempre dispara `resize` de window: iOS solo
+    // lo reporta en visualViewport.
+    const vv = esTactil ? window.visualViewport : null;
+    vv?.addEventListener('resize', resize);
+    vv?.addEventListener('scroll', resize);
     return () => {
       document.removeEventListener('mousedown', fuera, true);
       document.removeEventListener('scroll', scroll, true);
-      window.removeEventListener('resize', cerrar);
+      window.removeEventListener('resize', resize);
+      vv?.removeEventListener('resize', resize);
+      vv?.removeEventListener('scroll', resize);
     };
-  }, [abierto, cerrar]);
+  }, [abierto, cerrar, medir]);
 
   // La fila marcada siempre visible (teclado y apertura con valor ya elegido).
   useEffect(() => {
@@ -145,9 +166,11 @@ export default function Select({
   }, [abierto, marcado]);
 
   // Con buscador, el foco va al input apenas abre: se escribe de inmediato sin
-  // tener que hacer un segundo clic.
+  // tener que hacer un segundo clic. En táctil NO: enfocar = abrir el teclado
+  // encima de la lista antes de alcanzar a verla; ahí el usuario toca el
+  // buscador cuando lo necesita.
   useEffect(() => {
-    if (abierto && conBuscador) inputRef.current?.focus();
+    if (abierto && conBuscador && !esTactil) inputRef.current?.focus();
   }, [abierto, conBuscador]);
 
   const mover = (paso) => {
