@@ -48,6 +48,7 @@
     "test:cinturon-accion": "node scripts/test-cinturon-accion.js",
     "check:bot": "npm run test:reagendar && npm run test:duracion && npm run test:cinturon-dia && npm run test:cinturon-accion && npm run test:sede-gateway && npm run test:cambio-hora && npm run test:medianoche && npm run test:cocina",
     "check:citas": "node scripts/auditar-citas-imposibles.js ALL 60",
+    "check:cobertura": "node scripts/check-cobertura-servicios.js",
     "check:jornadas": "node scripts/auditar-jornadas.js ALL",
     "test:cambio-hora": "node scripts/test-cambio-hora-chile.js",
     "test:medianoche": "node scripts/test-jornada-medianoche.js",
