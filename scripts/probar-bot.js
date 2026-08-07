@@ -89,6 +89,12 @@ const ESCENARIOS = [
   { nombre: 'Día ambiguo',             turnos: ['Tienen hora el viernes?', '{SERVICIO}'] },
   { nombre: 'Cliente molesto',         turnos: ['Llevo 3 días esperando respuesta, esto es pésimo, quiero hablar con alguien de verdad'] },
   { nombre: 'Mensajes seguidos',       turnos: ['Hola', 'Quiero corte', 'Para mañana', 'En la tarde si se puede'] },
+  // El incidente de Renacer (07-08): día+hora+profesional en los primeros
+  // mensajes, "corte de pelo" genérico después. El bot preguntó 3 veces sin
+  // consultar la agenda ni una vez y el cliente abandonó; la hora se la llevó
+  // otra persona. Debe responder la disponibilidad ALTIRO y tomar el corte
+  // simple sin abrir menú de combos.
+  { nombre: 'Día+hora+profesional directo', turnos: ['Hola buenas', 'Tienen disponibilidad para hoy a las 2:30?', 'Con {PROFESIONAL}', 'Corte de pelo'], pide: '{PROFESIONAL}' },
   { nombre: 'Consulta sus citas',      turnos: ['Hola, tengo una hora agendada? a qué hora era?'] },
 ];
 
@@ -105,6 +111,10 @@ const CHILENISMOS = /\b(bac[áa]n|al tiro|cachai|po|fome|la raja)\b/i;
 // Solo afirmaciones sobre LA CITA. Un "Listo," suelto es conversación normal
 // ("Listo, el equipo te escribirá") y marcarlo llenaba el reporte de ruido.
 const AFIRMA_CAMBIO = /\b(qued[óo]\s+agendad|te\s+(la\s+)?agend[ée]|ya\s+(te\s+)?(la\s+)?(agend|cambi|mov|cancel)[ée]|tu\s+(cita|hora)\s+(qued|est[áa])\s+(agendad|confirmad|reservad|cancelad)|cita\s+confirmada)/i;
+// Dice que está revisando la agenda pero en ese turno no llamó NINGUNA
+// herramienta: la mentira blanca del incidente de Renacer (07-08) — el cliente
+// quedó esperando una disponibilidad que nunca se consultó.
+const DICE_REVISA   = /\bte\s+(lo\s+|la\s+)?reviso\b|d[ée]jame\s+(revisar|ver|consultar)|voy\s+a\s+(revisar|consultar)|reviso\s+(la\s+)?(agenda|disponibilidad)/i;
 const YA_PASO       = /(la\s+)?(mañana|tarde|mediodía|mediodia)\s+(de\s+hoy\s+)?ya\s+(pas[óo]|termin)/i;
 
 function horasDeTexto(t) {
@@ -128,7 +138,14 @@ function analizar({ textos, horasOfrecidas, catalogo, escribiOk, pidioProfesiona
   // No cuentan como "ofrecidas": las que dijo el cliente, la hora ACTUAL (el bot
   // la cita legítimamente: "son las 15:12") ni las del horario de atención del
   // local, que el bot puede nombrar sin consultar disponibilidad ("abrimos 10:30").
-  const horasCliente = new Set(textoCliente.flatMap(horasDeTexto));
+  // La hora del cliente vale en sus DOS lecturas: "2:30" dicho por él
+  // legitima que el bot responda sobre las 14:30 (mismo criterio que
+  // horasPermitidas en cerebro.js).
+  const horasCliente = new Set(textoCliente.flatMap(horasDeTexto).flatMap(h => {
+    const [hh, mm] = h.split(':');
+    const n = Number(hh);
+    return n >= 1 && n <= 11 ? [h, `${n + 12}:${mm}`] : [h];
+  }));
   const esElReloj = (h) => {
     const [hh, mm] = h.split(':').map(Number);
     const min = hh * 60 + mm;
@@ -209,7 +226,7 @@ async function correr(tid, ctxLocal, escenario) {
     'El cliente escribe desde el número 56900000000 y en WhatsApp aparece como "Diego".',
   ].join('\n');
 
-  const textos = [], textoCliente = [], llamadas = [];
+  const textos = [], textoCliente = [], llamadas = [], revisoSinLlamar = [];
   const horasOfrecidas = new Set();
   const historia = [];
   let escribiOk = false, filtroProfesional = false;
@@ -255,6 +272,13 @@ async function correr(tid, ctxLocal, escenario) {
       if (t.out?.ok === true && ['agendar_cita', 'reagendar_cita', 'cancelar_cita'].includes(t.name)) escribiOk = true;
       if (t.out?.error) llamadas.push(`  ⚠️ ${t.name}: ${t.out.error}`);
     }
+    // Se mide POR TURNO, no por conversación: "te reviso" y llamar la
+    // herramienta recién dos turnos después es exactamente el patrón que
+    // perdió la reserva. Cualquier herramienta del turno cuenta como revisar
+    // (consultar_mis_citas también es "revisar" legítimo).
+    if (DICE_REVISA.test(respuesta) && !ctx.traza.length) {
+      revisoSinLlamar.push(respuesta.replace(/\s+/g, ' ').slice(0, 90));
+    }
     textos.push(respuesta);
     historia.push({ role: 'user', content: turno }, { role: 'assistant', content: respuesta });
   }
@@ -265,6 +289,9 @@ async function correr(tid, ctxLocal, escenario) {
     pidioProfesional: escenario.pide ? sustituir(escenario.pide) : null,
     filtroProfesional,
   });
+  for (const frase of revisoSinLlamar) {
+    banderas.push({ tipo: 'reviso_sin_revisar', detalle: `dijo "${frase}…" sin llamar ninguna herramienta en ese turno` });
+  }
   return { escenario, banderas, llamadas, textos, textoCliente };
 }
 

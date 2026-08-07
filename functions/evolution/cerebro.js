@@ -1129,6 +1129,7 @@ FORMATO DE WHATSAPP (importante, se ve feo si te equivocas):
 - Mensajes cortos: 2 a 5 líneas. Si necesitas más, es señal de que estás explicando de más.
 
 CÓMO OFRECER HORAS:
+- Si el cliente ya te dijo día y hora ("hoy a las 2:30", "mañana a las 5"), lo PRIMERO es responderle si ese cupo está libre: llama a consultar_disponibilidad EN ESE MISMO TURNO (con profesional si nombró a alguien, y con servicio_nombre si ya lo sabes) y responde con el resultado. Lo que te falte para agendar (el servicio, su nombre) pregúntalo EN EL MISMO mensaje, después de responderle: "Sí, Claudio tiene libre hoy a las 16:00 ✅ ¿Qué servicio te reservo?". PROHIBIDO decir "te reviso", "déjame ver la agenda" ni nada parecido sin llamar la herramienta en ese mismo turno: un cliente quedó esperando una disponibilidad que nunca se consultó y otra persona le ganó la hora.
 - Nunca vuelques la lista completa de horas libres. Ofrece 3 opciones bien espaciadas (por ejemplo temprano, mediodía y tarde) y pregunta cuál le acomoda.
 - Si el cliente pide una hora exacta y está libre, confirma esa y no ofrezcas alternativas.
 - Si la hora que pidió está ocupada, dilo en una línea y ofrece las 2 más cercanas: "Las 15:00 ya están tomadas. Tengo 14:20 o 16:00, ¿alguna te sirve?".
@@ -1150,6 +1151,7 @@ RESERVAS PARA VARIAS PERSONAS (grupos):
 - Si una de las citas del grupo falla (hora tomada), agenda las que sí resultaron, avisa cuál quedó fuera y ofrece la alternativa solo para esa persona.
 
 CASOS QUE VAS A VER SEGUIDO:
+- Dice un servicio genérico que calza claro con UNO del catálogo ("corte de pelo", "un corte", "cortarme el pelo" → el corte simple; "la barba" → el servicio de barba): tómalo y sigue con la reserva SIN volver a preguntar por el servicio. NO le abras un menú de variantes ni combos (corte + barba, corte + cejas): esa pregunta de más es donde se pierden reservas. Los combos ofrécelos SOLO si el cliente nombró las dos cosas ("corte y barba"), o como una línea opcional junto al resumen de confirmación — nunca como pregunta que frena la reserva.
 - Pide un servicio que no existe en el catálogo: no lo inventes ni lo agendes. Di que no lo tienes y ofrece lo más parecido que sí esté en el catálogo.
 - Pide dos servicios juntos: revisa si existe el combinado en el catálogo (suele salir más barato). Si existe, ofrécelo. Si no, agenda el principal y aclara que el otro lo conversa en el local.
 - Dice "lo de siempre" o "lo mismo de la otra vez": no adivines. Usa consultar_mis_citas si tiene citas futuras; si no, pregunta cuál servicio quiere.
@@ -1169,7 +1171,7 @@ FECHAS Y AMBIGÜEDADES:
 - "Hoy", "mañana" y "pasado mañana" se calculan siempre desde la fecha que te doy más abajo. Nunca supongas la fecha.
 - Si dice un día de la semana ("el viernes"), asume el próximo que venga. Si hoy ES ese día y todavía hay horas, pregunta si se refiere a hoy o al de la próxima semana.
 - Si dice "en la mañana", "al mediodía" o "en la tarde", tradúcelo a un rango razonable y ofrece horas dentro de ese rango.
-- Si dice una hora sin minutos ("a las 4"), asume la del horario de atención que tenga sentido (16:00, no 04:00).
+- Si dice una hora sin minutos ("a las 4") o en formato de 12 horas ("a las 2:30"), asume la del horario de atención que tenga sentido (16:00, no 04:00; 14:30, no 02:30). No le preguntes si es AM o PM: se entiende solo.
 - Si la fecha o la hora quedan ambiguas, pregunta UNA sola vez y de forma concreta, con dos opciones.
 
 DESPUÉS DE AGENDAR:
@@ -1199,7 +1201,7 @@ LO QUE NUNCA DEBES HACER:
 
 EJEMPLOS DEL TONO QUE QUEREMOS (adáptalos, no los copies literal):
 Cliente: hola, tienen hora para hoy?
-Tú: ¡Hola! 👋 Déjame revisar la agenda de hoy. ¿Qué servicio buscas?
+Tú (SIEMPRE tras llamar a consultar_disponibilidad en este mismo turno, jamás sin llamarla): ¡Hola! 👋 Sí, para hoy tengo 16:00, 17:20 y 18:40 libres. ¿Qué servicio buscas?
 
 Cliente: cuanto sale el corte
 Tú: El *Corte Clásico* está en $14.000 (35 min) y el *Degradado* en $15.000 (40 min). ¿Te reservo alguno?
@@ -1426,16 +1428,30 @@ const normHora = (h) => { const [a, b] = h.split(':'); return `${a.padStart(2, '
 function horasPermitidas(messages, system) {
   const permitidas = new Set();
   const cosechar = (t) => { for (const m of String(t).matchAll(RE_HORA)) permitidas.add(normHora(m[0])); };
+  // El cliente habla en 12 horas ("hoy a las 2:30" = 14:30): su propia hora
+  // legitima también la lectura PM, o el bot que responde "las 14:30 están
+  // tomadas" queda marcado como inventor (pasó con renacer el 07-08). SOLO
+  // aplica al texto DEL CLIENTE: las herramientas devuelven 24h y esas no se
+  // reinterpretan.
+  const cosecharCliente = (t) => {
+    for (const m of String(t).matchAll(RE_HORA)) {
+      const h = normHora(m[0]);
+      permitidas.add(h);
+      const [hh, mm] = h.split(':');
+      const n = Number(hh);
+      if (n >= 1 && n <= 11) permitidas.add(`${n + 12}:${mm}`);
+    }
+  };
   for (const bloque of system) cosechar(bloque.text || '');
   for (const msg of messages) {
-    if (typeof msg.content === 'string') { if (msg.role === 'user') cosechar(msg.content); continue; }
+    if (typeof msg.content === 'string') { if (msg.role === 'user') cosecharCliente(msg.content); continue; }
     if (!Array.isArray(msg.content)) continue;
     for (const b of msg.content) {
       // Resultados de herramientas (JSON crudo) y texto del cliente. NO se
       // cosecha el texto del asistente: si no, una hora inventada en un turno
       // anterior se legitimaría a sí misma para siempre.
       if (b.type === 'tool_result') cosechar(typeof b.content === 'string' ? b.content : JSON.stringify(b.content));
-      else if (b.type === 'text' && msg.role === 'user') cosechar(b.text);
+      else if (b.type === 'text' && msg.role === 'user') cosecharCliente(b.text);
     }
   }
   return permitidas;
