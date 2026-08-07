@@ -587,10 +587,27 @@ async function barberoLibreParaSlot(tenantId, fechaStr, hora, dur, opts = {}) {
     const pref = barberos.find(b => b.id === preferirBarberoId);
     if (pref && libre(pref)) return { id: pref.id, nombre: pref.nombre };
   }
+  // Entre los libres, el que MENOS citas tiene ese día — "prioridad al que ha
+  // cortado menos" (pedido de Kronnos, 07-08). Antes se devolvía el primero
+  // del snapshot (orden alfabético por id de doc) y en penablanca Araceli se
+  // llevaba casi todas las citas del bot. Cuentan las citas vivas del día ya
+  // leídas arriba; empate → orden del snapshot, que con el propio conteo va
+  // rotando solo a medida que se llena el día.
+  const citasDia = new Map();
+  citasSnap.forEach(d => {
+    const x = d.data();
+    if (excluirCitaId && d.id === excluirCitaId) return;
+    if (x.estado === 'Cancelada' || x.estado === 'NoAsistio') return;
+    if (!x.barberoId) return;
+    citasDia.set(x.barberoId, (citasDia.get(x.barberoId) || 0) + 1);
+  });
+  let mejor = null;
   for (const barb of barberos) {
-    if (libre(barb)) return { id: barb.id, nombre: barb.nombre };
+    if (!libre(barb)) continue;
+    const n = citasDia.get(barb.id) || 0;
+    if (!mejor || n < mejor.n) mejor = { barb, n };
   }
-  return null;
+  return mejor ? { id: mejor.barb.id, nombre: mejor.barb.nombre } : null;
 }
 
 // Para tests locales (scripts con Admin SDK) y reuso por el bot de WhatsApp
