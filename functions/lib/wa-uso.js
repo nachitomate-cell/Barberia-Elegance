@@ -64,13 +64,14 @@ const hashChat = (chatId) =>
  * prueba de auditoría, no el camino del cobro — si se pierde una línea, el
  * rollup transaccional sigue siendo correcto.
  */
-function evento(tid, { tipo, chatId = null, motivo = null, mes = null }) {
+function evento(tid, { tipo, chatId = null, motivo = null, mes = null, canal = null }) {
   if (!tid || !tipo) return Promise.resolve();
   const ahora = ahoraChile();
   return db.collection(`tenants/${tid}/wa_eventos`).add({
     tipo,                                  // 'conversacion' | 'in' | 'out' | 'rechazada'
     ...(chatId ? { chat: hashChat(chatId) } : {}),
     ...(motivo ? { motivo } : {}),
+    ...(canal && canal !== 'whatsapp' ? { canal } : {}),
     dia: ahora.fecha,
     mes: mes || ahora.fecha.slice(0, 7),
     ts: FieldValue.serverTimestamp(),
@@ -86,12 +87,19 @@ function evento(tid, { tipo, chatId = null, motivo = null, mes = null }) {
  * `nueva: false` y el bot responde igual. Perder una unidad de cobro es
  * infinitamente más barato que dejar a un cliente hablando solo.
  *
+ * `canal`: el asistente es UN producto con tiers compartidos ("hasta N
+ * conversaciones al día", da igual por dónde escriban), así que Instagram
+ * suma al MISMO total `conversaciones`; `conversacionesIg` queda como
+ * desglose por canal para telemetría, nunca como segundo cupo.
+ *
  * @param {string} tid
- * @param {FirebaseFirestore.DocumentReference} chatRef  doc de wa_conversaciones
+ * @param {FirebaseFirestore.DocumentReference} chatRef  doc de wa_conversaciones o ig_conversaciones
  * @param {string} chatId  solo para el libro de eventos (se guarda hasheado)
+ * @param {{canal?: 'whatsapp'|'instagram'}} [opts]
  */
-async function abrirConversacion(tid, chatRef, chatId) {
+async function abrirConversacion(tid, chatRef, chatId, { canal = 'whatsapp' } = {}) {
   const mes = mesChile();
+  const esIg = canal === 'instagram';
   try {
     const nueva = await db.runTransaction(async (tx) => {
       const snap = await tx.get(chatRef);
@@ -106,13 +114,14 @@ async function abrirConversacion(tid, chatRef, chatId) {
       tx.set(usoRef(tid, mes), {
         mes,
         conversaciones: FieldValue.increment(1),
+        ...(esIg ? { conversacionesIg: FieldValue.increment(1) } : {}),
         actualizado: FieldValue.serverTimestamp(),
       }, { merge: true });
 
       return true;
     });
 
-    if (nueva) evento(tid, { tipo: 'conversacion', chatId, mes });
+    if (nueva) evento(tid, { tipo: 'conversacion', chatId, mes, canal });
     return { nueva, mes };
   } catch (e) {
     logger.warn(`[wa-uso] ${tid}: no se pudo abrir la conversación: ${e.message}`);
@@ -170,9 +179,10 @@ async function usoDelMes(tid, mes = mesChile()) {
     const rech = d.rechazadas || {};
     return {
       mes,
-      conversaciones: Number(d.conversaciones) || 0,
-      mensajesIn:     Number(d.mensajesIn)     || 0,
-      mensajesOut:    Number(d.mensajesOut)    || 0,
+      conversaciones:   Number(d.conversaciones)   || 0,
+      conversacionesIg: Number(d.conversacionesIg) || 0,
+      mensajesIn:       Number(d.mensajesIn)       || 0,
+      mensajesOut:      Number(d.mensajesOut)      || 0,
       rechazadas:     rech,
       rechazadasTotal: Object.values(rech).reduce((a, b) => a + (Number(b) || 0), 0),
       ok: true,

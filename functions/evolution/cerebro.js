@@ -2438,6 +2438,10 @@ module.exports._horasDeOtroDiaSinAclarar = horasDeOtroDiaSinAclarar;
 module.exports._cargarServicios     = cargarServicios;
 module.exports._cargarEquipo        = cargarEquipo;
 module.exports._armarContextoLocal  = armarContextoLocal;
+// Aviso-al-dueño del tope de conversaciones: lo comparte el canal Instagram
+// (instagram-reservas.js) — el claim diario es por tenant, así que entre los
+// dos canales sale UN solo push al día.
+module.exports._avisarTopeConversaciones = avisarTopeConversaciones;
 module.exports._MODEL               = MODEL;
 // Reutilizados por evolution/plataforma.js (canal del numero SynapTech): la
 // semantica de CONFIRMAR/CANCELAR tiene que ser UNA sola, o el mismo 'si'

@@ -79,7 +79,9 @@ async function estadoDelLocal(tid) {
   // Default encendido una vez habilitado: si SynapTech lo activó, el local no
   // tiene que ir a prenderlo para que empiece a servir.
   if (cfg.botEnabled === false) return { ok: false, motivo: 'apagado por el local' };
-  return { ok: true, cfg };
+  // `sys` viaja de vuelta para el tope de conversaciones del tier: ya se leyó
+  // acá y volver a pedirlo sería una lectura duplicada por cada DM.
+  return { ok: true, cfg, sys };
 }
 
 /**
@@ -121,9 +123,48 @@ async function procesarDMReserva({ tid, igsid, texto, mid, con, anthropicKey }) 
     return true;
   }
 
-  // ── Contexto del local: el MISMO que usa WhatsApp ──
   const cerebro = require('./evolution/cerebro');
+  // La config de WhatsApp se lee ANTES del gate: trae el límite de
+  // conversaciones que el dueño pudo elegir, y más abajo el estilo/nombre
+  // del agente para el contexto.
   const cfgWa = (await db.doc(raiz(tid, 'configuracion/whatsapp')).get().catch(() => null))?.data() || {};
+
+  /* ── Tope de CONVERSACIONES del día del ASISTENTE (tier Start) ────────────
+     El asistente es UN producto: sus "hasta N conversaciones al día" cubren
+     WhatsApp e Instagram JUNTOS. Este gate es el espejo del de cerebro.js:
+     misma función de límite (evolution/cuota.js), mismo contador compartido
+     (`wa_cuota/{fecha}.convs`) y mismas reglas — una conversación que ya
+     empezó (ventana de 24 h en el doc del chat) se atiende hasta el final,
+     el cliente bloqueado recibe UNA derivación a humano cada 12 h (reclamo
+     transaccional anti-reintentos de Meta) y el dueño UN push al día, que
+     comparte claim con WhatsApp: entre los dos canales sale un solo aviso. */
+  const { ventanaAbierta, registrarRechazo, abrirConversacion } = require('./lib/wa-uso');
+  const { limiteConversacionesDetalle, conversacionesHoy, registrarConversacion } = require('./evolution/cuota');
+  if (!ventanaAbierta(prev)) {
+    const { limite, origen } = limiteConversacionesDetalle(estado.sys, cfgWa);
+    if (limite > 0 && (await conversacionesHoy(tid)) >= limite) {
+      logger.warn(`[ig-reservas] ${tid}: tope de ${limite} conversaciones del día (${origen}) alcanzado; ig:${igsid} derivado a humano`);
+      registrarRechazo(tid, 'tope_conversaciones_ig', `ig_${igsid}`).catch(() => {});
+
+      const avisar = await db.runTransaction(async (tx) => {
+        const s = await tx.get(ref);
+        const prevAviso = s.exists ? (s.data().convTopeAvisoAt?.toMillis?.() || 0) : 0;
+        if (prevAviso > Date.now() - 12 * 3600e3) return false;
+        tx.set(ref, { convTopeAvisoAt: FieldValue.serverTimestamp() }, { merge: true });
+        return true;
+      }).catch(() => true);   // falla-abierto: un aviso de más es mejor que el silencio
+      if (avisar) {
+        await ig.enviarDM(con.token, con.igUserId, igsid,
+          'Gracias por escribir 🙌 En este momento no puedo responderte automáticamente, pero tu mensaje quedó registrado y el equipo del local te contesta a la brevedad.'
+        ).catch((e) => logger.warn(`[ig-reservas] ${tid}: aviso de tope no se pudo enviar: ${e.message}`));
+      }
+      cerebro._avisarTopeConversaciones(tid, { limite, origen }).catch((e) =>
+        logger.warn(`[ig-reservas] ${tid}: aviso de tope al dueño falló: ${e.message}`));
+      return true;
+    }
+  }
+
+  // ── Contexto del local: el MISMO que usa WhatsApp ──
   const { systemFijo, toolsBase, presentacion } = await cerebro._armarContextoLocal(tid, {
     // El estilo y el nombre del asistente los eligió el local una vez; no tiene
     // por qué configurarlos de nuevo por cada canal. Si se leyeran distinto,
@@ -191,6 +232,12 @@ async function procesarDMReserva({ tid, igsid, texto, mid, con, anthropicKey }) 
   if (presentacion && !historia.length) finalText = cerebro._asegurarPresentacion(finalText, presentacion);
 
   await ig.enviarDM(con.token, con.igUserId, igsid, finalText);
+
+  /* Unidad del plan: abre la ventana de 24 h de ESTE chat si estaba vencida y
+     suma al total compartido del asistente — la MISMA mecánica y el MISMO
+     contador que WhatsApp, porque el tier no distingue canales. */
+  const { nueva } = await abrirConversacion(tid, ref, `ig_${igsid}`, { canal: 'instagram' });
+  if (nueva) registrarConversacion(tid, 'instagram').catch(() => {});
 
   await ref.set({
     igsid,

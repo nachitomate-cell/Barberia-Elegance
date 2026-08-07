@@ -224,13 +224,16 @@ async function claimAvisoTopeConvs(tid) {
 }
 
 /** Suma 1 al contador de conversaciones del día (solo en la PRIMERA respuesta
- *  del bot a ese chat en el día). Nunca lanza. */
-async function registrarConversacion(tid) {
+ *  del bot a ese chat en el día). Nunca lanza.
+ *  `convs` es el TOTAL del asistente (el cupo del tier, canal-agnóstico);
+ *  `convsIg` es solo el desglose de Instagram para telemetría. */
+async function registrarConversacion(tid, canal = 'whatsapp') {
   if (!tid) return;
   const fecha = ahoraChile().fecha;
   await cuotaRef(tid, fecha).set({
     fecha,
     convs: FieldValue.increment(1),
+    ...(canal === 'instagram' ? { convsIg: FieldValue.increment(1) } : {}),
     actualizado: FieldValue.serverTimestamp(),
   }, { merge: true }).catch(() => {});
 }
