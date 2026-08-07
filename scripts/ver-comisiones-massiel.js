@@ -19,9 +19,15 @@
  *
  *  Sin fijo por trial: solo se cobra cuando el cliente PAGA (activa plan).
  *
- *   Plan Básico  $29.900/mes  → $25.000 al cierre + $2.990/mes × 24 meses
- *   Plan Pro     $49.900/mes  → $40.000 al cierre + $7.485/mes × 24 meses
+ *   Plan Básico  $29.900/mes  → $25.000 al cierre + $2.990/mes  × 24 meses
+ *   Plan Pro     $49.900/mes  → $40.000 al cierre + $7.485/mes  × 24 meses
+ *   Plan Full    $69.900/mes  → $55.000 al cierre + $10.485/mes × 24 meses
  *   Plan Anual   $399.000/año → $100.000 UNA VEZ (sin recurring)
+ *
+ *   La escalera de bonos sube $15.000 por peldaño (~80% de la primera
+ *   mensualidad en los tres) y el recurring es 10% en Básico y 15% en los
+ *   planes con IA (Pro y Full) — misma tasa a propósito: el Full ya carga
+ *   el costo de IA en dos canales, subirla comería el margen premium.
  *
  *   Tope recurring: 24 meses desde la activación. Después, el cliente
  *   sigue siendo de SynapTech sin costo variable.
@@ -31,6 +37,8 @@
  *   Massiel gana +$5.000 UNA VEZ (bonus al cierre del add-on, no recurring).
  *   La idea: incentivarla a mencionarlo en TODO cierre porque es el gancho
  *   más "wow" del producto.
+ *   ⚠️ Solo cuenta como VENTA de add-on: en Pro/Full/Anual la Wallet viene
+ *   incluida en el plan, así que ahí no paga bonus (2026-08-07).
  *
  * ─────────────────────────────────────────────────────────────────────────
  *  📋 CÓMO SE PAGA
@@ -61,6 +69,7 @@ const path  = require('path');
 
 function cargarCreds() {
   const candidatos = [
+    path.join(__dirname, '..', 'service-account.json'),
     path.join(__dirname, '..', 'functions', 'service-account.json'),
     path.join(__dirname, '..', 'admin-key.json'),
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
@@ -86,6 +95,7 @@ const BONO_WALLET  = 5_000;   // add-on Wallet: bonus único al activarse
 const BONOS = {
   basico: 25_000,
   pro:    40_000,
+  full:   55_000,
   anual: 100_000,
   // legacy
   individual: 25_000,
@@ -93,9 +103,10 @@ const BONOS = {
 };
 
 const RECURRING_MENSUAL = {
-  basico: 2_990,
-  pro:    7_485,
-  anual:  0,   // el anual no tiene recurring — se pagó todo el bono al inicio
+  basico:  2_990,   // 10%
+  pro:     7_485,   // 15%
+  full:   10_485,   // 15% — misma tasa que Pro (planes con IA)
+  anual:   0,   // el anual no tiene recurring — se pagó todo el bono al inicio
   // legacy
   individual: 2_990,
   local:      7_485,
@@ -103,14 +114,14 @@ const RECURRING_MENSUAL = {
 
 // Aliases → nombre normalizado para reporte
 const NORMALIZAR_PLAN = {
-  basico: 'basico', pro: 'pro', anual: 'anual',
+  basico: 'basico', pro: 'pro', full: 'full', anual: 'anual',
   individual: 'basico', local: 'pro',
 };
 
 const CLP = (n) => '$ ' + Math.round(n).toLocaleString('es-CL');
 
 function planPretty(p) {
-  return ({ basico: 'Básico', pro: 'Pro', anual: 'Anual' })[NORMALIZAR_PLAN[p] || p] || '—';
+  return ({ basico: 'Básico', pro: 'Pro', full: 'Full', anual: 'Anual' })[NORMALIZAR_PLAN[p] || p] || '—';
 }
 
 async function main() {
@@ -155,10 +166,13 @@ async function main() {
       }
     }
 
-    // Add-on Wallet: bonus $5.000 único al activarse (independiente del plan).
-    // Se cuenta apenas walletActivo=true; no exige que el plan base esté al día
-    // porque MP puede aprobar el add-on antes que la mensualidad grande.
-    const walletActivo = b.walletActivo === true;
+    // Add-on Wallet: bonus $5.000 único al activarse. Se cuenta apenas
+    // walletActivo=true (no exige que el plan base esté al día porque MP
+    // puede aprobar el add-on antes que la mensualidad grande) — PERO solo
+    // cuando fue una VENTA de add-on: en Pro/Full/Anual la Wallet viene
+    // incluida en el plan y pagar bonus ahí sería una fuga (2026-08-07).
+    const walletIncluidoEnPlan = ['pro', 'full', 'anual'].includes(planNorm);
+    const walletActivo = b.walletActivo === true && !walletIncluidoEnPlan;
     const bonoWallet   = walletActivo ? BONO_WALLET : 0;
 
     const total = bono + recurringAcumulado + bonoWallet;
@@ -210,15 +224,16 @@ async function main() {
     porPlan:     {
       basico: acc.porPlan.basico + (f.plan === 'Básico' && f.convertido ? 1 : 0),
       pro:    acc.porPlan.pro    + (f.plan === 'Pro'    && f.convertido ? 1 : 0),
+      full:   acc.porPlan.full   + (f.plan === 'Full'   && f.convertido ? 1 : 0),
       anual:  acc.porPlan.anual  + (f.plan === 'Anual'  && f.convertido ? 1 : 0),
     },
-  }), { bono: 0, recurring: 0, bonoWallet: 0, walletCount: 0, total: 0, conversiones: 0, porPlan: { basico: 0, pro: 0, anual: 0 } });
+  }), { bono: 0, recurring: 0, bonoWallet: 0, walletCount: 0, total: 0, conversiones: 0, porPlan: { basico: 0, pro: 0, full: 0, anual: 0 } });
 
   console.log('  RESUMEN');
   console.log('  ──────────────────────────────────');
   console.log('  Tenants trackeados:       ' + filas.length);
   console.log('  Conversiones a plan:      ' + totales.conversiones +
-    '  (Básico ' + totales.porPlan.basico + ' · Pro ' + totales.porPlan.pro + ' · Anual ' + totales.porPlan.anual + ')');
+    '  (Básico ' + totales.porPlan.basico + ' · Pro ' + totales.porPlan.pro + ' · Full ' + totales.porPlan.full + ' · Anual ' + totales.porPlan.anual + ')');
   console.log('  Tasa conversión:          ' + (filas.length ? Math.round(100 * totales.conversiones / filas.length) : 0) + '%');
   console.log('  Add-on Wallet activo:     ' + totales.walletCount +
     ' local' + (totales.walletCount === 1 ? '' : 'es') +

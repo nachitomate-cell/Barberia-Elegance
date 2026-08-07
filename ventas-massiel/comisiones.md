@@ -1,17 +1,22 @@
 # Comisiones — Massiel · SynapTech
-**Vigente desde:** 2026-08-05 · **Versión:** Definitiva v1.0
+**Vigente desde:** 2026-08-05 · **Versión:** v1.1 (2026-08-07: se suma el Plan Full)
 
 ---
 
-## Tu esquema en 3 líneas
+## Tu esquema en 4 líneas
 
 | Producto | Precio cliente | Tu bono al cierre | Tu recurring |
 |---|---|---|---|
 | 🟢 **Plan Básico** | $29.900/mes | **$25.000** | **$2.990/mes** durante 24 meses |
-| 🟣 **Plan Pro** (IA + Wallet) | $49.900/mes | **$40.000** | **$7.485/mes** durante 24 meses |
+| 🟣 **Plan Pro** (IA WhatsApp + Wallet) | $49.900/mes | **$40.000** | **$7.485/mes** durante 24 meses |
+| 🔵 **Plan Full** (IA en WhatsApp + Instagram + Reactivación) | $69.900/mes | **$55.000** | **$10.485/mes** durante 24 meses |
 | 🔥 **Plan Anual Contado** | $399.000/año | **$100.000 al toque** | — |
 
 **Sin fijo por trial.** Solo cobras cuando el cliente PAGA (activa un plan). Los trials creados no te generan comisión hasta que se conviertan.
+
+**Un Full completo vale ~$306.000 para ti** ($55.000 + 24 meses de recurring) — 40% más que un Pro. Es el plan que más te conviene cerrar.
+
+**Bonus Wallet ($5.000 por activación)**: solo aplica cuando la Wallet se vende como **add-on del Básico** (o wallet-only). En Pro, Full y Anual ya viene incluida en el plan, así que ahí no suma bonus.
 
 ---
 
@@ -72,6 +77,15 @@ Con 12 meses de recurring acumulado + 3 anuales/mes:
 
 ---
 
+## La palanca del Plan Full (el cierre que más te paga al mes)
+
+**Cuándo ofrecerlo:** mira el Instagram del local ANTES de entrar. Si tienen cuenta activa con DMs moviéndose, el pitch es una frase: *"¿Y quién contesta los mensajes de Instagram cuando estás cortando? El plan Full pone la misma IA a responder ahí también, y recupera a los clientes que dejaron de venir."*
+
+- Instagram con el bot **solo existe en el Full** — no se puede armar por partes. Eso lo hace fácil de defender.
+- Señales de candidato Full: local con +2.000 seguidores, responde DMs tarde o nunca, ya usa el ancla *"AgendaPro cobra $50.000 solo por su bot de WhatsApp"*.
+
+---
+
 ## La palanca del Plan Anual (léelo bien)
 
 Cerrar 1 anual = **$100.000 inmediatos** para ti + **$399.000 cash inmediato** para SynapTech.
@@ -91,7 +105,7 @@ Un cierre es **válido** y paga comisión SOLO si:
 
 1. ✅ El pago con Mercado Pago se **procesó y aprobó**.
 2. ✅ El cliente **NO reembolsa dentro de 30 días** (si lo hace, clawback del bono).
-3. ✅ El tenant sigue **activo al mes 60** (retención mínima). Si cancela antes: clawback 50% del bono.
+3. ✅ El tenant sigue **activo al día 60** (retención mínima). Si cancela antes: clawback 50% del bono.
 4. ✅ El email del dueño es **único** — no se puede crear el mismo cliente 2 veces.
 5. ✅ El tenant edita **al menos 1 servicio real** en el panel (prueba de uso).
 
@@ -113,7 +127,7 @@ El **recurring** se detiene automáticamente si el cliente:
 
 ## Meta oficial (contra la que se mide tu desempeño)
 
-**Cuota mensual: 10 planes cerrados** (4 Básico + 6 Pro) + Plan Anual opcional pero altamente premiado.
+**Cuota mensual: 10 planes cerrados** (4 Básico + 6 Pro/Full — un Full cuenta como Pro para la meta) + Plan Anual opcional pero altamente premiado.
 
 **Si superas cuota** durante 3 meses seguidos → conversamos condiciones especiales (bono adicional, expansión geográfica, subir tarifa).
 
