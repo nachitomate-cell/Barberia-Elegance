@@ -694,8 +694,26 @@ async function manejarDM(evento, con, cfg) {
   // `activadores` vacío + el gatillo de anuncio no aplican acá: en Instagram
   // TODO el que escribe al perfil comercial es un lead, no un amigo. Por eso se
   // marca la conversación como ya activada antes de entrar al cerebro.
-  await db.doc(`wa_ventas_conversaciones/ig_${remitente}`)
-    .set({ activado: true, canal: 'instagram', igsid: remitente, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  //
+  // Y si este @ es un prospecto que Ignacio abrió A MANO desde la cola de
+  // prospección, el DM que él ya envió se siembra como primer turno del
+  // asistente — el envío manual no pasa por el webhook, así que sin esto el
+  // cerebro saludaba de cero a alguien que acababa de recibir el pitch
+  // ("¿qué tipo de negocio tienes?" a Oz Barbería, 07-08). Solo aplica a
+  // conversaciones NUEVAS: una historia existente no se toca.
+  const chatRef = db.doc(`wa_ventas_conversaciones/ig_${remitente}`);
+  let apertura = null;
+  try {
+    const previa = (await chatRef.get()).data() || {};
+    if (!Array.isArray(previa.messages) || !previa.messages.length) {
+      apertura = await require('./prospeccion').aperturaPendienteIG(quien.username);
+    }
+  } catch (e) { logger.warn('[ig-dm] apertura de prospección:', e.message); }
+  await chatRef.set({
+    activado: true, canal: 'instagram', igsid: remitente,
+    ...(apertura ? { messages: [{ role: 'assistant', content: apertura }] } : {}),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
 
   await procesarMensajeVentas({
     chipId: 'instagram',

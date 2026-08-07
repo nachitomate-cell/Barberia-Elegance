@@ -800,9 +800,14 @@ exports.prospeccionAccion = onCall({
     const p = { id, ...doc.data() };
 
     if (accion === 'dmEnviado') {
-      // El humano ya pegó el DM en Instagram; acá solo queda el registro.
+      // El humano ya pegó el DM en Instagram. El TEXTO no se bota: cuando el
+      // prospecto conteste, manejarDM se lo siembra al cerebro como primer
+      // turno del asistente — sin esto el bot saludaba de cero a alguien que
+      // acababa de recibir el pitch de Ignacio (pasó con Oz Barbería, 07-08:
+      // "¿qué tipo de negocio tienes?" a una barbería con el rubro en el DM).
       await ref.set({
         estado: p.estado === 'frio' ? 'contactado' : p.estado,
+        ...(p.dmBorrador && p.dmBorrador.texto ? { dmEnviadoTexto: p.dmBorrador.texto } : {}),
         dmBorrador: FieldValue.delete(),
         dmEnviadoEn: FieldValue.serverTimestamp(),
         toques: FieldValue.arrayUnion({ tipo: 'dm_manual', en: Timestamp.now() }),
@@ -859,6 +864,22 @@ exports.prospeccionAccion = onCall({
 
   throw new HttpsError('invalid-argument', `Acción desconocida: "${accion}".`);
 });
+
+/**
+ * ¿Qué le dijo ya Ignacio a este @ al abrirlo a mano desde la cola?
+ * La usa instagram-plataforma.js al fabricar una conversación NUEVA: el texto
+ * se siembra como primer turno del asistente para que el cerebro retome el
+ * pitch en vez de saludar de cero. Devuelve null si no hay apertura.
+ */
+async function aperturaPendienteIG(username) {
+  const u = norm(username);
+  if (!u) return null;
+  const snap = await PROSPECTOS().where('instagram', '==', u).limit(1).get();
+  if (snap.empty) return null;
+  const p = snap.docs[0].data() || {};
+  return p.dmEnviadoTexto ? String(p.dmEnviadoTexto) : null;
+}
+exports.aperturaPendienteIG = aperturaPendienteIG;
 
 // Para scripts/test-prospeccion.js: probar la redacción y el rescate sin
 // levantar el emulador entero.
