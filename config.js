@@ -126,7 +126,9 @@
       pageTitle:       'Barbería Demo · Entorno de pruebas',
       bodyBg:          '#0a0a0a',
       slogan:          'Entorno de pruebas — Sandbox',
-      logo:            '/logo.jpg',
+      // Logo SynapTech (no '/logo.jpg' de Elegance): el demo del hub es la cara
+      // de la plataforma — jamás la marca de otro local (fuga white-label 08-07).
+      logo:            '/synaptech/logo-agenda.png',
       direccion:       '📍 Entorno de pruebas',
       horario:         '🕒 Lun a Sáb · Demo',
       telefono:        '',

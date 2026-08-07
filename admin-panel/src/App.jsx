@@ -240,8 +240,20 @@ function ProtectedApp() {
     // Pantalla explícita: si un admin cae acá por error (bug de roles), tiene
     // información para reportar y un botón para forzar entrada. El redirect
     // automático a /agenda.html se demora 3 s para dar espacio a corregir.
+    //
+    // HubTenantGate ANTES del redirect: en app.synaptechspa.cl (la app de las
+    // tiendas) el tenant pre-login es `sandbox` por DOMAIN_MAP. Sin el gate, un
+    // barbero real (ej. Bryan de chameleon, 07-08-2026) era rebotado a
+    // /agenda.html?local=sandbox — un local donde NO existe — y quedaba en
+    // "Esta cuenta no es de un barbero". El gate resuelve SU local primero
+    // (bloquea con splash, así el timer del redirect no corre antes de tiempo)
+    // y en subdominios de tenants es pass-through puro.
     const suffix = tenantId && tenantId !== 'elegance' ? `?local=${tenantId}` : '';
-    return <RoleRedirectScreen role={role} email={user?.email} tenantId={tenantId} suffix={suffix} />;
+    return (
+      <HubTenantGate>
+        <RoleRedirectScreen role={role} email={user?.email} tenantId={tenantId} suffix={suffix} />
+      </HubTenantGate>
+    );
   }
 
   return (
