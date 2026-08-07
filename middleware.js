@@ -2508,9 +2508,21 @@ export default async function middleware(request) {
     'crea.synaptechspa.cl':    '/crea.html',
     'empieza.synaptechspa.cl': '/empieza.html',
   };
+  const PAGINAS_LEGALES = new Set([
+    '/privacidad.html',
+    '/studio-privacidad.html',
+    '/terminos-saas.html',
+    '/legal.html',
+    '/mandato-tributario.html',
+  ]);
   if (LANDING_HOSTS[hostname]) {
     // Assets (rutas con extensión) pasan directo al filesystem.
     if (url.pathname.indexOf('.') >= 0 && !url.pathname.endsWith('.html')) return;
+    // Las páginas legales pasan al filesystem: son las URLs que se le declaran
+    // a Meta en el App Review, y el rewrite de la landing se las comía
+    // devolviendo 200 con empieza.html. Un 200 con el contenido equivocado no
+    // se nota revisando códigos de estado, y Meta rechaza por link roto.
+    if (PAGINAS_LEGALES.has(url.pathname)) return;
     const rw  = new URL(LANDING_HOSTS[hostname], request.url);
     const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
     const headers = new Headers(res.headers);

@@ -13,19 +13,37 @@ asistente de Instagram a los locales clientes.
 | Requisito | Estado |
 |---|---|
 | App en modo **Activo** | ✅ |
-| Política de privacidad | ✅ https://empieza.synaptechspa.cl/privacidad.html |
+| Política de privacidad | ✅ https://empieza.synaptechspa.cl/studio-privacidad.html |
 | Términos del servicio | ✅ https://empieza.synaptechspa.cl/terminos-saas.html |
 | **Eliminación de datos (callback)** | ✅ `https://us-central1-barberia-elegance.cloudfunctions.net/metaDataDeletion` |
+| **Cancelación de autorización (callback)** | ✅ `https://us-central1-barberia-elegance.cloudfunctions.net/metaDeauthorize` |
 | Webhook vivo y suscrito | ✅ `messages` + `comments` |
-| Integración funcionando en producción | ✅ con @synaptechspa |
+| Integración funcionando en producción | ✅ con @synaptechspa (4 conversaciones reales el 06-08) |
+
+> ⚠️ **Las tres URLs de arriba requieren el deploy del 07-08.** Hasta ese deploy,
+> `empieza.synaptechspa.cl` devolvía **200 con la landing** para cualquier `.html`:
+> el middleware se comía la ruta. Revisar con `curl` no bastaba —el código era
+> 200— había que mirar el `<title>`. Si alguna vez vuelven a fallar, revisar
+> `PAGINAS_LEGALES` en `middleware.js`.
+>
+> La política que se declara es **`studio-privacidad.html`** (la del Studio, que
+> describe qué se guarda de Instagram), **no `privacidad.html`** (que es la del
+> club de cada local y no menciona Instagram).
 
 El callback de borrado verifica el `signed_request` con HMAC-SHA256, elimina el
 hilo, la conversación con el bot, el lead y los comentarios de esa persona, y
 deja asiento con el id **hasheado** en `eliminaciones_log`. Guard:
 `npm run test:borrado`.
 
-**Pegar el callback en:** Configuración de la app → Básica → *URL de devolución
-de llamada de eliminación de datos*.
+**Pegar los callbacks en:** Configuración de la app → Básica →
+*URL de devolución de llamada de eliminación de datos* (`metaDataDeletion`) y
+*URL de devolución de llamada de cancelación de autorización* (`metaDeauthorize`).
+Son **dos campos distintos** y Meta pide los dos.
+
+El de cancelación apaga la conexión (`enabled: false`) y el `igAsistente` de
+todos los tenants que compartan ese `instagramUserId` — hoy cinco comparten el de
+@synaptechspa. Sin él la cuenta quedaba marcada como conectada con un token ya
+revocado: el panel mostraba el asistente encendido y cada DM fallaba en silencio.
 
 ---
 

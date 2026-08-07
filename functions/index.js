@@ -1894,6 +1894,7 @@ exports.instagramAsistenteActivar = igPlataforma.instagramAsistenteActivar;
 exports.instagramTokenCron        = igPlataforma.instagramTokenCron;
 // Borrado de datos que pide Meta al quitar la app (requisito de App Review).
 exports.metaDataDeletion          = require('./meta-data-deletion').metaDataDeletion;
+exports.metaDeauthorize           = require('./meta-data-deletion').metaDeauthorize;
 
 // Creativos programados: la cola de publicaciones y el cron que las saca.
 const igProgramador = require('./instagram-programador');

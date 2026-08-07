@@ -37,7 +37,10 @@ const { FieldValue }   = require('firebase-admin/firestore');
 const db = () => admin.firestore();
 const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
 
-const PAGINA_ESTADO = 'https://empieza.synaptechspa.cl/privacidad.html';
+// La política del Studio, que es la que se le declara a Meta y la única que
+// describe qué se guarda de Instagram. `privacidad.html` es la del club de cada
+// local — otra cosa.
+const PAGINA_ESTADO = 'https://empieza.synaptechspa.cl/studio-privacidad.html';
 
 /**
  * Verifica y abre el `signed_request` de Meta.
@@ -160,5 +163,71 @@ exports.metaDataDeletion = onRequest({
   }
 });
 
+/* ──────────────────────── Cancelación de autorización ────────────────────────
+ *  El otro callback que Meta pide en Configuración → Básica, y que faltaba.
+ *
+ *  Se dispara cuando el dueño quita la app desde Instagram. NO implica borrar
+ *  sus datos (para eso está el de arriba): implica que el token murió. Sin
+ *  esto la conexión seguía marcada `enabled: true` con un token revocado, así
+ *  que el asistente se veía encendido en el panel y cada DM fallaba contra la
+ *  API sin que nadie supiera por qué.
+ *
+ *  Un `instagramUserId` puede estar en varios docs —hoy cinco comparten el de
+ *  @synaptechspa— y el token revocado los mata a todos: se apagan todos los
+ *  que lo tengan, no el primero que aparezca.
+ */
+async function desautorizarCuenta(igUserId) {
+  const id = String(igUserId || '');
+  if (!id) return [];
+
+  const s = await db().collection('_system').where('instagramUserId', '==', id).get();
+  const apagados = [];
+
+  for (const d of s.docs) {
+    if (!d.id.startsWith('instagram_')) continue;
+    const tid = d.id.slice('instagram_'.length);
+
+    await d.ref.set({
+      enabled:        false,
+      errorMsg:       'El dueño quitó la app desde Instagram. Hay que volver a conectar la cuenta.',
+      desautorizadaEn: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    // El asistente de reservas se apaga también: dejarlo prendido le promete al
+    // local una respuesta automática que ya no puede dar.
+    await db().doc(`_system/${tid}`)
+      .set({ igAsistente: false }, { merge: true })
+      .catch((e) => logger.warn(`[deauth] no pude apagar igAsistente de ${tid}: ${e.message}`));
+
+    apagados.push(tid);
+  }
+
+  return apagados;
+}
+
+exports.metaDeauthorize = onRequest({
+  region: 'us-central1',
+  secrets: [INSTAGRAM_APP_SECRET],
+  timeoutSeconds: 60,
+}, async (req, res) => {
+  if (req.method === 'GET') { res.status(200).send('ok'); return; }
+  if (req.method !== 'POST') { res.status(405).send('method not allowed'); return; }
+
+  try {
+    const signed = req.body?.signed_request || req.query?.signed_request;
+    const datos  = abrirSignedRequest(signed, INSTAGRAM_APP_SECRET.value());
+    const userId = String(datos.user_id || '');
+    if (!userId) throw new Error('el signed_request no trae user_id');
+
+    const apagados = await desautorizarCuenta(userId);
+    logger.info(`[deauth] ${apagados.length ? apagados.join(', ') : 'ninguna cuenta calzó'}`);
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    logger.error('[deauth]', e.message);
+    res.status(400).json({ error: e.message });
+  }
+});
+
 exports._abrirSignedRequest = abrirSignedRequest;
 exports._borrarDatosDe = borrarDatosDe;
+exports._desautorizarCuenta = desautorizarCuenta;
