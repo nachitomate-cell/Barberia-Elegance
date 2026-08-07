@@ -1394,6 +1394,13 @@
                   <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
             </button>
+            <!-- Historial de actividad: registro persistente de lo que le pasa
+                 a las citas (creadas, reagendadas, canceladas y por quién).
+                 El push es efímero; esto responde "¿quién movió esta hora?". -->
+            <button id="btnActividad" onclick="abrirActividad()" class="relative w-11 h-11 sm:w-10 sm:h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Historial de actividad" aria-label="Ver historial de actividad">
+                <i class="ph-bold ph-clock-counter-clockwise text-lg text-white/60"></i>
+                <span id="actividadBadge" class="hidden absolute -top-1 -right-1 items-center justify-center rounded-full text-[10px] font-bold" style="min-width:18px;height:18px;padding:0 4px;background:#f59e0b;color:#111115;"></span>
+            </button>
             <!-- Mi perfil (desktop): read-only con foto, datos y link a agenda pública -->
             <button id="btnPerfil" onclick="abrirPerfil()" class="w-10 h-10 rounded-full border border-white/10 hidden sm:flex items-center justify-center hover:bg-white/5 transition-colors" title="Mi perfil" aria-label="Ver mi perfil">
                 <i class="ph-bold ph-user-circle text-lg text-white/60"></i>
@@ -1864,6 +1871,243 @@
             } catch (e) {
                 console.warn('[PorCerrar] abrir:', e.message);
             }
+        }
+
+        // ── HISTORIAL DE ACTIVIDAD (campanita) ──
+        // Feed persistente de eventos de citas que escribe la CF
+        // actividad-citas.js en {root}actividad (retención 90 días). El push
+        // es efímero: si no lo viste al momento, "¿quién movió esta hora?"
+        // quedaba sin respuesta. Admin ve todo el local; barbero solo lo suyo.
+        let _actEsAdmin = false;
+        let _actMiId = null;
+        let _actUnsub = null;
+        let _actDocs = [];    // primera página, viva (onSnapshot)
+        let _actExtra = [];   // páginas siguientes ("Ver más", get puntual)
+        let _actCursor = null;
+        let _actFin = false;
+        let _actUltimoVisto = 0;  // lastSeen ANTES de abrir — para marcar lo nuevo
+        let _actError = null;     // error ≠ vacío: un módulo caído no se muestra como "sin actividad"
+        const _ACT_PAGE = 50;
+
+        function _actKey() { return 'actividad_lastseen_' + (window.CURRENT_TENANT_ID || 'elegance'); }
+        function _actLastSeen() { return parseInt(localStorage.getItem(_actKey()) || '0', 10); }
+
+        function iniciarActividad(uid, esAdmin) {
+            _actMiId = uid || null;
+            _actEsAdmin = !!esAdmin;
+            if (_actUnsub) { _actUnsub(); _actUnsub = null; }
+            _actUnsub = tenantCol('actividad')
+                .orderBy('ts', 'desc')
+                .limit(_ACT_PAGE)
+                .onSnapshot(snap => {
+                    _actError = null;
+                    _actDocs = snap.docs;
+                    if (!_actExtra.length) _actCursor = snap.docs.length ? snap.docs[snap.docs.length - 1] : null;
+                    _actRenderBadge();
+                    const modal = document.getElementById('actividadModal');
+                    if (modal && !modal.classList.contains('hidden')) _actRenderLista();
+                }, err => {
+                    console.warn('[Actividad] listener:', err.code || err.message);
+                    _actError = err.code || err.message || 'error';
+                    const modal = document.getElementById('actividadModal');
+                    if (modal && !modal.classList.contains('hidden')) _actRenderLista();
+                });
+        }
+
+        // Un barbero ve los eventos de SUS citas (o los sin profesional asignado).
+        function _actVisible(e) {
+            if (_actEsAdmin) return true;
+            return !e.barberoId || e.barberoId === _actMiId;
+        }
+
+        function _actEventos() {
+            const vistos = new Set();
+            const out = [];
+            for (const d of [..._actDocs, ..._actExtra]) {
+                if (vistos.has(d.id)) continue;
+                vistos.add(d.id);
+                const e = d.data();
+                if (_actVisible(e)) out.push({ id: d.id, ...e });
+            }
+            return out;
+        }
+
+        function _actRenderBadge() {
+            const badge = document.getElementById('actividadBadge');
+            if (!badge) return;
+            const desde = _actLastSeen();
+            const n = _actDocs.reduce((acc, d) => {
+                const e = d.data();
+                const ms = e.ts && e.ts.toMillis ? e.ts.toMillis() : 0;
+                return acc + (ms > desde && _actVisible(e) ? 1 : 0);
+            }, 0);
+            if (n > 0) {
+                badge.textContent = n > 9 ? '9+' : String(n);
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            } else {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
+        }
+
+        function abrirActividad() {
+            _actUltimoVisto = _actLastSeen();
+            document.getElementById('actividadOverlay')?.classList.remove('hidden');
+            document.getElementById('actividadModal')?.classList.remove('hidden');
+            _actRenderLista();
+            // Marcar visto al abrir: el badge se limpia de inmediato.
+            try { localStorage.setItem(_actKey(), String(Date.now())); } catch (_) {}
+            _actRenderBadge();
+        }
+        function cerrarActividad() {
+            document.getElementById('actividadOverlay')?.classList.add('hidden');
+            document.getElementById('actividadModal')?.classList.add('hidden');
+        }
+
+        async function cargarMasActividad() {
+            if (_actFin || !_actCursor) return;
+            const btn = document.getElementById('actividadVerMas');
+            if (btn) { btn.disabled = true; btn.textContent = 'Cargando…'; }
+            try {
+                const snap = await tenantCol('actividad')
+                    .orderBy('ts', 'desc')
+                    .startAfter(_actCursor)
+                    .limit(_ACT_PAGE)
+                    .get();
+                _actExtra = [..._actExtra, ...snap.docs];
+                if (snap.docs.length) _actCursor = snap.docs[snap.docs.length - 1];
+                if (snap.docs.length < _ACT_PAGE) _actFin = true;
+                _actRenderLista();
+            } catch (e) {
+                console.warn('[Actividad] cargar más:', e.message);
+                if (btn) { btn.disabled = false; btn.textContent = 'Ver más'; }
+            }
+        }
+
+        // Colores fijos legibles en oscuro Y claro (nada de rgba blanco).
+        const _ACT_CFG = {
+            creada:      { icon: 'ph-calendar-plus',           color: '#34d399', label: 'Nueva cita' },
+            confirmada:  { icon: 'ph-check',                   color: '#34d399', label: 'Cita confirmada' },
+            reagendada:  { icon: 'ph-clock-counter-clockwise', color: '#fbbf24', label: 'Cita reagendada' },
+            profesional: { icon: 'ph-user-switch',             color: '#a78bfa', label: 'Cambio de profesional' },
+            servicio:    { icon: 'ph-scissors',                color: '#a78bfa', label: 'Cambio de servicio' },
+            cancelada:   { icon: 'ph-x-circle',                color: '#fb7185', label: 'Cita cancelada' },
+            no_asistio:  { icon: 'ph-user-minus',              color: '#fb7185', label: 'No asistió' },
+            completada:  { icon: 'ph-check-circle',            color: '#38bdf8', label: 'Cita completada' },
+            eliminada:   { icon: 'ph-trash',                   color: '#fb7185', label: 'Cita eliminada' },
+            estado:      { icon: 'ph-pencil-simple',           color: '#94a3b8', label: 'Cita actualizada' },
+            cambio:      { icon: 'ph-pencil-simple',           color: '#94a3b8', label: 'Cita actualizada' },
+        };
+
+        function _actFmtFecha(fecha) {
+            if (!fecha) return '';
+            const [y, m, d] = String(fecha).split('-').map(Number);
+            if (!y || !m || !d) return String(fecha);
+            if (fecha === _fmtDate(new Date())) return 'hoy';
+            const dias  = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+            const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const dt = new Date(y, m - 1, d);
+            return `${dias[dt.getDay()]} ${d} ${meses[m - 1]}`;
+        }
+
+        function _actHace(ts) {
+            const ms = ts && ts.toMillis ? ts.toMillis() : 0;
+            if (!ms) return '';
+            const s = Math.floor((Date.now() - ms) / 1000);
+            if (s < 60) return 'ahora';
+            if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+            if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+            const d = Math.floor(s / 86400);
+            if (d === 1) return 'ayer';
+            if (d < 7) return `hace ${d} días`;
+            const dt = new Date(ms);
+            return `${dt.getDate()}/${String(dt.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        // "Quién lo hizo" en palabras — la parte que le faltaba al push.
+        function _actActor(e) {
+            const quien =
+                e.actor === 'cliente' ? 'el cliente' :
+                e.actor === 'bot'     ? (e.actorNombre || 'el asistente') :
+                e.actor === 'staff'   ? (e.actorNombre || 'el staff') : '';
+            if (e.tipo === 'creada') {
+                if (e.actor === 'cliente') return e.origenLabel || 'Reserva online';
+                if (e.actor === 'bot') return e.actorNombre || 'Asistente';
+                return quien ? `La agendó ${quien}` : 'Automática';
+            }
+            if (e.tipo === 'cancelada')  return quien ? `Canceló ${quien}` : 'Cancelación automática';
+            if (e.tipo === 'eliminada')  return quien ? `La eliminó ${quien}` : 'Automático';
+            return quien ? `Lo hizo ${quien}` : 'Automático';
+        }
+
+        function _actDetalle(e) {
+            const cambios = Array.isArray(e.cambios) ? e.cambios : [];
+            if (e.tipo === 'reagendada') {
+                const f = cambios.find(c => c.campo === 'fecha');
+                const h = cambios.find(c => c.campo === 'hora');
+                const antes = `${_actFmtFecha(f ? f.antes : e.fecha)} ${h ? h.antes : (e.hora || '')}`.trim();
+                const ahora = `${_actFmtFecha(e.fecha)} ${e.hora || ''}`.trim();
+                return `${antes} → ${ahora}`;
+            }
+            if (e.tipo === 'profesional' || e.tipo === 'servicio') {
+                const campo = e.tipo === 'profesional' ? 'barbero' : 'servicio';
+                const c = cambios.find(x => x.campo === campo);
+                if (c) return `${c.antes || '—'} → ${c.despues || '—'}`;
+            }
+            const partes = [];
+            if (e.servicio) partes.push(e.servicio);
+            if (e.barbero && _actEsAdmin) partes.push('con ' + e.barbero);
+            const cuando = `${_actFmtFecha(e.fecha)} ${e.hora || ''}`.trim();
+            if (cuando) partes.push(cuando);
+            return partes.join(' · ');
+        }
+
+        function _actRenderLista() {
+            const cont = document.getElementById('actividadLista');
+            if (!cont) return;
+            if (_actError) {
+                cont.innerHTML = `
+                    <div class="text-center py-10 px-6">
+                        <i class="ph ph-warning-circle" style="font-size:40px;color:#fb7185;"></i>
+                        <p class="text-sm text-white/50 mt-3">No se pudo cargar el historial</p>
+                        <p class="text-[11px] text-white/35 mt-1">Reintenta en un momento (${_escHtml(String(_actError))}).</p>
+                    </div>`;
+                return;
+            }
+            const eventos = _actEventos();
+            if (!eventos.length) {
+                cont.innerHTML = `
+                    <div class="text-center py-10 px-6">
+                        <i class="ph ph-clock-counter-clockwise text-white/20" style="font-size:40px;"></i>
+                        <p class="text-sm text-white/50 mt-3">Sin actividad todavía</p>
+                        <p class="text-[11px] text-white/35 mt-1">Acá quedará el historial: reservas nuevas, cambios de hora y cancelaciones — y quién hizo cada cosa.</p>
+                    </div>`;
+                return;
+            }
+            const filas = eventos.map(e => {
+                const cfg = _ACT_CFG[e.tipo] || _ACT_CFG.cambio;
+                const ms = e.ts && e.ts.toMillis ? e.ts.toMillis() : 0;
+                const esNuevo = _actUltimoVisto && ms > _actUltimoVisto;
+                return `
+                    <div class="flex items-start gap-3 px-2.5 py-3" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                        <div class="rounded-full flex items-center justify-center shrink-0" style="width:34px;height:34px;background:${cfg.color}1F;">
+                            <i class="ph-bold ${cfg.icon}" style="color:${cfg.color};font-size:16px;"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-[12.5px] font-semibold text-white truncate">${cfg.label} · ${_escHtml(e.clienteNombre || 'Cliente')}</p>
+                                <span class="text-[10px] text-white/35 shrink-0">${_actHace(e.ts)}${esNuevo ? '<span style="display:inline-block;width:6px;height:6px;border-radius:9999px;background:#34d399;margin-left:5px;vertical-align:middle;"></span>' : ''}</span>
+                            </div>
+                            <p class="text-[11px] text-white/50 truncate">${_escHtml(_actDetalle(e))}</p>
+                            <p class="text-[10px] text-white/35 mt-0.5">${_escHtml(_actActor(e))}</p>
+                        </div>
+                    </div>`;
+            }).join('');
+            const hayMas = !_actFin && _actCursor && (_actDocs.length + _actExtra.length) >= _ACT_PAGE;
+            cont.innerHTML = filas + (hayMas
+                ? `<button id="actividadVerMas" onclick="cargarMasActividad()" class="w-full py-3 rounded-xl text-sm font-bold text-white transition-all active:scale-95 mt-3" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);">Ver más</button>`
+                : '');
         }
 
         // ── BANNER LIQUIDACIONES PENDIENTES ──
@@ -2541,6 +2785,7 @@
                     // Banner de liquidaciones pendientes de mi aceptación.
                     iniciarBannerLiquidaciones(myBarberoId);
                     iniciarBannerPorCerrar(myBarberoId);
+                    iniciarActividad(myBarberoId, !!info.isAdmin);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {
@@ -6263,6 +6508,24 @@
         </div>
       </details>
     </div>
+  </div>
+
+  <!-- ── MODAL ACTIVIDAD: historial de eventos de citas (campanita) ── -->
+  <div id="actividadOverlay" class="hidden fixed inset-0 z-[350]" style="background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);" onclick="cerrarActividad()"></div>
+  <div id="actividadModal" class="hidden fixed inset-x-0 bottom-0 sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-[calc(100%-2rem)] z-[351]" style="background:var(--elev-surface);border:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;max-height:92dvh;overflow:hidden;">
+    <div class="sm:hidden flex justify-center pt-3.5 pb-2.5" onclick="cerrarActividad()">
+      <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
+    </div>
+    <div class="flex items-start justify-between gap-2 px-6 sm:px-7 pt-2 sm:pt-6 pb-3">
+      <div>
+        <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest">Actividad</p>
+        <p class="text-[11px] text-white/40 mt-1">Historial de citas · se guarda 90 días</p>
+      </div>
+      <button onclick="cerrarActividad()" aria-label="Cerrar" class="w-11 h-11 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);">
+        <i class="ph-bold ph-x text-white/50"></i>
+      </button>
+    </div>
+    <div id="actividadLista" class="overflow-y-auto px-4 sm:px-5" style="max-height:calc(92dvh - 120px); padding-bottom:max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem));"></div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════

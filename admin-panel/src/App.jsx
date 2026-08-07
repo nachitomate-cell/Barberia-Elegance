@@ -21,6 +21,7 @@ const Menu = lazy(() => import('./views/Menu'));
 const Agenda = lazy(() => import('./views/Agenda'));
 const Pizarra = lazy(() => import('./views/Pizarra'));
 const CitasPorCerrar = lazy(() => import('./views/CitasPorCerrar'));
+const Actividad = lazy(() => import('./views/Actividad'));
 const Equipo = lazy(() => import('./views/Equipo'));
 const Clientes = lazy(() => import('./views/Clientes'));
 const ListaNegra = lazy(() => import('./views/ListaNegra'));
@@ -277,6 +278,7 @@ function ProtectedApp() {
             <Route path="agenda"          element={<Agenda />} />
             <Route path="pizarra"         element={<Pizarra />} />
             <Route path="por-cerrar"      element={<CitasPorCerrar />} />
+            <Route path="actividad"       element={<Actividad />} />
             <Route path="servicios"       element={<Servicios />} />
             <Route path="menu"            element={<Menu />} />
             <Route path="equipo"          element={<Equipo />} />

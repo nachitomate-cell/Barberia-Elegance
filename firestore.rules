@@ -535,6 +535,15 @@ service cloud.firestore {
       allow delete: if esStaff('elegance');
     }
 
+    // ── /actividad ─────────────────────────────────────────────────
+    // Historial de eventos de citas (feed campanita). Lo escribe SOLO la
+    // CF actividad-citas.js (Admin SDK, ignora reglas). Sin contacto del
+    // cliente en los docs — solo nombre — así que todo el staff puede leer.
+    match /actividad/{docId} {
+      allow read:  if esStaff('elegance');
+      allow write: if false;
+    }
+
     // ── /servicios ─────────────────────────────────────────────────
     match /servicios/{docId} {
       allow read: if true;
@@ -1404,6 +1413,13 @@ service cloud.firestore {
                           && request.resource.data.estado == 'Cancelada'
                           && request.resource.data.canceladaPor == 'cliente');
         allow delete: if esAdmin(tid);
+      }
+
+      // ── actividad (historial de eventos de citas) ─────────────────
+      // Espejo de la regla raíz: escribe solo la CF actividad-citas.js.
+      match /actividad/{docId} {
+        allow read:  if esStaff(tid);
+        allow write: if false;
       }
 
       // ── servicios ─────────────────────────────────────────────────

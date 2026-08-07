@@ -1278,6 +1278,16 @@ exports.avisoCitaStaffElegance = avisoCitaStaff.avisoCitaStaffElegance;
 exports.avisoCitaStaffTenant   = avisoCitaStaff.avisoCitaStaffTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  HISTORIAL DE ACTIVIDAD DE CITAS — ver actividad-citas.js
+//  Registro persistente (feed campanita): quién creó/movió/canceló
+//  cada cita. Retención 90 días vía purga diaria.
+// ─────────────────────────────────────────────────────────────────
+const actividadCitas = require('./actividad-citas');
+exports.actividadCitaElegance = actividadCitas.actividadCitaElegance;
+exports.actividadCitaTenant   = actividadCitas.actividadCitaTenant;
+exports.purgarActividadDaily  = actividadCitas.purgarActividadDaily;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECUPERACIÓN DE CONTRASEÑA — ver recuperacion-password.js
 //  Envía el enlace por lib/mailer.js desde citas@synaptechspa.cl
 // ─────────────────────────────────────────────────────────────────
