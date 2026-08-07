@@ -4025,7 +4025,8 @@
                     // especial; los productos del ticket viven aparte y
                     // también se pagan al cerrar la cita.
                     const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
-                        .reduce((s, p) => s + (Number(p.precio) || 0), 0);
+                        .reduce((s, p) => (p.metodoPago && p.metodoPago !== 'Tarjeta (POS)')
+                            ? s : s + (Number(p.precio) || 0), 0);
                     const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
@@ -4686,7 +4687,8 @@
                     // especial; los productos del ticket viven aparte y
                     // también se pagan al cerrar la cita.
                     const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
-                        .reduce((s, p) => s + (Number(p.precio) || 0), 0);
+                        .reduce((s, p) => (p.metodoPago && p.metodoPago !== 'Tarjeta (POS)')
+                            ? s : s + (Number(p.precio) || 0), 0);
                     const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
@@ -8972,12 +8974,13 @@
           <i class="ph-bold ph-circle-notch text-yellow-300 text-xl animate-spin"></i>
           <div class="min-w-0">
             <div class="text-sm font-semibold text-white">Esperando al POS</div>
-            <div class="text-xs text-slate-400">Pedile al cliente que pase la tarjeta</div>
+            <div class="text-xs text-slate-400">Pídele al cliente que pase la tarjeta</div>
           </div>
           <div id="tuuTimer" class="ml-auto text-xs font-mono tabular-nums text-yellow-300">00:00</div>
         </div>
-        <div class="flex items-center justify-end">
-          <button type="button" onclick="_tuuFinish('canceled')" class="text-[11px] hover:underline text-slate-400">Cancelar</button>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[10px] text-slate-500">Si cancelas, cancela también el cobro en la pantalla del POS.</span>
+          <button type="button" onclick="_tuuFinish('canceled')" class="text-[11px] hover:underline text-slate-400 shrink-0">Cancelar</button>
         </div>
       </div>
 
@@ -9007,7 +9010,7 @@
         <div class="rounded-xl bg-amber-500/10 border border-amber-500/40 p-5 flex flex-col items-center">
           <i class="ph-fill ph-warning text-amber-400 text-4xl"></i>
           <div class="mt-2 text-base font-bold text-white">El POS no confirmó</div>
-          <div class="text-xs text-center mt-1 text-amber-200">Revisa físicamente si la tarjeta pasó. Puede estar apagado, sin internet o con Modo Integración desactivado.</div>
+          <div class="text-xs text-center mt-1 text-amber-200">Revisa físicamente si la tarjeta pasó. Puede estar apagado, sin internet o con Modo Integración desactivado. Si no vas a seguir, cancela el cobro en la pantalla del POS.</div>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <button type="button" onclick="_tuuFinish('canceled')" class="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-sm font-semibold py-2.5 text-slate-200">Cancelar</button>

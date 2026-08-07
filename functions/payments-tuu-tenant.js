@@ -396,12 +396,20 @@ exports.tuuCobrarCita = onCall(
           });
           return { idempotencyKey: tuuPrev.idempotencyKey, status: 'Completed' };
         }
-        if (['Pending', 'Sent', 'Processing'].includes(est)
-            && Number(tuuPrev.amount) === amount) {
-          logger.info('[tuuCobrarCita] Reusando solicitud viva en el POS', {
-            tenantId, citaId, idempotencyKey: tuuPrev.idempotencyKey, status: est,
-          });
-          return { idempotencyKey: tuuPrev.idempotencyKey, status: est };
+        if (['Pending', 'Sent', 'Processing'].includes(est)) {
+          if (Number(tuuPrev.amount) === amount) {
+            logger.info('[tuuCobrarCita] Reusando solicitud viva en el POS', {
+              tenantId, citaId, idempotencyKey: tuuPrev.idempotencyKey, status: est,
+            });
+            return { idempotencyKey: tuuPrev.idempotencyKey, status: est };
+          }
+          // Monto distinto (cambió el precio entre intentos): la solicitud
+          // vieja sigue COBRABLE en la pantalla del POS y no se puede anular
+          // por API. Encolar otra dejaría dos cobros vivos por la misma cita
+          // con montos distintos — cortamos con instrucción accionable.
+          throw new HttpsError('failed-precondition',
+            `Hay un cobro anterior por $${Number(tuuPrev.amount).toLocaleString('es-CL')} `
+            + 'esperando en el POS. Cancélalo en la pantalla del POS y vuelve a intentar.');
         }
       }
     }
@@ -443,7 +451,10 @@ exports.tuuCobrarCita = onCall(
 
     const initialStatus = extraerEstado(resp.json) || 'Pending';
 
-    await citaRef.set({
+    // update() REEMPLAZA el mapa completo: un reintento no debe heredar
+    // completedAt/lastResponse del intento anterior (set+merge los dejaba
+    // pegados y el guard "!completedAt" de tuuConsultarCobro se confundía).
+    await citaRef.update({
       _tuu: {
         idempotencyKey,
         status: initialStatus,
@@ -453,7 +464,7 @@ exports.tuuCobrarCita = onCall(
         startedBy: request.auth?.uid || null,
         createResponse: resp.json || null,
       },
-    }, { merge: true });
+    });
 
     logger.info('[tuuCobrarCita] Cobro enviado al POS', {
       tenantId, citaId, idempotencyKey, amount, serial, initialStatus, elapsed,

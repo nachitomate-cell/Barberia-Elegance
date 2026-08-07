@@ -242,8 +242,11 @@ function StepEsperando({ elapsed, onCancel }) {
         </div>
         <div className="ml-auto text-xs font-mono tabular-nums" style={{ color: '#fde68a' }}>{min}:{sec}</div>
       </div>
-      <div className="flex items-center justify-end">
-        <button onClick={onCancel} className="text-[11px] hover:underline" style={{ color: '#94a3b8' }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px]" style={{ color: '#64748b' }}>
+          Si cancelas, cancela también el cobro en la pantalla del POS.
+        </span>
+        <button onClick={onCancel} className="text-[11px] hover:underline shrink-0" style={{ color: '#94a3b8' }}>
           Cancelar
         </button>
       </div>
@@ -296,7 +299,8 @@ function StepTimeout({ onRetry, onCancel, onManual }) {
         <AlertTriangle size={44} className="text-amber-400" />
         <div className="mt-2 text-base font-bold" style={{ color: '#ffffff' }}>El POS no confirmó</div>
         <div className="text-xs text-center mt-1" style={{ color: '#fde68a' }}>
-          Revisa físicamente si la tarjeta pasó. Puede estar apagado, sin internet o con Modo Integración desactivado.
+          Revisa físicamente si la tarjeta pasó. Puede estar apagado, sin internet o con
+          Modo Integración desactivado. Si no vas a seguir, cancela el cobro en la pantalla del POS.
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
