@@ -337,6 +337,15 @@ async function procesarMensajeVentas({ chipId, cfg, body, evoClient, anthropicKe
       || (Array.isArray(cfg?.activadores) && cfg.activadores.some(k =>
            k && textoNorm.includes(String(k).toLowerCase())));
     if (!gatillo) {
+      // Contador anónimo del día (ni teléfono ni texto: estos chats son
+      // personales). Es la señal que el analista de Meta Ads cruza con el
+      // gasto: un salto sobre la línea base = gente escribiendo sin respuesta.
+      const f = ahoraChile().fecha;
+      cuotaRef(chipId, f).set({
+        fecha: f, chipId,
+        sin_gatillo: FieldValue.increment(1),
+        actualizado: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {});
       logger.info(`[ventas:${chipId}] chat=***${telefono.slice(-4)} sin gatillo (ExpoVino/agenda online/anuncio); lo maneja Ignacio`);
       return;
     }

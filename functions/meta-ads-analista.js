@@ -136,21 +136,29 @@ function _rango(desdeDias, hastaDias) {
 }
 
 /* ──────────────── Funnel real: lo que Meta no sabe ────────────────
-   Chats del bot activados y reuniones capturadas en los últimos 7 días.
-   Es la mitad del análisis: $X gastados → N conversaciones (Meta) →
-   M chats reales con el bot → R reuniones pedidas. */
+   TODOS los chats del bot (no solo los activados — ese filtro fue el que
+   produjo el falso "conversaciones fantasma" del 02-08), cuántos traen
+   atribución de anuncio, los mensajes que el bot ignoró (contador
+   `sin_gatillo` que escribe ventas.js) y las reuniones de los últimos 7 días. */
 async function leerFunnelReal() {
   const hace7 = Date.now() - 7 * 86400e3;
-  const [convsSnap, leadsSnap] = await Promise.all([
-    db.collection('wa_ventas_conversaciones').where('activado', '==', true).get(),
+  // 8 fechas UTC para cubrir 7 días Chile completos (UTC va adelantado).
+  const fechas = Array.from({ length: 8 }, (_, i) =>
+    new Date(Date.now() - i * 86400e3).toISOString().slice(0, 10));
+  const [convsSnap, leadsSnap, cuotas] = await Promise.all([
+    db.collection('wa_ventas_conversaciones').get(),
     db.collection('wa_ventas_leads').get(),
+    db.getAll(...fechas.map(f => db.doc(`wa_plataforma_cuota/ventas__${f}`))),
   ]);
-  const chats7 = convsSnap.docs.filter(d => (d.data().updatedAt?.toMillis?.() || 0) >= hace7).length;
+  const convs7 = convsSnap.docs.map(d => d.data()).filter(c => (c.updatedAt?.toMillis?.() || 0) >= hace7);
+  const activados7 = convs7.filter(c => c.activado === true);
   const leads = leadsSnap.docs.map(d => d.data());
   const leads7 = leads.filter(l => (l.updatedAt?.toMillis?.() || 0) >= hace7);
   return {
-    chatsActivados7d: chats7,
-    chatsActivadosTotal: convsSnap.size,
+    chatsActivados7d: activados7.length,
+    chatsDesdeAnuncio7d: activados7.filter(c => c.anuncio).length,
+    mensajesSinAtender7d: cuotas.reduce((n, s) => n + (Number((s.data() || {}).sin_gatillo) || 0), 0),
+    chatsActivadosTotal: convsSnap.docs.filter(d => (d.data() || {}).activado === true).length,
     reuniones7d: leads7.length,
     reunionesPorEstado: leads7.reduce((acc, l) => {
       acc[l.estado || 'reunion_solicitada'] = (acc[l.estado || 'reunion_solicitada'] || 0) + 1;
@@ -167,7 +175,8 @@ Escribes UN reporte para Ignacio (el fundador) que se envía por WhatsApp. Forma
 · Máximo ~1800 caracteres. Español chileno cercano pero profesional.
 · Parte con un veredicto en una línea (🟢 bien / 🟡 atención / 🔴 problema).
 · Números clave con contexto ("$1.412/conversación, 24% bajo tu benchmark de $1.850").
-· El FUNNEL COMPLETO cuando haya datos: gasto → conversaciones Meta → chats reales con el bot → reuniones pedidas, con costo por etapa. Si Meta reporta más conversaciones que chats reales del bot, dilo: es gente que escribió y no dijo el gatillo, o conversaciones fantasma.
+· El FUNNEL COMPLETO cuando haya datos: gasto → conversaciones Meta → chats activados por el bot (chatsActivados7d; chatsDesdeAnuncio7d = con atribución de anuncio) → reuniones pedidas, con costo por etapa.
+· mensajesSinAtender7d = mensajes entrantes que el bot ignoró (sin gatillo ni referido). Tiene línea base >0 (chats personales de Ignacio); lo grave es un SALTO con campaña activa = leads pagados sin respuesta. Y si chatsDesdeAnuncio7d es 0 con plata corriendo, dilo como alarma: la atribución CTWA se cortó.
 · 2-3 recomendaciones CONCRETAS y accionables (pausar/escalar/renovar creativo/ajustar puja). Nada genérico.
 · Señales de fatiga: frecuencia >2,5 con CTR cayendo = creativo gastado.
 · Si es lunes, agrega mirada semanal: mejor/peor ángulo, tendencia, y qué probar esta semana.
