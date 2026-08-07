@@ -9124,8 +9124,13 @@
       };
       window._tuuReintentar = function () { _iniciarCobroPOS(); };
 
+      // Candado anti doble-tap: cada tap sin guard encolaba OTRA solicitud
+      // en el POS hasta llenar la cola (MR-180, 3 Creates en 2s el 07-08).
+      var _cobroEnviandose = false;
+
       async function _iniciarCobroPOS() {
-        if (!_optsActual) return;
+        if (!_optsActual || _cobroEnviandose) return;
+        _cobroEnviandose = true;
         _pararTimers();
         _elapsed = 0;
         _mostrarStep('Iniciando');
@@ -9143,6 +9148,8 @@
           _iniciarPolling();
         } catch (err) {
           _mostrarError((err && err.message) || 'No se pudo iniciar el cobro en el POS.');
+        } finally {
+          _cobroEnviandose = false;
         }
       }
 

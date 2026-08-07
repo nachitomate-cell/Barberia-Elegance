@@ -30,6 +30,9 @@ export default function TuuCobroHost() {
   const tickRef = useRef(null);
   const pollRef = useRef(null);
   const idempotencyKeyRef = useRef(null);
+  // Candado anti doble-tap: sin guard, cada clic en Reintentar encola OTRA
+  // solicitud en el POS hasta llenar la cola (MR-180).
+  const creandoRef = useRef(false);
 
   const cleanupTimers = useCallback(() => {
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
@@ -54,7 +57,8 @@ export default function TuuCobroHost() {
 
   // Arrancar el flujo cada vez que se abre el modal.
   const iniciarCobro = useCallback(async () => {
-    if (!st) return;
+    if (!st || creandoRef.current) return;
+    creandoRef.current = true;
     const { tenantId, citaId, monto } = st.opts;
     setStep('iniciando');
     setElapsed(0);
@@ -80,6 +84,8 @@ export default function TuuCobroHost() {
     } catch (err) {
       setErrorMsg(err?.message || 'No se pudo iniciar el cobro en el POS.');
       setStep('error');
+    } finally {
+      creandoRef.current = false;
     }
   }, [st]);
 

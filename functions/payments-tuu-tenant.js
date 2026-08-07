@@ -365,6 +365,47 @@ exports.tuuCobrarCita = onCall(
       ? Math.round(montoForm)
       : calcularMontoCobrable(cita);
 
+    // Anti cola-llena / anti doble-cobro: la cola del POS es chica y NO hay
+    // endpoint para cancelarla (solo se cancela EN el aparato). Si la cita ya
+    // tiene una solicitud viva, la consultamos antes de encolar otra:
+    //   · Completed → el cliente YA pagó; devolvemos eso en vez de recobrar.
+    //   · Pending/Sent/Processing con el mismo monto → la reusamos y el
+    //     front solo sigue polleando (3 taps del barbero = 3 solicitudes
+    //     encoladas hasta el MR-180, mordió el 07-08 con Georgio).
+    //   · Failed/Canceled o monto distinto → sí creamos una nueva.
+    const tuuPrev = cita._tuu || null;
+    if (tuuPrev && tuuPrev.idempotencyKey
+        && ['Pending', 'Sent', 'Processing'].includes(tuuPrev.status)) {
+      const chk = await tuuHttp('GET',
+        `/GetPaymentRequest/${encodeURIComponent(tuuPrev.idempotencyKey)}`, apiKey)
+        .catch(() => null);
+      if (chk && chk.ok) {
+        const est = extraerEstado(chk.json);
+        if (est === 'Completed') {
+          await citaRef.set({
+            _tuu: {
+              ...tuuPrev,
+              status: 'Completed',
+              completedAt: tuuPrev.completedAt || FieldValue.serverTimestamp(),
+              lastCheckedAt: FieldValue.serverTimestamp(),
+              lastResponse: chk.json || null,
+            },
+          }, { merge: true });
+          logger.info('[tuuCobrarCita] Solicitud previa ya estaba pagada — no se recobra', {
+            tenantId, citaId, idempotencyKey: tuuPrev.idempotencyKey,
+          });
+          return { idempotencyKey: tuuPrev.idempotencyKey, status: 'Completed' };
+        }
+        if (['Pending', 'Sent', 'Processing'].includes(est)
+            && Number(tuuPrev.amount) === amount) {
+          logger.info('[tuuCobrarCita] Reusando solicitud viva en el POS', {
+            tenantId, citaId, idempotencyKey: tuuPrev.idempotencyKey, status: est,
+          });
+          return { idempotencyKey: tuuPrev.idempotencyKey, status: est };
+        }
+      }
+    }
+
     // idempotencyKey único por intento de cobro (si el 1er intento fue
     // Failed/Canceled, el reintento genera una key nueva — TUU rechaza
     // reutilizar keys ya consumidas). TUU exige 1-36 chars (error RP-001):
@@ -389,8 +430,15 @@ exports.tuuCobrarCita = onCall(
         tenantId, citaId, status: resp.status, elapsed,
         response: resp.json || resp.text,
       });
+      const code = (resp.json && (resp.json.code || resp.json.Code)) || '';
+      if (code === 'MR-180') {
+        throw new HttpsError('failed-precondition',
+          'El POS tiene cobros pendientes en pantalla y su cola está llena. '
+          + 'Cancela las solicitudes antiguas EN el POS y vuelve a intentar.');
+      }
+      const detalle = (resp.json && resp.json.message) ? ` — ${resp.json.message}` : '';
       throw new HttpsError('internal',
-        `TUU rechazó la solicitud (HTTP ${resp.status}). Revisa consola.`);
+        `TUU rechazó la solicitud (HTTP ${resp.status}${code ? ` ${code}` : ''})${detalle}.`);
     }
 
     const initialStatus = extraerEstado(resp.json) || 'Pending';
