@@ -56,9 +56,9 @@ const OFERTA_DEFAULT = {
 const CONFIG_DEFAULT = {
   oferta:        { ...OFERTA_DEFAULT },
   duracionSlide: 15,
-  slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true },
+  slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, reservar: true, resenas: true, cumples: true },
   accentColor:   '',
-  qr:            { color: '', size: 160 },
+  qr:            { color: '', size: 160, destino: 'club', customUrl: '', etiqueta: '', oculto: false },
   youtubeUrl:      '',   // audio only (playa en modo hidden)
   youtubeVideoUrl: '',   // video visible en el fondo de la TV
   hideSlideshow: false,
@@ -289,7 +289,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
     { id: 'lookbook', label: 'Trabajos' },
     { id: 'equipo', label: 'Equipo' },
     { id: 'productos', label: 'Productos' },
-    ...(tenantId === 'elegance' ? [{ id: 'marcas', label: 'Marcas' }] : []),
+    { id: 'marcas', label: 'Marcas' },
   ];
 
   return (
@@ -580,6 +580,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
             </div>
 
             {/* QR Overlay en miniatura */}
+            {config.qr?.oculto !== true && (
             <div className="absolute bottom-2 right-2 z-20 shrink-0">
               <div 
                 className="rounded-lg p-1 flex flex-col items-center gap-0.5 border bg-[#050505]/95"
@@ -600,6 +601,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                 <span className="text-slate-600 text-[2.5px] uppercase font-bold leading-none mt-0.5">Club</span>
               </div>
             </div>
+            )}
 
             {/* Slide Indicators */}
             {!config.hideSlideshow && (
@@ -801,9 +803,9 @@ export default function TVConfig() {
           const loaded = {
             oferta:        { ...OFERTA_DEFAULT, ...(d.oferta || {}) },
             duracionSlide: d.duracionSlide ?? 15,
-            slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
+            slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, reservar: true, resenas: true, cumples: true, ...(d.slidesActivos || {}) },
             accentColor:   d.accentColor || '',
-            qr:            { color: '', size: 160, ...(d.qr || {}) },
+            qr:            { color: '', size: 160, destino: 'club', customUrl: '', etiqueta: '', oculto: false, ...(d.qr || {}) },
             youtubeUrl:      d.youtubeUrl      || '',
             youtubeVideoUrl: d.youtubeVideoUrl || '',
             hideSlideshow: d.hideSlideshow === true,
@@ -854,7 +856,6 @@ export default function TVConfig() {
   }, []);
 
   useEffect(() => {
-    if (tenantId !== 'elegance') return;
     withTimeout(getDocs(query(tenantCol('publicidad_tv'))), 15000, 'tvconfig/publicidad')
       .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
@@ -1049,6 +1050,12 @@ export default function TVConfig() {
   const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-primary placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const gold = config.accentColor || '#D4AF37';
   const qrColor = config.qr.color || gold;
+  // Debe replicar la lógica de destino del QR en BarberTV.jsx
+  const qrDestino = config.qr.destino || 'club';
+  const qrPreviewUrl =
+    qrDestino === 'reservar' ? `${window.location.origin}/?local=${tenantId}`
+    : qrDestino === 'custom' && (config.qr.customUrl || '').trim() ? config.qr.customUrl.trim()
+    : `${window.location.origin}/registro.html?local=${tenantId}`;
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -1523,14 +1530,30 @@ export default function TVConfig() {
                   label="Productos"
                   sublabel="Catálogo de productos del local"
                 />
-                {tenantId === 'elegance' && (
-                  <SlideToggle
-                    checked={config.slidesActivos.marcas ?? true}
-                    onChange={v => update('slidesActivos', { ...config.slidesActivos, marcas: v })}
-                    label="Publicidad Marcas"
-                    sublabel="Logos de auspiciadores (Solo Elegance)"
-                  />
-                )}
+                <SlideToggle
+                  checked={config.slidesActivos.reservar !== false}
+                  onChange={v => update('slidesActivos', { ...config.slidesActivos, reservar: v })}
+                  label="Reserva tu hora"
+                  sublabel="Horas libres de hoy + QR para agendar al tiro"
+                />
+                <SlideToggle
+                  checked={config.slidesActivos.resenas !== false}
+                  onChange={v => update('slidesActivos', { ...config.slidesActivos, resenas: v })}
+                  label="Reseñas"
+                  sublabel="Opiniones 5★ de clientes (se oculta solo si no hay)"
+                />
+                <SlideToggle
+                  checked={config.slidesActivos.cumples !== false}
+                  onChange={v => update('slidesActivos', { ...config.slidesActivos, cumples: v })}
+                  label="Cumpleaños"
+                  sublabel="Saludo a clientes que cumplen hoy (se oculta solo si no hay)"
+                />
+                <SlideToggle
+                  checked={config.slidesActivos.marcas ?? true}
+                  onChange={v => update('slidesActivos', { ...config.slidesActivos, marcas: v })}
+                  label="Publicidad Marcas"
+                  sublabel="Logos de auspiciadores (se oculta solo si no hay marcas)"
+                />
               </div>
             </Field>
 
@@ -1582,14 +1605,64 @@ export default function TVConfig() {
           {/* ── QR ────────────────────────────────────────────────────── */}
           <Card icon={QrCode} title="Código QR">
             <p className="text-xs text-slate-500 -mt-1">
-              El QR aparece fijo en la esquina inferior derecha del carrusel y apunta al registro del club.
+              El QR aparece fijo en la esquina inferior derecha del carrusel. Elige a dónde lleva al escanearlo.
             </p>
+
+            <Field label="¿A dónde lleva el QR?">
+              <div className="flex gap-2 bg-slate-800/40 p-1 rounded-xl border border-slate-800">
+                {[
+                  { key: 'club',     label: 'Club (registro)' },
+                  { key: 'reservar', label: 'Reservar hora' },
+                  { key: 'custom',   label: 'Link propio' },
+                ].map(m => {
+                  const active = qrDestino === m.key;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => updateQr('destino', m.key)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                        active
+                          ? 'bg-emerald-600 text-primary shadow-md shadow-emerald-950/20'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {qrDestino === 'custom' && (
+                <div className="space-y-2 mt-3">
+                  <input
+                    type="url"
+                    placeholder="https://instagram.com/tulocal — pega el link completo"
+                    className={inp}
+                    value={config.qr.customUrl || ''}
+                    onChange={e => updateQr('customUrl', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Título sobre el QR (ej: Síguenos en Instagram)"
+                    maxLength={40}
+                    className={inp}
+                    value={config.qr.etiqueta || ''}
+                    onChange={e => updateQr('etiqueta', e.target.value)}
+                  />
+                  {!(config.qr.customUrl || '').trim() && (
+                    <p className="text-[10.5px] text-amber-400/90 leading-snug">
+                      Sin link, el QR sigue apuntando al registro del club hasta que pegues uno.
+                    </p>
+                  )}
+                </div>
+              )}
+            </Field>
 
             {/* Preview inline del QR real con el color y tamaño elegidos */}
             <div className="flex items-center gap-4 p-4 bg-slate-950/40 border border-slate-800/60 rounded-2xl">
               <div className="p-3 bg-white rounded-2xl shadow-lg shrink-0">
                 <QRCodeSVG
-                  value={`${window.location.origin}/registro.html?local=${tenantId}`}
+                  value={qrPreviewUrl}
                   size={96}
                   fgColor={qrColor}
                   bgColor="#ffffff"
@@ -1600,13 +1673,26 @@ export default function TVConfig() {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vista previa real</p>
                 <p className="text-sm font-bold text-primary truncate">Escanealo con tu celu para probar</p>
                 <p className="text-[11px] text-slate-500 leading-relaxed mt-1 truncate">
-                  <span className="opacity-60">→</span> /registro.html?local={tenantId}
+                  <span className="opacity-60">→</span> {qrPreviewUrl.replace(/^https?:\/\//, '')}
                 </p>
                 <p className="text-[10.5px] text-slate-600 mt-2 leading-snug">
                   Se renderiza a {config.qr.size}px en la TV — este preview es más chico pero el color es el mismo.
                 </p>
               </div>
             </div>
+
+            <label className="flex items-center justify-between gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">Ocultar el QR de la pantalla</p>
+                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">La esquina queda limpia — el slide "Reserva tu hora" mantiene su propio QR grande.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.qr.oculto === true}
+                onChange={e => updateQr('oculto', e.target.checked)}
+                className="w-4 h-4 accent-emerald-500 shrink-0"
+              />
+            </label>
 
             <Field label="Color del QR">
               <div className="space-y-3">
@@ -1938,15 +2024,14 @@ export default function TVConfig() {
           {tab === 'publicidad' && (
           <>
 
-          {/* ── Slide Marcas (Solo Elegance) ──────────────────────────── */}
-          {tenantId === 'elegance' && (
+          {/* ── Slide Marcas ──────────────────────────────────────────── */}
             <Card
               icon={Megaphone}
-              title="Slide 5 — Publicidad de Marcas"
+              title="Slide — Publicidad de Marcas"
               badge={<StatusBadge active={config.slidesActivos.marcas ?? true} />}
             >
               <p className="text-xs text-slate-500 -mt-1">
-                Agrega los logos de las marcas que auspician la barbería.
+                Agrega los logos de las marcas que auspician tu local. El slide aparece solo cuando hay al menos una marca activa.
               </p>
 
               {/* Formulario Add Marca */}
@@ -2023,20 +2108,8 @@ export default function TVConfig() {
                 </div>
               )}
             </Card>
-          )}
 
           </>
-          )}
-
-          {/* Empty state: publicidad tab en tenants sin Elegance */}
-          {tab === 'publicidad' && tenantId !== 'elegance' && (
-            <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-8 text-center">
-              <Megaphone size={22} className="mx-auto text-slate-600 mb-2" />
-              <p className="text-sm font-semibold text-slate-400">Publicidad de marcas — Solo Elegance</p>
-              <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
-                Este slide de auspiciadores está disponible por ahora solo en Elegance. Contáctate con soporte si quieres activarlo en tu local.
-              </p>
-            </div>
           )}
 
         </div>
@@ -2232,6 +2305,8 @@ function ConnectModal({ tab, setTab, onClose }) {
               <Note>💡 Para la pantalla del local, el cable HDMI es más estable que el Wi-Fi y evita cortes. Usa Wi-Fi solo si no puedes pasar un cable.</Note>
             </>
           )}
+
+          <Note>🔐 <strong>Tip de seguridad:</strong> para la sesión que queda abierta en la TV, usa una cuenta de <strong>recepción</strong> (Configuración › Recepcionista) en vez de la del dueño. Así, si alguien manipula la TV, no ve las métricas ni la configuración del negocio.</Note>
         </div>
       </div>
     </div>

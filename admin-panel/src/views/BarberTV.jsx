@@ -4,10 +4,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { QRCodeSVG }                                from 'qrcode.react';
-import { query, getDocs, onSnapshot, where, orderBy } from 'firebase/firestore';
+import { query, onSnapshot, where, orderBy, limit } from 'firebase/firestore';
+import { getFunctions, httpsCallable }              from 'firebase/functions';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
-import { withTimeout }                              from '../lib/firestore-helpers';
 import { Volume2, VolumeX }                         from 'lucide-react';
 
 // ── Constantes ────────────────────────────────────────────────────
@@ -26,6 +26,30 @@ const OFERTA_DEFAULT = {
 };
 
 function lsCitasKey(tid) { return `barber_tv_citas_${tid}`; }
+
+// ── Hora de CHILE, no del navegador/UTC ───────────────────────────
+// La TV vive en la zona del local. Con toISOString(), desde las ~20:00
+// (UTC-4) la pantalla mostraba las citas de MAÑANA y los contadores de hoy
+// en cero, justo en el horario peak. Regla de la casa: America/Santiago.
+const hoyChileStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+function minsAhoraChile() {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+  const h = Number(p.find(x => x.type === 'hour')?.value || 0);
+  const m = Number(p.find(x => x.type === 'minute')?.value || 0);
+  return h * 60 + m;
+}
+const aMins = (t) => {
+  if (typeof t !== 'string' || !t.includes(':')) return null;
+  const [h, m] = t.split(':').map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+};
+// Pantalla PÚBLICA: nombre + inicial del apellido. El nombre completo del
+// cliente en una TV del local es exposición innecesaria (Ley 21.719).
+const nombrePublico = (full) => {
+  const p = String(full || '').trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return 'Cliente';
+  return p.length === 1 ? p[0] : `${p[0]} ${p[1][0].toUpperCase()}.`;
+};
 
 // ── Partículas flotantes — CSS puro, sin JS en el loop de animación ──
 const PARTICLE_DATA = Array.from({ length: 22 }, (_, i) => ({
@@ -187,8 +211,27 @@ function DigitalClock({ compact = false }) {
 }
 
 // ── Panel de turnos (Opción A) ────────────────────────────────────
-function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos = [], size = 'md' }) {
-  const [enSillon, ...siguientes] = citas.slice(0, size === 'sm' ? 4 : 5);
+function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos = [], size = 'md', nowMins = 0 }) {
+  /* "En Sillón" REAL: la cita cuya ventana hora..hora+duración contiene la
+     hora ACTUAL. Antes se asumía que la primera cita del día estaba en el
+     sillón aunque fuera a las 16:00 y fueran las 10:00 — mentira visible
+     para el cliente que espera. Sin match: "Sillón disponible" + siguiente. */
+  const maxLista = size === 'sm' ? 4 : 5;
+  const conVentana = citas.map(c => {
+    const ini = aMins(c.hora);
+    const dur = Math.max(15, parseInt(c.duracionServicio || c.duracion || 30, 10) || 30);
+    return { ...c, _ini: ini, _fin: ini == null ? null : ini + dur };
+  });
+  // Varios profesionales pueden atender a la vez → "En Sillón" es una LISTA.
+  const enAtencion = conVentana.filter(c => c._ini != null && c._ini <= nowMins && nowMins < c._fin);
+  const enAtencionIds = new Set(enAtencion.map(c => c.id));
+  // La cola avanza por RELOJ, no por si el barbero marcó "Completada": una
+  // cita vencida sin cerrar no tapa a la que viene después.
+  const siguientes = conVentana
+    .filter(c => !enAtencionIds.has(c.id) && (c._fin == null || c._fin > nowMins))
+    .slice(0, Math.max(1, maxLista - Math.min(enAtencion.length, 3)));
+  const proxima = siguientes[0] || null;
+  const enSillon = enAtencion.length === 1 ? enAtencion[0] : null;
 
   const padClass = size === 'sm' ? 'px-3 pt-3 pb-2' : size === 'lg' ? 'px-6 pt-6 pb-5' : 'px-5 pt-5 pb-4';
   const cardPad = size === 'sm' ? 'p-2.5' : size === 'lg' ? 'p-5' : 'p-4';
@@ -264,7 +307,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                 transition={{ duration: 2, repeat: Infinity }}
               />
               <span className="text-[9px] font-black tracking-[0.4em] uppercase" style={{ color: GOLD }}>
-                En Sillón
+                En Sillón{enAtencion.length > 1 ? ` · ${enAtencion.length}` : ''}
               </span>
             </div>
 
@@ -326,7 +369,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                   })()}
 
                   <p className={`text-primary font-black ${sillonTextSize} leading-tight truncate`}>
-                    {enSillon.clienteNombre || enSillon.nombre}
+                    {nombrePublico(enSillon.clienteNombre || enSillon.nombre)}
                   </p>
                   <p className="text-gray-500 text-xs truncate mt-0.5">
                     {enSillon.servicioNombre || enSillon.servicio}
@@ -334,6 +377,51 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                   <p className="font-mono font-bold text-xl mt-2" style={{ color: GOLD }}>
                     {enSillon.hora}
                   </p>
+                </motion.div>
+              ) : enAtencion.length > 1 ? (
+                /* Varias citas en curso a la vez (un profesional cada una):
+                   filas compactas para no comerse el espacio de la cola. */
+                <motion.div
+                  key={'multi-' + enAtencion.map(c => c.id).join('_')}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex flex-col gap-1.5"
+                >
+                  {enAtencion.slice(0, 3).map(c => {
+                    const bName = c.barbero || c.barberoNombre || '';
+                    const matched = bName ? barberos.find(b => b.nombre.toLowerCase().trim() === bName.toLowerCase().trim()) : null;
+                    const foto = matched ? (matched.foto || matched.fotoUrl) : null;
+                    return (
+                      <div
+                        key={c.id}
+                        className={`flex items-center gap-2.5 rounded-xl ${size === 'sm' ? 'px-2.5 py-2' : 'px-3 py-2.5'}`}
+                        style={{ background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.3)' }}
+                      >
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 overflow-hidden relative"
+                          style={{ background: 'rgba(212,175,55,0.2)', color: GOLD, border: '1.5px solid rgba(212,175,55,0.4)' }}
+                        >
+                          <span>{bName ? bName[0].toUpperCase() : '✂'}</span>
+                          {foto && <img src={foto} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-primary font-black ${size === 'sm' ? 'text-xs' : 'text-sm'} truncate leading-tight`}>
+                            {nombrePublico(c.clienteNombre || c.nombre)}
+                          </p>
+                          <p className="text-gray-500 text-[10px] truncate mt-0.5">
+                            {bName ? `con ${bName}` : (c.servicioNombre || c.servicio || '')}
+                          </p>
+                        </div>
+                        <p className="font-mono text-xs font-bold shrink-0" style={{ color: GOLD }}>{c.hora}</p>
+                      </div>
+                    );
+                  })}
+                  {enAtencion.length > 3 && (
+                    <p className="text-[9px] text-gray-600 uppercase tracking-widest text-center">
+                      +{enAtencion.length - 3} más en atención
+                    </p>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -343,7 +431,9 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                   className="rounded-2xl p-4 flex items-center justify-between"
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
-                  <p className="text-gray-600 text-sm font-semibold">Sillón Disponible</p>
+                  <p className="text-gray-600 text-sm font-semibold">
+                    Sillón Disponible{proxima ? ` · siguiente ${proxima.hora}` : ''}
+                  </p>
                   <motion.div
                     className="w-2 h-2 rounded-full"
                     style={{ background: '#22c55e' }}
@@ -381,7 +471,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-primary font-semibold ${nextItemText} truncate`}>
-                        {c.clienteNombre || c.nombre}
+                        {nombrePublico(c.clienteNombre || c.nombre)}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {(c.barbero || c.barberoNombre) && (() => {
@@ -529,12 +619,21 @@ function SlideLookbook({ photos }) {
 
   const safe = photoIdx % photos.length;
 
+  const next = (safe + 1) % photos.length;
+
   return (
     <div className="w-full h-full relative overflow-hidden">
-      {photos.map((photo, i) => (
+      {/* Solo se montan la foto ACTUAL y la SIGUIENTE (pre-carga del fade).
+          Antes se montaban TODAS a la vez — cada una con su capa blur y su
+          Ken Burns infinito: con 30-40 fotos, un TV-stick barato se ahogaba
+          tras unas horas encendido. */}
+      {photos.map((photo, i) => {
+        if (i !== safe && i !== next) return null;
+        return (
         <motion.div
           key={photo.id || photo.url || i}
           className="absolute inset-0"
+          initial={{ opacity: 0 }}
           animate={{ opacity: i === safe ? 1 : 0, scale: i === safe ? 1 : 1.03 }}
           transition={{ duration: 0.55, ease: 'easeInOut' }}
         >
@@ -560,7 +659,8 @@ function SlideLookbook({ photos }) {
             style={{ background: 'linear-gradient(to bottom, rgba(5,5,5,0.3) 0%, transparent 18%, transparent 78%, rgba(5,5,5,0.5) 100%)' }}
           />
         </motion.div>
-      ))}
+        );
+      })}
 
       <div className="absolute top-6 inset-x-0 z-10 text-center pointer-events-none">
         <p className="text-[9px] font-black tracking-[0.6em] uppercase" style={{ color: GOLD }}>
@@ -675,7 +775,17 @@ function SlideEquipo({ barberos, imageCache, cardsFondo, skipAnimation }) {
 
 // ── Slide 4: Productos ────────────────────────────────────────────
 function SlideProductos({ productos, cardsFondo, skipAnimation }) {
-  const visible = productos.slice(0, 8);
+  // Rotación por páginas: antes se mostraban los primeros 8 por fecha de
+  // creación, fijos para siempre — el resto del catálogo era invisible.
+  const PER_PAGE = 8;
+  const pages = Math.max(1, Math.ceil(productos.length / PER_PAGE));
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (pages <= 1) return;
+    const id = setInterval(() => setPage(p => (p + 1) % pages), 6000);
+    return () => clearInterval(id);
+  }, [pages]);
+  const visible = productos.slice((page % pages) * PER_PAGE, (page % pages) * PER_PAGE + PER_PAGE);
   const cols    = visible.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
   const cardStyle = cardsFondo
     ? { background: '#11141d', border: '1px solid rgba(212,175,55,0.32)', boxShadow: '0 8px 32px rgba(0,0,0,0.55)' }
@@ -826,8 +936,127 @@ function SlideMarcas({ marcas, skipAnimation }) {
   );
 }
 
+// ── Slide: Reserva HOY (horas libres reales + QR) ─────────────────
+// El slide que convierte al walk-in que mira la pantalla: los cupos
+// LIBRES de hoy (disponibilidad real vía chatHorasDisponibles — la misma
+// fuente que usa el bot y el chat, nada de calcular aparte) + QR directo
+// a la reserva online.
+function SlideReservar({ dispo, qrReservaUrl }) {
+  const slots = (dispo?.slots || []).slice(0, 8);
+  const hay   = slots.length > 0;
+  const fechaLegible = (f) => {
+    if (!f) return '';
+    const [y, m, d] = f.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+
+  return (
+    <div className="w-full h-full flex items-center justify-center p-16 relative">
+      <div className="absolute inset-0"
+        style={{ backgroundImage: 'radial-gradient(ellipse 70% 70% at 40% 50%, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
+      <div className="relative z-10 flex items-center gap-16 max-w-5xl">
+        <div className="flex-1">
+          <p className="text-[10px] font-black tracking-[0.6em] uppercase mb-5" style={{ color: GOLD }}>
+            ✦ &nbsp; {hay && dispo?.esHoy ? 'Quedan horas hoy' : 'Reserva tu hora'} &nbsp; ✦
+          </p>
+          <h2 className="font-black leading-[0.95] mb-6 text-primary" style={{ fontSize: 'clamp(2.6rem,5.5vw,4.5rem)' }}>
+            {hay
+              ? (dispo.esHoy ? <>¿Sin hora?<br /><span style={{ color: GOLD }}>Aún alcanzas hoy</span></> : <>Próximos<br /><span style={{ color: GOLD }}>cupos libres</span></>)
+              : <>Reserva<br /><span style={{ color: GOLD }}>en segundos</span></>}
+          </h2>
+          {hay && !dispo.esHoy && dispo.fecha && (
+            <p className="text-gray-400 text-lg mb-4 capitalize">{fechaLegible(dispo.fecha)}</p>
+          )}
+          {hay ? (
+            <div className="flex flex-wrap gap-3">
+              {slots.map(h => (
+                <span key={h} className="font-mono font-bold text-xl px-5 py-2.5 rounded-xl"
+                  style={{ color: GOLD, background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)' }}>
+                  {h}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-xl font-light leading-relaxed">
+              Agenda online abierta 24/7.<br />Elige profesional, día y hora desde tu teléfono.
+            </p>
+          )}
+        </div>
+        <div className="shrink-0 flex flex-col items-center gap-4 rounded-3xl p-8"
+          style={{ background: 'rgba(5,5,5,0.7)', border: `1px solid rgba(212,175,55,0.4)`, boxShadow: '0 0 60px rgba(212,175,55,0.12)' }}>
+          <QRCodeSVG value={qrReservaUrl} size={210} fgColor={GOLD} bgColor="transparent" level="M" />
+          <p className="text-sm font-black tracking-[0.2em] uppercase" style={{ color: GOLD }}>Escanea y reserva</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Slide: Reseñas de clientes (prueba social) ────────────────────
+function SlideResenas({ resenas }) {
+  const visible = resenas.slice(0, 6);
+  const cols = visible.length >= 5 ? 'grid-cols-3' : visible.length >= 3 ? 'grid-cols-3' : 'grid-cols-2';
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
+      <div className="absolute inset-0"
+        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }} />
+      <p className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-8 relative z-10" style={{ color: GOLD }}>
+        ✦ &nbsp; Lo que dicen nuestros clientes &nbsp; ✦
+      </p>
+      <div className={`grid ${cols} gap-5 w-full max-w-5xl relative z-10`}>
+        {visible.map((r, i) => (
+          <motion.div
+            key={r.id || i}
+            className="flex flex-col gap-3 rounded-2xl p-6"
+            style={{ background: '#0e1018', border: '1px solid rgba(212,175,55,0.18)', boxShadow: '0 6px 24px rgba(0,0,0,0.4)' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08, duration: 0.4 }}
+          >
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 5 }, (_, s) => (
+                <span key={s} style={{ color: s < (r.rating || 5) ? GOLD : 'rgba(255,255,255,0.15)', fontSize: '1rem' }}>★</span>
+              ))}
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">“{String(r.comentario || '').slice(0, 160)}”</p>
+            <p className="text-[11px] font-bold mt-auto" style={{ color: `${GOLD}AA` }}>
+              — {nombrePublico(r.clienteNombre || r.nombre || 'Cliente')}{r.barberoNombre ? ` · con ${r.barberoNombre}` : ''}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Slide: Cumpleaños del día ─────────────────────────────────────
+function SlideCumples({ nombres }) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-16 relative">
+      <div className="absolute inset-0"
+        style={{ backgroundImage: 'radial-gradient(ellipse 70% 70% at 50% 40%, rgba(212,175,55,0.08) 0%, transparent 70%)' }} />
+      <FloatingParticles />
+      <motion.p
+        className="text-7xl mb-6 relative z-10"
+        animate={{ rotate: [-6, 6, -6], scale: [1, 1.08, 1] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        🎉
+      </motion.p>
+      <h2 className="font-black text-center leading-tight mb-6 relative z-10" style={{ fontSize: 'clamp(2.6rem,6vw,4.6rem)' }}>
+        <span className="text-primary">¡Feliz cumpleaños</span>
+        <br />
+        <span style={{ color: GOLD }}>{nombres.slice(0, 3).join(', ')}!</span>
+      </h2>
+      <p className="text-gray-400 text-lg text-center relative z-10">
+        De parte de todo el equipo — que tengas un gran día ✂️
+      </p>
+    </div>
+  );
+}
+
 // ── QR overlay ────────────────────────────────────────────────────
-function QrOverlay({ qrUrl, qrColor, qrSize }) {
+function QrOverlay({ qrUrl, qrColor, qrSize, titulo = '¡Únete al Club!', sub = 'Escanea y regístrate gratis' }) {
   const color = qrColor || GOLD;
   const size  = qrSize  || 160;
   const hexToRgb = h => {
@@ -859,11 +1088,11 @@ function QrOverlay({ qrUrl, qrColor, qrSize }) {
           animate={{ textShadow: [`0 0 8px rgba(${rgb},0.3)`, `0 0 20px rgba(${rgb},0.8)`, `0 0 8px rgba(${rgb},0.3)`] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          ¡Únete al Club!
+          {titulo}
         </motion.span>
 
         <QRCodeSVG value={qrUrl} size={size} fgColor={color} bgColor="transparent" level="M" />
-        <p className="text-gray-600 text-[10px] tracking-wide">Escanea y regístrate gratis</p>
+        {sub && <p className="text-gray-600 text-[10px] tracking-wide">{sub}</p>}
       </motion.div>
     </div>
   );
@@ -942,7 +1171,7 @@ export default function BarberTV() {
   const [offline,        setOffline]        = useState(false);
   const [imageCache,     setImageCache]     = useState({});
   const [duracion,       setDuracion]       = useState(SLIDE_MS);
-  const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true, marcas: true });
+  const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true, marcas: true, reservar: true, resenas: true, cumples: true });
   const [accentColor,    setAccentColor]    = useState('');
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
   const [backgroundUrl,  setBackgroundUrl]  = useState(() => sessionStorage.getItem(`tv_bg_${tenantId}`) || '');
@@ -957,6 +1186,13 @@ export default function BarberTV() {
   const [headerSize,     setHeaderSize]     = useState('md');
   const [hideTicker,     setHideTicker]     = useState(false);
   const [cardsFondo,     setCardsFondo]     = useState(false);
+  // Día y hora de CHILE, refrescados cada 30 s: mueven el rollover de
+  // medianoche (la query de citas depende de hoyStr) y el "En Sillón" real.
+  const [hoyStr,         setHoyStr]         = useState(hoyChileStr());
+  const [nowMins,        setNowMins]        = useState(minsAhoraChile());
+  const [dispo,          setDispo]          = useState(null);   // {fecha, esHoy, slots} de chatHorasDisponibles
+  const [resenasTv,      setResenasTv]      = useState([]);
+  const [cumples,        setCumples]        = useState([]);
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -1051,17 +1287,64 @@ export default function BarberTV() {
   const preloadedRef   = useRef(new Set());
   const activeCountRef = useRef(4);
   const visitedRef     = useRef(new Set([0]));
-  const qrUrl = `${window.location.origin}/registro.html?local=${tenantId}`;
+
+  /* QR de la esquina con DESTINO configurable (TVConfig → Código QR):
+     club (registro, default histórico), reservar (agenda pública) o una
+     URL propia del local. El copy acompaña al destino. */
+  const qrDestino = qrConfig.destino || 'club';
+  const qrUrl =
+    qrDestino === 'reservar' ? `${window.location.origin}/?local=${tenantId}`
+    : qrDestino === 'custom' && (qrConfig.customUrl || '').trim() ? qrConfig.customUrl.trim()
+    : `${window.location.origin}/registro.html?local=${tenantId}`;
+  const qrTitulo = qrDestino === 'reservar' ? '¡Reserva tu hora!'
+    : qrDestino === 'custom' ? (qrConfig.etiqueta || 'Escanéame')
+    : '¡Únete al Club!';
+  const qrSub = qrDestino === 'reservar' ? 'Escanea y agenda en segundos'
+    : qrDestino === 'custom' ? ''
+    : 'Escanea y regístrate gratis';
 
   useEffect(() => { visitedRef.current.add(slide); }, [slide]);
 
+  /* ── Tick de 30 s (hora de Chile) ─────────────────────────────────
+     Actualiza nowMins (para el "En Sillón" real) y hoyStr — cuando cruza
+     medianoche, la query de citas se re-suscribe SOLA al día nuevo. Antes
+     una TV encendida 24/7 amanecía mostrando la agenda de ayer hasta que
+     alguien la recargara a mano. */
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNowMins(minsAhoraChile());
+      const h = hoyChileStr();
+      setHoyStr(prev => (prev === h ? prev : h));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  /* Señalética always-on: (1) wake-lock para que la pantalla no se duerma;
+     (2) recarga programada a las 04:05 — una SPA con video y animaciones
+     corriendo semanas acumula memoria, y el reload nocturno la sanea sin
+     que nadie lo note. */
+  useEffect(() => {
+    let lock = null;
+    const pedir = async () => { try { lock = await navigator.wakeLock?.request('screen'); } catch { /* no soportado */ } };
+    pedir();
+    const alVolver = () => { if (document.visibilityState === 'visible') pedir(); };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => { document.removeEventListener('visibilitychange', alVolver); lock?.release?.(); };
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+      if (hhmm === '04:05') window.location.reload();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Citas de hoy — carga TODAS para contar completadas + filtra activas en cliente
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
     const ACTIVE   = new Set(['Confirmada', 'confirmada', 'pendiente', 'Pendiente']);
-    const q = query(tenantCol('citas'), where('fecha', '==', todayStr));
+    const q = query(tenantCol('citas'), where('fecha', '==', hoyStr));
     return onSnapshot(q, snap => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.origenQA !== true);
       const active = all
         .filter(c => ACTIVE.has(c.estado))
         .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
@@ -1072,35 +1355,81 @@ export default function BarberTV() {
       setOffline(false);
       try { localStorage.setItem(lsCitasKey(tenantId), JSON.stringify(active)); } catch {}
     }, () => setOffline(true));
-  }, [tenantId]);
+  }, [tenantId, hoyStr]);
+
+  /* Contenido LIVE: antes lookbook/equipo/servicios/productos/marcas se
+     cargaban una sola vez — un cambio de precio o una foto nueva no
+     aparecía hasta recargar la TV. Con onSnapshot la pantalla siempre está
+     al día (y Firestore solo re-lee lo que cambió). */
 
   // Lookbook
   useEffect(() => {
-    withTimeout(getDocs(query(tenantCol('lookbook'), orderBy('order', 'asc'))), 20000, 'tv/lookbook')
-      .then(snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-      .catch(() => {});
+    return onSnapshot(query(tenantCol('lookbook'), orderBy('order', 'asc')),
+      snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {});
   }, [tenantId]);
 
   // Equipo
   useEffect(() => {
-    withTimeout(getDocs(query(tenantCol('barberos'), where('activo', '!=', false))), 15000, 'tv/barberos')
-      .then(snap => setBarberos(
+    return onSnapshot(query(tenantCol('barberos'), where('activo', '!=', false)),
+      snap => setBarberos(
         // El admin PURO no sale en la TV del local, pero el admin que atiende
         // sí: es un barbero más en la pantalla. Misma regla que la agenda.
         snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b =>
           !b._mainDocId
+          && b.esQA !== true
           && (b.rol !== 'admin' || b.esBarbero === true || b.mostrarEnAgenda === true)
         ),
-      ))
-      .catch(() => {});
+      ),
+      () => {});
   }, [tenantId]);
 
   // Servicios — para el ticker inferior
   useEffect(() => {
-    withTimeout(getDocs(query(tenantCol('servicios'), orderBy('orden', 'asc'))), 15000, 'tv/servicios')
-      .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-      .catch(() => {});
+    return onSnapshot(query(tenantCol('servicios'), orderBy('orden', 'asc')),
+      snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {});
   }, [tenantId]);
+
+  // Reseñas de clientes (prueba social): 5★ con comentario; si hay pocas,
+  // se relaja a 4★. El slide se auto-oculta sin datos.
+  useEffect(() => {
+    return onSnapshot(query(tenantCol('resenas'), orderBy('createdAt', 'desc'), limit(40)),
+      snap => {
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(r => String(r.comentario || '').trim().length >= 8);
+        const top = all.filter(r => (r.rating || 0) >= 5);
+        setResenasTv((top.length >= 2 ? top : all.filter(r => (r.rating || 0) >= 4)).slice(0, 6));
+      },
+      () => {});
+  }, [tenantId]);
+
+  // Cumpleaños del día — mismo campo indexado que usa el cron (cumpleDia
+  // "MM-DD" en functions/cumpleanos.js). Solo nombres de pila en pantalla.
+  useEffect(() => {
+    const mmdd = hoyStr.slice(5);
+    return onSnapshot(query(tenantCol('users'), where('cumpleDia', '==', mmdd)),
+      snap => setCumples(
+        snap.docs.map(d => String(d.data().nombre || d.data().displayName || '').trim().split(/\s+/)[0])
+          .filter(Boolean).slice(0, 3),
+      ),
+      () => setCumples([]));
+  }, [tenantId, hoyStr]);
+
+  // Disponibilidad REAL de hoy para el slide "Reserva": la misma fuente que
+  // el bot y el chat (chatHorasDisponibles), refrescada cada 10 minutos.
+  useEffect(() => {
+    let vivo = true;
+    const cargar = () => {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'chatHorasDisponibles');
+      fn({ tenantId: resolveTenantId() })
+        .then(r => { if (vivo && r?.data?.ok) setDispo(r.data); })
+        .catch(() => {});
+    };
+    cargar();
+    const id = setInterval(cargar, 10 * 60_000);
+    return () => { vivo = false; clearInterval(id); };
+  }, [tenantId, hoyStr]);
 
   // Configuración TV
   useEffect(() => {
@@ -1129,19 +1458,21 @@ export default function BarberTV() {
     }, () => {});
   }, [tenantId]);
 
-  // Productos
+  // Productos (solo activos)
   useEffect(() => {
-    withTimeout(getDocs(query(tenantCol('productos'), orderBy('createdAt', 'asc'))), 15000, 'tv/productos')
-      .then(snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-      .catch(() => {});
+    return onSnapshot(query(tenantCol('productos'), orderBy('createdAt', 'asc')),
+      snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.activo !== false)),
+      () => {});
   }, [tenantId]);
 
-  // Marcas (Solo Elegance)
+  // Marcas / auspiciadores — abierto a TODOS los tenants (antes solo
+  // Elegance): es espacio publicitario que el local puede vender a sus
+  // marcas. Las rules de publicidad_tv ya existían raíz + tenants. El
+  // slide se auto-oculta si el local no cargó ninguna.
   useEffect(() => {
-    if (tenantId !== 'elegance') return;
-    withTimeout(getDocs(query(tenantCol('publicidad_tv'), orderBy('createdAt', 'asc'))), 15000, 'tv/publicidad')
-      .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-      .catch(() => {});
+    return onSnapshot(query(tenantCol('publicidad_tv'), orderBy('createdAt', 'asc')),
+      snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {});
   }, [tenantId]);
 
   // Caché de fotos de barberos
@@ -1211,13 +1542,26 @@ export default function BarberTV() {
     setSlide(i);
   }, []);
 
+  const qrReservaUrl = `${window.location.origin}/?local=${tenantId}`;
+
   const ALL_DEFS = [
     { key: 'oferta',    label: 'Oferta',    el: <SlidePublicidad key="pub"  oferta={oferta} /> },
+    // El slide que convierte: cupos libres de HOY + QR directo a reservar.
+    { key: 'reservar',  label: 'Reserva',   el: <SlideReservar   key="resv" dispo={dispo} qrReservaUrl={qrReservaUrl} /> },
     { key: 'lookbook',  label: 'Trabajos',  el: <SlideLookbook   key="look" photos={photos} /> },
     { key: 'equipo',    label: 'Equipo',    el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} cardsFondo={cardsFondo} skipAnimation={visitedRef.current.has(2)} /> },
     { key: 'productos', label: 'Productos', el: <SlideProductos  key="prod" productos={productos} cardsFondo={cardsFondo} skipAnimation={visitedRef.current.has(3)} /> },
   ];
-  if (tenantId === 'elegance') {
+  // Slides con datos opcionales: se AUTO-OCULTAN si el local no tiene qué
+  // mostrar — un slide vacío en loop es peor que no tenerlo.
+  if (resenasTv.length) {
+    ALL_DEFS.push({ key: 'resenas', label: 'Reseñas', el: <SlideResenas key="rese" resenas={resenasTv} /> });
+  }
+  if (cumples.length) {
+    ALL_DEFS.push({ key: 'cumples', label: 'Cumpleaños', el: <SlideCumples key="cump" nombres={cumples} /> });
+  }
+  // Marcas: abierto a todos los tenants (antes hardcodeado solo-Elegance).
+  if (marcas.length) {
     ALL_DEFS.push({ key: 'marcas', label: 'Marcas', el: <SlideMarcas key="marcas" marcas={marcas} skipAnimation={visitedRef.current.has('marcas')} /> });
   }
   const activeDefs  = ALL_DEFS.filter(s => slidesActivos[s.key] !== false);
@@ -1278,6 +1622,7 @@ export default function BarberTV() {
             offline={offline}
             barberos={barberos}
             size={sidebarSize}
+            nowMins={nowMins}
           />
         </aside>
 
@@ -1394,7 +1739,9 @@ export default function BarberTV() {
             />
           )}
 
-          <QrOverlay qrUrl={qrUrl} qrColor={qrConfig.color} qrSize={qrConfig.size} />
+          {qrConfig.oculto !== true && (
+            <QrOverlay qrUrl={qrUrl} qrColor={qrConfig.color} qrSize={qrConfig.size} titulo={qrTitulo} sub={qrSub} />
+          )}
 
           {/* Barra de progreso — Opción B ─────────────────────── */}
           {!hideSlideshow && <SlideProgressBar slideKey={safeSlide} duration={duracion} paused={paused} />}
