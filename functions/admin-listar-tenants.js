@@ -117,14 +117,16 @@ exports.adminListarTenants = onCall({ region: 'us-central1', cors: true }, async
 // ─────────────────────────────────────────────────────────────────
 
 // Aceptamos los 4 planes públicos + aliases legacy (individual→basico, local→pro).
+// La lista pública es NETA y el IVA se suma (corrección Ignacio 2026-08-08);
+// tiene que calzar con PRECIOS_SELF_SERVICE_NETO de mensualidad-mp.js.
 const PRECIOS_NETOS = {
-  basico:     25126,
-  pro:        41933,
-  full:       58739,   // ≈ $69.900 público — IA en WA+IG + Reactivación
-  anual:     335294,
+  basico:     29900,
+  pro:        49900,
+  full:       69900,   // $69.900 + IVA — IA en WA+IG + Reactivación
+  anual:     399000,
   // aliases legacy
-  individual: 25126,
-  local:      41933,
+  individual: 29900,
+  local:      49900,
 };
 const NORMALIZAR_PLAN = { individual: 'basico', local: 'pro' };
 

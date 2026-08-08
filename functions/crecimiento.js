@@ -37,9 +37,11 @@ const db = admin.firestore();
 // Precios NETOS (sin IVA) — el IVA no es ingreso tuyo, lo pasas al fisco, así
 // que el MRR real es neto. Estos son los montos que efectivamente se cobran
 // (functions/mensualidad-mp.js). El anual se prorratea a mensual.
+// Desde 2026-08-08 la lista pública ES la neta y el IVA se suma encima, así
+// que el MRR de cada plan subió: el número publicado es el ingreso real.
 const PLAN_NETO = {
-  basico: 25126, pro: 41933, full: 58739, anual: Math.round(335294 / 12),
-  individual: 25126, local: 41933,        // aliases legacy
+  basico: 29900, pro: 49900, full: 69900, anual: Math.round(399000 / 12),
+  individual: 29900, local: 49900,        // aliases legacy
 };
 
 const CFG_DEFAULTS = {

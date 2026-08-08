@@ -4737,13 +4737,13 @@
         <!-- Lista OFICIAL unificada 2026-08-07: Básico/Pro/Full/Anual, IVA
              incluido (la misma de crea.html y TrialGate). Caja/comisiones/
              métricas van en TODOS. Multi-local = cotización. -->
-        ${card('Plan Básico', 'Profesionales ilimitados · panel completo con caja y métricas', '29.900', 'IVA incluido', false)}
-        ${card('Plan Pro', 'Todo lo del Básico · IA WhatsApp · Wallet', '49.900', 'IVA incluido', true)}
-        ${card('Plan Full', 'Todo el Pro · IA también en Instagram · Reactivación', '69.900', 'IVA incluido', false)}
+        ${card('Plan Básico', 'Profesionales ilimitados · panel completo con caja y métricas', '29.900', '+ IVA', false)}
+        ${card('Plan Pro', 'Todo lo del Básico · IA WhatsApp · Wallet', '49.900', '+ IVA', true)}
+        ${card('Plan Full', 'Todo el Pro · IA también en Instagram · Reactivación', '69.900', '+ IVA', false)}
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div><p style="margin:0;color:#fff;font-weight:700;font-size:0.9rem;">Plan Anual</p><p style="margin:0;color:#64748b;font-size:0.72rem;">Todo el Pro · un pago (equivale a 9 meses)</p></div>
-            <div style="text-align:right;"><p style="margin:0;color:#fff;font-weight:800;font-size:1.05rem;">$399.000<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/año</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">IVA incluido</p></div>
+            <div style="text-align:right;"><p style="margin:0;color:#fff;font-weight:800;font-size:1.05rem;">$399.000<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/año</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">+ IVA</p></div>
           </div>
         </div>
         <p style="margin:0 0 0.625rem;font-size:0.74rem;color:#94a3b8;text-align:center;">2 o más locales → cotización a medida (tipo Kronnos)</p>
@@ -5988,7 +5988,7 @@
       // Oren (Wallet activo un mes sin facturarse porque se asumió que el
       // toggle lo sumaba solo).
       const msg = activar
-        ? `¿ACTIVAR el add-on Wallet para "${nombre}"?\n\nHabilita la tarjeta de fidelidad + geo-push para sus clientes.\n\n⚠ NO se cobra solo: si no es cortesía, hay que sumar $9.990 (IVA incl. → $8.395 netos) a su monto mensual acá mismo.`
+        ? `¿ACTIVAR el add-on Wallet para "${nombre}"?\n\nHabilita la tarjeta de fidelidad + geo-push para sus clientes.\n\n⚠ NO se cobra solo: si no es cortesía, hay que sumar $9.990 netos (+ IVA) a su monto mensual acá mismo.`
         : `¿DESACTIVAR el add-on Wallet para "${nombre}"?\n\nSe apaga el botón "Añadir a Google Wallet" para sus clientes.`;
       if (!confirm(msg)) return;
       const btn = document.getElementById('wallet-addon-btn');

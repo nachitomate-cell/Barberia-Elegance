@@ -75,18 +75,22 @@ const MONTO_MINIMO = 1000;
 // TrialGate — el frontend envía { plan: 'basico'|'pro'|'anual' } y el servidor
 // resuelve el monto (evita que el cliente inyecte precios).
 //
+// La lista PÚBLICA es NETA y el IVA se suma (corrección de Ignacio 2026-08-08;
+// antes estos montos eran el neto DERIVADO de asumir que $29.900 ya traía IVA
+// —25.126— y la tarjeta terminaba pagando $29.900 en total). Ahora el número
+// publicado ES el neto y MP cobra neto × 1,19: Básico $35.581, Pro $59.381,
+// Full $83.181, Anual $474.810.
+//
 // Compatibilidad hacia atrás: 'individual'/'local' aún se aceptan como aliases
 // de 'basico'/'pro' para tenants creados antes del rename 2026-08-05.
 const PRECIOS_SELF_SERVICE_NETO = {
-  basico:     25126,   // ≈ $29.900 con IVA (público) mensual
-  pro:        41933,   // ≈ $49.900 con IVA (público) mensual
-  // $69.900 público no tiene neto entero exacto: 58.739 cobra $69.899 —
-  // un peso A FAVOR del cliente, nunca un peso de más en la tarjeta.
-  full:       58739,   // ≈ $69.900 con IVA (público) mensual · IA en WA+IG + Reactivación
-  anual:     335294,   // ≈ $399.000 con IVA (público) UNA VEZ al año (nivel Pro)
+  basico:     29900,   // $29.900 + IVA mensual
+  pro:        49900,   // $49.900 + IVA mensual
+  full:       69900,   // $69.900 + IVA mensual · IA en WA+IG + Reactivación
+  anual:     399000,   // $399.000 + IVA UNA VEZ al año (nivel Pro)
   // aliases legacy
-  individual: 25126,
-  local:      41933,
+  individual: 29900,
+  local:      49900,
 };
 
 // Los planes mensuales usan preapproval (recurrente); el anual usa Checkout Pro

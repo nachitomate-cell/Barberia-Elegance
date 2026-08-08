@@ -10,9 +10,10 @@
  * es responsabilidad de la UI (fmt) y no se puede desincronizar entre
  * vistas ("$9.900 + IVA / mes" vs "$9.990/mes" vs "$14.900/mes").
  *
- * ⚠ IVA: hoy el asistente IA se muestra "+ IVA" y el resto no dice
- * nada. Cada tarifa declara `iva` para que la UI sea explícita en vez
- * de ambigua. Si se unifica el criterio comercial, se cambia acá.
+ * ⚠ IVA (criterio ÚNICO desde 2026-08-08, decisión de Ignacio): TODAS
+ * las tarifas de acá son NETAS y el IVA se suma encima — por eso cada
+ * una declara `iva:'mas'`. El número publicado es el neto; lo que se
+ * carga a la tarjeta es conIva(neto) (Básico $29.900 → $35.581).
  * ═══════════════════════════════════════════════════════════════ */
 
 /** Formatea un monto CLP: 14900 → "$14.900" */
@@ -34,10 +35,10 @@ export function sufijoIva(iva) {
 }
 
 // ── Planes base (mensualidad del local) ──────────────────────────
-// Lista OFICIAL unificada (decisión Ignacio 2026-08-07): Básico / Pro /
-// Anual, en precio PÚBLICO con IVA incluido — la misma que publica
-// crea.html, TrialGate y el cobro MP (mensualidad-mp.js guarda el neto
-// equivalente: 25.126 / 41.933 / 335.294). La lista anterior (Individual
+// Lista OFICIAL unificada (Ignacio 2026-08-07, IVA corregido el 08-08):
+// Básico / Pro / Full / Anual en precio PÚBLICO NETO — el IVA se suma.
+// Es la misma lista que publica crea.html, TrialGate y el cobro MP
+// (mensualidad-mp.js guarda estos mismos netos y cobra neto × 1,19). La lista anterior (Individual
 // $14.900 / Local $29.900 netos) dejó de ofrecerse: los tenants con
 // tarifa pactada la conservan en su _billing, que manda sobre esto.
 // Caja/comisiones/métricas y PROFESIONALES ILIMITADOS van en TODOS los
@@ -50,14 +51,14 @@ export const PLANES = [
     nombre: 'Plan Básico',
     sub: 'Profesionales ilimitados · panel completo con caja y métricas',
     mes: 29900,
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'pro',
     nombre: 'Plan Pro',
     sub: 'Todo lo del Básico · asistente IA por WhatsApp · Wallet',
     mes: 49900,
-    iva: 'incluido',
+    iva: 'mas',
     popular: true,
   },
   {
@@ -65,14 +66,14 @@ export const PLANES = [
     nombre: 'Plan Full',
     sub: 'Todo el Pro · IA también en Instagram · Reactivación incluida',
     mes: 69900,
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'anual',
     nombre: 'Plan Anual',
     sub: 'Todo el Pro · un solo pago al año (equivale a 9 meses)',
     anio: 399000,
-    iva: 'incluido',
+    iva: 'mas',
   },
 ];
 
@@ -94,21 +95,21 @@ export const ADDONS = [
     nombre: 'Wallets',
     desc: 'Tarjeta de fidelidad en Google Wallet y Apple Wallet',
     mes: 9990,
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'bioo-pro',
     nombre: 'Bioo Pro',
     desc: 'Link in bio con reservas',
     mes: 4990,
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'bioo-studio',
     nombre: 'Bioo Studio',
     desc: 'Link in bio con diseño a medida',
     mes: 9990,
-    iva: 'incluido',
+    iva: 'mas',
   },
   {
     id: 'ia-reactivacion',
@@ -145,7 +146,7 @@ export const ASISTENTE_WA = [
     id: 'ia-asistente-start',
     nombre: 'Asistente IA · Start',
     mes: 19900,
-    iva: 'incluido',
+    iva: 'mas',
     conversacionesDia: 10,
     desc: 'Hasta 10 conversaciones al día · citas ilimitadas',
   },
@@ -153,7 +154,7 @@ export const ASISTENTE_WA = [
     id: 'ia-asistente-max',
     nombre: 'Asistente IA · Max',
     mes: 29900,
-    iva: 'incluido',
+    iva: 'mas',
     conversacionesDia: null,   // ilimitadas (rige solo el tope anti-ban)
     desc: 'Conversaciones ilimitadas · citas ilimitadas',
   },

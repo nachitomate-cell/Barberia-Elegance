@@ -97,7 +97,7 @@ function PlanCard({ nombre, sub, mes, anio, pop }) {
             {fmtCLP(mes ?? anio)}
             <span className="text-[11px] font-medium text-slate-500">{mes ? '/mes' : '/año'}</span>
           </p>
-          <p className="mt-0.5 text-[10px] leading-tight text-slate-500">IVA incluido</p>
+          <p className="mt-0.5 text-[10px] leading-tight text-slate-500">+ IVA</p>
         </div>
       </div>
     </div>
@@ -159,7 +159,7 @@ function TarifasModal({ onClose }) {
           </ul>
 
           <p className="text-center text-[10px] text-slate-500">
-            Valores en pesos chilenos con IVA incluido · emitimos boleta o factura según corresponda.
+            Valores netos en pesos chilenos, el IVA se suma · emitimos boleta o factura según corresponda.
             Si tu local tiene giro, el IVA de la factura lo recuperas como crédito fiscal.
           </p>
         </div>

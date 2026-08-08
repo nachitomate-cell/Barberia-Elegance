@@ -809,7 +809,7 @@ function UpgradesSection({ tenantName }) {
                   Inversión mensual
                 </p>
                 <p className="text-2xl font-black text-primary leading-tight">
-                  $19.900 <span className="text-[12px] font-medium text-emerald-200/60">/ mes · IVA incluido</span>
+                  $19.900 <span className="text-[12px] font-medium text-emerald-200/60">/ mes + IVA</span>
                 </p>
                 <p className="text-[10.5px] text-emerald-200/55 mt-0.5">
                   Start: hasta 10 conversaciones al día · citas ilimitadas sin cobro por reserva
@@ -838,7 +838,7 @@ function UpgradesSection({ tenantName }) {
         <Sparkles size={14} className="text-amber-300 shrink-0 mt-0.5" />
         <p className="text-[12px] text-amber-100/80 leading-relaxed">
           <b className="text-amber-200">¿Te interesan los dos?</b> El plan
-          Pro ($49.900/mes, IVA incluido) trae el asistente de WhatsApp y
+          Pro ($49.900/mes + IVA) trae el asistente de WhatsApp y
           Wallet incluidos; el plan Full ($69.900/mes) suma la
           Reactivación IA y el bot también en tus DM de Instagram.
         </p>

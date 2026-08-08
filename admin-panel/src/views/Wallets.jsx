@@ -483,7 +483,7 @@ function UpsellWallet({ tenantName, tenantId }) {
           <div className="mt-8 flex flex-col items-center gap-3">
             <p className="text-sm text-slate-400 [html.light_&]:text-ink-600">
               <span className="text-4xl font-black text-amber-300 [html.light_&]:text-amber-600 align-middle">${PRECIO}</span>
-              <span className="text-sm font-semibold text-slate-300 [html.light_&]:text-ink-700">/mes · IVA incluido</span>
+              <span className="text-sm font-semibold text-slate-300 [html.light_&]:text-ink-700">/mes + IVA</span>
             </p>
             <p className="text-xs text-slate-500 -mt-1.5">Google + Apple Wallet en un solo precio · tarjetas ilimitadas</p>
             <button
