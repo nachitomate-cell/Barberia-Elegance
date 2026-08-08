@@ -75,7 +75,9 @@ exports.walletPushMasivo = onCall(
       throw new HttpsError('invalid-argument', 'Título y cuerpo del mensaje son requeridos.');
     }
 
-    const esStaff = (role === 'admin' || role === 'jefe') && claimT === tenantId;
+    // Recepción incluida (07-08, pedido Kronnos): maneja la relación con el
+    // cliente en el mesón y el push del wallet es mensajería, no números.
+    const esStaff = (role === 'admin' || role === 'jefe' || role === 'recepcion') && claimT === tenantId;
     if (!isSuper && !esStaff) {
       throw new HttpsError('permission-denied', 'Solo el staff del local puede enviar mensajes.');
     }

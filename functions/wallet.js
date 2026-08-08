@@ -197,9 +197,14 @@ exports.walletProvisionarClase = onCall(
       throw new HttpsError('invalid-argument', 'tenantId requerido.');
     }
     const isSuperadmin  = SUPERADMINS.includes(callerEmail);
-    const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
-    if (!isSuperadmin && !isTenantAdmin) {
-      throw new HttpsError('permission-denied', 'Solo el admin del local puede configurar el wallet.');
+    // admin|jefe|recepcion del PROPIO tenant: el front (wallets.bioo.cl) ya
+    // dejaba entrar a jefe y este gate lo rechazaba — quedaban a mitad de
+    // camino. Recepción se sumó el 07-08 (pedido Kronnos: cada recepcionista
+    // de sede edita la wallet de su local); diseñar la tarjeta no expone
+    // números del negocio.
+    const isTenantStaff = ['admin', 'jefe', 'recepcion'].includes(callerRole) && callerTenant === tenantId;
+    if (!isSuperadmin && !isTenantStaff) {
+      throw new HttpsError('permission-denied', 'Solo el equipo del local puede configurar el wallet.');
     }
     // Gate de add-on: sin pago no se puede provisionar (superadmin exento).
     if (!isSuperadmin && !(await walletActivo(tenantId))) {

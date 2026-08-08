@@ -1424,8 +1424,12 @@ firebase.auth().onAuthStateChanged(function (user) {
       }
       return;
     }
-    var esAdminTenant = (claims.role === 'admin' || claims.role === 'jefe') && claims.tenantId;
-    if (esAdminTenant) {
+    // Recepción también edita la wallet de SU local (pedido Kronnos 07-08):
+    // cada recepcionista de sede tiene claims {role:'recepcion', tenantId:
+    // 'kronnos_<sede>'}, así que el mapeo correo→wallet sale solo del claim.
+    // El diseño de la tarjeta no expone números del negocio.
+    var esStaffTenant = (claims.role === 'admin' || claims.role === 'jefe' || claims.role === 'recepcion') && claims.tenantId;
+    if (esStaffTenant) {
       $('tenant-picker').classList.add('hidden');
       show('view-studio');
       cargarTenant(String(claims.tenantId));
