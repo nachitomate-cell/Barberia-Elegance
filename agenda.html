@@ -2751,7 +2751,13 @@
                             const claimRole = tok && tok.claims && tok.claims.role;
                             const esStaff = ['barbero', 'profesional', 'admin', 'jefe', 'recepcion'].indexOf(claimRole) >= 0;
                             const tidActual = window.CURRENT_TENANT_ID || 'elegance';
-                            if (esStaff && claimTid && claimTid !== tidActual) {
+                            // Candado anti-loop: si la URL YA pide el tenant del
+                            // claim pero la resolución quedó en otro (estado
+                            // inconsistente de sessionStorage), redirigir de
+                            // nuevo repetiría la misma página infinitamente.
+                            let urlLocal = null;
+                            try { urlLocal = new URL(window.location.href).searchParams.get('local'); } catch(_) {}
+                            if (esStaff && claimTid && claimTid !== tidActual && urlLocal !== claimTid) {
                                 window.location.replace('/agenda.html?local=' + encodeURIComponent(claimTid));
                                 return;
                             }
@@ -4662,6 +4668,39 @@
         // ── DETALLE DE CITA (bottom sheet) ──────────────────────────
         let _citaActiva = null;
 
+        // ── AÑADIR A GOOGLE CALENDAR (agenda del barbero) ──────────
+        // Mismo esquema de URL sin backend que el botón del cliente en la
+        // reserva pública (index.html): abre Google Calendar con el evento
+        // pre-llenado y el barbero solo guarda. Sin timezone en la URL —
+        // Google usa la del navegador, correcto porque la cita vive en la
+        // hora del local. NO incluye teléfono ni email del cliente: el
+        // evento puede sincronizar a calendarios compartidos (política de
+        // no exponer el contacto del cliente).
+        function _gcalUrlCita(cita) {
+            const pad = (n) => String(n).padStart(2, '0');
+            const [y, m, d] = String(cita.fecha || '').split('-').map(Number);
+            if (!y || !m || !d) return null;
+            const [hh, mi] = String(cita.hora || '00:00').split(':').map(Number);
+            const dur = Math.max(15, parseInt(cita.duracionServicio || cita.duracion || 30, 10) || 30);
+            const ini = new Date(y, m - 1, d, hh || 0, mi || 0);
+            const fin = new Date(ini.getTime() + dur * 60000);
+            const fmt = (t) => `${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}T${pad(t.getHours())}${pad(t.getMinutes())}00`;
+            const shop = window.SHOP || {};
+            const title = `${cita.servicioNombre || cita.servicio || 'Cita'} · ${cita.clienteNombre || 'Cliente'}`;
+            const details = [
+                `Cliente: ${cita.clienteNombre || '—'}`,
+                `Servicio: ${cita.servicioNombre || cita.servicio || '—'}`,
+                cita.codigoCita ? `Código: ${cita.codigoCita}` : '',
+                `Agenda ${shop.nombreCorto || shop.nombre || ''}`.trim(),
+            ].filter(Boolean).join('\n');
+            const location = (shop.direccion || '').replace(/^[^\wÀ-ÿ]+\s*/, '');
+            return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+                + `&text=${encodeURIComponent(title)}`
+                + `&dates=${fmt(ini)}/${fmt(fin)}`
+                + `&details=${encodeURIComponent(details)}`
+                + (location ? `&location=${encodeURIComponent(location)}` : '');
+        }
+
         function abrirDetalleCita(citaId) {
             const cita = todayCitas.find(c => c.id === citaId);
             if (!cita) return;
@@ -4730,6 +4769,13 @@
             }
             if (cita.estado !== 'Cancelada')
                 btns.push(`<button onclick="cambiarEstadoDesdeDetalle('${cita.id}','Cancelada')" class="w-full py-2.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 active:scale-95 transition-all">Cancelar</button>`);
+            // Solo citas en pie: agregar al calendario una cita completada o
+            // cancelada no aporta y solo mete ruido de botones. La URL viene
+            // 100% de encodeURIComponent (sin comillas crudas en el href).
+            if (cita.estado === 'Pendiente' || cita.estado === 'Confirmada') {
+                const gcal = _gcalUrlCita(cita);
+                if (gcal) btns.push(`<a href="${gcal}" target="_blank" rel="noopener" class="w-full col-span-2 py-2.5 rounded-xl text-xs font-bold text-white/80 border border-white/15 bg-white/5 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"><i class="ph-bold ph-calendar-plus text-sm"></i> Añadir a Google Calendar</a>`);
+            }
             document.querySelectorAll('.cd-acciones').forEach(el => el.innerHTML = btns.join(''));
 
             document.querySelectorAll('.cd-nota').forEach(el => el.value = cita.nota || '');
