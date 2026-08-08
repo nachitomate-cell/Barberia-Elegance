@@ -2735,6 +2735,28 @@
                     const info = await resolverInfoBarbero(user.email, user.uid);
 
                     if (!info.isBarbero) {
+                        // ¿Es staff de OTRO local? El token trae { role, tenantId }
+                        // (claims de normalizarRole). Pasa cuando la URL viene con
+                        // el ?local= de otro tenant: atajo viejo, la app del hub,
+                        // un link compartido o el barbero probando en el local
+                        // equivocado (incidentes 07/08-08: chameleon en sandbox,
+                        // luego sionbarberia). En vez de botarlo con "no es de un
+                        // barbero", lo mandamos a SU agenda — espejo del
+                        // HubTenantGate pero a nivel de agenda.html. Sin riesgo de
+                        // loop: en su tenant claims.tenantId === actual y esta
+                        // rama no corre; si ahi tampoco resuelve, cae al aviso.
+                        try {
+                            const tok = await user.getIdTokenResult();
+                            const claimTid  = tok && tok.claims && tok.claims.tenantId;
+                            const claimRole = tok && tok.claims && tok.claims.role;
+                            const esStaff = ['barbero', 'profesional', 'admin', 'jefe', 'recepcion'].indexOf(claimRole) >= 0;
+                            const tidActual = window.CURRENT_TENANT_ID || 'elegance';
+                            if (esStaff && claimTid && claimTid !== tidActual) {
+                                window.location.replace('/agenda.html?local=' + encodeURIComponent(claimTid));
+                                return;
+                            }
+                        } catch(_) { /* sin claims legibles: sigue el aviso normal */ }
+
                         // Sesion valida pero no es de barbero (cliente que se
                         // registro al club y abrio /agenda por accidente, o el
                         // barbero entro con la cuenta equivocada). Antes
