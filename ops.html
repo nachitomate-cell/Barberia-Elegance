@@ -2631,11 +2631,12 @@
           <h3>🛠 ${tip('Herramientas de plataforma', 'Utilidades de superadmin. El QA Fantasma se opera acá; el resto (crear local, estadísticas, referidos, anuncios) por ahora sigue en /admin.')}</h3>
           <div id="plat-qa" style="margin-bottom:10px"><button class="mini" onclick="platCargarQa(this)">👻 Ver QA Fantasma</button></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">➕ Crear local (wizard)</a>
+            <button class="mini" onclick="platWizardAbrir()">➕ Crear local nuevo</button>
             <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">🎁 Referidos</a>
             <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">📢 Anuncios push</a>
           </div>
-          <p class="hint" style="margin-top:8px">Estas tres son lo único que sigue en /admin — se migran en la próxima tanda. Todo lo demás (gestión por local, estadísticas, ingresos) ya vive acá.</p>
+          <p class="hint" style="margin-top:8px">Referidos y anuncios son lo único que sigue en /admin — próxima tanda. El alta de locales, la gestión, estadísticas e ingresos ya viven acá.</p>
+          <div id="plat-wizard"></div>
         </div>`;
 
       const statsHtml = `<div class="panel full" style="margin-top:14px">
@@ -2728,6 +2729,95 @@
     }
     window.platCargarStats=platCargarStats; window.platCargarIngresos=platCargarIngresos;
     window.platMesNav=platMesNav; window.platIngDetalle=platIngDetalle;
+
+    /* ── Wizard crear local (migrado de /admin) — reusa provisionarTenantAdmin,
+       importarNegocioExterno y verificarSlugLibre. */
+    function platWizardAbrir(){
+      const host=document.getElementById('plat-wizard'); if(!host) return;
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:7px 10px;font-size:12.5px;width:100%;box-sizing:border-box';
+      host.innerHTML=`<div id="plat-wz-ov" style="position:fixed;inset:0;background:rgba(4,10,18,.6);z-index:5000;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:24px" onclick="platWzOvClick(event)">
+        <div style="width:min(520px,94vw);background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">➕ Crear local nuevo</h3><button class="mini" onclick="platWizardCerrar()">✕</button></div>
+          <div style="display:flex;gap:6px;margin-bottom:12px">
+            <input id="wz-import" placeholder="Pega un link de AgendaPro/Weibook para autollenar…" autocomplete="off" style="${inp}">
+            <button class="mini" onclick="platWzImportar(this)">Importar</button>
+          </div>
+          <div id="plat-wz-form" style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;gap:6px"><input id="wz-nombre" placeholder="Nombre del local *" autocomplete="off" style="${inp}"><input id="wz-slug" placeholder="slug *" autocomplete="off" oninput="platWzSlug()" style="${inp};width:150px"></div>
+            <div id="wz-slug-fb" class="muted" style="font-size:10.5px"></div>
+            <div style="display:flex;gap:6px">
+              <select id="wz-tipo" style="${inp}"><option value="barberia">Barbería</option><option value="peluqueria">Peluquería</option><option value="mixto">Mixto</option><option value="nails">Nails</option><option value="spa">Spa/estética</option><option value="otro">Otro</option></select>
+              <input id="wz-telefono" placeholder="teléfono 569…" autocomplete="off" style="${inp}">
+            </div>
+            <div style="display:flex;gap:6px"><input id="wz-direccion" placeholder="dirección" autocomplete="off" style="${inp}"><input id="wz-instagram" placeholder="@instagram" autocomplete="off" style="${inp};width:150px"></div>
+            <div style="display:flex;gap:6px"><input id="wz-slogan" placeholder="slogan (opcional)" autocomplete="off" style="${inp}"><input id="wz-color" type="color" value="#9CCC3C" style="width:44px;height:36px;background:none;border:1px solid var(--glass-border);border-radius:8px"></div>
+            <p class="muted" style="font-size:11px;font-weight:700;margin:6px 0 0">Dueño</p>
+            <div style="display:flex;gap:6px"><input id="wz-dueno-nombre" placeholder="nombre del dueño" autocomplete="off" style="${inp}"><input id="wz-dueno-email" placeholder="email del dueño *" autocomplete="off" style="${inp}"></div>
+            <div style="display:flex;gap:6px;align-items:center"><input id="wz-dueno-pass" placeholder="contraseña" autocomplete="off" style="${inp};flex:1"><button class="mini" onclick="document.getElementById('wz-dueno-pass').value=Math.random().toString(36).slice(2,10)">🎲</button><label class="muted" style="font-size:11px;white-space:nowrap"><input id="wz-dueno-atiende" type="checkbox"> atiende</label></div>
+            <p class="muted" style="font-size:11px;font-weight:700;margin:6px 0 0">Plan & billing</p>
+            <div style="display:flex;gap:6px"><input id="wz-plan" list="plat-plan-dl" placeholder="plan (ej: Pro)" autocomplete="off" style="${inp}"><input id="wz-monto" type="number" placeholder="monto neto" autocomplete="off" style="${inp};width:120px"><input id="wz-fpp" type="date" style="${inp};width:150px"></div>
+            <p class="muted" style="font-size:11px;font-weight:700;margin:6px 0 0">Servicios y equipo (opcional — si vacío usa plantilla)</p>
+            <textarea id="wz-servicios" rows="2" placeholder="Un servicio por línea: Nombre | precio | duración min" style="${inp};resize:vertical;font-family:inherit"></textarea>
+            <textarea id="wz-equipo" rows="2" placeholder="Un profesional por línea" style="${inp};resize:vertical;font-family:inherit"></textarea>
+            <button class="mini" style="margin-top:6px" onclick="platWzCrear(this)">🚀 Crear local</button>
+            <p id="wz-error" style="color:#e0645c;font-size:11.5px;margin:0"></p>
+          </div>
+          <div id="plat-wz-result"></div>
+        </div></div>`;
+    }
+    function platWzOvClick(ev){ if(ev.target===ev.currentTarget) platWizardCerrar(); }
+    function platWizardCerrar(){ const h=document.getElementById('plat-wizard'); if(h) h.innerHTML=''; }
+    let _wzSlugT=null;
+    function platWzSlug(){
+      clearTimeout(_wzSlugT); const el=document.getElementById('wz-slug'), fb=document.getElementById('wz-slug-fb');
+      const slug=(el.value||'').trim().toLowerCase(); if(!slug){fb.textContent='';return;}
+      fb.textContent='verificando…';
+      _wzSlugT=setTimeout(async()=>{ try{ const r=await _fn('verificarSlugLibre')({slug}); const libre=r.data&&(r.data.libre??r.data.disponible); fb.style.color=libre?'#9CCC3C':'#e0645c'; fb.textContent=libre?'✓ disponible':'✕ ya existe'; }catch(_){ fb.textContent=''; } },500);
+    }
+    async function platWzImportar(btn){
+      const url=(document.getElementById('wz-import')||{}).value||''; if(!url.trim()){alert('Pega un link primero.');return;}
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ const r=await _fn('importarNegocioExterno')({ url:url.trim() }); const d=r.data||{};
+        const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+        set('wz-nombre',d.nombre); set('wz-telefono',d.telefono); set('wz-direccion',d.direccion); set('wz-instagram',d.instagram); set('wz-servicios',(d.servicios||[]).map(s=>`${s.nombre} | ${s.precio||''} | ${s.duracion||''}`).join('\n'));
+        if(d.nombre&&!(document.getElementById('wz-slug').value)){document.getElementById('wz-slug').value=d.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);platWzSlug();}
+      }catch(e){ alert('No pude importar: '+(e.message||e)); }
+      if(btn){btn.disabled=false;btn.textContent='Importar';}
+    }
+    function platWzServicios(txt){
+      return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+        const p=l.split(/[|;]/).map(x=>x.trim());
+        return { nombre:p[0], precio:Number(p[1])||0, duracion:Number(p[2])||30 };
+      });
+    }
+    async function platWzCrear(btn){
+      const g=(id)=>((document.getElementById(id)||{}).value||'').trim();
+      const payload={ slug:g('wz-slug').toLowerCase(), nombre:g('wz-nombre'), tipo:g('wz-tipo'), telefono:g('wz-telefono'),
+        direccion:g('wz-direccion'), instagram:g('wz-instagram'), slogan:g('wz-slogan'), color:g('wz-color'),
+        dueno:{ nombre:g('wz-dueno-nombre'), email:g('wz-dueno-email'), password:g('wz-dueno-pass'), atiende:(document.getElementById('wz-dueno-atiende')||{}).checked },
+        billing:{ plan:g('wz-plan'), monto:Number(g('wz-monto'))||0, fechaProximoPago:g('wz-fpp')||null },
+        servicios:platWzServicios(g('wz-servicios')), equipo:g('wz-equipo').split('\n').map(x=>x.trim()).filter(Boolean) };
+      const err=document.getElementById('wz-error');
+      if(!payload.nombre||!payload.slug){err.textContent='Falta nombre o slug.';return;}
+      if(!payload.dueno.email){err.textContent='Falta el email del dueño.';return;}
+      err.textContent=''; if(btn){btn.disabled=true;btn.textContent='⏳ creando…';}
+      try{ const r=await _fn('provisionarTenantAdmin')(payload); const d=r.data||{};
+        document.getElementById('plat-wz-form').style.display='none';
+        const pass=d.dueno&&d.dueno.password;
+        document.getElementById('plat-wz-result').innerHTML=`<div style="text-align:center;padding:10px">
+            <div style="font-size:2rem">🎉</div><h3 style="color:var(--brand);margin:6px 0">Local creado: ${esc(d.slug||payload.slug)}</h3>
+            <div style="text-align:left;border:1px solid var(--glass-border);border-radius:10px;padding:12px;font-size:12px;margin-top:10px">
+              <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Agenda</span><a href="${esc(d.urlAgenda||'')}" target="_blank" rel="noopener">${esc(d.urlAgenda||'')}</a></div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Panel</span><a href="${esc(d.urlPanel||'')}" target="_blank" rel="noopener">abrir</a></div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Usuario</span><code>${esc(d.dueno?d.dueno.email:payload.dueno.email)}</code></div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Contraseña</span><code>${pass?esc(pass):'(la suya)'}</code></div>
+            </div>
+            <button class="mini" style="margin-top:10px" onclick="platWizardCerrar();cargarPlataforma(true)">Cerrar</button>
+          </div>`;
+      }catch(e){ err.textContent='Error: '+(e.message||e); if(btn){btn.disabled=false;btn.textContent='🚀 Crear local';} }
+    }
+    window.platWizardAbrir=platWizardAbrir; window.platWzOvClick=platWzOvClick; window.platWizardCerrar=platWizardCerrar;
+    window.platWzSlug=platWzSlug; window.platWzImportar=platWzImportar; window.platWzCrear=platWzCrear;
     async function platCargarQa(btn){
       if(btn){btn.disabled=true;btn.textContent='⏳';}
       try{ const r=await _fn('opsQaFantasma')({}); platPintarQa(r.data); }
