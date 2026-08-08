@@ -398,6 +398,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <!-- Firestore: la pestaña 🏢 Plataforma (consolidación de /admin) hace algunas
+       lecturas directas; el grueso va por callables como el resto de ops. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <!-- Storage: subir el creativo desde el panel. Instagram descarga la media
        desde SUS servidores, así que necesita una URL https pública — antes eso
        obligaba a subir la foto a otro lado primero y pegar el link a mano. -->
@@ -2059,6 +2062,7 @@
             <button data-tab="prospeccion">🚀 Prospección${prosPendientes() ? ' · ' + prosPendientes() : ''}</button>
             <button data-tab="crecimiento">💹 Crecimiento</button>
             <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
+            <button data-tab="plataforma">🏢 Plataforma</button>
             <button data-tab="locales">💈 Locales</button>
             <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
             <button data-tab="email">✉️ Email</button>
@@ -2114,6 +2118,10 @@
 
           <section class="sec" data-sec="cobranza">
             ${seccionCobranza()}
+          </section>
+
+          <section class="sec" data-sec="plataforma">
+            ${seccionPlataforma()}
           </section>
 
           <section class="sec" data-sec="locales">
@@ -2194,6 +2202,7 @@
         // Crecimiento es caro (cruza _billing + snapshots): se carga la
         // primera vez que se abre, no en cada pintado.
         if (n === 'crecimiento' && !ESTADO.crecimiento) cargarCrecimiento();
+        if (n === 'plataforma' && !ESTADO.plataforma) cargarPlataforma();
       };
       window._setTab = setTab;
       document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -2360,6 +2369,7 @@
     const ESTADO = {
       metrics:null, metaAds:null, instagram:null, chips:null,
       ventas:null, botCfg:null, cobranza:null, prospeccion:null, crecimiento:null,
+      plataforma:null, plataformaTenants:null,
       edadSegundos:0, parcial:false, cargando:false,
     };
 
@@ -2520,6 +2530,160 @@
       } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;btn.textContent='💾 Fijar meta del mes';} }
     }
     window.creGuardarCfg = creGuardarCfg; window.creGuardarMeta = creGuardarMeta;
+
+    /* ═══ Plataforma: consolidación de /admin en ops (fase 1) ═══
+       Bandejas operativas que vivían solo en /admin — soporte, errores del
+       sistema, leads inbound y onboarding de cuentas nuevas. Cierra los huecos
+       que la auditoría de ops marcó. Admin sigue vivo; esto lo duplica, no lo
+       reemplaza todavía. */
+    function seccionPlataforma(){
+      const P = ESTADO.plataforma;
+      if (P === 'denegado') return '<div class="panel"><p class="muted">Sin acceso a la gestión de plataforma.</p></div>';
+      if (!P) return '<p class="muted"><span class="fresh cargando"><span class="p"></span>cargando bandejas de plataforma…</span></p>';
+      return plataformaPanel(P);
+    }
+
+    const PLAT_TIPOS = { sugerencia:{l:'💡 sugerencia',c:'#9CCC3C'}, reclamo:{l:'⚠️ reclamo',c:'#e0645c'}, consulta:{l:'❓ consulta',c:'#f0b429'}, otro:{l:'· otro',c:'var(--soft)'} };
+    const PLAT_LEAD = { new:{l:'Nuevo',c:'#67e8f9'}, contactado:{l:'Contactado',c:'#f0b429'}, convertido:{l:'Convertido',c:'#9CCC3C'}, descartado:{l:'Descartado',c:'var(--soft)'} };
+
+    function plataformaPanel(P){
+      const c = P.contadores||{};
+      const soporte = P.soporte||[], errores = P.errores||[], leads = P.leads||[];
+      const tenants = ESTADO.plataformaTenants; // llega aparte (adminListarTenants)
+
+      const kpis = `<div class="pros-linea"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span class="muted" style="font-size:12px">🏢 Gestión de la plataforma — lo que antes vivía solo en /admin</span>
+          <button class="mini" onclick="cargarPlataforma(true)">↻ Refrescar</button>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><div class="n tnum">${c.soporteSinLeer||0}</div><div class="k">${tip('Soporte sin leer', 'Mensajes que los dueños de los locales enviaron desde su panel y nadie ha leído.')}</div></div>
+          <div class="kpi"><div class="n tnum">${c.erroresAbiertos||0}</div><div class="k">${tip('Errores abiertos', 'Errores técnicos capturados en los paneles y agendas de los locales, sin resolver.')}</div></div>
+          <div class="kpi"><div class="n tnum">${c.leadsNuevos||0}</div><div class="k">${tip('Leads nuevos', 'Solicitudes de demo entrantes desde empieza.synaptechspa.cl sin contactar.')}</div></div>
+          <div class="kpi"><div class="n tnum">${tenants ? tenants.filter(t=>t.status==='trial'||t.status==='trial_expired').length : '—'}</div><div class="k">${tip('Trials en curso', 'Cuentas self-service / express en periodo de prueba, candidatas a activar plan.')}</div></div>
+        </div>`;
+
+      // Soporte
+      const soporteHtml = `<div class="panel" style="margin-top:14px">
+          <h3>🛟 ${tip('Soporte de los locales', 'Bandeja unida de todos los locales: lo que sus dueños escriben desde su panel. Marca leído cuando lo atiendas.')} ${c.soporteSinLeer ? `<span style="color:var(--brand)">· ${c.soporteSinLeer} sin leer</span>` : ''}</h3>
+          ${soporte.length ? soporte.slice(0,20).map(m => { const t = PLAT_TIPOS[m.tipo]||PLAT_TIPOS.otro; return `<div style="border:1px solid ${m.leido?'var(--glass-border)':'rgba(240,180,41,.3)'};border-radius:10px;padding:9px 12px;margin-bottom:7px">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+                <b style="font-size:12px">${esc(m.tenantNombre)}</b>
+                <span style="color:${t.c};font-size:11px">${t.l}</span>
+                <span class="muted" style="font-size:10.5px">${m.creadoEn?prosHace(m.creadoEn):''}</span>
+                ${m.leido?'<span class="muted" style="font-size:10.5px;margin-left:auto">✓ leído</span>':'<span style="color:var(--brand);font-size:10.5px;margin-left:auto">● sin leer</span>'}
+              </div>
+              <div style="font-size:12.5px;color:var(--soft);line-height:1.5">${esc(m.mensaje)}</div>
+              ${!m.leido?`<button class="mini" style="margin-top:6px" onclick="platAccion('soporteLeido','${m.tenantId}','${m.id}',this)">Marcar leído</button>`:''}
+            </div>`; }).join('') : '<p class="muted" style="font-size:12px">Sin mensajes de soporte.</p>'}
+        </div>`;
+
+      // Errores
+      const erroresHtml = `<div class="panel" style="margin-top:14px">
+          <h3>🐞 ${tip('Errores del sistema', 'Errores JS capturados en los paneles/agendas de los locales (listenerError). Resolver los marca atendidos.')} ${errores.length?`<span style="color:#e0645c">· ${errores.length} abiertos</span>`:''}</h3>
+          ${errores.length ? `<div style="overflow-x:auto"><table>
+            <thead><tr><th>Cuándo</th><th>Local</th><th>Origen</th><th>Página</th><th>Error</th><th></th></tr></thead>
+            <tbody>${errores.slice(0,30).map(e => `<tr>
+              <td class="muted" style="white-space:nowrap;font-size:11px">${e.timestamp?prosHace(e.timestamp):'—'}</td>
+              <td>${e.tenantId?esc(e.tenantId):'<span class="muted">—</span>'}</td>
+              <td>${e.source==='react'?'React':'Static'}</td>
+              <td style="font-family:monospace;font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.url)}">${esc((()=>{try{return new URL(e.url).pathname}catch(_){return e.url.slice(0,30)}})())}</td>
+              <td style="max-width:240px" title="${esc(e.message)}">${esc(e.message.slice(0,70))}</td>
+              <td><button class="mini" onclick="platAccion('errorResuelto',null,'${e.id}',this)">✓ resolver</button></td>
+            </tr>`).join('')}</tbody></table></div>` : '<p class="muted" style="font-size:12px">✅ Sin errores abiertos.</p>'}
+        </div>`;
+
+      // Leads inbound
+      const leadsHtml = `<div class="panel" style="margin-top:14px">
+          <h3>📥 ${tip('Leads inbound', 'Solicitudes de demo desde empieza.synaptechspa.cl. Distinto de la Prospección saliente: acá te escribieron ellos.')} ${c.leadsNuevos?`<span style="color:var(--brand)">· ${c.leadsNuevos} nuevos</span>`:''}</h3>
+          ${leads.length ? leads.slice(0,20).map(l => { const st = PLAT_LEAD[l.status]||PLAT_LEAD.new; const tel = String(l.phone||'').replace(/\D/g,''); const next = l.status==='new'?'contactado':(l.status==='contactado'?'convertido':null);
+            return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--glass-border);border-radius:10px;padding:8px 12px;margin-bottom:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${st.c};flex:none"></span>
+              <div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(l.barberia||l.name||'Lead')}</b>${l.name&&l.barberia?` <span class="muted" style="font-size:11px">· ${esc(l.name)}</span>`:''}${l.source?` <span class="muted" style="font-size:10.5px">· ${esc(l.source)}</span>`:''}</div>
+              <span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.c}22;color:${st.c};white-space:nowrap">${st.l}</span>
+              ${tel?`<a class="mini" style="text-decoration:none" href="https://wa.me/${tel}?text=${encodeURIComponent('Hola '+(l.name||'')+', te escribo de SynapTech ✦ sobre tu solicitud para '+(l.barberia||'tu local')+'. ¿Te va una llamada corta para la demo?')}" target="_blank" rel="noopener">💬</a>`:''}
+              ${next?`<button class="mini" onclick="platAccion('leadEstado',null,'${l.id}',this,'${next}')" title="Marcar ${next}">${next==='contactado'?'✓':'★'}</button>`:''}
+            </div>`; }).join('') : '<p class="muted" style="font-size:12px">Sin leads inbound todavía.</p>'}
+        </div>`;
+
+      // Onboarding / tenants nuevos
+      const onbHtml = `<div class="panel full" style="margin-top:14px">
+          <h3>🚀 ${tip('Onboarding — cuentas nuevas', 'Cuentas self-service y express en trial o recién activadas. Desde acá activas el plan (pago fuera de MP) o extiendes el trial.')}</h3>
+          <p class="hint">Trials por vencer primero. "⚡ Activar plan" registra el pago manual; "⏱ Extender" suma días de prueba.</p>
+          ${tenants ? plataformaTenantsHtml(tenants) : '<p class="muted" style="font-size:12px"><span class="fresh cargando"><span class="p"></span>cargando cuentas…</span></p>'}
+        </div>`;
+
+      return kpis + soporteHtml + erroresHtml + leadsHtml + onbHtml;
+    }
+
+    function plataformaTenantsHtml(tenants){
+      const ORIG = new Set(['self-service','admin-express','express']);
+      const nuevos = tenants.filter(t => ORIG.has(t.origen) || t.status==='trial' || t.status==='trial_expired')
+        .sort((a,b) => (a.diasParaVencer??999) - (b.diasParaVencer??999));
+      if (!nuevos.length) return '<p class="muted" style="font-size:12px">Ninguna cuenta nueva pendiente ahora mismo.</p>';
+      const badge = (t) => {
+        const m = { trial:{t:'Trial'+(t.diasParaVencer!=null?' · '+t.diasParaVencer+'d':''),c:'#f0b429'}, trial_expired:{t:'Trial vencido',c:'#e0645c'}, active:{t:'Activo',c:'#9CCC3C'}, suspended:{t:'Suspendido',c:'var(--soft)'} }[t.status||'active'] || {t:t.status,c:'var(--soft)'};
+        if (t.status==='trial' && t.diasParaVencer!=null && t.diasParaVencer<=3) return `<span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:#e0645c22;color:#e0645c">⚠️ vence en ${t.diasParaVencer}d</span>`;
+        return `<span style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:${m.c}22;color:${m.c}">${m.t}</span>`;
+      };
+      return nuevos.map(t => { const wa = (t.contacto&&t.contacto.whatsapp)?String(t.contacto.whatsapp).replace(/\D/g,''):''; const activar = t.status==='trial'||t.status==='trial_expired';
+        return `<div style="border:1px solid var(--glass-border);border-radius:10px;padding:9px 12px;margin-bottom:7px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+          <div style="min-width:0">
+            <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:3px">
+              <b style="font-size:13px">${esc(t.nombre||t.id)}</b><span class="muted" style="font-size:10.5px">/${esc(t.id)}</span>${badge(t)}${t.refVendedor?`<span style="font-size:10px;padding:1px 6px;border-radius:999px;background:rgba(156,204,60,.12);color:var(--brand)">👤 ${esc(t.refVendedor)}</span>`:''}${t.plan?`<span class="muted" style="font-size:10px">Plan ${esc(t.plan)}</span>`:''}
+            </div>
+            <div class="muted" style="font-size:11px">👤 ${esc((t.contacto&&t.contacto.nombre)||'—')}${t.contacto&&t.contacto.email?' · ✉ '+esc(t.contacto.email):''}${t.diasDesdeAlta!=null?' · alta '+(t.diasDesdeAlta===0?'hoy':'hace '+t.diasDesdeAlta+'d'):''}</div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            ${wa?`<a class="mini" style="text-decoration:none" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬</a>`:''}
+            <a class="mini" style="text-decoration:none" href="https://${esc(t.id)}.synaptechspa.cl" target="_blank" rel="noopener">📅</a>
+            ${activar?`<button class="mini" onclick="platActivarPlan('${esc(t.id)}',this)" title="Activar plan (pago manual)">⚡ Activar</button>
+            <button class="mini" onclick="platExtenderTrial('${esc(t.id)}',this)" title="Extender trial">⏱ Extender</button>`:''}
+          </div>
+        </div>`; }).join('');
+    }
+
+    async function cargarPlataforma(fresco){
+      if (fresco) ESTADO.plataforma = null;
+      try {
+        const r = await _fn('opsPlataforma')({});
+        ESTADO.plataforma = r.data;
+      } catch(e){
+        ESTADO.plataforma = (e && /permission/i.test(e.message||'')) ? 'denegado' : null;
+        if (ESTADO.plataforma !== 'denegado') alert('No pude cargar Plataforma: ' + (e.message||e));
+      }
+      repintar('plataforma');
+      // Los tenants llegan por el callable existente de /admin; refrescan el onboarding aparte.
+      _fn('adminListarTenants')({}).then(rt => {
+        ESTADO.plataformaTenants = (rt.data && (rt.data.tenants || rt.data.items || rt.data)) || [];
+        if (Array.isArray(ESTADO.plataformaTenants)) repintar('plataforma');
+      }).catch(() => {});
+    }
+    async function platAccion(accion, tenantId, docId, btn, estado){
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try {
+        await _fn('opsPlataformaAccion')({ accion, tenantId, docId, estado });
+        await cargarPlataforma(true);
+      } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;} }
+    }
+    async function platActivarPlan(tid, btn){
+      const plan = prompt('¿Qué plan activar para '+tid+'? Escribe: basico, pro, full o anual');
+      if (!plan) return;
+      if (!['basico','pro','full','anual'].includes(plan.trim().toLowerCase())) { alert('Plan inválido.'); return; }
+      if (!confirm('Esto activa el plan '+plan+' para '+tid+' (registro de pago manual, fuera de Mercado Pago). ¿Seguir?')) return;
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try { await _fn('adminActivarPlanTenant')({ tenantId: tid, plan: plan.trim().toLowerCase() }); alert('✅ Plan activado.'); await cargarPlataforma(true); }
+      catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;} }
+    }
+    async function platExtenderTrial(tid, btn){
+      const dias = prompt('¿Cuántos días extender el trial de '+tid+'?', '7');
+      if (!dias || !Number(dias)) return;
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try { await _fn('adminExtenderTrial')({ tenantId: tid, dias: Number(dias) }); alert('✅ Trial extendido '+dias+' días.'); await cargarPlataforma(true); }
+      catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;} }
+    }
+    window.cargarPlataforma = cargarPlataforma; window.platAccion = platAccion;
+    window.platActivarPlan = platActivarPlan; window.platExtenderTrial = platExtenderTrial;
 
     /* ═══ Prospección: el agente sale a buscar (ver functions/prospeccion.js) ═══ */
 
@@ -3400,6 +3564,7 @@
       // mapa solo mueve pines (ver prosPintar).
       if (sec === 'prospeccion') prosPintar();
       if (sec === 'crecimiento') el.innerHTML = seccionCrecimiento();
+      if (sec === 'plataforma') el.innerHTML = seccionPlataforma();
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();

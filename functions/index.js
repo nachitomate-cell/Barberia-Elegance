@@ -1949,6 +1949,13 @@ exports.opsCrecimiento          = crecimientoModule.opsCrecimiento;
 exports.opsCrecimientoConfig    = crecimientoModule.opsCrecimientoConfig;
 exports.crecimientoSnapshotCron = crecimientoModule.crecimientoSnapshotCron;
 
+// Consolidación admin→ops (fase 1): bandejas de soporte, errores del sistema y
+// leads inbound, servidas a ops con un callable agregado (collectionGroup).
+// Ver functions/ops-plataforma.js.
+const opsPlataformaModule = require('./ops-plataforma');
+exports.opsPlataforma       = opsPlataformaModule.opsPlataforma;
+exports.opsPlataformaAccion = opsPlataformaModule.opsPlataformaAccion;
+
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;
