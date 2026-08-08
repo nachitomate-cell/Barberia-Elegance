@@ -356,6 +356,37 @@
   .msg{ font-size:12.5px; line-height:1.5; margin:3px 0; padding:5px 9px; border-radius:10px; white-space:pre-wrap; }
   .msg.user{ background:rgba(255,255,255,.04); }
   .msg.assistant{ background:rgba(156,204,60,.08); }
+
+  /* ── Prospección: centro de mando ─────────────────────────────────
+     El "futurismo" sale de movimiento y luz puntual (pulsos, hairlines
+     con gradiente, popups oscuros), nunca de pintar superficies con el
+     neón: la regla de los dos verdes sigue mandando. */
+  @keyframes prosPulso{
+    0%{ box-shadow:0 0 0 0 rgba(198,249,78,.55); }
+    70%{ box-shadow:0 0 0 11px rgba(198,249,78,0); }
+    100%{ box-shadow:0 0 0 0 rgba(198,249,78,0); }
+  }
+  .pros-pin{ border-radius:50%; border:2px solid rgba(255,255,255,.85); box-sizing:border-box; }
+  .pros-pin.vivo{ animation:prosPulso 1.8s ease-out infinite; }
+  .pros-embudo{ display:flex; height:36px; border-radius:10px; overflow:hidden; border:1px solid var(--glass-border); margin-top:12px; }
+  .pros-embudo>div{ display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; min-width:54px; white-space:nowrap; border-top:2px solid transparent; }
+  .pros-feed-item{ display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--hairline); font-size:12.5px; align-items:baseline; }
+  .pros-feed-item:last-child{ border-bottom:none; }
+  .pros-dot{ width:8px; height:8px; border-radius:50%; flex:none; transform:translateY(-1px); }
+  .pros-accion{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--glass-border); border-radius:10px; margin-bottom:8px; font-size:12.5px; }
+  .pros-barra{ position:relative; height:4px; border-radius:2px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:6px; }
+  .pros-barra>span{ position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#9CCC3C,#C6F94E); border-radius:2px; }
+  .pros-linea{ height:2px; background:linear-gradient(90deg,#9CCC3C,#C6F94E,transparent); border-radius:2px; margin-bottom:12px; }
+  /* Popups de Leaflet en tema propio: el globo blanco por defecto rompía
+     la estética del panel entero. */
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip{
+    background:#0F1A2B; color:#e8edf3; border:1px solid rgba(156,204,60,.35);
+    box-shadow:0 10px 28px rgba(0,0,0,.55);
+  }
+  .leaflet-popup-content{ margin:12px 14px; font-size:12.5px; line-height:1.55; }
+  .leaflet-popup-content a{ color:#9CCC3C; text-decoration:none; }
+  .leaflet-container{ background:#0A1420; }
+  .leaflet-container a.leaflet-popup-close-button{ color:#8fa0b3; }
 </style>
 </head>
 <body>
@@ -2352,11 +2383,13 @@
        los refrescos mueven pines, no vuelven a bajar los tiles. */
     function seccionProspeccion(){
       return `<div id="pros-kpis" class="full"></div>
-        <div id="pros-rend" class="full"></div>
+        <div id="pros-hoy" class="full"></div>
         <div id="pros-mapa-shell" class="full"></div>
+        <div id="pros-rend" class="full"></div>
         <div id="pros-controles" class="full"></div>
         <div id="pros-cola"></div>
         <div id="pros-borradores"></div>
+        <div id="pros-feed"></div>
         <div id="pros-reactivables"></div>
         <div id="pros-tabla" class="full"></div>`;
     }
@@ -2384,6 +2417,7 @@
         return;
       }
       pon('pros-kpis', prosKpisHtml(P));
+      pon('pros-hoy', prosHoyHtml(P));
       pon('pros-rend', prosRendimientoHtml(P));
       // El cascarón del mapa se llena UNA vez: repintarlo destruiría el
       // lienzo de Leaflet y eso es exactamente el parpadeo que se eliminó.
@@ -2392,8 +2426,10 @@
       pon('pros-controles', prosControlesHtml(P));
       pon('pros-cola', prosColaHtml(P));
       pon('pros-borradores', prosBorradoresHtml(P));
+      pon('pros-feed', prosFeedHtml(P));
       pon('pros-reactivables', prosReactivablesHtml(P));
       pon('pros-tabla', prosTablaHtml(P));
+      prosAplicarFiltro();
       pintarBadges();
       prosInitMapa(false);
     }
@@ -2401,15 +2437,98 @@
 
     function prosKpisHtml(P){
       const f = P.funnel || {};
-      return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span class="muted" style="font-size:12px">Cartera de prospección</span>
+      const enJuego = (f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0);
+      const contactados = (f.contactado||0) + (f.sin_respuesta||0) + (f.respondio||0) + (f.reunion||0);
+      // Embudo proporcional: cada tramo pesa lo que pesa de verdad, con un
+      // mínimo para que el número no desaparezca cuando el tramo va en cero.
+      const seg = (n, etiqueta, color) => `<div style="flex:${Math.max(n, 0.35)};background:${color}22;border-top-color:${color};color:${color}"><b class="tnum">${n}</b> ${etiqueta}</div>`;
+      const pctPaso = (a, b) => a ? Math.round(b / a * 100) + '%' : '—';
+      return `<div class="pros-linea"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span class="muted" style="font-size:12px">🛰 Centro de prospección — ${enJuego} negocios en juego</span>
           <span id="pros-sync" style="display:none" class="fresh cargando"><span class="p"></span>actualizando…</span>
         </div><div class="kpis">
-          <div class="kpi"><div class="n tnum">${(f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Prospectos en cartera', 'Negocios en la base de prospección, sin contar descartados ni opt-out. Se cargan del scraping (Massiel/OSM), a mano, o quedan solos cuando alguien escribe.')}</div></div>
-          <div class="kpi"><div class="n tnum">${(f.contactado||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Contactados', 'Ya recibieron al menos un toque: correo de la secuencia o DM enviado a mano desde la cola.')}</div></div>
+          <div class="kpi"><div class="n tnum">${enJuego}</div><div class="k">${tip('Prospectos en cartera', 'Negocios en la base de prospección, sin contar descartados ni opt-out. Se cargan del scraping (Massiel/OSM), a mano, o quedan solos cuando alguien escribe.')}</div></div>
+          <div class="kpi"><div class="n tnum">${contactados}</div><div class="k">${tip('Contactados', 'Ya recibieron al menos un toque: correo de la secuencia o DM enviado a mano desde la cola.')}</div></div>
           <div class="kpi"><div class="n tnum">${f.respondio||0}</div><div class="k">${tip('Respondieron', 'Contestaron por WhatsApp o Instagram después de un toque (las auto-respuestas de negocio no cuentan). El bot de ventas ya los está atendiendo.')}</div></div>
           <div class="kpi"><div class="n tnum">${f.reunion||0}</div><div class="k">${tip('Reuniones', 'Llegaron a reunión agendada o solicitada en tu agenda real. Es la meta de todo el embudo.')}</div></div>
+        </div>
+        <div class="pros-embudo" title="El embudo completo: de la calle a la reunión">
+          ${seg(f.frio||0, 'fríos', '#64748b')}
+          ${seg(contactados, 'contactados', '#f0b429')}
+          ${seg((f.respondio||0) + (f.reunion||0), 'respondieron', '#9CCC3C')}
+          ${seg(f.reunion||0, 'reunión', '#C6F94E')}
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:6px">conversión: cartera → contacto ${pctPaso(enJuego, contactados)} · contacto → respuesta ${pctPaso(contactados, (f.respondio||0) + (f.reunion||0))} · respuesta → reunión ${pctPaso((f.respondio||0) + (f.reunion||0), f.reunion||0)}</div>`;
+    }
+
+    /** Tiempo relativo corto para el feed ("hace 2 h"). */
+    function prosHace(t){
+      if (!t) return '';
+      const s = Math.max(60, Math.round((Date.now() - t) / 1000));
+      if (s < 3600)  return `hace ${Math.round(s/60)} min`;
+      if (s < 86400) return `hace ${Math.round(s/3600)} h`;
+      return `hace ${Math.round(s/86400)} d`;
+    }
+
+    /* La misión de hoy: el módulo DICE qué hacer ahora, en el orden que más
+       plata mueve — atender a los que respondieron gana siempre. */
+    function prosHoyHtml(P){
+      const ps = P.prospectos || [];
+      const activos = (p) => !['optout','descartado'].includes(p.estado);
+      const fila = (icono, texto, boton) => `<div class="pros-accion"><span>${icono} ${texto}</span>${boton || ''}</div>`;
+      const acciones = [];
+
+      const calientes = ps.filter(p => p.estado === 'respondio');
+      if (calientes.length) {
+        acciones.push(fila('🔥', `<b>${calientes.length} respondieron y esperan conversación:</b> ${calientes.slice(0,3).map(p => esc(p.negocio)).join(', ')}${calientes.length > 3 ? '…' : ''} — el bot los atiende, pero tu ojo cierra reuniones`, ''));
+      }
+      const dmListos = ps.filter(p => p.dmBorrador && activos(p)).length;
+      if (dmListos) acciones.push(fila('📸', `<b>${dmListos} DM(s) redactados</b> listos para pegar en Instagram`, `<button class="mini" onclick="prosIrA('pros-cola')">ir a la cola</button>`));
+      const correosOk = ps.filter(p => p.emailBorrador && activos(p)).length;
+      if (correosOk) acciones.push(fila('✉️', `<b>${correosOk} correo(s)</b> esperando tu OK para salir`, `<button class="mini" onclick="prosIrA('pros-borradores')">revisarlos</button>`));
+      const municion = ps.filter(p => p.estado === 'frio' && p.instagram && !p.dmBorrador).length;
+      if (!dmListos && municion) acciones.push(fila('✍️', `Cola vacía y quedan <b>${municion} fríos con Instagram</b> sin mensaje redactado`, `<button class="mini" onclick="prosGenerarDMs(this)">redactar 5</button>`));
+      const react = (P.reactivables || []).length;
+      if (react && !(P.cfg || {}).reactivacionAuto) acciones.push(fila('♻️', `<b>${react} lead(s) propios</b> llevan 7–30 días fríos y nadie los toca`, `<button class="mini" onclick="prosIrA('pros-reactivables')">verlos</button>`));
+
+      return `<div class="panel" style="margin-top:14px">
+          <h3>🎯 ${tip('Misión de hoy', 'La lista corta de lo que más conviene hacer AHORA, ordenada por impacto: primero los que ya respondieron, después despachar lo redactado, y al final generar munición nueva.')}</h3>
+          <p class="hint">El agente trabaja solo; esto es lo único que necesita de ti hoy.</p>
+          ${acciones.length ? acciones.join('') : '<p class="muted" style="font-size:12.5px">✅ Nada urgente: los motores están corriendo y no hay pendientes humanos. Vuelve más tarde o redacta munición nueva.</p>'}
         </div>`;
+    }
+
+    /* Bitácora viva: cada toque y cada avance del embudo, con hora. Se arma
+       de los datos que ya llegan al panel — cero lecturas extra. */
+    function prosFeedHtml(P){
+      const ev = [];
+      for (const p of (P.prospectos || [])) {
+        for (const t of (p.toques || [])) {
+          if (!t.en) continue;
+          ev.push({ t: t.en, color: '#f0b429', txt: `${t.tipo === 'email' ? '✉️ correo a' : '📤 DM a'} <b>${esc(p.negocio)}</b>` });
+        }
+        if (p.respondioEn) ev.push({ t: p.respondioEn, color: '#9CCC3C', txt: `💬 <b>${esc(p.negocio)}</b> respondió por ${p.respondioCanal === 'instagram' ? 'Instagram' : 'WhatsApp'}` });
+        if (p.estado === 'reunion') ev.push({ t: p.updatedAt, color: '#C6F94E', txt: `🤝 <b>${esc(p.negocio)}</b> llegó a reunión` });
+        if (p.estado === 'optout') ev.push({ t: p.updatedAt, color: '#e0645c', txt: `🔕 <b>${esc(p.negocio)}</b> pidió no recibir más` });
+        if (p.estado === 'descartado') ev.push({ t: p.updatedAt, color: '#52525b', txt: `🗑 <b>${esc(p.negocio)}</b> descartado${p.descartadoMotivo ? ': ' + esc(p.descartadoMotivo) : ''}` });
+      }
+      ev.sort((a, b) => (b.t || 0) - (a.t || 0));
+      const items = ev.slice(0, 14).map(e => `<div class="pros-feed-item">
+          <span class="pros-dot" style="background:${e.color}"></span>
+          <span style="flex:1">${e.txt}</span>
+          <span class="muted" style="font-size:10.5px;white-space:nowrap">${prosHace(e.t)}</span>
+        </div>`).join('');
+      return `<div class="panel" style="margin-top:14px">
+          <h3>📡 ${tip('Actividad en vivo', 'Todo lo que pasó en el embudo, en orden: toques enviados, respuestas, reuniones, bajas y descartes con su motivo.')}</h3>
+          ${items || '<p class="muted" style="font-size:12px">Todavía no hay movimientos. El primer DM o correo aparece aquí.</p>'}
+        </div>`;
+    }
+
+    /** Scroll suave a un panel de la pestaña (lo usa la misión de hoy). */
+    function prosIrA(id){
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* Rendimiento por palanca: tasas reales, no conteos. Lo que no se mide
@@ -2448,7 +2567,8 @@
       return `<div class="panel" style="margin-top:14px">
           <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🗺 ${tip('Mapa de la cartera', 'Cada punto es un prospecto en su dirección real. El color dice en qué va: los verdes son plata en movimiento, los grises están por tocar.')}</span><button class="mini" onclick="prosMapaFullscreen()">⛶ Pantalla completa</button></h3>
           <p class="hint">Una vista por comuna, en el mismo orden en que se trabajan. Elige la zona, haz clic en un punto para el detalle, y usa ⛶ para verlo gigante (ahí la rueda del mouse hace zoom directo). Los prospectos agregados a mano se ubican solos al guardarlos.</p>
-          <div id="pros-mapa-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div id="pros-mapa-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div>
+          <div id="pros-mapa-cobertura" style="margin-bottom:10px"></div>
           <div id="pros-mapa" style="height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--glass-border);background:var(--surface-2)"></div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11.5px" class="muted">
             <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-right:5px"></span>frío</span>
@@ -2536,8 +2656,13 @@
 
     function prosTablaHtml(P){
       const prospectos = P.prospectos || [];
+      const fe = (est, txt) => `<button class="mini" data-fe="${est}" onclick="prosFiltroEstado('${est}')">${txt}</button>`;
       return `<div class="panel" style="margin-top:14px">
-          <h3>🗂 Cartera de prospectos</h3>
+          <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🗂 Cartera de prospectos</span>
+            <input id="pros-buscar" placeholder="🔎 buscar negocio, comuna, rubro…" autocomplete="off" value="${esc(window._prosBusca || '')}" oninput="window._prosBusca=this.value;prosFiltrarTabla()" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 12px;font-size:12px;width:250px;font-weight:400"></h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px">
+            ${fe('frio', '🧊 fríos')}${fe('contactado', '📨 contactados')}${fe('respondio', '💬 respondieron')}${fe('reunion', '🤝 reunión')}${fe('descartado', '🗑 descartados')}
+          </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px">
             <input id="pros-negocio" placeholder="Negocio *" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:150px">
             <input id="pros-instagram" placeholder="@instagram" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:130px">
@@ -2548,10 +2673,10 @@
             <button class="mini" onclick="prosAgregar(this)">＋ Agregar</button>
           </div>
           <div style="overflow-x:auto"><table>
-            <thead><tr><th>Negocio</th><th>${tip('Canales', 'Por dónde se le puede llegar: 📧 correo, 📸 Instagram (DM manual), 💬 teléfono.')}</th><th>Comuna</th><th>Rubro</th><th>Estado</th><th>Toques</th><th></th></tr></thead>
-            <tbody>${prospectos.length ? prospectos.map(p => `<tr>
+            <thead><tr><th>Negocio</th><th>${tip('Canales', 'Acceso directo por canal: 📍 cómo llegar, 📸 su Instagram, 💬 WhatsApp, ✉️ correo. Lo que no aparece es porque el prospecto no lo tiene.')}</th><th>Comuna</th><th>Rubro</th><th>Estado</th><th>Toques</th><th></th></tr></thead>
+            <tbody>${prospectos.length ? prospectos.map(p => `<tr data-q="${esc(prosNorm([p.negocio, p.comuna, p.rubro, p.estado, p.instagram||''].join(' ')))}" data-estado="${esc(p.estado)}" ${p.estado === 'respondio' || p.estado === 'reunion' ? 'style="box-shadow:inset 3px 0 0 var(--brand)"' : ''}>
                 <td><b>${esc(p.negocio)}</b>${p.notas ? `<br><span class="muted" style="font-size:10.5px">${esc(String(p.notas).slice(0,80))}</span>` : ''}</td>
-                <td>${p.email ? '📧' : ''}${p.instagram ? '📸' : ''}${p.telefono ? '💬' : ''}${!p.email && !p.instagram && !p.telefono ? '<span class="muted">visita</span>' : ''}</td>
+                <td style="white-space:nowrap">${p.lat !== null ? `<a title="Cómo llegar" href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener" style="text-decoration:none">📍</a>` : ''}${p.instagram ? `<a title="@${esc(p.instagram)}" href="https://instagram.com/${esc(p.instagram)}" target="_blank" rel="noopener" style="text-decoration:none">📸</a>` : ''}${p.telefono ? `<a title="WhatsApp" href="https://wa.me/${esc(p.telefono)}" target="_blank" rel="noopener" style="text-decoration:none">💬</a>` : ''}${p.email ? `<a title="${esc(p.email)}" href="mailto:${esc(p.email)}" style="text-decoration:none">✉️</a>` : ''}${!p.email && !p.instagram && !p.telefono && p.lat === null ? '<span class="muted">visita</span>' : ''}</td>
                 <td>${esc(p.comuna||'')}</td><td>${esc(p.rubro||'')}</td>
                 <td>${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span class="muted" style="font-size:10px">${esc(p.descartadoMotivo)}</span>` : ''}</td>
                 <td class="tnum">${(p.toques||[]).length}${p.emailsEnviados ? ` <span class="muted" style="font-size:10px">(${p.emailsEnviados}✉️)</span>` : ''}</td>
@@ -2561,6 +2686,25 @@
               </tr>`).join('') : '<tr><td colspan="7" class="muted">Sin prospectos todavía. Corre los seeds (Massiel/OSM) o agrega uno arriba.</td></tr>'}</tbody>
           </table></div>
         </div>`;
+    }
+
+    /** Filtro en vivo de la cartera: busca + estado, sin repintar nada. */
+    function prosAplicarFiltro(){
+      const q = prosNorm(window._prosBusca || '');
+      const est = window._prosFiltroEstado || '';
+      document.querySelectorAll('#pros-tabla tbody tr[data-q]').forEach(tr => {
+        tr.style.display = (!q || tr.dataset.q.includes(q)) && (!est || tr.dataset.estado === est) ? '' : 'none';
+      });
+      document.querySelectorAll('#pros-tabla [data-fe]').forEach(b => {
+        const on = b.dataset.fe === est;
+        b.style.borderColor = on ? 'var(--brand)' : '';
+        b.style.color = on ? 'var(--brand)' : '';
+      });
+    }
+    function prosFiltrarTabla(){ prosAplicarFiltro(); }
+    function prosFiltroEstado(e){
+      window._prosFiltroEstado = window._prosFiltroEstado === e ? '' : e;
+      prosAplicarFiltro();
     }
 
     /* El mapa se crea UNA vez y sobrevive a los refrescos (su cascarón nunca
@@ -2602,6 +2746,16 @@
       cont.innerHTML = vistas.map(c =>
         chip(c, puntos.filter(p => prosNorm(p.comuna).includes(prosNorm(c))).length)).join('')
         + chip('todas', puntos.length);
+
+      // Cobertura de la zona elegida: cuánto de esa calle ya se tocó.
+      const cob = document.getElementById('pros-mapa-cobertura');
+      if (cob) {
+        const sel = window._prosComunaSel;
+        const zona = sel === 'todas' ? puntos : puntos.filter(p => prosNorm(p.comuna).includes(prosNorm(sel)));
+        const tocados = zona.filter(p => p.estado !== 'frio').length;
+        const pct = zona.length ? Math.round(tocados / zona.length * 100) : 0;
+        cob.innerHTML = `<span class="muted" style="font-size:11px">cobertura de ${esc(sel === 'todas' ? 'toda la cartera' : sel)}: <b class="tnum">${tocados}/${zona.length}</b> tocados (${pct}%)</span><div class="pros-barra"><span style="width:${pct}%"></span></div>`;
+      }
     }
     function prosMapaComuna(c){
       window._prosComunaSel = c;
@@ -2655,15 +2809,31 @@
       const marcadores = [];
       for (const p of puntos) {
         const color = PROS_COLORES[p.estado] || '#64748b';
-        // Los que ya se movieron (respondió/reunión) van más grandes y llenos:
-        // el mapa debe contar la historia de un vistazo.
+        // Los que ya se movieron (respondió/reunión) laten con un pulso de
+        // radar: el mapa cuenta la historia de un vistazo.
         const vivo = ['respondio','reunion','cliente'].includes(p.estado);
-        const m = L.circleMarker([p.lat, p.lng], {
-          radius: vivo ? 9 : 6, color, weight: vivo ? 3 : 1.5,
-          fillColor: color, fillOpacity: vivo ? 0.85 : 0.45,
+        const d = vivo ? 16 : 11;
+        const m = L.marker([p.lat, p.lng], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="pros-pin${vivo ? ' vivo' : ''}" style="width:${d}px;height:${d}px;background:${color};opacity:${vivo ? 1 : (p.estado === 'frio' ? 0.62 : 0.85)}"></div>`,
+            iconSize: [d, d], iconAnchor: [d/2, d/2],
+          }),
         });
-        const canales = [p.email ? '📧' : '', p.instagram ? '📸' : '', p.telefono ? '💬' : ''].join('');
-        m.bindPopup(`<b>${esc(p.negocio)}</b><br>${PROS_ESTADOS[p.estado] || esc(p.estado)}${canales ? ' · ' + canales : ''}<br><span style="font-size:11px;color:#555">${esc(p.direccion || '')}</span>${(p.toques||[]).length ? `<br><span style="font-size:11px;color:#555">${(p.toques||[]).length} toque(s)</span>` : ''}${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span style="font-size:11px;color:#555">Motivo: ${esc(p.descartadoMotivo)}</span>` : ''}`);
+        // El popup es una mini ficha de acción: llegar, escribir, mirar su IG
+        // — todo a un clic desde la calle.
+        const acciones = [
+          `<a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 Cómo llegar</a>`,
+          p.instagram ? `<a href="https://instagram.com/${esc(p.instagram)}" target="_blank" rel="noopener">📸 @${esc(p.instagram)}</a>` : '',
+          p.telefono ? `<a href="https://wa.me/${esc(p.telefono)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : '',
+          p.email ? `<a href="mailto:${esc(p.email)}">✉️ Correo</a>` : '',
+        ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+        m.bindPopup(`<b style="font-size:13px">${esc(p.negocio)}</b><br>
+          <span style="color:${color}">●</span> ${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.rubro ? ` · <span style="color:#8fa0b3">${esc(p.rubro)}</span>` : ''}<br>
+          <span style="color:#8fa0b3;font-size:11.5px">${esc(p.direccion || 'sin dirección exacta')}</span>
+          ${(p.toques||[]).length ? `<br><span style="color:#8fa0b3;font-size:11.5px">${(p.toques||[]).length} toque(s)${p.respondioEn ? ' · respondió ' + prosHace(p.respondioEn) : ''}</span>` : ''}
+          ${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span style="color:#8fa0b3;font-size:11.5px">Motivo: ${esc(p.descartadoMotivo)}</span>` : ''}
+          <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:7px">${acciones}</div>`);
         capa.addLayer(m);
         marcadores.push(m);
       }
@@ -2790,6 +2960,8 @@
     window.prosGenerarEmails = prosGenerarEmails; window.prosTestEmail = prosTestEmail;
     window.prosRescatarAhora = prosRescatarAhora; window.prosAgregar = prosAgregar;
     window.prosMapaComuna = prosMapaComuna; window.prosMapaFullscreen = prosMapaFullscreen;
+    window.prosIrA = prosIrA; window.prosFiltrarTabla = prosFiltrarTabla;
+    window.prosFiltroEstado = prosFiltroEstado;
     /* `full` para que la barra de cuenta + botón ocupe la fila completa: desde
        1280px la sección es una grilla y sin eso el botón queda encerrado en la
        primera columna, lejos del borde derecho. */
