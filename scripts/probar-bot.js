@@ -96,6 +96,17 @@ const ESCENARIOS = [
   // simple sin abrir menú de combos.
   { nombre: 'Día+hora+profesional directo', turnos: ['Hola buenas', 'Tienen disponibilidad para hoy a las 2:30?', 'Con {PROFESIONAL}', 'Corte de pelo'], pide: '{PROFESIONAL}' },
   { nombre: 'Consulta sus citas',      turnos: ['Hola, tengo una hora agendada? a qué hora era?'] },
+  // El incidente de Vilma (kronnos_limache, 08-08). Tres fallas en un chat:
+  //   · pidió "corte femenino", que Limache no tiene, y el bot le agendó un
+  //     "Corte Escolar" (el de niños) sin avisarle que no existía;
+  //   · dijo que sí CUATRO veces ("Si", "Si agendado", "Confirmo Si", "Ese
+  //     horario es perfecto") y el bot volvió a preguntar "¿Lo agendo?" cada
+  //     vez, sin llamar nunca a la herramienta;
+  //   · entre vuelta y vuelta le movía las horas ofrecidas.
+  // Terminó agendando el dueño a mano.
+  { nombre: 'Servicio de otra sede',   turnos: ['Hola, quiero un corte femenino', '{PRIMERA_HORA}', 'Sí, agéndalo'] },
+  { nombre: 'Confirma varias veces',   turnos: ['Hola, hora para hoy?', '{SERVICIO}', '{PRIMERA_HORA}', 'Si', 'Si agendado', 'Confirmo Si'] },
+  { nombre: 'Servicio ambiguo',        turnos: ['Hola, quiero un corte', '{PRIMERA_HORA}'] },
 ];
 
 // ── Detector de banderas ────────────────────────────────────────────────────
@@ -116,6 +127,11 @@ const AFIRMA_CAMBIO = /\b(qued[óo]\s+agendad|te\s+(la\s+)?agend[ée]|ya\s+(te\s
 // quedó esperando una disponibilidad que nunca se consultó.
 const DICE_REVISA   = /\bte\s+(lo\s+|la\s+)?reviso\b|d[ée]jame\s+(revisar|ver|consultar)|voy\s+a\s+(revisar|consultar)|reviso\s+(la\s+)?(agenda|disponibilidad)/i;
 const YA_PASO       = /(la\s+)?(mañana|tarde|mediodía|mediodia)\s+(de\s+hoy\s+)?ya\s+(pas[óo]|termin)/i;
+// El bucle de confirmación (incidente de Vilma, 08-08): el cliente ya dijo que
+// sí y el bot vuelve a pedirle permiso en vez de llamar a la herramienta. Es la
+// falla más cara que existe — el cliente hizo TODO bien y se queda sin hora.
+const REPIDE_CONFIRMAR = /¿\s*(lo|la|te\s+lo|te\s+la|se\s+lo)\s+agendo|¿\s*(te|se)\s+(lo|la)\s+confirmo|¿\s*confirmo\s/i;
+const CLIENTE_ACEPTO   = /\b(s[íi]|dale|confirmo|ag[ée]ndalo|agenda|as[íi]\s+est[áa]\s+bien|ese\s+horario)\b/i;
 
 function horasDeTexto(t) {
   // Solo HH:MM con separador de hora; evita capturar precios ($12.990) o fechas.
@@ -172,6 +188,12 @@ function analizar({ textos, horasOfrecidas, catalogo, escribiOk, pidioProfesiona
     .filter(p => !preciosOk.has(p) && !esTotalDeGrupo(p));
   if (preciosMal.length) {
     banderas.push({ tipo: 'precio_inventado', detalle: `$${preciosMal.join(', $')} no están en el catálogo` });
+  }
+
+  // El cliente aceptó y el bot le volvió a pedir permiso sin haber agendado.
+  if (CLIENTE_ACEPTO.test(String(textoCliente || '')) && REPIDE_CONFIRMAR.test(todo) && !escribiOk) {
+    const frase = (todo.match(REPIDE_CONFIRMAR) || [''])[0];
+    banderas.push({ tipo: 'no_cerro', detalle: `el cliente ya aceptó y volvió a preguntar "${frase.trim()}…" sin agendar` });
   }
 
   if (AFIRMA_CAMBIO.test(todo) && !escribiOk) {

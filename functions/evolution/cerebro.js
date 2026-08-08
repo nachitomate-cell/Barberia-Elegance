@@ -225,12 +225,78 @@ async function cargarEquipo(tid) {
 }
 
 /** Matchea el nombre que dijo el modelo contra un servicio real (exacto → incluye). */
+/* ── Cinturón 8: el cierre ────────────────────────────────────────────────
+   `RE_REPIDE_CONFIRMAR` es lo que el bot NO puede decir después de un sí, y
+   `clienteAcepto` es cómo la gente dice que sí por WhatsApp: casi nunca con la
+   palabra "sí" sola. Los cuatro de Vilma fueron "Si", "Si agendado",
+   "Confirmo Si" y "Ese horario es perfecto". */
+const RE_REPIDE_CONFIRMAR = /¿\s*(lo|la|los|las|te\s+lo|te\s+la|se\s+lo)\s+agend|¿\s*(te|se)\s+(lo|la)\s+confirmo|¿\s*confirmo\s|¿\s*(procedo|avanzo)\b|¿\s*(quieres|deseas)\s+que\s+(lo|la|te\s+lo|te\s+la)\s+agend/i;
+
+// Dos formas, a propósito. La palabra suelta solo cuenta si es TODO el mensaje
+// ("ya" dentro de "ya me dijiste eso" no es un sí), y las frases van con su
+// contexto. Sin `\b` al final: en JS `\b` no reconoce la vocal acentuada, así
+// que un "sí" con tilde no matcheaba.
+const RE_ACEPTA_SOLA  = /^(s[íi]|sip|sipo|ya|dale|dele|ok|okey|oka|listo|perfecto|confirmo|correcto|exacto|ag[ée]ndalo|agendalo)[\s.,!¡]*$/i;
+const RE_ACEPTA_FRASE = /(s[íi]\s+(por\s+favor|agenda|ag[ée]ndalo|confirmo|gracias|agendado|est[áa]\s+bien)|s[íi]\s*,?\s*ag[ée]ndalo|agenda\s+no\s?m[áa]s|dale\s+no\s?m[áa]s|dale\s+gracias|confirmo\s+s[íi]|as[íi]\s+est[áa]\s+bien|ese\s+horario\s+(es|est[áa])?\s*(perfecto|bien)|me\s+sirve|est[áa]\s+perfecto)/i;
+
+/** ¿El último mensaje del cliente es una aceptación de lo propuesto? */
+function clienteAcepto(texto) {
+  const t = String(texto || '').trim();
+  if (!t || t.length > 90) return false;   // un párrafo largo no es un "sí" seco
+  return RE_ACEPTA_SOLA.test(t) || RE_ACEPTA_FRASE.test(t);
+}
+
+/** Tools que ESCRIBEN: si una devuelve ok:true, el turno sí cerró algo. */
+const ESCRITURAS = new Set(['agendar_cita', 'reagendar_cita', 'cancelar_cita']);
+
+/** Servicios del catálogo que "se parecen" a lo que dijo el cliente. */
+function serviciosParecidos(servicios, nombre) {
+  const n = norm(nombre);
+  if (!n) return [];
+  return servicios.filter(s => norm(s.nombre).includes(n) || n.includes(norm(s.nombre)));
+}
+
+/** Matchea el servicio pedido contra el catálogo. Exacto primero; si no,
+ *  parcial — pero SOLO si el parcial es UNO. Ambiguo devuelve null y quien
+ *  llama tiene que preguntar.
+ *
+ *  Antes esto era un `.find()` que se quedaba con el PRIMERO de la lista, y el
+ *  orden de los docs no significa nada. En Limache "corte" a secas matcheaba
+ *  cinco servicios —Promoción Lu-Ju, Corte y Barba, Corte Bebé, Corte Escolar,
+ *  Corte Masculino— y devolvía el primero: el cliente pedía "un corte" y se
+ *  llevaba una promoción restringida, con otro precio y otra duración. Rifar el
+ *  servicio es peor que preguntar cuál. */
 function matchServicio(servicios, nombre) {
   const n = norm(nombre);
   if (!n) return null;
-  return servicios.find(s => norm(s.nombre) === n)
-      || servicios.find(s => norm(s.nombre).includes(n) || n.includes(norm(s.nombre)))
-      || null;
+  const exacto = servicios.find(s => norm(s.nombre) === n);
+  if (exacto) return exacto;
+  const parciales = serviciosParecidos(servicios, nombre);
+  return parciales.length === 1 ? parciales[0] : null;
+}
+
+/* ── Servicios de otra sede de la misma marca ──────────────────────────────
+   Kronnos Limache y Peñablanca son barberías masculinas; Kronnos Woman es el
+   local de belleza. Cuando alguien pide un servicio de mujer en una sede
+   masculina, el catálogo NO lo tiene y el bot se queda sin respuesta útil —
+   y el 08-08-2026 hizo algo peor: Vilma pidió "corte femenino" en Limache y
+   el bot le agendó un "Corte Escolar" (el de niños) sin avisarle que no
+   existía lo que pedía. El dueño tuvo que rehacer la cita a mano.
+
+   Con esto el bot deriva a la sede correcta, que además es la venta que se
+   estaba perdiendo. */
+const SEDE_HERMANA = {
+  kronnos_limache:    { patron: /femenin|mujer|dama|manicur|pedicur|u[ñn]as|depilaci|keratin|alisad|mech|tintur|color|peinad|pestan|cejas? de mujer/i,
+                        destino: 'Kronnos Woman', donde: 'Palmira Romano Sur 405, local 3 · Limache' },
+  kronnos_penablanca: { patron: /femenin|mujer|dama|manicur|pedicur|u[ñn]as|depilaci|keratin|alisad|mech|tintur|color|peinad|pestan/i,
+                        destino: 'Kronnos Woman', donde: 'Palmira Romano Sur 405, local 3 · Limache' },
+};
+
+/** Si lo pedido es de otra sede de la marca, el texto para derivar. */
+function derivarASedeHermana(tid, nombrePedido) {
+  const s = SEDE_HERMANA[tid];
+  if (!s || !nombrePedido || !s.patron.test(String(nombrePedido))) return null;
+  return ` Eso NO se hace en este local: es de ${s.destino} (${s.donde}). Díselo al cliente y derívalo ahí — NO le ofrezcas un servicio parecido de este catálogo.`;
 }
 
 /** Fecha MASTICADA para el resultado de una tool: "hoy", "mañana" o el día de
@@ -958,7 +1024,32 @@ async function ejecutarTool(name, input, ctx) {
 
     const servicios = await cargarServicios(tid);
     const svc = matchServicio(servicios, input?.servicio_nombre);
-    if (!svc) return { ok: false, motivo: 'Servicio no encontrado.', servicios_validos: servicios.map(s => s.nombre) };
+    // Cinturón anti-sustitución. Devolver "no encontrado" + la lista de válidos
+    // resultó ser una INVITACIÓN a elegir uno: el 08-08-2026 el modelo recibió
+    // ese rechazo por "corte femenino" (que Limache no tiene), eligió "Corte
+    // Escolar" de la lista y se lo agendó a la clienta como si fuera lo pedido,
+    // sin decirle nunca que no existía. Ahora el motivo lo prohíbe explícito y,
+    // si el pedido es de otra sede de la marca, deriva.
+    if (!svc) {
+      const pedido    = String(input?.servicio_nombre || '').trim();
+      const parecidos = serviciosParecidos(servicios, pedido);
+      const derivar   = derivarASedeHermana(tid, pedido);
+      if (derivar) {
+        return { ok: false, motivo: `"${pedido}" no está en el catálogo de este local.${derivar}` };
+      }
+      if (parecidos.length > 1) {
+        return {
+          ok: false,
+          motivo: `"${pedido}" coincide con ${parecidos.length} servicios del catálogo y no puedo adivinar cuál es. PREGÚNTALE al cliente cuál de estos quiere, con su precio, y vuelve a llamarme con el nombre exacto. NO elijas tú.`,
+          opciones: parecidos.map(s => `${s.nombre} — $${Number(s.precio || 0).toLocaleString('es-CL')} (${s.duracion} min)`),
+        };
+      }
+      return {
+        ok: false,
+        motivo: `"${pedido}" NO existe en este local. DÍSELO al cliente con esas palabras y muéstrale el catálogo para que elija. PROHIBIDO agendarle otro servicio "parecido" en su lugar: si pidió algo que no tenemos y le agendas otra cosa, llega al local a un servicio que nunca pidió.`,
+        servicios_validos: servicios.map(s => s.nombre),
+      };
+    }
 
     // Cinturón: servicio restringido por días (ej. una promoción de lunes a
     // jueves) JAMÁS se agenda fuera de sus días, aunque el modelo lo ofrezca.
@@ -1293,7 +1384,18 @@ function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLoc
     '- NO preguntes "¿qué servicio buscas?" más de UNA vez. Si el cliente no lo dice, o responde otra cosa (su nombre, la sucursal, para quién es), MUESTRA la lista corta del catálogo con precio y duración para que elija. Repetir la misma pregunta abierta es la forma más rápida de perder a alguien que venía a agendar.',
     '- NUNCA inventes horas libres: sácalas SIEMPRE de consultar_disponibilidad. El HORARIO DE ATENCIÓN te dice cuándo abre el local, no qué horas quedan libres.',
     '- TODA hora que devuelve consultar_disponibilidad es futura y reservable: la herramienta ya descartó lo que pasó. JAMÁS descartes una por creer que "ya pasó", y JAMÁS le digas al cliente que la mañana, el mediodía o la tarde "ya pasaron" — solo el bloque AHORA de arriba dice qué hora es. Si no quedan horas en el rango que pide, la razón es que están TOMADAS: díselo así.',
-    '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto.',
+    '- Antes de agendar, confirma con el cliente el servicio, la fecha y la hora en un mensaje corto. UNA sola vez.',
+    // El bucle de confirmación: Vilma dijo "Si", "Si agendado", "Confirmo Si" y
+    // "Ese horario es perfecto" —CUATRO veces— y el bot volvió a preguntar
+    // "¿Lo agendo?" en cada vuelta, moviéndole las horas entre mensaje y
+    // mensaje (12:30/12:45 → 12:00/12:30 → 12:30/12:45). Nunca llamó a la
+    // herramienta. Terminó agendando el dueño a mano (kronnos_limache, 08-08).
+    '- CUANDO EL CLIENTE DICE QUE SÍ, AGENDA. Cualquier señal de acuerdo —"sí", "dale", "ya", "confirmo", "agenda", "dale nomás", "dale gracias", "dale sí", "ese horario está perfecto", "así está bien"— es la orden de llamar a agendar_cita AHORA MISMO, en ese mismo turno. PROHIBIDO volver a preguntar "¿lo agendo?" o "¿te lo confirmo?" después de un sí: ya te dijo que sí. Preguntar de nuevo hace que el cliente repita el sí y la cita nunca se cree.',
+    '- NO REBOTES LAS HORAS YA OFRECIDAS. Si ya le propusiste una hora y él la aceptó, agenda ESA hora. No vuelvas a llamar a consultar_disponibilidad ni le ofrezcas un horario distinto del que acaba de aceptar: cambiarle la hora después de que dijo que sí es la forma más rápida de que se caiga la reserva. Solo vuelve a consultar si la herramienta te dice que esa hora se ocupó.',
+    '- Si son VARIAS personas y el cliente ya aceptó, agenda a TODAS de una vez (una llamada a agendar_cita por persona, seguidas). No confirmes de nuevo entre una y otra.',
+    // Falla hermana de la de arriba, mismo caso: pidió "corte femenino" (que
+    // Limache no tiene) y el bot le agendó "Corte Escolar" sin avisarle.
+    '- SERVICIO QUE NO EXISTE = SE DICE, NO SE REEMPLAZA. Si el cliente pide algo que NO está en el catálogo de arriba, díselo con claridad ("no tenemos corte femenino en este local") y muéstrale lo que sí hay. JAMÁS le agendes en su lugar un servicio "parecido", ni el más barato, ni el que creas que quiso decir: llegaría al local a un servicio que nunca pidió. Y si el nombre que dijo calza con VARIOS del catálogo (ej. "un corte" con cinco cortes distintos), pregúntale cuál — no elijas tú.',
     '- Solo llama a agendar_cita con una hora que haya salido de consultar_disponibilidad.',
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
     '- Al agendar con éxito, dale el código de la reserva y recuérdale día, hora y servicio.',
@@ -1728,6 +1830,8 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
   let yaCorregidoDia = false;   // el de horas de otro día, otra (son fallos distintos)
   let yaCorregidoAccion = false; // y el de afirmar acciones que no ocurrieron
   let yaCorregidoCocina = false; // y el de contarle al cliente cómo funciona por dentro
+  let yaCorregidoCierre = false; // y el de volver a pedir permiso después de un sí
+  let escrituraOk = false;       // ¿alguna tool de escritura devolvió ok:true en este turno?
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const resp = await client.messages.create({
       model: MODEL, max_tokens: MAX_TOKENS, system, tools: tools || TOOLS, messages,
@@ -1746,6 +1850,7 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
         // herramienta. La usa scripts/probar-bot.js para auditar qué consultó el
         // bot; en producción `ctx.traza` no existe y esto no cuesta nada.
         if (Array.isArray(ctx?.traza)) ctx.traza.push({ name: block.name, input: block.input, out });
+        if (out?.ok === true && ESCRITURAS.has(block.name)) escrituraOk = true;
         results.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(out) });
       }
       messages.push({ role: 'user', content: results });
@@ -1777,6 +1882,36 @@ async function pensarYResponder({ anthropicKey, systemFijo, systemVariable, hist
       // Reincidió: no se le manda al cliente una hora que no existe.
       logger.error(`[cerebro] ${ctx?.tid}: horas inventadas tras corregir (${inventadas.join(', ')}) — respuesta descartada`);
       return '¿Para qué día lo necesitas? Así reviso la disponibilidad exacta y te confirmo. 🙏';
+    }
+
+    // ── Cinturón 8: el cliente dijo que sí y el bot le vuelve a pedir permiso ──
+    // Vilma (kronnos_limache, 08-08) dijo "Si", "Si agendado", "Confirmo Si" y
+    // "Ese horario es perfecto" — CUATRO veces — y en cada vuelta el bot
+    // respondió "¿Lo agendo?" sin llamar nunca a la herramienta, moviéndole
+    // además las horas entre mensaje y mensaje. Terminó agendando el dueño a
+    // mano. Es la falla más cara del catálogo: el cliente hizo todo bien y se
+    // queda sin hora, y encima cree que la tiene.
+    //
+    // La regla está en el prompt desde este mismo commit y el modelo se la
+    // salta igual (verificado con scripts/probar-bot.js), así que la hace
+    // cumplir el código — misma doctrina que los cinturones 2 y 5.
+    if (!escrituraOk && RE_REPIDE_CONFIRMAR.test(finalText) && clienteAcepto(texto)) {
+      if (!yaCorregidoCierre) {
+        yaCorregidoCierre = true;
+        logCinturon(ctx?.tid, 'no_cerro');
+        logger.warn(`[cerebro] ${ctx?.tid}: volvió a pedir confirmación tras un sí — se fuerza el cierre`);
+        messages.push({ role: 'user', content:
+          'ALTO. El cliente YA te dijo que sí a lo que le propusiste. Volver a preguntarle "¿lo agendo?" hace que ' +
+          'repita el sí y la cita nunca se cree. Llama AHORA a agendar_cita con el servicio, la fecha y la hora que ' +
+          'acabas de proponerle (una llamada por persona si son varias). NO cambies la hora que él aceptó y NO ' +
+          'vuelvas a consultar disponibilidad. Si te falta un dato para agendar, pregunta SOLO ese dato. ' +
+          'Este aviso es interno: no lo menciones ni te disculpes por él.' });
+        continue;
+      }
+      // Reincidió. No se puede agendar por él, pero sí dejar de darle vueltas:
+      // se registra para que salga en las métricas del local y la respuesta
+      // sigue, que es preferible a descartarla y dejarlo sin nada.
+      logger.error(`[cerebro] ${ctx?.tid}: sigue pidiendo confirmación tras el aviso — el cliente aceptó y no se agendó`);
     }
 
     // ── Cinturón 3: horas de OTRO día ofrecidas como si fueran del día pedido ──
@@ -2459,3 +2594,10 @@ module.exports._preciosInventados    = preciosInventados;
 // (bot-oficial.js) e Instagram (instagram-reservas.js): un solo asistente,
 // misma presentación por donde sea que escriba el cliente.
 module.exports._asegurarPresentacion = asegurarPresentacion;
+// Cinturón 8 (08-08) — resolución de servicio sin adivinanzas. Para
+// scripts/test-servicio-exacto.js.
+module.exports._clienteAcepto        = clienteAcepto;
+module.exports._RE_REPIDE_CONFIRMAR  = RE_REPIDE_CONFIRMAR;
+module.exports._matchServicio        = matchServicio;
+module.exports._serviciosParecidos   = serviciosParecidos;
+module.exports._derivarASedeHermana  = derivarASedeHermana;
