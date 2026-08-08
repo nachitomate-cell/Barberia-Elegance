@@ -110,12 +110,14 @@ exports.opsTenantDetalle = onCall({ region: 'us-central1', cors: true, memory: '
   const tid = String(req.data?.tid || '').trim();
   if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
 
-  const [tdSnap, sysSnap, billSnap] = await Promise.all([
+  const [tdSnap, sysSnap, billSnap, wcfgSnap] = await Promise.all([
     db.doc(`tenants/${tid}`).get().catch(() => null),
     db.doc(`_system/${tid}`).get().catch(() => null),
     db.doc(`_billing/${tid}`).get().catch(() => null),
+    db.doc(tid === 'elegance' ? 'configuracion/wallet' : `tenants/${tid}/configuracion/wallet`).get().catch(() => null),
   ]);
   const td = tdSnap?.data() || {}, sys = sysSnap?.data() || {}, bill = billSnap?.data() || {};
+  const wcfg = wcfgSnap?.data() || {};
 
   // Barberos reales (sin espejos): un conteo barato del equipo.
   const base = tid === 'elegance' ? 'barberos' : `tenants/${tid}/barberos`;
@@ -141,6 +143,8 @@ exports.opsTenantDetalle = onCall({ region: 'us-central1', cors: true, memory: '
       status: td.status || sys.status || 'active',
       autopay: (bill.suscripcionMp && bill.suscripcionMp.status) || null,
       walletActivo: bill.walletActivo === true,
+      walletCliente: wcfg.enabled === true,
+      bioPlan: sys.bioPlan || sys[`bio_${tid}`] || null,
     },
     stats: {
       barberos: barberos.length,
@@ -186,6 +190,24 @@ exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, asyn
       adminNotas: String(req.data?.notas || '').slice(0, 2000),
       proximoContacto: String(req.data?.proximo || '').slice(0, 20),
       crmActualizadoEn: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  }
+
+  /* Wallet visible a los clientes del local (configuracion/wallet.enabled). */
+  if (accion === 'walletCliente') {
+    const tid = String(req.data?.tid || '').trim();
+    if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+    const ref = tid === 'elegance' ? db.doc('configuracion/wallet') : db.doc(`tenants/${tid}/configuracion/wallet`);
+    await ref.set({ enabled: req.data?.enabled === true }, { merge: true });
+    return { ok: true };
+  }
+
+  /* Forzar refresco en todos los paneles de los locales (global_config). */
+  if (accion === 'forceRefresh') {
+    await db.doc('_system/global_config').set({
+      forceRefreshAt: FieldValue.serverTimestamp(),
+      forceRefreshPor: String(req.auth.token?.email || ''),
     }, { merge: true });
     return { ok: true };
   }

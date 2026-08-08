@@ -2634,7 +2634,12 @@
             <button class="mini" onclick="platWizardAbrir()">➕ Crear local nuevo</button>
             <button class="mini" onclick="platCargarReferidos(this)">🎁 Referidos</button>
             <button class="mini" onclick="platAnuncioAbrir()">📢 Anuncio push</button>
+            <button class="mini" onclick="platCargarAnalytics(this)">📈 Ranking & alertas</button>
+            <button class="mini" onclick="platCargarNotif(this)">🔔 Notificaciones</button>
+            <button class="mini" onclick="platForceRefresh(this)">🔄 Refrescar todos los paneles</button>
           </div>
+          <div id="plat-analytics"></div>
+          <div id="plat-notif"></div>
           <p class="hint" style="margin-top:8px">Consolidación total: toda la gestión que vivía en /admin ya está acá.</p>
           <div id="plat-referidos"></div>
           <div id="plat-wizard"></div>
@@ -2918,6 +2923,41 @@
     }
     window.platCargarQa=platCargarQa; window.platToggleQa=platToggleQa;
 
+    /* ── Ranking & alertas, Notificaciones, Refresco global (migrados de /admin) ── */
+    async function platForceRefresh(btn){
+      if(!confirm('Forzar recarga de TODOS los paneles de los locales? (les llega la última versión al toque)')) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ await _fn('opsPlataformaAccion')({ accion:'forceRefresh' }); alert('✓ Todos los paneles recargarán.'); }
+      catch(e){ alert('Error: '+(e.message||e)); }
+      if(btn){btn.disabled=false;btn.textContent='🔄 Refrescar todos los paneles';}
+    }
+    async function platCargarAnalytics(btn){
+      const h=document.getElementById('plat-analytics'); if(!h) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳ 30 días…';}
+      try{ const r=await _fn('opsAnalytics')({}); const d=r.data;
+        h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px;margin-top:10px">
+          ${(d.alertas||[]).length?`<div style="margin-bottom:10px"><b style="font-size:12px;color:#e0645c">⚠️ Locales que cayeron fuerte</b>${d.alertas.map(a=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0"><span>${esc(a.nombre)}</span><span style="color:#e0645c">${a.prev30}→${a.ult30} citas${a.delta!=null?' ('+a.delta+'%)':''}</span></div>`).join('')}</div>`:''}
+          <b style="font-size:12px">🏆 Ranking · citas últimos 30 días</b>
+          ${(d.ranking||[]).map((r,i)=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0"><span>${i+1}. ${esc(r.nombre)}</span><span class="tnum">${r.ult30}${r.delta!=null?' <span style="color:'+(r.delta>=0?'#9CCC3C':'#e0645c')+'">'+(r.delta>=0?'+':'')+r.delta+'%</span>':''}</span></div>`).join('')}
+        </div>`;
+      }catch(e){ h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+      if(btn){btn.disabled=false;btn.textContent='📈 Ranking & alertas';}
+    }
+    async function platCargarNotif(btn){
+      const h=document.getElementById('plat-notif'); if(!h) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ const r=await _fn('opsNotifLogs')({}); const items=r.data.items||[];
+        const ic={push:'📱',email:'✉️',whatsapp:'💬'};
+        h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px;margin-top:10px">
+          <b style="font-size:12px">🔔 Últimas notificaciones (${items.length})</b>
+          <div style="max-height:240px;overflow-y:auto;margin-top:6px">
+          ${items.length?items.map(n=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-bottom:1px solid var(--hairline)"><span>${ic[n.canal]||'·'} ${esc(n.tipo||n.canal)}${n.tenantId?' · '+esc(n.tenantId):''}</span><span class="muted" style="white-space:nowrap">${n.estado==='sent'||n.estado==='ok'?'✓':n.estado==='failed'?'✕':esc(n.estado)} ${n.creadoEn?prosHace(n.creadoEn):''}</span></div>`).join(''):'<p class="muted" style="font-size:11.5px">Sin registros.</p>'}
+          </div></div>`;
+      }catch(e){ h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+      if(btn){btn.disabled=false;btn.textContent='🔔 Notificaciones';}
+    }
+    window.platForceRefresh=platForceRefresh; window.platCargarAnalytics=platCargarAnalytics; window.platCargarNotif=platCargarNotif;
+
     function platFiltrarLocales(){
       const q = prosNorm(window._platBusca||'');
       document.querySelectorAll('#plat-locales-grid [data-q]').forEach(b => {
@@ -2993,6 +3033,12 @@
         <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">💰 Facturación</p>
         <div id="plat-billing"><button class="mini" onclick="platCargarBilling('${esc(d.tid)}',this)">Ver facturación de este local</button></div>
 
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">🎫 Add-ons</p>
+        <div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;font-size:12.5px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span class="muted">Add-on Wallet · $9.990/mes</span><button class="mini" onclick="platWalletAddon('${esc(d.tid)}',${!p.walletActivo},this)">${p.walletActivo?'✓ activo · quitar':'activar'}</button></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span class="muted">Wallet visible a clientes</span><button class="mini" onclick="platTenantAccion('walletCliente','${esc(d.tid)}',{enabled:${!p.walletCliente}},this)">${p.walletCliente?'✓ visible · ocultar':'mostrar'}</button></div>
+        </div>
+
         <details style="margin-top:16px;border:1px solid rgba(224,100,92,.3);border-radius:10px;padding:8px 12px">
           <summary style="cursor:pointer;font-size:11.5px;color:#e0645c">⚠️ Zona de peligro</summary>
           <p class="hint" style="margin:8px 0">Eliminar borra el local ENTERO (agenda, clientes, equipo, facturación) sin vuelta atrás.${d.tid==='elegance'?' <b>elegance no se puede eliminar.</b>':''}</p>
@@ -3010,6 +3056,13 @@
       } catch(e){ alert('No se eliminó: '+(e.message||e)); }
     }
     window.platEliminarTenant = platEliminarTenant;
+    async function platWalletAddon(tid, activo, btn){
+      if(!confirm((activo?'Activar':'Quitar')+' el add-on Wallet ($9.990/mes) para '+tid+'?')) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ await _fn('walletActivarTenant')({ tenantId:tid, activo }); const r=await _fn('opsTenantDetalle')({tid}); platPintarDrawer(r.data); }
+      catch(e){ alert('Error: '+(e.message||e)); if(btn)btn.disabled=false; }
+    }
+    window.platWalletAddon=platWalletAddon;
 
     /* ── Staff (bloque C): lista el equipo + crea accesos reusando el callable
        superadminCrearStaff de /admin (crea la cuenta Auth + doc barbero). */
@@ -3025,7 +3078,9 @@
       h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px">
           ${staff.length?staff.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--hairline)">
             <div style="min-width:0"><b style="font-size:12.5px">${esc(m.nombre||'(sin nombre)')}</b><br><span class="muted" style="font-size:10.5px">${esc(m.email||'')}</span></div>
-            <span style="font-size:10.5px;white-space:nowrap">${PLAT_ROL[m.rol]||esc(m.rol)}</span>
+            <select onchange="platCambiarRol('${esc(m.id)}',this.value,this)" style="background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:7px;padding:3px 6px;font-size:11px">
+              ${[['barbero','✂️ barbero'],['admin','👑 admin'],['recepcion','🛎 recepción']].map(([v,l])=>`<option value="${v}" ${((m.rol||'barbero').startsWith(v.slice(0,5))?'selected':'')}>${l}</option>`).join('')}
+            </select>
           </div>`).join(''):'<p class="muted" style="font-size:12px">Sin equipo cargado.</p>'}
           <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--brand)">＋ Crear acceso</summary>
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
@@ -3052,7 +3107,14 @@
       } catch(e){ if(fb){fb.style.color='#e0645c';fb.textContent='Error: '+(e.message||e);} }
       if(btn) btn.disabled=false;
     }
-    window.platCargarStaff=platCargarStaff; window.platCrearStaff=platCrearStaff;
+    async function platCambiarRol(docId, rolSel, el){
+      const rol = rolSel==='recepcion'?'recepcion':rolSel==='admin'?'admin':'barbero';
+      const atiende = rol==='barbero';
+      if(el) el.disabled=true;
+      try{ await _fn('superadminActualizarStaff')({ tenantId:window._platStaffTid, docId, rol, atiende }); platCargarStaff(window._platStaffTid); }
+      catch(e){ alert('Error: '+(e.message||e)); if(el) el.disabled=false; }
+    }
+    window.platCargarStaff=platCargarStaff; window.platCrearStaff=platCrearStaff; window.platCambiarRol=platCambiarRol;
 
     /* ── WhatsApp (bloque D): estado + plan. Los chips/bolsas avanzados (tocan
        las sesiones anti-bloqueo de clientes reales) siguen en /admin. */

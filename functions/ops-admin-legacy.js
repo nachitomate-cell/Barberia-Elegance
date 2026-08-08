@@ -199,6 +199,58 @@ exports.opsIngresos = onCall({ region: 'us-central1', cors: true, memory: '512Mi
   };
 });
 
+/* ═══════════════ Notificaciones: log global de push/email/WhatsApp ═══════════════ */
+
+exports.opsNotifLogs = onCall({ region: 'us-central1', cors: true, timeoutSeconds: 60 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const canal = String(req.data?.canal || '');   // '', 'push', 'email', 'whatsapp'
+  let q = db.collection('notification_logs').orderBy('createdAt', 'desc').limit(60);
+  const snap = await q.get().catch(() => ({ docs: [] }));
+  const items = snap.docs.map((d) => {
+    const v = d.data() || {};
+    return {
+      id: d.id, canal: v.canal || v.channel || '?', tipo: v.tipo || v.type || '',
+      tenantId: v.tenantId || null, estado: v.estado || v.status || '?',
+      destino: v.to || v.destino || '', creadoEn: tsMs(v.createdAt) || null,
+    };
+  }).filter((x) => !canal || x.canal === canal);
+  return { ok: true, items };
+});
+
+/* ═══════════════ Analytics: ranking de locales + alertas tempranas ═══════════════
+   Ranking por citas de los últimos 30 días; alertas de locales que cayeron
+   fuerte vs el mes anterior. Réplica de loadAnalytics (admin). */
+
+exports.opsAnalytics = onCall({ region: 'us-central1', cors: true, memory: '1GiB', timeoutSeconds: 300 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const now = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const hace30 = iso(new Date(now.getTime() - 30 * 86400000));
+  const hace60 = iso(new Date(now.getTime() - 60 * 86400000));
+  const tids = await idsDeTenants();
+
+  const filas = await Promise.allSettled(tids.map(async (tid) => {
+    const snap = await col(tid, 'citas').where('fecha', '>=', hace60).get().catch(() => ({ docs: [] }));
+    const citas = snap.docs.map((d) => d.data());
+    const ult30 = citas.filter((c) => c.fecha >= hace30 && !String(c.estado || '').toLowerCase().startsWith('cancelad')).length;
+    const prev30 = citas.filter((c) => c.fecha >= hace60 && c.fecha < hace30 && !String(c.estado || '').toLowerCase().startsWith('cancelad')).length;
+    const t = (await db.doc(`tenants/${tid}`).get().catch(() => null))?.data() || {};
+    return { tid, nombre: t.nombre || tid, ult30, prev30, delta: prev30 > 0 ? Math.round((ult30 - prev30) / prev30 * 100) : null };
+  }));
+
+  const ranking = filas.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    .sort((a, b) => b.ult30 - a.ult30);
+  // Alertas: locales que venían con actividad y cayeron ≥40% (o a cero).
+  const alertas = ranking.filter((r) => r.prev30 >= 5 && (r.ult30 === 0 || (r.delta !== null && r.delta <= -40)))
+    .map((r) => ({ tid: r.tid, nombre: r.nombre, ult30: r.ult30, prev30: r.prev30, delta: r.delta }));
+
+  return { ok: true, ranking: ranking.slice(0, 20), alertas };
+});
+
 /* ═══════════════ Programa de referidos B2B (migrado de /admin) ═══════════════
    Modelo: _referrals/{champTid}/referidos/{referredTid}. */
 
