@@ -25,6 +25,18 @@
  * Sale con 1 si algún tenant CON equipo público tiene servicios sin cobertura.
  * Un tenant sin equipo público se reporta como aviso (setup incompleto), no
  * como falla: es otro problema y taparía el que este guard busca.
+ *
+ * Segundo pase (08-08-2026) — "marca sin efecto": el servicio tiene cobertura
+ * pero alguien lo marcó en su ficha de Equipo y la restricción del servicio lo
+ * excluye igual. Es el mismo choque de dos editores visto desde la otra punta,
+ * y el pase de arriba NO lo ve porque el servicio sí tiene a alguien. Mordió en
+ * kronnos_woman: Nicole entró el 07-08 con 37 de 43 marcados, las restricciones
+ * eran de cuando el local tenía 2 personas y la pública la ofrecía en 3
+ * servicios. Cerró la semana con 0 citas y nada en los logs.
+ *
+ * Va como AVISO, no como falla: reservar un servicio a un maestro y marcarlo
+ * igual en la ficha del resto es una configuración legítima. Se arregla con
+ * `node scripts/sync-restricciones-barbero.js <tenant> <barberoId> --apply`.
  */
 const path = require('path');
 
@@ -54,7 +66,7 @@ function esPublico(b, tid) {
     ? SOLO
     : (await db.collection('tenants').listDocuments()).map(r => r.id);
 
-  let fallas = 0, avisos = 0;
+  let fallas = 0, avisos = 0, anuladas = 0;
   for (const tid of tids.sort()) {
     const t = db.collection('tenants').doc(tid);
     const [bs, ss] = await Promise.all([
@@ -88,9 +100,29 @@ function esPublico(b, tid) {
     } else {
       console.log(`✅ ${tid.padEnd(22)} ${servicios.length} servicios cubiertos · equipo público: ${equipo.length}`);
     }
+
+    // Segundo pase: marcas de Equipo que la restricción del servicio anula.
+    // Solo mira a quien TIENE lista propia — sin `serviciosIds` no marcó nada
+    // y no hay intención que contradecir.
+    for (const b of equipo) {
+      if (!Array.isArray(b.serviciosIds) || !b.serviciosIds.length) continue;
+      const muertas = servicios.filter(d => {
+        if (!b.serviciosIds.map(String).includes(d.id)) return false;
+        const restr = Array.isArray(d.data().barberosDisponibles) ? d.data().barberosDisponibles.map(String) : [];
+        return restr.length > 0 && !restr.includes(String(b.id));
+      });
+      if (!muertas.length) continue;
+      anuladas++;
+      console.log(`   ⚠ ${(b.nombre || b.id)}: ${muertas.length} servicio(s) marcados en Equipo que NO se le ofrecen (restricción del servicio manda)`);
+      console.log(`      ${muertas.slice(0, 8).map(d => d.data().nombre || d.id).join(' · ')}${muertas.length > 8 ? ` · +${muertas.length - 8} más` : ''}`);
+      console.log(`      arreglo: node scripts/sync-restricciones-barbero.js ${tid} ${b.id} --apply`);
+    }
   }
 
   console.log('');
+  if (anuladas) {
+    console.log(`⚠️  ${anuladas} profesional(es) con marcas de Equipo anuladas por la restricción del servicio (ver arriba).`);
+  }
   if (fallas) {
     console.log(`🚩 ${fallas} tenant(s) con servicios huérfanos: el paso 2 del wizard queda vacío para esos servicios.`);
     process.exit(1);

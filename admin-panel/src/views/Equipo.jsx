@@ -2624,6 +2624,26 @@ export default function Equipo() {
               const ids = servicios.map(s => s.id);
               const sel = form.serviciosIds || [];
               const todos = ids.length > 0 && ids.every(id => sel.includes(id));
+              // Estas casillas NO son la última palabra. Un servicio puede
+              // restringirse por su cuenta (Servicios → "Disponibilidad por
+              // barbero" → `barberosDisponibles`) y esa lista GANA:
+              // `_haceElServicio` la mira primero y solo cae a `serviciosIds`
+              // cuando el servicio no restringe. Marcar acá algo restringido a
+              // otra persona no hace absolutamente nada.
+              //
+              // Hasta el 08-08 eso pasaba en silencio: se marcaba, se guardaba
+              // sin error y la reserva pública seguía sin ofrecerlo. Mordió en
+              // kronnos_woman — Nicole entró con 37 de 43 servicios marcados y
+              // la pública la ofrecía en 3, los únicos sin restricción; cerró
+              // la semana con 0 citas. El guard `npm run check:cobertura` no lo
+              // caza porque los servicios sí tenían a alguien (Ernesto).
+              const miId = editing?.id ? String(editing.id) : null;
+              const sinEfecto = s => {
+                const restr = Array.isArray(s.barberosDisponibles) ? s.barberosDisponibles.map(String) : [];
+                if (!restr.length) return false;
+                return !miId || !restr.includes(miId);   // sin id todavía (alta nueva) = fuera de toda restricción
+              };
+              const anulados = servicios.filter(s => sel.includes(s.id) && sinEfecto(s));
               // Agrupados por categoría, como AgendaPro: con 14+ servicios una
               // lista plana no se lee. Los que no tienen categoría caen en
               // "Servicios", que es lo que la mayoría tiene hoy.
@@ -2647,6 +2667,28 @@ export default function Equipo() {
                     <span className="flex-1 text-sm font-bold text-primary">Seleccionar todo</span>
                     <span className="text-[11px] tabular-nums text-slate-500">{sel.length}/{ids.length}</span>
                   </label>
+
+                  {/* Las marcas que el servicio anula. Se avisa acá, en el
+                      mismo lugar donde se marcan, porque el dueño no tiene
+                      cómo saber que el otro editor le gana. */}
+                  {anulados.length > 0 && (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                      <p className="text-[11px] font-bold text-amber-300">
+                        ⚠ {anulados.length === 1
+                          ? '1 servicio marcado NO se le va a ofrecer'
+                          : `${anulados.length} servicios marcados NO se le van a ofrecer`}
+                      </p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-amber-200/70">
+                        {miId
+                          ? <>Están reservados a otras personas en <strong>Servicios → &ldquo;Disponibilidad por barbero&rdquo;</strong>, y esa lista manda sobre estas casillas. Para que aparezca en la reserva, agrégalo ahí.</>
+                          : <>Están reservados a personas específicas en <strong>Servicios → &ldquo;Disponibilidad por barbero&rdquo;</strong>. Crea primero al miembro y después agrégalo ahí.</>}
+                      </p>
+                      <p className="mt-1.5 text-[10px] leading-relaxed text-amber-200/50">
+                        {anulados.slice(0, 6).map(s => s.nombre).join(' · ')}
+                        {anulados.length > 6 ? ` · +${anulados.length - 6} más` : ''}
+                      </p>
+                    </div>
+                  )}
 
                   {Object.entries(grupos).map(([grupo, items]) => {
                     const gIds = items.map(s => s.id);
@@ -2679,6 +2721,12 @@ export default function Equipo() {
                                 className="h-3.5 w-3.5 shrink-0 accent-emerald-500"
                               />
                               <span className="min-w-0 flex-1 truncate text-[12.5px] text-slate-200">{s.nombre}</span>
+                              {sel.includes(s.id) && sinEfecto(s) && (
+                                <span
+                                  title="Este servicio está reservado a otras personas en Servicios → Disponibilidad por barbero. Mientras siga así, esta marca no tiene efecto."
+                                  className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300"
+                                >sin efecto</span>
+                              )}
                               {s.duracion && <span className="shrink-0 text-[10px] text-slate-500">{s.duracion}m</span>}
                             </label>
                           ))}
