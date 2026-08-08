@@ -1427,37 +1427,21 @@
     } catch (_) {}
   }
 
-  // Si llega por URL, persistir en sessionStorage para esta pestaña
-  if (tenantId && _tenants[tenantId]) {
-    try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
-  }
-
-  // Fallback: dominio configurado
-  if (!tenantId || !_tenants[tenantId]) {
-    tenantId = _domainMap[window.location.hostname.toLowerCase()] || '';
-  }
-
-  // Fallback: sessionStorage (navegar entre páginas del panel sin perder el tenant)
-  if (!tenantId || !_tenants[tenantId]) {
-    try { tenantId = sessionStorage.getItem('saas_current_tenant') || ''; } catch (_) {}
-  }
-
-  // ── Self-service FUERA de su subdominio (último eslabón, pre-Elegance) ──
+  // ── Self-service FUERA de su subdominio ────────────────────────────────
   // La app de las tiendas (app.synaptechspa.cl) redirige al staff a
   // agenda.html?local=<slug>. En ese host el middleware NO inyecta
   // __TENANT_CONFIG__ (solo lo hace por subdominio), así que un slug
   // self-service no estaba en _tenants y el pipeline caía a Elegance:
   // marca de OTRO local y —peor— colecciones de otro tenant, con lo que el
-  // barbero real "no existía" (bug 07-08). Registramos el slug con branding
-  // neutro SynapTech (los QUERIES van al tenant correcto desde el primer
-  // momento) y el branding real se hidrata async desde el doc raíz público
-  // tenants/{slug} — el mismo que lee el middleware, con el mismo contrato.
-  // Va DESPUÉS de todos los fallbacks: la redirección interna de agenda.html
-  // a /agenda/{barberoId} pierde el ?local= y el slug reaparece recién desde
-  // sessionStorage — si esto corriera solo para el query param, la segunda
-  // carga caía a Elegance igual.
-  if (tenantId && !_tenants[tenantId] && /^[a-z0-9][a-z0-9_-]{1,40}$/.test(tenantId)) {
-    (function (_slugDyn) {
+  // barbero real "no existía" (bug 07-08). Esta función registra el slug con
+  // branding neutro SynapTech (los QUERIES van al tenant correcto desde el
+  // primer momento) y el branding real se hidrata async desde el doc raíz
+  // público tenants/{slug} — el mismo que lee el middleware, mismo contrato.
+  // Se aplica en DOS puntos de la cadena de resolución (ver más abajo).
+  var _esSlugDinamico = function (s) {
+    return !!s && !_tenants[s] && /^[a-z0-9][a-z0-9_-]{1,40}$/.test(s);
+  };
+  function _registrarTenantDinamico(_slugDyn) {
       _tenants[_slugDyn] = {
         categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
         nombre:          'Mi Local',
@@ -1513,12 +1497,36 @@
           try { if (typeof window._aplicarBranding === 'function') window._aplicarBranding(); } catch (_) {}
         }).catch(function () { /* branding neutro se queda — los datos ya van bien */ });
       } catch (_) {}
-    })(tenantId);
   }
 
-  // Persistir la elección — incluye el slug dinámico recién registrado, así
-  // la redirección interna a /agenda/{barberoId} (que pierde el ?local=) lo
-  // recupera desde sessionStorage y vuelve a caer en este mismo registro.
+  // Punto 1 — ?local= con slug self-service: registrarlo ANTES de los
+  // fallbacks. Sin esto, sessionStorage con OTRO tenant conocido PISABA al
+  // slug de la URL (08-08: session traía sionbarberia, ?local=practica se
+  // perdía → marca y colecciones de otro local + loop de redirects del
+  // ruteo por claims de agenda.html).
+  if (_esSlugDinamico(tenantId)) _registrarTenantDinamico(tenantId);
+
+  // Si llega por URL, persistir en sessionStorage para esta pestaña
+  if (tenantId && _tenants[tenantId]) {
+    try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
+  }
+
+  // Fallback: dominio configurado
+  if (!tenantId || !_tenants[tenantId]) {
+    tenantId = _domainMap[window.location.hostname.toLowerCase()] || '';
+  }
+
+  // Fallback: sessionStorage (navegar entre páginas del panel sin perder el tenant)
+  if (!tenantId || !_tenants[tenantId]) {
+    try { tenantId = sessionStorage.getItem('saas_current_tenant') || ''; } catch (_) {}
+  }
+
+  // Punto 2 — el slug recuperado de sessionStorage también puede ser
+  // self-service: la redirección interna a /agenda/{barberoId} pierde el
+  // ?local= y el slug solo sobrevive en la sesión de la pestaña.
+  if (_esSlugDinamico(tenantId)) _registrarTenantDinamico(tenantId);
+
+  // Persistir la elección final (incluye el slug dinámico recién registrado)
   if (tenantId && _tenants[tenantId]) {
     try { sessionStorage.setItem('saas_current_tenant', tenantId); } catch (_) {}
   }
