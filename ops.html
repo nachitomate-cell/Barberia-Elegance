@@ -377,16 +377,19 @@
   .pros-barra{ position:relative; height:4px; border-radius:2px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:6px; }
   .pros-barra>span{ position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#9CCC3C,#C6F94E); border-radius:2px; }
   .pros-linea{ height:2px; background:linear-gradient(90deg,#9CCC3C,#C6F94E,transparent); border-radius:2px; margin-bottom:12px; }
-  /* Popups de Leaflet en tema propio: el globo blanco por defecto rompía
-     la estética del panel entero. */
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip{
+  /* Popups de Leaflet en tema propio. OJO especificidad: leaflet.css carga
+     DESPUÉS de este bloque (va junto a los scripts del body), así que estas
+     reglas llevan el prefijo .leaflet-container para ganarle — sin él, el
+     globo salía blanco (mordió el 08-08). */
+  .leaflet-container .leaflet-popup-content-wrapper, .leaflet-container .leaflet-popup-tip{
     background:#0F1A2B; color:#e8edf3; border:1px solid rgba(156,204,60,.35);
     box-shadow:0 10px 28px rgba(0,0,0,.55);
   }
-  .leaflet-popup-content{ margin:12px 14px; font-size:12.5px; line-height:1.55; }
-  .leaflet-popup-content a{ color:#9CCC3C; text-decoration:none; }
+  .leaflet-container .leaflet-popup-content{ margin:12px 14px; font-size:12.5px; line-height:1.55; }
+  .leaflet-container .leaflet-popup-content a{ color:#9CCC3C; text-decoration:none; }
   .leaflet-container{ background:#0A1420; }
   .leaflet-container a.leaflet-popup-close-button{ color:#8fa0b3; }
+  .leaflet-container .leaflet-popup-content input{ font-family:inherit; }
 </style>
 </head>
 <body>
@@ -2387,6 +2390,7 @@
         <div id="pros-mapa-shell" class="full"></div>
         <div id="pros-rend" class="full"></div>
         <div id="pros-controles" class="full"></div>
+        <div id="pros-reuniones" class="full"></div>
         <div id="pros-cola"></div>
         <div id="pros-borradores"></div>
         <div id="pros-feed"></div>
@@ -2423,6 +2427,7 @@
       // lienzo de Leaflet y eso es exactamente el parpadeo que se eliminó.
       if (!document.getElementById('pros-mapa')) pon('pros-mapa-shell', prosMapaHtml());
       prosPintarChipsComuna();
+      pon('pros-reuniones', prosReunionesHtml(P));
       pon('pros-controles', prosControlesHtml(P));
       pon('pros-cola', prosColaHtml(P));
       pon('pros-borradores', prosBorradoresHtml(P));
@@ -2439,10 +2444,22 @@
       const f = P.funnel || {};
       const enJuego = (f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0);
       const contactados = (f.contactado||0) + (f.sin_respuesta||0) + (f.respondio||0) + (f.reunion||0);
-      // Embudo proporcional: cada tramo pesa lo que pesa de verdad, con un
-      // mínimo para que el número no desaparezca cuando el tramo va en cero.
-      const seg = (n, etiqueta, color) => `<div style="flex:${Math.max(n, 0.35)};background:${color}22;border-top-color:${color};color:${color}"><b class="tnum">${n}</b> ${etiqueta}</div>`;
+      /* Tramos IGUALES, no proporcionales: con 72 fríos y 2 contactados la
+         versión proporcional aplastaba los tramos chicos hasta lo ilegible
+         (mordió el 08-08). El peso lo dice el número, no el ancho. */
+      const seg = (n, etiqueta, color, explica) => `<div style="flex:1;background:${color}1f;border-top-color:${color}">
+          <b class="tnum" style="color:${color};font-size:15px">${n}</b>&nbsp;${tip(etiqueta, explica)}</div>`;
       const pctPaso = (a, b) => a ? Math.round(b / a * 100) + '%' : '—';
+
+      /* Distinción por canal: por dónde se tocó a cada uno y por dónde
+         contestaron — un prospecto puede tener toques en varios canales. */
+      const ps = P.prospectos || [];
+      const respondioYa = (p) => ['respondio','reunion','cliente'].includes(p.estado);
+      const dmT = ps.filter(p => p.dmEnviadoEn);
+      const emT = ps.filter(p => (p.emailsEnviados||0) > 0);
+      const canalCard = (icono, nombre, tocados, resp, extra) => `<div style="flex:1;min-width:170px;border:1px solid var(--glass-border);border-radius:10px;padding:8px 12px;font-size:11.5px">
+          <b>${icono} ${nombre}</b><br><span class="muted">${tocados} tocados · <span style="color:var(--brand)">${resp} respondieron</span>${tocados ? ` (${Math.round(resp/tocados*100)}%)` : ''}${extra ? ' · ' + extra : ''}</span></div>`;
+
       return `<div class="pros-linea"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span class="muted" style="font-size:12px">🛰 Centro de prospección — ${enJuego} negocios en juego</span>
@@ -2454,12 +2471,17 @@
           <div class="kpi"><div class="n tnum">${f.reunion||0}</div><div class="k">${tip('Reuniones', 'Llegaron a reunión agendada o solicitada en tu agenda real. Es la meta de todo el embudo.')}</div></div>
         </div>
         <div class="pros-embudo" title="El embudo completo: de la calle a la reunión">
-          ${seg(f.frio||0, 'fríos', '#64748b')}
-          ${seg(contactados, 'contactados', '#f0b429')}
-          ${seg((f.respondio||0) + (f.reunion||0), 'respondieron', '#9CCC3C')}
-          ${seg(f.reunion||0, 'reunión', '#C6F94E')}
+          ${seg(f.frio||0, 'fríos', '#64748b', 'Todavía sin ningún toque. La munición de la calle y de los canales.')}
+          ${seg(contactados, 'contactados', '#f0b429', 'Con al menos un toque encima (DM, correo o visita marcada).')}
+          ${seg((f.respondio||0) + (f.reunion||0), 'respondieron', '#9CCC3C', 'Con respuesta HUMANA después del toque; los auto-reply de negocio no cuentan.')}
+          ${seg(f.reunion||0, 'reunión', '#C6F94E', 'La meta: hora tomada de verdad en tu agenda.')}
         </div>
-        <div class="muted" style="font-size:11px;margin-top:6px">conversión: cartera → contacto ${pctPaso(enJuego, contactados)} · contacto → respuesta ${pctPaso(contactados, (f.respondio||0) + (f.reunion||0))} · respuesta → reunión ${pctPaso((f.respondio||0) + (f.reunion||0), f.reunion||0)}</div>`;
+        <div class="muted" style="font-size:11px;margin:6px 0 10px">conversión: cartera → contacto ${pctPaso(enJuego, contactados)} · contacto → respuesta ${pctPaso(contactados, (f.respondio||0) + (f.reunion||0))} · respuesta → reunión ${pctPaso((f.respondio||0) + (f.reunion||0), f.reunion||0)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${canalCard('📸', 'DM Instagram', dmT.length, dmT.filter(respondioYa).length, '')}
+          ${canalCard('✉️', 'Correo', emT.length, emT.filter(respondioYa).length, `${ps.reduce((a,p)=>a+(p.emailsEnviados||0),0)} enviados`)}
+          ${canalCard('💬', 'Respuestas entrantes', ps.filter(p=>p.respondioCanal).length, ps.filter(p=>p.respondioCanal).length, `${ps.filter(p=>p.respondioCanal==='whatsapp').length} por WA · ${ps.filter(p=>p.respondioCanal==='instagram').length} por IG`)}
+        </div>`;
     }
 
     /** Tiempo relativo corto para el feed ("hace 2 h"). */
@@ -2581,6 +2603,61 @@
         </div>`;
     }
 
+    /* Reuniones REALES desde la pestaña: toman candado en la agenda de
+       Ignacio (misma cañería que las del bot) y disparan el recordatorio de
+       las 08:30 por correo + WhatsApp el día antes y el mismo día. */
+    function prosReunionesHtml(P){
+      const reuniones = P.reuniones || [];
+      const activos = (P.prospectos || []).filter(p => !['optout','descartado'].includes(p.estado));
+      const filas = reuniones.map(r => `<div class="pros-accion" style="margin-bottom:6px">
+          <span>${r.esHoy ? '<b style="color:var(--neon)">HOY</b> · ' : ''}<b>${esc(r.hablada)}</b> a las <b class="tnum">${esc(r.hora)}</b> ${r.canal === 'presencial' ? '🏪' : r.canal === 'online' ? '💻' : '🤖'} <b>${esc(r.negocio || r.nombre || r.contacto)}</b>${r.nombre && r.negocio ? ` · ${esc(r.nombre)}` : ''}${r.notas ? ` <span class="muted" style="font-size:11px">— ${esc(String(r.notas).slice(0, 70))}</span>` : ''}</span>
+          <button class="mini" title="Cancela la reunión y libera la hora" onclick="prosReunionCancelar('${esc(r.contacto)}',this)">✖</button>
+        </div>`).join('');
+      const inp = (id, ph, w, extra) => `<input id="${id}" placeholder="${ph}" autocomplete="off" ${extra || ''} style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:${w}">`;
+      return `<div class="panel" style="margin-top:14px">
+          <h3>🤝 ${tip('Reuniones', 'Las reuniones toman una hora REAL en tu agenda (nadie más puede quedar ahí, ni el bot). El recordatorio con las características sale a las 08:30 por correo y WhatsApp, el día antes y el mismo día.')}</h3>
+          <p class="hint">Agenda online o presencial con cualquier prospecto (o con quien tú quieras). Aquí aparecen TODAS las próximas: las tuyas y las que cierra el bot.</p>
+          ${filas || '<p class="muted" style="font-size:12px">Sin reuniones agendadas por delante.</p>'}
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center">
+            ${inp('pros-reu-prospecto', 'negocio o nombre…', '170px', 'list="pros-dl"')}
+            <datalist id="pros-dl">${activos.map(p => `<option value="${esc(p.negocio)}">`).join('')}</datalist>
+            <input id="pros-reu-fecha" type="date" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:5px 8px;font-size:12px">
+            <input id="pros-reu-hora" type="time" step="1800" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:5px 8px;font-size:12px">
+            <select id="pros-reu-tipo" style="background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 8px;font-size:12px">
+              <option value="online">💻 online</option><option value="presencial">🏪 presencial</option>
+            </select>
+            ${inp('pros-reu-detalle', 'link de Meet o dirección…', '190px', '')}
+            ${inp('pros-reu-notas', 'notas (qué mostrar, contexto)…', '200px', '')}
+            <button class="mini" onclick="prosReunionCrear(this)">📅 Agendar</button>
+          </div>
+        </div>`;
+    }
+    async function prosReunionCrear(btn){
+      const v = (i) => ((document.getElementById(i) || {}).value || '').trim();
+      const fecha = v('pros-reu-fecha'), hora = v('pros-reu-hora');
+      if (!fecha || !hora) { alert('Falta la fecha o la hora.'); return; }
+      const quien = v('pros-reu-prospecto');
+      const p = ((ESTADO.prospeccion || {}).prospectos || []).find(x => prosNorm(x.negocio) === prosNorm(quien));
+      await prosOcupado(btn, 'tomando la hora…', async () => {
+        try {
+          const r = await _fn('prospeccionAccion')({
+            accion: 'reunionCrear', id: p ? p.id : null,
+            negocio: p ? '' : quien, fecha, hora: hora.slice(0, 5),
+            tipo: v('pros-reu-tipo') || 'online', detalle: v('pros-reu-detalle'), notas: v('pros-reu-notas'),
+          });
+          alert('📅 Reunión tomada: ' + ((r.data || {}).cuando || `${fecha} ${hora}`));
+          await refrescarProspeccion(false);
+        } catch(e){ alert('No se pudo: ' + (e.message || e)); }
+      });
+    }
+    async function prosReunionCancelar(contacto, btn){
+      if (!confirm('¿Cancelar esta reunión y liberar la hora?')) return;
+      await prosOcupado(btn, '…', async () => {
+        try { await _fn('prospeccionAccion')({ accion: 'reunionCancelar', contacto }); await refrescarProspeccion(false); }
+        catch(e){ alert('Error: ' + (e.message || e)); }
+      });
+    }
+
     function prosControlesHtml(P){
       const cfg = P.cfg || {}, cuota = P.cuotaHoy || {};
       const sw = (campo, on, txt, explica) => `<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer">
@@ -2663,19 +2740,19 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px">
             ${fe('frio', '🧊 fríos')}${fe('contactado', '📨 contactados')}${fe('respondio', '💬 respondieron')}${fe('reunion', '🤝 reunión')}${fe('descartado', '🗑 descartados')}
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px">
-            <input id="pros-negocio" placeholder="Negocio *" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:150px">
-            <input id="pros-instagram" placeholder="@instagram" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:130px">
-            <input id="pros-email" placeholder="email" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:170px">
-            <input id="pros-telefono" placeholder="teléfono 569…" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:120px">
-            <input id="pros-comuna" placeholder="comuna" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
-            <input id="pros-rubro" placeholder="rubro" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
-            <button class="mini" onclick="prosAgregar(this)">＋ Agregar</button>
-          </div>
+          <details style="margin:8px 0 12px">
+            <summary style="cursor:pointer;font-size:12.5px;color:var(--brand)">＋ Crear mi propio prospecto</summary>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+              ${['pros-negocio|Negocio *|150px','pros-instagram|@instagram|130px','pros-email|email|170px','pros-telefono|teléfono 569…|120px','pros-comuna|comuna (Viña, Valpo…)|150px','pros-rubro|rubro|110px','pros-direccion|dirección (para el mapa)|200px'].map(s=>{const[i,ph,w]=s.split('|');return `<input id="${i}" placeholder="${ph}" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:${w}">`;}).join('')}
+              <input id="pros-notas" placeholder="características: usa AgendaPro, alto ticket, sitio web…" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;flex:1;min-width:240px">
+              <button class="mini" onclick="prosAgregar(this)">＋ Agregar</button>
+            </div>
+            <p class="hint" style="margin-top:6px">Con dirección + comuna se ubica solo en el mapa. Anota en "características" lo que sepas (qué sistema usa, ticket, web) — el módulo lo convierte en etiquetas y prioriza mejor.</p>
+          </details>
           <div style="overflow-x:auto"><table>
             <thead><tr><th>Negocio</th><th>${tip('Canales', 'Acceso directo por canal: 📍 cómo llegar, 📸 su Instagram, 💬 WhatsApp, ✉️ correo. Lo que no aparece es porque el prospecto no lo tiene.')}</th><th>Comuna</th><th>Rubro</th><th>Estado</th><th>Toques</th><th></th></tr></thead>
-            <tbody>${prospectos.length ? prospectos.map(p => `<tr data-q="${esc(prosNorm([p.negocio, p.comuna, p.rubro, p.estado, p.instagram||''].join(' ')))}" data-estado="${esc(p.estado)}" ${p.estado === 'respondio' || p.estado === 'reunion' ? 'style="box-shadow:inset 3px 0 0 var(--brand)"' : ''}>
-                <td><b>${esc(p.negocio)}</b>${p.notas ? `<br><span class="muted" style="font-size:10.5px">${esc(String(p.notas).slice(0,80))}</span>` : ''}</td>
+            <tbody>${prospectos.length ? prospectos.map(p => `<tr data-q="${esc(prosNorm([p.negocio, p.comuna, p.rubro, p.estado, p.instagram||'', p.notas||''].join(' ')))}" data-estado="${esc(p.estado)}" ${p.estado === 'respondio' || p.estado === 'reunion' ? 'style="box-shadow:inset 3px 0 0 var(--brand)"' : ''}>
+                <td><b>${esc(p.negocio)}</b>${prosTags(p).length ? `<br><span style="display:inline-flex;gap:3px;flex-wrap:wrap;margin-top:2px">${prosTagsHtml(p, true)}</span>` : ''}${(p.seguimiento||[]).length ? `<br><span class="muted" style="font-size:10px">📝 ${esc((p.seguimiento[p.seguimiento.length-1]||{}).texto||'')}</span>` : ''}</td>
                 <td style="white-space:nowrap">${p.lat !== null ? `<a title="Cómo llegar" href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener" style="text-decoration:none">📍</a>` : ''}${p.instagram ? `<a title="@${esc(p.instagram)}" href="https://instagram.com/${esc(p.instagram)}" target="_blank" rel="noopener" style="text-decoration:none">📸</a>` : ''}${p.telefono ? `<a title="WhatsApp" href="https://wa.me/${esc(p.telefono)}" target="_blank" rel="noopener" style="text-decoration:none">💬</a>` : ''}${p.email ? `<a title="${esc(p.email)}" href="mailto:${esc(p.email)}" style="text-decoration:none">✉️</a>` : ''}${!p.email && !p.instagram && !p.telefono && p.lat === null ? '<span class="muted">visita</span>' : ''}</td>
                 <td>${esc(p.comuna||'')}</td><td>${esc(p.rubro||'')}</td>
                 <td>${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span class="muted" style="font-size:10px">${esc(p.descartadoMotivo)}</span>` : ''}</td>
@@ -2768,16 +2845,11 @@
       if (document.fullscreenElement) document.exitFullscreen();
       else cont.requestFullscreen().catch(() => alert('El navegador no permitió la pantalla completa.'));
     }
-    // Al entrar o salir de pantalla completa Leaflet tiene que re-medirse, y
-    // con el mapa gigante la rueda del mouse pasa a hacer zoom directo.
+    // Al entrar o salir de pantalla completa Leaflet tiene que re-medirse.
     document.addEventListener('fullscreenchange', () => {
       const m = window._prosMapa;
       if (!m) return;
-      try {
-        if (document.fullscreenElement) m.scrollWheelZoom.enable();
-        else m.scrollWheelZoom.disable();
-        setTimeout(() => m.invalidateSize(), 80);
-      } catch(_){}
+      try { setTimeout(() => m.invalidateSize(), 80); } catch(_){}
     });
 
     function prosInitMapa(refit){
@@ -2796,7 +2868,9 @@
       let mapa = window._prosMapa;
       if (!mapa || mapa._container !== cont) {
         if (mapa) { try { mapa.remove(); } catch(_){} }
-        mapa = L.map(cont, { scrollWheelZoom: false });
+        // Rueda/trackpad hacen zoom directo (pedido 08-08): explorar el mapa
+        // manda por sobre el scroll de la página cuando el cursor está encima.
+        mapa = L.map(cont, { scrollWheelZoom: true });
         window._prosMapa = mapa;
         window._prosEncuadre = null;
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -2820,20 +2894,7 @@
             iconSize: [d, d], iconAnchor: [d/2, d/2],
           }),
         });
-        // El popup es una mini ficha de acción: llegar, escribir, mirar su IG
-        // — todo a un clic desde la calle.
-        const acciones = [
-          `<a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 Cómo llegar</a>`,
-          p.instagram ? `<a href="https://instagram.com/${esc(p.instagram)}" target="_blank" rel="noopener">📸 @${esc(p.instagram)}</a>` : '',
-          p.telefono ? `<a href="https://wa.me/${esc(p.telefono)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : '',
-          p.email ? `<a href="mailto:${esc(p.email)}">✉️ Correo</a>` : '',
-        ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-        m.bindPopup(`<b style="font-size:13px">${esc(p.negocio)}</b><br>
-          <span style="color:${color}">●</span> ${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.rubro ? ` · <span style="color:#8fa0b3">${esc(p.rubro)}</span>` : ''}<br>
-          <span style="color:#8fa0b3;font-size:11.5px">${esc(p.direccion || 'sin dirección exacta')}</span>
-          ${(p.toques||[]).length ? `<br><span style="color:#8fa0b3;font-size:11.5px">${(p.toques||[]).length} toque(s)${p.respondioEn ? ' · respondió ' + prosHace(p.respondioEn) : ''}</span>` : ''}
-          ${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span style="color:#8fa0b3;font-size:11.5px">Motivo: ${esc(p.descartadoMotivo)}</span>` : ''}
-          <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:7px">${acciones}</div>`);
+        m.bindPopup(prosPopupHtml(p, color), { maxWidth: 340, minWidth: 270 });
         capa.addLayer(m);
         marcadores.push(m);
       }
@@ -2847,6 +2908,97 @@
       setTimeout(() => { try { mapa.invalidateSize(); } catch(_){} }, 60);
     }
     window.prosInitMapa = prosInitMapa;
+
+    /** Características DERIVADAS de lo que ya sabemos del local: qué sistema
+       usa (AgendaPro/Weibook = ya paga por resolver este problema), si tiene
+       web con reservas, ticket, prioridad del kit. Se leen de las notas del
+       scraping — cuando el enriquecimiento traiga más señales, aparecen solas. */
+    function prosTags(p){
+      const n = prosNorm(String(p.notas || ''));
+      const tags = [];
+      if (n.includes('agendapro'))                    tags.push({ t: '⚡ usa AgendaPro', c: '#C6F94E' });
+      if (n.includes('weibook'))                      tags.push({ t: '⚡ usa Weibook', c: '#C6F94E' });
+      if (n.includes('booksy'))                       tags.push({ t: '⚡ usa Booksy', c: '#C6F94E' });
+      if (n.includes('reservas') || n.includes('sistema propio')) tags.push({ t: '🌐 reservas online', c: '#9CCC3C' });
+      if (/[a-z0-9-]+\.(cl|com)\b/.test(n))           tags.push({ t: '🌐 tiene web', c: '#8fa0b3' });
+      if (n.includes('alto ticket') || n.includes('premium')) tags.push({ t: '💎 alto ticket', c: '#f0b429' });
+      if (n.includes('prioridad: prioridad alta'))    tags.push({ t: '🔥 prioridad alta', c: '#f0b429' });
+      return tags;
+    }
+    function prosTagsHtml(p, chico){
+      return prosTags(p).map(x => `<span style="border:1px solid ${x.c}55;color:${x.c};border-radius:999px;padding:${chico ? '1px 7px' : '2px 9px'};font-size:${chico ? '10px' : '10.5px'};white-space:nowrap">${x.t}</span>`).join(' ');
+    }
+
+    /** La FICHA del prospecto (popup del mapa): todo lo que se sabe del local
+       + bitácora de seguimiento con nota nueva sin salir del mapa. */
+    function prosPopupHtml(p, color){
+      const gris = (t) => `<span style="color:#8fa0b3;font-size:11.5px">${t}</span>`;
+      const historial = [
+        p.dmEnviadoEn ? `📤 DM ${prosHace(p.dmEnviadoEn)}` : '',
+        (p.emailsEnviados||0) ? `✉️ ${p.emailsEnviados} correo(s)` : '',
+        p.respondioEn ? `💬 respondió ${prosHace(p.respondioEn)} por ${p.respondioCanal === 'instagram' ? 'IG' : 'WA'}` : '',
+        (p.toques||[]).length ? `${(p.toques||[]).length} toque(s)` : '',
+      ].filter(Boolean).join(' · ');
+      const acciones = [
+        p.lat !== null ? `<a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 Cómo llegar</a>` : '',
+        p.instagram ? `<a href="https://instagram.com/${esc(p.instagram)}" target="_blank" rel="noopener">📸 @${esc(p.instagram)}</a>` : gris('📸 sin IG conocido'),
+        p.telefono ? `<a href="https://wa.me/${esc(p.telefono)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : '',
+        p.email ? `<a href="mailto:${esc(p.email)}">✉️ Correo</a>` : '',
+      ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+      const notas = (p.seguimiento || []).slice(-2).map(nn =>
+        `<div style="font-size:11px;color:#aab8c5;margin-top:3px">📝 ${esc(nn.texto)} ${gris('· ' + prosHace(nn.en))}</div>`).join('');
+      const tags = prosTagsHtml(p, false);
+      return `<b style="font-size:13.5px">${esc(p.negocio)}</b><br>
+        <span style="color:${color}">●</span> ${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.rubro ? ` · ${gris(esc(p.rubro))}` : ''}${p.comuna ? ` · ${gris(esc(p.comuna))}` : ''}<br>
+        ${gris(esc(p.direccion || 'sin dirección exacta'))}
+        ${tags ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${tags}</div>` : ''}
+        ${p.notas ? `<div style="color:#8fa0b3;font-size:11px;margin-top:5px">${esc(String(p.notas).slice(0, 130))}</div>` : ''}
+        ${historial ? `<div style="margin-top:6px;font-size:11.5px">${historial}</div>` : ''}
+        ${p.estado === 'descartado' && p.descartadoMotivo ? `<div style="color:#e0645c;font-size:11.5px;margin-top:4px">🗑 ${esc(p.descartadoMotivo)}</div>` : ''}
+        <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:7px">${acciones}</div>
+        <div style="margin-top:7px">${notas}
+          <div style="display:flex;gap:5px;margin-top:5px">
+            <input id="nota-${p.id}" placeholder="nota de seguimiento…" autocomplete="off" style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:8px;color:#fff;padding:5px 9px;font-size:11.5px">
+            <button class="mini" title="Guardar la nota en la ficha" onclick="prosGuardarNota('${p.id}',this)">💾</button>
+          </div>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <button class="mini" onclick="prosVerEnCartera('${p.id}')">🗂 ver en cartera</button>
+            <button class="mini" onclick="prosPrefillReunion('${p.id}')">🤝 agendar reunión</button>
+          </div>
+        </div>`;
+    }
+
+    async function prosGuardarNota(id, btn){
+      const inp = document.getElementById('nota-' + id);
+      const texto = ((inp && inp.value) || '').trim();
+      if (!texto) { alert('Escribe la nota primero.'); return; }
+      await prosOcupado(btn, '', async () => {
+        try {
+          await _fn('prospeccionAccion')({ accion: 'nota', id, texto });
+          // La ficha sigue abierta: la nota se refleja al tiro en el ESTADO
+          // local y el próximo refresco trae la verdad del servidor.
+          const p = ((ESTADO.prospeccion || {}).prospectos || []).find(x => x.id === id);
+          if (p) p.seguimiento = [...(p.seguimiento || []), { texto, en: Date.now() }];
+          if (inp) inp.value = '';
+          if (btn) { btn.textContent = '✅'; setTimeout(() => { try { btn.textContent = '💾'; } catch(_){} }, 1500); }
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
+    }
+    function prosVerEnCartera(id){
+      const p = ((ESTADO.prospeccion || {}).prospectos || []).find(x => x.id === id);
+      if (!p) return;
+      window._prosBusca = p.negocio;
+      const inp = document.getElementById('pros-buscar');
+      if (inp) inp.value = p.negocio;
+      prosAplicarFiltro();
+      prosIrA('pros-tabla');
+    }
+    function prosPrefillReunion(id){
+      const p = ((ESTADO.prospeccion || {}).prospectos || []).find(x => x.id === id);
+      const inp = document.getElementById('pros-reu-prospecto');
+      if (p && inp) inp.value = p.negocio;
+      prosIrA('pros-reuniones');
+    }
 
     /** Todo botón que llama al servidor lo DICE: se deshabilita y muestra ⏳
        hasta que la operación termina. Nada de clics al vacío. */
@@ -2870,6 +3022,7 @@
           ...d,
           rendimiento: d.rendimiento || prev.rendimiento || null,
           reactivables: d.reactivables || prev.reactivables || [],
+          reuniones: d.reuniones || prev.reuniones || [],
         };
       } catch(_){}
       prosPintar();
@@ -2946,10 +3099,11 @@
       const datos = {
         negocio: v('pros-negocio'), instagram: v('pros-instagram'), email: v('pros-email'),
         telefono: v('pros-telefono'), comuna: v('pros-comuna'), rubro: v('pros-rubro'),
+        direccion: v('pros-direccion'), notas: v('pros-notas'),
       };
       if (!datos.negocio.trim()) { alert('El negocio necesita nombre.'); return; }
-      await prosOcupado(btn, 'guardando…', async () => {
-        try { await _fn('prospeccionAccion')({ accion: 'agregar', datos }); await refrescarProspeccion(true); }
+      await prosOcupado(btn, 'guardando y ubicando…', async () => {
+        try { await _fn('prospeccionAccion')({ accion: 'agregar', datos }); await refrescarProspeccion(false); }
         catch(e){ alert('Error: ' + (e.message || e)); }
       });
     }
@@ -2962,6 +3116,9 @@
     window.prosMapaComuna = prosMapaComuna; window.prosMapaFullscreen = prosMapaFullscreen;
     window.prosIrA = prosIrA; window.prosFiltrarTabla = prosFiltrarTabla;
     window.prosFiltroEstado = prosFiltroEstado;
+    window.prosGuardarNota = prosGuardarNota; window.prosVerEnCartera = prosVerEnCartera;
+    window.prosPrefillReunion = prosPrefillReunion;
+    window.prosReunionCrear = prosReunionCrear; window.prosReunionCancelar = prosReunionCancelar;
     /* `full` para que la barra de cuenta + botón ocupe la fila completa: desde
        1280px la sección es una grilla y sin eso el botón queda encerrado en la
        primera columna, lejos del borde derecho. */

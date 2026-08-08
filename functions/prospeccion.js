@@ -68,6 +68,10 @@ const { logAiUsage }                = require('./lib/metrics');
 const { puedeGastar }               = require('./lib/ai-presupuesto');
 const ig                            = require('./lib/instagram-api');
 const { _ahoraChile: ahoraChile }   = require('./chat-horas-disponibles');
+const { conDiaSemana }              = require('./lib/calendario');
+// La agenda REAL de Ignacio (candados transaccionales): las reuniones que se
+// crean desde la pestaña usan la misma cañería que las del bot.
+const agendaVentas                  = require('./evolution/ventas-agenda');
 
 const db = admin.firestore();
 
@@ -838,6 +842,7 @@ function resumenProspecto(d) {
       : null,
     dmBorrador: p.dmBorrador ? { texto: p.dmBorrador.texto } : null,
     toques: (p.toques || []).slice(-6).map((t) => ({ tipo: t.tipo, en: millis(t.en) || null })),
+    seguimiento: (p.seguimiento || []).slice(-3).map((n) => ({ texto: n.texto, en: millis(n.en) || null })),
     updatedAt: millis(p.updatedAt) || null,
   };
 }
@@ -866,9 +871,10 @@ exports.prospeccionEstado = onCall({
 
   // Los candidatos a reactivación se calculan al abrir la pestaña (decenas de
   // lecturas, una vez): así el switch se decide viendo A QUIÉN tocaría.
-  const [reactivables, rendimiento] = ligero ? [null, null] : await Promise.all([
+  const [reactivables, rendimiento, reuniones] = ligero ? [null, null, null] : await Promise.all([
     candidatosReactivacion().catch(() => []),
     metricasRendimiento(snap.docs).catch((e) => { logger.warn('[prospeccion] rendimiento:', e.message); return null; }),
+    proximasReuniones().catch((e) => { logger.warn('[prospeccion] reuniones:', e.message); return []; }),
   ]);
 
   return {
@@ -886,7 +892,78 @@ exports.prospeccionEstado = onCall({
       reactivaciones: Number(cuota.reactivaciones) || 0,
     },
     reactivables: reactivables ? reactivables.map((c) => ({ telefono: c.id, nombre: c.nombre })) : null,
+    reuniones,
   };
+});
+
+/** Próximas reuniones agendadas (todas: del bot y de la pestaña), con el día
+ *  hablado ya masticado — la fecha jamás la calcula el navegador. */
+async function proximasReuniones() {
+  const hoy = ahoraChile().fecha;
+  const snap = await db.collection('ventas_reuniones').where('estado', '==', 'agendada').limit(60).get();
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() || {}) }))
+    .filter((r) => r.fecha >= hoy)
+    .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))
+    .slice(0, 20)
+    .map((r) => ({
+      contacto: r.contacto || r.id, fecha: r.fecha, hora: r.hora,
+      hablada: conDiaSemana(r.fecha).hablada,
+      canal: r.canal || 'ventas',
+      nombre: r.nombre || '', negocio: r.negocio || '',
+      comuna: r.comuna || '', notas: r.notas || '',
+      esHoy: r.fecha === hoy,
+    }));
+}
+
+/* ═══════ Recordatorio de reuniones: correo + WhatsApp, hoy y mañana ═══════
+   Pedido de Ignacio (08-08): el día de la reunión y el día antes, con las
+   características de cada una (hora, tipo, negocio, detalle). */
+
+function htmlReuniones(items) {
+  const fila = (r) => `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;white-space:nowrap"><b>${r.hora}</b></td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee">${r.canal === 'presencial' ? '🏪 presencial' : r.canal === 'online' ? '💻 online' : '🤖 ' + r.canal}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee"><b>${r.negocio || r.nombre || r.contacto}</b>${r.nombre && r.negocio ? '<br>' + r.nombre : ''}${r.comuna ? '<br><span style="color:#888">' + r.comuna + '</span>' : ''}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;color:#555">${r.notas || ''}</td>
+    </tr>`;
+  return `<table style="border-collapse:collapse;width:100%;font-size:14px">${items.map(fila).join('')}</table>`;
+}
+
+exports.prospeccionReunionesAvisoCron = onSchedule({
+  schedule: '30 8 * * *',
+  timeZone: 'America/Santiago',
+  region:   'us-central1',
+  secrets:  [EVOLUTION_API_URL, EVOLUTION_API_KEY, ...MAIL_SECRETS],
+  timeoutSeconds: 120,
+  memory: '512MiB',
+}, async () => {
+  const hoy = ahoraChile().fecha;
+  const manana = conDiaSemana(hoy, 1).fecha;
+  const todas = await proximasReuniones();
+  const deHoy = todas.filter((r) => r.fecha === hoy);
+  const deManana = todas.filter((r) => r.fecha === manana);
+  if (!deHoy.length && !deManana.length) { logger.info('[reuniones-aviso] nada hoy ni mañana'); return; }
+
+  const cfg = await leerCfg();
+  const asunto = deHoy.length
+    ? `📅 Hoy tienes ${deHoy.length} reunión(es)${deManana.length ? ` (y ${deManana.length} mañana)` : ''}`
+    : `📅 Mañana tienes ${deManana.length} reunión(es)`;
+  const html = `
+    ${deHoy.length ? `<h3 style="margin:6px 0">HOY — ${conDiaSemana(hoy).hablada}</h3>${htmlReuniones(deHoy)}` : ''}
+    ${deManana.length ? `<h3 style="margin:18px 0 6px">MAÑANA — ${conDiaSemana(manana).hablada}</h3>${htmlReuniones(deManana)}` : ''}
+    <p style="color:#888;font-size:12px;margin-top:16px">La grilla completa está en ops → 🎯 Ventas. Este aviso sale a las 08:30 cuando hay reuniones hoy o mañana.</p>`;
+  await enviarEmail({
+    from: cfg.emailFrom, to: 'ignaciiio.mate@gmail.com', subject: asunto, html,
+  }, { grupo: 'interno', etiqueta: 'reuniones-aviso', silencioso: true });
+
+  const linea = (r) => `· ${r.hora} ${r.canal === 'presencial' ? '🏪' : '💻'} ${r.negocio || r.nombre || r.contacto}${r.notas ? ` — ${r.notas.slice(0, 60)}` : ''}`;
+  await avisarIgnacio([
+    `📅 *Reuniones*`,
+    ...(deHoy.length ? ['', `*HOY* (${conDiaSemana(hoy).hablada}):`, ...deHoy.map(linea)] : []),
+    ...(deManana.length ? ['', `*Mañana* (${conDiaSemana(manana).hablada}):`, ...deManana.map(linea)] : []),
+  ].join('\n'));
+  logger.info(`[reuniones-aviso] hoy=${deHoy.length} mañana=${deManana.length}`);
 });
 
 exports.prospeccionAccion = onCall({
@@ -929,7 +1006,7 @@ exports.prospeccionAccion = onCall({
     await ref.set({
       ...(geo || {}),
       negocio, nombre: String(d.nombre || '').trim(), rubro: String(d.rubro || '').trim(),
-      comuna: String(d.comuna || '').trim(), direccion: String(d.direccion || '').trim(),
+      comuna: String(d.comuna || 'Providencia').trim(), direccion: String(d.direccion || '').trim(),
       telefono: String(d.telefono || '').replace(/\D/g, '') || null,
       email: String(d.email || '').trim().toLowerCase() || null,
       instagram: norm(d.instagram) || null,
@@ -960,8 +1037,52 @@ exports.prospeccionAccion = onCall({
     return { ok: true, ...r };
   }
 
+  /* Reuniones REALES (candado en la agenda de Ignacio) desde la pestaña:
+     online o presencial, con o sin prospecto de la cartera. */
+  if (accion === 'reunionCrear') {
+    const d = req.data || {};
+    const tipo = d.tipo === 'presencial' ? 'presencial' : 'online';
+    let datos = {
+      nombre: String(d.nombre || '').trim(),
+      negocio: String(d.negocio || '').trim(),
+      notas: [tipo === 'presencial' ? `📍 ${String(d.detalle || 'en el local').trim()}` : `💻 ${String(d.detalle || 'Meet').trim()}`,
+              String(d.notas || '').trim()].filter(Boolean).join(' · '),
+    };
+    let contacto = `manual_${Date.now()}`;
+    let prospectoRef = null;
+    if (d.id) {
+      const pDoc = await PROSPECTOS().doc(String(d.id)).get();
+      if (pDoc.exists) {
+        const p = pDoc.data() || {};
+        prospectoRef = pDoc.ref;
+        // El contacto comparte id con wa_ventas_leads: si el prospecto tiene
+        // teléfono la reunión queda cruzada con su conversación real.
+        contacto = p.telefono || `pros_${pDoc.id}`;
+        datos = { ...datos, nombre: datos.nombre || p.nombre, negocio: datos.negocio || p.negocio, rubro: p.rubro, comuna: p.comuna };
+      }
+    }
+    const r = await agendaVentas.agendarReunion({
+      contacto, canal: tipo, fecha: String(d.fecha || ''), hora: String(d.hora || ''), datos,
+    });
+    if (!r.ok) throw new HttpsError('failed-precondition', r.motivo || 'No se pudo agendar.');
+    if (prospectoRef) {
+      await prospectoRef.set({
+        estado: 'reunion', reunionEn: FieldValue.serverTimestamp(),
+        estadoEn: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true }).catch(() => {});
+    }
+    return { ok: true, cuando: r.cuando, reagendada: !!r.reagendada };
+  }
+  if (accion === 'reunionCancelar') {
+    const contacto = String(req.data?.contacto || '');
+    if (!contacto) throw new HttpsError('invalid-argument', 'Falta el contacto de la reunión.');
+    const r = await agendaVentas.cancelarReunion({ contacto, motivo: 'cancelada desde ops → Prospección' });
+    if (!r.ok) throw new HttpsError('failed-precondition', r.motivo || 'No había reunión activa.');
+    return { ok: true, cuando: r.cuando };
+  }
+
   /* Acciones sobre un prospecto puntual. */
-  if (['dmEnviado', 'aprobarEmail', 'descartarBorrador', 'descartar', 'reactivar'].includes(accion)) {
+  if (['dmEnviado', 'aprobarEmail', 'descartarBorrador', 'descartar', 'reactivar', 'nota'].includes(accion)) {
     if (!id) throw new HttpsError('invalid-argument', 'Falta el id del prospecto.');
     const ref = PROSPECTOS().doc(id);
     const doc = await ref.get();
@@ -1009,6 +1130,17 @@ exports.prospeccionAccion = onCall({
     }
     if (accion === 'reactivar') {
       await ref.set({ estado: 'frio', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return { ok: true };
+    }
+    if (accion === 'nota') {
+      // Bitácora de terreno: lo que se vio/habló con ese local. Es memoria
+      // del equipo, no del bot — y aparece en la ficha del mapa y en el feed.
+      const texto = String(req.data?.texto || '').trim().slice(0, 400);
+      if (!texto) throw new HttpsError('invalid-argument', 'La nota viene vacía.');
+      await ref.set({
+        seguimiento: FieldValue.arrayUnion({ texto, en: Timestamp.now(), por: String(req.auth.token?.email || '') }),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
       return { ok: true };
     }
   }

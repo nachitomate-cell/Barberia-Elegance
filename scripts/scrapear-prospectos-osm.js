@@ -49,15 +49,16 @@ const OVERPASS_MIRRORS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass-api.de/api/interpreter',
 ];
-// Placilla / Curauma, al sur de la Ruta 68.
-const BBOX_CURAUMA = '-33.18,-71.62,-33.08,-71.50';
 
-// La asignación de área (`->.a`) va ANTES del bloque de unión: metida dentro
-// del paréntesis Overpass contesta 406.
+// SOLO cajas geográficas, jamás áreas por nombre: `area["name"="Valparaíso"]`
+// se trajo el Valparaíso de São Paulo (Brasil) y sembró negocios a 2.400 km
+// (mordió el 08-08: el mapa encuadraba medio continente). Una bbox no tiene
+// homónimos. Bordes: Valpo/Viña se parten en Caleta Portales (~-71.55) y
+// Curauma reclama primero su franja de la Ruta 68.
 const ZONAS = [
-  { comuna: 'Curauma',      prel: '', union: `nwr["shop"~"^(hairdresser|beauty)$"](${BBOX_CURAUMA});` },
-  { comuna: 'Valparaíso',   prel: 'area["name"="Valparaíso"]["boundary"="administrative"]["admin_level"="8"]->.a;', union: 'nwr["shop"~"^(hairdresser|beauty)$"](area.a);' },
-  { comuna: 'Viña del Mar', prel: 'area["name"="Viña del Mar"]["boundary"="administrative"]["admin_level"="8"]->.a;', union: 'nwr["shop"~"^(hairdresser|beauty)$"](area.a);' },
+  { comuna: 'Curauma',      bbox: '-33.20,-71.65,-33.06,-71.47' },   // Placilla + Curauma
+  { comuna: 'Valparaíso',   bbox: '-33.10,-71.67,-33.00,-71.545' },  // Playa Ancha → Barón y cerros
+  { comuna: 'Viña del Mar', bbox: '-33.10,-71.56,-32.93,-71.44' },   // Recreo → Reñaca + El Olivar
 ];
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -65,7 +66,8 @@ const slug = (s) => String(s)
   .toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-async function overpass(prel, union) {
+async function overpass(bbox) {
+  const union = `nwr["shop"~"^(hairdresser|beauty)$"](${bbox});`;
   // 429 = "espera tu turno" y 5xx = servidor saturado: se rota de espejo y se
   // reintenta con paciencia en vez de morir a mitad de la lista.
   for (let intento = 0; intento < 6; intento++) {
@@ -77,7 +79,7 @@ async function overpass(prel, union) {
           'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': 'SynapTech-Prospeccion/1.0 (hola@synaptechspa.cl)',
         },
-        body: 'data=' + encodeURIComponent(`[out:json][timeout:90];${prel}(${union});out center tags;`),
+        body: 'data=' + encodeURIComponent(`[out:json][timeout:90];(${union});out center tags;`),
       });
       if (res.ok) return (await res.json()).elements || [];
       if (![429, 502, 503, 504].includes(res.status)) throw new Error(`Overpass ${res.status}`);
@@ -129,7 +131,7 @@ function prospectoDe(el, comuna) {
   const todos = [];
 
   for (const z of ZONAS) {
-    const els = await overpass(z.prel, z.union);
+    const els = await overpass(z.bbox);
     const zona = [];
     for (const el of els) {
       const p = prospectoDe(el, z.comuna);
@@ -151,6 +153,7 @@ function prospectoDe(el, comuna) {
   const db = admin.firestore();
   const { FieldValue } = admin.firestore;
   let creados = 0, existentes = 0;
+  const sinDireccion = [];
   for (const p of todos) {
     const id = slug(`${p.negocio}-${p.comuna}`) || `osm-${crypto.randomBytes(4).toString('hex')}`;
     const ref = db.collection('_synaptechProspectos').doc(id);
@@ -165,7 +168,25 @@ function prospectoDe(el, comuna) {
       updatedAt: FieldValue.serverTimestamp(),
     });
     creados++;
+    if (!p.direccion) sinDireccion.push({ ref, lat: p.lat, lng: p.lng });
   }
-  console.log(`\nListo: ${creados} creados, ${existentes} ya existían.`);
+
+  // Los nodos de OSM rara vez traen addr:*: la calle se completa con
+  // geocodificación INVERSA de Nominatim (1 req/s) para que "cómo llegar"
+  // tenga texto y no solo coordenadas.
+  console.log(`\nCompletando dirección de ${sinDireccion.length} sin calle…`);
+  for (const s of sinDireccion) {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${s.lat}&lon=${s.lng}&zoom=17`, {
+        headers: { 'User-Agent': 'SynapTech-Prospeccion/1.0 (hola@synaptechspa.cl)' },
+      });
+      const j = await res.json().catch(() => ({}));
+      const a = j.address || {};
+      const calle = [a.road, a.house_number].filter(Boolean).join(' ');
+      if (calle) await s.ref.set({ direccion: calle }, { merge: true });
+    } catch (_) {}
+    await dormir(1100);
+  }
+  console.log(`Listo: ${creados} creados, ${existentes} ya existían.`);
   process.exit(0);
 })().catch((e) => { console.error('Scraping falló:', e); process.exit(1); });

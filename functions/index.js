@@ -275,7 +275,9 @@ exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (
     throw new HttpsError('invalid-argument', 'tenantId requerido.');
   }
   const rolNorm = String(rol).toLowerCase();
-  if (!['admin', 'barbero'].includes(rolNorm)) {
+  // 'recepcion' se sumó el 08-08: el admin del tenant crea su recepcionista
+  // desde Configuración → Recepción (antes solo el superadmin podía).
+  if (!['admin', 'barbero', 'recepcion'].includes(rolNorm)) {
     throw new HttpsError('invalid-argument', `Rol inválido: ${rol}`);
   }
 
@@ -1932,6 +1934,7 @@ exports.prospeccionEmailCron          = prospeccionModule.prospeccionEmailCron;
 exports.prospeccionReactivacionCron   = prospeccionModule.prospeccionReactivacionCron;
 exports.prospeccionSenalConversacion  = prospeccionModule.prospeccionSenalConversacion;
 exports.prospeccionSenalLead          = prospeccionModule.prospeccionSenalLead;
+exports.prospeccionReunionesAvisoCron = prospeccionModule.prospeccionReunionesAvisoCron;
 
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
