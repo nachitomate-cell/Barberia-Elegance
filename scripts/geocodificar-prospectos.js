@@ -56,7 +56,11 @@ async function nominatim(q) {
 
   for (const doc of snap.docs) {
     const p = doc.data() || {};
-    if (Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))) { saltados++; continue; }
+    // OJO: `Number(null)` es 0 (finito), así que un lat:null se colaba como
+    // "ya geocodificado" y nunca se ubicaba — mordió con los prospectos de
+    // Weibook. Hay que exigir que sea un number de verdad.
+    const yaTiene = typeof p.lat === 'number' && Number.isFinite(p.lat) && typeof p.lng === 'number' && Number.isFinite(p.lng);
+    if (yaTiene) { saltados++; continue; }
     if (!p.direccion) { sinResultado.push(`${doc.id} (sin dirección)`); continue; }
 
     const comuna = p.comuna || 'Providencia';

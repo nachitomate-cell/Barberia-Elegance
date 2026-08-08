@@ -831,8 +831,11 @@ function resumenProspecto(d) {
     estado: p.estado || 'frio', notas: p.notas || '',
     descartadoMotivo: p.descartadoMotivo || null,
     direccion: p.direccion || '',
-    lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
-    lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null,
+    // `Number(null)` es 0 (finito): sin el typeof, un lat:null se serializaba
+    // como 0 y el mapa clavaba el pin en el golfo de Guinea (0,0), rompiendo
+    // el encuadre. Exigir un number real lo devuelve como null → se filtra.
+    lat: (typeof p.lat === 'number' && Number.isFinite(p.lat)) ? p.lat : null,
+    lng: (typeof p.lng === 'number' && Number.isFinite(p.lng)) ? p.lng : null,
     emailsEnviados: Number(p.emailsEnviados) || 0,
     dmEnviadoEn: millis(p.dmEnviadoEn) || null,
     respondioEn: millis(p.respondioEn) || null,
