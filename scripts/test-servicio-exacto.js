@@ -104,10 +104,16 @@ esperar('manicure',       null, 'es de Kronnos Woman');
 esperar('depilación',     null, 'es de Kronnos Woman');
 
 console.log('\n== 5. derivación a la sede hermana ==');
-for (const pedido of ['corte femenino', 'corte de mujer', 'manicure', 'pedicure', 'depilación de piernas', 'keratina', 'mechas']) {
+for (const pedido of ['corte femenino', 'corte de mujer', 'manicure', 'pedicure', 'depilación de piernas', 'keratina', 'mechas', 'balayage', 'peinado']) {
   const d = derivarASedeHermana('kronnos_limache', pedido);
-  if (d && /Kronnos Woman/.test(d) && /NO le ofrezcas un servicio parecido/.test(d)) ok(`"${pedido}" → deriva a Kronnos Woman y prohíbe sustituir`);
-  else mal(`"${pedido}" no derivó a Kronnos Woman (devolvió: ${d || 'null'})`);
+  // Lo que pidió Claudio (08-08): que la clienta caiga en el WhatsApp de Woman
+  // para que la atienda el asistente de allá, no solo que le den la dirección.
+  const conLink = /https:\/\/wa\.me\/\d{9,}/.test(d || '');
+  if (d && /Kronnos Woman/.test(d) && conLink && /NO le ofrezcas un servicio parecido/.test(d)) {
+    ok(`"${pedido}" → deriva al WhatsApp de Kronnos Woman y prohíbe sustituir`);
+  } else {
+    mal(`"${pedido}" no derivó bien (link=${conLink}) → ${d || 'null'}`);
+  }
 }
 for (const pedido of ['corte masculino', 'barba premium', 'corte escolar']) {
   if (derivarASedeHermana('kronnos_limache', pedido) === null) ok(`"${pedido}" NO se deriva (es de esta sede)`);

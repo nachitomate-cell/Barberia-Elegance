@@ -458,3 +458,9 @@ exports.mpReembolsar = onCall(
     return { ok: true, monto: montoReembolso };
   },
 );
+
+// Reusado por payments-tuu-online.js: el recálculo server-side del monto de
+// una reserva (precio de catálogo + recargo horario + recargo VIP) es una sola
+// verdad para TODAS las pasarelas — si divergen, un atacante paga de menos por
+// la pasarela "barata".
+exports._calcularMontoReserva = calcularMonto;

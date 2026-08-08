@@ -71,8 +71,11 @@ function todayYMD() {
 }
 
 // Débito y Crédito son los métodos vigentes en /agenda, /productos y /gastos.
-// 'Tarjeta' sigue existiendo como legacy para citas antiguas.
-const TARJETA_METODOS = new Set(['Tarjeta', 'Débito', 'Crédito']);
+// 'Tarjeta' sigue existiendo como legacy para citas antiguas. Con TUU activo
+// los métodos pasan a ser 'Tarjeta (POS)' / 'Tarjeta (manual)': sin estas dos
+// entradas, TODO cobro POS caía a "No especificado" y el arqueo no lo sumaba
+// al bucket tarjeta (mordió con Oren desde el go-live TUU).
+const TARJETA_METODOS = new Set(['Tarjeta', 'Débito', 'Crédito', 'Tarjeta (POS)', 'Tarjeta (manual)']);
 const isTarjeta = (m) => TARJETA_METODOS.has(m);
 
 // ── Pagos divididos ────────────────────────────────────────────
@@ -94,7 +97,11 @@ function montosPorMetodo(item) {
     return out;
   }
   // `precio` en citas y ventas, `monto` en gastos: el helper sirve para los tres.
-  const total = Number(item?.precio) || Number(item?.monto) || 0;
+  // Abono online (TUU Pago Online): esa parte se pagó por la pasarela al
+  // reservar — NO entró a la caja física del día. Al bucket del método solo
+  // va el SALDO cobrado en el local.
+  const abono = Number(item?.abonoPagado) || 0;
+  const total = Math.max(0, (Number(item?.precio) || Number(item?.monto) || 0) - abono);
   if (item?.metodoPago === 'Efectivo')            out.efectivo = total;
   else if (isTarjeta(item?.metodoPago))           out.tarjeta  = total;
   else if (item?.metodoPago === 'Transferencia')  out.transf   = total;
@@ -1174,7 +1181,7 @@ function MiniModal({ title, onClose, children }) {
 
 const VENTA_OK = new Set(['confirmed', 'completed', 'paid', 'delivered']);
 const CAT_REPORTE = ['Insumos', 'Sueldos', 'Arriendo', 'Servicios Básicos', 'Equipamiento', 'Marketing', 'Otros'];
-const METODOS_REPORTE = ['Efectivo', 'Débito', 'Crédito', 'Tarjeta', 'Transferencia', 'No especificado'];
+const METODOS_REPORTE = ['Efectivo', 'Débito', 'Crédito', 'Tarjeta', 'Tarjeta (POS)', 'Tarjeta (manual)', 'Transferencia', 'Pago online (abono)', 'No especificado'];
 
 function fechaToYMD(f) {
   if (!f) return '';
@@ -1250,8 +1257,12 @@ function calcReporte({ citas, ventas, gastos }) {
     const monto = Number(c.precio) || 0;
     ventasServicios += monto;
     propinasTotal   += Number(c.propina) || 0;
+    // Abono online: el ingreso total del servicio no cambia, pero el desglose
+    // por método separa lo que entró por la pasarela de lo cobrado en el local.
+    const abono = Math.min(monto, Number(c.abonoPagado) || 0);
+    if (abono > 0) ventasPorMetodo['Pago online (abono)'] += abono;
     if (citasConSplit.has(c.id)) sumarSplit(c);
-    else ventasPorMetodo[normMet(c.metodoPago)] += monto;
+    else ventasPorMetodo[normMet(c.metodoPago)] += monto - abono;
   });
   ventas.forEach(v => {
     // `precio` ya es el TOTAL DE LÍNEA (precio_unitario × cantidad, con descuento)

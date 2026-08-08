@@ -4300,7 +4300,12 @@
                     const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
                         .reduce((s, p) => (p.metodoPago && p.metodoPago !== 'Tarjeta (POS)')
                             ? s : s + (Number(p.precio) || 0), 0);
-                    const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
+                    // Abono online (TUU): el cliente ya pagó una parte al
+                    // reservar — al POS va solo el SALDO. Si el abono cubrió
+                    // todo, no hay nada que cobrar y se completa directo.
+                    const _abonoCE = Number(cita.abonoPagado) || 0;
+                    const _monto = Math.max(0, Number(cita.precioTotal || cita.precio || 0) + _prods - _abonoCE);
+                    if (_monto > 0) {
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                         citaId:    id,
@@ -4323,6 +4328,7 @@
                         }
                     } else {
                         return; // rechazado / timeout / error
+                    }
                     }
                 }
 
@@ -4707,7 +4713,8 @@
             _citaActiva = cita;
 
             document.querySelectorAll('.cd-servicio').forEach(el => el.textContent = cita.servicioNombre || 'Servicio');
-            document.querySelectorAll('.cd-horario').forEach(el => el.textContent  = `${cita.hora} · ${cita.duracionServicio || 30} min · ${cita.fecha || ''}`);
+            document.querySelectorAll('.cd-horario').forEach(el => el.textContent  = `${cita.hora} · ${cita.duracionServicio || 30} min · ${cita.fecha || ''}`
+                + (Number(cita.abonoPagado) > 0 ? ` · 💳 abonó $${Number(cita.abonoPagado).toLocaleString('es-CL')} online` : ''));
 
             const _isChameleon = _ocultaTelefono();
             document.querySelectorAll('.cd-nombre').forEach(el => el.textContent = cita.clienteNombre || 'Cliente');
@@ -5002,7 +5009,11 @@
                     const _prods = (Array.isArray(cita.ticketProductos) ? cita.ticketProductos : [])
                         .reduce((s, p) => (p.metodoPago && p.metodoPago !== 'Tarjeta (POS)')
                             ? s : s + (Number(p.precio) || 0), 0);
-                    const _monto = Number(cita.precioTotal || cita.precio || 0) + _prods;
+                    // Abono online (TUU): al POS va solo el SALDO (ver
+                    // cambiarEstadoCita). Abono cubre todo → completa directo.
+                    const _abonoBS = Number(cita.abonoPagado) || 0;
+                    const _monto = Math.max(0, Number(cita.precioTotal || cita.precio || 0) + _prods - _abonoBS);
+                    if (_monto > 0) {
                     const _res = await window.tuuAgendaCobro({
                         tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                         citaId:    id,
@@ -5025,6 +5036,7 @@
                         }
                     } else {
                         return;
+                    }
                     }
                 }
 
@@ -8085,12 +8097,17 @@
             // guardados y recién agregados — todos heredan el método POS.
             const _sumProdPrev   = _ecTicketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
             const _sumProdNuevos = _ecTicketNuevos.reduce((s, p) => s + (Number(p.totalLinea) || 0), 0);
+            // Abono online (TUU): al POS va solo el SALDO. Si el abono ya
+            // cubrió el total, no hay nada que cobrar y se guarda directo.
+            const _abonoEc  = Number(_ecCita.abonoPagado) || 0;
+            const _saldoPos = Math.max(0, precioFinal + _sumProdPrev + _sumProdNuevos - _abonoEc);
+            if (_saldoPos > 0) {
             const _res = await window.tuuAgendaCobro({
                 tenantId:  window.CURRENT_TENANT_ID || 'elegance',
                 citaId:    _ecCita.id,
                 cliente:   nombre,
                 servicio:  svcNom,
-                monto:     precioFinal + _sumProdPrev + _sumProdNuevos,
+                monto:     _saldoPos,
                 mode:      'direct',
                 showManualFallback: window.tuuPermitirManualAgenda(_ecCita.sucursalId || null),
             });
@@ -8099,6 +8116,7 @@
                 metodo = 'Tarjeta (manual)';
             } else if (!(_res && _res.tipo === 'aprobado')) {
                 return; // rechazado / timeout / error / otroMedio (no aplica en 'direct')
+            }
             }
         }
 

@@ -1704,13 +1704,19 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
         if (m && m !== 'Tarjeta (POS)') return s;
         return s + (Number(p.totalLinea ?? p.precio) || 0);
       }, 0);
+      // Abono online (TUU Pago Online): el cliente ya pagó una parte al
+      // reservar — al POS va solo el SALDO, o se le cobra dos veces.
+      const abonoPagado = Number(cita?.abonoPagado) || 0;
       const montoTuu = Math.max(0, Math.round(
         (Number(form.precio) || Number(svcTuu?.precio) || 0)
         + (sobrecupoActivo ? recargoNum : 0)
         + totalExtrasNum
         + productosPos
+        - abonoPagado
       ));
-      const result   = await tuuCobroDialog({
+      // Si el abono cubrió el total no hay saldo que pasar por el POS:
+      // se completa directo (result 'approved' sin modal).
+      const result   = montoTuu <= 0 ? 'approved' : await tuuCobroDialog({
         tenantId,
         citaId:   cita.id,
         cliente:  form.clienteNombre,
@@ -2706,6 +2712,14 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
               </div>
             ) : (
             <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              {/* Abono online (TUU Pago Online): recordarle al staff que una
+                  parte YA está pagada — el POS/efectivo cobra solo el saldo. */}
+              {Number(cita?.abonoPagado) > 0 && (
+                <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/25 rounded-lg text-[11.5px] text-emerald-300/90 leading-relaxed">
+                  💳 Abonó <b className="text-emerald-300">${Number(cita.abonoPagado).toLocaleString('es-CL')}</b> online al reservar.
+                  Cobra solo el saldo{Number(cita?.saldoPendiente) > 0 ? <> (≈ <b className="text-emerald-300">${Number(cita.saldoPendiente).toLocaleString('es-CL')}</b> del servicio base)</> : ''} — el POS ya lo descuenta solo.
+                </div>
+              )}
               {/* Método de pago: antes era un <select> (persiana) que obligaba
                   a un tap extra para ver las opciones. Ahora los 4 métodos se
                   ven de una — misma mecánica que el "Estado de la cita" para

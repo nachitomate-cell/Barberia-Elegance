@@ -1593,6 +1593,19 @@ exports.tuuCobrarCita     = paymentsTuuTenant.tuuCobrarCita;
 exports.tuuConsultarCobro = paymentsTuuTenant.tuuConsultarCobro;
 
 // ─────────────────────────────────────────────────────────────────
+//  BARBERÍAS — TUU PAGO ONLINE (pasarela e-commerce Haulmer) por
+//  tenant. Abono % configurable ANTES de crear la cita; la cita la
+//  crea el callback firmado (modelo Yügen/MP). ver payments-tuu-online.js
+// ─────────────────────────────────────────────────────────────────
+const paymentsTuuOnline = require('./payments-tuu-online');
+exports.tuuOnlineGuardarConfig = paymentsTuuOnline.tuuOnlineGuardarConfig;
+exports.tuuOnlineSetFlag       = paymentsTuuOnline.tuuOnlineSetFlag;
+exports.tuuOnlineDesconectar   = paymentsTuuOnline.tuuOnlineDesconectar;
+exports.tuuOnlineCrearPago     = paymentsTuuOnline.tuuOnlineCrearPago;
+exports.tuuOnlineCallback      = paymentsTuuOnline.tuuOnlineCallback;
+exports.tuuOnlineRetorno       = paymentsTuuOnline.tuuOnlineRetorno;
+
+// ─────────────────────────────────────────────────────────────────
 //  BIOO — cobros SINGLE-SELLER de plataforma (SynapTech cobra al
 //  creador). Producto inicial: "Quitar marca de agua" $4.990 CLP.
 //  ver payments-mp-platform.js — usa MP_PLATFORM_ACCESS_TOKEN.

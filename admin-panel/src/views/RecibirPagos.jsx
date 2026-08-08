@@ -306,15 +306,237 @@ function TuuCard({ tenantId, isAdmin, tuu, sucursales, multiSucursal, onMsg }) {
               Solo el administrador del local puede configurar la integracion con TUU.
             </p>
           ) : (
-            <TuuOnboarding
-              tenantId={tenantId}
-              tuu={tuu}
-              sucursales={sucursales}
-              multiSucursal={multiSucursal}
-              configured={configured}
-              onMsg={onMsg}
-            />
+            <>
+              <TuuOnboarding
+                tenantId={tenantId}
+                tuu={tuu}
+                sucursales={sucursales}
+                multiSucursal={multiSucursal}
+                configured={configured}
+                onMsg={onMsg}
+              />
+              <div className="mt-6 pt-5 border-t border-slate-800/60 [html.light_&]:border-ink-200">
+                <TuuOnlineSection tenantId={tenantId} tuu={tuu} onMsg={onMsg} />
+              </div>
+            </>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TUU PAGO ONLINE — abono % al reservar desde la pagina publica.
+//  Credenciales DISTINTAS del POS: ID de comercio + Llave Secreta del
+//  producto "Pago Online" de TUU. La cita se crea recien cuando TUU
+//  confirma el abono (callback firmado).
+// ═══════════════════════════════════════════════════════════════════════════
+function TuuOnlineSection({ tenantId, tuu, onMsg }) {
+  const onlineConfigured = !!(tuu && tuu.onlineConfigured);
+  const onlineEnabled    = !!(tuu && tuu.onlineEnabled);
+  const [accountId, setAccountId] = useState('');
+  const [secretKey, setSecretKey] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
+  const [abonoPct, setAbonoPct] = useState(tuu?.onlineAbonoPct || 50);
+  const [saving, setSaving] = useState(false);
+  const [busyFlag, setBusyFlag] = useState(false);
+  const [localErr, setLocalErr] = useState(null);
+
+  useEffect(() => {
+    setAbonoPct(tuu?.onlineAbonoPct || 50);
+  }, [tuu?.onlineAbonoPct]);
+
+  const fn = (name) => httpsCallable(getFunctions(getApp(), 'us-central1'), name);
+
+  async function guardar() {
+    setLocalErr(null);
+    if (!accountId.trim() || accountId.trim().length < 4) { setLocalErr('Ingresa tu ID de comercio de Pago Online.'); return; }
+    if (!secretKey.trim() || secretKey.trim().length < 8) { setLocalErr('Ingresa la Llave Secreta (min 8 caracteres).'); return; }
+    const pct = Math.round(Number(abonoPct));
+    if (!Number.isFinite(pct) || pct < 5 || pct > 100) { setLocalErr('El abono debe ser entre 5% y 100%.'); return; }
+    setSaving(true);
+    try {
+      await fn('tuuOnlineGuardarConfig')({ tenantId, accountId: accountId.trim(), secretKey: secretKey.trim(), abonoPct: pct });
+      setSecretKey('');
+      setAccountId('');
+      onMsg({ ok: true, text: `Pago online activado: tus clientes abonaran el ${pct}% al reservar.` });
+    } catch (err) {
+      onMsg({ ok: false, text: err.message || 'No se pudo guardar la configuracion de pago online.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleEnabled(nuevo) {
+    setBusyFlag(true);
+    try {
+      await fn('tuuOnlineSetFlag')({ tenantId, onlineEnabled: nuevo });
+      onMsg({ ok: true, text: nuevo ? 'Pago online reactivado.' : 'Pago online pausado: las reservas vuelven a crearse sin abono.' });
+    } catch (err) {
+      onMsg({ ok: false, text: err.message || 'No se pudo actualizar.' });
+    } finally {
+      setBusyFlag(false);
+    }
+  }
+
+  async function aplicarPct() {
+    const pct = Math.round(Number(abonoPct));
+    if (!Number.isFinite(pct) || pct < 5 || pct > 100) { setLocalErr('El abono debe ser entre 5% y 100%.'); return; }
+    setBusyFlag(true);
+    try {
+      await fn('tuuOnlineSetFlag')({ tenantId, onlineAbonoPct: pct });
+      onMsg({ ok: true, text: `Abono actualizado al ${pct}%.` });
+    } catch (err) {
+      onMsg({ ok: false, text: err.message || 'No se pudo actualizar el abono.' });
+    } finally {
+      setBusyFlag(false);
+    }
+  }
+
+  async function desconectar() {
+    if (!(await confirmDialog({
+      title: 'Desconectar pago online',
+      message: 'Se borraran las credenciales de Pago Online (la configuracion del POS presencial no se toca). Las reservas volveran a crearse sin abono.',
+      confirmText: 'Desconectar',
+    }))) return;
+    setBusyFlag(true);
+    try {
+      await fn('tuuOnlineDesconectar')({ tenantId });
+      onMsg({ ok: true, text: 'Pago online desconectado.' });
+    } catch (err) {
+      onMsg({ ok: false, text: err.message || 'No se pudo desconectar.' });
+    } finally {
+      setBusyFlag(false);
+    }
+  }
+
+  const inp = 'w-full bg-slate-800/60 [html.light_&]:bg-white border border-slate-700 [html.light_&]:border-ink-300 rounded-lg px-3 py-2 text-sm text-primary [html.light_&]:text-ink-900 placeholder-slate-500 focus:outline-none focus:border-yellow-400/60';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <CircleDollarSign size={15} className="text-yellow-400 [html.light_&]:text-yellow-700" />
+        <h4 className="text-sm font-semibold text-primary [html.light_&]:text-ink-900">Pago online — abono al reservar</h4>
+        <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
+          onlineEnabled
+            ? 'bg-emerald-500/10 text-emerald-400'
+            : onlineConfigured ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 [html.light_&]:bg-ink-100 text-slate-400 [html.light_&]:text-ink-600'
+        }`}>
+          {onlineEnabled ? 'Activo' : onlineConfigured ? 'Pausado' : 'No configurado'}
+        </span>
+      </div>
+
+      <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 leading-relaxed">
+        Tus clientes pagan un <b>abono</b> al reservar desde tu pagina; el saldo se cobra en el local.
+        Requiere el producto <b>Pago Online</b> de TUU: el ID de comercio y la Llave Secreta son
+        <b> distintos</b> de la API key del POS (Espacio de Trabajo &rarr; Pagos &rarr; Configuracion).
+      </p>
+
+      {localErr && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400">
+          <AlertCircle size={13} className="shrink-0" /> {localErr}
+        </div>
+      )}
+
+      {!onlineConfigured ? (
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="ID de comercio (x_account_id)"
+            className={inp}
+            value={accountId}
+            onChange={e => setAccountId(e.target.value)}
+            autoComplete="off"
+          />
+          <div className="relative">
+            <input
+              type={showSecret ? 'text' : 'password'}
+              placeholder="Llave Secreta de Pago Online"
+              className={`${inp} pr-10`}
+              value={secretKey}
+              onChange={e => setSecretKey(e.target.value)}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={() => setShowSecret(s => !s)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            >
+              {showSecret ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 [html.light_&]:text-ink-600 shrink-0">% de abono</label>
+            <input
+              type="number"
+              min={5}
+              max={100}
+              step={5}
+              className={`${inp} !w-24 text-center`}
+              value={abonoPct}
+              onChange={e => setAbonoPct(e.target.value)}
+            />
+            <span className="text-xs text-slate-500">recomendado: 50%</span>
+          </div>
+          <button
+            onClick={guardar}
+            disabled={saving}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-yellow-500/90 hover:bg-yellow-400 disabled:opacity-50 text-slate-950 text-sm font-bold transition-all flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+            Activar pago online
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-800/40 [html.light_&]:bg-ink-50 border border-slate-800 [html.light_&]:border-ink-200">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-primary [html.light_&]:text-ink-900">
+                Abono actual: <span className="text-yellow-400 [html.light_&]:text-yellow-700 font-bold">{tuu?.onlineAbonoPct || 50}%</span>
+              </p>
+              <p className="text-[11px] text-slate-500 [html.light_&]:text-ink-500 mt-0.5">
+                {onlineEnabled ? 'Las reservas de tu pagina piden este abono antes de confirmarse.' : 'Pausado: las reservas se crean sin pedir abono.'}
+              </p>
+            </div>
+            <button
+              onClick={() => toggleEnabled(!onlineEnabled)}
+              disabled={busyFlag}
+              className={`shrink-0 px-3 py-2 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 ${
+                onlineEnabled
+                  ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10'
+                  : 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'
+              }`}
+            >
+              {onlineEnabled ? 'Pausar' : 'Reactivar'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 [html.light_&]:text-ink-600 shrink-0">Cambiar % de abono</label>
+            <input
+              type="number"
+              min={5}
+              max={100}
+              step={5}
+              className={`${inp} !w-24 text-center`}
+              value={abonoPct}
+              onChange={e => setAbonoPct(e.target.value)}
+            />
+            <button
+              onClick={aplicarPct}
+              disabled={busyFlag}
+              className="px-3 py-2 rounded-lg border border-slate-700 [html.light_&]:border-ink-300 text-xs font-semibold text-slate-300 [html.light_&]:text-ink-700 hover:border-slate-500 disabled:opacity-50"
+            >
+              Aplicar
+            </button>
+          </div>
+          <button
+            onClick={desconectar}
+            disabled={busyFlag}
+            className="flex items-center gap-2 text-xs text-red-400/80 hover:text-red-400 disabled:opacity-50"
+          >
+            <Link2Off size={13} /> Desconectar pago online
+          </button>
         </div>
       )}
     </div>

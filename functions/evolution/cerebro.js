@@ -285,18 +285,48 @@ function matchServicio(servicios, nombre) {
 
    Con esto el bot deriva a la sede correcta, que además es la venta que se
    estaba perdiendo. */
+const PATRON_FEMENINO = /femenin|mujer|dama|manicur|pedicur|u[ñn]as|depilaci|keratin|alisad|mech|tintur|color(?!ombia)|peinad|pestan|botox|brushing|balayage/i;
 const SEDE_HERMANA = {
-  kronnos_limache:    { patron: /femenin|mujer|dama|manicur|pedicur|u[ñn]as|depilaci|keratin|alisad|mech|tintur|color|peinad|pestan|cejas? de mujer/i,
-                        destino: 'Kronnos Woman', donde: 'Palmira Romano Sur 405, local 3 · Limache' },
-  kronnos_penablanca: { patron: /femenin|mujer|dama|manicur|pedicur|u[ñn]as|depilaci|keratin|alisad|mech|tintur|color|peinad|pestan/i,
-                        destino: 'Kronnos Woman', donde: 'Palmira Romano Sur 405, local 3 · Limache' },
+  kronnos_limache:    { patron: PATRON_FEMENINO, tenant: 'kronnos_woman', destino: 'Kronnos Woman',
+                        donde: 'Palmira Romano Sur 405, local 3 · Limache', waFallback: '56954062817' },
+  kronnos_penablanca: { patron: PATRON_FEMENINO, tenant: 'kronnos_woman', destino: 'Kronnos Woman',
+                        donde: 'Palmira Romano Sur 405, local 3 · Limache', waFallback: '56954062817' },
 };
+
+/* El número de la sede hermana se lee EN VIVO de su propia configuración, no
+   se escribe acá: si Woman revincula otro teléfono, un número hardcodeado
+   mandaría a las clientas a un chat muerto. `waFallback` es solo el paracaídas
+   si la lectura falla. La caché la refresca armarContextoLocal en cada turno,
+   así el cinturón puede consultarla sin ser asíncrono. */
+const _waSedeHermana = new Map();
+
+async function refrescarWaSedeHermana(tid) {
+  const s = SEDE_HERMANA[tid];
+  if (!s) return null;
+  try {
+    const d = await db.doc(`tenants/${s.tenant}/configuracion/whatsapp`).get();
+    const n = String(d.data()?.numeroVinculado || '').replace(/\D/g, '');
+    if (n) _waSedeHermana.set(s.tenant, n);
+  } catch (_) { /* se queda con lo último bueno, o con el fallback */ }
+  return _waSedeHermana.get(s.tenant) || s.waFallback;
+}
+
+/** Datos para derivar a la sede hermana, o null si este tenant no tiene. */
+function sedeHermanaDe(tid) {
+  const s = SEDE_HERMANA[tid];
+  if (!s) return null;
+  return { destino: s.destino, donde: s.donde, wa: _waSedeHermana.get(s.tenant) || s.waFallback };
+}
 
 /** Si lo pedido es de otra sede de la marca, el texto para derivar. */
 function derivarASedeHermana(tid, nombrePedido) {
   const s = SEDE_HERMANA[tid];
   if (!s || !nombrePedido || !s.patron.test(String(nombrePedido))) return null;
-  return ` Eso NO se hace en este local: es de ${s.destino} (${s.donde}). Díselo al cliente y derívalo ahí — NO le ofrezcas un servicio parecido de este catálogo.`;
+  const { destino, donde, wa } = sedeHermanaDe(tid);
+  // El cliente pidió esto por WhatsApp: lo que sirve es un enlace que abra el
+  // chat de la otra sede, donde su propio asistente lo atiende al toque. La
+  // dirección sola lo deja con la tarea pendiente.
+  return ` Eso NO se hace en este local: es de ${destino}. Díselo al cliente y PÁSALE el enlace de WhatsApp de ${destino} para que agende ahí: https://wa.me/${wa} (${donde}). NO le ofrezcas un servicio parecido de este catálogo ni intentes agendárselo tú.`;
 }
 
 /** Fecha MASTICADA para el resultado de una tool: "hoy", "mañana" o el día de
@@ -1348,7 +1378,7 @@ function limpiarNombreAgente(v) {
   return RE_NOMBRE_AGENTE.test(s) ? s : '';
 }
 
-function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLocal, estiloChileno, horario, catalogo, equipo, politicas }) {
+function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLocal, estiloChileno, horario, catalogo, equipo, politicas, derivacion }) {
   return [
     nombreAgente
       ? `Te llamas ${nombreAgente} y eres el asistente de citas de "${nombreLocal}", una barbería/peluquería en Chile. Atiendes a los clientes por WhatsApp.`
@@ -1396,6 +1426,13 @@ function construirSystemFijo({ nombreAgente, nombreLocal, direccion, telefonoLoc
     // Falla hermana de la de arriba, mismo caso: pidió "corte femenino" (que
     // Limache no tiene) y el bot le agendó "Corte Escolar" sin avisarle.
     '- SERVICIO QUE NO EXISTE = SE DICE, NO SE REEMPLAZA. Si el cliente pide algo que NO está en el catálogo de arriba, díselo con claridad ("no tenemos corte femenino en este local") y muéstrale lo que sí hay. JAMÁS le agendes en su lugar un servicio "parecido", ni el más barato, ni el que creas que quiso decir: llegaría al local a un servicio que nunca pidió. Y si el nombre que dijo calza con VARIOS del catálogo (ej. "un corte" con cinco cortes distintos), pregúntale cuál — no elijas tú.',
+    // Sedes hermanas de la misma marca (Kronnos: las masculinas ↔ Woman). Va en
+    // el prompt y NO solo en el cinturón de agendar_cita: así el bot deriva en
+    // su PRIMERA respuesta, sin que la clienta tenga que llegar hasta el intento
+    // de agendar para enterarse de que ese servicio no es de este local.
+    derivacion
+      ? `- SERVICIOS DE ${derivacion.destino.toUpperCase()}: este local NO hace servicios de belleza femenina (corte femenino, manicure, pedicure, uñas, depilación, keratina, alisados, mechas, tintura, peinados, pestañas). Los hace ${derivacion.destino}, el local hermano de la misma marca (${derivacion.donde}). Si alguien pregunta por uno de esos, díselo de una y PÁSALE este enlace para que hable directo con ellos: https://wa.me/${derivacion.wa} — ahí la atiende el asistente de ${derivacion.destino} y agenda al toque. Nunca le ofrezcas un servicio de este catálogo en reemplazo, y nunca intentes agendárselo tú.`
+      : '',
     '- Solo llama a agendar_cita con una hora que haya salido de consultar_disponibilidad.',
     '- Si el nombre del cliente ya lo sabes por WhatsApp, úsalo; si no, pídelo antes de agendar.',
     '- Al agendar con éxito, dale el código de la reserva y recuérdale día, hora y servicio.',
@@ -1488,6 +1525,9 @@ async function armarContextoLocal(tid, { estiloChileno = false, nombreAgente = '
     catalogo: servicios.length ? formatearCatalogo(servicios) : '',
     equipo:   equipo.length ? equipo.map(b => `- ${b.nombre}${b.especialidad ? ` (${b.especialidad})` : ''}`).join('\n') : '',
     politicas,
+    // Sede hermana (Kronnos masculinas → Woman). El await refresca de paso la
+    // caché que consulta el cinturón de agendar_cita, que es sincrónico.
+    derivacion: SEDE_HERMANA[tid] ? (await refrescarWaSedeHermana(tid), sedeHermanaDe(tid)) : null,
   });
 
   // Con el catálogo ya escrito en el system, consultar_servicios sobra: dejarla
