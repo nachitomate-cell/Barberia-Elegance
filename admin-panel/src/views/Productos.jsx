@@ -694,6 +694,10 @@ export default function Productos() {
   // Historial de ventas
   const [ventas,        setVentas]        = useState([]);
   const [ventasLoading, setVentasLoading] = useState(true);
+  // Error ≠ vacío: el listener fallando en silencio mostraba "sin ventas"
+  // con datos reales detrás (índice status+createdAt ausente, 08-08 —
+  // Kronnos reportó el historial "vacío" y nadie podía saber por qué).
+  const [ventasError,   setVentasError]   = useState(false);
   const [filtroPeriodo, setFiltroPeriodo] = useState('mes');  // hoy | semana | mes | todo
   const [filtroBarberoH, setFiltroBarberoH] = useState('');
 
@@ -867,9 +871,14 @@ export default function Productos() {
       query(tenantCol('product_reservations'), where('status', '==', 'delivered'), orderBy('createdAt', 'desc')),
       snap => {
         setVentas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setVentasError(false);
         setVentasLoading(false);
       },
-      () => setVentasLoading(false),
+      (err) => {
+        console.error('[Productos] historial de ventas:', err);
+        setVentasError(true);
+        setVentasLoading(false);
+      },
     );
     return unsub;
   }, []);
@@ -1527,6 +1536,11 @@ export default function Productos() {
             {ventasLoading ? (
               <div className="flex justify-center py-10">
                 <Spinner size={24} className="text-slate-500" />
+              </div>
+            ) : ventasError ? (
+              <div className="flex items-center gap-3 px-5 py-4 bg-rose-500/[0.06] border border-rose-500/25 rounded-xl text-rose-300 text-sm">
+                <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+                No se pudo cargar el historial de ventas. Recarga la página; si persiste, escríbenos por Soporte.
               </div>
             ) : filasHistorial.length === 0 ? (
               <div className="flex items-center gap-3 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 text-sm">
