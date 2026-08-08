@@ -2056,6 +2056,7 @@
             <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
             <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
             <button data-tab="prospeccion">🚀 Prospección${prosPendientes() ? ' · ' + prosPendientes() : ''}</button>
+            <button data-tab="crecimiento">💹 Crecimiento</button>
             <button data-tab="cobranza">💰 Cobranza${cobranzaData && cobranzaData.rows && cobranzaData.rows.some(r => r.diasAtraso > 0) ? ' · 🔴' : ''}</button>
             <button data-tab="locales">💈 Locales</button>
             <button data-tab="whatsapp">${marca('whatsapp','WhatsApp')} WhatsApp</button>
@@ -2100,6 +2101,10 @@
 
           <section class="sec" data-sec="prospeccion">
             ${seccionProspeccion()}
+          </section>
+
+          <section class="sec" data-sec="crecimiento">
+            ${seccionCrecimiento()}
           </section>
 
           <section class="sec" data-sec="cobranza">
@@ -2181,6 +2186,9 @@
         // Leaflet no sabe medirse dentro de display:none: la pestaña se
         // llena (y el mapa se levanta) recién cuando queda visible.
         if (n === 'prospeccion') prosPintar();
+        // Crecimiento es caro (cruza _billing + snapshots): se carga la
+        // primera vez que se abre, no en cada pintado.
+        if (n === 'crecimiento' && !ESTADO.crecimiento) cargarCrecimiento();
       };
       window._setTab = setTab;
       document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -2346,7 +2354,7 @@
        ═══════════════════════════════════════════════════════════════════ */
     const ESTADO = {
       metrics:null, metaAds:null, instagram:null, chips:null,
-      ventas:null, botCfg:null, cobranza:null, prospeccion:null,
+      ventas:null, botCfg:null, cobranza:null, prospeccion:null, crecimiento:null,
       edadSegundos:0, parcial:false, cargando:false,
     };
 
@@ -2371,6 +2379,142 @@
       if (!ESTADO.cobranza) return '<p class="muted">Cargando cobranza…</p>';
       return cobranzaPanel(ESTADO.cobranza);
     }
+
+    /* ═══ Crecimiento: la salud económica (solo Ignacio) ═══
+       Cruza ingresos y costos que ya vivían en silos. Cada número dice si es
+       MEDIDO o ESTIMADO — un LTV al arrancar es proyección, no un hecho. */
+    function seccionCrecimiento(){
+      const C = ESTADO.crecimiento;
+      if (C === 'denegado') return '<div class="panel"><p class="muted">Estos números son solo para Ignacio.</p></div>';
+      if (!C) return '<p class="muted"><span class="fresh cargando"><span class="p"></span>cruzando ingresos y costos…</span></p>';
+      return crecimientoPanel(C);
+    }
+
+    const clp0 = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
+    function crecimientoPanel(C){
+      const i = C.ingresos||{}, co = C.costos||{}, u = C.unidad||{}, ca = C.caja||{}, re = C.retencion||{}, me = C.meta||{};
+      // Tarjeta estrella con semáforo por umbral.
+      const estrella = (titulo, valor, sub, nivel, explica) => {
+        const col = nivel === 'ok' ? 'var(--brand)' : nivel === 'alerta' ? '#f0b429' : nivel === 'mal' ? '#e0645c' : 'var(--soft)';
+        return `<div style="border:1px solid var(--glass-border);border-top:2px solid ${col};border-radius:12px;padding:14px 16px;flex:1;min-width:170px">
+          <div class="muted" style="font-size:11.5px;margin-bottom:6px">${tip(titulo, explica)}</div>
+          <div class="tnum" style="font-size:30px;font-weight:700;color:${col};line-height:1">${valor}</div>
+          <div class="muted" style="font-size:11px;margin-top:5px">${sub}</div>
+        </div>`;
+      };
+      const ltvCacNivel = u.ltvCac == null ? '' : u.ltvCac >= 3 ? 'ok' : u.ltvCac >= 1.5 ? 'alerta' : 'mal';
+      const margenNivel = u.margenBrutoPct == null ? '' : u.margenBrutoPct >= 70 ? 'ok' : u.margenBrutoPct >= 50 ? 'alerta' : 'mal';
+      const runwayNivel = ca.rentable ? 'ok' : ca.runwayMeses == null ? '' : ca.runwayMeses > 6 ? 'ok' : ca.runwayMeses >= 3 ? 'alerta' : 'mal';
+      const churnNivel  = re.churnPct == null ? '' : re.churnPct <= 5 ? 'ok' : re.churnPct <= 10 ? 'alerta' : 'mal';
+
+      const estrellas = `<div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${estrella('MRR (ingreso recurrente)', clp0(i.mrrClp), `${i.clientesPagando||0} pagando · ARPU ${clp0(i.arpuClp)}`, i.mrrClp>0?'ok':'', 'Ingreso recurrente mensual NETO (sin IVA), sumando el plan de cada cliente activo. Es la base de todo lo demás. MEDIDO desde _billing.')}
+          ${estrella('LTV : CAC', u.ltvCac!=null ? u.ltvCac+':1' : '—', u.cacClp!=null?`gana ${clp0(u.ltvClp)} · cuesta ${clp0(u.cacClp)}`:'faltan clientes nuevos', ltvCacNivel, 'Cuánto genera un cliente en toda su vida vs cuánto cuesta traerlo. Sano ≥3:1. Al arrancar es normal estar bajo — mira la TENDENCIA. LTV es ESTIMADO (usa vida supuesta hasta tener churn real).')}
+          ${estrella('Margen bruto', u.margenBrutoPct!=null ? u.margenBrutoPct+'%' : '—', `quedan tras costo directo`, margenNivel, 'Qué % de cada peso queda tras los costos que escalan con el uso (IA + WhatsApp). Un SaaS sano ronda 70-85%. MEDIDO, salvo costos fijos que cargas tú.')}
+          ${estrella('Runway', ca.rentable ? '∞' : ca.runwayMeses!=null ? ca.runwayMeses+' meses' : '—', ca.rentable?'ya es rentable 🎉':`quemas ${clp0(ca.burnMensualClp)}/mes`, runwayNivel, 'Meses de operación que te quedan al ritmo de gasto actual = caja ÷ burn. Necesita que cargues tu caja disponible (solo tú la sabes).')}
+          ${estrella('Retención', re.retencionPct!=null ? re.retencionPct+'%' : 'sin base aún', re.churnPct!=null?`churn ${re.churnPct}% · ${re.perdidos||0} bajas`:'se mide desde el 2º mes', churnNivel, 'Qué % de clientes conservas mes a mes. Crecer con churn alto es llenar un balde pinchado. Se calcula comparando con el mes anterior — el primer mes no tiene base.')}
+        </div>`;
+
+      // Termómetro de la meta del mes.
+      const barra = (logrado, objetivo, label) => {
+        if (!objetivo) return `<div style="flex:1;min-width:200px"><div class="muted" style="font-size:11.5px">${label}: <b class="tnum">${logrado}</b> <span style="font-size:10.5px">(sin meta fijada)</span></div></div>`;
+        const pct = Math.min(100, Math.round(logrado/objetivo*100));
+        return `<div style="flex:1;min-width:200px">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px" class="muted"><span>${label}</span><span><b class="tnum" style="color:var(--brand)">${logrado}</b> / ${objetivo}</span></div>
+          <div class="pros-barra" style="height:8px;margin-top:5px"><span style="width:${pct}%"></span></div>
+        </div>`;
+      };
+      const meta = `<div class="panel" style="margin-top:14px">
+          <h3>🎯 ${tip('Meta del mes ('+C.mes+')', 'El avance del mes contra el objetivo que fijaste. Las reuniones son el indicador adelantado: si llegan, los clientes vienen detrás.')}</h3>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:8px">
+            ${barra(me.reuniones?.logrado||0, me.reuniones?.objetivo, '🤝 Reuniones agendadas')}
+            ${barra(me.clientes?.logrado||0, me.clientes?.objetivo, '⭐ Clientes nuevos')}
+          </div>
+        </div>`;
+
+      // Ingresos y costos lado a lado.
+      const fila = (lbl, val, gris) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--hairline);font-size:12.5px"><span class="${gris?'muted':''}">${lbl}</span><span class="tnum">${val}</span></div>`;
+      const planLbl = { basico:'Básico', pro:'Pro', full:'Full', anual:'Anual' };
+      const desglose = `<div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div class="panel" style="flex:1;min-width:280px;margin-top:14px">
+            <h3>💵 ${tip('Ingresos del mes', 'De dónde viene el MRR: clientes pagando por plan, más trials que aún no pagan.')}</h3>
+            ${fila('MRR neto', clp0(i.mrrClp))}
+            ${Object.entries(i.porPlan||{}).map(([p,n]) => fila('· '+(planLbl[p]||p), n+' clientes', true)).join('')}
+            ${fila('Al día', i.clientesAlDia||0, true)}
+            ${fila('Atrasados', i.clientesAtrasados||0, true)}
+            ${fila('En trial (aún no pagan)', i.clientesTrial||0, true)}
+            ${fila('Nuevos este mes', i.nuevosMes||0)}
+          </div>
+          <div class="panel" style="flex:1;min-width:280px;margin-top:14px">
+            <h3>💸 ${tip('Costos del mes', 'Directos (escalan con el uso: IA + WhatsApp) + adquisición (Ads + comisiones) + fijos que cargas tú.')}</h3>
+            ${fila('IA (Anthropic)', clp0(co.iaClp), true)}
+            ${fila('WhatsApp (Meta)', clp0(co.waClp), true)}
+            ${fila('Publicidad (Ads)', clp0(co.adsClp), true)}
+            ${fila('Comisiones de venta', clp0(co.comisionesClp), true)}
+            ${fila('Costos fijos', clp0(co.fijosClp), true)}
+            ${fila('Total', clp0(co.totalClp))}
+            ${fila(ca.rentable?'Resultado (rentable)':'Burn (quema)', clp0(Math.abs(ca.burnMensualClp)))}
+          </div>
+        </div>`;
+
+      const npsFase2 = `<div class="panel" style="margin-top:14px">
+          <h3>😊 ${tip('Satisfacción (NPS / PMF)', 'La salud orgánica: qué tan contentos están los dueños. Un NPS alto baja tu CAC futuro por el boca a boca. Requiere encuestarlos — es la fase 2.')}</h3>
+          <p class="hint">Todavía no hay encuesta a los dueños de los locales. La fase 2 les manda dos preguntas por su canal (push/WhatsApp): "¿nos recomendarías del 0 al 10?" (NPS) y "¿qué tan decepcionado estarías si SynapTech desapareciera?" (product-market fit). Avísame y la construyo.</p>
+        </div>`;
+
+      // Config: lo que solo Ignacio sabe.
+      const cfg = C.cfg||{};
+      const inp = (id, val, w) => `<input id="${id}" type="number" value="${val||''}" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:${w||'120px'}">`;
+      const config = `<div class="panel full" style="margin-top:14px">
+          <h3>⚙️ ${tip('Lo que solo tú sabes', 'El sistema calcula solo los ingresos y casi todos los costos. Estos tres números no los puede saber: tu caja en el banco, tus costos fijos (sueldos/arriendo/herramientas) y los supuestos. Actualízalos cuando cambien.')}</h3>
+          <p class="hint">Cárgalos una vez y el runway, el margen y el LTV se ajustan solos. El resto se mide del sistema.</p>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">
+            <label style="font-size:11.5px" class="muted">💰 Caja disponible<br>${inp('cre-caja', cfg.cajaDisponibleClp, '150px')}</label>
+            <label style="font-size:11.5px" class="muted">🏢 Costos fijos / mes<br>${inp('cre-fijos', cfg.costosFijosMensualesClp, '150px')}</label>
+            <label style="font-size:11.5px" class="muted">📆 Vida cliente (meses)<br>${inp('cre-vida', cfg.vidaMesesEstimada)}</label>
+            <label style="font-size:11.5px" class="muted">🤝 Comisión promedio<br>${inp('cre-comision', cfg.comisionPromedioClp)}</label>
+            <label style="font-size:11.5px" class="muted">💵 Tipo cambio USD<br>${inp('cre-usd', cfg.usdClp)}</label>
+            <button class="mini" onclick="creGuardarCfg(this)">💾 Guardar</button>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;border-top:1px solid var(--hairline);padding-top:12px">
+            <label style="font-size:11.5px" class="muted">🎯 Meta clientes (${C.mes})<br>${inp('cre-meta-cli', cfg.metaClientesMes)}</label>
+            <label style="font-size:11.5px" class="muted">🎯 Meta reuniones (${C.mes})<br>${inp('cre-meta-reu', cfg.metaReunionesMes)}</label>
+            <button class="mini" onclick="creGuardarMeta(this)">💾 Fijar meta del mes</button>
+          </div>
+        </div>`;
+
+      return estrellas + meta + desglose + npsFase2 + config;
+    }
+
+    async function cargarCrecimiento(){
+      try {
+        const r = await _fn('opsCrecimiento')({});
+        ESTADO.crecimiento = r.data;
+      } catch(e){
+        ESTADO.crecimiento = (e && /permission/i.test(e.message||'')) ? 'denegado' : null;
+        if (ESTADO.crecimiento !== 'denegado') { alert('No pude cargar Crecimiento: ' + (e.message||e)); }
+      }
+      repintar('crecimiento');
+    }
+    async function creGuardarCfg(btn){
+      const num = (id) => Number((document.getElementById(id)||{}).value)||0;
+      const patch = { cajaDisponibleClp:num('cre-caja'), costosFijosMensualesClp:num('cre-fijos'),
+        vidaMesesEstimada:num('cre-vida'), comisionPromedioClp:num('cre-comision'), usdClp:num('cre-usd') };
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try { const r = await _fn('opsCrecimientoConfig')({ patch }); ESTADO.crecimiento = r.data; repintar('crecimiento'); }
+      catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;btn.textContent='💾 Guardar';} }
+    }
+    async function creGuardarMeta(btn){
+      const C = ESTADO.crecimiento; if (!C) return;
+      const cli = Number((document.getElementById('cre-meta-cli')||{}).value)||0;
+      const reu = Number((document.getElementById('cre-meta-reu')||{}).value)||0;
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try {
+        const r = await _fn('opsCrecimientoConfig')({ patch: { metaClientes:{[C.mes]:cli}, metaReuniones:{[C.mes]:reu} } });
+        ESTADO.crecimiento = r.data; repintar('crecimiento');
+      } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;btn.textContent='💾 Fijar meta del mes';} }
+    }
+    window.creGuardarCfg = creGuardarCfg; window.creGuardarMeta = creGuardarMeta;
 
     /* ═══ Prospección: el agente sale a buscar (ver functions/prospeccion.js) ═══ */
 
@@ -3138,6 +3282,7 @@
       // Prospección NO repinta la sección entera: llena sus cascarones y el
       // mapa solo mueve pines (ver prosPintar).
       if (sec === 'prospeccion') prosPintar();
+      if (sec === 'crecimiento') el.innerHTML = seccionCrecimiento();
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();

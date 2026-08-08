@@ -1936,6 +1936,14 @@ exports.prospeccionSenalConversacion  = prospeccionModule.prospeccionSenalConver
 exports.prospeccionSenalLead          = prospeccionModule.prospeccionSenalLead;
 exports.prospeccionReunionesAvisoCron = prospeccionModule.prospeccionReunionesAvisoCron;
 
+// Panel de Crecimiento: cruza los silos de plata (ingresos, IA, Ads, WhatsApp)
+// para dar LTV:CAC, churn, margen y burn/runway. Candado esBootstrap (solo
+// Ignacio ve la plata). Ver functions/crecimiento.js.
+const crecimientoModule = require('./crecimiento');
+exports.opsCrecimiento          = crecimientoModule.opsCrecimiento;
+exports.opsCrecimientoConfig    = crecimientoModule.opsCrecimientoConfig;
+exports.crecimientoSnapshotCron = crecimientoModule.crecimientoSnapshotCron;
+
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;
