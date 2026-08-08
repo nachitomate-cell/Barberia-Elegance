@@ -15,6 +15,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useAuth, getBrandTenants } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCollection } from '../../hooks/useCollection';
+import { usePermisosRecepcion } from '../../hooks/usePermisosRecepcion';
 import { useBillingPlan } from '../../hooks/useBillingPlan';
 import { useBillingRestriction } from '../BillingGate';
 
@@ -368,6 +369,58 @@ export const RUTAS_SOLO_ADMIN = new Set(
       .filter(item => g.adminOnly || item.adminOnly)
       .map(item => item.to)),
 );
+
+/* ── Permisos configurables del rol recepción ──────────────────────
+   El admin del local gestiona en Configuración → Recepción qué módulos
+   usa su recepcionista (doc `configuracion/recepcion`, hook
+   usePermisosRecepcion). Tres categorías:
+     · FIJOS: siempre visibles — son el trabajo del mesón.
+     · base (todo ítem no-adminOnly): default ON, el dueño puede apagar.
+     · GRANTS (todo ítem adminOnly): default OFF, el dueño puede CONCEDER
+       cualquiera — pedido de Ignacio 08-08: "absolutamente todos los
+       módulos a elegir". La única excepción es Configuración: si
+       recepción entrara ahí podría concederse permisos a sí misma.
+   Ojo: conceder un módulo abre la RUTA; los datos que firestore.rules
+   reserva al admin (gastos, facturación…) siguen cerrados por rules. */
+export const RECEPCION_FIJOS  = ['agenda', 'ayuda'];
+const RECEPCION_NO_CONCEDIBLES = ['configuracion'];
+
+// Derivado del nav completo (regla de listas espejo): todo adminOnly de
+// cualquier variante de producto es concedible, salvo las excepciones.
+export const RECEPCION_GRANTS = [...new Set(
+  [NAV_GROUPS_DEFAULT, NAV_GROUPS_DELUXE, NAV_GROUPS_WALLET_ONLY, NAV_GROUPS_RESTO]
+    .flat()
+    .flatMap(g => (g.items || [])
+      .filter(item => (g.adminOnly || item.adminOnly) && !RECEPCION_NO_CONCEDIBLES.includes(item.to))
+      .map(item => item.to)),
+)];
+
+/* Lista para los toggles de Configuración → Recepción, derivada de
+   NAV_GROUPS_DEFAULT: si mañana se agrega un módulo, aparece solo. */
+export function modulosRecepcion() {
+  const vistos = new Set();
+  const out = [];
+  for (const g of NAV_GROUPS_DEFAULT) {
+    for (const item of (g.items || [])) {
+      if (RECEPCION_NO_CONCEDIBLES.includes(item.to)) continue;
+      if (RECEPCION_FIJOS.includes(item.to) || vistos.has(item.to)) continue;
+      vistos.add(item.to);
+      const esGrant = !!(item.adminOnly || g.adminOnly);
+      out.push({ id: item.to, label: item.label, grupo: g.label, grant: esGrant });
+    }
+  }
+  return out;
+}
+
+/* ¿Recepción ve este ítem con los permisos actuales? `permisos` null
+   (cargando) = comportamiento por defecto. */
+export function itemVisibleParaRecepcion(group, item, permisos) {
+  if (RECEPCION_NO_CONCEDIBLES.includes(item.to)) return false;
+  if (RECEPCION_FIJOS.includes(item.to)) return true;
+  const esGrant = !!(item.adminOnly || group.adminOnly);
+  const p = (permisos || {})[item.to];
+  return esGrant ? p === true : p !== false;
+}
 
 /* ── Hooks auxiliares ────────────────────────────────────────────── */
 // useTheme() vive ahora en contexts/ThemeContext.jsx — estaba encerrado acá
@@ -750,6 +803,9 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   // Ocultar el ítem es UI, no seguridad. La frontera real está en
   // firestore.rules (probada en scripts/test-rules-roles.js).
   const isAdminRole     = role === 'admin';
+  // Permisos del recepcionista (Configuración → Recepción). El hook corre
+  // siempre (regla de hooks); para admin no se usa.
+  const permisosRecepcion = usePermisosRecepcion();
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const { light, toggle: toggleTheme } = useTheme();
   const hasUnreadNews   = useUnreadNews();
@@ -935,9 +991,19 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80"
       >
         {NAV_GROUPS.map(group => {
-          const items = group.items.filter(item => !item.adminOnly || isAdminRole);
+          // Recepción: visibilidad por permisos configurables (Configuración →
+          // Recepción). Un grupo adminOnly puede igual mostrar un ítem
+          // CONCEDIDO (ej: Lista de espera vive en "Sistema"), por eso el
+          // filtro decide por ítem y el grupo solo se omite si queda vacío.
+          const items = group.items.filter(item => (
+            isAdminRole
+              ? true
+              : role === 'recepcion'
+                ? itemVisibleParaRecepcion(group, item, permisosRecepcion)
+                : !item.adminOnly
+          ));
           if (items.length === 0) return null;
-          if (group.adminOnly && !isAdminRole) return null;
+          if (group.adminOnly && !isAdminRole && role !== 'recepcion') return null;
 
           return (
             <div key={group.id} className="mb-6">

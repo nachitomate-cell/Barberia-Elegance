@@ -36,7 +36,10 @@ function tenantDelCaller(req) {
   const c = req.auth.token || {};
   const tid = c.tenantId || null;
   if (!tid) throw new HttpsError('permission-denied', 'Cuenta sin local asociado.');
-  if (!['admin', 'jefe'].includes(c.role || '')) {
+  // recepción entra SOLO si su admin le concedió el módulo Mensualidad
+  // (Configuración → Recepción). La vista es de lectura; sin este permiso
+  // el toggle mostraba una pantalla rota a mitad de carga.
+  if (!['admin', 'jefe', 'recepcion'].includes(c.role || '')) {
     throw new HttpsError('permission-denied', 'Solo administradores del local.');
   }
   return tid;

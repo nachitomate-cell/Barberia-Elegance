@@ -1,7 +1,8 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { RUTAS_SOLO_ADMIN } from './components/layout/Sidebar';
+import { RUTAS_SOLO_ADMIN, RECEPCION_GRANTS } from './components/layout/Sidebar';
 import { esRutaSoloAdmin } from './lib/rutasAdmin';
+import { usePermisosRecepcion } from './hooks/usePermisosRecepcion';
 import Spinner from './components/ui/Spinner';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -351,10 +352,29 @@ function ProtectedApp() {
    /gestion-interna/metricas entraba igual, y Métricas se calcula desde
    `citas`, que sí puede leer — o sea, veía los ingresos.
    La lista se DERIVA de los NAV_GROUPS del Sidebar, así que una vista nueva
-   marcada `adminOnly` queda protegida sin tocar este archivo. */
+   marcada `adminOnly` queda protegida sin tocar este archivo.
+
+   Recepción además respeta los permisos que su admin configuró en
+   Configuración → Recepción (`configuracion/recepcion`): los módulos base
+   apagados se cierran, y los CONCEDIBLES (RECEPCION_GRANTS) se abren solo
+   con permiso explícito aunque sean adminOnly. Mientras los permisos
+   cargan (null) no se expulsa a nadie: una lectura lenta no puede echar a
+   recepción de la agenda. */
 function GuardRutaAdmin({ role, fallback }) {
   const { pathname } = useLocation();
+  const permisos = usePermisosRecepcion();   // incondicional (regla de hooks)
   if (role === 'admin') return null;
+  const ruta = String(pathname || '').replace(/^\/+|\/+$/g, '');
+  const base = ruta.split('/')[0] || '';
+  if (role === 'recepcion') {
+    if (RECEPCION_GRANTS.includes(base)) {
+      if (permisos === null) return null;    // cargando
+      return permisos[base] === true ? null : <Navigate to={`/${fallback}`} replace />;
+    }
+    if (esRutaSoloAdmin(pathname, RUTAS_SOLO_ADMIN)) return <Navigate to={`/${fallback}`} replace />;
+    if (permisos && permisos[base] === false) return <Navigate to={`/${fallback}`} replace />;
+    return null;
+  }
   // La regla vive en lib/rutasAdmin.js para poder probarla sola
   // (npm run check:rutas-admin). Ver ahí por qué se compara la ruta completa.
   if (!esRutaSoloAdmin(pathname, RUTAS_SOLO_ADMIN)) return null;

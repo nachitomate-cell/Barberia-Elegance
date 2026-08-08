@@ -4,8 +4,9 @@ import {
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
   Package, Tag, PenLine, Award, Bell, Mail, Users, SlidersHorizontal,
   MessageCircle, Lock, Gift, ChevronRight, CalendarClock,
-  Wrench, LifeBuoy, ShieldCheck, Eye, EyeOff, Wallet, CreditCard,
+  Wrench, LifeBuoy, ShieldCheck, Eye, EyeOff, Wallet, CreditCard, UserCog,
 } from 'lucide-react';
+import RecepcionSection from '../components/RecepcionSection';
 import { sha256Hex } from '../lib/reopenGate';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
@@ -1172,6 +1173,7 @@ export default function Configuracion() {
     { key: 'horarios',  label: 'Horarios',           Icon: Clock,         desc: 'Días de atención y duración de turnos.' },
     { key: 'reservas',  label: 'Reservas online',    Icon: CalendarClock, desc: 'Cancelaciones, reservas en grupo y anti-spam.' },
     { key: 'agenda',    label: 'Agenda del barbero', Icon: Wrench,        desc: 'Módulos internos que ven los profesionales.' },
+    { key: 'recepcion', label: 'Recepción',          Icon: UserCog,       desc: 'La cuenta del mostrador: acceso al panel sin los números del negocio.' },
     { key: 'cliente',   label: 'Cliente y marca',    Icon: Sparkles,      desc: 'Qué ve el cliente en la agenda pública y programa de referidos.' },
     { key: 'metas',     label: 'Metas y finanzas',   Icon: Target,        desc: 'Meta mensual y costo diario para tus reportes.' },
     { key: 'seguridad', label: 'Seguridad',          Icon: ShieldCheck,   desc: 'Contraseñas anti-descuido para reabrir ventas y cajas cerradas.' },
@@ -2267,6 +2269,15 @@ export default function Configuracion() {
         </div>
       </Card>
 
+      </Section>
+      </div>
+      )}
+
+      {/* ═══ SECCIÓN · RECEPCIÓN ═══ */}
+      {tab === 'recepcion' && (
+      <div className="cfg-fade-in" key="recepcion">
+      <Section Icon={activeSection.Icon} title={activeSection.label} description={activeSection.desc}>
+        <RecepcionSection />
       </Section>
       </div>
       )}
