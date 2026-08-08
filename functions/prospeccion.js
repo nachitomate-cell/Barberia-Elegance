@@ -133,6 +133,27 @@ async function conexionIG() {
   return { token: c.accessToken, igUserId: String(c.instagramUserId || '') };
 }
 
+/**
+ * Dirección → lat/lng con Nominatim (OSM). Best-effort con timeout corto:
+ * el mapa de la cartera lo necesita, pero un alta jamás falla por geocoding.
+ * Mismo proveedor que usa scripts/geocodificar-prospectos.js para el seed.
+ */
+async function geocodificar(direccion, comuna = 'Providencia') {
+  if (!direccion) return null;
+  try {
+    const q = `${direccion}, ${comuna}, Santiago, Chile`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'SynapTech-Prospeccion/1.0 (hola@synaptechspa.cl)' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const j = await res.json().catch(() => []);
+    const hit = Array.isArray(j) && j[0];
+    if (!hit || !hit.lat) return null;
+    return { lat: Number(hit.lat), lng: Number(hit.lon) };
+  } catch (_) { return null; }
+}
+
 /** Aviso a Ignacio por su WhatsApp. Fire-and-forget: informar no puede romper. */
 async function avisarIgnacio(texto) {
   try {
@@ -236,9 +257,14 @@ async function correrRescate({ limite }) {
 
     // El follow-up entra a la MEMORIA de la conversación: si el lead contesta
     // "ya, el jueves", el cerebro tiene que saber a qué venía ese jueves.
+    // `msgsAlEnviar` es la vara de medición: si después la historia creció,
+    // el rescate revivió la conversación — así se evalúa si vale la pena.
     await doc.ref.set({
       messages: [...msgs, { role: 'assistant', content: texto }],
-      rescate: { en: FieldValue.serverTimestamp(), resultado: 'enviado', canal: esIG ? 'instagram' : 'whatsapp' },
+      rescate: {
+        en: FieldValue.serverTimestamp(), resultado: 'enviado',
+        canal: esIG ? 'instagram' : 'whatsapp', msgsAlEnviar: msgs.length + 1,
+      },
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     await sumarCuota('rescates');
@@ -571,7 +597,7 @@ exports.prospeccionReactivacionCron = onSchedule({
     const msgs = ((await ref.get()).data() || {}).messages || [];
     await ref.set({
       messages: [...msgs, { role: 'assistant', content: texto }],
-      reactivacion: { en: FieldValue.serverTimestamp() },
+      reactivacion: { en: FieldValue.serverTimestamp(), resultado: 'enviada', msgsAlEnviar: msgs.length + 1 },
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     await sumarCuota('reactivaciones');
@@ -586,7 +612,7 @@ exports.prospeccionReactivacionCron = onSchedule({
 
 const norm = (s) => String(s || '').replace(/^@+/, '').trim().toLowerCase();
 
-async function avanzarProspecto(campo, valor, nuevoEstado) {
+async function avanzarProspecto(campo, valor, nuevoEstado, { canal = null } = {}) {
   if (!valor) return;
   const snap = await PROSPECTOS().where(campo, '==', valor).limit(1).get();
   if (snap.empty) return;
@@ -597,11 +623,28 @@ async function avanzarProspecto(campo, valor, nuevoEstado) {
   const orden = ['frio', 'contactado', 'sin_respuesta', 'respondio', 'reunion', 'cliente'];
   if (orden.indexOf(nuevoEstado) <= orden.indexOf(actual)) return;
   if (['optout', 'descartado'].includes(actual)) return;
+  // Cada transición deja SU timestamp y su canal: sin esto no hay forma de
+  // medir "cuánto tarda un DM en convertirse en respuesta" ni qué canal
+  // funciona — y lo que no se mide no mejora. El guard de arriba garantiza
+  // que respondioEn/reunionEn quedan con la PRIMERA vez, no con reintentos.
   await doc.ref.set({
     estado: nuevoEstado, estadoEn: FieldValue.serverTimestamp(),
+    ...(nuevoEstado === 'respondio' ? { respondioEn: FieldValue.serverTimestamp(), respondioCanal: canal } : {}),
+    ...(nuevoEstado === 'reunion'   ? { reunionEn: FieldValue.serverTimestamp() } : {}),
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
-  logger.info(`[prospeccion] ${doc.id}: ${actual} → ${nuevoEstado} (por ${campo})`);
+  logger.info(`[prospeccion] ${doc.id}: ${actual} → ${nuevoEstado} (por ${campo}${canal ? '/' + canal : ''})`);
+}
+
+/**
+ * ¿Este texto es el contestador automático del negocio y no una persona?
+ * Importa para la MÉTRICA: el primer "gracias por ponerte en contacto" de un
+ * negocio contó como "respondió" (Oz Barbería, 07-08) e infla la tasa de los
+ * DMs. Un auto-reply no mueve el embudo; el humano que escribe después, sí.
+ */
+function pareceAutoRespuesta(texto) {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  return /(gracias por (ponerte en contacto|contactarnos|comunicarte|tu mensaje|escribirnos))|(recibimos tu (mensaje|consulta))|(responderemos (a la brevedad|en breve|pronto))|(te responderemos)|(fuera de (nuestro )?horario)|(mensaje automatico)|(en breve (te contactaremos|nos pondremos en contacto))/.test(t);
 }
 
 // Alguien escribió al bot de ventas (WA o IG) → si era prospecto, respondió.
@@ -617,12 +660,20 @@ exports.prospeccionSenalConversacion = onDocumentWritten({
   const msgsAntes = Array.isArray(antes.messages) ? antes.messages : [];
   if (msgsAhora.length <= msgsAntes.length) return;
 
+  // Si TODO lo que ha dicho el "lead" parece contestador automático, todavía
+  // no respondió nadie: el avance espera al primer mensaje humano.
+  const deLead = msgsAhora.filter((m) => m.role === 'user');
+  if (deLead.length && deLead.every((m) => pareceAutoRespuesta(m.content))) {
+    logger.info(`[prospeccion] ${event.params.chatId}: solo auto-respuestas; el embudo no se mueve`);
+    return;
+  }
+
   const chatId = event.params.chatId;
   if (chatId.startsWith('ig_')) {
     const meta = (await db.doc(`ig_conversaciones/${chatId.slice(3)}`).get()).data() || {};
-    await avanzarProspecto('instagram', norm(meta.username), 'respondio');
+    await avanzarProspecto('instagram', norm(meta.username), 'respondio', { canal: 'instagram' });
   } else {
-    await avanzarProspecto('telefono', chatId, 'respondio');
+    await avanzarProspecto('telefono', chatId, 'respondio', { canal: 'whatsapp' });
   }
 });
 
@@ -637,9 +688,9 @@ exports.prospeccionSenalLead = onDocumentWritten({
   const tel = event.params.telefono;
   if (tel.startsWith('ig_')) {
     const meta = (await db.doc(`ig_conversaciones/${tel.slice(3)}`).get()).data() || {};
-    await avanzarProspecto('instagram', norm(meta.username), 'reunion');
+    await avanzarProspecto('instagram', norm(meta.username), 'reunion', { canal: 'instagram' });
   } else {
-    await avanzarProspecto('telefono', tel, 'reunion');
+    await avanzarProspecto('telefono', tel, 'reunion', { canal: 'whatsapp' });
   }
 });
 
@@ -664,6 +715,75 @@ exports.prospeccionOptOut = onRequest({ region: 'us-central1' }, async (req, res
   res.status(200).send(pagina('Listo ✅ No te volveremos a escribir. Gracias por tu tiempo.'));
 });
 
+/* ═══════════════════ Rendimiento: lo que no se mide no mejora ═══════════════════
+   Tasas reales por palanca, no conteos sueltos: DMs enviados → respondieron →
+   reunión (con horas hasta la respuesta), correos con sus bajas, y si los
+   rescates/reactivaciones revivieron la conversación (la historia creció
+   después de `msgsAlEnviar`). Es lo que decide si un mensaje se cambia,
+   se mantiene o se mata. */
+
+/** ¿La conversación siguió después del toque? Con vara guardada compara
+ *  largos; los toques viejos (sin vara) buscan el texto y miran si quedó algo
+ *  detrás. */
+function contestoTrasToque(conv, campo, fraseDelTexto) {
+  const t = conv[campo];
+  if (!t) return false;
+  const msgs = Array.isArray(conv.messages) ? conv.messages : [];
+  if (Number.isFinite(Number(t.msgsAlEnviar))) return msgs.length > Number(t.msgsAlEnviar);
+  const idx = msgs.findIndex((m) => m.role === 'assistant' && String(m.content).includes(fraseDelTexto));
+  return idx >= 0 && idx < msgs.length - 1;
+}
+
+async function metricasRendimiento(docsProspectos) {
+  const horas = (a, b) => (a && b ? Math.round((a - b) / 36e5 * 10) / 10 : null);
+
+  const dms = { enviados: 0, respondieron: 0, reuniones: 0, horasRespuesta: [] };
+  const emails = { prospectos: 0, correos: 0, bajas: 0, respondieron: 0 };
+  for (const d of docsProspectos) {
+    const p = d.data() || {};
+    const respondio = ['respondio', 'reunion', 'cliente'].includes(p.estado);
+    if (p.dmEnviadoEn) {
+      dms.enviados++;
+      if (respondio) {
+        dms.respondieron++;
+        const h = horas(millis(p.respondioEn), millis(p.dmEnviadoEn));
+        if (h !== null && h >= 0) dms.horasRespuesta.push(h);
+      }
+      if (['reunion', 'cliente'].includes(p.estado)) dms.reuniones++;
+    }
+    if ((Number(p.emailsEnviados) || 0) > 0) {
+      emails.prospectos++;
+      emails.correos += Number(p.emailsEnviados) || 0;
+      if (p.estado === 'optout') emails.bajas++;
+      if (respondio) emails.respondieron++;
+    }
+  }
+  dms.horasPromedio = dms.horasRespuesta.length
+    ? Math.round(dms.horasRespuesta.reduce((a, b) => a + b, 0) / dms.horasRespuesta.length * 10) / 10
+    : null;
+  delete dms.horasRespuesta;
+
+  // Rescates y reactivaciones viven en las conversaciones, no en la cartera.
+  const rescates = { enviados: 0, contestaron: 0 };
+  const reactivaciones = { enviadas: 0, contestaron: 0 };
+  try {
+    const rs = await db.collection('wa_ventas_conversaciones')
+      .where('rescate.resultado', '==', 'enviado').limit(300).get();
+    for (const d of rs.docs) {
+      rescates.enviados++;
+      if (contestoTrasToque(d.data() || {}, 'rescate', 'Quedamos a mitad de conversación')) rescates.contestaron++;
+    }
+    const ra = await db.collection('wa_ventas_conversaciones')
+      .where('reactivacion.resultado', '==', 'enviada').limit(300).get();
+    for (const d of ra.docs) {
+      reactivaciones.enviadas++;
+      if (contestoTrasToque(d.data() || {}, 'reactivacion', 'el tema sigue dando vueltas')) reactivaciones.contestaron++;
+    }
+  } catch (e) { logger.warn('[prospeccion] métricas de toques:', e.message); }
+
+  return { dms, emails, rescates, reactivaciones };
+}
+
 /* ═══════════════════ Callables del panel (ops → Prospección) ═══════════════════ */
 
 function resumenProspecto(d) {
@@ -674,7 +794,13 @@ function resumenProspecto(d) {
     rubro: p.rubro || '', instagram: p.instagram || null, email: p.email || null,
     telefono: p.telefono || null, origen: p.origen || 'manual',
     estado: p.estado || 'frio', notas: p.notas || '',
+    direccion: p.direccion || '',
+    lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
+    lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null,
     emailsEnviados: Number(p.emailsEnviados) || 0,
+    dmEnviadoEn: millis(p.dmEnviadoEn) || null,
+    respondioEn: millis(p.respondioEn) || null,
+    respondioCanal: p.respondioCanal || null,
     emailBorrador: p.emailBorrador
       ? { asunto: p.emailBorrador.asunto, html: p.emailBorrador.html, secuencia: p.emailBorrador.secuencia }
       : null,
@@ -703,7 +829,10 @@ exports.prospeccionEstado = onCall({
 
   // Los candidatos a reactivación se calculan al abrir la pestaña (decenas de
   // lecturas, una vez): así el switch se decide viendo A QUIÉN tocaría.
-  const reactivables = await candidatosReactivacion().catch(() => []);
+  const [reactivables, rendimiento] = await Promise.all([
+    candidatosReactivacion().catch(() => []),
+    metricasRendimiento(snap.docs).catch((e) => { logger.warn('[prospeccion] rendimiento:', e.message); return null; }),
+  ]);
 
   return {
     ok: true,
@@ -713,7 +842,7 @@ exports.prospeccionEstado = onCall({
       maxRescatesDia: cfg.maxRescatesDia, maxReactivacionesDia: cfg.maxReactivacionesDia,
       emailFrom: cfg.emailFrom, emailPrefijoPublicidad: cfg.emailPrefijoPublicidad,
     },
-    funnel, prospectos,
+    funnel, prospectos, rendimiento,
     cuotaHoy: {
       rescates: Number(cuota.rescates) || 0,
       emails: Number(cuota.emails) || 0,
@@ -759,7 +888,9 @@ exports.prospeccionAccion = onCall({
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || `p-${Date.now()}`;
     const ref = PROSPECTOS().doc(docId);
     if ((await ref.get()).exists) throw new HttpsError('already-exists', `Ya existe un prospecto "${docId}".`);
+    const geo = await geocodificar(String(d.direccion || '').trim(), String(d.comuna || '').trim() || 'Providencia');
     await ref.set({
+      ...(geo || {}),
       negocio, nombre: String(d.nombre || '').trim(), rubro: String(d.rubro || '').trim(),
       comuna: String(d.comuna || '').trim(), direccion: String(d.direccion || '').trim(),
       telefono: String(d.telefono || '').replace(/\D/g, '') || null,

@@ -368,6 +368,10 @@
        desde SUS servidores, así que necesita una URL https pública — antes eso
        obligaba a subir la foto a otro lado primero y pegar el link a mano. -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <!-- Leaflet: el mapa de prospección (Prospección → cartera por comuna).
+       Tiles oscuros de Carto para no romper el tema; sin API key. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
@@ -2140,6 +2144,9 @@
         try { localStorage.setItem('opsTab', n); } catch(_){}
         document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n));
         document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.dataset.sec === n));
+        // Leaflet no sabe medirse dentro de display:none: el mapa de la
+        // cartera se levanta recién cuando su pestaña queda visible.
+        if (n === 'prospeccion') prosInitMapa();
       };
       window._setTab = setTab;
       document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -2366,6 +2373,49 @@
           <div class="kpi"><div class="n tnum">${f.reunion||0}</div><div class="k">${tip('Reuniones', 'Llegaron a reunión agendada o solicitada en tu agenda real. Es la meta de todo el embudo.')}</div></div>
         </div>`;
 
+      /* Rendimiento por palanca: tasas reales, no conteos. Lo que no se mide
+         no mejora — esto es lo que decide si un mensaje se cambia o se mata. */
+      const rend = P.rendimiento || null;
+      const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
+      const rendCard = (titulo, tasa, detalle, extra) => `<div style="border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px">
+          <div class="muted" style="font-size:11.5px;margin-bottom:4px">${titulo}</div>
+          <div class="tnum" style="font-size:26px;font-weight:700">${tasa}</div>
+          <div class="muted" style="font-size:11.5px;margin-top:4px">${detalle}</div>
+          ${extra ? `<div style="font-size:11.5px;margin-top:2px;color:var(--brand)">${extra}</div>` : ''}
+        </div>`;
+      const rendimientoHtml = rend ? `<div class="panel full" style="margin-top:14px">
+          <h3>📈 ${tip('Rendimiento por palanca', 'Tasa de respuesta REAL de cada tipo de mensaje saliente, medida sola por los triggers. Es la evidencia para decidir si un mensaje funciona o hay que cambiarlo.')}</h3>
+          <p class="hint">Un prospecto cuenta como "respondió" cuando escribe por WhatsApp o Instagram después del toque; un rescate o reactivación cuenta cuando la conversación siguió creciendo después del mensaje. Ojo: las respuestas a los correos llegan directo a tu Gmail y no se pueden medir desde acá.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">
+            ${rendCard('📸 DMs manuales (frío)', pct(rend.dms.respondieron, rend.dms.enviados),
+              `${rend.dms.enviados} enviados · ${rend.dms.respondieron} respondieron · ${rend.dms.reuniones} con reunión`,
+              rend.dms.horasPromedio !== null ? `respuesta media: ${rend.dms.horasPromedio} h` : '')}
+            ${rendCard('✉️ Correos (secuencia)', pct(rend.emails.respondieron, rend.emails.prospectos),
+              `${rend.emails.prospectos} prospectos · ${rend.emails.correos} correos · ${rend.emails.bajas} baja(s)`,
+              '')}
+            ${rendCard('🌡 Rescates de tibios', pct(rend.rescates.contestaron, rend.rescates.enviados),
+              `${rend.rescates.enviados} enviados · ${rend.rescates.contestaron} retomaron la conversación`,
+              '')}
+            ${rendCard('♻️ Reactivaciones WA', pct(rend.reactivaciones.contestaron, rend.reactivaciones.enviadas),
+              `${rend.reactivaciones.enviadas} enviadas · ${rend.reactivaciones.contestaron} volvieron a hablar`,
+              '')}
+          </div>
+        </div>` : '';
+
+      const mapaHtml = `<div class="panel full" style="margin-top:14px">
+          <h3>🗺 ${tip('Mapa de la cartera', 'Cada punto es un prospecto en su dirección real. El color dice en qué va: los verdes son plata en movimiento, los grises están por tocar.')}</h3>
+          <p class="hint">Providencia a vista de dron: mira de un vistazo dónde ya golpeamos la puerta y quién contestó. Clic en un punto para ver el detalle. Los agregados a mano se ubican solos al guardarlos.</p>
+          <div id="pros-mapa" style="height:400px;border-radius:12px;overflow:hidden;border:1px solid var(--glass-border);background:var(--surface-2)"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11.5px" class="muted">
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-right:5px"></span>frío</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#f0b429;margin-right:5px"></span>contactado</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#9CCC3C;margin-right:5px"></span>respondió</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#C6F94E;margin-right:5px"></span>reunión</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7c8b9d;margin-right:5px"></span>sin respuesta</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e0645c;margin-right:5px"></span>opt-out</span>
+          </div>
+        </div>`;
+
       const controles = `<div class="panel full" style="margin-top:14px">
           <h3>🎛 Motores <span class="muted" style="font-weight:400;font-size:11.5px">· hoy: ${cuota.rescates||0} rescates · ${cuota.emails||0} correos · ${cuota.reactivaciones||0} reactivaciones</span></h3>
           <p class="hint">El agente contacta solo por canales que no arriesgan las cuentas: rescata conversaciones propias, manda correos (con tu OK mientras el envío automático esté apagado) y te deja los DMs listos para pegar. Instagram no permite iniciar DMs por API — eso se envía a mano desde la cola.</p>
@@ -2448,8 +2498,52 @@
           </table></div>
         </div>`;
 
-      return kpis + controles + colaHtml + borradoresHtml + reactivablesHtml + tabla;
+      return kpis + rendimientoHtml + mapaHtml + controles + colaHtml + borradoresHtml + reactivablesHtml + tabla;
     }
+
+    /* El mapa vive en un div que el repintado destruye y la pestaña puede
+       estar oculta (display:none deja a Leaflet midiendo un lienzo de 0px):
+       por eso se re-crea completo cada vez que la sección se muestra o se
+       repinta visible, y nunca se inicializa a ciegas. */
+    const PROS_COLORES = {
+      frio:'#64748b', contactado:'#f0b429', respondio:'#9CCC3C',
+      reunion:'#C6F94E', cliente:'#C6F94E', sin_respuesta:'#7c8b9d',
+      optout:'#e0645c', descartado:'#52525b',
+    };
+    function prosInitMapa(){
+      const cont = document.getElementById('pros-mapa');
+      const P = ESTADO.prospeccion;
+      if (!cont || !P || typeof L === 'undefined') return;
+      if (cont.offsetParent === null) return;   // pestaña oculta: se inicia al mostrarla
+      const puntos = (P.prospectos||[]).filter(p => p.lat !== null && p.lng !== null);
+      if (!puntos.length) {
+        cont.innerHTML = '<p class="muted" style="padding:20px">Sin coordenadas todavía: corre <code>node scripts/geocodificar-prospectos.js</code>.</p>';
+        return;
+      }
+      if (window._prosMapa) { try { window._prosMapa.remove(); } catch(_){} window._prosMapa = null; }
+      const mapa = L.map(cont, { scrollWheelZoom: false });
+      window._prosMapa = mapa;
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19,
+      }).addTo(mapa);
+      const marcadores = [];
+      for (const p of puntos) {
+        const color = PROS_COLORES[p.estado] || '#64748b';
+        // Los que ya se movieron (respondió/reunión) van más grandes y llenos:
+        // el mapa debe contar la historia de un vistazo.
+        const vivo = ['respondio','reunion','cliente'].includes(p.estado);
+        const m = L.circleMarker([p.lat, p.lng], {
+          radius: vivo ? 9 : 6, color, weight: vivo ? 3 : 1.5,
+          fillColor: color, fillOpacity: vivo ? 0.85 : 0.45,
+        }).addTo(mapa);
+        const canales = [p.email ? '📧' : '', p.instagram ? '📸' : '', p.telefono ? '💬' : ''].join('');
+        m.bindPopup(`<b>${esc(p.negocio)}</b><br>${PROS_ESTADOS[p.estado] || esc(p.estado)}${canales ? ' · ' + canales : ''}<br><span style="font-size:11px;color:#555">${esc(p.direccion || '')}</span>${(p.toques||[]).length ? `<br><span style="font-size:11px;color:#555">${(p.toques||[]).length} toque(s)</span>` : ''}`);
+        marcadores.push(m);
+      }
+      mapa.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.15));
+      setTimeout(() => { try { mapa.invalidateSize(); } catch(_){} }, 60);
+    }
+    window.prosInitMapa = prosInitMapa;
 
     async function refrescarProspeccion(){
       const r = await _fn('prospeccionEstado')({}).catch(() => null);
@@ -2542,7 +2636,7 @@
       const el = document.querySelector(`.sec[data-sec="${sec}"]`);
       if (!el) return;
       if (sec === 'ventas')   el.innerHTML = seccionVentas();
-      if (sec === 'prospeccion') el.innerHTML = seccionProspeccion();
+      if (sec === 'prospeccion') { el.innerHTML = seccionProspeccion(); prosInitMapa(); }
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();
