@@ -1955,6 +1955,7 @@ exports.crecimientoSnapshotCron = crecimientoModule.crecimientoSnapshotCron;
 const opsPlataformaModule = require('./ops-plataforma');
 exports.opsPlataforma       = opsPlataformaModule.opsPlataforma;
 exports.opsPlataformaAccion = opsPlataformaModule.opsPlataformaAccion;
+exports.opsTenantDetalle    = opsPlataformaModule.opsTenantDetalle;
 
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');

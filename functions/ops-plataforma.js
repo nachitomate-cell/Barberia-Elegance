@@ -100,11 +100,96 @@ exports.opsPlataforma = onCall({ region: 'us-central1', cors: true, memory: '512
   };
 });
 
+/* ── Drawer de gestión por tenant (fase 2, bloque A) ──────────────────────── */
+
+/** Detalle de UN local para el drawer: identidad, control y stats livianos. */
+exports.opsTenantDetalle = onCall({ region: 'us-central1', cors: true, memory: '512MiB', timeoutSeconds: 60 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+
+  const [tdSnap, sysSnap, billSnap] = await Promise.all([
+    db.doc(`tenants/${tid}`).get().catch(() => null),
+    db.doc(`_system/${tid}`).get().catch(() => null),
+    db.doc(`_billing/${tid}`).get().catch(() => null),
+  ]);
+  const td = tdSnap?.data() || {}, sys = sysSnap?.data() || {}, bill = billSnap?.data() || {};
+
+  // Barberos reales (sin espejos): un conteo barato del equipo.
+  const base = tid === 'elegance' ? 'barberos' : `tenants/${tid}/barberos`;
+  const barbSnap = await db.collection(base).get().catch(() => ({ docs: [] }));
+  const barberos = barbSnap.docs.map((d) => d.data() || {}).filter((b) => !b._mainDocId && b.esQA !== true);
+
+  return {
+    ok: true,
+    tid,
+    nombre: td.nombre || td.nombreCorto || tid,
+    instagram: td.instagram || null,
+    telefono: (td.contacto && td.contacto.whatsapp) || td.telefono || null,
+    emailDueno: (td.contacto && td.contacto.email) || td.ownerEmail || bill.emailCobro || null,
+    control: {
+      operativo: sys.operativo !== false && sys.status !== 'suspended',
+      estadoComercial: sys.estadoComercial || null,
+      notas: sys.adminNotas || '',
+      proximoContacto: sys.proximoContacto || '',
+    },
+    plan: {
+      plan: bill.plan || td.plan || null,
+      estadoPago: bill.estadoPago || null,
+      status: td.status || sys.status || 'active',
+      autopay: (bill.suscripcionMp && bill.suscripcionMp.status) || null,
+      walletActivo: bill.walletActivo === true,
+    },
+    stats: {
+      barberos: barberos.length,
+      clienteDelClub: sys.clientesClub || null,
+    },
+  };
+});
+
 exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, async (req) => {
   if (!req.auth || !esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
   }
   const accion = String(req.data?.accion || '');
+
+  /* Kill switch: enciende/apaga el local (mismo campo que /admin y el edge). */
+  if (accion === 'killSwitch') {
+    const tid = String(req.data?.tid || '').trim();
+    const operativo = req.data?.operativo !== false;
+    if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+    await db.doc(`_system/${tid}`).set({
+      operativo, status: operativo ? 'active' : 'suspended',
+      operativoCambiadoEn: FieldValue.serverTimestamp(),
+      operativoCambiadoPor: String(req.auth.token?.email || ''),
+    }, { merge: true });
+    return { ok: true, operativo };
+  }
+
+  /* Estado comercial: dónde va la venta (propuesta→activo_100→atrasado). */
+  if (accion === 'estadoComercial') {
+    const tid = String(req.data?.tid || '').trim();
+    const estado = String(req.data?.estado || '');
+    const VALIDOS = ['propuesta', 'visita', 'prueba', 'activo_100', 'atrasado'];
+    if (!tid || !VALIDOS.includes(estado)) throw new HttpsError('invalid-argument', 'tid o estado inválido.');
+    await db.doc(`_system/${tid}`).set({ estadoComercial: estado, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { ok: true };
+  }
+
+  /* CRM: notas de seguimiento + próximo contacto del local. */
+  if (accion === 'crmGuardar') {
+    const tid = String(req.data?.tid || '').trim();
+    if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+    await db.doc(`_system/${tid}`).set({
+      adminNotas: String(req.data?.notas || '').slice(0, 2000),
+      proximoContacto: String(req.data?.proximo || '').slice(0, 20),
+      crmActualizadoEn: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  }
+
 
   if (accion === 'soporteLeido') {
     const tid = String(req.data?.tenantId || 'elegance');

@@ -2613,8 +2613,115 @@
           ${tenants ? plataformaTenantsHtml(tenants) : '<p class="muted" style="font-size:12px"><span class="fresh cargando"><span class="p"></span>cargando cuentas…</span></p>'}
         </div>`;
 
-      return kpis + soporteHtml + erroresHtml + leadsHtml + onbHtml;
+      // Todos los locales (gestión) — lista buscable que abre el drawer.
+      const localesHtml = `<div class="panel full" style="margin-top:14px">
+          <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>💈 ${tip('Todos los locales', 'Cada local de la plataforma. Clic para abrir su ficha de gestión: encender/apagar, estado comercial y notas de seguimiento.')}</span>
+            <input id="plat-buscar" placeholder="🔎 buscar local…" autocomplete="off" value="${esc(window._platBusca||'')}" oninput="window._platBusca=this.value;platFiltrarLocales()" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 12px;font-size:12px;width:220px;font-weight:400"></h3>
+          ${tenants ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px" id="plat-locales-grid">${tenants.slice().sort((a,b)=>String(a.nombre||a.id).localeCompare(String(b.nombre||b.id))).map(t => {
+            const on = t.operativo !== false && t.status !== 'suspended';
+            return `<button data-q="${esc(prosNorm((t.nombre||'')+' '+t.id))}" onclick="platAbrirTenant('${esc(t.id)}')" style="text-align:left;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:9px 12px;cursor:pointer;color:inherit;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${on?'#9CCC3C':'#e0645c'};flex:none"></span>
+              <span style="min-width:0"><b style="font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.nombre||t.id)}</b><span class="muted" style="font-size:10.5px">/${esc(t.id)}${t.plan?' · '+esc(t.plan):''}</span></span>
+            </button>`;}).join('')}</div>` : '<p class="muted" style="font-size:12px"><span class="fresh cargando"><span class="p"></span>cargando locales…</span></p>'}
+        </div>`;
+
+      return kpis + soporteHtml + erroresHtml + leadsHtml + onbHtml + localesHtml
+        + '<div id="plat-drawer"></div>';
     }
+
+    function platFiltrarLocales(){
+      const q = prosNorm(window._platBusca||'');
+      document.querySelectorAll('#plat-locales-grid [data-q]').forEach(b => {
+        b.style.display = (!q || b.dataset.q.includes(q)) ? '' : 'none';
+      });
+    }
+
+    /* Drawer de gestión de UN local: control core (kill switch, estado
+       comercial, notas). Se pinta como overlay sobre la pestaña. */
+    async function platAbrirTenant(tid){
+      const host = document.getElementById('plat-drawer');
+      if (!host) return;
+      host.innerHTML = `<div id="plat-drawer-ov" style="position:fixed;inset:0;background:rgba(4,10,18,.6);z-index:5000;display:flex;justify-content:flex-end" onclick="platOvClick(event)">
+          <div style="width:min(440px,92vw);height:100%;overflow-y:auto;background:var(--surface);border-left:1px solid var(--glass-border);padding:20px">
+            <p class="muted"><span class="fresh cargando"><span class="p"></span>cargando ${esc(tid)}…</span></p>
+          </div></div>`;
+      try {
+        const r = await _fn('opsTenantDetalle')({ tid });
+        platPintarDrawer(r.data);
+      } catch(e){
+        const box = document.querySelector('#plat-drawer-ov > div');
+        if (box) box.innerHTML = `<p style="color:#e0645c">No pude cargar: ${esc(e.message||e)}</p><button class="mini" onclick="platCerrarTenant()">Cerrar</button>`;
+      }
+    }
+    function platOvClick(ev){ if (ev.target === ev.currentTarget) platCerrarTenant(); }
+    function platCerrarTenant(){ const h=document.getElementById('plat-drawer'); if(h) h.innerHTML=''; }
+    function platPintarDrawer(d){
+      const box = document.querySelector('#plat-drawer-ov > div');
+      if (!box) return;
+      const c = d.control||{}, p = d.plan||{}, s = d.stats||{};
+      const ESTC = { propuesta:'Propuesta conversada', visita:'Visita pendiente', prueba:'Prueba gratis', activo_100:'Activo al 100%', atrasado:'Mensualidad atrasada' };
+      const wa = d.telefono ? String(d.telefono).replace(/\D/g,'') : '';
+      box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:14px">
+          <div><h3 style="margin:0">${esc(d.nombre)}</h3><span class="muted" style="font-size:11px">/${esc(d.tid)}${p.plan?' · plan '+esc(p.plan):''} · ${s.barberos||0} en el equipo</span></div>
+          <button class="mini" onclick="platCerrarTenant()">✕</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+          <a class="mini" style="text-decoration:none" href="https://${esc(d.tid)}.synaptechspa.cl" target="_blank" rel="noopener">📅 Agenda</a>
+          <a class="mini" style="text-decoration:none" href="https://${esc(d.tid)}.synaptechspa.cl/gestion-interna/" target="_blank" rel="noopener">⚙️ Panel</a>
+          ${wa?`<a class="mini" style="text-decoration:none" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬 Dueño</a>`:''}
+          ${d.instagram?`<a class="mini" style="text-decoration:none" href="https://instagram.com/${esc(d.instagram)}" target="_blank" rel="noopener">📸</a>`:''}
+        </div>
+
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">Control del local</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+          <div><b style="font-size:12.5px">Estado operativo</b><br><span style="font-size:11.5px;color:${c.operativo?'#9CCC3C':'#e0645c'}">${c.operativo?'● Encendido':'● Apagado'}</span></div>
+          <button class="mini" onclick="platTenantAccion('killSwitch','${esc(d.tid)}',{operativo:${!c.operativo}},this)">${c.operativo?'🛑 Apagar':'✅ Encender'}</button>
+        </div>
+        <div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+          <b style="font-size:12.5px">Estado comercial</b>
+          <select onchange="platTenantAccion('estadoComercial','${esc(d.tid)}',{estado:this.value},this)" style="width:100%;margin-top:6px;background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:7px 9px;font-size:12.5px">
+            <option value="">— sin fijar —</option>
+            ${Object.entries(ESTC).map(([k,v])=>`<option value="${k}" ${c.estadoComercial===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;margin-bottom:16px">
+          <b style="font-size:12.5px">Notas & seguimiento</b>
+          <textarea id="plat-crm-notas" rows="3" placeholder="Contexto, acuerdos, preferencias del dueño…" style="width:100%;box-sizing:border-box;margin-top:6px;background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:8px;font-size:12.5px;resize:vertical;font-family:inherit">${esc(c.notas||'')}</textarea>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+            <label class="muted" style="font-size:11px">Próx. contacto</label>
+            <input id="plat-crm-proximo" type="date" value="${esc(c.proximoContacto||'')}" style="flex:1;background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 8px;font-size:12px">
+            <button class="mini" onclick="platGuardarCrm('${esc(d.tid)}',this)">💾</button>
+          </div>
+        </div>
+
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">Plan & pago</p>
+        <div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;font-size:12.5px">
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Plan</span><span>${p.plan?esc(p.plan):'—'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Estado de pago</span><span style="color:${p.estadoPago==='al_dia'?'#9CCC3C':p.estadoPago==='atrasado'?'#e0645c':'var(--soft)'}">${p.estadoPago?esc(p.estadoPago):'—'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Autopay MP</span><span>${p.autopay?esc(p.autopay):'—'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Wallet</span><span>${p.walletActivo?'activo':'—'}</span></div>
+          <p class="hint" style="margin:8px 0 0">La facturación completa (cuotas, autopay) llega en el próximo bloque de la migración.</p>
+        </div>`;
+    }
+    async function platTenantAccion(accion, tid, extra, el){
+      if (el && el.tagName==='BUTTON'){ el.disabled=true; }
+      try { await _fn('opsPlataformaAccion')({ accion, tid, ...(extra||{}) });
+        const r = await _fn('opsTenantDetalle')({ tid }); platPintarDrawer(r.data);
+        cargarPlataforma(true);   // refresca la grilla de fondo (semáforos)
+      } catch(e){ alert('Error: '+(e.message||e)); if(el&&el.tagName==='BUTTON') el.disabled=false; }
+    }
+    async function platGuardarCrm(tid, btn){
+      const notas = (document.getElementById('plat-crm-notas')||{}).value||'';
+      const proximo = (document.getElementById('plat-crm-proximo')||{}).value||'';
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try { await _fn('opsPlataformaAccion')({ accion:'crmGuardar', tid, notas, proximo });
+        if (btn){ btn.textContent='✅'; setTimeout(()=>{try{btn.textContent='💾';btn.disabled=false;}catch(_){}} ,1400); }
+      } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;btn.textContent='💾';} }
+    }
+    window.platFiltrarLocales = platFiltrarLocales; window.platAbrirTenant = platAbrirTenant;
+    window.platCerrarTenant = platCerrarTenant; window.platTenantAccion = platTenantAccion;
+    window.platGuardarCrm = platGuardarCrm; window.platOvClick = platOvClick;
 
     function plataformaTenantsHtml(tenants){
       const ORIG = new Set(['self-service','admin-express','express']);
