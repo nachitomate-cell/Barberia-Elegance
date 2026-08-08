@@ -1204,6 +1204,40 @@ export default function TVConfig() {
               </p>
             )}
 
+            {/* Video de fondo + slides activos = choque: los slides tapan el video
+                y encima se atenúa (caso real: un local subió un video-anuncio con
+                precio y el slide de oferta le escribía encima). Fix de 1 clic. */}
+            {(isVideoBg || !!config.youtubeVideoUrl) && !config.hideSlideshow && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-3 py-2.5 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                <p className="flex-1 text-[11px] text-amber-400/90 leading-relaxed">
+                  ⚠️ Tu fondo es un <strong>video</strong> y los slides siguen activos: le van a escribir
+                  encima y el video se ve atenuado. Si el video ES tu anuncio, déjalo como protagonista.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => applyPreset({ hideSlideshow: true, rawVideoBg: true })}
+                  className="shrink-0 px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold rounded-lg transition-all"
+                >
+                  Video protagonista
+                </button>
+              </div>
+            )}
+            {(isVideoBg || !!config.youtubeVideoUrl) && config.hideSlideshow && (
+              <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                <p className="flex-1 text-[11px] text-emerald-400/80 leading-relaxed">
+                  🎬 Modo video protagonista: los slides están ocultos y el video se ve a todo brillo.
+                  El QR y la agenda del costado siguen en pantalla.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => applyPreset({ hideSlideshow: false, rawVideoBg: false })}
+                  className="shrink-0 px-3 py-2 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold rounded-lg transition-all"
+                >
+                  Volver a los slides
+                </button>
+              </div>
+            )}
+
             {mediaMode === 'local' && (
             <>
             <p className="text-xs text-slate-500 -mt-1">
