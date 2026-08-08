@@ -24,7 +24,7 @@ const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
 const { FieldValue }         = require('firebase-admin/firestore');
 
-const { esOperadorReq } = require('./lib/operadores');
+const { esOperadorReq, esBootstrapReq } = require('./lib/operadores');
 
 const db = admin.firestore();
 const millis = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : (v && v.seconds ? v.seconds * 1000 : null));
@@ -220,4 +220,74 @@ exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, asyn
   }
 
   throw new HttpsError('invalid-argument', `Acción desconocida: "${accion}".`);
+});
+
+/* ── Facturación del tenant (fase 2, bloque B) — CANDADO BOOTSTRAP ─────────────
+   Es la plata de un cliente real: solo Ignacio, igual que _billing en las
+   rules y que el panel 💹 Crecimiento. El socio developer no la ve ni la toca. */
+
+exports.opsTenantBilling = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esBootstrapReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo Ignacio ve la facturación.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+  const b = (await db.doc(`_billing/${tid}`).get()).data() || {};
+  const fpp = b.fechaProximoPago;
+  return {
+    ok: true, tid,
+    plan: b.plan || '',
+    estadoPago: b.estadoPago || 'al_dia',
+    montoPendiente: Number(b.montoPendiente) || 0,
+    mensajeAdmin: b.mensajeAdmin || '',
+    fechaProximoPago: fpp ? (fpp.toDate ? fpp.toDate().toISOString().slice(0, 10) : String(fpp).slice(0, 10)) : '',
+    cuotas: Array.isArray(b.cuotas) ? b.cuotas.map((c) => ({
+      mes: c.mes, pagada: c.pagada === true, monto: Number(c.monto) || 0,
+      fechaPago: c.fechaPago || null, medioPago: c.medioPago || null,
+    })) : [],
+    suscripcionMp: b.suscripcionMp ? {
+      status: b.suscripcionMp.status || null,
+      monto: b.suscripcionMp.monto || null,
+      nextPaymentDate: b.suscripcionMp.nextPaymentDate || null,
+      payerEmail: b.suscripcionMp.payerEmail || null,
+      initPoint: b.suscripcionMp.status === 'link_creado' ? (b.suscripcionMp.initPoint || null) : null,
+      ultimoPago: b.suscripcionMp.ultimoPago || null,
+    } : null,
+  };
+});
+
+exports.opsTenantBillingSet = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esBootstrapReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo Ignacio edita la facturación.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+  const d = req.data || {};
+
+  const ESTADOS = ['al_dia', 'pendiente', 'atrasado'];
+  const estado = ESTADOS.includes(d.estadoPago) ? d.estadoPago : 'al_dia';
+  // Las cuotas llegan editadas del front; se sanean acá (mes válido, monto ≥0).
+  const cuotas = (Array.isArray(d.cuotas) ? d.cuotas : [])
+    .filter((c) => /^\d{4}-\d{2}$/.test(String(c.mes || '')))
+    .slice(0, 60)
+    .map((c) => ({
+      mes: String(c.mes),
+      pagada: c.pagada === true,
+      monto: Math.max(0, Math.round(Number(c.monto) || 0)),
+      ...(c.pagada && c.fechaPago ? { fechaPago: String(c.fechaPago).slice(0, 10), medioPago: String(c.medioPago || 'Transferencia').slice(0, 40) } : {}),
+    }));
+
+  const payload = {
+    plan: String(d.plan || '').slice(0, 200),
+    cuotas, estadoPago: estado,
+    montoPendiente: Math.max(0, Math.round(Number(d.montoPendiente) || 0)),
+    mensajeAdmin: String(d.mensajeAdmin || '').slice(0, 500),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  const fecha = String(d.fechaProximoPago || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) payload.fechaProximoPago = fecha;
+
+  await db.doc(`_billing/${tid}`).set(payload, { merge: true });
+  logger.info(`[ops-plataforma] billing ${tid} guardado por ${req.auth.token?.email}`);
+  return { ok: true };
 });

@@ -1956,6 +1956,8 @@ const opsPlataformaModule = require('./ops-plataforma');
 exports.opsPlataforma       = opsPlataformaModule.opsPlataforma;
 exports.opsPlataformaAccion = opsPlataformaModule.opsPlataformaAccion;
 exports.opsTenantDetalle    = opsPlataformaModule.opsTenantDetalle;
+exports.opsTenantBilling    = opsPlataformaModule.opsTenantBilling;
+exports.opsTenantBillingSet = opsPlataformaModule.opsTenantBillingSet;
 
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');

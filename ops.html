@@ -2695,15 +2695,143 @@
           </div>
         </div>
 
-        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">Plan & pago</p>
-        <div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;font-size:12.5px">
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Plan</span><span>${p.plan?esc(p.plan):'—'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Estado de pago</span><span style="color:${p.estadoPago==='al_dia'?'#9CCC3C':p.estadoPago==='atrasado'?'#e0645c':'var(--soft)'}">${p.estadoPago?esc(p.estadoPago):'—'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Autopay MP</span><span>${p.autopay?esc(p.autopay):'—'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Wallet</span><span>${p.walletActivo?'activo':'—'}</span></div>
-          <p class="hint" style="margin:8px 0 0">La facturación completa (cuotas, autopay) llega en el próximo bloque de la migración.</p>
-        </div>`;
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">💰 Facturación</p>
+        <div id="plat-billing"><button class="mini" onclick="platCargarBilling('${esc(d.tid)}',this)">Ver facturación de este local</button></div>`;
     }
+
+    /* ── Facturación (bloque B) — solo Ignacio (candado bootstrap en el backend).
+       Las cuotas se editan en memoria (window._platCuotas) y se guardan enteras;
+       misma mecánica que /admin, incluido correr el próximo vencimiento al
+       marcar una cuota pagada (si no, el panel del local sigue diciendo atrasado). */
+    // Netos de la lista pública (el IVA se suma; corrección 08-08). Mismos
+    // valores que PRECIOS_SELF_SERVICE_NETO en functions/mensualidad-mp.js.
+    const PLAT_PLANES_NETO = { 'Básico':29900, 'Pro':49900, 'Full':69900 };
+    function platMesLabel(mes){ const [y,m]=String(mes).split('-').map(Number); const s=new Date(y,m-1,15).toLocaleString('es-CL',{month:'long',year:'numeric'}); return s.charAt(0).toUpperCase()+s.slice(1); }
+    async function platCargarBilling(tid, btn){
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try {
+        const r = await _fn('opsTenantBilling')({ tid });
+        window._platBillingTid = tid;
+        window._platBilling = r.data;
+        window._platCuotas = (r.data.cuotas||[]).map(c=>({...c}));
+        platPintarBilling();
+      } catch(e){
+        const host=document.getElementById('plat-billing');
+        if (host) host.innerHTML = (e&&/permission/i.test(e.message||'')) ? '<p class="muted" style="font-size:12px">La facturación es solo para Ignacio.</p>' : '<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>';
+      }
+    }
+    function platPintarBilling(){
+      const host=document.getElementById('plat-billing'); if(!host) return;
+      const b=window._platBilling||{}, sub=b.suscripcionMp;
+      const iva=(n)=>Math.round((Number(n)||0)*1.19);
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 9px;font-size:12.5px';
+      const subChip = !sub ? '<span class="muted" style="font-size:11px">no activado</span>'
+        : ({authorized:'<span style="color:#9CCC3C;font-size:11px">● cobra solo</span>', link_creado:'<span style="color:#f0b429;font-size:11px">link creado · falta tarjeta</span>', paused:'<span style="color:#f0b429;font-size:11px">pausado</span>', cancelled:'<span style="color:#e0645c;font-size:11px">cancelado</span>'}[sub.status]||'<span class="muted">—</span>');
+      host.innerHTML = `<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Plan<br>
+              <select id="plat-b-plan" style="${inp};width:100%">
+                ${['','Básico','Pro','Full','Personalizado'].map(pl=>`<option ${b.plan===pl?'selected':''} value="${pl}">${pl||'— sin fijar —'}</option>`).join('')}
+              </select></label>
+            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Estado de pago<br>
+              <select id="plat-b-estado" style="${inp};width:100%">
+                ${[['al_dia','Al día'],['pendiente','Pendiente'],['atrasado','Atrasado']].map(([v,l])=>`<option value="${v}" ${b.estadoPago===v?'selected':''}>${l}</option>`).join('')}
+              </select></label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Monto mensual NETO<br>
+              <input id="plat-b-monto" type="number" min="0" step="100" value="${b.montoPendiente||''}" oninput="platMontoIva()" style="${inp};width:100%">
+              <span id="plat-b-iva" style="font-size:10.5px;color:var(--brand)">${b.montoPendiente>0?'+IVA = $'+iva(b.montoPendiente).toLocaleString('es-CL'):''}</span></label>
+            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Próximo vencimiento<br>
+              <input id="plat-b-fecha" type="date" value="${esc(b.fechaProximoPago||'')}" style="${inp};width:100%"></label>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span class="muted" style="font-size:11px">Cuotas mensuales</span><button class="mini" onclick="platAddCuota()">＋ cuota</button></div>
+            <div id="plat-cuotas"></div>
+          </div>
+          <label style="font-size:11px" class="muted">Mensaje para el local<br><textarea id="plat-b-msg" rows="2" style="${inp};width:100%;box-sizing:border-box;resize:vertical;font-family:inherit">${esc(b.mensajeAdmin||'')}</textarea></label>
+          <button class="mini" style="margin-top:10px;width:100%" onclick="platGuardarBilling(this)">💾 Guardar facturación</button>
+          <div style="border-top:1px solid var(--hairline);margin-top:12px;padding-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="muted" style="font-size:11px">🔁 Pago automático (MP)</span>${subChip}</div>
+            ${sub&&sub.monto?`<div class="muted" style="font-size:11px;margin-top:3px">$${Number(sub.monto).toLocaleString('es-CL')}/mes${sub.nextPaymentDate?' · próx '+esc(sub.nextPaymentDate):''}${sub.payerEmail?' · '+esc(sub.payerEmail):''}</div>`:''}
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              ${sub&&sub.status==='link_creado'&&sub.initPoint?`<button class="mini" onclick="platCopiarAutopay()">📋 Copiar link</button>`:''}
+              ${!sub?`<button class="mini" onclick="platAutopayCrear(this)">🔗 Crear link de pago automático</button>`:''}
+              ${sub&&['authorized','link_creado','paused'].includes(sub.status)?`<button class="mini" onclick="platAutopayCancelar(this)">✖ Cancelar suscripción</button>`:''}
+            </div>
+          </div>
+          <p id="plat-b-fb" style="font-size:11.5px;text-align:center;margin:8px 0 0"></p>
+        </div>`;
+      platPintarCuotas();
+    }
+    function platMontoIva(){ const el=document.getElementById('plat-b-monto'),o=document.getElementById('plat-b-iva'); if(el&&o){const v=Number(el.value)||0;o.textContent=v>0?'+IVA = $'+Math.round(v*1.19).toLocaleString('es-CL'):'';} }
+    function platSyncCuotaMontos(){ (window._platCuotas||[]).forEach((c,i)=>{const el=document.getElementById('plat-cuota-'+i);if(el)c.monto=Number(el.value)||0;}); }
+    function platPintarCuotas(){
+      const host=document.getElementById('plat-cuotas'); if(!host) return;
+      const cs=window._platCuotas||[];
+      if(!cs.length){ host.innerHTML='<p class="muted" style="font-size:11px">Sin cuotas. Agrega la primera con ＋.</p>'; return; }
+      host.innerHTML=cs.map((c,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:5px 0">
+          <button class="mini" style="${c.pagada?'color:#9CCC3C;border-color:#9CCC3C':'color:#f0b429'}" onclick="platToggleCuota(${i})">${c.pagada?'✓':'○'}</button>
+          <span style="flex:1;font-size:12px;${c.pagada?'text-decoration:line-through;opacity:.6':''}">${platMesLabel(c.mes)}</span>
+          <input id="plat-cuota-${i}" type="number" min="0" step="100" value="${c.monto||''}" placeholder="$" style="width:80px;background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:6px;padding:4px 6px;font-size:11.5px;text-align:right">
+          <button class="mini" onclick="platDelCuota(${i})">✕</button>
+        </div>`).join('');
+    }
+    function platAddCuota(){
+      platSyncCuotaMontos(); const cs=window._platCuotas||(window._platCuotas=[]);
+      let mes; if(cs.length){const [y,m]=cs[cs.length-1].mes.split('-').map(Number);const d=new Date(y,m,1);mes=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+      else {const n=new Date();mes=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+      cs.push({mes,pagada:false,monto:Number((document.getElementById('plat-b-monto')||{}).value)||0}); platPintarCuotas();
+    }
+    function platDelCuota(i){ platSyncCuotaMontos(); window._platCuotas.splice(i,1); platPintarCuotas(); }
+    function platToggleCuota(i){
+      platSyncCuotaMontos(); const c=window._platCuotas[i]; c.pagada=!c.pagada;
+      if(c.pagada){ const h=new Date(); c.fechaPago=h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'); c.medioPago='Transferencia';
+        // Correr el próximo vencimiento al mes siguiente (mismo día) — si no, el
+        // panel del local sigue gritando "atrasado" (caso lumen 22-07).
+        const fEl=document.getElementById('plat-b-fecha');
+        if(fEl&&fEl.value&&fEl.value.slice(0,7)<=c.mes){ const dia=Number(fEl.value.slice(8,10))||1; const [y,m]=c.mes.split('-').map(Number); const tope=new Date(y,m+1,0).getDate(); const d=new Date(y,m,Math.min(dia,tope)); fEl.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+      } else { delete c.fechaPago; delete c.medioPago; }
+      platPintarCuotas();
+    }
+    async function platGuardarBilling(btn){
+      platSyncCuotaMontos();
+      const g=(id)=>(document.getElementById(id)||{}).value;
+      const payload={ tid:window._platBillingTid, plan:g('plat-b-plan'), estadoPago:g('plat-b-estado'),
+        montoPendiente:Number(g('plat-b-monto'))||0, fechaProximoPago:g('plat-b-fecha'),
+        mensajeAdmin:g('plat-b-msg'), cuotas:window._platCuotas||[] };
+      const fb=document.getElementById('plat-b-fb'); if(fb){fb.style.color='var(--soft)';fb.textContent='Guardando…';}
+      if(btn) btn.disabled=true;
+      try { await _fn('opsTenantBillingSet')(payload);
+        if(fb){fb.style.color='#9CCC3C';fb.textContent='✓ Guardado.';}
+        window._platBilling.montoPendiente=payload.montoPendiente;
+      } catch(e){ if(fb){fb.style.color='#e0645c';fb.textContent='Error: '+(e.message||e);} }
+      if(btn) btn.disabled=false;
+    }
+    function platCopiarAutopay(){ const s=window._platBilling&&window._platBilling.suscripcionMp; if(s&&s.initPoint){navigator.clipboard.writeText(s.initPoint);const fb=document.getElementById('plat-b-fb');if(fb){fb.style.color='#9CCC3C';fb.textContent='Link copiado — mándaselo al dueño.';}} }
+    async function platAutopayCrear(btn){
+      const monto=Number((document.getElementById('plat-b-monto')||{}).value)||0;
+      if(monto<1000){ alert('Configura y GUARDA primero el monto mensual neto (mín $1.000).'); return; }
+      if(!confirm('Crear link de pago automático. MP cobrará $'+Math.round(monto*1.19).toLocaleString('es-CL')+' (neto $'+monto.toLocaleString('es-CL')+' + IVA) cada mes. ¿Seguir?')) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try { const r=await _fn('mpMensualidadCrearLink')({ tenantId:window._platBillingTid });
+        const url=r&&r.data&&r.data.url; if(!url) throw new Error('MP no devolvió link.');
+        try{await navigator.clipboard.writeText(url);}catch(_){}
+        alert('✓ Link creado y copiado. Mándaselo al dueño por WhatsApp.');
+        platCargarBilling(window._platBillingTid);
+      } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;} }
+    }
+    async function platAutopayCancelar(btn){
+      if(!confirm('¿Cancelar el pago automático? Su tarjeta deja de cobrarse y vuelve a transferencia manual.')) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try { await _fn('mpMensualidadCancelar')({ tenantId:window._platBillingTid });
+        alert('Suscripción cancelada.'); platCargarBilling(window._platBillingTid);
+      } catch(e){ alert('Error: '+(e.message||e)); if(btn){btn.disabled=false;} }
+    }
+    window.platCargarBilling=platCargarBilling; window.platMontoIva=platMontoIva;
+    window.platAddCuota=platAddCuota; window.platDelCuota=platDelCuota; window.platToggleCuota=platToggleCuota;
+    window.platGuardarBilling=platGuardarBilling; window.platCopiarAutopay=platCopiarAutopay;
+    window.platAutopayCrear=platAutopayCrear; window.platAutopayCancelar=platAutopayCancelar;
     async function platTenantAccion(accion, tid, extra, el){
       if (el && el.tagName==='BUTTON'){ el.disabled=true; }
       try { await _fn('opsPlataformaAccion')({ accion, tid, ...(extra||{}) });
