@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Menu, X, Calendar, ShoppingBag, ChevronRight, HelpCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X, Calendar, ShoppingBag, ChevronRight, HelpCircle, Search } from 'lucide-react';
 import Sidebar    from './Sidebar';
+import PanelCmdK  from '../PanelCmdK';
+import { registrarVisita } from '../../lib/usoNavegacion';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
 import BillingBanner       from './BillingBanner';
@@ -110,6 +112,14 @@ export default function AdminLayout({ children }) {
   }, [collapsed]);
   const [toasts, setToasts] = useState([]);
   const unreadChats = useChatNotifications();
+
+  // Uso de navegación: alimenta "Frecuentes" (Sidebar) y el orden inicial
+  // del buscador global. Se registra el primer segmento de la ruta (la
+  // vista), no sub-rutas como /ayuda/<categoria>/<articulo>.
+  const location = useLocation();
+  useEffect(() => {
+    registrarVisita(location.pathname.split('/').filter(Boolean)[0]);
+  }, [location.pathname]);
 
   // Función para inyectar nuevos Toasts
   const handleAddToast = (toast) => {
@@ -227,8 +237,14 @@ export default function AdminLayout({ children }) {
 
           <span className="text-sm font-bold text-primary tracking-wide">Panel Admin</span>
 
-          {/* Spacer espejo para centrar el título */}
-          <div className="w-11" />
+          {/* Lupa — abre el buscador global (espejo del hamburger, centra el título) */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('panel-cmdk'))}
+            className="w-11 h-11 flex items-center justify-center -mr-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-primary transition-all"
+            aria-label="Buscar en el panel"
+          >
+            <Search size={20} />
+          </button>
         </header>
 
         {/* Selector de sede (solo tenants multi-sucursal) */}
@@ -267,6 +283,9 @@ export default function AdminLayout({ children }) {
       {/* Botón flotante de ayuda contextual: detecta la ruta actual y
           abre la guía relacionada del Centro de Ayuda. Ver helpMap.js */}
       <ContextualHelpButton />
+
+      {/* Buscador global ⌘K/Ctrl+K — autocontenido, escucha `panel-cmdk` */}
+      <PanelCmdK />
 
     </div>
   );

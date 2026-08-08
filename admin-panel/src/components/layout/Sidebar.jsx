@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   CalendarDays, CalendarClock, Scissors, Users, Star, BarChart3,
-  Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
+  Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown, ScanLine,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Search,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
   Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing, Receipt, BookOpen, Plug, Radar, UtensilsCrossed, PiggyBank, History,
 } from 'lucide-react';
@@ -18,6 +18,7 @@ import { useCollection } from '../../hooks/useCollection';
 import { usePermisosRecepcion } from '../../hooks/usePermisosRecepcion';
 import { useBillingPlan } from '../../hooks/useBillingPlan';
 import { useBillingRestriction } from '../BillingGate';
+import { topFrecuentes } from '../../lib/usoNavegacion';
 
 // Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
 const SECCIONES_BLOQUEADAS = new Set(['metricas', 'comisiones', 'caja', 'gastos', 'marketing', 'finanzas']);
@@ -492,6 +493,109 @@ function useUnreadNews() {
   return unread;
 }
 
+/* ── Navegación visible (fuente única) ─────────────────────────────
+   Devuelve los grupos del sidebar YA filtrados: variante de producto
+   (wallet-only / deluxe / resto), extras por tenant y permisos del rol
+   (admin / recepción / otros). La usan el Sidebar Y el buscador global
+   (PanelCmdK): un solo lugar decide qué existe para este usuario —
+   regla de listas espejo, el buscador jamás muestra una ruta que el
+   sidebar esconde. */
+export function useNavGroupsVisibles() {
+  const tenant            = useTenant();
+  const { role }          = useAuth();
+  const isAdminRole       = role === 'admin';
+  const permisosRecepcion = usePermisosRecepcion();
+  const billingPlan       = useBillingPlan();
+  const hasAcademia       = useAcademiaEnabled();
+
+  const grupos = (() => {
+    // Producto standalone: gana sobre las variantes por tenant.
+    if (billingPlan === 'wallet-only')  return NAV_GROUPS_WALLET_ONLY;
+    if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
+    if (tenant.id === 'restodemo')      return NAV_GROUPS_RESTO;
+
+    let base = NAV_GROUPS_DEFAULT.map(group => {
+      // Ahorro va dentro de Finanzas y SOLO para el tenant que lo tiene.
+      if (group.id === 'finanzas') {
+        const ahorroItem = AHORRO_ITEM[tenant.id];
+        return ahorroItem ? { ...group, items: [...group.items, ahorroItem] } : group;
+      }
+      if (group.id !== 'clientes') return group;
+      // Inyectar el ítem de membresía en Clientes para los tenants con módulo activo.
+      const membItem = MEMBRESIAS_ITEM[tenant.id];
+      if (!membItem) return group;
+      return { ...group, items: [...group.items, membItem] };
+    });
+
+    if (tenant.id === 'elegance' && hasAcademia) {
+      base = [
+        ...base.slice(0, 1),
+        { id: 'academia', label: 'Academia', items: [{ to: 'academia', label: 'Academia', Icon: GraduationCap }] },
+        ...base.slice(1),
+      ];
+    }
+
+    // Elegance estrena Publicidad: marcas asociadas en la página pública.
+    if (tenant.id === 'elegance') {
+      base = base.map(group => {
+        if (group.id !== 'crecimiento') return group;
+        return {
+          ...group,
+          items: [...group.items, { to: 'publicidad', label: 'Publicidad', Icon: Award, adminOnly: true }],
+        };
+      });
+    }
+
+    // Integraciones (mockup CAPI + GHL) — SOLO en el sandbox delnero.
+    if (tenant.id === 'delnero') {
+      base = base.map(group => {
+        if (group.id !== 'conexiones') return group;
+        return {
+          ...group,
+          items: [...group.items, { to: 'integraciones', label: 'Integraciones', Icon: Plug, adminOnly: true }],
+        };
+      });
+    }
+
+    // CLÍNICAS · Preguntas frecuentes (agenda pública lee tenants/{tid}/faqs).
+    if (tenant.tipo === 'clinica') {
+      base = base.map(group => {
+        if (group.id !== 'crecimiento') return group;
+        return {
+          ...group,
+          items: [...group.items, { to: 'faqs', label: 'Preguntas frecuentes', Icon: HelpCircle, adminOnly: true }],
+        };
+      });
+    }
+
+    // AURA · Módulo exclusivo, primero en Sistema.
+    if (tenant.id === 'aura') {
+      base = base.map(group => {
+        if (group.id !== 'sistema') return group;
+        return {
+          ...group,
+          items: [{ to: 'aura', label: 'AURA · Exclusivo', Icon: Sparkles, adminOnly: true }, ...group.items],
+        };
+      });
+    }
+
+    return base;
+  })();
+
+  return grupos
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => (
+        isAdminRole
+          ? true
+          : role === 'recepcion'
+            ? itemVisibleParaRecepcion(group, item, permisosRecepcion)
+            : !item.adminOnly
+      )),
+    }))
+    .filter(group => group.items.length > 0 && !(group.adminOnly && !isAdminRole && role !== 'recepcion'));
+}
+
 /* ── Accent class lookup (full strings required for Tailwind purge) ──
  * `active`  → fondo (10%) + color de texto/ícono del tenant
  * `border`  → color del borde izquierdo (border-l-2) del ítem activo
@@ -792,27 +896,16 @@ function SedeSwitcher() {
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
-  const { role }        = useAuth();
-  // Al panel solo entran 'admin' y 'recepcion' (ver App.jsx). Así que
-  // `adminOnly` significa hoy, en la práctica, "no para recepción": todo lo
-  // que muestre los números del negocio — Inicio, Métricas, Gastos,
-  // Facturación, Mensualidad, Comisiones, Equipo (trae la comisión de cada
-  // barbero) y Configuración. Caja e Inventario quedan visibles a propósito:
-  // son el trabajo diario del mostrador.
-  //
-  // Ocultar el ítem es UI, no seguridad. La frontera real está en
-  // firestore.rules (probada en scripts/test-rules-roles.js).
-  const isAdminRole     = role === 'admin';
-  // Permisos del recepcionista (Configuración → Recepción). El hook corre
-  // siempre (regla de hooks); para admin no se usa.
-  const permisosRecepcion = usePermisosRecepcion();
+  // Qué grupos/ítems existen para este usuario: TODO el filtrado (producto,
+  // tenant, rol admin/recepción) vive en useNavGroupsVisibles — la misma
+  // fuente que usa el buscador global. Ocultar el ítem es UI, no seguridad:
+  // la frontera real está en firestore.rules (scripts/test-rules-roles.js).
+  const NAV_GROUPS      = useNavGroupsVisibles();
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const { light, toggle: toggleTheme } = useTheme();
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
-  const hasAcademia     = useAcademiaEnabled();
   const { restringido } = useBillingRestriction();
-  const billingPlan     = useBillingPlan();
   const location        = useLocation();
 
   const { data: pendingCitas }    = useCollection('citas',               [where('estado',  '==', 'Pendiente')]);
@@ -829,107 +922,52 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   })();
   const porCerrarCount = (openCitas || []).filter(c => c.fecha && c.fecha < hoyStr).length;
 
-  const NAV_GROUPS = (() => {
-    // Producto standalone: gana sobre las variantes por tenant. Un tenant con
-    // plan wallet-only sólo ve la tarjeta + premios + clientes + reportes.
-    // Las rutas de agenda siguen registradas: superadmin puede accederlas por
-    // URL directa si necesita hacer soporte técnico.
-    if (billingPlan === 'wallet-only')   return NAV_GROUPS_WALLET_ONLY;
-    if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
-    if (tenant.id === 'restodemo')      return NAV_GROUPS_RESTO;
-
-    let base = NAV_GROUPS_DEFAULT.map(group => {
-      // Ahorro va dentro de Finanzas y SOLO para el tenant que lo tiene.
-      if (group.id === 'finanzas') {
-        const ahorroItem = AHORRO_ITEM[tenant.id];
-        return ahorroItem ? { ...group, items: [...group.items, ahorroItem] } : group;
-      }
-      if (group.id !== 'clientes') return group;
-      // Inyectar el ítem de membresía en Clientes para los tenants con módulo activo.
-      const membItem = MEMBRESIAS_ITEM[tenant.id];
-      if (!membItem) return group;
-      return {
-        ...group,
-        items: [...group.items, membItem],
-      };
-    });
-
-    if (tenant.id === 'elegance' && hasAcademia) {
-      base = [
-        ...base.slice(0, 1),
-        { id: 'academia', label: 'Academia', items: [{ to: 'academia', label: 'Academia', Icon: GraduationCap }] },
-        ...base.slice(1),
-      ];
-    }
-
-    // Elegance estrena Publicidad: marcas asociadas que aparecen entre los
-    // servicios y el clubBanner en la página pública. Solo este tenant.
-    if (tenant.id === 'elegance') {
-      base = base.map(group => {
-        if (group.id !== 'crecimiento') return group;
-        return {
-          ...group,
-          items: [
-            ...group.items,
-            { to: 'publicidad', label: 'Publicidad', Icon: Award, adminOnly: true },
-          ],
-        };
-      });
-    }
-
-    // Integraciones (mockup Conversión & CRM: Meta CAPI + GoHighLevel) — SOLO
-    // en el sandbox `delnero`, para demos a socios de marketing sin que el
-    // borrador aparezca en el panel de los clientes reales.
-    if (tenant.id === 'delnero') {
-      base = base.map(group => {
-        if (group.id !== 'conexiones') return group;
-        return {
-          ...group,
-          items: [
-            ...group.items,
-            { to: 'integraciones', label: 'Integraciones', Icon: Plug, adminOnly: true },
-          ],
-        };
-      });
-    }
-
-    // CLÍNICAS · Preguntas frecuentes. Se render en la agenda pública
-    // (index.html #faqSection lee tenants/{tid}/faqs) — el ítem se agrega
-    // solo cuando `tenant.tipo === 'clinica'`. Va en Crecimiento porque es
-    // contenido de captación (previene consultas repetidas). Cuando otro
-    // tipo lo necesite, sacar la condición de tipo.
-    if (tenant.tipo === 'clinica') {
-      base = base.map(group => {
-        if (group.id !== 'crecimiento') return group;
-        return {
-          ...group,
-          items: [
-            ...group.items,
-            { to: 'faqs', label: 'Preguntas frecuentes', Icon: HelpCircle, adminOnly: true },
-          ],
-        };
-      });
-    }
-
-    // AURA · Módulo exclusivo. Aparece como primer item de Administración
-    // para máxima visibilidad. Solo este tenant lo ve.
-    if (tenant.id === 'aura') {
-      base = base.map(group => {
-        if (group.id !== 'sistema') return group;
-        return {
-          ...group,
-          items: [
-            { to: 'aura', label: 'AURA · Exclusivo', Icon: Sparkles, adminOnly: true },
-            ...group.items,
-          ],
-        };
-      });
-    }
-
-    return base;
-  })();
-
   const currentSlug = location.pathname.split('/').filter(Boolean).pop();
+
+  /* Badges/avisos por ítem — factorizados porque se usan en el grupo normal
+     Y en "Frecuentes" (mismo ítem, mismos contadores). */
+  const getBadge = (to) => {
+    const badgeCount = to === 'mensajes'   ? unreadChats :
+                       to === 'agenda'     ? pendingCitasCount :
+                       to === 'productos'  ? pendingReservasCount :
+                       to === 'por-cerrar' ? porCerrarCount : 0;
+    const badgeColorClass = to === 'mensajes'   ? 'bg-red-500 text-primary' :
+                            to === 'agenda'     ? 'bg-amber-500 text-amber-950 font-bold' :
+                            to === 'productos'  ? 'bg-emerald-500 text-emerald-950 font-bold' :
+                            to === 'por-cerrar' ? 'bg-amber-500 text-amber-950 font-bold' : '';
+    const dot = (to === 'mensualidad' && hasBillingAlert) ? 'billing'
+              : (to === 'soporte'     && hasUnreadNews)   ? 'news'
+              : null;
+    return { badgeCount, badgeColorClass, dot };
+  };
+
+  /* ── Frecuentes: los 4 destinos que ESTE equipo usa de verdad ──────
+     Aprendido del uso real (lib/usoNavegacion, localStorage por equipo).
+     Solo muestra ítems que el rol actual puede ver (se cruzan contra los
+     grupos visibles) y aparece recién cuando hay señal (≥2 destinos con
+     3+ visitas) — nada de adivinar el primer día. */
+  const itemPorSlug = new Map();
+  for (const g of NAV_GROUPS) for (const it of g.items) if (!itemPorSlug.has(it.to)) itemPorSlug.set(it.to, it);
+  const frecuentes = topFrecuentes(4).map(f => itemPorSlug.get(f.slug)).filter(Boolean);
+  const muestraFrecuentes = frecuentes.length >= 2;
+
+  /* ── Secciones colapsables con memoria (por equipo) ────────────────
+     El dueño cierra "Conexiones"/"Sistema" una vez y quedan cerradas en
+     ese equipo. La sección que contiene la ruta ACTIVA se muestra abierta
+     aunque esté marcada cerrada — nunca "desaparece" donde estás parado. */
+  const [gruposCerrados, setGruposCerrados] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sy_sb_grupos_cerrados') || '{}') || {}; } catch { return {}; }
+  });
+  const toggleGrupo = (id) => setGruposCerrados(prev => {
+    const next = { ...prev, [id]: !prev[id] };
+    try { localStorage.setItem('sy_sb_grupos_cerrados', JSON.stringify(next)); } catch { /* noop */ }
+    return next;
+  });
+
+  const abrirBuscador = () => {
+    onClose?.();
+    window.dispatchEvent(new CustomEvent('panel-cmdk'));
+  };
 
   return (
     <aside
@@ -990,68 +1028,106 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           [&::-webkit-scrollbar-thumb]:rounded-full
           hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80"
       >
+        {/* Buscador global — mismo palette que ⌘K/Ctrl+K (PanelCmdK) */}
+        <button
+          type="button"
+          onClick={abrirBuscador}
+          className="w-full flex items-center gap-3 px-3 py-2 mb-4 rounded-lg text-sm bg-white/5 border border-slate-700/60 text-slate-400 hover:text-slate-100 hover:border-slate-500 transition-all active:scale-[0.99]"
+          aria-label="Buscar en el panel"
+        >
+          <Search size={15} className="shrink-0" />
+          <span className="flex-1 text-left">Buscar…</span>
+          <kbd className="hidden lg:inline text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-500">
+            Ctrl K
+          </kbd>
+        </button>
+
+        {/* Frecuentes — aprendidos del uso real de ESTE equipo */}
+        {muestraFrecuentes && (
+          <div className="mb-6">
+            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Frecuentes
+            </p>
+            <div className="space-y-0.5">
+              {frecuentes.map(({ to, label, Icon, variant }) => {
+                const b = getBadge(to);
+                return (
+                  <SidebarItem
+                    key={`frec-${to}`}
+                    to={to}
+                    label={label}
+                    Icon={Icon}
+                    accent={ac}
+                    variant={variant ? SIDEBAR_VARIANTS[variant] : undefined}
+                    onClick={onClose}
+                    locked={restringido && SECCIONES_BLOQUEADAS.has(to)}
+                    badgeCount={b.badgeCount}
+                    badgeColorClass={b.badgeColorClass}
+                    dot={b.dot}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {NAV_GROUPS.map(group => {
-          // Recepción: visibilidad por permisos configurables (Configuración →
-          // Recepción). Un grupo adminOnly puede igual mostrar un ítem
-          // CONCEDIDO (ej: Lista de espera vive en "Sistema"), por eso el
-          // filtro decide por ítem y el grupo solo se omite si queda vacío.
-          const items = group.items.filter(item => (
-            isAdminRole
-              ? true
-              : role === 'recepcion'
-                ? itemVisibleParaRecepcion(group, item, permisosRecepcion)
-                : !item.adminOnly
-          ));
-          if (items.length === 0) return null;
-          if (group.adminOnly && !isAdminRole && role !== 'recepcion') return null;
+          // La sección de la ruta ACTIVA nunca se esconde, aunque esté
+          // marcada como cerrada: donde estás parado siempre se ve.
+          const contieneActiva = group.items.some(it => it.to === currentSlug);
+          const cerrado = !!gruposCerrados[group.id] && !contieneActiva;
+          // Una sección cerrada no puede tragarse los avisos: si adentro hay
+          // badges (citas pendientes, por cerrar…) el header muestra un punto.
+          const avisosOcultos = cerrado && group.items.some(it => {
+            const b = getBadge(it.to);
+            return b.badgeCount > 0 || b.dot;
+          });
 
           return (
             <div key={group.id} className="mb-6">
 
-              {/* Título de categoría — jerárquico y limpio, sin línea divisoria */}
-              <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {group.label}
-              </p>
+              {/* Título de categoría — clickeable para colapsar (con memoria) */}
+              <button
+                type="button"
+                onClick={() => toggleGrupo(group.id)}
+                aria-expanded={!cerrado}
+                className="w-full flex items-center justify-between px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  {group.label}
+                  {avisosOcultos && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-label="Hay avisos en esta sección" />
+                  )}
+                </span>
+                <ChevronDown
+                  size={13}
+                  className={`shrink-0 opacity-60 transition-transform duration-200 ${cerrado ? '-rotate-90' : ''}`}
+                />
+              </button>
 
               {/* Items */}
-              <div className="space-y-0.5">
-                {items.map(({ to, label, Icon, variant }) => {
-                  const isMensajes  = to === 'mensajes';
-                  const isAgenda    = to === 'agenda';
-                  const isProductos = to === 'productos';
-                  const isPorCerrar = to === 'por-cerrar';
-
-                  const badgeCount = isMensajes  ? unreadChats :
-                                     isAgenda    ? pendingCitasCount :
-                                     isProductos ? pendingReservasCount :
-                                     isPorCerrar ? porCerrarCount : 0;
-
-                  const badgeColorClass = isMensajes  ? 'bg-red-500 text-primary' :
-                                          isAgenda    ? 'bg-amber-500 text-amber-950 font-bold' :
-                                          isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' :
-                                          isPorCerrar ? 'bg-amber-500 text-amber-950 font-bold' : '';
-
-                  const dot = (to === 'mensualidad' && hasBillingAlert) ? 'billing'
-                            : (to === 'soporte'     && hasUnreadNews)   ? 'news'
-                            : null;
-
-                  return (
-                    <SidebarItem
-                      key={to}
-                      to={to}
-                      label={label}
-                      Icon={Icon}
-                      accent={ac}
-                      variant={variant ? SIDEBAR_VARIANTS[variant] : undefined}
-                      onClick={onClose}
-                      locked={restringido && SECCIONES_BLOQUEADAS.has(to)}
-                      badgeCount={badgeCount}
-                      badgeColorClass={badgeColorClass}
-                      dot={dot}
-                    />
-                  );
-                })}
-              </div>
+              {!cerrado && (
+                <div className="space-y-0.5">
+                  {group.items.map(({ to, label, Icon, variant }) => {
+                    const b = getBadge(to);
+                    return (
+                      <SidebarItem
+                        key={to}
+                        to={to}
+                        label={label}
+                        Icon={Icon}
+                        accent={ac}
+                        variant={variant ? SIDEBAR_VARIANTS[variant] : undefined}
+                        onClick={onClose}
+                        locked={restringido && SECCIONES_BLOQUEADAS.has(to)}
+                        badgeCount={b.badgeCount}
+                        badgeColorClass={b.badgeColorClass}
+                        dot={b.dot}
+                      />
+                    );
+                  })}
+                </div>
+              )}
 
             </div>
           );
