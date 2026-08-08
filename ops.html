@@ -431,6 +431,31 @@
     padding-top:12px; border-top:1px solid rgba(156,204,60,.16); font-family:ui-monospace,monospace;
     text-transform:uppercase; letter-spacing:.12em; font-size:11px; color:#8fa0b3; }
   .hud-foot b{ color:#C6F94E; font-size:14px; }
+
+  /* ── Stat-cards HUD reutilizables (para todas las pestañas) ── */
+  @keyframes hudPop{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .hud-hero{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+    font-family:ui-monospace,'Cascadia Code',monospace; text-transform:uppercase; letter-spacing:.16em;
+    font-size:12px; color:#cfe6a8; margin:0 0 12px; padding-bottom:10px;
+    border-bottom:1px solid rgba(156,204,60,.16); }
+  .hud-hero .r{ color:#8fa0b3; letter-spacing:.1em; }
+  .hud-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .hud-stat{ position:relative; animation:hudPop .4s ease both;
+    background:linear-gradient(135deg,rgba(15,26,43,.92),rgba(10,20,32,.85));
+    border:1px solid rgba(156,204,60,.2);
+    clip-path:polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 13px 100%, 0 calc(100% - 13px));
+    padding:14px 16px 15px; transition:border-color .2s, transform .2s; }
+  .hud-stat:hover{ border-color:rgba(198,249,78,.5); transform:translateY(-2px); }
+  .hud-stat::after{ content:""; position:absolute; left:16px; bottom:0; width:26px; height:2px;
+    background:linear-gradient(90deg,#9CCC3C,#C6F94E); box-shadow:0 0 8px rgba(198,249,78,.6); }
+  .hud-stat .ico{ font-size:14px; opacity:.85; margin-bottom:8px; }
+  .hud-stat .val{ font-family:ui-monospace,monospace; font-weight:800; font-size:30px; line-height:1;
+    color:#eaf3dc; text-shadow:0 0 14px rgba(198,249,78,.18); }
+  .hud-stat .val.mini{ font-size:22px; }
+  .hud-stat .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:#8fa0b3; margin-top:7px; line-height:1.35; }
+  .hud-stat.alert{ border-color:rgba(224,100,92,.45); }
+  .hud-stat.alert::after{ background:#e0645c; box-shadow:0 0 8px rgba(224,100,92,.6); }
+  .hud-stat.alert .val{ color:#f0a89f; }
 </style>
 </head>
 <body>
@@ -484,6 +509,12 @@
      *  punteado es la parte importante: avisa que hay algo que leer. */
     const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const tip = (texto, explicacion) => `<span class="tip" title="${esc(explicacion)}">${texto}</span>`;
+    /** Stat-card estilo HUD de videojuego, reutilizable en todas las pestañas.
+     *  opts: {mini:bool, alert:bool} */
+    const hudStat = (icono, valor, label, explica, opts={}) =>
+      `<div class="hud-stat${opts.alert?' alert':''}"><div class="ico">${icono}</div>`
+      + `<div class="val tnum${opts.mini?' mini':''}">${valor}</div>`
+      + `<div class="lbl">${explica?tip(label,explica):label}</div></div>`;
 
     function loginView(msg){
       app.innerHTML = `<div class="login">
@@ -2124,11 +2155,12 @@
           ${alertasHtml ? `<div style="margin-bottom:16px">${alertasHtml}</div>` : ''}
 
           <section class="sec" data-sec="resumen">
-            <div class="kpis">
-              <div class="kpi"><div class="n tnum">${t.localesActivos||0}</div><div class="k">${tip('Locales con WhatsApp conectado', 'Locales con la sesión de WhatsApp viva ahora mismo, sumando barbería y SushiPro. No es la cantidad de clientes que pagan.')}</div></div>
-              <div class="kpi"><div class="n tnum">${num(t.mensajes)}</div><div class="k">${tip('Mensajes enviados (30d)', 'Mensajes de WhatsApp que salieron desde la plataforma en 30 días: recordatorios, confirmaciones y respuestas del bot.')}</div></div>
-              <div class="kpi"><div class="n tnum">${usd(t.costoUsd)}</div><div class="k">${tip('Costo de IA que pagas (30d)', 'Lo que le cobra Anthropic a SynapTech por los bots. Es costo tuyo, no del local.')}</div></div>
-              <div class="kpi"><div class="n tnum">${num(t.llamadasIA)}</div><div class="k">${tip('Llamadas a la IA (30d)', 'Veces que se le preguntó algo al modelo. Un mensaje de cliente puede gatillar más de una.')}</div></div>
+            <div class="hud-hero"><span>◤ Centro de mando · SynapTech</span><span class="r">estado del reino · últimos 30 días</span></div>
+            <div class="hud-stats">
+              ${hudStat('🏢', t.localesActivos||0, 'Locales online', 'Locales con la sesión de WhatsApp viva ahora mismo, sumando barbería y SushiPro. No es la cantidad de clientes que pagan.')}
+              ${hudStat('💬', num(t.mensajes), 'Mensajes · 30d', 'Mensajes de WhatsApp que salieron desde la plataforma en 30 días: recordatorios, confirmaciones y respuestas del bot.')}
+              ${hudStat('💸', usd(t.costoUsd), 'Costo IA · 30d', 'Lo que le cobra Anthropic a SynapTech por los bots. Es costo tuyo, no del local.')}
+              ${hudStat('⚡', num(t.llamadasIA), 'Llamadas IA · 30d', 'Veces que se le preguntó algo al modelo. Un mensaje de cliente puede gatillar más de una.')}
             </div>
             <div class="panel full" id="panel-hoy" style="margin-top:14px">${panelHoy()}</div>
           </section>
