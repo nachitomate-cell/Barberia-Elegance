@@ -2054,6 +2054,7 @@
             <button data-tab="resumen">📊 Resumen</button>
             <button data-tab="ads">${marca('meta','Meta')} Meta Ads</button>
             <button data-tab="instagram">${marca('instagram','Instagram')} Instagram${ESTADO.instagram && !ESTADO.instagram.conectado ? ' · ⚠️' : ''}</button>
+            <button data-tab="contenido">📅 Contenido</button>
             <button data-tab="ventas">🎯 Ventas${leadsPend ? ' · ' + leadsPend : ''}</button>
             <button data-tab="prospeccion">🚀 Prospección${prosPendientes() ? ' · ' + prosPendientes() : ''}</button>
             <button data-tab="crecimiento">💹 Crecimiento</button>
@@ -2093,6 +2094,10 @@
 
           <section class="sec" data-sec="instagram">
             ${seccionInstagram()}
+          </section>
+
+          <section class="sec" data-sec="contenido">
+            ${seccionContenido()}
           </section>
 
           <section class="sec" data-sec="ventas">
@@ -2528,6 +2533,117 @@
        (prosPintar): así un botón repinta SOLO su panel —nada de que la
        pestaña entera parpadee— y el mapa Leaflet se crea UNA sola vez:
        los refrescos mueven pines, no vuelven a bajar los tiles. */
+    /* ── 📅 Contenido: plan semanal de Instagram (@synaptechspa) ─────────
+       El plan se escribe UNA VEZ por semana (ritual con Claude: se planifica
+       todo lo que puede mutar durante la semana — reels, historias,
+       carruseles, con caption y consideraciones) y vive en Firestore
+       (ops_contenido/{semana}, vía callables). Acá solo se CONSUME: qué está
+       listo, qué falta, el caption exacto para copiar y cómo subir cada
+       pieza. El estado se marca con un clic y NO recarga el panel (regla de
+       rendimiento de ops). */
+    const CONT_CHIP = {
+      pendiente:  ['⚪ pendiente',  '#64748b'],
+      produccion: ['🛠 producción', '#f0b429'],
+      listo:      ['🟢 listo',      '#9CCC3C'],
+      subido:     ['✅ subido',     '#C6F94E'],
+      descartado: ['🗑 descartado', '#52525b'],
+    };
+    const CONT_TIPO = { reel:'🎬 Reel', historia:'📱 Historia', carrusel:'🖼 Carrusel', post:'🖼 Post', tarea:'🔧 Tarea' };
+
+    function contSemana(){
+      const C = ESTADO.contenido;
+      if (!C || !C.semanas || !C.semanas.length) return null;
+      const sel = ESTADO.contenidoSemana || C.semanas[0].id;
+      return C.semanas.find(s => s.id === sel) || C.semanas[0];
+    }
+
+    function contDiaLabel(ymd){
+      try {
+        const d = new Date(String(ymd) + 'T12:00:00');
+        const s = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric' });
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      } catch(_) { return String(ymd); }
+    }
+
+    function seccionContenido(){
+      const C = ESTADO.contenido;
+      if (!C) return `<div class="panel"><h3>📅 Contenido</h3><p class="muted"><span class="fresh cargando"><span class="p"></span>cargando el plan…</span></p></div>`;
+      const S = contSemana();
+      if (!S) return `<div class="panel"><h3>📅 Contenido</h3><p class="muted">Todavía no hay un plan semanal. Se crea en el ritual de planificación (un día a la semana, con Claude).</p></div>`;
+
+      const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+      const items = (S.items || []).slice().sort((a, b) =>
+        String(a.dia).localeCompare(String(b.dia)) || String(a.hora || '').localeCompare(String(b.hora || '')));
+      const activos = items.filter(i => i.estado !== 'descartado');
+      const n = (e) => activos.filter(i => i.estado === e).length;
+
+      const selector = (ESTADO.contenido.semanas || []).length > 1
+        ? `<select onchange="ESTADO.contenidoSemana=this.value;repintar('contenido')" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:5px 9px;font-size:12px">
+            ${ESTADO.contenido.semanas.map(s => `<option value="${s.id}" ${s.id === S.id ? 'selected' : ''}>Semana del ${s.id}</option>`).join('')}
+          </select>` : '';
+
+      let cuerpo = '', diaAnt = null;
+      for (const it of items) {
+        if (it.dia !== diaAnt) {
+          diaAnt = it.dia;
+          const esHoy = it.dia === hoy;
+          cuerpo += `<div style="margin:16px 0 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${esHoy ? 'var(--brand)' : 'var(--soft)'};font-weight:700">${contDiaLabel(it.dia)}${esHoy ? ' · HOY' : ''}</div>`;
+        }
+        const [chipTxt, chipColor] = CONT_CHIP[it.estado] || CONT_CHIP.pendiente;
+        cuerpo += `<div style="border:1px solid var(--glass-border);border-radius:12px;padding:10px 13px;margin-bottom:8px;${it.estado === 'subido' ? 'opacity:.55;' : ''}">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <button class="agchip" onclick="contEstado('${S.id}','${it.id}')" title="Clic para avanzar: pendiente → producción → listo → subido"
+              style="border-color:${chipColor}55;color:${chipColor};font-weight:600">${chipTxt}</button>
+            <b style="font-size:13px">${CONT_TIPO[it.tipo] || it.tipo} — ${esc(it.titulo || '')}</b>
+            ${it.hora ? `<span class="muted" style="font-size:11.5px">🕐 ${esc(it.hora)}</span>` : ''}
+          </div>
+          ${it.notas ? `<div class="muted" style="font-size:12px;margin-top:6px;line-height:1.5">${esc(it.notas)}</div>` : ''}
+          ${it.caption ? `<div style="margin-top:8px;border:1px dashed var(--glass-border);border-radius:9px;padding:8px 10px">
+            <div id="cap-${it.id}" style="font-size:12px;white-space:pre-wrap;line-height:1.5;color:var(--ink)">${esc(it.caption)}</div>
+            <button class="mini" style="margin-top:7px" onclick="contCopiar('${it.id}', this)">📋 copiar</button>
+          </div>` : ''}
+          ${it.asset ? `<div class="muted" style="font-size:11px;margin-top:7px">📁 ${esc(it.asset)}</div>` : ''}
+        </div>`;
+      }
+
+      return `<div class="panel full">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <h3 style="margin:0">📅 ${tip('Plan de contenido — ' + esc(S.titulo || S.id), 'El plan semanal de Instagram. Se planifica completo un día a la semana (ritual con Claude) y acá se va marcando qué se subió. Clic en el chip de estado para avanzarlo; el caption se copia con un botón.')}</h3>
+            ${selector}
+          </div>
+          <div class="muted" style="font-size:12px;margin:8px 0 2px">
+            ${n('subido')} subidas · <span style="color:#9CCC3C">${n('listo')} listas para subir</span> · ${n('produccion')} en producción · ${n('pendiente')} pendientes
+          </div>
+          ${cuerpo || '<p class="muted">Semana sin piezas.</p>'}
+        </div>`;
+    }
+
+    /** Avanza el estado de una pieza con actualización optimista: se pinta al
+     *  tiro y si el servidor rechaza, se revierte. JAMÁS recarga el panel. */
+    async function contEstado(semana, itemId){
+      const S = contSemana();
+      if (!S) return;
+      const it = (S.items || []).find(i => i && i.id === itemId);
+      if (!it) return;
+      const orden = ['pendiente', 'produccion', 'listo', 'subido'];
+      const antes = it.estado;
+      it.estado = orden[(orden.indexOf(it.estado) + 1) % orden.length];
+      repintar('contenido');
+      try { await _fn('opsContenidoSet')({ semana, itemId, estado: it.estado }); }
+      catch (e) { it.estado = antes; repintar('contenido'); alert('No pude guardar el estado: ' + (e.message || e)); }
+    }
+    window.contEstado = contEstado;
+
+    function contCopiar(id, btn){
+      const el = document.getElementById('cap-' + id);
+      if (!el) return;
+      const txt = el.innerText;
+      const listo = () => { btn.textContent = '✅ copiado'; setTimeout(() => { btn.textContent = '📋 copiar'; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(listo, () => window.prompt('Copia el caption:', txt));
+      else window.prompt('Copia el caption:', txt);
+    }
+    window.contCopiar = contCopiar;
+
     function seccionProspeccion(){
       return `<div id="pros-kpis" class="full"></div>
         <div id="pros-hoy" class="full"></div>
@@ -3279,6 +3395,7 @@
       const el = document.querySelector(`.sec[data-sec="${sec}"]`);
       if (!el) return;
       if (sec === 'ventas')   el.innerHTML = seccionVentas();
+      if (sec === 'contenido') el.innerHTML = seccionContenido();
       // Prospección NO repinta la sección entera: llena sus cascarones y el
       // mapa solo mueve pines (ver prosPintar).
       if (sec === 'prospeccion') prosPintar();
@@ -3308,6 +3425,10 @@
       set('prospeccion', `🚀 Prospección${prosPend ? ' · ' + prosPend : ''}`);
       const atrasado = ESTADO.cobranza && (ESTADO.cobranza.rows||[]).some(r => r.diasAtraso > 0);
       set('cobranza', `💰 Cobranza${atrasado ? ' · 🔴' : ''}`);
+      // Piezas LISTAS para subir de la semana visible: el número que empuja.
+      const _cs = typeof contSemana === 'function' ? contSemana() : null;
+      const contListas = _cs ? (_cs.items||[]).filter(i => i.estado === 'listo').length : 0;
+      set('contenido', `📅 Contenido${contListas ? ' · ' + contListas : ''}`);
     }
 
     /** Refresca solo los datos de ventas (3 lecturas) y repinta esa sección.
@@ -3367,6 +3488,7 @@
       _fn('ventasAgendaVer')({}).then(r => { ESTADO.agendaVentas = r.data; repintar('ventas'); }).catch(() => {});
       _fn('cobranzaConfig')({}).then(r => { ESTADO.cobranza = r.data; repintar('cobranza'); }).catch(() => {});
       _fn('prospeccionEstado')({}).then(r => { ESTADO.prospeccion = r.data; repintar('prospeccion'); }).catch(() => {});
+      _fn('opsContenidoVer')({}).then(r => { ESTADO.contenido = r.data; repintar('contenido'); }).catch(() => {});
       // Los chips viven dentro del render grande (pestaña WhatsApp); si llegan
       // después del primer pintado se dibujan en el siguiente repintado global.
       _fn('plataformaChips')({}).then(r => {

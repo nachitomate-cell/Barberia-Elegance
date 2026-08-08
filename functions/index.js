@@ -1920,6 +1920,11 @@ exports.opsSnapshotCron     = opsSnapshotModule.opsSnapshotCron;
 exports.opsSnapshot         = opsSnapshotModule.opsSnapshot;
 exports.opsMetaAdsRefrescar = opsSnapshotModule.opsMetaAdsRefrescar;
 
+// Plan semanal de contenido de @synaptechspa (pestaña 📅 Contenido de ops).
+const opsContenidoModule = require('./ops-contenido');
+exports.opsContenidoVer = opsContenidoModule.opsContenidoVer;
+exports.opsContenidoSet = opsContenidoModule.opsContenidoSet;
+
 // Prospección saliente: el agente de ventas deja de esperar. Rescate de
 // conversaciones tibias (WA+IG), secuencia de email frío en borrador, cola de
 // DMs redactados para envío humano y reactivación de leads propios. Todo se
