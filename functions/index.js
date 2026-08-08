@@ -1963,6 +1963,13 @@ exports.opsTenantWa         = opsPlataformaModule.opsTenantWa;
 exports.opsTenantEliminar   = opsPlataformaModule.opsTenantEliminar;
 exports.opsQaFantasma       = opsPlataformaModule.opsQaFantasma;
 
+// Migración total admin→ops: estadísticas globales de plataforma + ingresos
+// proyectados del mes. Ver functions/ops-admin-legacy.js.
+const opsAdminLegacy = require('./ops-admin-legacy');
+exports.opsPlatformStats      = opsAdminLegacy.opsPlatformStats;
+exports.opsIngresos           = opsAdminLegacy.opsIngresos;
+exports.opsIngresoMarcarPagada = opsAdminLegacy.opsIngresoMarcarPagada;
+
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');
 exports.kronnosResumenMensual = kronnosResumenModule.kronnosResumenMensual;
