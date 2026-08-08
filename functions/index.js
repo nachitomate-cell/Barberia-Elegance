@@ -1969,6 +1969,8 @@ const opsAdminLegacy = require('./ops-admin-legacy');
 exports.opsPlatformStats      = opsAdminLegacy.opsPlatformStats;
 exports.opsIngresos           = opsAdminLegacy.opsIngresos;
 exports.opsIngresoMarcarPagada = opsAdminLegacy.opsIngresoMarcarPagada;
+exports.opsReferidos          = opsAdminLegacy.opsReferidos;
+exports.opsReferidoGuardar    = opsAdminLegacy.opsReferidoGuardar;
 
 // Lobby admin.kronnos.synaptechspa.cl: resumen mensual de las 3 sedes.
 const kronnosResumenModule = require('./kronnos-resumen');

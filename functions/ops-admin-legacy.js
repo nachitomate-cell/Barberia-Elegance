@@ -16,6 +16,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger }             = require('firebase-functions');
 const admin                  = require('firebase-admin');
+const { FieldValue }         = require('firebase-admin/firestore');
 
 const { esOperadorReq, esBootstrapReq } = require('./lib/operadores');
 const { _ahoraChile: ahoraChile }       = require('./chat-horas-disponibles');
@@ -196,6 +197,60 @@ exports.opsIngresos = onCall({ region: 'us-central1', cors: true, memory: '512Mi
       suspendidos: cats.suspendidos.map((x) => x.tid).sort(),
     },
   };
+});
+
+/* ═══════════════ Programa de referidos B2B (migrado de /admin) ═══════════════
+   Modelo: _referrals/{champTid}/referidos/{referredTid}. */
+
+exports.opsReferidos = onCall({ region: 'us-central1', cors: true, memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const champs = await db.collection('_referrals').listDocuments();
+  const out = await Promise.all(champs.map(async (ref) => {
+    const referidos = await ref.collection('referidos').get().catch(() => ({ docs: [] }));
+    return {
+      champion: ref.id,
+      referidos: referidos.docs.map((d) => {
+        const v = d.data() || {};
+        return {
+          tid: d.id, nombre: v.referredNombre || d.id,
+          fecha: v.fechaReferido || null, status: v.status || null,
+          mesesOtorgados: v.mesesGratisOtorgados || 0,
+          mesesPendientes: v.mesesGratisPendientesAplicar || 0,
+          notas: v.notas || '',
+        };
+      }),
+    };
+  }));
+  return { ok: true, programas: out.filter((p) => p.referidos.length) };
+});
+
+exports.opsReferidoGuardar = onCall({ region: 'us-central1', cors: true }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const d = req.data || {};
+  const champ = String(d.champion || '').trim();
+  const referred = String(d.referredTid || '').trim();
+  if (!champ || !referred) throw new HttpsError('invalid-argument', 'Falta champion o referido.');
+  if (champ === referred) throw new HttpsError('invalid-argument', 'Un local no se refiere a sí mismo.');
+
+  const ref = db.doc(`_referrals/${champ}/referidos/${referred}`);
+  if (d.borrar === true) { await ref.delete(); return { ok: true, borrado: true }; }
+
+  const existe = (await ref.get()).exists;
+  await ref.set({
+    referredNombre: String(d.referredNombre || referred).slice(0, 120),
+    fechaReferido: d.fecha || null,
+    mesesGratisOtorgados: Number(d.mesesOtorgados) || 0,
+    mesesGratisPendientesAplicar: Number(d.mesesPendientes) || 0,
+    status: String(d.status || 'activo').slice(0, 30),
+    notas: String(d.notas || '').slice(0, 500),
+    updatedAt: FieldValue.serverTimestamp(),
+    ...(existe ? {} : { createdAt: FieldValue.serverTimestamp() }),
+  }, { merge: true });
+  return { ok: true };
 });
 
 /** Marcar una cuota del mes como pagada/no pagada desde ops (bootstrap). */

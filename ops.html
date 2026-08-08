@@ -2632,11 +2632,13 @@
           <div id="plat-qa" style="margin-bottom:10px"><button class="mini" onclick="platCargarQa(this)">👻 Ver QA Fantasma</button></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="mini" onclick="platWizardAbrir()">➕ Crear local nuevo</button>
-            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">🎁 Referidos</a>
-            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">📢 Anuncios push</a>
+            <button class="mini" onclick="platCargarReferidos(this)">🎁 Referidos</button>
+            <button class="mini" onclick="platAnuncioAbrir()">📢 Anuncio push</button>
           </div>
-          <p class="hint" style="margin-top:8px">Referidos y anuncios son lo único que sigue en /admin — próxima tanda. El alta de locales, la gestión, estadísticas e ingresos ya viven acá.</p>
+          <p class="hint" style="margin-top:8px">Consolidación total: toda la gestión que vivía en /admin ya está acá.</p>
+          <div id="plat-referidos"></div>
           <div id="plat-wizard"></div>
+          <div id="plat-anuncio"></div>
         </div>`;
 
       const statsHtml = `<div class="panel full" style="margin-top:14px">
@@ -2818,6 +2820,84 @@
     }
     window.platWizardAbrir=platWizardAbrir; window.platWzOvClick=platWzOvClick; window.platWizardCerrar=platWizardCerrar;
     window.platWzSlug=platWzSlug; window.platWzImportar=platWzImportar; window.platWzCrear=platWzCrear;
+
+    /* ── Referidos B2B (migrado de /admin) ── */
+    async function platCargarReferidos(btn){
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ const r=await _fn('opsReferidos')({}); platPintarReferidos(r.data.programas||[]); }
+      catch(e){ const h=document.getElementById('plat-referidos'); if(h) h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+      if(btn){btn.disabled=false;btn.textContent='🎁 Referidos';}
+    }
+    function platPintarReferidos(progs){
+      const h=document.getElementById('plat-referidos'); if(!h) return;
+      const tenants=(ESTADO.plataformaTenants||[]).slice().sort((a,b)=>String(a.nombre||a.id).localeCompare(String(b.nombre||b.id)));
+      const opts=tenants.map(t=>`<option value="${esc(t.id)}">${esc(t.nombre||t.id)}</option>`).join('');
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 9px;font-size:12px';
+      const total=progs.reduce((a,p)=>a+p.referidos.length,0);
+      h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px;margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12.5px">🎁 Programa de referidos</b><span class="muted" style="font-size:11px">${total} referidos · ${progs.length} champions</span></div>
+          ${progs.length?progs.map(p=>`<div style="margin-top:8px"><b style="font-size:12px">${esc(p.champion)}</b> refirió a:
+            ${p.referidos.map(r=>`<div style="display:flex;justify-content:space-between;padding:3px 0 3px 12px;font-size:11.5px"><span>${esc(r.nombre)} <span class="muted">(${esc(r.status||'activo')})</span></span><span class="muted">${r.mesesOtorgados}m otorgados${r.mesesPendientes?' · '+r.mesesPendientes+' pend':''}</span></div>`).join('')}</div>`).join(''):'<p class="muted" style="font-size:12px;margin-top:6px">Sin referidos registrados.</p>'}
+          <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--brand)">＋ Registrar referido</summary>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+              <div style="display:flex;gap:6px"><select id="rf-champ" style="${inp};flex:1"><option value="">Champion (quién refirió)…</option>${opts}</select><select id="rf-ref" style="${inp};flex:1"><option value="">Referido…</option>${opts}</select></div>
+              <div style="display:flex;gap:6px"><input id="rf-fecha" type="date" style="${inp}"><input id="rf-meses" type="number" placeholder="meses gratis" style="${inp};width:110px"><input id="rf-status" placeholder="status" value="activo" style="${inp};width:100px"></div>
+              <input id="rf-notas" placeholder="notas" autocomplete="off" style="${inp}">
+              <button class="mini" onclick="platGuardarReferido(this)">Guardar</button>
+              <p id="rf-fb" style="font-size:11.5px;margin:0"></p>
+            </div></details>
+        </div>`;
+    }
+    async function platGuardarReferido(btn){
+      const g=(id)=>((document.getElementById(id)||{}).value||'').trim();
+      const champion=g('rf-champ'), referredTid=g('rf-ref');
+      if(!champion||!referredTid){ alert('Selecciona champion y referido.'); return; }
+      const fb=document.getElementById('rf-fb'); if(fb){fb.style.color='var(--soft)';fb.textContent='Guardando…';}
+      if(btn)btn.disabled=true;
+      try{ const t=(ESTADO.plataformaTenants||[]).find(x=>x.id===referredTid);
+        await _fn('opsReferidoGuardar')({ champion, referredTid, referredNombre:(t&&t.nombre)||referredTid, fecha:g('rf-fecha'), mesesOtorgados:Number(g('rf-meses'))||0, status:g('rf-status')||'activo', notas:g('rf-notas') });
+        platCargarReferidos();
+      }catch(e){ if(fb){fb.style.color='#e0645c';fb.textContent='Error: '+(e.message||e);} }
+      if(btn)btn.disabled=false;
+    }
+
+    /* ── Anuncio push masivo (migrado de /admin) — reusa broadcastAnuncio. */
+    function platAnuncioAbrir(){
+      const host=document.getElementById('plat-anuncio'); if(!host) return;
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:12.5px;width:100%;box-sizing:border-box';
+      host.innerHTML=`<div id="plat-an-ov" style="position:fixed;inset:0;background:rgba(4,10,18,.6);z-index:5000;display:flex;justify-content:center;align-items:flex-start;padding:24px" onclick="platAnOvClick(event)">
+        <div style="width:min(460px,94vw);background:var(--surface);border:1px solid var(--glass-border);border-radius:14px;padding:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">📢 Anuncio push</h3><button class="mini" onclick="platAnuncioCerrar()">✕</button></div>
+          <p class="hint" style="margin:0 0 10px">Manda una notificación push a los paneles de los locales (dueños y/o barberos). NO va a los clientes finales.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input id="an-title" placeholder="Título" autocomplete="off" style="${inp}">
+            <textarea id="an-body" rows="3" placeholder="Mensaje" style="${inp};resize:vertical;font-family:inherit"></textarea>
+            <div style="display:flex;gap:6px"><select id="an-audience" style="${inp}"><option value="all">Todos (dueños + barberos)</option><option value="admin">Solo dueños (gestión-interna)</option><option value="agenda">Solo barberos (agenda)</option></select><input id="an-link" placeholder="link destino (opcional)" autocomplete="off" style="${inp};flex:1"></div>
+            <button class="mini" onclick="platAnuncioEnviar(this)">Enviar push</button>
+            <p id="an-status" style="font-size:11.5px;margin:0"></p>
+          </div>
+        </div></div>`;
+    }
+    function platAnOvClick(ev){ if(ev.target===ev.currentTarget) platAnuncioCerrar(); }
+    function platAnuncioCerrar(){ const h=document.getElementById('plat-anuncio'); if(h) h.innerHTML=''; }
+    async function platAnuncioEnviar(btn){
+      const g=(id)=>((document.getElementById(id)||{}).value||'').trim();
+      const title=g('an-title'), body=g('an-body'), audience=g('an-audience'), link=g('an-link')||'/gestion-interna/';
+      if(!title||!body){ alert('Título y mensaje son obligatorios.'); return; }
+      const aud=audience==='admin'?'los dueños':audience==='agenda'?'los barberos':'todos';
+      if(!confirm('¿Enviar push a '+aud+'?\n\n'+title)) return;
+      const st=document.getElementById('an-status'); if(st){st.style.color='var(--soft)';st.textContent='Enviando…';}
+      if(btn)btn.disabled=true;
+      try{ const r=await _fn('broadcastAnuncio')({ title, body, link, audience });
+        const t=(r.data&&r.data.totals)||{};
+        if(st){st.style.color='#9CCC3C';st.innerHTML='✓ Enviado a <b>'+(t.enviados||0)+'</b> de '+(t.tokens||0)+' dispositivos.'+(t.fallidos?' ('+t.fallidos+' fallidos)':'');}
+        document.getElementById('an-title').value=''; document.getElementById('an-body').value='';
+      }catch(e){ if(st){st.style.color='#e0645c';st.textContent='Error: '+(e.message||e);} }
+      if(btn)btn.disabled=false;
+    }
+    window.platCargarReferidos=platCargarReferidos; window.platGuardarReferido=platGuardarReferido;
+    window.platAnuncioAbrir=platAnuncioAbrir; window.platAnOvClick=platAnOvClick;
+    window.platAnuncioCerrar=platAnuncioCerrar; window.platAnuncioEnviar=platAnuncioEnviar;
     async function platCargarQa(btn){
       if(btn){btn.disabled=true;btn.textContent='⏳';}
       try{ const r=await _fn('opsQaFantasma')({}); platPintarQa(r.data); }
