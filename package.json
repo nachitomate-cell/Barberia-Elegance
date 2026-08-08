@@ -60,7 +60,12 @@
     "check:ig-token": "node scripts/check-instagram-token.js",
     "test:ig-reservas": "node scripts/test-ig-reservas.js",
     "test:prospeccion": "node scripts/test-prospeccion.js",
-    "seed:prospectos": "node scripts/seed-prospectos-massiel.js"
+    "seed:prospectos": "node scripts/seed-prospectos-massiel.js",
+    "seed:osm": "node scripts/scrapear-prospectos-osm.js",
+    "seed:agendapro": "node scripts/importar-prospectos-agendapro.js",
+    "seed:weibook": "node scripts/importar-prospectos-weibook.js",
+    "geo:prospectos": "node scripts/geocodificar-prospectos.js",
+    "resumen:wsp": "node scripts/resumen-prospeccion-wsp.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
