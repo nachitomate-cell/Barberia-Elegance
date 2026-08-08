@@ -111,7 +111,21 @@ const CFG_DEFAULTS = {
   // Ley 19.496 art. 28B: el correo promocional no solicitado se identifica
   // como publicidad. Se puede apagar desde ops bajo criterio de Ignacio.
   emailPrefijoPublicidad: true,
+  // Orden en que se trabaja la calle (decisión de Ignacio, 08-08): la cola de
+  // DMs y la secuencia de correos redactan primero a las comunas de arriba.
+  comunasPrioridad: ['viña del mar', 'valparaíso', 'curauma', 'providencia'],
 };
+
+const normComuna = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+
+/** Posición de la comuna en el orden de trabajo; lo desconocido va al final. */
+function prioridadComuna(cfg, comuna) {
+  const lista = Array.isArray(cfg?.comunasPrioridad) && cfg.comunasPrioridad.length
+    ? cfg.comunasPrioridad : CFG_DEFAULTS.comunasPrioridad;
+  const c = normComuna(comuna);
+  const i = lista.findIndex((x) => c.includes(normComuna(x)));
+  return i === -1 ? lista.length : i;
+}
 
 async function leerCfg() {
   const guardada = (await CFG_REF().get()).data() || {};
@@ -401,13 +415,17 @@ async function enviarEmailProspecto(prospecto, borrador, cfg, { etiqueta = 'pros
  */
 async function correrSecuenciadorEmail({ cfg, limite, anthropicKey }) {
   const snap = await PROSPECTOS()
-    .where('estado', 'in', ['frio', 'contactado']).limit(200).get();
+    .where('estado', 'in', ['frio', 'contactado']).limit(400).get();
 
   const ahora = Date.now();
   let procesados = 0;
   const out = { redactados: 0, enviados: 0, agotados: 0 };
 
-  for (const doc of snap.docs) {
+  // El cupo diario se reparte según el orden de trabajo por comuna.
+  const docs = snap.docs.slice().sort((a, b) =>
+    prioridadComuna(cfg, (a.data() || {}).comuna) - prioridadComuna(cfg, (b.data() || {}).comuna));
+
+  for (const doc of docs) {
     if (procesados >= limite) break;
     const p = { id: doc.id, ...doc.data() };
 
@@ -513,10 +531,13 @@ Responde SOLO con el texto del mensaje, sin comillas ni explicación.`;
   return resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim().slice(0, 900);
 }
 
-async function generarColaDMs({ cantidad, anthropicKey }) {
-  const snap = await PROSPECTOS().where('estado', '==', 'frio').limit(100).get();
+async function generarColaDMs({ cantidad, anthropicKey, cfg = {} }) {
+  const snap = await PROSPECTOS().where('estado', '==', 'frio').limit(400).get();
   let hechos = 0;
-  for (const doc of snap.docs) {
+  // Mismo orden de trabajo que los correos: Viña → Valpo → Curauma → Providencia.
+  const docs = snap.docs.slice().sort((a, b) =>
+    prioridadComuna(cfg, (a.data() || {}).comuna) - prioridadComuna(cfg, (b.data() || {}).comuna));
+  for (const doc of docs) {
     if (hechos >= cantidad) break;
     const p = { id: doc.id, ...doc.data() };
     if (!p.instagram || p.dmBorrador) continue;
@@ -552,7 +573,10 @@ async function candidatosReactivacion() {
   const snap = await db.collection('wa_ventas_conversaciones')
     .where('updatedAt', '>=', desde).where('updatedAt', '<=', hasta).get();
 
-  const out = [];
+  // Filtros baratos primero; los que requieren viajes (lead + opt-out) van
+  // en paralelo — la versión en serie era la mitad del "carga muy lento"
+  // que se le achacaba a la pestaña.
+  const base = [];
   for (const doc of snap.docs) {
     const conv = doc.data() || {};
     const id = doc.id;
@@ -561,12 +585,19 @@ async function candidatosReactivacion() {
     if (id.startsWith('ig_')) continue;                 // fuera de ventana: IG no se puede
     if (conv.chipId === 'sandbox') continue;
     if (!/^\d{9,15}$/.test(id)) continue;
-    const lead = (await db.doc(`wa_ventas_leads/${id}`).get()).data() || {};
-    if (['confirmada', 'realizada'].includes(lead.estado)) continue;
-    if (await estaBloqueado(id)) continue;
-    out.push({ id, nombre: conv.clienteNombre || '', chipId: conv.chipId || 'ventas' });
+    base.push({ id, nombre: conv.clienteNombre || '', chipId: conv.chipId || 'ventas' });
   }
-  return out;
+  const evaluados = await Promise.all(base.map(async (c) => {
+    const [leadSnap, bloqueado] = await Promise.all([
+      db.doc(`wa_ventas_leads/${c.id}`).get(),
+      estaBloqueado(c.id),
+    ]);
+    const lead = leadSnap.data() || {};
+    if (['confirmada', 'realizada'].includes(lead.estado)) return null;
+    if (bloqueado) return null;
+    return c;
+  }));
+  return evaluados.filter(Boolean);
 }
 
 exports.prospeccionReactivacionCron = onSchedule({
@@ -767,14 +798,14 @@ async function metricasRendimiento(docsProspectos) {
   const rescates = { enviados: 0, contestaron: 0 };
   const reactivaciones = { enviadas: 0, contestaron: 0 };
   try {
-    const rs = await db.collection('wa_ventas_conversaciones')
-      .where('rescate.resultado', '==', 'enviado').limit(300).get();
+    const [rs, ra] = await Promise.all([
+      db.collection('wa_ventas_conversaciones').where('rescate.resultado', '==', 'enviado').limit(300).get(),
+      db.collection('wa_ventas_conversaciones').where('reactivacion.resultado', '==', 'enviada').limit(300).get(),
+    ]);
     for (const d of rs.docs) {
       rescates.enviados++;
       if (contestoTrasToque(d.data() || {}, 'rescate', 'Quedamos a mitad de conversación')) rescates.contestaron++;
     }
-    const ra = await db.collection('wa_ventas_conversaciones')
-      .where('reactivacion.resultado', '==', 'enviada').limit(300).get();
     for (const d of ra.docs) {
       reactivaciones.enviadas++;
       if (contestoTrasToque(d.data() || {}, 'reactivacion', 'el tema sigue dando vueltas')) reactivaciones.contestaron++;
@@ -794,6 +825,7 @@ function resumenProspecto(d) {
     rubro: p.rubro || '', instagram: p.instagram || null, email: p.email || null,
     telefono: p.telefono || null, origen: p.origen || 'manual',
     estado: p.estado || 'frio', notas: p.notas || '',
+    descartadoMotivo: p.descartadoMotivo || null,
     direccion: p.direccion || '',
     lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
     lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null,
@@ -817,9 +849,14 @@ exports.prospeccionEstado = onCall({
   if (!req.auth || !esOperadorReq(req)) {
     throw new HttpsError('permission-denied', 'Solo SynapTech opera la prospección.');
   }
+  // `ligero: true` es el refresco después de una acción del panel: devuelve
+  // solo la cartera y se salta lo caro (reactivables + rendimiento) — el
+  // cliente conserva los últimos valores. Sin esto cada clic pagaba el
+  // recálculo completo y la pestaña se sentía pesada.
+  const ligero = req.data?.ligero === true;
   const [cfg, snap, cuota] = await Promise.all([
     leerCfg(),
-    PROSPECTOS().orderBy('updatedAt', 'desc').limit(300).get(),
+    PROSPECTOS().orderBy('updatedAt', 'desc').limit(500).get(),
     cuotaDeHoy(),
   ]);
 
@@ -829,7 +866,7 @@ exports.prospeccionEstado = onCall({
 
   // Los candidatos a reactivación se calculan al abrir la pestaña (decenas de
   // lecturas, una vez): así el switch se decide viendo A QUIÉN tocaría.
-  const [reactivables, rendimiento] = await Promise.all([
+  const [reactivables, rendimiento] = ligero ? [null, null] : await Promise.all([
     candidatosReactivacion().catch(() => []),
     metricasRendimiento(snap.docs).catch((e) => { logger.warn('[prospeccion] rendimiento:', e.message); return null; }),
   ]);
@@ -848,7 +885,7 @@ exports.prospeccionEstado = onCall({
       emails: Number(cuota.emails) || 0,
       reactivaciones: Number(cuota.reactivaciones) || 0,
     },
-    reactivables: reactivables.map((c) => ({ telefono: c.id, nombre: c.nombre })),
+    reactivables: reactivables ? reactivables.map((c) => ({ telefono: c.id, nombre: c.nombre })) : null,
   };
 });
 
@@ -910,6 +947,7 @@ exports.prospeccionAccion = onCall({
     const n = await generarColaDMs({
       cantidad: Math.max(1, Math.min(15, Number(req.data?.cantidad) || 5)),
       anthropicKey: ANTHROPIC_API_KEY.value(),
+      cfg,
     });
     return { ok: true, generados: n };
   }
@@ -960,7 +998,13 @@ exports.prospeccionAccion = onCall({
       return { ok: true };
     }
     if (accion === 'descartar') {
-      await ref.set({ estado: 'descartado', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      // El motivo es DATO: "IG sin DMs activados", "cerró", "usa otro sistema"
+      // — es lo que enseña qué canal sirve para qué prospecto.
+      await ref.set({
+        estado: 'descartado',
+        descartadoMotivo: String(req.data?.motivo || '').trim().slice(0, 200) || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
       return { ok: true };
     }
     if (accion === 'reactivar') {

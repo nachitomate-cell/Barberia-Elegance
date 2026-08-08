@@ -2144,9 +2144,9 @@
         try { localStorage.setItem('opsTab', n); } catch(_){}
         document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n));
         document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.dataset.sec === n));
-        // Leaflet no sabe medirse dentro de display:none: el mapa de la
-        // cartera se levanta recién cuando su pestaña queda visible.
-        if (n === 'prospeccion') prosInitMapa();
+        // Leaflet no sabe medirse dentro de display:none: la pestaña se
+        // llena (y el mapa se levanta) recién cuando queda visible.
+        if (n === 'prospeccion') prosPintar();
       };
       window._setTab = setTab;
       document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -2346,9 +2346,19 @@
       if (!P) return 0;
       return (P.prospectos||[]).filter(x => x.emailBorrador || x.dmBorrador).length;
     }
+    /* La sección son CASCARONES estables que se llenan por separado
+       (prosPintar): así un botón repinta SOLO su panel —nada de que la
+       pestaña entera parpadee— y el mapa Leaflet se crea UNA sola vez:
+       los refrescos mueven pines, no vuelven a bajar los tiles. */
     function seccionProspeccion(){
-      if (!ESTADO.prospeccion) return '<p class="muted">Cargando prospección…</p>';
-      return prospeccionPanel(ESTADO.prospeccion);
+      return `<div id="pros-kpis" class="full"></div>
+        <div id="pros-rend" class="full"></div>
+        <div id="pros-mapa-shell" class="full"></div>
+        <div id="pros-controles" class="full"></div>
+        <div id="pros-cola"></div>
+        <div id="pros-borradores"></div>
+        <div id="pros-reactivables"></div>
+        <div id="pros-tabla" class="full"></div>`;
     }
 
     const PROS_ESTADOS = {
@@ -2356,26 +2366,57 @@
       reunion:'🤝 reunión', sin_respuesta:'😴 sin respuesta', cliente:'⭐ cliente',
       optout:'🔕 opt-out', descartado:'🗑 descartado',
     };
+    // Orden en que se trabaja la calle — el MISMO que usa el backend para
+    // decidir a quién redactarle primero. La primera comuna con prospectos
+    // es la vista inicial del mapa.
+    const PROS_COMUNAS = ['Viña del Mar', 'Valparaíso', 'Curauma', 'Providencia'];
+    const prosNorm = (s) => String(s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
-    function prospeccionPanel(P){
-      const cfg = P.cfg || {}, f = P.funnel || {}, cuota = P.cuotaHoy || {};
-      const prospectos = P.prospectos || [];
-      const colaDM     = prospectos.filter(p => p.dmBorrador && !['optout','descartado'].includes(p.estado));
-      const borradores = prospectos.filter(p => p.emailBorrador && !['optout','descartado'].includes(p.estado));
-      const sw = (campo, on, txt, explica) => `<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer">
-          <input type="checkbox" ${on ? 'checked' : ''} onclick="prosToggle('${campo}', this.checked)">
-          ${tip(txt, explica)}</label>`;
+    /** Pinta (o repinta) la pestaña llenando cada cascarón por separado. */
+    function prosPintar(){
+      const sec = document.querySelector('.sec[data-sec="prospeccion"]');
+      if (!sec) return;
+      if (!document.getElementById('pros-tabla')) sec.innerHTML = seccionProspeccion();
+      const pon = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+      const P = ESTADO.prospeccion;
+      if (!P) {
+        pon('pros-kpis', '<p class="muted"><span class="fresh cargando"><span class="p"></span>cargando la cartera…</span></p>');
+        return;
+      }
+      pon('pros-kpis', prosKpisHtml(P));
+      pon('pros-rend', prosRendimientoHtml(P));
+      // El cascarón del mapa se llena UNA vez: repintarlo destruiría el
+      // lienzo de Leaflet y eso es exactamente el parpadeo que se eliminó.
+      if (!document.getElementById('pros-mapa')) pon('pros-mapa-shell', prosMapaHtml());
+      prosPintarChipsComuna();
+      pon('pros-controles', prosControlesHtml(P));
+      pon('pros-cola', prosColaHtml(P));
+      pon('pros-borradores', prosBorradoresHtml(P));
+      pon('pros-reactivables', prosReactivablesHtml(P));
+      pon('pros-tabla', prosTablaHtml(P));
+      pintarBadges();
+      prosInitMapa(false);
+    }
+    window.prosPintar = prosPintar;
 
-      const kpis = `<div class="kpis">
-          <div class="kpi"><div class="n tnum">${(f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Prospectos en cartera', 'Negocios en la base de prospección, sin contar descartados ni opt-out. Se cargan desde el kit de Massiel, a mano, o quedan solos cuando alguien escribe.')}</div></div>
+    function prosKpisHtml(P){
+      const f = P.funnel || {};
+      return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span class="muted" style="font-size:12px">Cartera de prospección</span>
+          <span id="pros-sync" style="display:none" class="fresh cargando"><span class="p"></span>actualizando…</span>
+        </div><div class="kpis">
+          <div class="kpi"><div class="n tnum">${(f.frio||0) + (f.contactado||0) + (f.respondio||0) + (f.reunion||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Prospectos en cartera', 'Negocios en la base de prospección, sin contar descartados ni opt-out. Se cargan del scraping (Massiel/OSM), a mano, o quedan solos cuando alguien escribe.')}</div></div>
           <div class="kpi"><div class="n tnum">${(f.contactado||0) + (f.sin_respuesta||0)}</div><div class="k">${tip('Contactados', 'Ya recibieron al menos un toque: correo de la secuencia o DM enviado a mano desde la cola.')}</div></div>
-          <div class="kpi"><div class="n tnum">${f.respondio||0}</div><div class="k">${tip('Respondieron', 'Contestaron por WhatsApp o Instagram después de un toque. El bot de ventas ya los está atendiendo; el estado avanza solo.')}</div></div>
+          <div class="kpi"><div class="n tnum">${f.respondio||0}</div><div class="k">${tip('Respondieron', 'Contestaron por WhatsApp o Instagram después de un toque (las auto-respuestas de negocio no cuentan). El bot de ventas ya los está atendiendo.')}</div></div>
           <div class="kpi"><div class="n tnum">${f.reunion||0}</div><div class="k">${tip('Reuniones', 'Llegaron a reunión agendada o solicitada en tu agenda real. Es la meta de todo el embudo.')}</div></div>
         </div>`;
+    }
 
-      /* Rendimiento por palanca: tasas reales, no conteos. Lo que no se mide
-         no mejora — esto es lo que decide si un mensaje se cambia o se mata. */
+    /* Rendimiento por palanca: tasas reales, no conteos. Lo que no se mide
+       no mejora — esto es lo que decide si un mensaje se cambia o se mata. */
+    function prosRendimientoHtml(P){
       const rend = P.rendimiento || null;
+      if (!rend) return '';
       const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
       const rendCard = (titulo, tasa, detalle, extra) => `<div style="border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px">
           <div class="muted" style="font-size:11.5px;margin-bottom:4px">${titulo}</div>
@@ -2383,7 +2424,7 @@
           <div class="muted" style="font-size:11.5px;margin-top:4px">${detalle}</div>
           ${extra ? `<div style="font-size:11.5px;margin-top:2px;color:var(--brand)">${extra}</div>` : ''}
         </div>`;
-      const rendimientoHtml = rend ? `<div class="panel full" style="margin-top:14px">
+      return `<div class="panel" style="margin-top:14px">
           <h3>📈 ${tip('Rendimiento por palanca', 'Tasa de respuesta REAL de cada tipo de mensaje saliente, medida sola por los triggers. Es la evidencia para decidir si un mensaje funciona o hay que cambiarlo.')}</h3>
           <p class="hint">Un prospecto cuenta como "respondió" cuando escribe por WhatsApp o Instagram después del toque; un rescate o reactivación cuenta cuando la conversación siguió creciendo después del mensaje. Ojo: las respuestas a los correos llegan directo a tu Gmail y no se pueden medir desde acá.</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">
@@ -2400,12 +2441,15 @@
               `${rend.reactivaciones.enviadas} enviadas · ${rend.reactivaciones.contestaron} volvieron a hablar`,
               '')}
           </div>
-        </div>` : '';
+        </div>`;
+    }
 
-      const mapaHtml = `<div class="panel full" style="margin-top:14px">
-          <h3>🗺 ${tip('Mapa de la cartera', 'Cada punto es un prospecto en su dirección real. El color dice en qué va: los verdes son plata en movimiento, los grises están por tocar.')}</h3>
-          <p class="hint">Providencia a vista de dron: mira de un vistazo dónde ya golpeamos la puerta y quién contestó. Clic en un punto para ver el detalle. Los agregados a mano se ubican solos al guardarlos.</p>
-          <div id="pros-mapa" style="height:400px;border-radius:12px;overflow:hidden;border:1px solid var(--glass-border);background:var(--surface-2)"></div>
+    function prosMapaHtml(){
+      return `<div class="panel" style="margin-top:14px">
+          <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🗺 ${tip('Mapa de la cartera', 'Cada punto es un prospecto en su dirección real. El color dice en qué va: los verdes son plata en movimiento, los grises están por tocar.')}</span><button class="mini" onclick="prosMapaFullscreen()">⛶ Pantalla completa</button></h3>
+          <p class="hint">Una vista por comuna, en el mismo orden en que se trabajan. Elige la zona, haz clic en un punto para el detalle, y usa ⛶ para verlo gigante (ahí la rueda del mouse hace zoom directo). Los prospectos agregados a mano se ubican solos al guardarlos.</p>
+          <div id="pros-mapa-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+          <div id="pros-mapa" style="height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--glass-border);background:var(--surface-2)"></div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11.5px" class="muted">
             <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-right:5px"></span>frío</span>
             <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#f0b429;margin-right:5px"></span>contactado</span>
@@ -2415,8 +2459,14 @@
             <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e0645c;margin-right:5px"></span>opt-out</span>
           </div>
         </div>`;
+    }
 
-      const controles = `<div class="panel full" style="margin-top:14px">
+    function prosControlesHtml(P){
+      const cfg = P.cfg || {}, cuota = P.cuotaHoy || {};
+      const sw = (campo, on, txt, explica) => `<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" ${on ? 'checked' : ''} onclick="prosToggle('${campo}', this.checked, this)">
+          ${tip(txt, explica)}</label>`;
+      return `<div class="panel" style="margin-top:14px">
           <h3>🎛 Motores <span class="muted" style="font-weight:400;font-size:11.5px">· hoy: ${cuota.rescates||0} rescates · ${cuota.emails||0} correos · ${cuota.reactivaciones||0} reactivaciones</span></h3>
           <p class="hint">El agente contacta solo por canales que no arriesgan las cuentas: rescata conversaciones propias, manda correos (con tu OK mientras el envío automático esté apagado) y te deja los DMs listos para pegar. Instagram no permite iniciar DMs por API — eso se envía a mano desde la cola.</p>
           <div style="display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 12px">
@@ -2426,16 +2476,20 @@
             ${sw('emailPrefijoPublicidad', cfg.emailPrefijoPublicidad, 'Prefijo PUBLICIDAD', 'Ley 19.496 art. 28B: el correo comercial no solicitado debe identificarse como publicidad. Bajarlo mejora la apertura pero es decisión tuya.')}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="mini" id="pros-gen-dm" onclick="prosGenerarDMs()">✍️ Redactar 5 DMs</button>
-            <button class="mini" id="pros-gen-em" onclick="prosGenerarEmails()">📧 Redactar correos pendientes</button>
-            <button class="mini" onclick="prosRescatarAhora()">🌡 Rescatar tibios ahora</button>
-            <button class="mini" onclick="prosTestEmail()">🧪 Probar correo (te llega a ti)</button>
+            <button class="mini" onclick="prosGenerarDMs(this)">✍️ Redactar 5 DMs</button>
+            <button class="mini" onclick="prosGenerarEmails(this)">📧 Redactar correos pendientes</button>
+            <button class="mini" onclick="prosRescatarAhora(this)">🌡 Rescatar tibios ahora</button>
+            <button class="mini" onclick="prosTestEmail(this)">🧪 Probar correo (te llega a ti)</button>
           </div>
         </div>`;
+    }
 
-      const colaHtml = `<div class="panel" style="margin-top:14px">
+    function prosColaHtml(P){
+      const prospectos = P.prospectos || [];
+      const colaDM = prospectos.filter(p => p.dmBorrador && !['optout','descartado'].includes(p.estado));
+      return `<div class="panel" style="margin-top:14px">
           <h3>📋 Cola de DMs ${colaDM.length ? `<span style="color:var(--brand)">· ${colaDM.length} listos</span>` : ''}</h3>
-          <p class="hint">Redactados por el agente con los datos de cada negocio. Copia, pégalo en Instagram desde @synaptechspa y marca "Enviado": cuando el prospecto conteste, el bot lo atiende y acá pasa solo a "respondió".</p>
+          <p class="hint">Redactados por el agente con los datos de cada negocio, priorizando Viña del Mar → Valparaíso → Curauma → Providencia. Copia, pégalo en Instagram desde @synaptechspa y marca "Enviado": cuando el prospecto conteste, el bot lo atiende y acá pasa solo a "respondió".</p>
           ${colaDM.length ? colaDM.map(p => `<div style="border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
               <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
                 <b>${esc(p.negocio)}</b>
@@ -2445,34 +2499,44 @@
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 ${p.instagram ? `<a class="mini" style="text-decoration:none" href="https://ig.me/m/${esc(p.instagram)}" target="_blank" rel="noopener">📸 Abrir chat</a>` : ''}
                 <button class="mini" id="cpdm-${p.id}" onclick="prosCopiarDM('${p.id}')">📋 Copiar</button>
-                <button class="mini" onclick="prosAccion('dmEnviado','${p.id}')">✅ Ya lo envié</button>
-                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}')">🗑</button>
+                <button class="mini" onclick="prosAccion('dmEnviado','${p.id}',this)">✅ Ya lo envié</button>
+                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}',this)">🗑</button>
               </div>
             </div>`).join('') : '<p class="muted" style="font-size:12px">No hay DMs en cola. "Redactar 5 DMs" toma prospectos fríos con Instagram y les escribe un mensaje a cada uno.</p>'}
         </div>`;
+    }
 
-      const borradoresHtml = `<div class="panel" style="margin-top:14px">
+    function prosBorradoresHtml(P){
+      const prospectos = P.prospectos || [];
+      const borradores = prospectos.filter(p => p.emailBorrador && !['optout','descartado'].includes(p.estado));
+      return `<div class="panel" style="margin-top:14px">
           <h3>✉️ Correos esperando tu OK ${borradores.length ? `<span style="color:var(--brand)">· ${borradores.length}</span>` : ''}</h3>
           <p class="hint">La secuencia es de 3 correos (día 0, +3 y +7) y se detiene sola si responden o piden no recibir más. Cada envío lleva pie legal con enlace de baja.</p>
           ${borradores.length ? borradores.map(p => `<details style="border:1px solid var(--glass-border);border-radius:10px;padding:8px 12px;margin-bottom:8px">
               <summary style="cursor:pointer;font-size:13px"><b>${esc(p.negocio)}</b> <span class="muted" style="font-size:11.5px">· correo ${p.emailBorrador.secuencia||1} de 3 · ${esc(p.email||'')}</span><br><span style="font-size:12.5px">${esc(p.emailBorrador.asunto)}</span></summary>
               <div style="background:#fff;color:#151515;border-radius:8px;padding:14px;margin:10px 0;font-size:13px;line-height:1.5">${p.emailBorrador.html}</div>
               <div style="display:flex;gap:6px">
-                <button class="mini" onclick="prosAccion('aprobarEmail','${p.id}')">✉️ Aprobar y enviar</button>
-                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}')">🗑 Descartar borrador</button>
+                <button class="mini" onclick="prosAccion('aprobarEmail','${p.id}',this)">✉️ Aprobar y enviar</button>
+                <button class="mini" onclick="prosAccion('descartarBorrador','${p.id}',this)">🗑 Descartar borrador</button>
               </div>
             </details>`).join('') : '<p class="muted" style="font-size:12px">Nada pendiente. "Redactar correos pendientes" prepara el siguiente toque de cada prospecto con email.</p>'}
         </div>`;
+    }
 
-      const reactivablesHtml = `<div class="panel" style="margin-top:14px">
+    function prosReactivablesHtml(P){
+      const cfg = P.cfg || {};
+      return `<div class="panel" style="margin-top:14px">
           <h3>♻️ Leads propios reactivables <span class="muted" style="font-weight:400;font-size:11.5px">· ${(P.reactivables||[]).length} candidatos</span></h3>
           <p class="hint">Conversaciones de tu chip de ventas sin actividad hace 7–30 días y sin reunión. Con el motor apagado solo se listan; al encenderlo reciben un único toque (máx ${cfg.maxReactivacionesDia || 10} por día, martes y jueves).</p>
           ${(P.reactivables||[]).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${(P.reactivables||[]).map(c =>
             `<span style="border:1px solid var(--glass-border);border-radius:999px;padding:3px 10px;font-size:11.5px">${esc(c.nombre || 'sin nombre')} · ***${String(c.telefono).slice(-4)}</span>`).join('')}</div>`
           : '<p class="muted" style="font-size:12px">Ninguno en la ventana de 7–30 días ahora mismo.</p>'}
         </div>`;
+    }
 
-      const tabla = `<div class="panel full" style="margin-top:14px">
+    function prosTablaHtml(P){
+      const prospectos = P.prospectos || [];
+      return `<div class="panel" style="margin-top:14px">
           <h3>🗂 Cartera de prospectos</h3>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px">
             <input id="pros-negocio" placeholder="Negocio *" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:150px">
@@ -2481,7 +2545,7 @@
             <input id="pros-telefono" placeholder="teléfono 569…" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:120px">
             <input id="pros-comuna" placeholder="comuna" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
             <input id="pros-rubro" placeholder="rubro" autocomplete="off" style="background:var(--glass);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;width:110px">
-            <button class="mini" onclick="prosAgregar()">＋ Agregar</button>
+            <button class="mini" onclick="prosAgregar(this)">＋ Agregar</button>
           </div>
           <div style="overflow-x:auto"><table>
             <thead><tr><th>Negocio</th><th>${tip('Canales', 'Por dónde se le puede llegar: 📧 correo, 📸 Instagram (DM manual), 💬 teléfono.')}</th><th>Comuna</th><th>Rubro</th><th>Estado</th><th>Toques</th><th></th></tr></thead>
@@ -2489,43 +2553,105 @@
                 <td><b>${esc(p.negocio)}</b>${p.notas ? `<br><span class="muted" style="font-size:10.5px">${esc(String(p.notas).slice(0,80))}</span>` : ''}</td>
                 <td>${p.email ? '📧' : ''}${p.instagram ? '📸' : ''}${p.telefono ? '💬' : ''}${!p.email && !p.instagram && !p.telefono ? '<span class="muted">visita</span>' : ''}</td>
                 <td>${esc(p.comuna||'')}</td><td>${esc(p.rubro||'')}</td>
-                <td>${PROS_ESTADOS[p.estado] || esc(p.estado)}</td>
+                <td>${PROS_ESTADOS[p.estado] || esc(p.estado)}${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span class="muted" style="font-size:10px">${esc(p.descartadoMotivo)}</span>` : ''}</td>
                 <td class="tnum">${(p.toques||[]).length}${p.emailsEnviados ? ` <span class="muted" style="font-size:10px">(${p.emailsEnviados}✉️)</span>` : ''}</td>
                 <td style="white-space:nowrap">${['descartado','optout'].includes(p.estado)
-                  ? (p.estado === 'descartado' ? `<button class="mini" onclick="prosAccion('reactivar','${p.id}')">↩︎</button>` : '')
-                  : `<button class="mini" title="Descartar: el agente no lo contacta más" onclick="prosAccion('descartar','${p.id}')">🗑</button>`}</td>
-              </tr>`).join('') : '<tr><td colspan="7" class="muted">Sin prospectos todavía. Corre el seed del kit Massiel o agrega uno arriba.</td></tr>'}</tbody>
+                  ? (p.estado === 'descartado' ? `<button class="mini" onclick="prosAccion('reactivar','${p.id}',this)">↩︎</button>` : '')
+                  : `<button class="mini" title="Descartar: el agente no lo contacta más" onclick="prosAccion('descartar','${p.id}',this)">🗑</button>`}</td>
+              </tr>`).join('') : '<tr><td colspan="7" class="muted">Sin prospectos todavía. Corre los seeds (Massiel/OSM) o agrega uno arriba.</td></tr>'}</tbody>
           </table></div>
         </div>`;
-
-      return kpis + rendimientoHtml + mapaHtml + controles + colaHtml + borradoresHtml + reactivablesHtml + tabla;
     }
 
-    /* El mapa vive en un div que el repintado destruye y la pestaña puede
-       estar oculta (display:none deja a Leaflet midiendo un lienzo de 0px):
-       por eso se re-crea completo cada vez que la sección se muestra o se
-       repinta visible, y nunca se inicializa a ciegas. */
+    /* El mapa se crea UNA vez y sobrevive a los refrescos (su cascarón nunca
+       se repinta): los datos nuevos solo actualizan la capa de pines. Solo un
+       render global destruye el lienzo, y ahí sí se re-crea. Nunca se inicia
+       con la pestaña oculta: display:none deja a Leaflet midiendo 0px. */
     const PROS_COLORES = {
       frio:'#64748b', contactado:'#f0b429', respondio:'#9CCC3C',
       reunion:'#C6F94E', cliente:'#C6F94E', sin_respuesta:'#7c8b9d',
       optout:'#e0645c', descartado:'#52525b',
     };
-    function prosInitMapa(){
+
+    /** Comunas presentes en la cartera, en el orden de trabajo. */
+    function prosComunasVistas(){
+      const P = ESTADO.prospeccion;
+      const puntos = ((P && P.prospectos) || []).filter(p => p.lat !== null && p.lng !== null);
+      const vistas = [];
+      for (const c of PROS_COMUNAS) {
+        if (puntos.some(p => prosNorm(p.comuna).includes(prosNorm(c)))) vistas.push(c);
+      }
+      for (const p of puntos) {
+        if (p.comuna && !vistas.some(c => prosNorm(p.comuna).includes(prosNorm(c))) && !vistas.includes(p.comuna)) vistas.push(p.comuna);
+      }
+      return { vistas, puntos };
+    }
+
+    function prosPintarChipsComuna(){
+      const cont = document.getElementById('pros-mapa-chips');
+      if (!cont || !ESTADO.prospeccion) return;
+      const { vistas, puntos } = prosComunasVistas();
+      if (!window._prosComunaSel ||
+          (window._prosComunaSel !== 'todas' && !vistas.some(c => prosNorm(c) === prosNorm(window._prosComunaSel)))) {
+        window._prosComunaSel = vistas[0] || 'todas';
+      }
+      const chip = (nombre, n) => {
+        const on = prosNorm(window._prosComunaSel) === prosNorm(nombre);
+        return `<button class="mini" style="${on ? 'border-color:var(--brand);color:var(--brand)' : ''}" onclick="prosMapaComuna('${String(nombre).replace(/'/g, '')}')">${esc(nombre)}${n !== null ? ` · ${n}` : ''}</button>`;
+      };
+      cont.innerHTML = vistas.map(c =>
+        chip(c, puntos.filter(p => prosNorm(p.comuna).includes(prosNorm(c))).length)).join('')
+        + chip('todas', puntos.length);
+    }
+    function prosMapaComuna(c){
+      window._prosComunaSel = c;
+      prosPintarChipsComuna();
+      prosInitMapa(true);
+    }
+    function prosMapaFullscreen(){
+      const cont = document.getElementById('pros-mapa');
+      if (!cont) return;
+      if (document.fullscreenElement) document.exitFullscreen();
+      else cont.requestFullscreen().catch(() => alert('El navegador no permitió la pantalla completa.'));
+    }
+    // Al entrar o salir de pantalla completa Leaflet tiene que re-medirse, y
+    // con el mapa gigante la rueda del mouse pasa a hacer zoom directo.
+    document.addEventListener('fullscreenchange', () => {
+      const m = window._prosMapa;
+      if (!m) return;
+      try {
+        if (document.fullscreenElement) m.scrollWheelZoom.enable();
+        else m.scrollWheelZoom.disable();
+        setTimeout(() => m.invalidateSize(), 80);
+      } catch(_){}
+    });
+
+    function prosInitMapa(refit){
       const cont = document.getElementById('pros-mapa');
       const P = ESTADO.prospeccion;
       if (!cont || !P || typeof L === 'undefined') return;
-      if (cont.offsetParent === null) return;   // pestaña oculta: se inicia al mostrarla
-      const puntos = (P.prospectos||[]).filter(p => p.lat !== null && p.lng !== null);
-      if (!puntos.length) {
+      if (cont.offsetParent === null && !document.fullscreenElement) return;
+      const { puntos: todos } = prosComunasVistas();
+      if (!todos.length) {
         cont.innerHTML = '<p class="muted" style="padding:20px">Sin coordenadas todavía: corre <code>node scripts/geocodificar-prospectos.js</code>.</p>';
         return;
       }
-      if (window._prosMapa) { try { window._prosMapa.remove(); } catch(_){} window._prosMapa = null; }
-      const mapa = L.map(cont, { scrollWheelZoom: false });
-      window._prosMapa = mapa;
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19,
-      }).addTo(mapa);
+      const sel = window._prosComunaSel || 'todas';
+      const puntos = sel === 'todas' ? todos : todos.filter(p => prosNorm(p.comuna).includes(prosNorm(sel)));
+
+      let mapa = window._prosMapa;
+      if (!mapa || mapa._container !== cont) {
+        if (mapa) { try { mapa.remove(); } catch(_){} }
+        mapa = L.map(cont, { scrollWheelZoom: false });
+        window._prosMapa = mapa;
+        window._prosEncuadre = null;
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19,
+        }).addTo(mapa);
+        window._prosCapa = L.layerGroup().addTo(mapa);
+      }
+      const capa = window._prosCapa;
+      capa.clearLayers();
       const marcadores = [];
       for (const p of puntos) {
         const color = PROS_COLORES[p.estado] || '#64748b';
@@ -2535,30 +2661,68 @@
         const m = L.circleMarker([p.lat, p.lng], {
           radius: vivo ? 9 : 6, color, weight: vivo ? 3 : 1.5,
           fillColor: color, fillOpacity: vivo ? 0.85 : 0.45,
-        }).addTo(mapa);
+        });
         const canales = [p.email ? '📧' : '', p.instagram ? '📸' : '', p.telefono ? '💬' : ''].join('');
-        m.bindPopup(`<b>${esc(p.negocio)}</b><br>${PROS_ESTADOS[p.estado] || esc(p.estado)}${canales ? ' · ' + canales : ''}<br><span style="font-size:11px;color:#555">${esc(p.direccion || '')}</span>${(p.toques||[]).length ? `<br><span style="font-size:11px;color:#555">${(p.toques||[]).length} toque(s)</span>` : ''}`);
+        m.bindPopup(`<b>${esc(p.negocio)}</b><br>${PROS_ESTADOS[p.estado] || esc(p.estado)}${canales ? ' · ' + canales : ''}<br><span style="font-size:11px;color:#555">${esc(p.direccion || '')}</span>${(p.toques||[]).length ? `<br><span style="font-size:11px;color:#555">${(p.toques||[]).length} toque(s)</span>` : ''}${p.estado === 'descartado' && p.descartadoMotivo ? `<br><span style="font-size:11px;color:#555">Motivo: ${esc(p.descartadoMotivo)}</span>` : ''}`);
+        capa.addLayer(m);
         marcadores.push(m);
       }
-      mapa.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.15));
+      // Encuadre al cambiar de vista o al nacer el mapa; un refresco de datos
+      // no le roba al operador el zoom donde lo dejó.
+      const clave = sel + ':' + (document.fullscreenElement ? 'full' : 'panel');
+      if (marcadores.length && (refit || window._prosEncuadre !== clave)) {
+        mapa.fitBounds(L.featureGroup(marcadores).getBounds().pad(0.15));
+        window._prosEncuadre = clave;
+      }
       setTimeout(() => { try { mapa.invalidateSize(); } catch(_){} }, 60);
     }
     window.prosInitMapa = prosInitMapa;
 
-    async function refrescarProspeccion(){
-      const r = await _fn('prospeccionEstado')({}).catch(() => null);
-      if (r) ESTADO.prospeccion = r.data;
-      repintar('prospeccion');
+    /** Todo botón que llama al servidor lo DICE: se deshabilita y muestra ⏳
+       hasta que la operación termina. Nada de clics al vacío. */
+    async function prosOcupado(btn, texto, fn){
+      const previo = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ ' + texto; }
+      try { return await fn(); }
+      finally { if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = previo; } }
     }
-    /** Mutación genérica de la pestaña: acción → refresco parcial (jamás cargar()). */
-    async function prosAccion(accion, id){
-      if (accion === 'descartar' && !confirm('¿Descartar este prospecto? El agente no lo contactará más.')) return;
-      try { await _fn('prospeccionAccion')({ accion, id }); await refrescarProspeccion(); }
+
+    /** Refresca la cartera. `ligero` (tras una acción) se salta lo caro del
+       backend —rendimiento y reactivables— y conserva los últimos valores. */
+    async function refrescarProspeccion(ligero){
+      const chip = document.getElementById('pros-sync');
+      if (chip) chip.style.display = '';
+      try {
+        const r = await _fn('prospeccionEstado')({ ligero: ligero === true });
+        const prev = ESTADO.prospeccion || {};
+        const d = (r && r.data) || {};
+        ESTADO.prospeccion = {
+          ...d,
+          rendimiento: d.rendimiento || prev.rendimiento || null,
+          reactivables: d.reactivables || prev.reactivables || [],
+        };
+      } catch(_){}
+      prosPintar();
+    }
+    /** Mutación genérica: acción → refresco parcial ligero (jamás cargar()). */
+    async function prosAccion(accion, id, btn){
+      let motivo;
+      if (accion === 'descartar') {
+        motivo = prompt('¿Por qué se descarta? Queda registrado para aprender de la calle (ej: "IG sin DMs activados", "cerró", "ya usa otro sistema").');
+        if (motivo === null) return;
+      }
+      await prosOcupado(btn, '…', async () => {
+        try {
+          await _fn('prospeccionAccion')({ accion, id, ...(motivo !== undefined ? { motivo } : {}) });
+          await refrescarProspeccion(true);
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
+    }
+    async function prosToggle(campo, valor, chk){
+      if (chk) chk.disabled = true;
+      try { await _fn('prospeccionAccion')({ accion: 'config', patch: { [campo]: !!valor } }); }
       catch(e){ alert('Error: ' + (e.message || e)); }
-    }
-    async function prosToggle(campo, valor){
-      try { await _fn('prospeccionAccion')({ accion: 'config', patch: { [campo]: !!valor } }); await refrescarProspeccion(); }
-      catch(e){ alert('Error: ' + (e.message || e)); await refrescarProspeccion(); }
+      await refrescarProspeccion(true);
     }
     function prosCopiarDM(id){
       const P = ESTADO.prospeccion;
@@ -2569,50 +2733,55 @@
         if (b) { b.textContent = '✅ Copiado'; setTimeout(() => { b.textContent = '📋 Copiar'; }, 1600); }
       }).catch(() => alert('No pude copiar al portapapeles. Selecciona el texto a mano.'));
     }
-    async function prosGenerarDMs(){
-      const b = document.getElementById('pros-gen-dm');
-      if (b) { b.textContent = 'Redactando…'; b.disabled = true; }
-      try {
-        const r = await _fn('prospeccionAccion')({ accion: 'generarDMs', cantidad: 5 });
-        await refrescarProspeccion();
-        if (!(r.data && r.data.generados)) alert('No había prospectos fríos con Instagram sin DM redactado.');
-      } catch(e){ alert('Error: ' + (e.message || e)); if (b) { b.textContent = '✍️ Redactar 5 DMs'; b.disabled = false; } }
+    async function prosGenerarDMs(btn){
+      await prosOcupado(btn, 'redactando 5 DMs…', async () => {
+        try {
+          const r = await _fn('prospeccionAccion')({ accion: 'generarDMs', cantidad: 5 });
+          await refrescarProspeccion(true);
+          if (!(r.data && r.data.generados)) alert('No había prospectos fríos con Instagram sin DM redactado.');
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
     }
-    async function prosGenerarEmails(){
-      const b = document.getElementById('pros-gen-em');
-      if (b) { b.textContent = 'Redactando…'; b.disabled = true; }
-      try {
-        const r = await _fn('prospeccionAccion')({ accion: 'generarEmails', cantidad: 10 });
-        await refrescarProspeccion();
-        const d = (r.data || {});
-        if (!d.redactados) alert('Nadie tenía un correo pendiente que redactar (sin email, ya con borrador, o esperando su día de la secuencia).');
-      } catch(e){ alert('Error: ' + (e.message || e)); if (b) { b.textContent = '📧 Redactar correos pendientes'; b.disabled = false; } }
+    async function prosGenerarEmails(btn){
+      await prosOcupado(btn, 'redactando correos…', async () => {
+        try {
+          const r = await _fn('prospeccionAccion')({ accion: 'generarEmails', cantidad: 10 });
+          await refrescarProspeccion(true);
+          if (!((r.data || {}).redactados)) alert('Nadie tenía un correo pendiente que redactar (sin email, ya con borrador, o esperando su día de la secuencia).');
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
     }
-    async function prosTestEmail(){
+    async function prosTestEmail(btn){
       if (!confirm('Redacta un correo de prueba con el agente y te lo manda a tu Gmail. ¿Dale?')) return;
-      try {
-        const r = await _fn('prospeccionAccion')({ accion: 'testEmail' });
-        alert('Enviado a tu correo ✅  Asunto: ' + ((r.data||{}).asunto || ''));
-      } catch(e){ alert('Error: ' + (e.message || e)); }
+      await prosOcupado(btn, 'redactando y enviando…', async () => {
+        try {
+          const r = await _fn('prospeccionAccion')({ accion: 'testEmail' });
+          alert('Enviado a tu correo ✅  Asunto: ' + ((r.data||{}).asunto || ''));
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
     }
-    async function prosRescatarAhora(){
+    async function prosRescatarAhora(btn){
       if (!confirm('Esto manda follow-ups REALES (máx 5) a conversaciones que se enfriaron hace 18–26 h. ¿Seguir?')) return;
-      try {
-        const r = await _fn('prospeccionAccion')({ accion: 'rescatarAhora', limite: 5 });
-        const rs = ((r.data||{}).resultados||[]).filter(x => x.enviado).length;
-        alert(rs ? `Listo: ${rs} follow-up(s) enviados.` : 'No había conversaciones tibias en la ventana de 18–26 h.');
-        await refrescarProspeccion();
-      } catch(e){ alert('Error: ' + (e.message || e)); }
+      await prosOcupado(btn, 'rescatando…', async () => {
+        try {
+          const r = await _fn('prospeccionAccion')({ accion: 'rescatarAhora', limite: 5 });
+          const rs = ((r.data||{}).resultados||[]).filter(x => x.enviado).length;
+          alert(rs ? `Listo: ${rs} follow-up(s) enviados.` : 'No había conversaciones tibias en la ventana de 18–26 h.');
+          await refrescarProspeccion(true);
+        } catch(e){ alert('Error: ' + (e.message || e)); }
+      });
     }
-    async function prosAgregar(){
+    async function prosAgregar(btn){
       const v = (i) => (document.getElementById(i) || {}).value || '';
       const datos = {
         negocio: v('pros-negocio'), instagram: v('pros-instagram'), email: v('pros-email'),
         telefono: v('pros-telefono'), comuna: v('pros-comuna'), rubro: v('pros-rubro'),
       };
       if (!datos.negocio.trim()) { alert('El negocio necesita nombre.'); return; }
-      try { await _fn('prospeccionAccion')({ accion: 'agregar', datos }); await refrescarProspeccion(); }
-      catch(e){ alert('Error: ' + (e.message || e)); }
+      await prosOcupado(btn, 'guardando…', async () => {
+        try { await _fn('prospeccionAccion')({ accion: 'agregar', datos }); await refrescarProspeccion(true); }
+        catch(e){ alert('Error: ' + (e.message || e)); }
+      });
     }
     // Los handlers van en onclick de HTML re-generado: se cuelgan de window
     // para sobrevivir a cualquier scope y para el guard de check-ops-panel.
@@ -2620,6 +2789,7 @@
     window.prosCopiarDM = prosCopiarDM; window.prosGenerarDMs = prosGenerarDMs;
     window.prosGenerarEmails = prosGenerarEmails; window.prosTestEmail = prosTestEmail;
     window.prosRescatarAhora = prosRescatarAhora; window.prosAgregar = prosAgregar;
+    window.prosMapaComuna = prosMapaComuna; window.prosMapaFullscreen = prosMapaFullscreen;
     /* `full` para que la barra de cuenta + botón ocupe la fila completa: desde
        1280px la sección es una grilla y sin eso el botón queda encerrado en la
        primera columna, lejos del borde derecho. */
@@ -2636,7 +2806,9 @@
       const el = document.querySelector(`.sec[data-sec="${sec}"]`);
       if (!el) return;
       if (sec === 'ventas')   el.innerHTML = seccionVentas();
-      if (sec === 'prospeccion') { el.innerHTML = seccionProspeccion(); prosInitMapa(); }
+      // Prospección NO repinta la sección entera: llena sus cascarones y el
+      // mapa solo mueve pines (ver prosPintar).
+      if (sec === 'prospeccion') prosPintar();
       if (sec === 'cobranza') el.innerHTML = seccionCobranza();
       const f = document.getElementById('frescura');
       if (f) f.innerHTML = frescuraHtml();
