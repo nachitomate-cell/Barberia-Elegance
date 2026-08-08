@@ -2625,9 +2625,42 @@
             </button>`;}).join('')}</div>` : '<p class="muted" style="font-size:12px"><span class="fresh cargando"><span class="p"></span>cargando locales…</span></p>'}
         </div>`;
 
-      return kpis + soporteHtml + erroresHtml + leadsHtml + onbHtml + localesHtml
+      // Herramientas de plataforma (bloque F): QA Fantasma + accesos a lo que
+      // aún vive en /admin (wizard crear, stats, referidos, anuncios).
+      const herramientasHtml = `<div class="panel full" style="margin-top:14px">
+          <h3>🛠 ${tip('Herramientas de plataforma', 'Utilidades de superadmin. El QA Fantasma se opera acá; el resto (crear local, estadísticas, referidos, anuncios) por ahora sigue en /admin.')}</h3>
+          <div id="plat-qa" style="margin-bottom:10px"><button class="mini" onclick="platCargarQa(this)">👻 Ver QA Fantasma</button></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">➕ Crear local (wizard)</a>
+            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">📊 Estadísticas</a>
+            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">🎁 Referidos</a>
+            <a class="mini" style="text-decoration:none" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">📢 Anuncios push</a>
+          </div>
+          <p class="hint" style="margin-top:8px">La gestión por local (control, facturación, equipo, WhatsApp, eliminar) ya vive acá en cada ficha. Estas cuatro son las que faltan por migrar.</p>
+        </div>`;
+
+      return kpis + soporteHtml + erroresHtml + leadsHtml + onbHtml + localesHtml + herramientasHtml
         + '<div id="plat-drawer"></div>';
     }
+    async function platCargarQa(btn){
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ const r=await _fn('opsQaFantasma')({}); platPintarQa(r.data); }
+      catch(e){ const h=document.getElementById('plat-qa'); if(h) h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+    }
+    function platPintarQa(q){
+      const h=document.getElementById('plat-qa'); if(!h) return;
+      h.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--glass-border);border-radius:10px;padding:9px 12px;flex-wrap:wrap">
+          <div><b style="font-size:12.5px">👻 QA Fantasma</b> <span style="font-size:11px;color:${q.activo?'#9CCC3C':'var(--soft)'}">${q.activo?'● activo':'○ apagado'}</span><br><span class="muted" style="font-size:10.5px">${esc(q.nombre)}${q.enTenants!=null?' · en '+q.enTenants+' locales':''}</span></div>
+          <button class="mini" onclick="platToggleQa(${!q.activo},this)">${q.activo?'Apagar':'Encender'}</button>
+        </div><p class="hint" style="margin-top:6px">Barbero invisible en todos los locales para probar la agenda sin ensuciar métricas.</p>`;
+    }
+    async function platToggleQa(activo, btn){
+      if(!confirm((activo?'Encender':'Apagar')+' el QA Fantasma en TODOS los locales?')) return;
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ await _fn('sincronizarQaFantasma')({ activo }); platCargarQa(); }
+      catch(e){ alert('Error: '+(e.message||e)); if(btn)btn.disabled=false; }
+    }
+    window.platCargarQa=platCargarQa; window.platToggleQa=platToggleQa;
 
     function platFiltrarLocales(){
       const q = prosNorm(window._platBusca||'');
@@ -2702,8 +2735,25 @@
         <div id="plat-staff"><button class="mini" onclick="platCargarStaff('${esc(d.tid)}',this)">Ver equipo de este local</button></div>
 
         <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">💰 Facturación</p>
-        <div id="plat-billing"><button class="mini" onclick="platCargarBilling('${esc(d.tid)}',this)">Ver facturación de este local</button></div>`;
+        <div id="plat-billing"><button class="mini" onclick="platCargarBilling('${esc(d.tid)}',this)">Ver facturación de este local</button></div>
+
+        <details style="margin-top:16px;border:1px solid rgba(224,100,92,.3);border-radius:10px;padding:8px 12px">
+          <summary style="cursor:pointer;font-size:11.5px;color:#e0645c">⚠️ Zona de peligro</summary>
+          <p class="hint" style="margin:8px 0">Eliminar borra el local ENTERO (agenda, clientes, equipo, facturación) sin vuelta atrás.${d.tid==='elegance'?' <b>elegance no se puede eliminar.</b>':''}</p>
+          ${d.tid==='elegance'?'':`<button class="mini" style="border-color:#e0645c;color:#e0645c" onclick="platEliminarTenant('${esc(d.tid)}')">🗑 Eliminar ${esc(d.tid)}</button>`}
+        </details>`;
     }
+    async function platEliminarTenant(tid){
+      const frase = prompt('Esto BORRA el local "'+tid+'" por completo y es irreversible.\n\nPara confirmar, escribe exactamente:\nELIMINAR '+tid);
+      if (frase === null) return;
+      try {
+        await _fn('opsTenantEliminar')({ tid, frase });
+        alert('Local '+tid+' eliminado.');
+        platCerrarTenant();
+        cargarPlataforma(true);
+      } catch(e){ alert('No se eliminó: '+(e.message||e)); }
+    }
+    window.platEliminarTenant = platEliminarTenant;
 
     /* ── Staff (bloque C): lista el equipo + crea accesos reusando el callable
        superadminCrearStaff de /admin (crea la cuenta Auth + doc barbero). */

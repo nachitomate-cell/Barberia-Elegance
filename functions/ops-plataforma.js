@@ -237,6 +237,59 @@ exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, asyn
   throw new HttpsError('invalid-argument', `Acción desconocida: "${accion}".`);
 });
 
+/* ── QA Fantasma (fase 2, bloque F) — lee el estado; la escritura reusa
+   el callable sincronizarQaFantasma que ya existe. */
+
+exports.opsQaFantasma = onCall({ region: 'us-central1', cors: true, timeoutSeconds: 60 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const maestro = (await db.doc('_superadmin/qaBarbero').get().catch(() => null))?.data() || {};
+  let enTenants = null;
+  try {
+    const g = await db.collectionGroup('barberos').where('esQA', '==', true).get();
+    enTenants = g.size;
+  } catch (_) { /* collectionGroup puede pedir índice; no es crítico */ }
+  return {
+    ok: true,
+    activo: maestro.activo === true,
+    nombre: maestro.nombre || 'QA Barbero Hub',
+    horario: maestro.horario || null,
+    enTenants,
+  };
+});
+
+/* ── Eliminar tenant (fase 2, bloque E) — DESTRUCTIVO, CANDADO BOOTSTRAP ───────
+   Borra el local entero: sus subcolecciones (recursiveDelete), su doc, y sus
+   docs raíz _system/_billing. Exige la frase exacta "ELIMINAR {tid}" para que
+   no se dispare por un clic. elegance no se puede borrar (es el legacy raíz). */
+
+exports.opsTenantEliminar = onCall({ region: 'us-central1', cors: true, memory: '512MiB', timeoutSeconds: 300 }, async (req) => {
+  if (!req.auth || !esBootstrapReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo Ignacio puede eliminar un local.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  const frase = String(req.data?.frase || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+  if (tid === 'elegance') throw new HttpsError('failed-precondition', 'elegance no se puede eliminar (es el legacy raíz).');
+  if (frase !== `ELIMINAR ${tid}`) {
+    throw new HttpsError('failed-precondition', `Para confirmar, escribe exactamente: ELIMINAR ${tid}`);
+  }
+
+  // recursiveDelete arrastra todas las subcolecciones del tenant en una pasada.
+  await admin.firestore().recursiveDelete(db.doc(`tenants/${tid}`)).catch((e) => {
+    logger.error(`[ops-plataforma] recursiveDelete ${tid}:`, e.message);
+    throw new HttpsError('internal', 'No se pudo borrar el árbol del tenant: ' + e.message);
+  });
+  await Promise.all([
+    db.doc(`_system/${tid}`).delete().catch(() => {}),
+    db.doc(`_billing/${tid}`).delete().catch(() => {}),
+    db.doc(`_system/instagram_${tid}`).delete().catch(() => {}),
+  ]);
+  logger.warn(`[ops-plataforma] TENANT ELIMINADO: ${tid} por ${req.auth.token?.email}`);
+  return { ok: true, tid };
+});
+
 /* ── Estado WhatsApp del tenant (fase 2, bloque D) ────────────────────────────
    El estado + el plan (entitlement). Los controles finos de chips/bolsas
    (anti-bloqueo, sesiones de clientes reales) siguen en /admin, mejor
