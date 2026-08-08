@@ -1943,6 +1943,13 @@ const accesoStaffEmailModule = require('./acceso-staff-email');
 exports.enviarLinkAccesoStaff = accesoStaffEmailModule.enviarLinkAccesoStaff;
 
 // ─────────────────────────────────────────────────────────────────
+//  ELIMINAR STAFF DE VERDAD — ver staff-eliminar.js
+//  El deleteDoc a secas de Equipo dejaba vivos espejo + Auth + claims:
+//  el "eliminado" seguía entrando (caso David/chameleon, 07-08).
+// ─────────────────────────────────────────────────────────────────
+exports.staffEliminarAcceso = require('./staff-eliminar').staffEliminarAcceso;
+
+// ─────────────────────────────────────────────────────────────────
 //  ELIMINAR MIS DATOS — derecho de supresión Ley 19.628 / 21.719.
 //  Callable que purga users/userPublic/clientes/fcm_tokens/bio_users
 //  del cliente autenticado y anonimiza sus citas (retención SII 6a).

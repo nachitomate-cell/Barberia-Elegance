@@ -578,8 +578,20 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
   const toggleStatus = () => updateDoc(doc(db,`${colPath}/${barber.id}`),{ disponible:!isActive });
   const handleDelete = async () => {
-    if (!(await confirmDialog(`¿Eliminar a ${barber.nombre}?`))) return;
-    await deleteDoc(doc(db,`${colPath}/${barber.id}`));
+    if (!(await confirmDialog(`¿Eliminar a ${barber.nombre}? También se cierra su acceso al panel y a la agenda.`))) return;
+    /* deleteDoc a secas era un borrado a medias: dejaba vivos el doc-espejo
+       por UID, la cuenta de Firebase Auth y los claims — el "eliminado"
+       seguía entrando a la agenda y su tarjeta reaparecía (caso David en
+       chameleon, 07-08-2026). La CF borra todo y revoca las sesiones. */
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'staffEliminarAcceso');
+      await fn({ tenantId: resolveTenantId(), docId: barber.id });
+    } catch (e) {
+      // Perfiles sin cuenta o fallo puntual de la CF: el borrado del doc
+      // principal no puede quedar rehén — es lo que el admin está viendo.
+      console.warn('[Equipo] staffEliminarAcceso falló, borro solo el doc:', e.message);
+      await deleteDoc(doc(db,`${colPath}/${barber.id}`));
+    }
   };
 
   const menuItems = [
