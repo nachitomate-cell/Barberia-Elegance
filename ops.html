@@ -2729,10 +2729,10 @@
         : ({authorized:'<span style="color:#9CCC3C;font-size:11px">● cobra solo</span>', link_creado:'<span style="color:#f0b429;font-size:11px">link creado · falta tarjeta</span>', paused:'<span style="color:#f0b429;font-size:11px">pausado</span>', cancelled:'<span style="color:#e0645c;font-size:11px">cancelado</span>'}[sub.status]||'<span class="muted">—</span>');
       host.innerHTML = `<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px">
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Plan<br>
-              <select id="plat-b-plan" style="${inp};width:100%">
-                ${['','Básico','Pro','Full','Personalizado'].map(pl=>`<option ${b.plan===pl?'selected':''} value="${pl}">${pl||'— sin fijar —'}</option>`).join('')}
-              </select></label>
+            <label style="flex:1;min-width:120px;font-size:11px" class="muted">Plan
+              <span class="muted" style="font-size:10px">(texto libre)</span><br>
+              <input id="plat-b-plan" list="plat-plan-dl" value="${esc(b.plan||'')}" placeholder="Básico, Pro, o el que pactaste…" style="${inp};width:100%">
+              <datalist id="plat-plan-dl">${['Básico','Pro','Full'].map(pl=>`<option value="${pl}">`).join('')}</datalist></label>
             <label style="flex:1;min-width:120px;font-size:11px" class="muted">Estado de pago<br>
               <select id="plat-b-estado" style="${inp};width:100%">
                 ${[['al_dia','Al día'],['pendiente','Pendiente'],['atrasado','Atrasado']].map(([v,l])=>`<option value="${v}" ${b.estadoPago===v?'selected':''}>${l}</option>`).join('')}
