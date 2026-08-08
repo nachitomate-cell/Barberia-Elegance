@@ -190,6 +190,21 @@ exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, asyn
     return { ok: true };
   }
 
+  /* Plan WhatsApp (entitlement premium): null lo apaga. */
+  if (accion === 'waPlan') {
+    const tid = String(req.data?.tid || '').trim();
+    const plan = req.data?.plan || null;
+    if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+    if (plan !== null && !['recordatorios', 'bot', 'full'].includes(plan)) {
+      throw new HttpsError('invalid-argument', 'Plan WA inválido.');
+    }
+    await db.doc(`_system/${tid}`).set({
+      waPlan: plan, waAsistente: plan === 'full' || plan === 'bot',
+      waPlanCambiadoEn: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  }
+
 
   if (accion === 'soporteLeido') {
     const tid = String(req.data?.tenantId || 'elegance');
@@ -220,6 +235,66 @@ exports.opsPlataformaAccion = onCall({ region: 'us-central1', cors: true }, asyn
   }
 
   throw new HttpsError('invalid-argument', `Acción desconocida: "${accion}".`);
+});
+
+/* ── Estado WhatsApp del tenant (fase 2, bloque D) ────────────────────────────
+   El estado + el plan (entitlement). Los controles finos de chips/bolsas
+   (anti-bloqueo, sesiones de clientes reales) siguen en /admin, mejor
+   supervisados: acá se ofrece el enlace directo. */
+
+exports.opsTenantWa = onCall({ region: 'us-central1', cors: true, timeoutSeconds: 60 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+  const [sysSnap, cfgSnap] = await Promise.all([
+    db.doc(`_system/${tid}`).get().catch(() => null),
+    db.doc(tid === 'elegance' ? 'configuracion/whatsapp' : `tenants/${tid}/configuracion/whatsapp`).get().catch(() => null),
+  ]);
+  const sys = sysSnap?.data() || {}, cfg = cfgSnap?.data() || {};
+  const PLANES = ['recordatorios', 'bot', 'full'];
+  const waPlan = PLANES.includes(sys.waPlan) ? sys.waPlan : (sys.waAsistente === true ? 'full' : null);
+  return {
+    ok: true, tid,
+    waPlan,
+    chipVinculado: sys.waPlataformaChip || null,
+    maxConversaciones: sys.botMaxConversaciones || null,
+    estadoConexion: cfg.estadoConexion || null,
+    numero: cfg.numero || cfg.wa_number || null,
+    botEnabled: cfg.botEnabled !== false,
+    confirmacionesEnabled: cfg.confirmacionesEnabled === true,
+  };
+});
+
+/* ── Staff del tenant (fase 2, bloque C) ──────────────────────────────────── */
+
+exports.opsTenantStaff = onCall({ region: 'us-central1', cors: true, memory: '512MiB', timeoutSeconds: 60 }, async (req) => {
+  if (!req.auth || !esOperadorReq(req)) {
+    throw new HttpsError('permission-denied', 'Solo el operador de la plataforma.');
+  }
+  const tid = String(req.data?.tid || '').trim();
+  if (!tid) throw new HttpsError('invalid-argument', 'Falta tid.');
+  const base = tid === 'elegance' ? 'barberos' : `tenants/${tid}/barberos`;
+  const snap = await db.collection(base).get().catch(() => ({ docs: [] }));
+  // Dedupe: los espejos por sucursal tienen _mainDocId; el QA fantasma se oculta.
+  const vistos = new Set();
+  const staff = [];
+  for (const d of snap.docs) {
+    const v = d.data() || {};
+    if (v._mainDocId || v.esQA === true) continue;
+    const key = v.authUid || v.email || d.id;
+    if (vistos.has(key)) continue;
+    vistos.add(key);
+    staff.push({
+      id: d.id, uid: v.authUid || null,
+      nombre: v.nombre || '', email: v.email || '',
+      rol: v.rol || (v.esAdmin ? 'admin' : 'barbero'),
+      atiende: v.atiende !== false,
+    });
+  }
+  staff.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+  return { ok: true, tid, staff };
 });
 
 /* ── Facturación del tenant (fase 2, bloque B) — CANDADO BOOTSTRAP ─────────────

@@ -2695,9 +2695,95 @@
           </div>
         </div>
 
-        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">💰 Facturación</p>
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">${marca('whatsapp','WhatsApp')} Módulos WhatsApp</p>
+        <div id="plat-wa"><button class="mini" onclick="platCargarWa('${esc(d.tid)}',this)">Ver estado de WhatsApp</button></div>
+
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">👥 Equipo & accesos</p>
+        <div id="plat-staff"><button class="mini" onclick="platCargarStaff('${esc(d.tid)}',this)">Ver equipo de este local</button></div>
+
+        <p class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">💰 Facturación</p>
         <div id="plat-billing"><button class="mini" onclick="platCargarBilling('${esc(d.tid)}',this)">Ver facturación de este local</button></div>`;
     }
+
+    /* ── Staff (bloque C): lista el equipo + crea accesos reusando el callable
+       superadminCrearStaff de /admin (crea la cuenta Auth + doc barbero). */
+    async function platCargarStaff(tid, btn){
+      if (btn){ btn.disabled=true; btn.textContent='⏳'; }
+      try { const r = await _fn('opsTenantStaff')({ tid }); window._platStaffTid=tid; platPintarStaff(r.data.staff||[]); }
+      catch(e){ const h=document.getElementById('plat-staff'); if(h) h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+    }
+    const PLAT_ROL={ barbero:'✂️ barbero', admin:'👑 admin', 'admin-barbero':'👑 admin que atiende', recepcion:'🛎 recepción' };
+    function platPintarStaff(staff){
+      const h=document.getElementById('plat-staff'); if(!h) return;
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 9px;font-size:12px';
+      h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px">
+          ${staff.length?staff.map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--hairline)">
+            <div style="min-width:0"><b style="font-size:12.5px">${esc(m.nombre||'(sin nombre)')}</b><br><span class="muted" style="font-size:10.5px">${esc(m.email||'')}</span></div>
+            <span style="font-size:10.5px;white-space:nowrap">${PLAT_ROL[m.rol]||esc(m.rol)}</span>
+          </div>`).join(''):'<p class="muted" style="font-size:12px">Sin equipo cargado.</p>'}
+          <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--brand)">＋ Crear acceso</summary>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+              <input id="plat-cs-nombre" placeholder="Nombre" autocomplete="off" style="${inp}">
+              <input id="plat-cs-email" placeholder="email" autocomplete="off" style="${inp}">
+              <div style="display:flex;gap:6px"><input id="plat-cs-pass" placeholder="contraseña" autocomplete="off" style="${inp};flex:1"><button class="mini" onclick="document.getElementById('plat-cs-pass').value=Math.random().toString(36).slice(2,10)">🎲</button></div>
+              <select id="plat-cs-rol" style="${inp}"><option value="barbero">✂️ Barbero (atiende)</option><option value="admin-barbero">👑 Admin que atiende</option><option value="admin">👑 Admin de local</option><option value="recepcion">🛎 Recepción</option></select>
+              <button class="mini" onclick="platCrearStaff(this)">Crear acceso</button>
+              <p id="plat-cs-fb" style="font-size:11.5px;margin:0"></p>
+            </div></details>
+        </div>`;
+    }
+    async function platCrearStaff(btn){
+      const g=(id)=>((document.getElementById(id)||{}).value||'').trim();
+      const nombre=g('plat-cs-nombre'), email=g('plat-cs-email'), password=g('plat-cs-pass'), rolSel=g('plat-cs-rol');
+      if(!nombre||!email||!password){ alert('Nombre, email y contraseña son obligatorios.'); return; }
+      const rol = rolSel==='recepcion'?'recepcion':(rolSel.startsWith('admin')?'admin':'barbero');
+      const atiende = rolSel==='barbero'||rolSel==='admin-barbero';
+      const fb=document.getElementById('plat-cs-fb'); if(fb){fb.style.color='var(--soft)';fb.textContent='Creando…';}
+      if(btn) btn.disabled=true;
+      try { const r=await _fn('superadminCrearStaff')({ tenantId:window._platStaffTid, nombre, email, password, rol, atiende });
+        if(fb){fb.style.color='#9CCC3C';fb.innerHTML='✓ Creado. Comparte: <code>'+esc(email)+'</code> / <code>'+esc(password)+'</code>'+((r.data&&r.data.yaExistia)?'<br>(la cuenta ya existía: rol y clave actualizados)':'');}
+        platCargarStaff(window._platStaffTid);
+      } catch(e){ if(fb){fb.style.color='#e0645c';fb.textContent='Error: '+(e.message||e);} }
+      if(btn) btn.disabled=false;
+    }
+    window.platCargarStaff=platCargarStaff; window.platCrearStaff=platCrearStaff;
+
+    /* ── WhatsApp (bloque D): estado + plan. Los chips/bolsas avanzados (tocan
+       las sesiones anti-bloqueo de clientes reales) siguen en /admin. */
+    const PLAT_WA_PLANES=[['','— apagado —'],['recordatorios','Recordatorios'],['bot','Asistente IA'],['full','Completo (bot + confirmaciones)']];
+    async function platCargarWa(tid, btn){
+      if(btn){btn.disabled=true;btn.textContent='⏳';}
+      try{ const r=await _fn('opsTenantWa')({tid}); window._platWaTid=tid; platPintarWa(r.data); }
+      catch(e){ const h=document.getElementById('plat-wa'); if(h) h.innerHTML='<p style="color:#e0645c;font-size:12px">Error: '+esc(e.message||e)+'</p>'; }
+    }
+    function platPintarWa(w){
+      const h=document.getElementById('plat-wa'); if(!h) return;
+      const inp='background:var(--surface-2);color:#fff;border:1px solid var(--glass-border);border-radius:8px;padding:6px 9px;font-size:12px';
+      const con=w.estadoConexion==='connected';
+      h.innerHTML=`<div style="border:1px solid var(--glass-border);border-radius:10px;padding:12px;font-size:12.5px">
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Conexión</span><span style="color:${con?'#9CCC3C':'#e0645c'}">${con?'● conectado':(w.estadoConexion||'—')}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Número</span><span>${w.numero?esc(w.numero):'—'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Chip de plataforma</span><span>${w.chipVinculado?esc(w.chipVinculado):'propio del local'}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span class="muted">Tope conversaciones</span><span>${w.maxConversaciones||'—'}</span></div>
+          <label class="muted" style="display:block;font-size:11px;margin-top:8px">Plan WhatsApp (entitlement)<br>
+            <select id="plat-wa-plan" style="${inp};width:100%;margin-top:4px">
+              ${PLAT_WA_PLANES.map(([v,l])=>`<option value="${v}" ${((w.waPlan||'')===v)?'selected':''}>${l}</option>`).join('')}
+            </select></label>
+          <button class="mini" style="margin-top:8px;width:100%" onclick="platGuardarWaPlan(this)">💾 Guardar plan</button>
+          <a class="mini" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="https://admin.synaptechspa.cl" target="_blank" rel="noopener">⚙️ Chips y bolsas avanzados (en /admin)</a>
+          <p id="plat-wa-fb" style="font-size:11.5px;text-align:center;margin:6px 0 0"></p>
+        </div>`;
+    }
+    async function platGuardarWaPlan(btn){
+      const plan=(document.getElementById('plat-wa-plan')||{}).value||'';
+      const fb=document.getElementById('plat-wa-fb'); if(fb){fb.style.color='var(--soft)';fb.textContent='Guardando…';}
+      if(btn)btn.disabled=true;
+      try{ await _fn('opsPlataformaAccion')({accion:'waPlan',tid:window._platWaTid,plan:plan||null});
+        if(fb){fb.style.color='#9CCC3C';fb.textContent='✓ Plan actualizado.';}
+      }catch(e){ if(fb){fb.style.color='#e0645c';fb.textContent='Error: '+(e.message||e);} }
+      if(btn)btn.disabled=false;
+    }
+    window.platCargarWa=platCargarWa; window.platGuardarWaPlan=platGuardarWaPlan;
 
     /* ── Facturación (bloque B) — solo Ignacio (candado bootstrap en el backend).
        Las cuotas se editan en memoria (window._platCuotas) y se guardan enteras;
