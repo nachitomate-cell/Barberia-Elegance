@@ -390,6 +390,47 @@
   .leaflet-container{ background:#0A1420; }
   .leaflet-container a.leaflet-popup-close-button{ color:#8fa0b3; }
   .leaflet-container .leaflet-popup-content input{ font-family:inherit; }
+
+  /* ── HUD estilo videojuego (district-completion tipo Spider-Man, paleta
+     SynapTech): ángulos, glow y barras. El neón es SOLO acento (glow/barras),
+     nunca fondo de superficie — regla de los dos verdes intacta. */
+  @keyframes hudScan{ 0%{ transform:translateY(-100%); } 100%{ transform:translateY(2400%); } }
+  @keyframes hudBarFill{ from{ width:0; } }
+  .hud{ position:relative; overflow:hidden; margin-top:14px;
+    background:linear-gradient(135deg,rgba(15,26,43,.96),rgba(10,20,32,.92));
+    border:1px solid rgba(156,204,60,.28);
+    clip-path:polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    padding:18px 20px; }
+  .hud::before{ content:""; position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg,transparent,rgba(198,249,78,.5),transparent);
+    animation:hudScan 5s linear infinite; pointer-events:none; }
+  .hud-hd{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .hud-hd h3{ margin:0; font-family:ui-monospace,'Cascadia Code',monospace; text-transform:uppercase;
+    letter-spacing:.16em; font-size:13px; color:#cfe6a8; }
+  .hud-pct{ font-family:ui-monospace,monospace; font-weight:800; font-size:40px; line-height:.9;
+    color:#C6F94E; text-shadow:0 0 16px rgba(198,249,78,.45); }
+  .hud-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.06);
+    overflow:hidden; border:1px solid rgba(156,204,60,.14); margin:4px 0 16px; }
+  .hud-track>span{ display:block; height:100%; border-radius:3px;
+    background:linear-gradient(90deg,#9CCC3C,#C6F94E); box-shadow:0 0 10px rgba(198,249,78,.6);
+    animation:hudBarFill 1s cubic-bezier(.2,.8,.2,1); }
+  .hud-cat{ display:flex; align-items:center; gap:11px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.055); }
+  .hud-cat:last-child{ border-bottom:none; }
+  .hud-ico{ width:34px; height:34px; flex:none; display:grid; place-items:center; font-size:16px;
+    border:1px solid rgba(156,204,60,.28); border-radius:9px; background:rgba(156,204,60,.06); }
+  .hud-cat.done .hud-ico{ border-color:rgba(198,249,78,.6); box-shadow:0 0 10px rgba(198,249,78,.25); }
+  .hud-cbody{ flex:1; min-width:0; }
+  .hud-crow{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .hud-cname{ font-size:12.5px; font-weight:600; color:#e2ecd6; }
+  .hud-ccount{ font-family:ui-monospace,monospace; font-size:12.5px; font-weight:700; color:#9CCC3C; white-space:nowrap; }
+  .hud-cbar{ height:4px; border-radius:2px; background:rgba(255,255,255,.06); margin-top:5px; overflow:hidden; }
+  .hud-cbar>span{ display:block; height:100%; border-radius:2px; background:linear-gradient(90deg,#9CCC3C,#C6F94E);
+    box-shadow:0 0 6px rgba(198,249,78,.5); animation:hudBarFill .8s cubic-bezier(.2,.8,.2,1); }
+  .hud-cat.full .hud-ccount{ color:#C6F94E; }
+  .hud-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:14px;
+    padding-top:12px; border-top:1px solid rgba(156,204,60,.16); font-family:ui-monospace,monospace;
+    text-transform:uppercase; letter-spacing:.12em; font-size:11px; color:#8fa0b3; }
+  .hud-foot b{ color:#C6F94E; font-size:14px; }
 </style>
 </head>
 <body>
@@ -2546,6 +2587,45 @@
     const PLAT_TIPOS = { sugerencia:{l:'💡 sugerencia',c:'#9CCC3C'}, reclamo:{l:'⚠️ reclamo',c:'#e0645c'}, consulta:{l:'❓ consulta',c:'#f0b429'}, otro:{l:'· otro',c:'var(--soft)'} };
     const PLAT_LEAD = { new:{l:'Nuevo',c:'#67e8f9'}, contactado:{l:'Contactado',c:'#f0b429'}, convertido:{l:'Convertido',c:'#9CCC3C'}, descartado:{l:'Descartado',c:'var(--soft)'} };
 
+    /* HUD estilo district-completion (Spider-Man) con la paleta SynapTech:
+       convierte el estado de la plataforma en un "juego de completar". */
+    function hudPlataforma(tenants){
+      if (!tenants || !tenants.length) return `<div class="hud"><div class="hud-hd"><h3>◤ Plataforma SynapTech</h3></div><p class="muted" style="font-size:12px"><span class="fresh cargando"><span class="p"></span>sincronizando distrito…</span></p></div>`;
+      const total = tenants.length;
+      const oper = tenants.filter(t => t.operativo !== false && t.status !== 'suspended');
+      const conPlan = tenants.filter(t => t.plan);
+      const cat = (icono, nombre, hecho, de, hint) => {
+        const pct = de ? Math.round(hecho/de*100) : 0;
+        const cls = de && hecho>=de ? 'full done' : hecho>0 ? '' : '';
+        return { html:`<div class="hud-cat ${cls}" title="${esc(hint||'')}">
+            <div class="hud-ico">${icono}</div>
+            <div class="hud-cbody">
+              <div class="hud-crow"><span class="hud-cname">${nombre}</span><span class="hud-ccount">${hecho}/${de}</span></div>
+              <div class="hud-cbar"><span style="width:${pct}%"></span></div>
+            </div></div>`, pct };
+      };
+      const cats = [
+        cat('🏢','Locales operativos', oper.length, total, 'Encendidos (no suspendidos en el kill switch).'),
+        cat('📡','WhatsApp activo', tenants.filter(t=>t.waPlan).length, total, 'Con un plan de WhatsApp encendido (recordatorios, bot o completo).'),
+        cat('🚀','Con plan asignado', conPlan.length, total, 'Tienen un plan de cobro definido en facturación.'),
+        cat('💰','Al día con el pago', tenants.filter(t=>t.estadoPago==='al_dia').length, Math.max(1,conPlan.length), 'De los que pagan, cuántos están al día.'),
+        cat('📦','Configurados', tenants.filter(t=>t.conContenido).length, total, 'Con contenido real (agenda, equipo o clientes cargados).'),
+        cat('📸','Instagram conectado', tenants.filter(t=>t.instagram||t.igConectado).length, total, 'Con su Instagram vinculado a la plataforma.'),
+      ];
+      const overall = Math.round(cats.reduce((a,c)=>a+c.pct,0)/cats.length);
+      // El faltante más grande, como "misión sugerida".
+      const faltante = cats.map(c=>({...c})).sort((a,b)=>a.pct-b.pct)[0];
+      return `<div class="hud">
+          <div class="hud-hd">
+            <div><h3>◤ Distrito · Plataforma SynapTech</h3><div class="muted" style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:2px">completitud del reino</div></div>
+            <div style="text-align:right"><div class="hud-pct">${overall}%</div></div>
+          </div>
+          <div class="hud-track"><span style="width:${overall}%"></span></div>
+          ${cats.map(c=>c.html).join('')}
+          <div class="hud-foot"><span>▸ ${total} locales en juego</span><span>siguiente misión: <b>${oper.length} operativos</b></span></div>
+        </div>`;
+    }
+
     function plataformaPanel(P){
       const c = P.contadores||{};
       const soporte = P.soporte||[], errores = P.errores||[], leads = P.leads||[];
@@ -2655,7 +2735,7 @@
           <div id="plat-ingresos"></div>
         </div>`;
 
-      return kpis + soporteHtml + statsHtml + ingresosHtml + erroresHtml + leadsHtml + onbHtml + localesHtml + herramientasHtml
+      return hudPlataforma(tenants) + kpis + soporteHtml + statsHtml + ingresosHtml + erroresHtml + leadsHtml + onbHtml + localesHtml + herramientasHtml
         + '<div id="plat-drawer"></div>';
     }
 
