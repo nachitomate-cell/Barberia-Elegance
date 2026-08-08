@@ -9,6 +9,7 @@ Todo lo que Massiel necesita para salir a terreno este weekend.
 | **`qr-massiel.png`** (512×512) | Para imprimir en tarjetas o mostrar en el celular. Decodifica a `crea.synaptechspa.cl/?ref=massiel`. |
 | **`qr-lockscreen.png`** (1170×2532) | Wallpaper de pantalla de bloqueo del iPhone de Massiel. QR grande + texto "Escanea con la cámara". |
 | **`cheatsheet.html`** | 1 página imprimible A4 con pitch, precios, objeciones y flujo de cierre. `Ctrl+P` para imprimir; o abrir en el celular como referencia rápida. |
+| **`competencia.html`** | Tabla comparativa de precios vs AgendaYa, Weibook, Agendapia, Reservo y AgendaPro (auditados 08-08-2026) + las 3 preguntas que desarman. A4 apaisada imprimible. Los valores base de Reservo/AgendaPro son de comparadores: presentarlos como "desde". |
 | **`prospectos-providencia.md`** | 35 locales geolocalizados (Manuel Montt / Los Leones / Providencia / Marchant Pereira) con dirección exacta y ruta sugerida. |
 | **`comisiones.md`** | Propuesta de comisiones (fijo por trial + bonus por plan + recurring). BORRADOR — validar con Massiel. |
 | **`scripts/ver-comisiones-massiel.js`** | Script Node que corre contra Firestore y devuelve todos los trials creados con `ref=massiel`, su estado y la comisión estimada. Correr con `node scripts/ver-comisiones-massiel.js`. |

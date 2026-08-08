@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Tabla comparativa — Competencia · SynapTech</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --acc:#8b7cf6; --acc-soft:#b4a9fa; --neon:#C6F94E; --ink:#0d0b22;
+    --bg:#06060b; --surface:#111020; --line:rgba(255,255,255,.08);
+    --txt:#f4f3f9; --muted:#a29fb5; --dim:#6b6880;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--txt);background:var(--bg);line-height:1.4;}
+  @page{size:A4 landscape;margin:8mm;}
+  @media print{
+    body{background:#fff;color:#111;}
+    .card{background:#fff;border:1px solid #ddd;box-shadow:none;}
+    .brand-band{background:#f0eefb;color:#333;}
+    .kicker{color:#5d4ce8;}
+    .cmp th{background:#efeafd;color:#222;}
+    .cmp td{color:#222;}
+    .cmp .nos{background:#f4ffe0 !important;}
+    .cmp .nos b{color:#3d6b00;}
+    .cmp td.mal{color:#a33;}
+    .cmp tr.total td{background:#f7f5ff;}
+    .foot-note{color:#666;}
+    a{color:#5d4ce8;}
+  }
+
+  .sheet{max-width:1080px;margin:0 auto;padding:14px 18px;}
+  .brand-band{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:12px 18px;border-radius:14px;
+    background:linear-gradient(135deg,#8b7cf6,#5d4ce8);color:#fff;margin-bottom:12px;
+  }
+  .brand-band .lg{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+  .brand-band .sub{font-size:12px;opacity:.85;}
+  .brand-band .r{text-align:right;font-size:11px;line-height:1.35;}
+  .brand-band .r b{font-size:13px;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;}
+  .kicker{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--acc-soft);margin-bottom:6px;}
+
+  .cmp{width:100%;border-collapse:collapse;font-size:11px;}
+  .cmp th,.cmp td{padding:6px 8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);}
+  .cmp th{background:rgba(139,124,246,.12);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc-soft);}
+  .cmp td:first-child,.cmp th:first-child{font-weight:700;color:#fff;width:16%;}
+  .cmp .nos{background:rgba(198,249,78,.07);border-left:1px solid rgba(198,249,78,.35);border-right:1px solid rgba(198,249,78,.35);}
+  .cmp th.nos{color:var(--neon);background:rgba(198,249,78,.12);}
+  .cmp .nos b{color:var(--neon);}
+  .cmp td.mal{color:#f0a1a1;}
+  .cmp tr.total td{background:rgba(139,124,246,.10);font-weight:700;border-top:2px solid rgba(139,124,246,.4);}
+  .cmp tr.total td.nos{background:rgba(198,249,78,.14);}
+  .cmp small{color:var(--muted);font-weight:400;display:block;margin-top:1px;font-size:9.5px;line-height:1.3;}
+
+  .qrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .q{background:rgba(139,124,246,.10);border:1px solid rgba(139,124,246,.28);border-radius:10px;padding:9px 11px;font-size:11.5px;line-height:1.45;}
+  .q b{color:var(--neon);display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;}
+  @media print{.q{background:#f4f1ff;border-color:#ddd;} .q b{color:#5d4ce8;}}
+
+  .foot-note{margin-top:6px;font-size:9.5px;color:var(--dim);line-height:1.45;}
+</style>
+</head>
+<body>
+  <div class="sheet">
+
+    <div class="brand-band">
+      <div>
+        <div class="lg">SynapTech vs. la competencia — precios reales</div>
+        <div class="sub">Auditados de sus webs y App Store · agosto 2026 · IVA incluido salvo indicado</div>
+      </div>
+      <div class="r">
+        <b>Regla de oro en terreno</b><br />
+        Nunca hables mal de ellos:<br />deja que su letra chica hable.
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="kicker">La tabla — muéstrala tal cual</p>
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="nos">SynapTech</th>
+            <th>AgendaYa</th>
+            <th>Weibook</th>
+            <th>Agendapia</th>
+            <th>Reservo</th>
+            <th>AgendaPro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Precio base / mes</td>
+            <td class="nos"><b>$29.900 Básico · $49.900 Pro</b><small>IVA incluido, lista pública</small></td>
+            <td>$9.990 (1 prof)<small>sube por tramos hasta $99.990</small></td>
+            <td>$13.739 (1 prof, solo email)<small>Ultra $35.722 "pagando el año"</small></td>
+            <td>~$9.500 (US$10)<small>Premium ~$28.500 (US$30)</small></td>
+            <td class="mal">Oculto — cotización<small>~$30–50 mil según comparadores</small></td>
+            <td>~$18.000 (US$19)<small>según comparadores</small></td>
+          </tr>
+          <tr>
+            <td>Profesionales</td>
+            <td class="nos"><b>ILIMITADOS en todos los planes</b></td>
+            <td class="mal">Por tramos: 10 prof = $49.990<small>20 prof = $99.990</small></td>
+            <td class="mal">1 / 10 / ilimitados según plan</td>
+            <td class="mal">1 incluido · US$4 c/u extra</td>
+            <td class="mal">Sube por profesional<small>+$10.000 por usuario extra</small></td>
+            <td class="mal">Por plan / asiento</td>
+          </tr>
+          <tr>
+            <td>Asistente IA WhatsApp<br />(agenda solo, 24/7)</td>
+            <td class="nos"><b>Incluido en Pro, ilimitado</b><small>conversa, agenda, reagenda y confirma</small></td>
+            <td class="mal">No tiene</td>
+            <td class="mal">Wanda IA: +$45.798/mes<small>casi un Pro completo, solo la IA</small></td>
+            <td class="mal">Por créditos (100–300/mes)<small>se agotan; +US$5 por 200</small></td>
+            <td class="mal">No tiene<small>solo mensajes plantilla</small></td>
+            <td>Julia (su agente)<small>precio no publicado</small></td>
+          </tr>
+          <tr>
+            <td>WhatsApp del local<br />(recordatorios)</td>
+            <td class="nos"><b>Incluido, número propio</b></td>
+            <td>Incluido</td>
+            <td class="mal">Extra $13.739/mes<small>o solo en UNLIMITED $90.680</small></td>
+            <td class="mal">50–100 mensajes/mes<small>+US$5 por 100 extra</small></td>
+            <td class="mal">$10.000 por 200 msjs ($50 c/u)<small>"+ cobro de Meta aparte"</small></td>
+            <td class="mal">Desde $5.000/mes extra</td>
+          </tr>
+          <tr>
+            <td>Pagos online</td>
+            <td class="nos"><b>Mercado Pago sin fee mensual</b><small>0% comisión de plataforma</small></td>
+            <td>Tap to Pay / señas</td>
+            <td>Según plan</td>
+            <td>Módulos US$5 c/u</td>
+            <td class="mal">Webpay: +$60.000/mes<small>aparte de la comisión Transbank</small></td>
+            <td>Extras según plan</td>
+          </tr>
+          <tr>
+            <td>Precios públicos</td>
+            <td class="nos"><b>Sí — lista pública IVA incluido</b></td>
+            <td class="mal">No: solo tras registrarse<small>visibles en el App Store</small></td>
+            <td class="mal">Muestra el anual como mensual</td>
+            <td>Sí (en USD)</td>
+            <td class="mal">No: base solo por cotización</td>
+            <td>Parcial<small>extras se cotizan</small></td>
+          </tr>
+          <tr class="total">
+            <td>Barbería 5 prof.<br />con WhatsApp + IA</td>
+            <td class="nos"><b>$49.900 total (Pro)</b></td>
+            <td>$24.990 sin IA<small>la IA no existe ahí</small></td>
+            <td>≈ $81.500<small>Ultra anual + Wanda IA</small></td>
+            <td>≈ $38.000<small>IA limitada por créditos</small></td>
+            <td>≈ $83.000+<small>base + WA 500, sin IA real</small></td>
+            <td>s/i<small>base + extras, Julia sin precio público</small></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="foot-note">Fuentes: weibook.co/es-cl/plans, agendapia.com, App Store (AgendaYa), reservo.cl (extras oficiales de su landing). Los valores base de Reservo y AgendaPro provienen de comparadores de terceros — en terreno preséntalo siempre como "desde" y pide su total por escrito. Conversión referencial US$1 ≈ $950. Auditado 08-08-2026.</p>
+    </div>
+
+    <div class="card">
+      <p class="kicker">Las 3 preguntas que desarman (hazlas y guarda silencio)</p>
+      <div class="qrow">
+        <div class="q"><b>1 · El total real</b>"¿Cuánto te queda el TOTAL al mes con WhatsApp, pagos y todos los extras? Pídelo por escrito y lo comparamos."</div>
+        <div class="q"><b>2 · La IA</b>"¿El asistente con IA viene incluido o se paga aparte? ¿Y qué pasa cuando se te acaban los mensajes o créditos?"</div>
+        <div class="q"><b>3 · El equipo</b>"Si mañana sumas un profesional más, ¿cuánto sube la cuenta? Con nosotros: $0 — ilimitados en todos los planes."</div>
+      </div>
+    </div>
+
+    <div class="footer" style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);padding:4px 4px 0;">
+      <span><b style="color:var(--muted);">SynapTech SpA</b> · @synaptechspa · Hecho con ♥ en Chile</span>
+      <span>Comparativa v1 · 2026-08-08 · uso interno equipo comercial</span>
+    </div>
+
+  </div>
+</body>
+</html>
