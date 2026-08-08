@@ -832,7 +832,14 @@ export function CitaModal({ cita, barberos, servicios, productos = [], defaultHo
     return () => u();
   }, [tenantId]);
   const tuuActivo         = !!(tuuCfg?.configured && tuuCfg?.enabled);
-  const tuuPermitirManual = tuuActivo && tuuCfg?.permitirTarjetaManual === true;
+  // El fallback manual puede estar configurado POR SUCURSAL (mapa) — se
+  // resuelve con la sede de la cita; sin mapa o sin sede, manda el global.
+  const tuuPermitirManual = tuuActivo && (() => {
+    const m   = tuuCfg?.permitirTarjetaManualPorSucursal;
+    const suc = cita?.sucursalId || null;
+    if (m && typeof m === 'object' && suc && typeof m[suc] === 'boolean') return m[suc];
+    return tuuCfg?.permitirTarjetaManual === true;
+  })();
 
   // Medios de pago del local — fuente ÚNICA. La usan los botones del método de
   // la cita y el selector por línea de los productos del ticket. Con TUU

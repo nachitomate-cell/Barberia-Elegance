@@ -335,6 +335,11 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
   const [busyDisc, setBusyDisc] = useState(false);
   const [localErr, setLocalErr] = useState(null);
   const [permitirManual, setPermitirManual] = useState(!!tuu?.permitirTarjetaManual);
+  // Fallback POR SUCURSAL: mapa {sucursalId: bool}. La sede sin entrada en el
+  // mapa hereda el global (misma resolución que Agenda y agenda.html).
+  const [manualMap, setManualMap] = useState(
+    () => tuu?.permitirTarjetaManualPorSucursal ? { ...tuu.permitirTarjetaManualPorSucursal } : {},
+  );
   const [savingFlag, setSavingFlag] = useState(false);
 
   // Cuando cambian los props (por el listener), re-hidratar el serial pero NUNCA la apiKey.
@@ -342,6 +347,7 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
     setDeviceSerial(tuu?.deviceSerial || '');
     setSerialsPorSucursal(tuu?.serialsPorSucursal ? { ...tuu.serialsPorSucursal } : {});
     setPermitirManual(!!tuu?.permitirTarjetaManual);
+    setManualMap(tuu?.permitirTarjetaManualPorSucursal ? { ...tuu.permitirTarjetaManualPorSucursal } : {});
   }, [tuu]);
 
   const sucursalesArr = useMemo(() => Array.isArray(sucursales) ? sucursales : [], [sucursales]);
@@ -389,26 +395,34 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
     }
   }
 
-  async function togglePermitirManual(nuevo) {
+  async function togglePermitirManual(nuevo, sucursalId = null) {
     // Optimistic UI: si el CF falla, revertimos.
-    setPermitirManual(nuevo);
+    const prevMapVal = sucursalId ? manualMap[sucursalId] : null;
+    if (sucursalId) setManualMap(prev => ({ ...prev, [sucursalId]: nuevo }));
+    else setPermitirManual(nuevo);
     setSavingFlag(true);
     try {
       const fn = httpsCallable(getFunctions(getApp(), 'us-central1'), 'tuuSetFlag');
-      await fn({ tenantId, permitirTarjetaManual: nuevo });
+      await fn({ tenantId, permitirTarjetaManual: nuevo, ...(sucursalId ? { sucursalId } : {}) });
+      const donde = sucursalId ? ` en esta sucursal` : '';
       onMsg({
         ok: true,
         text: nuevo
-          ? 'Fallback activado: podras marcar tarjeta a mano si el POS falla.'
-          : 'Fallback desactivado: toda tarjeta pasa obligatoriamente por el POS.',
+          ? `Fallback activado${donde}: podras marcar tarjeta a mano si el POS falla.`
+          : `Fallback desactivado${donde}: toda tarjeta pasa obligatoriamente por el POS.`,
       });
     } catch (err) {
-      setPermitirManual(!nuevo);
+      if (sucursalId) setManualMap(prev => ({ ...prev, [sucursalId]: prevMapVal }));
+      else setPermitirManual(!nuevo);
       onMsg({ ok: false, text: err.message || 'No se pudo actualizar el fallback.' });
     } finally {
       setSavingFlag(false);
     }
   }
+
+  // Valor efectivo del fallback para una sede: mapa si existe, si no el global.
+  const manualDeSucursal = (sucId) =>
+    typeof manualMap[sucId] === 'boolean' ? manualMap[sucId] : permitirManual;
 
   async function desconectar() {
     if (!(await confirmDialog({
@@ -585,34 +599,67 @@ function TuuOnboarding({ tenantId, tuu, sucursales, multiSucursal, configured, o
             Opciones avanzadas
           </h4>
 
-          <div className="flex items-start justify-between gap-4 p-3 rounded-xl bg-slate-950/40 [html.light_&]:bg-ink-50 border border-slate-800/60 [html.light_&]:border-ink-200">
-            <div className="min-w-0 flex-1">
+          <div className="p-3 rounded-xl bg-slate-950/40 [html.light_&]:bg-ink-50 border border-slate-800/60 [html.light_&]:border-ink-200 space-y-3">
+            <div className="min-w-0">
               <div className="text-sm font-medium text-primary [html.light_&]:text-ink-900">
                 Permitir tarjeta manual (fallback)
               </div>
               <p className="text-xs text-slate-400 [html.light_&]:text-ink-600 mt-1 leading-relaxed">
-                {permitirManual
-                  ? <>Aparece un boton extra <b>“Tarjeta manual”</b> en el cobro. Uselo solo si el POS se cayo — recuerda que no genera boleta ni verifica el pago.</>
-                  : <>Todo pago con tarjeta pasa <b>obligatoriamente</b> por el POS TUU. Evita que se registre efectivo como tarjeta por error o intencion.</>}
+                Con el fallback encendido aparece un boton extra <b>“Tarjeta manual”</b> en el cobro —
+                usalo solo si el POS se cayo (no genera boleta ni verifica el pago). Apagado, toda
+                tarjeta pasa <b>obligatoriamente</b> por el POS TUU.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => togglePermitirManual(!permitirManual)}
-              disabled={savingFlag}
-              role="switch"
-              aria-checked={permitirManual}
-              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 ${
-                permitirManual ? 'bg-yellow-400' : 'bg-slate-700 [html.light_&]:bg-ink-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  permitirManual ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            {usaMulti ? (
+              // Por sucursal: cada sede aprieta su candado cuando su POS ya
+              // esta validado, sin depender de la otra.
+              <div className="space-y-2">
+                {sucursalesArr.map(s => {
+                  const val = manualDeSucursal(s.id);
+                  return (
+                    <div key={s.id} className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-slate-300 [html.light_&]:text-ink-700 truncate">{s.nombre || s.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => togglePermitirManual(!val, s.id)}
+                        disabled={savingFlag}
+                        role="switch"
+                        aria-checked={val}
+                        className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 ${
+                          val ? 'bg-yellow-400' : 'bg-slate-700 [html.light_&]:bg-ink-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            val ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => togglePermitirManual(!permitirManual)}
+                  disabled={savingFlag}
+                  role="switch"
+                  aria-checked={permitirManual}
+                  className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 ${
+                    permitirManual ? 'bg-yellow-400' : 'bg-slate-700 [html.light_&]:bg-ink-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      permitirManual ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

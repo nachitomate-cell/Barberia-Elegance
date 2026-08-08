@@ -187,7 +187,18 @@ exports.tuuSetFlag = onCall(
 
     const patch = { updatedAt: FieldValue.serverTimestamp() };
     if (typeof data.permitirTarjetaManual === 'boolean') {
-      patch.permitirTarjetaManual = data.permitirTarjetaManual;
+      // Con sucursalId el flag es POR SEDE (pedido de Oren: Reñaca ya validó
+      // su POS y apaga el fallback; Villa Alemana aún no lo estrena y lo
+      // mantiene). set+merge hace deep-merge del mapa, no pisa las hermanas.
+      // Resolución en los fronts: mapa[sucursal] si existe, si no el global.
+      const suc = data.sucursalId
+        ? String(data.sucursalId).replace(/[^\w-]/g, '').slice(0, 40)
+        : null;
+      if (suc) {
+        patch.permitirTarjetaManualPorSucursal = { [suc]: data.permitirTarjetaManual };
+      } else {
+        patch.permitirTarjetaManual = data.permitirTarjetaManual;
+      }
     }
     if (Object.keys(patch).length === 1) {
       throw new HttpsError('invalid-argument', 'No hay flags para actualizar.');

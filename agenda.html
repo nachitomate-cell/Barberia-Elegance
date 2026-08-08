@@ -4280,7 +4280,7 @@
                         servicio:  cita.servicioNombre || '',
                         monto:     _monto,
                         mode:      'ask',
-                        showManualFallback: window.tuuPermitirManualAgenda(),
+                        showManualFallback: window.tuuPermitirManualAgenda(cita.sucursalId || null),
                     });
                     if (_res === 'canceled') return;
                     if (_res === 'manual_fallback') {
@@ -4942,7 +4942,7 @@
                         servicio:  cita.servicioNombre || '',
                         monto:     _monto,
                         mode:      'ask',
-                        showManualFallback: window.tuuPermitirManualAgenda(),
+                        showManualFallback: window.tuuPermitirManualAgenda(cita.sucursalId || null),
                     });
                     if (_res === 'canceled') return;
                     if (_res === 'manual_fallback') {
@@ -7615,7 +7615,7 @@
           var sel = document.getElementById('ecMetodoPago');
           if (!sel) return;
           var tuuOn = typeof window.tuuActivoAgenda === 'function' && window.tuuActivoAgenda();
-          var permitirManual = tuuOn && typeof window.tuuPermitirManualAgenda === 'function' && window.tuuPermitirManualAgenda();
+          var permitirManual = tuuOn && typeof window.tuuPermitirManualAgenda === 'function' && window.tuuPermitirManualAgenda(cita.sucursalId || null);
           var opts = tuuOn
             ? ['Efectivo', 'Tarjeta (POS)', 'Transferencia'].concat(permitirManual ? ['Tarjeta (manual)'] : []).concat(['Cortesía'])
             : ['Efectivo', 'Débito', 'Crédito', 'Transferencia', 'Cortesía'];
@@ -8024,7 +8024,7 @@
                 servicio:  svcNom,
                 monto:     precioFinal + _sumProdPrev + _sumProdNuevos,
                 mode:      'direct',
-                showManualFallback: window.tuuPermitirManualAgenda(),
+                showManualFallback: window.tuuPermitirManualAgenda(_ecCita.sucursalId || null),
             });
             if (_res === 'canceled') return;
             if (_res === 'manual_fallback') {
@@ -9328,8 +9328,15 @@
       window.tuuActivoAgenda = function () {
         return !!(_cfg && _cfg.configured === true && _cfg.enabled === true);
       };
-      window.tuuPermitirManualAgenda = function () {
-        return !!(_cfg && _cfg.permitirTarjetaManual === true);
+      // Con sucursalId resuelve el flag POR SEDE (mapa por sucursal si el
+      // admin lo configuró así); sin argumento o sin mapa, usa el global.
+      window.tuuPermitirManualAgenda = function (sucursalId) {
+        if (!_cfg) return false;
+        var m = _cfg.permitirTarjetaManualPorSucursal;
+        if (m && typeof m === 'object' && sucursalId && typeof m[sucursalId] === 'boolean') {
+          return m[sucursalId];
+        }
+        return _cfg.permitirTarjetaManual === true;
       };
       window.tuuGetConfigAgenda = function () { return _cfg; };
 
