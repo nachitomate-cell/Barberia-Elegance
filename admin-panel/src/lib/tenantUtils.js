@@ -11,6 +11,10 @@ const DOMAIN_MAP = {
   // que DOMAIN_MAP, así que el futuro selector lo pisa sin tocar esta línea.
   'app.synaptechspa.cl':               'sandbox',
   'barberiaelegance.synaptechspa.cl':  'elegance',
+  // Va explícito aunque el fallback diera lo mismo: desde que el fallback
+  // consulta el claim antes de rendirse, "por casualidad daba bien" dejó de
+  // ser cierto — un admin de otro local entrando acá resolvía al suyo.
+  'elegance.synaptechspa.cl':          'elegance',
   'barberiaferraza.synaptechspa.cl':   'ferraza',
   'gitananails.synaptechspa.cl':       'gitana',
   'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
@@ -117,6 +121,25 @@ export function isMultiSedeTenant(tid) {
   return tid === 'kronnos' || tid in LEGACY_KRONNOS_TO_SEDE;
 }
 
+/* ── Hosts de LOBBY: una marca, varios locales ────────────────────────────
+   No representan a UN tenant, así que no van en DOMAIN_MAP: si fueran una
+   entrada más, ganarían por hostname y mandarían al usuario al local
+   equivocado de su propia marca (Claudio, admin de Limache, cayendo en
+   Peñablanca cada vez que abre la app). Se resuelven DESPUÉS del claim, que
+   sabe cuál es el local de quien mira, y esto queda solo como default para
+   quien todavía no tiene claim persistido. */
+const LOBBY_HOSTS = {
+  'admin.kronnos.synaptechspa.cl': 'kronnos_penablanca',
+  'kronnos.synaptechspa.cl':       'kronnos_penablanca',
+};
+
+/* El tenant del claim, persistido en localStorage por fijarTenantDelUsuario().
+   localStorage y no sessionStorage a propósito: sessionStorage se BORRA al
+   cerrar la ventana, y el caso que reparamos es justo el arranque en frío de
+   la PWA. Es solo un default de resolución — Firestore rules siguen siendo el
+   enforcement real, así que un valor viejo no abre ninguna puerta. */
+const CLAIM_TENANT_KEY = 'saas_claim_tenant';
+
 export function resolveTenantId() {
   const url    = new URL(window.location.href);
   const local  = url.searchParams.get('local');
@@ -138,8 +161,32 @@ export function resolveTenantId() {
   // sessionStorage es per-tab, así que no cross-contamina entre sesiones.
   const fromSession = sessionStorage.getItem('saas_current_tenant');
   if (fromSession) return fromSession;
-  const fromDomain = DOMAIN_MAP[window.location.hostname.toLowerCase()];
+  const host = window.location.hostname.toLowerCase();
+  const fromDomain = DOMAIN_MAP[host];
   if (fromDomain) return fromDomain;
+
+  /* Antes de acá se caía derecho a 'elegance', y 'elegance' NO es un tenant
+     vacío: es una barbería viva que vive en las colecciones RAÍZ (ver
+     tenantCol más abajo). O sea que cualquier host sin mapear terminaba
+     mostrando el equipo de Elegance dentro del panel de otro local.
+
+     Pasó con Kronnos (08-08-2026): Claudio abre la PWA instalada desde
+     admin.kronnos.synaptechspa.cl, que middleware.js sí conoce pero DOMAIN_MAP
+     no. Sin `?local=` en la URL y con sessionStorage recién nacido (arranque en
+     frío de la app), resolvía 'elegance' y le aparecían Giox, Checho y Joaquin
+     Amiri en su agenda. Se veían solo porque /barberos raíz es de lectura
+     pública; las citas las negaban las rules, por eso las columnas salían
+     vacías. Intermitente porque entrando por el lobby el `?local=` lo tapaba.
+
+     El token ya trae la respuesta: el claim tenantId. Se usa acá. */
+  try {
+    const fromClaim = localStorage.getItem(CLAIM_TENANT_KEY);
+    if (fromClaim) return fromClaim;
+  } catch (_) { /* modo privado / storage bloqueado */ }
+
+  // Sin claim todavía (primer arranque): al menos quedarse dentro de la marca.
+  if (LOBBY_HOSTS[host]) return LOBBY_HOSTS[host];
+
   return 'elegance';
 }
 
@@ -155,7 +202,16 @@ export function resolveTenantId() {
    tenant de su claim. Si la sesión apunta a otro, se limpia y manda al suyo.
    Los operadores (que sí navegan entre locales) no se tocan. */
 export function fijarTenantDelUsuario(claimTenantId, { esOperador = false } = {}) {
-  if (esOperador || !claimTenantId) return null;
+  if (!claimTenantId) return null;
+
+  /* Persistir el claim SIEMPRE, incluso para operadores y aunque no haya nada
+     que corregir: es el insumo del paso "fromClaim" de resolveTenantId(), que
+     evita caer en Elegance cuando el host no está en DOMAIN_MAP. Se reescribe
+     en cada resolución de auth, así que si en el mismo dispositivo entra otra
+     persona, queda el suyo y no el del anterior. */
+  try { localStorage.setItem(CLAIM_TENANT_KEY, claimTenantId); } catch (_) {}
+
+  if (esOperador) return null;
   try {
     const actual = sessionStorage.getItem('saas_current_tenant');
     if (actual && actual !== claimTenantId) {
