@@ -37,8 +37,9 @@ const fmt = (t) => {
   console.log(`_system: suspendido=${s.suspendido ?? s.killSwitch ?? '—'} · waAsistente=${s.waAsistente ?? '—'}`);
   console.log(`tenant:  status=${t.status || '—'} · _billing: estadoPago=${b.estadoPago || '—'} plan=${b.plan || '—'}\n`);
 
-  // ── 2. Barberos del tenant ──
-  const snap = await db.collection(`tenants/${TID}/barberos`).get();
+  // ── 2. Barberos del tenant (elegance = raíz) ──
+  const colBarberos = TID === 'elegance' ? 'barberos' : `tenants/${TID}/barberos`;
+  const snap = await db.collection(colBarberos).get();
   console.log(`barberos (${snap.size} docs):`);
   const filas = [];
   snap.forEach(d => {
