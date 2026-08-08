@@ -1947,8 +1947,13 @@ export default function Productos() {
       {/* Venta Rápida Modal */}
       {ventaRapidaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 shadow-2xl" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+          {/* max-h + flex-col: el cuerpo crece con el producto elegido (split de
+              pagos, resumen, margen) y sin tope se pasaba del viewport. Como la
+              tarjeta es `overflow-hidden` y nadie scrolleaba, el pie con
+              "Registrar Venta" quedaba cortado y la venta no se podía cerrar.
+              Mismo patrón que los modales de Caja/Clientes/Agenda. */}
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="shrink-0 px-6 py-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <ShoppingBag size={18} className="text-emerald-400 animate-bounce" />
                 <h3 className="font-bold text-primary text-base">Venta Rápida de Producto</h3>
@@ -1958,7 +1963,7 @@ export default function Productos() {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-4">
               {/* Seleccionar Producto */}
               <div>
                 <label className={lbl}>Seleccionar Producto *</label>
@@ -2189,9 +2194,9 @@ export default function Productos() {
               })()}
             </div>
 
-            <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex gap-3 justify-end">
-              <button 
-                onClick={() => setVentaRapidaOpen(false)} 
+            <div className="shrink-0 px-6 py-4 bg-slate-950 border-t border-slate-800 flex gap-3 justify-end">
+              <button
+                onClick={() => setVentaRapidaOpen(false)}
                 className="px-4 py-2 text-sm text-slate-400 hover:text-primary rounded-lg hover:bg-slate-800 transition-all"
               >
                 Cancelar
@@ -2236,7 +2241,7 @@ export default function Productos() {
         const llevaStock = prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '';
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !devolucionSaving && setDevolucionModal(null)}>
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto overscroll-contain" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-primary flex items-center gap-2">
                   <Undo2 size={18} className="text-amber-400" /> Devolver producto
@@ -2329,7 +2334,10 @@ export default function Productos() {
 
       {entregaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEntregaModal(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+          {/* max-h + scroll: al dividir el pago el EditorPago agrega una fila por
+              método y la tarjeta se pasaba del viewport, dejando el botón de
+              confirmar fuera de alcance. Mismo caso que Venta Rápida. */}
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto overscroll-contain" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-primary">Confirmar Entrega</h3>
               <button onClick={() => setEntregaModal(null)} className="text-slate-500 hover:text-primary transition-colors">
